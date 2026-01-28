@@ -137,31 +137,27 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, cluster *clusterv1.
 	if err != nil {
 		return nil, err
 	}
+	// If the apiserver-etcd-client certificate exists, use it.
+	// Otherwise, try to generate a new etcd client certificate for the controllers.
+	clientCert, err := m.getAPIServerEtcdClientCert(ctx, clusterKey)
+	if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+	if keyData == nil {
+		return nil, fmt.Errorf("missing keyData in etcd CA bundle %s/%s and no apiserver-etcd-client certificate found", clusterKey.Namespace, fmt.Sprintf("%s-etcd", clusterKey.Name))
+	}
 
-	// If the CA key is defined, the cluster is using a managed etcd, and so we can generate a new
-	// etcd client certificate for the controllers.
-	// Otherwise the cluster is using an external etcd; in this case the only option to connect to etcd is to re-use
-	// the apiserver-etcd-client certificate.
-	// TODO: consider if we can detect if we are using external etcd in a more explicit way (e.g. looking at the config instead of deriving from the existing certificates)
-	var clientCert tls.Certificate
-	if keyData != nil {
-		// Get client cert from cache if possible, otherwise generate it and add it to the cache.
-		// Note: The caching assumes that the etcd CA is not rotated during the lifetime of a Cluster.
-		if entry, ok := m.ClientCertCache.Has(ClientCertEntry{Cluster: clusterKey, ClusterUID: cluster.UID, EncryptionAlgorithm: keyEncryptionAlgorithm}.Key()); ok {
-			clientCert = *entry.ClientCert
-		} else {
-			// The client cert expires after 10 years, but that's okay as the cache has a TTL of 1 day.
-			clientCert, err = generateClientCert(crtData, keyData, keyEncryptionAlgorithm)
-			if err != nil {
-				return nil, err
-			}
-			m.ClientCertCache.Add(ClientCertEntry{Cluster: clusterKey, ClusterUID: cluster.UID, ClientCert: &clientCert, EncryptionAlgorithm: keyEncryptionAlgorithm})
-		}
+	// Get client cert from cache if possible, otherwise generate it and add it to the cache.
+	// Note: The caching assumes that the etcd CA is not rotated during the lifetime of a Cluster.
+	if entry, ok := m.ClientCertCache.Has(ClientCertEntry{Cluster: clusterKey, ClusterUID: cluster.UID, EncryptionAlgorithm: keyEncryptionAlgorithm}.Key()); ok {
+		clientCert = *entry.ClientCert
 	} else {
-		clientCert, err = m.getAPIServerEtcdClientCert(ctx, clusterKey)
+		// The client cert expires after 10 years, but that's okay as the cache has a TTL of 1 day.
+		clientCert, err = generateClientCert(crtData, keyData, keyEncryptionAlgorithm)
 		if err != nil {
 			return nil, err
 		}
+		m.ClientCertCache.Add(ClientCertEntry{Cluster: clusterKey, ClusterUID: cluster.UID, ClientCert: &clientCert, EncryptionAlgorithm: keyEncryptionAlgorithm})
 	}
 
 	caPool := x509.NewCertPool()

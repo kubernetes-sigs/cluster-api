@@ -750,28 +750,8 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 			return false
 		}
 
-		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
-			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
-		for _, machine := range controlPlaneMachines {
-			if machine.Spec.Version != fromVersion {
-				return false
-			}
-		}
-
-		mds := framework.GetMachineDeploymentsByCluster(ctx,
-			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, md := range mds {
-			if md.Spec.Template.Spec.Version != fromVersion {
-				return false
-			}
-		}
-
-		mps := framework.GetMachinePoolsByCluster(ctx,
-			framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, mp := range mps {
-			if mp.Spec.Template.Spec.Version != fromVersion {
-				return false
-			}
+		if !checkVersions(ctx, c, cluster, fromVersion, fromVersion, fromVersion) {
+			return false
 		}
 
 		// Check if the BeforeControlPlaneUpgrade hook has been called (this should not happen when BeforeClusterUpgrade is blocking).
@@ -790,6 +770,33 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{fromVersion, toVersion}, isBlockingUpgrade, nil)
 
 	Byf("BeforeClusterUpgrade from %s to %s unblocked", fromVersion, toVersion)
+}
+
+func checkVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, cpVersion, mdVersion, mpVersion string) bool {
+	controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
+		framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
+	for _, machine := range controlPlaneMachines {
+		if machine.Spec.Version != cpVersion {
+			return false
+		}
+	}
+
+	mds := framework.GetMachineDeploymentsByCluster(ctx,
+		framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
+	for _, md := range mds {
+		if md.Spec.Template.Spec.Version != mdVersion {
+			return false
+		}
+	}
+
+	mps := framework.GetMachinePoolsByCluster(ctx,
+		framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
+	for _, mp := range mps {
+		if mp.Spec.Template.Spec.Version != mpVersion {
+			return false
+		}
+	}
+	return true
 }
 
 // beforeControlPlaneUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if
@@ -811,28 +818,8 @@ func beforeControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, 
 			return false
 		}
 
-		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
-			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
-		for _, machine := range controlPlaneMachines {
-			if machine.Spec.Version != fromVersion {
-				return false
-			}
-		}
-
-		mds := framework.GetMachineDeploymentsByCluster(ctx,
-			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, md := range mds {
-			if md.Spec.Template.Spec.Version != workersVersion {
-				return false
-			}
-		}
-
-		mps := framework.GetMachinePoolsByCluster(ctx,
-			framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, mp := range mps {
-			if mp.Spec.Template.Spec.Version != workersVersion {
-				return false
-			}
+		if !checkVersions(ctx, c, cluster, fromVersion, workersVersion, workersVersion) {
+			return false
 		}
 
 		return true
@@ -863,28 +850,8 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 			return false
 		}
 
-		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
-			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
-		for _, machine := range controlPlaneMachines {
-			if machine.Spec.Version != controlPlaneVersion {
-				return false
-			}
-		}
-
-		mds := framework.GetMachineDeploymentsByCluster(ctx,
-			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, md := range mds {
-			if md.Spec.Template.Spec.Version != workersVersion {
-				return false
-			}
-		}
-
-		mps := framework.GetMachinePoolsByCluster(ctx,
-			framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, mp := range mps {
-			if mp.Spec.Template.Spec.Version != workersVersion {
-				return false
-			}
+		if !checkVersions(ctx, c, cluster, controlPlaneVersion, workersVersion, workersVersion) {
+			return false
 		}
 
 		// Check if the BeforeWorkersUpgrade hook has been called (this should not happen when AfterControlPlaneUpgrade is blocking).
@@ -943,28 +910,8 @@ func beforeWorkersUpgradeTestHandler(ctx context.Context, c client.Client, clust
 			return false
 		}
 
-		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
-			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
-		for _, machine := range controlPlaneMachines {
-			if machine.Spec.Version != toVersion {
-				return false
-			}
-		}
-
-		mds := framework.GetMachineDeploymentsByCluster(ctx,
-			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, md := range mds {
-			if md.Spec.Template.Spec.Version != fromVersion {
-				return false
-			}
-		}
-
-		mps := framework.GetMachinePoolsByCluster(ctx,
-			framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, mp := range mps {
-			if mp.Spec.Template.Spec.Version != fromVersion {
-				return false
-			}
+		if !checkVersions(ctx, c, cluster, toVersion, fromVersion, fromVersion) {
+			return false
 		}
 
 		return true
@@ -995,28 +942,8 @@ func afterWorkersUpgradeTestHandler(ctx context.Context, c client.Client, cluste
 			return false
 		}
 
-		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
-			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
-		for _, machine := range controlPlaneMachines {
-			if machine.Spec.Version != controlPlaneVersion {
-				return false
-			}
-		}
-
-		mds := framework.GetMachineDeploymentsByCluster(ctx,
-			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, md := range mds {
-			if md.Spec.Template.Spec.Version != workersVersion {
-				return false
-			}
-		}
-
-		mps := framework.GetMachinePoolsByCluster(ctx,
-			framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
-		for _, mp := range mps {
-			if mp.Spec.Template.Spec.Version != workersVersion {
-				return false
-			}
+		if !checkVersions(ctx, c, cluster, controlPlaneVersion, workersVersion, workersVersion) {
+			return false
 		}
 
 		// Check if the BeforeControlPlaneUpgrade hook has been called (this should not happen when AfterWorkersUpgrade is blocking).

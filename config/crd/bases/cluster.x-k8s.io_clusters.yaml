@@ -258,8 +258,7 @@ spec:
                 description: |-
                   topology encapsulates the topology for the cluster.
                   NOTE: It is required to enable the ClusterTopology
-                  feature gate flag to activate managed topologies support;
-                  this feature is highly experimental, and parts of it might still be not implemented.
+                  feature gate flag to activate managed topologies support.
                 properties:
                   class:
                     description: class is the name of the ClusterClass object to create
@@ -1732,8 +1731,7 @@ spec:
                 description: |-
                   topology encapsulates the topology for the cluster.
                   NOTE: It is required to enable the ClusterTopology
-                  feature gate flag to activate managed topologies support;
-                  this feature is highly experimental, and parts of it might still be not implemented.
+                  feature gate flag to activate managed topologies support.
                 properties:
                   classRef:
                     description: classRef is the ref to the ClusterClass that should

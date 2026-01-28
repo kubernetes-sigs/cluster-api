@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package patch
+package test
 
 import (
 	"testing"
@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -83,7 +84,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(env.Status().Update(ctx, obj)).To(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Modifying the OwnerReferences")
@@ -145,7 +146,7 @@ func TestPatchHelper(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Appending a new condition")
@@ -206,7 +207,7 @@ func TestPatchHelper(t *testing.T) {
 				}).Should(Succeed())
 
 				t.Log("Creating a new patch helper")
-				patcher, err := NewHelper(obj, env)
+				patcher, err := patch.NewHelper(obj, env)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
@@ -253,7 +254,7 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 				t.Log("Creating a new patch helper")
-				patcher, err := NewHelper(obj, env)
+				patcher, err := patch.NewHelper(obj, env)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
@@ -321,7 +322,7 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 				t.Log("Creating a new patch helper")
-				patcher, err := NewHelper(obj, env)
+				patcher, err := patch.NewHelper(obj, env)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Changing the object spec, status, and adding Ready=True condition")
@@ -395,7 +396,7 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 				t.Log("Creating a new patch helper")
-				patcher, err := NewHelper(obj, env)
+				patcher, err := patch.NewHelper(obj, env)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
@@ -450,14 +451,14 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 				t.Log("Creating a new patch helper")
-				patcher, err := NewHelper(obj, env)
+				patcher, err := patch.NewHelper(obj, env)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
 				conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 				t.Log("Patching the object")
-				g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
+				g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 				t.Log("Validating the object has been updated")
 				readyBefore := conditions.Get(obj, "Ready")
@@ -499,14 +500,14 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 				t.Log("Creating a new patch helper")
-				patcher, err := NewHelper(obj, env)
+				patcher, err := patch.NewHelper(obj, env)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
 				conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 				t.Log("Patching the object")
-				g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
+				g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 
 				t.Log("Validating the object has been updated")
 				readyBefore := conditions.Get(obj, "Ready")
@@ -556,7 +557,7 @@ func TestPatchHelper(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Adding a finalizer")
@@ -596,7 +597,7 @@ func TestPatchHelper(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Removing the finalizers")
@@ -635,7 +636,7 @@ func TestPatchHelper(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
@@ -680,7 +681,7 @@ func TestPatchHelper(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object status")
@@ -718,7 +719,7 @@ func TestPatchHelper(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
@@ -782,7 +783,7 @@ func TestPatchHelper(t *testing.T) {
 		}).Should(Succeed())
 
 		t.Log("Creating a new patch helper")
-		patcher, err := NewHelper(obj, env)
+		patcher, err := patch.NewHelper(obj, env)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		t.Log("Adding a new Data value")
@@ -845,14 +846,14 @@ func TestPatchHelper(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
 			obj.Spec.Replicas = ptr.To[int32](10)
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -885,7 +886,7 @@ func TestPatchHelper(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
@@ -901,7 +902,7 @@ func TestPatchHelper(t *testing.T) {
 			}
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -939,11 +940,11 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(env.Status().Update(ctx, obj)).To(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -1005,7 +1006,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(env.Delete(ctx, machineSet)).To(Succeed())
 		}()
 
-		patcher, err := NewHelper(cluster, env)
+		patcher, err := patch.NewHelper(cluster, env)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(patcher.Patch(ctx, machineSet)).NotTo(Succeed())
@@ -1040,7 +1041,7 @@ func TestPatchHelper(t *testing.T) {
 
 		// Patch helper will first remove the finalizer and then it will get a not found error when
 		// trying to patch status. This test validates that the not found error is ignored.
-		patcher, err := NewHelper(cluster, env)
+		patcher, err := patch.NewHelper(cluster, env)
 		g.Expect(err).ToNot(HaveOccurred())
 		cluster.Finalizers = []string{}
 		cluster.Status.Phase = "Running"
@@ -1051,9 +1052,9 @@ func TestPatchHelper(t *testing.T) {
 func TestNewHelperNil(t *testing.T) {
 	var x *appsv1.Deployment
 	g := NewWithT(t)
-	_, err := NewHelper(x, nil)
+	_, err := patch.NewHelper(x, nil)
 	g.Expect(err).To(HaveOccurred())
-	_, err = NewHelper(nil, nil)
+	_, err = patch.NewHelper(nil, nil)
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -1088,7 +1089,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
@@ -1127,14 +1128,14 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
 			v1beta1conditions.MarkTrue(obj, clusterv1.ConditionType("Ready"))
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, Clusterv1ConditionsFieldPath{"status", "conditions"})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.Clusterv1ConditionsFieldPath{"status", "conditions"})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() clusterv1.Conditions {
@@ -1174,7 +1175,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
@@ -1242,7 +1243,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Changing the object spec, status, and adding Ready=True condition")
@@ -1313,7 +1314,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
@@ -1368,14 +1369,14 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
 			v1beta1conditions.MarkTrue(obj, clusterv1.ConditionType("Ready"))
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType("Ready")}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType("Ready")}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			readyBefore := v1beta1conditions.Get(obj, clusterv1.ConditionType("Ready"))
@@ -1417,14 +1418,14 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
 			v1beta1conditions.MarkTrue(obj, clusterv1.ConditionType("Ready"))
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			readyBefore := v1beta1conditions.Get(obj, clusterv1.ConditionType("Ready"))
@@ -1468,7 +1469,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			// Adding Ready first
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking clusterv1.conditions and metav1.conditions Ready=True")
@@ -1480,7 +1481,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			// Adding Available as a second condition, but it should be sorted as first
 			t.Log("Creating a new patch helper")
-			patcher, err = NewHelper(obj, env)
+			patcher, err = patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking metav1.conditions Available=True")
@@ -1533,7 +1534,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking clusterv1.conditions and metav1.conditions Ready=True")
@@ -1541,7 +1542,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, Clusterv1ConditionsFieldPath{"status", "conditions"}, Metav1ConditionsFieldPath{"status", "v1beta2", "conditions"})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.Clusterv1ConditionsFieldPath{"status", "conditions"}, patch.Metav1ConditionsFieldPath{"status", "v1beta2", "conditions"})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() clusterv1.Conditions {
@@ -1589,7 +1590,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking clusterv1.conditions and metav1.conditions Ready=True")
@@ -1679,7 +1680,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Changing the object spec, status, and marking clusterv1.condition and metav1.conditions Ready=True")
@@ -1772,7 +1773,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
@@ -1819,7 +1820,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
@@ -1867,7 +1868,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready clusterv1.condition and metav1.conditions True")
@@ -1875,7 +1876,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType("Ready")}}, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType("Ready")}}, patch.WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -1937,7 +1938,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready clusterv1.condition and metav1.conditions True")
@@ -1945,7 +1946,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2008,7 +2009,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			// Adding Ready first
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition and back compatibility condition Ready=True")
@@ -2020,7 +2021,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			// Adding Available as a second condition, but it should be sorted as first
 			t.Log("Creating a new patch helper")
-			patcher, err = NewHelper(obj, env)
+			patcher, err = patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Available=True")
@@ -2073,7 +2074,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition and back compatibility condition Ready=True")
@@ -2081,7 +2082,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, Clusterv1ConditionsFieldPath{"status", "deprecated", "v1beta1", "conditions"}, Metav1ConditionsFieldPath{"status", "conditions"})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.Clusterv1ConditionsFieldPath{"status", "deprecated", "v1beta1", "conditions"}, patch.Metav1ConditionsFieldPath{"status", "conditions"})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() clusterv1.Conditions {
@@ -2129,7 +2130,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition and back compatibility condition Ready=True")
@@ -2219,7 +2220,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Changing the object spec, status, and marking condition and back compatibility condition Ready=True")
@@ -2312,7 +2313,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
@@ -2359,7 +2360,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
@@ -2407,7 +2408,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready condition and back compatibility condition True")
@@ -2415,7 +2416,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType("Ready")}}, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType("Ready")}}, patch.WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2477,7 +2478,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready condition and back compatibility condition True")
@@ -2485,7 +2486,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2548,7 +2549,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			// Adding Ready first
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
@@ -2559,7 +2560,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			// Adding Available as a second condition, but it should be sorted as first
 			t.Log("Creating a new patch helper")
-			patcher, err = NewHelper(obj, env)
+			patcher, err = patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Available=True")
@@ -2605,14 +2606,14 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			}).Should(Succeed())
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, Metav1ConditionsFieldPath{"status", "conditions"})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.Metav1ConditionsFieldPath{"status", "conditions"})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() []metav1.Condition {
@@ -2652,7 +2653,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
@@ -2720,7 +2721,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Changing the object spec, status, and marking condition Ready=True")
@@ -2792,7 +2793,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
@@ -2839,14 +2840,14 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready condition True")
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2897,14 +2898,14 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(obj.ResourceVersion).NotTo(Equal(objCopy.ResourceVersion))
 
 			t.Log("Creating a new patch helper")
-			patcher, err := NewHelper(obj, env)
+			patcher, err := patch.NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready condition True")
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {

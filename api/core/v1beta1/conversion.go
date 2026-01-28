@@ -1901,6 +1901,10 @@ func Convert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *MachinePoolS
 	return autoConvert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s)
 }
 
+func Convert_v1beta2_MachinePoolSpec_To_v1beta1_MachinePoolSpec(in *clusterv1.MachinePoolSpec, out *MachinePoolSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_MachinePoolSpec_To_v1beta1_MachinePoolSpec(in, out, s)
+}
+
 func Convert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(in *ClusterClassStatusVariableDefinition, out *clusterv1.ClusterClassStatusVariableDefinition, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(in, out, s); err != nil {
 		return err

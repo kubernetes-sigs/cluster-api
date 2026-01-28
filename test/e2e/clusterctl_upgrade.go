@@ -724,7 +724,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// continuous reconciles when everything should be stable.
 			if i == len(input.Upgrades)-1 {
 				Byf("[%d] Checking that resourceVersions are stable", i)
-				framework.ValidateResourceVersionStable(ctx, managementClusterProxy, workloadCluster.Namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(workloadCluster.Name))
+				resourceVersionWait := framework.ValidateResourceVersionStableWaitIntervals{
+					WaitToBecomeStable: input.E2EConfig.GetIntervals(specName, "wait-resource-versions-become-stable"),
+					WaitToRemainStable: input.E2EConfig.GetIntervals(specName, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, managementClusterProxy, workloadCluster.Namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(workloadCluster.Name), resourceVersionWait)
 
 				// NOTE: Checks on conditions works on v1beta2 only, so running this checks only in the last step which is
 				// always current version.

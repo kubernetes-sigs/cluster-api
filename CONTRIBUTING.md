@@ -117,7 +117,7 @@ this should generally not be the case.
 
 ## Contributing a Patch
 
-1. If you haven't already done so, sign a Contributor License Agreement (see details above).
+1. If you haven't already done so, sign a [Contributor License Agreement](#contributor-license-agreements).
 1. If working on an issue, signal other contributors that you are actively working on it by assigning it to yourself.
 1. Fork the desired repo, develop and test your code changes.
 1. Submit a pull request.

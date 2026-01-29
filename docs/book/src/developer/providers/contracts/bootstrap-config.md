@@ -55,8 +55,10 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [BootstrapConfig: terminal failures]                                       | No        |                                      |
 | [BootstrapConfigTemplate, BootstrapConfigTemplateList resource definition] | Yes       |                                      |
 | [BootstrapConfigTemplate: support for SSA dry run]                         | No        | Mandatory for ClusterClasses support |
+| [ClusterClass topology controller behavior for MachinePools]               | No        | Mandatory for ClusterClasses support |
 | [Sentinel file]                                                            | No        |                                      |
 | [Taint Nodes at creation]                                                  | No        |                                      |
+| [Infrastructure provider watching for bootstrap changes]                   | No        |                                      |
 | [Support for running multiple instances]                                   | No        | Mandatory for clusterctl CLI support |
 | [Clusterctl support]                                                       | No        | Mandatory for clusterctl CLI support |
 | [BootstrapConfig: pausing]                                                 | No        |                                      |
@@ -420,6 +422,33 @@ validation behavior for all other cases.
 
 See [the DockerMachineTemplate webhook] as a reference for a compatible implementation.
 
+### ClusterClass topology controller behavior for MachinePools
+
+When using ClusterClass and managed topologies with MachinePools, the topology controller creates BootstrapConfig objects
+from BootstrapConfigTemplates. Unlike templates (which are immutable), these BootstrapConfig objects have mutable specs,
+but the topology controller handles spec changes through a **rotation strategy** rather than in-place updates.
+
+When the topology controller detects that the BootstrapConfigTemplate has changed (e.g., from template updates
+in ClusterClass), it performs a **rotation**:
+
+1. Creates a new BootstrapConfig object with a new name
+2. Updates the MachinePool's `spec.template.spec.bootstrap.configRef` to reference the new object
+3. The old BootstrapConfig is garbage collected when no longer referenced
+
+<aside class="note">
+
+<h1>Provider expectations for rotation</h1>
+
+Bootstrap providers SHOULD be aware that when used with MachinePools, the BootstrapConfig object may be rotated
+(replaced with a new object) rather than updated in-place when spec changes occur.
+
+</aside>
+
+Metadata-only changes (labels, annotations) MUST NOT trigger rotation; they are patched in-place on the existing object.
+
+Note: This rotation behavior is specific to MachinePools. For individual Machines (e.g., in MachineDeployments), BootstrapConfig
+objects are created per-Machine and follow the standard Machine lifecycle.
+
 ### Sentinel file
 
 A bootstrap provider's bootstrap data must create `/run/cluster-api/bootstrap-success.complete` 
@@ -432,6 +461,13 @@ A bootstrap provider can optionally taint worker nodes at creation with `node.cl
 This taint is used to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.
 As of today the Node initialization consists of syncing labels from Machines to Nodes. Once the labels have been
 initially synced the taint is removed from the Node.
+
+### Infrastructure provider watching for bootstrap changes
+
+Infrastructure providers watching for bootstrap changes SHOULD monitor the MachinePool's `spec.template.spec.bootstrap.configRef.name`
+field. When the reference name changes, this indicates a rotation has occurred and may require triggering a node rollout.
+
+This pattern is consistent with how MachineDeployments handle BootstrapTemplate rotations.
 
 ### Support for running multiple instances
 
@@ -502,8 +538,10 @@ The following diagram shows the typical logic for a bootstrap provider:
 [BootstrapConfig: terminal failures]: #bootstrapconfig-terminal-failures
 [BootstrapConfigTemplate, BootstrapConfigTemplateList resource definition]: #bootstrapconfigtemplate-bootstrapconfigtemplatelist-resource-definition
 [BootstrapConfigTemplate: support for SSA dry run]: #bootstrapconfigtemplate-support-for-ssa-dry-run
+[ClusterClass topology controller behavior for MachinePools]: #clusterclass-topology-controller-behavior-for-machinepools
 [Sentinel file]: #sentinel-file
 [Taint Nodes at creation]: #taint-nodes-at-creation
+[Infrastructure provider watching for bootstrap changes]: #infrastructure-provider-watching-for-bootstrap-changes
 [Support for running multiple instances]: #support-for-running-multiple-instances
 [Support running multiple instances of the same provider]: ../../core/support-multiple-instances.md
 [Clusterctl support]: #clusterctl-support

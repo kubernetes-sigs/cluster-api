@@ -87,7 +87,6 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// CABPK specific flags.
-	clusterConcurrency       int
 	clusterCacheConcurrency  int
 	kubeadmConfigConcurrency int
 	skipCRDMigrationPhases   []string
@@ -129,10 +128,6 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
 		"Enable block profiling")
-
-	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
-		"Number of clusters to process simultaneously")
-	_ = fs.MarkDeprecated("cluster-concurrency", "This flag has no function anymore and is going to be removed in a next release. Use \"--clustercachetracker-concurrency\" instead.")
 
 	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")

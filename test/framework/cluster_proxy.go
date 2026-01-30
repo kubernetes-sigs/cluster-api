@@ -30,11 +30,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -108,8 +105,7 @@ type ClusterProxy interface {
 // createOrUpdateConfig contains options for use with CreateOrUpdate.
 type createOrUpdateConfig struct {
 	labelSelector labels.Selector
-	createOpts    []client.CreateOption
-	updateOpts    []client.UpdateOption
+	applyOpts     []client.ApplyOption
 }
 
 // CreateOrUpdateOption is a configuration option supplied to CreateOrUpdate.
@@ -122,17 +118,10 @@ func WithLabelSelector(labelSelector labels.Selector) CreateOrUpdateOption {
 	}
 }
 
-// WithCreateOpts allows definition of the Create options to be used in resource Create.
-func WithCreateOpts(createOpts ...client.CreateOption) CreateOrUpdateOption {
+// WithApplyOpts allows definition of the Apply options to be used in resource Apply.
+func WithApplyOpts(applyOpts ...client.ApplyOption) CreateOrUpdateOption {
 	return func(c *createOrUpdateConfig) {
-		c.createOpts = createOpts
-	}
-}
-
-// WithUpdateOpts allows definition of the Update options to be used in resource Update.
-func WithUpdateOpts(updateOpts ...client.UpdateOption) CreateOrUpdateOption {
-	return func(c *createOrUpdateConfig) {
-		c.updateOpts = updateOpts
+		c.applyOpts = applyOpts
 	}
 }
 
@@ -306,8 +295,8 @@ func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
 	return p.cache
 }
 
-// CreateOrUpdate creates or updates objects using the clusterProxy client.
-// Defaults to use FieldValidation: strict, which can be overwritten with CreateOrUpdateOptions.
+// CreateOrUpdate creates or updates objects using the clusterProxy client using server-side apply.
+// Defaults to use FieldManager: cluster-api-e2e which can be overwritten with CreateOrUpdateOptions.
 func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opts ...CreateOrUpdateOption) error {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateOrUpdate")
 	Expect(resources).NotTo(BeNil(), "resources is required for CreateOrUpdate")
@@ -319,39 +308,19 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 	if config.labelSelector != nil {
 		labelSelector = config.labelSelector
 	}
-	// Prepending field validation strict so that it is used per default, but can still be overwritten.
-	config.createOpts = append([]client.CreateOption{client.FieldValidation("Strict")}, config.createOpts...)
-	config.updateOpts = append([]client.UpdateOption{client.FieldValidation("Strict")}, config.updateOpts...)
+	// Prepending field owner so that it is used per default, but can still be overwritten.
+	config.applyOpts = append([]client.ApplyOption{client.FieldOwner("cluster-api-e2e")}, config.applyOpts...)
 	objs, err := yaml.ToUnstructured(resources)
 	if err != nil {
 		return err
 	}
 
-	existingObject := &unstructured.Unstructured{}
 	var retErrs []error
 	for _, o := range objs {
-		objectKey := types.NamespacedName{
-			Name:      o.GetName(),
-			Namespace: o.GetNamespace(),
-		}
-		existingObject.SetAPIVersion(o.GetAPIVersion())
-		existingObject.SetKind(o.GetKind())
 		labels := labels.Set(o.GetLabels())
 		if labelSelector.Matches(labels) {
-			if err := p.GetClient().Get(ctx, objectKey, existingObject); err != nil {
-				// Expected error -- if the object does not exist, create it
-				if apierrors.IsNotFound(err) {
-					if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
-						retErrs = append(retErrs, err)
-					}
-				} else {
-					retErrs = append(retErrs, err)
-				}
-			} else {
-				o.SetResourceVersion(existingObject.GetResourceVersion())
-				if err := p.GetClient().Update(ctx, &o, config.updateOpts...); err != nil {
-					retErrs = append(retErrs, err)
-				}
+			if err := p.GetClient().Apply(ctx, client.ApplyConfigurationFromUnstructured(&o), config.applyOpts...); err != nil {
+				retErrs = append(retErrs, err)
 			}
 		}
 	}

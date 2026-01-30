@@ -163,7 +163,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (_ ctrl.Result, retErr error) {
+func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (_ ctrl.Result, retErr error) {
 	defer func() {
 		if retErr != nil {
 			conditions.Set(inMemoryMachine, metav1.Condition{
@@ -229,6 +229,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 
 	inMemoryMachine.Spec.ProviderID = calculateProviderID(inMemoryMachine)
 	inMemoryMachine.Status.Initialization.Provisioned = ptr.To(true)
+	inMemoryMachine.Status.FailureDomain = machine.Spec.FailureDomain
 	v1beta1conditions.MarkTrue(inMemoryMachine, infrav1.VMProvisionedCondition)
 	conditions.Set(inMemoryMachine, metav1.Condition{
 		Type:   infrav1.DevMachineInMemoryVMProvisionedCondition,

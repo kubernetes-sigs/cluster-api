@@ -100,6 +100,9 @@ func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization = initialization
 	}
 
+	if ok {
+		dst.Status.FailureDomain = restored.Status.FailureDomain
+	}
 	return nil
 }
 
@@ -221,6 +224,9 @@ func (src *DevMachine) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization = initialization
 	}
 
+	if ok {
+		dst.Status.FailureDomain = restored.Status.FailureDomain
+	}
 	return nil
 }
 

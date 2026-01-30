@@ -970,7 +970,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 			// Best effort cleanup of the InfrastructureMachinePool;
 			// If this fails, the object will be garbage collected when the cluster is deleted.
 			if err := r.Client.Delete(ctx, mp.InfrastructureMachinePoolObject); err != nil {
-				infraLog.Info("WARNING! Failed to cleanup InfrastructureMachinePoolObject for MachinePool while handling creation error. The object will be garbage collected when the cluster is deleted.")
+				infraLog.Error(err, "WARNING! Failed to cleanup InfrastructureMachinePoolObject for MachinePool while handling creation error. The object will be garbage collected when the cluster is deleted.")
 			}
 		}
 	}
@@ -1020,7 +1020,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 	return clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "MachinePool creation", mp.Object)
 }
 
-// updateMachinePool updates a MachinePool. Also updates the corresponding objects if necessary.
+// updateMachinePool updates a MachinePool. Also rotates the corresponding objects if necessary.
 func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTopologyName string, currentMP, desiredMP *scope.MachinePoolState) error {
 	log := ctrl.LoggerFrom(ctx).WithValues("MachinePool", klog.KObj(desiredMP.Object),
 		"machinePoolTopology", mpTopologyName)
@@ -1033,27 +1033,67 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTo
 	}
 
 	cluster := s.Current.Cluster
-	infraCtx := ctrl.LoggerInto(ctx, log.WithValues(desiredMP.InfrastructureMachinePoolObject.GetKind(), klog.KObj(desiredMP.InfrastructureMachinePoolObject)))
-	if _, err := r.reconcileReferencedObject(infraCtx, reconcileReferencedObjectInput{
-		cluster: cluster,
-		current: currentMP.InfrastructureMachinePoolObject,
-		desired: desiredMP.InfrastructureMachinePoolObject,
-	}); err != nil {
+
+	// Reconcile the InfrastructureMachinePool object, rotating it if necessary.
+	infraLog := log.WithValues(desiredMP.InfrastructureMachinePoolObject.GetKind(), klog.KObj(desiredMP.InfrastructureMachinePoolObject))
+	infraCtx := ctrl.LoggerInto(ctx, infraLog)
+	infrastructureMachinePoolCleanupFunc := func() {}
+	createdInfra, err := r.reconcileReferencedTemplate(infraCtx, reconcileReferencedTemplateInput{
+		cluster:              cluster,
+		ref:                  &desiredMP.Object.Spec.Template.Spec.InfrastructureRef,
+		current:              currentMP.InfrastructureMachinePoolObject,
+		desired:              desiredMP.InfrastructureMachinePoolObject,
+		templateNamePrefix:   topologynames.InfrastructureMachinePoolNamePrefix(cluster.Name, mpTopologyName),
+		compatibilityChecker: check.ObjectsAreCompatible,
+	})
+	if err != nil {
 		return errors.Wrapf(err, "failed to reconcile MachinePool %s", klog.KObj(currentMP.Object))
 	}
 
-	bootstrapCtx := ctrl.LoggerInto(ctx, log.WithValues(desiredMP.BootstrapObject.GetKind(), klog.KObj(desiredMP.BootstrapObject)))
-	if _, err := r.reconcileReferencedObject(bootstrapCtx, reconcileReferencedObjectInput{
-		cluster: cluster,
-		current: currentMP.BootstrapObject,
-		desired: desiredMP.BootstrapObject,
-	}); err != nil {
+	if createdInfra {
+		infrastructureMachinePoolCleanupFunc = func() {
+			// Best effort cleanup of the InfrastructureMachinePool;
+			// If this fails, the object will be garbage collected when the cluster is deleted.
+			if err := r.Client.Delete(ctx, desiredMP.InfrastructureMachinePoolObject); err != nil {
+				infraLog.Error(err, "WARNING! Failed to cleanup InfrastructureMachinePool for MachinePool while handling update error. The object will be garbage collected when the cluster is deleted.")
+			}
+		}
+	}
+
+	// Reconcile the BootstrapConfig object, rotating it if necessary.
+	bootstrapLog := log.WithValues(desiredMP.BootstrapObject.GetKind(), klog.KObj(desiredMP.BootstrapObject))
+	bootstrapCtx := ctrl.LoggerInto(ctx, bootstrapLog)
+	bootstrapCleanupFunc := func() {}
+	createdBootstrap, err := r.reconcileReferencedTemplate(bootstrapCtx, reconcileReferencedTemplateInput{
+		cluster:              cluster,
+		ref:                  &desiredMP.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
+		current:              currentMP.BootstrapObject,
+		desired:              desiredMP.BootstrapObject,
+		templateNamePrefix:   topologynames.BootstrapConfigNamePrefix(cluster.Name, mpTopologyName),
+		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
+	})
+	if err != nil {
+		// Best effort cleanup of the InfrastructureMachinePool (only on rotation).
+		infrastructureMachinePoolCleanupFunc()
 		return errors.Wrapf(err, "failed to reconcile MachinePool %s", klog.KObj(currentMP.Object))
+	}
+
+	if createdBootstrap {
+		bootstrapCleanupFunc = func() {
+			// Best effort cleanup of the BootstrapConfig;
+			// If this fails, the object will be garbage collected when the cluster is deleted.
+			if err := r.Client.Delete(ctx, desiredMP.BootstrapObject); err != nil {
+				bootstrapLog.Error(err, "WARNING! Failed to cleanup BootstrapConfig for MachinePool while handling update error. The object will be garbage collected when the cluster is deleted.")
+			}
+		}
 	}
 
 	// Check differences between current and desired MachinePool, and eventually patch the current object.
 	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, currentMP.Object, desiredMP.Object, r.Client, r.ssaCache)
 	if err != nil {
+		// Best effort cleanup of the InfrastructureMachinePool & BootstrapConfig (only on rotation).
+		infrastructureMachinePoolCleanupFunc()
+		bootstrapCleanupFunc()
 		return errors.Wrapf(err, "failed to create patch helper for MachinePool %s", klog.KObj(currentMP.Object))
 	}
 	if !patchHelper.HasChanges() {
@@ -1070,6 +1110,9 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTo
 	}
 	modifiedResourceVersion, err := patchHelper.Patch(ctx)
 	if err != nil {
+		// Best effort cleanup of the InfrastructureMachinePool & BootstrapConfig (only on rotation).
+		infrastructureMachinePoolCleanupFunc()
+		bootstrapCleanupFunc()
 		return errors.Wrapf(err, "failed to patch MachinePool %s", klog.KObj(currentMP.Object))
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated MachinePool %q%s", klog.KObj(currentMP.Object), logMachinePoolVersionChange(currentMP.Object, desiredMP.Object))

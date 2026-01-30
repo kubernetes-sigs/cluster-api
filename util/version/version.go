@@ -23,14 +23,11 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
 )
 
 var (
 	// KubeSemver is the regex for Kubernetes versions. It requires the "v" prefix.
 	KubeSemver = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
-	// KubeSemverTolerant is the regex for Kubernetes versions with an optional "v" prefix.
-	KubeSemverTolerant = regexp.MustCompile(`^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
 )
 
 // MajorMinorPatch returns a version that only has Major / Minor / Patch fields set.
@@ -42,57 +39,10 @@ func MajorMinorPatch(version semver.Version) semver.Version {
 	}
 }
 
-// ParseMajorMinorPatch returns a semver.Version from the string provided
-// by looking only at major.minor.patch and stripping everything else out.
-// It requires the version to have a "v" prefix.
-//
-// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API. Please use semver.Parse instead.
-func ParseMajorMinorPatch(version string) (semver.Version, error) {
-	return parseMajorMinorPatch(version, false)
-}
-
-// ParseMajorMinorPatchTolerant returns a semver.Version from the string provided
-// by looking only at major.minor.patch and stripping everything else out.
-// It does not require the version to have a "v" prefix.
-//
-// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API. Please use semver.ParseTolerant instead.
-func ParseMajorMinorPatchTolerant(version string) (semver.Version, error) {
-	return parseMajorMinorPatch(version, true)
-}
-
 // ParseTolerantImageTag replaces all _ with + in version and then parses the version with semver.ParseTolerant.
 // This allows to parse image tags which cannot contain +, so they use _ instead of +.
 func ParseTolerantImageTag(version string) (semver.Version, error) {
 	return semver.ParseTolerant(strings.ReplaceAll(version, "_", "+"))
-}
-
-// parseMajorMinorPatch returns a semver.Version from the string provided
-// by looking only at major.minor.patch and stripping everything else out.
-func parseMajorMinorPatch(version string, tolerant bool) (semver.Version, error) {
-	groups := KubeSemver.FindStringSubmatch(version)
-	if tolerant {
-		groups = KubeSemverTolerant.FindStringSubmatch(version)
-	}
-	if len(groups) < 4 {
-		return semver.Version{}, errors.Errorf("failed to parse major.minor.patch from %q", version)
-	}
-	major, err := strconv.ParseUint(groups[1], 10, 64)
-	if err != nil {
-		return semver.Version{}, errors.Wrapf(err, "failed to parse major version from %q", version)
-	}
-	minor, err := strconv.ParseUint(groups[2], 10, 64)
-	if err != nil {
-		return semver.Version{}, errors.Wrapf(err, "failed to parse minor version from %q", version)
-	}
-	patch, err := strconv.ParseUint(groups[3], 10, 64)
-	if err != nil {
-		return semver.Version{}, errors.Wrapf(err, "failed to parse patch version from %q", version)
-	}
-	return semver.Version{
-		Major: major,
-		Minor: minor,
-		Patch: patch,
-	}, nil
 }
 
 const (

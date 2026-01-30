@@ -403,7 +403,9 @@ Notably, the Max CoreDNS version could change also with patch releases.
 | v1.11       | v1.12.3             |
 | v1.11.2     | v1.12.4             |
 | >= v1.11.3  | v1.13.1             |
+| >= v1.11.6  | v1.14.1             |
 | v1.12       | v1.13.1             |
+| >= v1.12.3  | v1.14.1             |
 
 See [corefile-migration](https://github.com/coredns/corefile-migration)
 

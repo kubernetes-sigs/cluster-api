@@ -268,6 +268,10 @@ linters:
       - linters:
           - errcheck
         text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+        # deprecated feature gates
+      - linters:
+          - staticcheck
+        text: 'SA1019: feature.MachineWaitForVolumeDetachConsiderVolumeAttachments is deprecated'
         # v1beta1 deprecated util packages
       - linters:
           - staticcheck

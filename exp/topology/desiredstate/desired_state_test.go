@@ -918,10 +918,8 @@ func TestComputeControlPlane(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":  "v1.2.2",
+						"status.replicas": int64(2),
 					}).
 					Build(),
 				topologyVersion: "v1.2.3",
@@ -936,10 +934,8 @@ func TestComputeControlPlane(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":  "v1.2.2",
+						"status.replicas": int64(2),
 					}).
 					Build(),
 				topologyVersion: "v1.5.3",
@@ -954,10 +950,8 @@ func TestComputeControlPlane(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.4.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":  "v1.4.2",
+						"status.replicas": int64(2),
 					}).
 					Build(),
 				topologyVersion: "v1.5.3",
@@ -1230,11 +1224,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:     []string{"v1.2.3"},
@@ -1257,11 +1248,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1287,11 +1275,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(1),
-					"status.upToDateReplicas":  int64(1),
-					"status.readyReplicas":     int64(1),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(1),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:   []string{"v1.2.3"},
@@ -1310,11 +1295,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:     []string{"v1.3.2", "v1.4.2", "v1.5.3"},
@@ -1335,11 +1317,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.4.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.4.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:     []string{"v1.5.3"},
@@ -1359,11 +1338,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:            []string{"v1.3.2", "v1.4.2", "v1.5.3"},
@@ -1385,11 +1361,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:            []string{"v1.3.2", "v1.4.2", "v1.5.3"},
@@ -1411,11 +1384,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:   []string{"v1.2.3"},
@@ -1433,11 +1403,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan: []string{"v1.2.3"},
@@ -1453,11 +1420,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1482,11 +1446,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:   []string{"v1.2.3"},
@@ -1505,11 +1466,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan: []string{"v1.2.3"},
@@ -1527,11 +1485,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1556,11 +1511,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1583,11 +1535,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1612,11 +1561,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":           "v1.2.2",
-					"status.replicas":          int64(2),
-					"status.upToDateReplicas":  int64(2),
-					"status.readyReplicas":     int64(2),
-					"status.availableReplicas": int64(2),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {

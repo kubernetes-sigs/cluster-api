@@ -53,6 +53,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [BootstrapConfig: initialization completed]                                | Yes       |                                      |
 | [BootstrapConfig: conditions]                                              | No        |                                      |
 | [BootstrapConfig: terminal failures]                                       | No        |                                      |
+| [BootstrapConfig: support for in-place changes]                            | No        |                                      |
 | [BootstrapConfigTemplate, BootstrapConfigTemplateList resource definition] | Yes       |                                      |
 | [BootstrapConfigTemplate: support for SSA dry run]                         | No        | Mandatory for ClusterClasses support |
 | [Sentinel file]                                                            | No        |                                      |
@@ -353,6 +354,22 @@ After compatibility with the deprecated v1beta1 contract will be removed, `statu
 fields in the BootstrapConfig resource will be ignored and Machine's `status.deprecated.v1beta1` struct will be dropped.
 
 </aside>
+
+### BootstrapConfig: support for in-place changes
+
+In case you are developing an bootstrap config provider with support for in-place updates of the Machine configuration,
+you should consider following recommendations during implementation.
+
+- The `Update Extension` is the component responsible for orchestrating in-place changes on Machines.
+  Accordingly, the BootstrapConfig controller should ignore in-place changes and do not re-generate the bootstrap config.
+- It might be useful to start thinking about the BootstrapConfig API surface as a set of fields with one of the following behaviors:
+    - "Immutable" fields that can only be changed by performing a rollout.
+    - "Mutable" fields that will be “reconciled” by the `Update Extension`.
+- The validation webhook for the BootstrapConfig CR should allow changes to "mutable" fields; in case a bootstrap config provider
+  wants to allow this change selectively, e.g. only when applied by core CAPI, please reach out to maintainers to discuss options.
+- Please note that the above field classification do not apply to the BootstrapConfigTemplate object.
+
+See [Proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md).
 
 ### BootstrapConfigTemplate, BootstrapConfigTemplateList resource definition
 

@@ -55,6 +55,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [InfraMachine: initialization completed]                             | Yes       |                                      |
 | [InfraMachine: conditions]                                           | No        |                                      |
 | [InfraMachine: terminal failures]                                    | No        |                                      |
+| [InfraMachine: support for in-place changes]                         | No        |                                      |
 | [InfraMachineTemplate, InfraMachineTemplateList resource definition] | Yes       |                                      |
 | [InfraMachineTemplate: support for SSA dry run]                      | No        | Mandatory for ClusterClasses support |
 | [Multi tenancy]                                                      | No        | Mandatory for clusterctl CLI support |
@@ -413,6 +414,24 @@ After compatibility with the deprecated v1beta1 contract will be removed, `statu
 fields in the InfraMachine resource will be ignored and Machine's `status.deprecated.v1beta1` struct will be dropped.
 
 </aside>
+
+### InfraMachine: support for in-place changes
+
+In case you are developing an infrastructure provider with support for in-place updates of the Machine infrastructure,
+you should consider following recommendations during implementation.
+
+- The `Update Extension` is the component responsible for orchestrating in-place changes on Machines.
+  Accordingly, the InfraMachine controller should ignore in-place changes. As alternative the InfraMachine controller
+  must orchestrate those changes with the `Update Extension` (e.g. the `Update Extension` must report change progress).
+- It might be useful to start thinking about the InfraMachine API surface as a set of fields with one of the following behaviors:
+    - "Immutable" fields that can only be changed by performing a rollout.
+    - "Mutable" fields that will be “reconciled” by the `Update Extension`.
+    - Fields written back to spec by the infra provider (e.g. ProviderID).
+- The validation webhook for the InfraMachine CR should allow changes to "mutable" fields; in case an infra provider
+  wants to allow this change selectively, e.g. only when applied by core CAPI, please reach out to maintainers to discuss options.
+- Please note that the above field classification do not apply to the InfraMachineTemplate object.
+
+See [Proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md).
 
 ### InfraMachineTemplate, InfraMachineTemplateList resource definition
 

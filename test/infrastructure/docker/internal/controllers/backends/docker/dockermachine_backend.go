@@ -118,6 +118,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		// ensure ready state is set.
 		// This is required after move, because status is not moved to the target cluster.
 		dockerMachine.Status.Initialization.Provisioned = ptr.To(true)
+		dockerMachine.Status.FailureDomain = machine.Spec.FailureDomain
 
 		if externalMachine.Exists() {
 			v1beta1conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedV1Beta1Condition)
@@ -368,6 +369,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	dockerMachine.Spec.ProviderID = externalMachine.ProviderID()
 	dockerMachine.Status.Initialization.Provisioned = ptr.To(true)
+	dockerMachine.Status.FailureDomain = machine.Spec.FailureDomain
 
 	return ctrl.Result{}, nil
 }

@@ -42,7 +42,6 @@ type describeClusterOptions struct {
 	showTemplates           bool
 	echo                    bool
 	grouping                bool
-	disableGrouping         bool
 	v1beta2                 bool
 	color                   bool
 }
@@ -107,10 +106,6 @@ func init() {
 		"Show MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.grouping, "grouping", true,
 		"Groups machines when ready condition has the same Status, Severity and Reason.")
-	describeClusterClusterCmd.Flags().BoolVar(&dc.disableGrouping, "disable-grouping", false,
-		"Disable grouping machines when ready condition has the same Status, Severity and Reason.")
-	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-grouping",
-		"use --grouping instead.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.v1beta2, "v1beta2", true,
 		"Use V1Beta2 conditions..")
 	_ = describeClusterClusterCmd.Flags().MarkDeprecated("v1beta2",
@@ -147,7 +142,7 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 		ShowMachineSets:         dc.showMachineSets,
 		AddTemplateVirtualNode:  true,
 		Echo:                    dc.echo,
-		Grouping:                dc.grouping && !dc.disableGrouping,
+		Grouping:                dc.grouping,
 		V1Beta1:                 !dc.v1beta2,
 	})
 	if err != nil {

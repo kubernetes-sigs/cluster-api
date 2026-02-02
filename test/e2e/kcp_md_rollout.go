@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-// MachineDeploymentRolloutSpecInput is the input for MachineDeploymentRolloutSpec.
-type MachineDeploymentRolloutSpecInput struct {
+// KCPAndMachineDeploymentRolloutSpecInput is the input for MachineDeploymentRolloutSpec.
+type KCPAndMachineDeploymentRolloutSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -58,11 +58,11 @@ type MachineDeploymentRolloutSpecInput struct {
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
-// MachineDeploymentRolloutSpec implements a test that verifies that MachineDeployment rolling updates are successful.
-func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() MachineDeploymentRolloutSpecInput) {
+// KCPAndMachineDeploymentRolloutSpec implements a test that verifies that MachineDeployment rolling updates are successful.
+func KCPAndMachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() KCPAndMachineDeploymentRolloutSpecInput) {
 	var (
 		specName         = "md-rollout"
-		input            MachineDeploymentRolloutSpecInput
+		input            KCPAndMachineDeploymentRolloutSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -370,22 +370,20 @@ func verifyControlPlaneMachineAndNodeTaints(ctx context.Context, input verifyCon
 	Expect(input.ControlPlaneReplicas).NotTo(BeNil(), "Invalid argument. input.ControlPlaneReplicas can't be nil when calling verifyControlPlaneMachineAndNodeTaints")
 
 	Eventually(func(g Gomega) {
-		if input.ControlPlaneReplicas != nil {
-			machines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
-				Lister:      input.BootstrapClusterClient,
-				ClusterName: input.ClusterName,
-				Namespace:   input.Namespace,
-			})
+		machines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+			Lister:      input.BootstrapClusterClient,
+			ClusterName: input.ClusterName,
+			Namespace:   input.Namespace,
+		})
 
-			g.Expect(machines).To(HaveLen(int(ptr.Deref(input.ControlPlaneReplicas, 0))))
-			for _, machine := range machines {
-				g.Expect(machine.Spec.Taints).To(ConsistOf(input.MachineTaints))
-				g.Expect(machine.Status.NodeRef.IsDefined()).To(BeTrue())
+		g.Expect(machines).To(HaveLen(int(ptr.Deref(input.ControlPlaneReplicas, 0))))
+		for _, machine := range machines {
+			g.Expect(machine.Spec.Taints).To(ConsistOf(input.MachineTaints))
+			g.Expect(machine.Status.NodeRef.IsDefined()).To(BeTrue())
 
-				node := &corev1.Node{}
-				g.Expect(input.WorkloadClusterClient.Get(ctx, client.ObjectKey{Name: machine.Status.NodeRef.Name}, node)).To(Succeed())
-				g.Expect(node.Spec.Taints).To(ConsistOf(input.NodeTaints))
-			}
+			node := &corev1.Node{}
+			g.Expect(input.WorkloadClusterClient.Get(ctx, client.ObjectKey{Name: machine.Status.NodeRef.Name}, node)).To(Succeed())
+			g.Expect(node.Spec.Taints).To(ConsistOf(input.NodeTaints))
 		}
 	}, "1m").Should(Succeed())
 }

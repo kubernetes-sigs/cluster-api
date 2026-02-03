@@ -129,7 +129,7 @@ func Test_defaultBranchForNewTag(t *testing.T) {
 		{
 			name:       "first RC",
 			newVersion: "v1.6.0-rc.0",
-			want:       "main",
+			want:       "release-1.6",
 		},
 		{
 			name:       "second RC",

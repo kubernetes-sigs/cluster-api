@@ -260,7 +260,7 @@ type ApplyClusterTemplateAndWaitInput struct {
 	WaitForControlPlaneIntervals []interface{}
 	WaitForMachineDeployments    []interface{}
 	WaitForMachinePools          []interface{}
-	CreateOrUpdateOpts           []framework.CreateOrUpdateOption // options to be passed to CreateOrUpdate function config
+	CreateOpts                   []framework.CreateOption // options to be passed to Create function config
 	PreWaitForCluster            func()
 	PostMachinesProvisioned      func()
 	ControlPlaneWaiters
@@ -372,7 +372,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		WaitForControlPlaneIntervals: input.WaitForControlPlaneIntervals,
 		WaitForMachineDeployments:    input.WaitForMachineDeployments,
 		WaitForMachinePools:          input.WaitForMachinePools,
-		CreateOrUpdateOpts:           input.CreateOrUpdateOpts,
+		CreateOpts:                   input.CreateOpts,
 		PreWaitForCluster:            input.PreWaitForCluster,
 		PostMachinesProvisioned:      input.PostMachinesProvisioned,
 		ControlPlaneWaiters:          input.ControlPlaneWaiters,
@@ -391,7 +391,7 @@ type ApplyCustomClusterTemplateAndWaitInput struct {
 	WaitForControlPlaneIntervals []interface{}
 	WaitForMachineDeployments    []interface{}
 	WaitForMachinePools          []interface{}
-	CreateOrUpdateOpts           []framework.CreateOrUpdateOption // options to be passed to CreateOrUpdate function config
+	CreateOpts                   []framework.CreateOption // options to be passed to Create function config
 	PreWaitForCluster            func()
 	PostMachinesProvisioned      func()
 	ControlPlaneWaiters
@@ -425,9 +425,12 @@ func ApplyCustomClusterTemplateAndWait(ctx context.Context, input ApplyCustomClu
 	}
 
 	log.Logf("Applying the cluster template yaml of cluster %s", klog.KRef(input.Namespace, input.ClusterName))
-	Eventually(func() error {
-		return input.ClusterProxy.CreateOrUpdate(ctx, input.CustomTemplateYAML, input.CreateOrUpdateOpts...)
-	}, 1*time.Minute).Should(Succeed(), "Failed to apply the cluster template")
+	createOpts := []framework.CreateOption{
+		// Set default polling. Can be overridden by users.
+		framework.CreateWithPolling(1*time.Minute, 250*time.Millisecond),
+	}
+	createOpts = append(createOpts, input.CreateOpts...)
+	Expect(input.ClusterProxy.Create(ctx, input.CustomTemplateYAML, createOpts...)).To(Succeed(), "Failed to apply the cluster template")
 
 	// Once we applied the cluster template we can run PreWaitForCluster.
 	// Note: This can e.g. be used to verify the BeforeClusterCreate lifecycle hook is executed

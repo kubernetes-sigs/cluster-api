@@ -413,6 +413,47 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 		return ctrl.Result{}, err
 	}
 
+	// Remove OwnerRemediated condition from Machines that have HealthCheckSucceeded condition true
+	// and OwnerRemediated condition false
+	errList := []error{}
+	for _, m := range machineList.Items {
+		if !m.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		shouldCleanupV1Beta1 := v1beta1conditions.IsTrue(&m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition) && v1beta1conditions.IsFalse(&m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
+		shouldCleanup := conditions.IsTrue(&m, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(&m, clusterv1.MachineOwnerRemediatedCondition)
+
+		if !shouldCleanupV1Beta1 && !shouldCleanup {
+			continue
+		}
+
+		patchHelper, err := patch.NewHelper(&m, r.Client)
+		if err != nil {
+			errList = append(errList, err)
+			continue
+		}
+
+		if shouldCleanupV1Beta1 {
+			v1beta1conditions.Delete(&m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
+		}
+
+		if shouldCleanup {
+			conditions.Delete(&m, clusterv1.MachineOwnerRemediatedCondition)
+		}
+
+		if err := patchHelper.Patch(ctx, &m, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+		}}, patch.WithOwnedConditions{Conditions: []string{
+			clusterv1.MachineOwnerRemediatedCondition,
+		}}); err != nil {
+			errList = append(errList, err)
+		}
+	}
+	if len(errList) > 0 {
+		return ctrl.Result{}, errors.Wrapf(kerrors.NewAggregate(errList), "failed to remove OwnerRemediated condition from healthy MachinePool Machines")
+	}
+
 	if err := r.createOrUpdateMachines(ctx, s, machineList.Items, infraMachineList.Items); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}

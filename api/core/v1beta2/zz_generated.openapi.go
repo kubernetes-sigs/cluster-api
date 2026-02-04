@@ -147,6 +147,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus":                              schema_cluster_api_api_core_v1beta2_MachinePoolDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus":                          schema_cluster_api_api_core_v1beta2_MachinePoolInitializationStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolList":                                          schema_cluster_api_api_core_v1beta2_MachinePoolList(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolRemediationSpec":                               schema_cluster_api_api_core_v1beta2_MachinePoolRemediationSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolSpec":                                          schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolStatus":                                        schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopology":                                      schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref),
@@ -5290,6 +5291,27 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolList(ref common.ReferenceCal
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachinePoolRemediationSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolRemediationSpec controls how unhealthy Machines are remediated (through a MachineHealthCheck). This only applies to infrastructure providers supporting and enabling the \"MachinePool Machines\" feature. For other setups, no remediation is done.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"maxInFlight": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxInFlight determines how many in flight remediations should happen at the same time.\n\nMaxInFlight can be set to a fixed number or a percentage. Example: when this is set to 20%, the MachinePool controller deletes at most 20% of the desired replicas.\n\nIf not set, remediation is limited to all machines under the active MachinePool's management.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -5358,12 +5380,19 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref common.ReferenceCal
 							},
 						},
 					},
+					"remediation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "remediation controls how unhealthy Machines are remediated (through a MachineHealthCheck). This only applies to infrastructure providers supporting and enabling the \"MachinePool Machines\" feature. For other setups, no remediation is done.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolRemediationSpec"),
+						},
+					},
 				},
 				Required: []string{"clusterName", "template"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolRemediationSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
 	}
 }
 

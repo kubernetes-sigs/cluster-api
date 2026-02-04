@@ -628,7 +628,7 @@ the ControlPlane resource will be ignored.
 
 ### ControlPlane: in-place updates
 
-In case a control plane provider would like to provide support for in-place updates, please check the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20240807-in-place-updates.md).
+In case a control plane provider would like to provide support for in-place updates, please check the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md).
 
 Supporting in-place updates requires:
 - implementing the call for the registered `CanUpdateMachine` hook when performing the "can update in-place" decision.

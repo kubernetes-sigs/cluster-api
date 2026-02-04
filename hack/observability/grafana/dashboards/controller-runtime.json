@@ -2199,6 +2199,102 @@
           },
           "fieldConfig": {
             "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 1,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                }
+              },
+              "displayName": "${__field.labels.controller}",
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "yMin"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 45
+          },
+          "id": 68,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "rate(capi_reconcile_time_seconds{pod=~\"$Pod\", controller=~\"$Controller\"}[$__rate_interval]) or rate(controller_runtime_reconcile_time_seconds{pod=~\"$Pod\", controller=~\"$Controller\"}[$__rate_interval])",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Reconcile Duration (histogram)",
+          "type": "histogram"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
               "custom": {
                 "hideFrom": {
                   "legend": false,
@@ -2216,7 +2312,7 @@
             "h": 13,
             "w": 24,
             "x": 0,
-            "y": 45
+            "y": 56
           },
           "id": 26,
           "options": {
@@ -2244,7 +2340,8 @@
               "layout": "auto"
             },
             "tooltip": {
-              "show": true,
+              "mode": "single",
+              "showColorScale": false,
               "yHistogram": false
             },
             "yAxis": {
@@ -2262,14 +2359,14 @@
               },
               "editorMode": "code",
               "exemplar": true,
-              "expr": "rate(capi_reconcile_time_seconds_bucket{pod=~\"$Pod\", controller=~\"$Controller\"}[$__rate_interval]) or rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\", controller=~\"$Controller\"}[$__rate_interval])",
+              "expr": "rate(capi_reconcile_time_seconds{pod=~\"$Pod\", controller=~\"$Controller\"}[$__rate_interval]) or rate(controller_runtime_reconcile_time_seconds{pod=~\"$Pod\", controller=~\"$Controller\"}[$__rate_interval])",
               "format": "heatmap",
               "legendFormat": "{{le}}",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Reconcile Duration Buckets",
+          "title": "Reconcile Duration (heatmap)",
           "type": "heatmap"
         }
       ],
@@ -2997,6 +3094,102 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 1,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                }
+              },
+              "displayName": "${__field.labels.controller}",
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "yMin"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 54
+          },
+          "id": 69,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "rate(workqueue_work_duration_seconds{pod=~\"$Pod\", name=~\"$Controller\"}[$__rate_interval])",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Workqueue Work Duration (histogram)",
+          "type": "histogram"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
           "description": "How long in seconds processing an item from workqueue takes",
           "fieldConfig": {
             "defaults": {
@@ -3017,7 +3210,7 @@
             "h": 13,
             "w": 24,
             "x": 0,
-            "y": 54
+            "y": 65
           },
           "id": 37,
           "options": {
@@ -3045,7 +3238,8 @@
               "layout": "auto"
             },
             "tooltip": {
-              "show": true,
+              "mode": "single",
+              "showColorScale": false,
               "yHistogram": false
             },
             "yAxis": {
@@ -3063,15 +3257,111 @@
               },
               "editorMode": "code",
               "exemplar": true,
-              "expr": "rate(workqueue_work_duration_seconds_bucket{pod=~\"$Pod\", name=~\"$Controller\"}[$__rate_interval])",
+              "expr": "rate(workqueue_work_duration_seconds{pod=~\"$Pod\", name=~\"$Controller\"}[$__rate_interval])",
               "format": "heatmap",
               "legendFormat": "{{le}}",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Workqueue Work Duration",
+          "title": "Workqueue Work Duration (heatmap)",
           "type": "heatmap"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 1,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                }
+              },
+              "displayName": "${__field.labels.controller}",
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "yMin"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 78
+          },
+          "id": 70,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "rate(workqueue_queue_duration_seconds{pod=~\"$Pod\", name=~\"$Controller\"}[$__rate_interval])",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Workqueue Queue Duration (histogram)",
+          "type": "histogram"
         },
         {
           "datasource": {
@@ -3098,7 +3388,7 @@
             "h": 13,
             "w": 24,
             "x": 0,
-            "y": 67
+            "y": 89
           },
           "id": 36,
           "options": {
@@ -3126,7 +3416,8 @@
               "layout": "auto"
             },
             "tooltip": {
-              "show": true,
+              "mode": "single",
+              "showColorScale": false,
               "yHistogram": false
             },
             "yAxis": {
@@ -3144,14 +3435,14 @@
               },
               "editorMode": "code",
               "exemplar": true,
-              "expr": "rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\", name=~\"$Controller\"}[$__rate_interval])",
+              "expr": "rate(workqueue_queue_duration_seconds{pod=~\"$Pod\", name=~\"$Controller\"}[$__rate_interval])",
               "format": "heatmap",
               "legendFormat": "{{le}}",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Workqueue Queue Duration",
+          "title": "Workqueue Queue Duration (heatmap)",
           "type": "heatmap"
         }
       ],
@@ -3229,7 +3520,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 21
+            "y": 103
           },
           "id": 39,
           "options": {
@@ -3345,7 +3636,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 29
+            "y": 111
           },
           "id": 40,
           "options": {
@@ -3529,7 +3820,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 45
+            "y": 127
           },
           "id": 42,
           "options": {
@@ -3559,6 +3850,184 @@
           ],
           "title": "Webhook Total by Path",
           "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 1,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                }
+              },
+              "displayName": "${__field.labels.webhook}",
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "yMin"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 135
+          },
+          "id": 72,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "rate(controller_runtime_webhook_latency_seconds{pod=~\"$Pod\"}[$__rate_interval])",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Webhook Latency (histogram)",
+          "type": "histogram"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                }
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 13,
+            "w": 24,
+            "x": 0,
+            "y": 146
+          },
+          "id": 71,
+          "options": {
+            "calculate": false,
+            "cellGap": 2,
+            "color": {
+              "exponent": 0.5,
+              "fill": "dark-orange",
+              "mode": "scheme",
+              "reverse": true,
+              "scale": "exponential",
+              "scheme": "Oranges",
+              "steps": 128
+            },
+            "exemplars": {
+              "color": "rgba(255,0,255,0.7)"
+            },
+            "filterValues": {
+              "le": 1e-9
+            },
+            "legend": {
+              "show": true
+            },
+            "rowsFrame": {
+              "layout": "auto"
+            },
+            "tooltip": {
+              "mode": "single",
+              "showColorScale": false,
+              "yHistogram": false
+            },
+            "yAxis": {
+              "axisPlacement": "left",
+              "reverse": false,
+              "unit": "short"
+            }
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "rate(controller_runtime_webhook_latency_seconds{pod=~\"$Pod\"}[$__rate_interval])",
+              "format": "heatmap",
+              "legendFormat": "{{le}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Webhook Latency (heatmap)",
+          "type": "heatmap"
         }
       ],
       "title": "Webhook",
@@ -3635,7 +4104,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 38
+            "y": 721
           },
           "id": 44,
           "options": {
@@ -3741,7 +4210,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 15
+            "y": 698
           },
           "id": 47,
           "options": {
@@ -3833,7 +4302,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 22
+            "y": 705
           },
           "id": 59,
           "options": {
@@ -3940,7 +4409,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 16
+            "y": 699
           },
           "id": 55,
           "options": {
@@ -4047,7 +4516,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 17
+            "y": 700
           },
           "id": 51,
           "options": {
@@ -4140,7 +4609,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 17
+            "y": 700
           },
           "id": 50,
           "options": {
@@ -4245,7 +4714,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 25
+            "y": 708
           },
           "id": 49,
           "options": {
@@ -4386,7 +4855,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 25
+            "y": 708
           },
           "id": 48,
           "options": {
@@ -4563,7 +5032,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 33
+            "y": 716
           },
           "id": 52,
           "options": {
@@ -4656,7 +5125,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 33
+            "y": 716
           },
           "id": 54,
           "options": {
@@ -4749,7 +5218,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 41
+            "y": 724
           },
           "id": 53,
           "options": {
@@ -4842,7 +5311,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 41
+            "y": 724
           },
           "id": 56,
           "options": {
@@ -4935,7 +5404,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 49
+            "y": 732
           },
           "id": 57,
           "options": {

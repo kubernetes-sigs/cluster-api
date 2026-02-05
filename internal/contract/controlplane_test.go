@@ -504,7 +504,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(got).To(BeComparableTo(taints))
 
-		// Nil readinessGates are not set.
+		// Nil taints are not set.
 		obj2 := &unstructured.Unstructured{Object: map[string]interface{}{}}
 		taints = nil
 

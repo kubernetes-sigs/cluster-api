@@ -21,11 +21,21 @@ server:
     # Give Prometheus more space to store metrics.
     size: 20Gi
 
+scrapeConfigs:
+  kubernetes-nodes:
+    tls_config:
+      insecure_skip_verify: true
+  kubernetes-nodes-cadvisor:
+    tls_config:
+      insecure_skip_verify: true
+
 # Scrape metrics from deployed providers
 extraScrapeConfigs: |
   - job_name: 'capi-providers'
     # 15s is a bit often for production but helps to get metrics quicker for development.
     scrape_interval: 15s
+    scrape_native_histograms: true
+    always_scrape_classic_histograms: true
     metrics_path: /metrics
     scheme: https
     authorization:

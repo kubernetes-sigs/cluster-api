@@ -78,6 +78,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec)
+		dst.Spec.MachineTemplate.Spec.Taints = restored.Spec.MachineTemplate.Spec.Taints
 	}
 
 	if src.Spec.RemediationStrategy != nil {
@@ -134,6 +135,7 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec)
+		dst.Spec.Template.Spec.MachineTemplate.Spec.Taints = restored.Spec.Template.Spec.MachineTemplate.Spec.Taints
 	}
 
 	if src.Spec.Template.Spec.RemediationStrategy != nil {

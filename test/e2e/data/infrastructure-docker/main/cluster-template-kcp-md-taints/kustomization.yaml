@@ -5,3 +5,4 @@ resources:
 
 patches:
 - path: md-taints.yaml
+- path: kcp-taints.yaml

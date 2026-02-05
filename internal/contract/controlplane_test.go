@@ -485,6 +485,51 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(got).To(BeComparableTo(readinessGates))
 	})
+
+	t.Run("Manages spec.machineTemplate.taints (v1beta2 contract)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		taints := []clusterv1.MachineTaint{
+			{Key: "foo", Effect: "NoSchedule", Propagation: clusterv1.MachineTaintPropagationAlways},
+			{Key: "bar", Effect: "NoExecute", Propagation: clusterv1.MachineTaintPropagationOnInitialization},
+		}
+
+		g.Expect(ControlPlane().MachineTemplate().Taints().Path()).To(Equal(Path{"spec", "machineTemplate", "spec", "taints"}))
+
+		err := ControlPlane().MachineTemplate().Taints().Set(obj, taints)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().MachineTemplate().Taints().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(BeComparableTo(taints))
+
+		// Nil taints are not set.
+		obj2 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		taints = nil
+
+		err = ControlPlane().MachineTemplate().Taints().Set(obj2, taints)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		_, ok, err := unstructured.NestedSlice(obj2.UnstructuredContent(), ControlPlane().MachineTemplate().Taints().Path()...)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ok).To(BeFalse())
+
+		_, err = ControlPlane().MachineTemplate().Taints().Get(obj2)
+		g.Expect(err).To(HaveOccurred())
+
+		// Empty taints are set.
+		obj3 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		taints = []clusterv1.MachineTaint{}
+
+		err = ControlPlane().MachineTemplate().Taints().Set(obj3, taints)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err = ControlPlane().MachineTemplate().Taints().Get(obj3)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(BeComparableTo(taints))
+	})
 }
 
 func TestControlPlaneEndpoints(t *testing.T) {

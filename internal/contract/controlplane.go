@@ -540,3 +540,64 @@ func (m *ReadinessGates) Set(obj *unstructured.Unstructured, readinessGates []cl
 	}
 	return nil
 }
+
+// Taints provides access to control plane's Taints.
+func (c *ControlPlaneMachineTemplate) Taints() *Taints {
+	return &Taints{
+		path: []string{"spec", "machineTemplate", "spec", "taints"},
+	}
+}
+
+// Taints provides a helper struct for working with Taints.
+type Taints struct {
+	path Path
+}
+
+// Path returns the path of the Taints.
+func (m *Taints) Path() Path {
+	return m.path
+}
+
+// Get gets the Taints object.
+func (m *Taints) Get(obj *unstructured.Unstructured) ([]clusterv1.MachineTaint, error) {
+	unstructuredValue, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), m.Path()...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve control plane %s", "."+m.Path().String())
+	}
+	if !ok {
+		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+m.Path().String())
+	}
+
+	var taints []clusterv1.MachineTaint
+	jsonValue, err := json.Marshal(unstructuredValue)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
+	}
+	if err := json.Unmarshal(jsonValue, &taints); err != nil {
+		return nil, errors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
+	}
+
+	return taints, nil
+}
+
+// Set sets the Taints value.
+// Note: in case the value is nil, the system assumes that the control plane do not implement the optional list of taints.
+func (m *Taints) Set(obj *unstructured.Unstructured, taints []clusterv1.MachineTaint) error {
+	unstructured.RemoveNestedField(obj.UnstructuredContent(), m.Path()...)
+	if taints == nil {
+		return nil
+	}
+
+	jsonValue, err := json.Marshal(taints)
+	if err != nil {
+		return errors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
+	}
+	var unstructuredValue []interface{}
+	if err := json.Unmarshal(jsonValue, &unstructuredValue); err != nil {
+		return errors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
+	}
+	if err := unstructured.SetNestedSlice(obj.UnstructuredContent(), unstructuredValue, m.Path()...); err != nil {
+		return errors.Wrapf(err, "failed to set control plane %s", "."+m.Path().String())
+	}
+	return nil
+}

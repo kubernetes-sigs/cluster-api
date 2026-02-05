@@ -22,6 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -759,9 +760,25 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validEncryptionAlgorithm := before.DeepCopy()
 	validEncryptionAlgorithm.Spec.KubeadmConfigSpec.ClusterConfiguration.EncryptionAlgorithm = bootstrapv1.EncryptionAlgorithmRSA3072
 
+	beforeTaints := before.DeepCopy()
+	beforeTaints.Spec.MachineTemplate.Spec.Taints = []clusterv1.MachineTaint{
+		{
+			Key:    "pre-existing-on-initialization-taint",
+			Value:  "on-initialization-value",
+			Effect: corev1.TaintEffectPreferNoSchedule,
+		},
+	}
+	afterTaints := beforeTaints.DeepCopy()
+	afterTaints.Spec.MachineTemplate.Spec.Taints = append(afterTaints.Spec.MachineTemplate.Spec.Taints, clusterv1.MachineTaint{
+		Key:    "added-taint",
+		Value:  "added-taint-value",
+		Effect: corev1.TaintEffectNoSchedule,
+	})
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
+		enableTaintsFeature   bool
 		expectErr             bool
 		before                *controlplanev1.KubeadmControlPlane
 		kcp                   *controlplanev1.KubeadmControlPlane
@@ -1127,6 +1144,19 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			before: before,
 			kcp:    validEncryptionAlgorithm,
 		},
+		{
+			name:                "should not allow to add taints when feature gate is disabled",
+			expectErr:           true,
+			enableTaintsFeature: false,
+			before:              before,
+			kcp:                 afterTaints,
+		},
+		{
+			name:                "should allow to update taints",
+			enableTaintsFeature: true,
+			before:              beforeTaints,
+			kcp:                 afterTaints,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1135,6 +1165,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				// NOTE: KubeadmBootstrapFormatIgnition feature flag is disabled by default.
 				// Enabling the feature flag temporarily for this test.
 				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)
+			}
+			if tt.enableTaintsFeature {
+				// NOTE: MachineTaintPropagation feature flag is disabled by default.
+				// Enabling the feature flag temporarily for this test.
+				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
 			}
 
 			g := NewWithT(t)

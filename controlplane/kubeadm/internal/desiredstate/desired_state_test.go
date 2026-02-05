@@ -287,6 +287,47 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 			wantErr:                   false,
 		},
 		{
+			name: "should return the correct Machine object when creating a new Machine with taints",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      kcpName,
+					Namespace: cluster.Namespace,
+				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version: "v1.16.6",
+					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+						ObjectMeta: kcpMachineTemplateObjectMeta,
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							Taints: []clusterv1.MachineTaint{
+								{
+									Key:         "foo",
+									Effect:      "NoSchedule",
+									Propagation: clusterv1.MachineTaintPropagationAlways,
+								},
+								{
+									Key:         "bar",
+									Effect:      "NoExecute",
+									Propagation: clusterv1.MachineTaintPropagationOnInitialization,
+								},
+							},
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
+						},
+					},
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+							CertificatesDir: "foo",
+						},
+					},
+				},
+			},
+			isUpdatingExistingMachine: false,
+			wantErr:                   false,
+		},
+		{
 			name: "should return the correct Machine object when updating an existing Machine (empty ClusterConfiguration annotation)",
 			kcp: &controlplanev1.KubeadmControlPlane{
 				ObjectMeta: metav1.ObjectMeta{
@@ -497,6 +538,7 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 						NodeVolumeDetachTimeoutSeconds: tt.kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds,
 					},
 					ReadinessGates: append(append(MandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.Spec.ReadinessGates...),
+					Taints:         tt.kcp.Spec.MachineTemplate.Spec.Taints,
 				}
 				// Verify Name.
 				for _, matcher := range tt.want {

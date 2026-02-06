@@ -32,6 +32,9 @@ source "${REPO_ROOT}/hack/ensure-kind.sh"
 # Make sure the tools binaries are on the path.
 export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
 
+# Include debugging tools for container images for e2e tests
+export DBG=1
+
 # Builds CAPI (and CAPD) images.
 capi:buildDockerImages
 

@@ -282,9 +282,22 @@ _Note: the annotations will be defined in the cluster autoscaler, not in cluster
 
 **Node Labels and Taints**
 
-When a user would like to signal that the node being created from a MachineSet or
-MachineDeployment will have specific taints or labels on it, they can use the following
-annotations to specify that information.
+Users may specify node labels and taints through the following mechanisms:
+
+1. **MachineSet or MachineDeployment labels** - Labels with the `node.cluster.x-k8s.io/` prefix in `spec.template.spec.metadata.labels` will be propagated to Nodes per CAPI's [metadata propagation](https://cluster-api.sigs.k8s.io/reference/api/metadata-propagation) behavior.
+
+```
+kind: <MachineSet or MachineDeployment>
+spec:
+  template:
+    spec:
+      metadata:
+        labels:
+          node.cluster.x-k8s.io/key1: "value1"
+          node.cluster.x-k8s.io/key2: "value2"
+```
+
+2. **Capacity annotations** - For explicit control or overrides:
 
 ```
 kind: <MachineSet or MachineDeployment>
@@ -294,10 +307,9 @@ metadata:
     capacity.cluster-autoscaler.kubernetes.io/taints: "key1=value1:NoSchedule,key2=value2:NoExecute"
 ```
 
-If the `capacity.cluster-autoscaler.kubernetes.io/labels` annotation specifies a label that would otherwise be
-generated from the fields in the `status` field of the Machine Template, the autoscaler will prioritize and use 
-the label defined in the annotation. This means any label set by the annotation will override the corresponding
-value provided by the infrastructure provider in the Machine Template status.
+When multiple sources provide labels, the following precedence applies (highest to lowest):
+1. `capacity.cluster-autoscaler.kubernetes.io/labels` annotation
+2. MachineSet or MachineDeployment labels (CAPI managed prefix applied)
 
 For example, assume the following objects
 

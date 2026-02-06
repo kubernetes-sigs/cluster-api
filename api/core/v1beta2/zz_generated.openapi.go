@@ -2779,6 +2779,18 @@ func schema_cluster_api_api_core_v1beta2_MachineDeletionStatus(ref common.Refere
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
+					"waitForPreDrainHookStartTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "waitForPreDrainHookStartTime is the time when waiting for pre-drain hooks started and is used to determine if the pre-drain hooks are taking too long. Only present when the Machine has a deletionTimestamp and waiting for pre-drain hooks had been started.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"waitForPreTerminateHookStartTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "waitForPreTerminateHookStartTime is the time when waiting for pre-terminate hooks started and is used to determine if the pre-terminate hooks are taking too long. Only present when the Machine has a deletionTimestamp and waiting for pre-terminate hooks had been started.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
 				},
 			},
 		},

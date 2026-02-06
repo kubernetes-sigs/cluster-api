@@ -268,7 +268,7 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-2-delete-succeeded-daemonset-pod",
+						Name:      "pod-2-skip-succeeded-daemonset-pod",
 						Namespace: metav1.NamespaceDefault,
 						OwnerReferences: []metav1.OwnerReference{
 							{
@@ -283,7 +283,22 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-3-delete-orphaned-daemonset-pod",
+						Name:      "pod-3-skip-failed-daemonset-pod",
+						Namespace: metav1.NamespaceDefault,
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								Kind:       "DaemonSet",
+								Controller: ptr.To(true),
+							},
+						},
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodFailed,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-4-delete-orphaned-daemonset-pod",
 						Namespace: metav1.NamespaceDefault,
 						OwnerReferences: []metav1.OwnerReference{
 							{
@@ -299,7 +314,7 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-4-skip-daemonset-pod",
+						Name:      "pod-5-skip-daemonset-pod",
 						Namespace: metav1.NamespaceDefault,
 						OwnerReferences: []metav1.OwnerReference{
 							{
@@ -332,21 +347,7 @@ func TestGetPodsForEviction(t *testing.T) {
 				{
 					Pod: &corev1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-2-delete-succeeded-daemonset-pod",
-							Namespace: metav1.NamespaceDefault,
-						},
-					},
-					// Delete this DaemonSet Pod because it is succeeded.
-					Status: PodDeleteStatus{
-						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
-						DrainOrder:    ptr.To[int32](0),
-						Reason:        PodDeleteStatusTypeOkay,
-					},
-				},
-				{
-					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-3-delete-orphaned-daemonset-pod",
+							Name:      "pod-4-delete-orphaned-daemonset-pod",
 							Namespace: metav1.NamespaceDefault,
 						},
 					},
@@ -361,7 +362,7 @@ func TestGetPodsForEviction(t *testing.T) {
 				{
 					Pod: &corev1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-4-skip-daemonset-pod",
+							Name:      "pod-5-skip-daemonset-pod",
 							Namespace: metav1.NamespaceDefault,
 						},
 					},

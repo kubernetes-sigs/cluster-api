@@ -1,0 +1,10 @@
+resources:
+  - ../cluster-template-topology
+
+patches:
+- path: controlplane-taints.yaml
+- path: machinedeployment-taints.yaml
+  target:
+    group: cluster.x-k8s.io
+    version: v1beta2
+    kind: Cluster

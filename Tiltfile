@@ -360,6 +360,9 @@ def enable_provider(name, debug):
         k8s_yaml(p.get("context") + "/" + resource)
         additional_objs = additional_objs + decode_yaml_stream(read_file(p.get("context") + "/" + resource))
 
+    for resource in p.get("additional_uncategorized_resources", []):
+        k8s_yaml(p.get("context") + "/" + resource)
+
     if p.get("apply_provider_yaml", True):
         yaml = read_file("./.tiltbuild/yaml/{}.provider.yaml".format(name))
         k8s_yaml(yaml, allow_duplicates = True)

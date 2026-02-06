@@ -277,13 +277,14 @@ func defaultBranchForNewTag(newTag semver.Version) string {
 		if len(newTag.Pre) == 0 {
 			// for new minor releases, use the release branch
 			return releaseBranchForVersion(newTag)
-		} else if len(newTag.Pre) == 2 && newTag.Pre[0].VersionStr == "rc" && newTag.Pre[1].VersionNum >= 1 {
-			// for the second or later RCs, we use the release branch since we cut this branch with the first RC
+		} else if len(newTag.Pre) == 2 && newTag.Pre[0].VersionStr == "rc" {
+			// for all RCs (including rc.0), we use the release branch so notes are generated
+			// the same way: previous minor to release branch (not previous minor to main)
 			return releaseBranchForVersion(newTag)
 		}
 
 		// for any other pre release, we always cut from main
-		// this includes all beta releases and the first RC
+		// this includes all beta releases
 		return "main"
 	}
 

@@ -512,6 +512,7 @@ The following diagram shows the typical logic for a bootstrap provider:
 [Kubernetes API Deprecation Policy]: https://kubernetes.io/docs/reference/using-api/deprecation-policy/
 [BootstrapConfig, BootstrapConfigList resource definition]: #bootstrapconfig-bootstrapconfiglist-resource-definition
 [BootstrapConfig: data secret]: #bootstrapconfig-data-secret
+[BootstrapConfig: support for in-place changes]: #bootstrapconfig-support-for-in-place-changes
 [BootstrapConfig: initialization completed]: #bootstrapconfig-initialization-completed
 [Improving status in CAPI resources]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md
 [BootstrapConfig: conditions]: #bootstrapconfig-conditions

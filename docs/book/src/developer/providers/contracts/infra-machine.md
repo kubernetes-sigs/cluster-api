@@ -657,6 +657,7 @@ is implemented in InfraMachine controllers:
 [InfraMachine: failure domain]: #inframachine-failure-domain
 [InfraMachine: addresses]: #inframachine-addresses
 [InfraMachine: initialization completed]: #inframachine-initialization-completed
+[InfraMachine: support for in-place changes]: #inframachine-support-for-in-place-changes
 [Improving status in CAPI resources]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md
 [InfraMachine: conditions]: #inframachine-conditions
 [Kubernetes API Conventions]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties

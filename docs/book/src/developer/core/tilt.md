@@ -539,6 +539,10 @@ provider abbreviation should be used (CAPD, KCP etc.).
 **additional_resources** ([]string, default=[]): A list of paths to yaml file to be loaded into the tilt cluster;
 e.g. use this to deploy an ExtensionConfig object for a RuntimeExtension provider.
 
+**additional_uncategorized_resources** ([]string, default=[]): A list of paths to yaml file to be loaded into the tilt cluster;
+e.g. use this to deploy CustomResourceDefinitions. The difference compared to additional_resources is that it is deployed
+as part of uncategorized and accordingly not re-created together with providers.
+
 **resource_deps** ([]string, default=[]): A list of tilt resource names to be installed before the current provider;
 e.g. set this to ["capi_controller"] to ensure that this provider gets installed after Cluster API.
 

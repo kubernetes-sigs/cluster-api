@@ -18,6 +18,7 @@ package cache
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kind/pkg/errors"
 )
 
 func (c *cache) Get(resourceGroup string, objKey client.ObjectKey, obj client.Object) error {
@@ -123,6 +125,15 @@ func (c *cache) List(resourceGroup string, list client.ObjectList, opts ...clien
 		listOpts := client.ListOptions{}
 		listOpts.ApplyOptions(opts)
 
+		if listOpts.FieldSelector != nil && !listOpts.FieldSelector.Empty() {
+			if gvk != corev1.SchemeGroupVersion.WithKind("PodList") {
+				return apierrors.NewInternalError(errors.Errorf("support for field selectors on %s is not implemented", gvk.String()))
+			}
+			if !strings.HasPrefix(listOpts.FieldSelector.String(), "spec.nodeName=") {
+				return apierrors.NewInternalError(errors.Errorf("support for %s field selector on PodList is not implemented", listOpts.FieldSelector.String()))
+			}
+		}
+
 		for _, obj := range objects {
 			if listOpts.Namespace != "" && obj.GetNamespace() != listOpts.Namespace {
 				continue
@@ -135,7 +146,6 @@ func (c *cache) List(resourceGroup string, list client.ObjectList, opts ...clien
 				}
 			}
 
-			// TODO(killianmuldoon): This only matches the nodeName field for pods. No other fieldSelectors are implemented. This should return an error if another fieldselector is used.
 			if pod, ok := obj.(*corev1.Pod); ok {
 				if listOpts.FieldSelector != nil && !listOpts.FieldSelector.Empty() {
 					if !listOpts.FieldSelector.Matches(fields.Set{"spec.nodeName": pod.Spec.NodeName}) {

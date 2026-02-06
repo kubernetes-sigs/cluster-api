@@ -92,7 +92,7 @@ type QuickStartSpecInput struct {
 
 	// Allows to inject a function to be run after machines are provisioned.
 	// If not specified, this is a no-op.
-	PostMachinesProvisioned func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
+	PostMachinesProvisioned func(spec string, managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
 
 	// ClusterctlVariables allows injecting variables to the cluster template.
 	// If not specified, this is a no-op.
@@ -226,7 +226,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 			PostMachinesProvisioned: func() {
 				if input.PostMachinesProvisioned != nil {
-					input.PostMachinesProvisioned(input.BootstrapClusterProxy, namespace.Name, clusterName)
+					input.PostMachinesProvisioned(specName, input.BootstrapClusterProxy, namespace.Name, clusterName)
 				}
 			},
 		}, clusterResources)

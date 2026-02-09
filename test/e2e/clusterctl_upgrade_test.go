@@ -40,6 +40,57 @@ var (
 	providerDockerPrefix  = "docker:v%s"
 )
 
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>v1.12=>current) [PR-Blocking] [ClusterClass]", Label("PR-Blocking", "ClusterClass"), func() {
+	version := "1.10"
+	stableRelease10, err := GetStableReleaseOfMinor(ctx, version)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
+
+	version = "1.12"
+	stableRelease12, err := GetStableReleaseOfMinor(ctx, version)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			// Configuration for the initial provider deployment.
+			InitWithBinary: fmt.Sprintf(clusterctlDownloadURL, stableRelease10),
+			// We have to pin the providers because with `InitWithProvidersContract` the test would
+			// use the latest version for the contract (which is the next minor for v1beta1).
+			InitWithCoreProvider:              fmt.Sprintf(providerCAPIPrefix, stableRelease10),
+			InitWithBootstrapProviders:        []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease10)},
+			InitWithControlPlaneProviders:     []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease10)},
+			InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerDockerPrefix, stableRelease10)},
+			InitWithRuntimeExtensionProviders: []string{},
+			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
+				{
+					WithBinary:              fmt.Sprintf(clusterctlDownloadURL, stableRelease12),
+					CoreProvider:            fmt.Sprintf(providerCAPIPrefix, stableRelease12),
+					BootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease12)},
+					ControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease12)},
+					InfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease12)},
+				},
+				{ // Upgrade to latest contract version.
+					Contract: clusterv1.GroupVersion.Version,
+					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+							crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+					},
+				},
+			},
+			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
+			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
+			InitWithKubernetesVersion:   "v1.33.0",
+			WorkloadKubernetesVersion:   "v1.33.0",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "topology",
+			UseKindForManagementCluster: true,
+		}
+	})
+})
+
 // Note: This test should be changed during "prepare main branch", it should test n-3 => current.
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-3 latest stable release

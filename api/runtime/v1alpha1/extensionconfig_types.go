@@ -196,6 +196,7 @@ const (
 // +kubebuilder:resource:path=extensionconfigs,shortName=ext,scope=Cluster,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:deprecatedversion
+// +kubebuilder:unservedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ExtensionConfig"
 
 // ExtensionConfig is the Schema for the ExtensionConfig API.

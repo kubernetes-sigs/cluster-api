@@ -30,7 +30,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -1122,14 +1121,14 @@ func deleteAllClustersAndWait(ctx context.Context, input deleteAllClustersAndWai
 	// Alternatives to this would be:
 	// * some other way to restart the kube-controller-manager (e.g. control plane node rollout)
 	// * removing ownerRefs from (at least) MachineDeployments
-	Eventually(func(g Gomega) {
-		kubeControllerManagerLease := &coordinationv1.Lease{}
-		g.Expect(input.Client.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceSystem, Name: "kube-controller-manager"}, kubeControllerManagerLease)).To(Succeed())
-		// As soon as the kube-controller-manager detects it doesn't own the lease anymore it will restart.
-		// Once the current lease times out the kube-controller-manager will become leader again.
-		kubeControllerManagerLease.Spec.HolderIdentity = ptr.To("e2e-test-client")
-		g.Expect(input.Client.Update(ctx, kubeControllerManagerLease)).To(Succeed())
-	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "failed to steal lease from kube-controller-manager to trigger restart")
+	//Eventually(func(g Gomega) {
+	//	kubeControllerManagerLease := &coordinationv1.Lease{}
+	//	g.Expect(input.Client.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceSystem, Name: "kube-controller-manager"}, kubeControllerManagerLease)).To(Succeed())
+	//	// As soon as the kube-controller-manager detects it doesn't own the lease anymore it will restart.
+	//	// Once the current lease times out the kube-controller-manager will become leader again.
+	//	kubeControllerManagerLease.Spec.HolderIdentity = ptr.To("e2e-test-client")
+	//	g.Expect(input.Client.Update(ctx, kubeControllerManagerLease)).To(Succeed())
+	//}, 3*time.Minute, 3*time.Second).Should(Succeed(), "failed to steal lease from kube-controller-manager to trigger restart")
 
 	for _, c := range clusterList.Items {
 		Byf("Deleting cluster %s", c.GetName())

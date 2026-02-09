@@ -402,6 +402,7 @@ func (m *MachineSet) Validate() field.ErrorList {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machinesets,shortName=ms,scope=Namespaced,categories=cluster-api
 // +kubebuilder:deprecatedversion
+// +kubebuilder:unservedversion
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".spec.clusterName",description="Cluster"

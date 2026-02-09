@@ -624,7 +624,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// This will also work with CAPI versions that have v1beta2 as storage version as long as v1beta1 is still served.
 			// Note: We can't simply use unstructured here because we would have to refactor a lot of code below.
 			// Note: We can migrate to only use v1beta2 once we only support upgrades from CAPI versions that already have v1beta2.
-			workloadCluster := discoveryAndWaitForClusterV1Beta1(ctx, discoveryAndWaitForClusterV1Beta1Input{
+			workloadCluster := discoveryAndWaitForClusterV1Beta2(ctx, discoveryAndWaitForClusterV1Beta2Input{
 				Getter:    managementClusterProxy.GetClient(),
 				Namespace: workloadClusterNamespace,
 				Name:      workloadClusterName,
@@ -674,15 +674,15 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 			// Scale up to 2 and back down to 1 so we can repeat this multiple times.
 			Byf("[%d] Scale MachineDeployment to ensure the providers work", i)
-			if workloadCluster.Spec.Topology != nil {
+			if workloadCluster.Spec.Topology.IsDefined() {
 				// Cluster is using ClusterClass, scale up via topology.
-				framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1Input{
+				framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
 					ClusterProxy:              managementClusterProxy,
 					Cluster:                   workloadCluster,
 					Replicas:                  2,
 					WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 				})
-				framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1Input{
+				framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
 					ClusterProxy:              managementClusterProxy,
 					Cluster:                   workloadCluster,
 					Replicas:                  1,
@@ -690,20 +690,20 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				})
 			} else {
 				// Cluster is not using ClusterClass, scale up via MachineDeployment.
-				testMachineDeployments := framework.GetMachineDeploymentsByClusterV1Beta1(ctx, framework.GetMachineDeploymentsByClusterInput{
+				testMachineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
 					Lister:      managementClusterProxy.GetClient(),
 					ClusterName: workloadClusterName,
 					Namespace:   workloadClusterNamespace,
 				})
 				if len(testMachineDeployments) > 0 {
-					framework.ScaleAndWaitMachineDeploymentV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentV1Beta1Input{
+					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 						ClusterProxy:              managementClusterProxy,
 						Cluster:                   workloadCluster,
 						MachineDeployment:         testMachineDeployments[0],
 						Replicas:                  2,
 						WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 					})
-					framework.ScaleAndWaitMachineDeploymentV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentV1Beta1Input{
+					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 						ClusterProxy:              managementClusterProxy,
 						Cluster:                   workloadCluster,
 						MachineDeployment:         testMachineDeployments[0],
@@ -906,23 +906,23 @@ func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForCl
 	return cluster
 }
 
-// discoveryAndWaitForClusterV1Beta1Input is the input type for discoveryAndWaitForClusterV1Beta1.
-type discoveryAndWaitForClusterV1Beta1Input struct {
+// discoveryAndWaitForClusterV1Beta2Input is the input type for discoveryAndWaitForClusterV1Beta2.
+type discoveryAndWaitForClusterV1Beta2Input struct {
 	Getter    framework.Getter
 	Namespace string
 	Name      string
 }
 
-// discoveryAndWaitForClusterV1Beta1 discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
-func discoveryAndWaitForClusterV1Beta1(ctx context.Context, input discoveryAndWaitForClusterV1Beta1Input, intervals ...interface{}) *clusterv1beta1.Cluster {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for discoveryAndWaitForClusterV1Beta1")
-	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling discoveryAndWaitForClusterV1Beta1")
-	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling discoveryAndWaitForClusterV1Beta1")
-	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling discoveryAndWaitForClusterV1Beta1")
+// discoveryAndWaitForClusterV1Beta2 discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
+func discoveryAndWaitForClusterV1Beta2(ctx context.Context, input discoveryAndWaitForClusterV1Beta2Input, intervals ...interface{}) *clusterv1.Cluster {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for discoveryAndWaitForClusterV1Beta2")
+	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling discoveryAndWaitForClusterV1Beta2")
+	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling discoveryAndWaitForClusterV1Beta2")
+	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling discoveryAndWaitForClusterV1Beta2")
 
 	// NOTE: We intentionally return the provisioned Cluster because it also contains
 	// the reconciled ControlPlane ref and InfrastructureCluster ref when using a ClusterClass.
-	cluster := &clusterv1beta1.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	By("Waiting for cluster to enter the provisioned phase")
 	Eventually(func() (string, error) {
 		key := client.ObjectKey{

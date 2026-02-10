@@ -528,6 +528,13 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 				Deleter: input.BootstrapClusterProxy.GetClient(),
 				Name:    namespace.Name,
 			})
+			if *input.DeployClusterInSeparateNamespaces {
+				Byf("Deleting namespace used for hosting the %q test spec ClusterClass", specName)
+				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+					Deleter: input.BootstrapClusterProxy.GetClient(),
+					Name:    namespace.Name,
+				})
+			}
 		}
 		cancelWatches()
 	})

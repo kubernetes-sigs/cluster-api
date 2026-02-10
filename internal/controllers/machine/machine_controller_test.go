@@ -3764,16 +3764,15 @@ func TestNodeDeletionWithHooks(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "test",
 			},
 		},
@@ -3791,31 +3790,31 @@ func TestNodeDeletionWithHooks(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "cp1",
 			},
 		},
 	}
 
 	testCases := []struct {
-		name                 string
-		deletionTimeout      *metav1.Duration
-		resultErr            bool
-		expectNodeDeletion   bool
-		expectDeletingReason string
-		annotations          map[string]string
-		createFakeClient     func(...client.Object) client.Client
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		expectNodeDeletion     bool
+		expectDeletingReason   string
+		annotations            map[string]string
+		createFakeClient       func(...client.Object) client.Client
 	}{
 		{
-			name:                 "should return no error when pre-drain hook label is set",
-			deletionTimeout:      &metav1.Duration{Duration: time.Second},
-			resultErr:            false,
-			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+			name:                   "should return no error when pre-drain hook label is set",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              false,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingWaitingForPreDrainHookReason,
 			annotations: map[string]string{
 				"pre-drain.delete.hook.machine.cluster.x-k8s.io": "",
 			},
@@ -3827,11 +3826,11 @@ func TestNodeDeletionWithHooks(t *testing.T) {
 			},
 		},
 		{
-			name:                 "should return no error when pre-terminate hook label is set",
-			deletionTimeout:      &metav1.Duration{Duration: time.Second},
-			resultErr:            false,
-			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.MachineDeletingWaitingForPreTerminateHookV1Beta2Reason,
+			name:                   "should return no error when pre-terminate hook label is set",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              false,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingWaitingForPreTerminateHookReason,
 			annotations: map[string]string{
 				"pre-terminate.delete.hook.machine.cluster.x-k8s.io": "",
 				"machine.cluster.x-k8s.io/exclude-node-draining":     "",
@@ -3844,11 +3843,11 @@ func TestNodeDeletionWithHooks(t *testing.T) {
 			},
 		},
 		{
-			name:                 "should return error when draining Node",
-			deletionTimeout:      &metav1.Duration{Duration: time.Second},
-			resultErr:            true,
-			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+			name:                   "should return error when draining Node",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingDrainingNodeReason,
 			annotations: map[string]string{
 				"machine.cluster.x-k8s.io/exclude-wait-for-node-volume-detach": "",
 			},
@@ -3867,7 +3866,7 @@ func TestNodeDeletionWithHooks(t *testing.T) {
 			testMachine.Annotations = tc.annotations
 
 			m := testMachine.DeepCopy()
-			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 
@@ -3876,7 +3875,6 @@ func TestNodeDeletionWithHooks(t *testing.T) {
 				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
-				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
 			}
 
 			s := &scope{
@@ -3933,16 +3931,15 @@ func TestNodeDeletionWithPreDrainHook(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "test",
 			},
 		},
@@ -3960,31 +3957,31 @@ func TestNodeDeletionWithPreDrainHook(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "cp1",
 			},
 		},
 	}
 
 	testCases := []struct {
-		name                 string
-		deletionTimeout      *metav1.Duration
-		resultErr            bool
-		expectNodeDeletion   bool
-		expectDeletingReason string
-		pods                 []*corev1.Pod
-		createFakeClient     func(...client.Object) client.Client
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		expectNodeDeletion     bool
+		expectDeletingReason   string
+		pods                   []*corev1.Pod
+		createFakeClient       func(...client.Object) client.Client
 	}{
 		{
-			name:                 "should return no error when pre-drain is successful",
-			deletionTimeout:      &metav1.Duration{Duration: time.Second},
-			resultErr:            false,
-			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.MachineDeletingDeletionCompletedV1Beta2Reason,
+			name:                   "should return no error when pre-drain is successful",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              false,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingDeletionCompletedReason,
 			pods: []*corev1.Pod{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -4027,7 +4024,7 @@ func TestNodeDeletionWithPreDrainHook(t *testing.T) {
 			g := NewWithT(t)
 
 			m := testMachine.DeepCopy()
-			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
 
 			var remoteObjs []client.Object
 			remoteObjs = append(remoteObjs, node)
@@ -4059,7 +4056,6 @@ func TestNodeDeletionWithPreDrainHook(t *testing.T) {
 				ClusterCache:             clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
-				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
 			}
 
 			s := &scope{
@@ -4116,21 +4112,21 @@ func TestNodeDeletionWithInfraAndBootstrap(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
-			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data"), ConfigRef: &corev1.ObjectReference{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-				Kind:       "GenericBootstrapConfig",
-				Name:       "bootstrap-config1",
-				Namespace:  metav1.NamespaceSystem,
-			}},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config1",
+				},
+			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "test",
 			},
 		},
@@ -4148,40 +4144,40 @@ func TestNodeDeletionWithInfraAndBootstrap(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "cp1",
 			},
 		},
 	}
 
 	testCases := []struct {
-		name                 string
-		deletionTimeout      *metav1.Duration
-		resultErr            bool
-		clusterDeleted       bool
-		expectNodeDeletion   bool
-		bootstrapConfigFound bool
-		infraMachineFound    bool
-		infraMachine         *unstructured.Unstructured
-		bootstrapConfig      *unstructured.Unstructured
-		expectDeletingReason string
-		createFakeClient     func(...client.Object) client.Client
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		clusterDeleted         bool
+		expectNodeDeletion     bool
+		bootstrapConfigFound   bool
+		infraMachineFound      bool
+		infraMachine           *unstructured.Unstructured
+		bootstrapConfig        *unstructured.Unstructured
+		expectDeletingReason   string
+		createFakeClient       func(...client.Object) client.Client
 	}{
 		{
-			name:               "should return error when deleting infra",
-			deletionTimeout:    &metav1.Duration{Duration: time.Second},
-			resultErr:          true,
-			expectNodeDeletion: false,
+			name:                   "should return error when deleting infra",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
 			infraMachine: util.ObjectReferenceToUnstructured(corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Name:       "infra-config1",
 			}),
 			bootstrapConfigFound: true,
-			expectDeletingReason: clusterv1.MachineDeletingInternalErrorV1Beta2Reason,
+			expectDeletingReason: clusterv1.MachineDeletingInternalErrorReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -4190,16 +4186,16 @@ func TestNodeDeletionWithInfraAndBootstrap(t *testing.T) {
 			},
 		},
 		{
-			name:               "should return no error when deleting bootstrap",
-			deletionTimeout:    &metav1.Duration{Duration: time.Second},
-			resultErr:          true,
-			expectNodeDeletion: false,
-			infraMachineFound:  true,
+			name:                   "should return no error when deleting bootstrap",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			infraMachineFound:      true,
 			bootstrapConfig: util.ObjectReferenceToUnstructured(corev1.ObjectReference{
 				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 				Name:       "bootstrap-config1",
 			}),
-			expectDeletingReason: clusterv1.MachineDeletingInternalErrorV1Beta2Reason,
+			expectDeletingReason: clusterv1.MachineDeletingInternalErrorReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -4214,7 +4210,7 @@ func TestNodeDeletionWithInfraAndBootstrap(t *testing.T) {
 			g := NewWithT(t)
 
 			m := testMachine.DeepCopy()
-			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 
@@ -4223,7 +4219,6 @@ func TestNodeDeletionWithInfraAndBootstrap(t *testing.T) {
 				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
-				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
 			}
 
 			s := &scope{
@@ -4333,16 +4328,15 @@ func TestNodeDeletionWithVolumeDetach(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "test",
 			},
 		},
@@ -4360,31 +4354,31 @@ func TestNodeDeletionWithVolumeDetach(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "cp1",
 			},
 		},
 	}
 
 	testCases := []struct {
-		name                 string
-		deletionTimeout      *metav1.Duration
-		resultErr            bool
-		remoteObjects        []client.Object
-		expectNodeDeletion   bool
-		expectDeletingReason string
-		createFakeClient     func(...client.Object) client.Client
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		remoteObjects          []client.Object
+		expectNodeDeletion     bool
+		expectDeletingReason   string
+		createFakeClient       func(...client.Object) client.Client
 	}{
 		{
-			name:                 "should return error when detaching the volume",
-			deletionTimeout:      &metav1.Duration{Duration: time.Second},
-			resultErr:            true,
-			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			name:                   "should return error when detaching the volume",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			remoteObjects: []client.Object{
 				volumeAttachment,
 				&corev1.Pod{
@@ -4426,7 +4420,7 @@ func TestNodeDeletionWithVolumeDetach(t *testing.T) {
 			g := NewWithT(t)
 
 			m := testMachine.DeepCopy()
-			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
 
 			var remoteObjs []client.Object
 			remoteObjs = append(remoteObjs, tc.remoteObjects...)
@@ -4462,7 +4456,6 @@ func TestNodeDeletionWithVolumeDetach(t *testing.T) {
 				ClusterCache:             clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
-				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
 			}
 
 			s := &scope{

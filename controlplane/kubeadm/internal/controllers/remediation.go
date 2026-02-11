@@ -582,24 +582,15 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Context, controlPlane *internal.ControlPlane, machineToBeRemediated *clusterv1.Machine) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to get client for workload cluster %s", controlPlane.Cluster.Name)
+	if len(controlPlane.EtcdMembers) == 0 {
+		return false, errors.New("cannot determine etcd cluster status after remediation. etcd member list is empty")
 	}
 
-	// Gets the etcd status
-
-	// This makes it possible to have a set of etcd members status different from the MHC unhealthy/unhealthy conditions.
-	etcdMembers, err := workloadCluster.EtcdMembers(ctx)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to get etcdStatus for workload cluster %s", controlPlane.Cluster.Name)
-	}
-
-	currentTotalMembers := len(etcdMembers)
+	currentTotalMembers := len(controlPlane.EtcdMembers)
 
 	log.Info("etcd cluster before remediation",
 		"currentTotalMembers", currentTotalMembers,
-		"currentMembers", etcdMembers)
+		"currentMembers", controlPlane.EtcdMembers)
 
 	// Projects the target etcd cluster after remediation, considering all the etcd members except the one being remediated.
 	targetTotalMembers := 0
@@ -607,9 +598,9 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 
 	healthyMembers := []string{}
 	unhealthyMembers := []string{}
-	for _, etcdMember := range etcdMembers {
+	for _, etcdMember := range controlPlane.EtcdMembers {
 		// Skip the machine to be deleted because it won't be part of the target etcd cluster.
-		if machineToBeRemediated.Status.NodeRef.IsDefined() && machineToBeRemediated.Status.NodeRef.Name == etcdMember {
+		if machineToBeRemediated.Status.NodeRef.IsDefined() && machineToBeRemediated.Status.NodeRef.Name == etcdMember.Name {
 			continue
 		}
 
@@ -619,7 +610,7 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		// Search for the machine corresponding to the etcd member.
 		var machine *clusterv1.Machine
 		for _, m := range controlPlane.Machines {
-			if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == etcdMember {
+			if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == etcdMember.Name {
 				machine = m
 				break
 			}
@@ -630,27 +621,27 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		//
 		// NOTE: This should not happen given that KCP is running reconcileEtcdMembers before calling this method.
 		if machine == nil {
-			log.Info("An etcd member does not have a corresponding machine, assuming this member is unhealthy", "memberName", etcdMember)
+			log.Info("An etcd member does not have a corresponding machine, assuming this member is unhealthy", "memberName", etcdMember.Name)
 			targetUnhealthyMembers++
-			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (no machine)", etcdMember))
+			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (no machine)", etcdMember.Name))
 			continue
 		}
 
 		// Check member health as reported by machine's health conditions
 		if !conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition) {
 			targetUnhealthyMembers++
-			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (%s)", etcdMember, machine.Name))
+			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (%s)", etcdMember.Name, machine.Name))
 			continue
 		}
 
-		healthyMembers = append(healthyMembers, fmt.Sprintf("%s (%s)", etcdMember, machine.Name))
+		healthyMembers = append(healthyMembers, fmt.Sprintf("%s (%s)", etcdMember.Name, machine.Name))
 	}
 
 	// See https://etcd.io/docs/v3.3/faq/#what-is-failure-tolerance for fault tolerance formula explanation.
 	targetQuorum := (targetTotalMembers / 2.0) + 1
 	canSafelyRemediate := targetTotalMembers-targetUnhealthyMembers >= targetQuorum
 
-	log.Info(fmt.Sprintf("etcd cluster projected after remediation of %s", machineToBeRemediated.Name),
+	log.Info(fmt.Sprintf("etcd cluster projected after remediation of Machine %s", machineToBeRemediated.Name),
 		"healthyMembers", healthyMembers,
 		"unhealthyMembers", unhealthyMembers,
 		"targetTotalMembers", targetTotalMembers,

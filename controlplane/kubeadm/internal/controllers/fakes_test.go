@@ -70,7 +70,6 @@ func (f *fakeManagementCluster) GetMachinePoolsForCluster(c context.Context, clu
 type fakeWorkloadCluster struct {
 	*internal.Workload
 	Status                     internal.ClusterStatus
-	EtcdMembersResult          []string
 	APIServerCertificateExpiry *time.Time
 
 	forwardEtcdLeadershipCalled      int
@@ -108,10 +107,6 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 func (f *fakeWorkloadCluster) RemoveEtcdMemberForMachine(_ context.Context, _ *clusterv1.Machine) error {
 	f.removeEtcdMemberForMachineCalled++
 	return nil
-}
-
-func (f *fakeWorkloadCluster) EtcdMembers(_ context.Context) ([]string, error) {
-	return f.EtcdMembersResult, nil
 }
 
 func (f *fakeWorkloadCluster) UpdateClusterConfiguration(context.Context, semver.Version, ...func(*bootstrapv1.ClusterConfiguration)) error {

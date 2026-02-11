@@ -359,7 +359,6 @@ func (h *apiServerHandler) v1List(ctx context.Context, req *restful.Request, gvk
 		listOpts = append(listOpts, client.InNamespace(req.PathParameter("namespace")))
 	}
 
-	// TODO: The only field Selector which works is for `spec.nodeName` on pods.
 	fieldSelector, err := fields.ParseSelector(req.QueryParameter("fieldSelector"))
 	if err != nil {
 		return nil, err

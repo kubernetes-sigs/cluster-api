@@ -346,11 +346,17 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 	// Create or update the ControlPlaneObject for the ControlPlaneState.
 	log := ctrl.LoggerFrom(ctx).WithValues(s.Desired.ControlPlane.Object.GetKind(), klog.KObj(s.Desired.ControlPlane.Object))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	ignorePaths, err := contract.ControlPlane().IgnorePaths(s.Desired.ControlPlane.Object)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to calculate ignore paths")
+	}
 	created, err := r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
 		cluster:       s.Current.Cluster,
 		current:       s.Current.ControlPlane.Object,
 		desired:       s.Desired.ControlPlane.Object,
 		versionGetter: contract.ControlPlane().Version().Get,
+		ignorePaths:   ignorePaths,
 	})
 	if err != nil {
 		// Best effort cleanup of the InfrastructureMachineTemplate (only on creation).

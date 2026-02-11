@@ -52,6 +52,33 @@ func (c *ControlPlaneContract) MachineTemplate() *ControlPlaneMachineTemplate {
 	return &ControlPlaneMachineTemplate{}
 }
 
+// IgnorePaths returns a list of paths to be ignored when reconciling an ControlPlane.
+// NOTE: The controlPlaneEndpoint struct currently contains two mandatory fields (host and port).
+// As the host and port fields are not using omitempty, they are automatically set to their zero values
+// if they are not set by the user. We don't want to reconcile the zero values as we would then overwrite
+// changes applied by the infrastructure provider controller.
+func (c *ControlPlaneContract) IgnorePaths(controlPlane *unstructured.Unstructured) ([]Path, error) {
+	var ignorePaths []Path
+
+	host, ok, err := unstructured.NestedString(controlPlane.UnstructuredContent(), ControlPlane().ControlPlaneEndpoint().host().Path()...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve %s", ControlPlane().ControlPlaneEndpoint().host().Path().String())
+	}
+	if ok && host == "" {
+		ignorePaths = append(ignorePaths, ControlPlane().ControlPlaneEndpoint().host().Path())
+	}
+
+	port, ok, err := unstructured.NestedInt64(controlPlane.UnstructuredContent(), ControlPlane().ControlPlaneEndpoint().port().Path()...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve %s", ControlPlane().ControlPlaneEndpoint().port().Path().String())
+	}
+	if ok && port == 0 {
+		ignorePaths = append(ignorePaths, ControlPlane().ControlPlaneEndpoint().port().Path())
+	}
+
+	return ignorePaths, nil
+}
+
 // Version provide access to version field in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.

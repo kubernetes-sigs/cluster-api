@@ -117,9 +117,26 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 // ReconcileDelete handle docker backend for delete DevMachines.
 func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	if dockerCluster.Spec.Backend.Docker == nil {
 		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevClusters without a Docker backend")
 	}
+
+	// Check if there are any dependent DockerMachines still being deleted.
+	// We need to wait for all machines to be gone before deleting the cluster infrastructure.
+	numDependencies, err := r.dependencyCount(ctx, cluster)
+	if err != nil {
+		log.Error(err, "error getting DockerCluster dependencies")
+		return ctrl.Result{}, err
+	}
+
+	if numDependencies > 0 {
+		log.Info("DockerCluster still has dependent DockerMachines - requeuing", "dependencyCount", numDependencies)
+		return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
+	}
+
+	log.Info("DockerCluster has no dependent DockerMachines, proceeding with deletion")
 
 	// Create a helper for managing a docker container hosting the loadbalancer.
 	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster,
@@ -208,4 +225,24 @@ func (r *ClusterBackEndReconciler) PatchDevCluster(ctx context.Context, patchHel
 			infrav1.DevClusterDockerLoadBalancerAvailableCondition,
 		}},
 	)
+}
+
+// dependencyCount returns the count of DockerMachines that are dependent on this cluster.
+func (r *ClusterBackEndReconciler) dependencyCount(ctx context.Context, cluster *clusterv1.Cluster) (int, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.V(4).Info("Looking for DockerCluster dependencies")
+
+	listOptions := []client.ListOption{
+		client.InNamespace(cluster.Namespace),
+		client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: cluster.Name}),
+	}
+
+	machines := &infrav1.DockerMachineList{}
+	if err := r.Client.List(ctx, machines, listOptions...); err != nil {
+		return 0, errors.Wrapf(err, "failed to list DockerMachines for cluster %s/%s", cluster.Namespace, cluster.Name)
+	}
+
+	log.V(4).Info("Found dependent DockerMachines", "count", len(machines.Items))
+
+	return len(machines.Items), nil
 }

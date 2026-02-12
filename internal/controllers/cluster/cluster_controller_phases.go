@@ -111,8 +111,19 @@ func ensureOwnerRefAndLabel(ctx context.Context, c client.Client, obj *unstructu
 	}
 
 	original := obj.DeepCopyObject().(client.Object)
-	if err := controllerutil.SetControllerReference(cluster, obj, c.Scheme()); err != nil {
-		return err
+
+	// Only set ownerReference when Topology is defined.
+	// When Topology is not defined, the InfraCluster/ControlPlane is managed by
+	// the user or external tools (e.g., metacontroller), so CAPI should not
+	// set ownerReference to avoid interfering with their lifecycle management.
+	if cluster.Spec.Topology.IsDefined() {
+		if err := controllerutil.SetControllerReference(cluster, obj, c.Scheme()); err != nil {
+			return err
+		}
+	} else {
+		if err := controllerutil.SetOwnerReference(cluster, obj, c.Scheme()); err != nil {
+			return err
+		}
 	}
 
 	labels := obj.GetLabels()

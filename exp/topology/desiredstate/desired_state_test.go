@@ -1714,7 +1714,7 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.Namespace).To(Equal(cluster.Namespace))
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, cluster.Name))
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
-	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyUpgradeStepAnnotation))
+	g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.ClusterTopologyUpgradeStepAnnotation, ""))
 
 	// Spec
 	g.Expect(obj.Spec.InfrastructureRef).To(BeComparableTo(contract.ObjToContractVersionedObjectReference(infrastructureCluster)))
@@ -1742,7 +1742,7 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj).ToNot(BeNil())
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyUpgradeStepAnnotation))
+	g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.ClusterTopologyUpgradeStepAnnotation, ""))
 }
 
 func TestComputeMachineDeployment(t *testing.T) {

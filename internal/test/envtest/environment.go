@@ -40,6 +40,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -63,6 +64,7 @@ import (
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -71,6 +73,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -118,6 +121,7 @@ func registerSchemes(s *runtime.Scheme) {
 	utilruntime.Must(bootstrapv1.AddToScheme(s))
 	utilruntime.Must(clusterv1.AddToScheme(s))
 	utilruntime.Must(controlplanev1.AddToScheme(s))
+	utilruntime.Must(controlplanev1beta1.AddToScheme(s))
 	utilruntime.Must(ipamv1.AddToScheme(s))
 	utilruntime.Must(runtimev1.AddToScheme(s))
 }
@@ -166,7 +170,7 @@ func Run(ctx context.Context, input RunInput) int {
 	}
 
 	// Bootstrapping test environment
-	env := newEnvironment(scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerUncachedObjs...)
+	env := newEnvironment(ctx, scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerUncachedObjs...)
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	env.cancelManager = cancel
@@ -251,7 +255,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, uncachedObjs ...client.Object) *Environment {
+func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
@@ -377,6 +381,12 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
 	internalwebhooks.SetMinNodeStartupTimeoutSeconds(0)
+
+	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
+	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
+	}
+	controlplanev1beta1.SetAPIVersionGetter(apiVersionGetter)
 
 	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)

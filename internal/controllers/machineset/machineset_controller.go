@@ -237,11 +237,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		}
 	}
 
-	alwaysReconcile := []machineSetReconcileFunc{
+	alwaysReconcile := []machineSetReconcileBlockingFunc{
 		wrapErrMachineSetReconcileFunc(r.reconcileMachineSetOwnerAndLabels, "failed to set MachineSet owner and labels"),
 		wrapErrMachineSetReconcileFunc(r.reconcileInfrastructure, "failed to reconcile infrastructure"),
 		wrapErrMachineSetReconcileFunc(r.reconcileBootstrapConfig, "failed to reconcile bootstrapConfig"),
-		wrapErrMachineSetReconcileFunc(r.getAndAdoptMachinesForMachineSet, "failed to get and adopt Machines for MachineSet"),
+		wrapErrMachineSetReconcileBlockingFunc(r.getAndAdoptMachinesForMachineSet, "failed to get and adopt Machines for MachineSet"),
 	}
 
 	// Handle deletion reconciliation loop.
@@ -255,7 +255,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	reconcileNormal := append(alwaysReconcile,
 		wrapErrMachineSetReconcileFunc(r.reconcileUnhealthyMachines, "failed to reconcile unhealthy machines"),
-		wrapErrMachineSetReconcileFunc(r.syncMachines, "failed to sync Machines"),
+		wrapErrMachineSetReconcileBlockingFunc(r.syncMachines, "failed to sync Machines"),
 		wrapErrMachineSetReconcileFunc(r.triggerInPlaceUpdate, "failed to trigger in-place update"),
 		wrapErrMachineSetReconcileFunc(r.syncReplicas, "failed to sync replicas"),
 	)
@@ -275,21 +275,30 @@ type scope struct {
 	reconciliationTime                        time.Time
 }
 
+type machineSetReconcileBlockingFunc func(ctx context.Context, s *scope) (ctrl.Result, bool, error)
+
 type machineSetReconcileFunc func(ctx context.Context, s *scope) (ctrl.Result, error)
 
-func wrapErrMachineSetReconcileFunc(f machineSetReconcileFunc, msg string) machineSetReconcileFunc {
-	return func(ctx context.Context, s *scope) (ctrl.Result, error) {
-		res, err := f(ctx, s)
-		return res, errors.Wrap(err, msg)
+func wrapErrMachineSetReconcileBlockingFunc(f machineSetReconcileBlockingFunc, msg string) machineSetReconcileBlockingFunc {
+	return func(ctx context.Context, s *scope) (ctrl.Result, bool, error) {
+		res, stopReconcile, err := f(ctx, s)
+		return res, stopReconcile, errors.Wrap(err, msg)
 	}
 }
 
-func doReconcile(ctx context.Context, s *scope, phases []machineSetReconcileFunc) (ctrl.Result, kerrors.Aggregate) {
+func wrapErrMachineSetReconcileFunc(f machineSetReconcileFunc, msg string) machineSetReconcileBlockingFunc {
+	return func(ctx context.Context, s *scope) (ctrl.Result, bool, error) {
+		res, err := f(ctx, s)
+		return res, false, errors.Wrap(err, msg)
+	}
+}
+
+func doReconcile(ctx context.Context, s *scope, phases []machineSetReconcileBlockingFunc) (ctrl.Result, kerrors.Aggregate) {
 	res := ctrl.Result{}
 	errs := []error{}
 	for _, phase := range phases {
 		// Call the inner reconciliation methods.
-		phaseResult, err := phase(ctx, s)
+		phaseResult, stopReconcile, err := phase(ctx, s)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -297,6 +306,9 @@ func doReconcile(ctx context.Context, s *scope, phases []machineSetReconcileFunc
 			continue
 		}
 		res = util.LowestNonZeroResult(res, phaseResult)
+		if stopReconcile {
+			break
+		}
 	}
 
 	if len(errs) > 0 {
@@ -554,9 +566,6 @@ func (r *Reconciler) reconcileBootstrapConfig(ctx context.Context, s *scope) (ct
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result, error) {
 	machineSet := s.machineSet
 	machineList := s.machines
-	if !s.getAndAdoptMachinesForMachineSetSucceeded {
-		return ctrl.Result{}, nil
-	}
 
 	log := ctrl.LoggerFrom(ctx)
 
@@ -582,12 +591,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *scope) (ctrl.Result, bool, error) {
 	machineSet := s.machineSet
 	log := ctrl.LoggerFrom(ctx)
 	selectorMap, err := metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
+		return ctrl.Result{}, true, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
 	}
 
 	// Get all Machines linked to this MachineSet.
@@ -598,7 +607,7 @@ func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *sc
 		client.MatchingLabels(selectorMap),
 	)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to list machines")
+		return ctrl.Result{}, true, errors.Wrap(err, "failed to list machines")
 	}
 
 	// Filter out irrelevant machines (i.e. IsControlledBy something else) and claim orphaned machines.
@@ -629,19 +638,18 @@ func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *sc
 	s.machines = filteredMachines
 	s.getAndAdoptMachinesForMachineSetSucceeded = true
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, false, nil
 }
 
 // syncMachines updates Machines, InfrastructureMachine and BootstrapConfig to propagate in-place mutable fields
 // from the MachineSet.
-func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, bool, error) {
 	machineSet := s.machineSet
 	machines := s.machines
-	if !s.getAndAdoptMachinesForMachineSetSucceeded {
-		return ctrl.Result{}, nil
-	}
 
 	log := ctrl.LoggerFrom(ctx)
+
+	var anyManagedFieldIssueMitigated bool
 	for i := range machines {
 		m := machines[i]
 
@@ -650,7 +658,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 		if !m.DeletionTimestamp.IsZero() {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, true, err
 			}
 
 			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
@@ -662,74 +670,96 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 			m.Spec.Taints = machineSet.Spec.Template.Spec.Taints
 
 			if err := patchHelper.Patch(ctx, m); err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, true, err
 			}
 			continue
 		}
 
-		// Update Machine to propagate in-place mutable fields from the MachineSet.
-		updatedMachine, err := r.computeDesiredMachine(machineSet, m)
+		managedFieldIssueMitigated, err := ssa.MitigateManagedFieldsIssue(ctx, r.Client, m, machineSetManagerName)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update Machine: failed to compute desired Machine")
+			return ctrl.Result{}, true, err
 		}
-		err = ssa.Patch(ctx, r.Client, machineSetManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: m})
-		if err != nil {
-			log.Error(err, "Failed to update Machine", "Machine", klog.KObj(updatedMachine))
-			return ctrl.Result{}, errors.Wrapf(err, "failed to update Machine %q", klog.KObj(updatedMachine))
-		}
-		machines[i] = updatedMachine
-
-		infraMachine, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, updatedMachine.Spec.InfrastructureRef, updatedMachine.Namespace)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get InfrastructureMachine %s %s",
-				updatedMachine.Spec.InfrastructureRef.Kind, klog.KRef(updatedMachine.Namespace, updatedMachine.Spec.InfrastructureRef.Name))
-		}
-		// Drop managedFields for manager:Update and capi-machineset:Apply for all objects created with CAPI <= v1.11.
-		// Starting with CAPI v1.12 we have a new managedField structure where capi-machineset-metadata will own
-		// labels and annotations and capi-machineset everything else.
-		// Note: We have to call ssa.MigrateManagedFields for every Machine created with CAPI <= v1.11 once.
-		//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
-		//       be removed with CAPI v1.15.
-		if err := ssa.MigrateManagedFields(ctx, r.Client, infraMachine, machineSetManagerName, machineSetMetadataManagerName); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
-		}
-		// Update in-place mutating fields on InfrastructureMachine.
-		if err := r.updateLabelsAndAnnotations(ctx, infraMachine, machineSet); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
-		}
-
-		if updatedMachine.Spec.Bootstrap.ConfigRef.IsDefined() {
-			bootstrapConfig, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, updatedMachine.Spec.Bootstrap.ConfigRef, updatedMachine.Namespace)
+		anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
+		if !anyManagedFieldIssueMitigated {
+			// Update Machine to propagate in-place mutable fields from the MachineSet.
+			updatedMachine, err := r.computeDesiredMachine(machineSet, m)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to get BootstrapConfig %s %s",
-					updatedMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(updatedMachine.Namespace, updatedMachine.Spec.Bootstrap.ConfigRef.Name))
+				return ctrl.Result{}, true, errors.Wrap(err, "failed to update Machine: failed to compute desired Machine")
 			}
+			err = ssa.Patch(ctx, r.Client, machineSetManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: m})
+			if err != nil {
+				log.Error(err, "Failed to update Machine", "Machine", klog.KObj(updatedMachine))
+				return ctrl.Result{}, true, errors.Wrapf(err, "failed to update Machine %q", klog.KObj(updatedMachine))
+			}
+			machines[i] = updatedMachine
+		}
+
+		infraMachine, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, m.Spec.InfrastructureRef, m.Namespace)
+		if err != nil {
+			return ctrl.Result{}, true, errors.Wrapf(err, "failed to get InfrastructureMachine %s %s",
+				m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
+		}
+		managedFieldIssueMitigated, err = ssa.MitigateManagedFieldsIssue(ctx, r.Client, infraMachine, machineSetMetadataManagerName)
+		if err != nil {
+			return ctrl.Result{}, true, err
+		}
+		anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
+		if !anyManagedFieldIssueMitigated {
 			// Drop managedFields for manager:Update and capi-machineset:Apply for all objects created with CAPI <= v1.11.
 			// Starting with CAPI v1.12 we have a new managedField structure where capi-machineset-metadata will own
 			// labels and annotations and capi-machineset everything else.
 			// Note: We have to call ssa.MigrateManagedFields for every Machine created with CAPI <= v1.11 once.
 			//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
 			//       be removed with CAPI v1.15.
-			if err := ssa.MigrateManagedFields(ctx, r.Client, bootstrapConfig, machineSetManagerName, machineSetMetadataManagerName); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to clean up managedFields of BootstrapConfig %s", klog.KObj(bootstrapConfig))
+			if err := ssa.MigrateManagedFields(ctx, r.Client, infraMachine, machineSetManagerName, machineSetMetadataManagerName); err != nil {
+				return ctrl.Result{}, true, errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
 			}
-			// Update in-place mutating fields on BootstrapConfig.
-			if err := r.updateLabelsAndAnnotations(ctx, bootstrapConfig, machineSet); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to update BootstrapConfig %s", klog.KObj(bootstrapConfig))
+			// Update in-place mutating fields on InfrastructureMachine.
+			if err := r.updateLabelsAndAnnotations(ctx, infraMachine, machineSet); err != nil {
+				return ctrl.Result{}, true, errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
+			}
+		}
+
+		if m.Spec.Bootstrap.ConfigRef.IsDefined() {
+			bootstrapConfig, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
+			if err != nil {
+				return ctrl.Result{}, true, errors.Wrapf(err, "failed to get BootstrapConfig %s %s",
+					m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
+			}
+			managedFieldIssueMitigated, err = ssa.MitigateManagedFieldsIssue(ctx, r.Client, bootstrapConfig, machineSetMetadataManagerName)
+			if err != nil {
+				return ctrl.Result{}, true, err
+			}
+			anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
+			if !anyManagedFieldIssueMitigated {
+				// Drop managedFields for manager:Update and capi-machineset:Apply for all objects created with CAPI <= v1.11.
+				// Starting with CAPI v1.12 we have a new managedField structure where capi-machineset-metadata will own
+				// labels and annotations and capi-machineset everything else.
+				// Note: We have to call ssa.MigrateManagedFields for every Machine created with CAPI <= v1.11 once.
+				//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
+				//       be removed with CAPI v1.15.
+				if err := ssa.MigrateManagedFields(ctx, r.Client, bootstrapConfig, machineSetManagerName, machineSetMetadataManagerName); err != nil {
+					return ctrl.Result{}, true, errors.Wrapf(err, "failed to clean up managedFields of BootstrapConfig %s", klog.KObj(bootstrapConfig))
+				}
+				// Update in-place mutating fields on BootstrapConfig.
+				if err := r.updateLabelsAndAnnotations(ctx, bootstrapConfig, machineSet); err != nil {
+					return ctrl.Result{}, true, errors.Wrapf(err, "failed to update BootstrapConfig %s", klog.KObj(bootstrapConfig))
+				}
 			}
 		}
 	}
-	return ctrl.Result{}, nil
+
+	if anyManagedFieldIssueMitigated {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, true, nil // Explicitly requeue as we are not watching all objects.
+	}
+
+	return ctrl.Result{}, false, nil
 }
 
 // syncReplicas scales Machine resources up or down.
 func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, error) {
 	ms := s.machineSet
 	machines := s.machines
-
-	if !s.getAndAdoptMachinesForMachineSetSucceeded {
-		return ctrl.Result{}, nil
-	}
 
 	log := ctrl.LoggerFrom(ctx)
 	if ms.Spec.Replicas == nil {
@@ -1461,10 +1491,6 @@ func (r *Reconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Clus
 }
 
 func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (ctrl.Result, error) {
-	if !s.getAndAdoptMachinesForMachineSetSucceeded {
-		return ctrl.Result{}, nil
-	}
-
 	cluster := s.cluster
 	ms := s.machineSet
 	machines := s.machines

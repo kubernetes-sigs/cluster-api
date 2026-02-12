@@ -2062,12 +2062,16 @@ func Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(in *v1beta2.Machin
 func autoConvert_v1beta1_MachineDeletionStatus_To_v1beta2_MachineDeletionStatus(in *MachineDeletionStatus, out *v1beta2.MachineDeletionStatus, s conversion.Scope) error {
 	// WARNING: in.NodeDrainStartTime requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.WaitForNodeVolumeDetachStartTime requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
+	// WARNING: in.WaitForPreDrainHookStartTime requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
+	// WARNING: in.WaitForPreTerminateHookStartTime requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	return nil
 }
 
 func autoConvert_v1beta2_MachineDeletionStatus_To_v1beta1_MachineDeletionStatus(in *v1beta2.MachineDeletionStatus, out *MachineDeletionStatus, s conversion.Scope) error {
 	// WARNING: in.NodeDrainStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.WaitForNodeVolumeDetachStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
+	// WARNING: in.WaitForPreDrainHookStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
+	// WARNING: in.WaitForPreTerminateHookStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	return nil
 }
 

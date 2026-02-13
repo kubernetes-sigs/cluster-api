@@ -8,7 +8,7 @@ quick start with Cluster API. It automates fetching the YAML files defining [pro
 Additionally it encodes a set of best practices in managing providers, that helps the user in avoiding
 mis-configurations or in managing day 2 operations such as upgrades.
 
-Below you can find a list of main clusterctl commands:
+Below you can find a list of the main clusterctl commands:
 
 * [`clusterctl init`](commands/init.md) Initialize a management cluster.
 * [`clusterctl upgrade plan`](commands/upgrade.md#upgrade-plan) Provide a list of recommended target versions for upgrading Cluster API providers in a management cluster.
@@ -24,9 +24,9 @@ For the full list of clusterctl commands please refer to [commands](commands/com
 
 ### Avoiding GitHub rate limiting
 
-While using providers hosted on GitHub, clusterctl is calling GitHub API which are rate limited; for normal usage free tier is enough but when using clusterctl extensively users might hit the rate limit.
+While using providers hosted on GitHub, clusterctl calls the GitHub API which is rate limited. For normal usage the free tier is enough but when using clusterctl extensively users might hit the rate limit.
 
-To avoid rate limiting for the public repos set the `GITHUB_TOKEN` environment variable. To generate a token [follow this](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) documentation. The token only needs `repo` scope for clusterctl.
+To avoid rate limiting for the public repos set the `GITHUB_TOKEN` environment variable. To generate a token [follow this](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) documentation. The token only needs the `repo` scope for clusterctl.
 
 Per default `clusterctl` will use a go proxy to detect the available versions to prevent additional
 API calls to the GitHub API. It is possible to configure the go proxy url using the `GOPROXY` variable as

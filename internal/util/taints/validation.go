@@ -19,7 +19,7 @@ package taints
 import (
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/api/validate/content"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -58,11 +58,11 @@ func ValidateMachineTaints(taints []clusterv1.MachineTaint, taintsPath *field.Pa
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint is deprecated since 1.24 and should not be used anymore"))
 		}
 
-		if validation.IsQualifiedName(taint.Key) != nil {
+		for _, msg := range content.IsLabelKey(taint.Key) {
 			allErrs = append(allErrs, field.Invalid(
 				idxPath.Child("key"),
 				taint.Key,
-				"key must be a valid qualified name of max size 63 characters with an optional subdomain prefix of max size 253 characters",
+				msg,
 			))
 		}
 	}

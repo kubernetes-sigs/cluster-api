@@ -2468,7 +2468,7 @@
               },
               "editorMode": "code",
               "expr": "workqueue_depth{pod=~\"$Pod\",name=~\"$Controller\"}",
-              "legendFormat": "{{pod}}: {{name}}",
+              "legendFormat": "{{pod}}: {{name}} ({{ priority }})",
               "range": true,
               "refId": "A"
             }

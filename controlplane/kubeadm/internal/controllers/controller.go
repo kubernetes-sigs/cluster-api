@@ -69,6 +69,20 @@ const (
 	kcpManagerName          = "capi-kubeadmcontrolplane"
 	kcpMetadataManagerName  = "capi-kubeadmcontrolplane-metadata"
 	kubeadmControlPlaneKind = "KubeadmControlPlane"
+
+	// Event reasons for certificate-related automatic actions.
+
+	// EventKubeconfigCertificateRotated is emitted when kubeconfig certificate
+	// is automatically rotated due to approaching expiry.
+	EventKubeconfigCertificateRotated = "KubeconfigCertificateRotated"
+
+	// EventKubeconfigCertificateRotationFailed is emitted when kubeconfig
+	// certificate rotation fails.
+	EventKubeconfigCertificateRotationFailed = "KubeconfigCertificateRotationFailed"
+
+	// EventCertificateExpiryTriggeredRollout is emitted when a machine is marked
+	// for rollout due to certificate expiry approaching the threshold.
+	EventCertificateExpiryTriggeredRollout = "CertificateExpiryTriggeredRollout"
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch

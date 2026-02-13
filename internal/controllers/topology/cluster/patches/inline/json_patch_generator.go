@@ -25,7 +25,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -39,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
 	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
+	"sigs.k8s.io/cluster-api/internal/topology/templates"
 )
 
 // jsonPatchGenerator generates JSON patches for a GeneratePatchesRequest based on a ClusterClassPatch.
@@ -319,7 +319,9 @@ func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextension
 // renderValueTemplate renders a template with the given variables as data.
 func renderValueTemplate(valueTemplate string, variables map[string]apiextensionsv1.JSON) (*apiextensionsv1.JSON, error) {
 	// Parse the template.
-	tpl, err := template.New("tpl").Funcs(sprig.HermeticTxtFuncMap()).Parse(valueTemplate)
+	tpl := template.New("tpl")
+	tpl.Funcs(templates.TemplateFunctions(tpl))
+	_, err := tpl.Parse(valueTemplate)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse template: %q", valueTemplate)
 	}

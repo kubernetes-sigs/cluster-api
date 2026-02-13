@@ -547,6 +547,33 @@ type FooControlPlaneMachineTemplateSpec struct {
 
 NOTE: In the v1beta1 contract the `readinessGates` field was located directly in the `spec.machineTemplate` field.
 
+In case you are developing a control plane provider that allows definition of machine taints, you SHOULD also implement
+the following `spec.machineTemplate.spec` field.
+
+```go
+type FooControlPlaneMachineTemplateSpec struct {
+	// taints are the node taints that Cluster API will manage.
+	// This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+	// e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+	// Only those taints defined in this list will be added or removed by core Cluster API controllers.
+	//
+	// There can be at most 64 taints.
+	// A pod would have to tolerate all existing taints to run on the corresponding node.
+	//
+	// NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +listMapKey=effect
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	Taints []clusterv1.MachineTaint `json:"taints,omitempty"`
+
+    // See other rules for more details about mandatory/optional fields in ControlPlane spec.
+    // Other fields SHOULD be added based on the needs of your provider.
+}
+```
+
 In case you are developing a control plane provider where control plane instances uses a Cluster API Machine 
 object to represent each control plane instance, but those instances do not show up as a Kubernetes node (for example, 
 managed control plane providers for AKS, EKS, GKE etc), you SHOULD also implement the following `status` field.

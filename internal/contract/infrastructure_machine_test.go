@@ -117,7 +117,20 @@ func TestInfrastructureMachine(t *testing.T) {
 	t.Run("Manages optional spec.failureDomain", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(InfrastructureMachine().FailureDomain().Path()).To(Equal(Path{"spec", "failureDomain"}))
+		g.Expect(InfrastructureMachine().DeprecatedFailureDomain().Path()).To(Equal(Path{"spec", "failureDomain"}))
+
+		err := InfrastructureMachine().DeprecatedFailureDomain().Set(obj, "fake-failure-domain")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := InfrastructureMachine().DeprecatedFailureDomain().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal("fake-failure-domain"))
+	})
+	t.Run("Manages optional status.failureDomain", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(InfrastructureMachine().FailureDomain().Path()).To(Equal(Path{"status", "failureDomain"}))
 
 		err := InfrastructureMachine().FailureDomain().Set(obj, "fake-failure-domain")
 		g.Expect(err).ToNot(HaveOccurred())

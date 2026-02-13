@@ -330,9 +330,10 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 			Initialization: infrav1.DevMachineInitializationStatus{
 				Provisioned: dockerMachine.Status.Initialization.Provisioned,
 			},
-			Addresses:  dockerMachine.Status.Addresses,
-			Conditions: dockerMachine.Status.Conditions,
-			Deprecated: v1Beta1Status,
+			Addresses:     dockerMachine.Status.Addresses,
+			FailureDomain: dockerMachine.Status.FailureDomain,
+			Conditions:    dockerMachine.Status.Conditions,
+			Deprecated:    v1Beta1Status,
 			Backend: &infrav1.DevMachineBackendStatus{
 				Docker: &infrav1.DockerMachineBackendStatus{
 					LoadBalancerConfigured: dockerMachine.Status.LoadBalancerConfigured,
@@ -364,6 +365,7 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 		Provisioned: devMachine.Status.Initialization.Provisioned,
 	}
 	dockerMachine.Status.Addresses = devMachine.Status.Addresses
+	dockerMachine.Status.FailureDomain = devMachine.Status.FailureDomain
 	dockerMachine.Status.Conditions = devMachine.Status.Conditions
 	dockerMachine.Status.Deprecated = v1Beta1Status
 	dockerMachine.Status.LoadBalancerConfigured = devMachine.Status.Backend.Docker.LoadBalancerConfigured

@@ -23,14 +23,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var _ = Describe("When testing MachineDeployment rolling upgrades and in-place taint propagation", func() {
-	MachineDeploymentRolloutSpec(ctx, func() MachineDeploymentRolloutSpecInput {
-		return MachineDeploymentRolloutSpecInput{
+var _ = Describe("When testing KCP and MachineDeployment rolling upgrades and in-place taint propagation", func() {
+	KCPAndMachineDeploymentRolloutSpec(ctx, func() KCPAndMachineDeploymentRolloutSpecInput {
+		return KCPAndMachineDeploymentRolloutSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
-			Flavor:                "md-taints",
+			Flavor:                "kcp-md-taints",
 			SkipCleanup:           skipCleanup,
 		}
 	})

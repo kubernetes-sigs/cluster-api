@@ -785,12 +785,15 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 
 				// Adjust namespace and name in Cluster YAML
 				clusterTemplateYAML := customizedClusterTemplateYAML
+				// Replace Cluster.metadata.namespace.
+				clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), 1)
 				if enableCrossNamespaceClusterClass {
-					// Set classNamespace to the defaultNamespace where the ClusterClass is located.
-					clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML,
-						[]byte(fmt.Sprintf("classNamespace: %s", scaleClusterNamespacePlaceholder)),
-						[]byte(fmt.Sprintf("classNamespace: %s", defaultNamespace)))
+					// Replace Cluster.spec.topology.classRef.namespace to the defaultNamespace where the ClusterClass is located.
+					clusterTemplateYAML = bytes.Replace(clusterTemplateYAML,
+						[]byte(fmt.Sprintf("namespace: %s", scaleClusterNamespacePlaceholder)),
+						[]byte(fmt.Sprintf("namespace: %s", defaultNamespace)), 1)
 				}
+				// Replace any other occurrences of scaleClusterNamespacePlaceholder.
 				clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName))
 				clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML, []byte(scaleClusterNamePlaceholder), []byte(clusterName))
 

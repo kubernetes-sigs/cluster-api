@@ -39,7 +39,15 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+				spec := "k8s-upgrade-with-runtimesdk"
+				resourceVersionInput := framework.ValidateResourceVersionStableInput{
+					ClusterProxy:             proxy,
+					Namespace:                namespace,
+					OwnerGraphFilterFunction: clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					WaitToBecomeStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-become-stable"),
+					WaitToRemainStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
 			Flavor: ptr.To("upgrades-runtimesdk"),
@@ -65,7 +73,15 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass in a diff
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+				spec := "k8s-upgrade-with-runtimesdk"
+				resourceVersionInput := framework.ValidateResourceVersionStableInput{
+					ClusterProxy:             proxy,
+					Namespace:                namespace,
+					OwnerGraphFilterFunction: clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					WaitToBecomeStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-become-stable"),
+					WaitToRemainStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
 			Flavor:                                ptr.To("upgrades-runtimesdk"),
@@ -93,7 +109,15 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+				spec := "k8s-upgrade-with-runtimesdk"
+				resourceVersionInput := framework.ValidateResourceVersionStableInput{
+					ClusterProxy:             proxy,
+					Namespace:                namespace,
+					OwnerGraphFilterFunction: clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					WaitToBecomeStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-become-stable"),
+					WaitToRemainStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
 			Flavor:                                ptr.To("upgrades-runtimesdk"),

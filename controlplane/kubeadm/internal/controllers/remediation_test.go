@@ -36,6 +36,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -307,15 +308,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -356,15 +354,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -408,15 +403,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -467,15 +459,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -524,15 +513,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -715,15 +701,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -762,15 +745,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -809,15 +789,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -861,16 +838,13 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		// First reconcile, remediate machine m1 for the first time
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -902,13 +876,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
 
 			controlPlane.Machines = collections.FromMachines(mi)
+			controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 			// Reconcile unhealthy replacements for m1.
-			r.managementCluster = &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(collections.FromMachines(mi)),
-				},
-			}
+			r.managementCluster = &fakeManagementCluster{Workload: &fakeWorkloadCluster{}}
 			ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
 			g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
@@ -955,15 +926,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1010,15 +978,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1065,15 +1030,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1121,15 +1083,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1177,15 +1136,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1233,15 +1189,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1280,16 +1233,13 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		// First reconcile, remediate machine m1 for the first time
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -1320,13 +1270,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			// Simulate KCP dropping RemediationInProgressAnnotation after creating the replacement machine.
 			delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
 			controlPlane.Machines = collections.FromMachines(mi, m2, m3)
+			controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 			// Reconcile unhealthy replacements for m1.
-			r.managementCluster = &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(collections.FromMachines(mi, m2, m3)),
-				},
-			}
+			r.managementCluster = &fakeManagementCluster{Workload: &fakeWorkloadCluster{}}
 
 			ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -1390,15 +1337,12 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -1431,11 +1375,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// Control plane not initialized yet, Second CP is unhealthy and gets remediated (retry 2)
 
 		controlPlane.Machines = collections.FromMachines(m2)
-		r.managementCluster = &fakeManagementCluster{
-			Workload: &fakeWorkloadCluster{
-				EtcdMembersResult: nodes(controlPlane.Machines),
-			},
-		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+		r.managementCluster = &fakeManagementCluster{Workload: &fakeWorkloadCluster{}}
 
 		ret, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -1505,15 +1446,12 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1547,11 +1485,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// Control plane not initialized yet, Second CP is unhealthy and gets remediated (retry 2)
 
 		controlPlane.Machines = collections.FromMachines(m1, m3)
-		r.managementCluster = &fakeManagementCluster{
-			Workload: &fakeWorkloadCluster{
-				EtcdMembersResult: nodes(controlPlane.Machines),
-			},
-		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+		r.managementCluster = &fakeManagementCluster{Workload: &fakeWorkloadCluster{}}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -1623,15 +1558,12 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1662,11 +1594,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// Check next reconcile does not further remediate
 
 		controlPlane.Machines = collections.FromMachines(m1, m3)
-		r.managementCluster = &fakeManagementCluster{
-			Workload: &fakeWorkloadCluster{
-				EtcdMembersResult: nodes(controlPlane.Machines),
-			},
-		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+		r.managementCluster = &fakeManagementCluster{Workload: &fakeWorkloadCluster{}}
 
 		ret, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -1698,15 +1627,12 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1730,15 +1656,12 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1762,21 +1685,18 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Machines: collections.FromMachines(m1, m2),
 		}
 
-		members := make([]string, 0, len(controlPlane.Machines)-1)
+		members := make([]*etcd.Member, 0, len(controlPlane.Machines)-1)
 		for _, n := range nodes(controlPlane.Machines) {
 			if !strings.Contains(n, "m1-mhc-unhealthy-") {
-				members = append(members, n)
+				members = append(members, &etcd.Member{Name: n})
 			}
 		}
+		controlPlane.EtcdMembers = members
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: members,
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1799,15 +1719,12 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1831,15 +1748,12 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1864,21 +1778,18 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
 
-		members := make([]string, 0, len(controlPlane.Machines)-1)
+		members := make([]*etcd.Member, 0, len(controlPlane.Machines)-1)
 		for _, n := range nodes(controlPlane.Machines) {
 			if !strings.Contains(n, "m1-mhc-unhealthy-") {
-				members = append(members, n)
+				members = append(members, &etcd.Member{Name: n})
 			}
 		}
+		controlPlane.EtcdMembers = members
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: members,
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1902,15 +1813,12 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1936,15 +1844,12 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -1970,15 +1875,12 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -2006,15 +1908,12 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5, m6, m7),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -2042,15 +1941,12 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5, m6, m7),
 		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:   env.GetClient(),
-			recorder: record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{
-				Workload: &fakeWorkloadCluster{
-					EtcdMembersResult: nodes(controlPlane.Machines),
-				},
-			},
+			Client:            env.GetClient(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -2070,6 +1966,16 @@ func nodes(machines collections.Machines) []string {
 		}
 	}
 	return nodes
+}
+
+func etcdMembers(machines collections.Machines) []*etcd.Member {
+	members := make([]*etcd.Member, 0, machines.Len())
+	for _, m := range machines {
+		if m.Status.NodeRef.IsDefined() {
+			members = append(members, &etcd.Member{Name: m.Status.NodeRef.Name})
+		}
+	}
+	return members
 }
 
 type machineOption func(*clusterv1.Machine)

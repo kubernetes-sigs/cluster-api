@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-// MachineDeploymentRolloutSpecInput is the input for MachineDeploymentRolloutSpec.
-type MachineDeploymentRolloutSpecInput struct {
+// KCPAndMachineDeploymentRolloutSpecInput is the input for MachineDeploymentRolloutSpec.
+type KCPAndMachineDeploymentRolloutSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -58,11 +58,11 @@ type MachineDeploymentRolloutSpecInput struct {
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
-// MachineDeploymentRolloutSpec implements a test that verifies that MachineDeployment rolling updates are successful.
-func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() MachineDeploymentRolloutSpecInput) {
+// KCPAndMachineDeploymentRolloutSpec implements a test that verifies that MachineDeployment rolling updates are successful.
+func KCPAndMachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() KCPAndMachineDeploymentRolloutSpecInput) {
 	var (
 		specName         = "md-rollout"
-		input            MachineDeploymentRolloutSpecInput
+		input            KCPAndMachineDeploymentRolloutSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -120,6 +120,14 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			MachineDeployments:          clusterResources.MachineDeployments,
 		})
 
+		By("Upgrade ControlPlane and MachineDeployment in-place mutable taints field and wait for in-place propagation")
+
+		additionalControlPlaneNodeTaint := corev1.Taint{
+			Key:    "node-role.kubernetes.io/control-plane",
+			Value:  "",
+			Effect: "NoSchedule",
+		}
+
 		preExistingAlwaysTaint := clusterv1.MachineTaint{
 			Key:         "pre-existing-always-taint",
 			Value:       "always-value",
@@ -156,9 +164,21 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			preExistingOnInitializationTaint,
 		)
 
-		Byf("Verify MachineDeployment Machines and Nodes have the correct taints")
 		wlClient := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, clusterResources.Cluster.Namespace, clusterResources.Cluster.Name).GetClient()
-		verifyMachineAndNodeTaints(ctx, verifyMachineAndNodeTaintsInput{
+
+		Byf("Verify ControlPlane Machines and Nodes have the correct taints")
+		verifyControlPlaneMachineAndNodeTaints(ctx, verifyControlPlaneMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			Namespace:              clusterResources.Cluster.Namespace,
+			ControlPlaneReplicas:   clusterResources.ControlPlane.Spec.Replicas,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             append(wantNodeTaints, additionalControlPlaneNodeTaint),
+		})
+
+		Byf("Verify MachineDeployment Machines and Nodes have the correct taints")
+		verifyMachineDeploymentMachineAndNodeTaints(ctx, verifyMachineDeploymentMachineAndNodeTaintsInput{
 			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
 			WorkloadClusterClient:  wlClient,
 			ClusterName:            clusterResources.Cluster.Name,
@@ -167,7 +187,7 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			NodeTaints:             wantNodeTaints,
 		})
 
-		Byf("Verify in-place propagation by adding new taints to the MachineDeployment")
+		Byf("Verify in-place propagation by adding new taints to the ControlPlane and MachineDeployment")
 		wantMachineTaints = []clusterv1.MachineTaint{
 			preExistingAlwaysTaint,
 			preExistingOnInitializationTaint,
@@ -179,6 +199,12 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			preExistingOnInitializationTaint,
 			addingAlwaysTaint,
 		)
+
+		patchHelper, err := patch.NewHelper(clusterResources.ControlPlane, input.BootstrapClusterProxy.GetClient())
+		Expect(err).ToNot(HaveOccurred())
+		clusterResources.ControlPlane.Spec.MachineTemplate.Spec.Taints = wantMachineTaints
+		Expect(patchHelper.Patch(ctx, clusterResources.ControlPlane)).To(Succeed())
+
 		for _, md := range clusterResources.MachineDeployments {
 			patchHelper, err := patch.NewHelper(md, input.BootstrapClusterProxy.GetClient())
 			Expect(err).ToNot(HaveOccurred())
@@ -186,7 +212,17 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			Expect(patchHelper.Patch(ctx, md)).To(Succeed())
 		}
 
-		verifyMachineAndNodeTaints(ctx, verifyMachineAndNodeTaintsInput{
+		verifyControlPlaneMachineAndNodeTaints(ctx, verifyControlPlaneMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			Namespace:              clusterResources.Cluster.Namespace,
+			ControlPlaneReplicas:   clusterResources.ControlPlane.Spec.Replicas,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             append(wantNodeTaints, additionalControlPlaneNodeTaint),
+		})
+
+		verifyMachineDeploymentMachineAndNodeTaints(ctx, verifyMachineDeploymentMachineAndNodeTaintsInput{
 			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
 			WorkloadClusterClient:  wlClient,
 			ClusterName:            clusterResources.Cluster.Name,
@@ -221,7 +257,17 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			addingAlwaysTaint,
 		)
 
-		verifyMachineAndNodeTaints(ctx, verifyMachineAndNodeTaintsInput{
+		verifyControlPlaneMachineAndNodeTaints(ctx, verifyControlPlaneMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			Namespace:              clusterResources.Cluster.Namespace,
+			ControlPlaneReplicas:   clusterResources.ControlPlane.Spec.Replicas,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             append(wantNodeTaints, additionalControlPlaneNodeTaint),
+		})
+
+		verifyMachineDeploymentMachineAndNodeTaints(ctx, verifyMachineDeploymentMachineAndNodeTaintsInput{
 			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
 			WorkloadClusterClient:  wlClient,
 			ClusterName:            clusterResources.Cluster.Name,
@@ -230,12 +276,18 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			NodeTaints:             wantNodeTaints,
 		})
 
-		Byf("Verify in-place propagation by removing taints from the MachineDeployment")
+		Byf("Verify in-place propagation by removing taints from ControlPlane and the MachineDeployment")
 		wantMachineTaints = []clusterv1.MachineTaint{
 			preExistingOnInitializationTaint,
 			addingOnInitializationTaint,
 		}
 		wantNodeTaints = toCoreV1Taints()
+
+		patchHelper, err = patch.NewHelper(clusterResources.ControlPlane, input.BootstrapClusterProxy.GetClient())
+		Expect(err).ToNot(HaveOccurred())
+		clusterResources.ControlPlane.Spec.MachineTemplate.Spec.Taints = wantMachineTaints
+		Expect(patchHelper.Patch(ctx, clusterResources.ControlPlane)).To(Succeed())
+
 		for _, md := range clusterResources.MachineDeployments {
 			patchHelper, err := patch.NewHelper(md, input.BootstrapClusterProxy.GetClient())
 			Expect(err).ToNot(HaveOccurred())
@@ -243,7 +295,17 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			Expect(patchHelper.Patch(ctx, md)).To(Succeed())
 		}
 
-		verifyMachineAndNodeTaints(ctx, verifyMachineAndNodeTaintsInput{
+		verifyControlPlaneMachineAndNodeTaints(ctx, verifyControlPlaneMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			Namespace:              clusterResources.Cluster.Namespace,
+			ControlPlaneReplicas:   clusterResources.ControlPlane.Spec.Replicas,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             append(wantNodeTaints, additionalControlPlaneNodeTaint),
+		})
+
+		verifyMachineDeploymentMachineAndNodeTaints(ctx, verifyMachineDeploymentMachineAndNodeTaintsInput{
 			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
 			WorkloadClusterClient:  wlClient,
 			ClusterName:            clusterResources.Cluster.Name,
@@ -289,7 +351,44 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 	})
 }
 
-type verifyMachineAndNodeTaintsInput struct {
+type verifyControlPlaneMachineAndNodeTaintsInput struct {
+	BootstrapClusterClient client.Client
+	WorkloadClusterClient  client.Client
+	ClusterName            string
+	Namespace              string
+	ControlPlaneReplicas   *int32
+	MachineTaints          []clusterv1.MachineTaint
+	NodeTaints             []corev1.Taint
+}
+
+func verifyControlPlaneMachineAndNodeTaints(ctx context.Context, input verifyControlPlaneMachineAndNodeTaintsInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for verifyControlPlaneMachineAndNodeTaints")
+	Expect(input.BootstrapClusterClient).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterClient can't be nil when calling verifyControlPlaneMachineAndNodeTaints")
+	Expect(input.WorkloadClusterClient).ToNot(BeNil(), "Invalid argument. input.WorkloadClusterClient can't be nil when calling verifyControlPlaneMachineAndNodeTaints")
+	Expect(input.ClusterName).NotTo(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling verifyControlPlaneMachineAndNodeTaints")
+	Expect(input.Namespace).NotTo(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling verifyControlPlaneMachineAndNodeTaints")
+	Expect(input.ControlPlaneReplicas).NotTo(BeNil(), "Invalid argument. input.ControlPlaneReplicas can't be nil when calling verifyControlPlaneMachineAndNodeTaints")
+
+	Eventually(func(g Gomega) {
+		machines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+			Lister:      input.BootstrapClusterClient,
+			ClusterName: input.ClusterName,
+			Namespace:   input.Namespace,
+		})
+
+		g.Expect(machines).To(HaveLen(int(ptr.Deref(input.ControlPlaneReplicas, 0))))
+		for _, machine := range machines {
+			g.Expect(machine.Spec.Taints).To(ConsistOf(input.MachineTaints))
+			g.Expect(machine.Status.NodeRef.IsDefined()).To(BeTrue())
+
+			node := &corev1.Node{}
+			g.Expect(input.WorkloadClusterClient.Get(ctx, client.ObjectKey{Name: machine.Status.NodeRef.Name}, node)).To(Succeed())
+			g.Expect(node.Spec.Taints).To(ConsistOf(input.NodeTaints))
+		}
+	}, "1m").Should(Succeed())
+}
+
+type verifyMachineDeploymentMachineAndNodeTaintsInput struct {
 	BootstrapClusterClient client.Client
 	WorkloadClusterClient  client.Client
 	ClusterName            string
@@ -298,12 +397,12 @@ type verifyMachineAndNodeTaintsInput struct {
 	NodeTaints             []corev1.Taint
 }
 
-func verifyMachineAndNodeTaints(ctx context.Context, input verifyMachineAndNodeTaintsInput) {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for verifyMachineAndNodeTaints")
-	Expect(input.BootstrapClusterClient).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterClient can't be nil when calling verifyMachineAndNodeTaints")
-	Expect(input.WorkloadClusterClient).ToNot(BeNil(), "Invalid argument. input.WorkloadClusterClient can't be nil when calling verifyMachineAndNodeTaints")
-	Expect(input.ClusterName).NotTo(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling verifyMachineAndNodeTaints")
-	Expect(input.MachineDeployments).NotTo(BeNil(), "Invalid argument. input.MachineDeployments can't be nil when calling verifyMachineAndNodeTaints")
+func verifyMachineDeploymentMachineAndNodeTaints(ctx context.Context, input verifyMachineDeploymentMachineAndNodeTaintsInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for verifyMachineDeploymentMachineAndNodeTaints")
+	Expect(input.BootstrapClusterClient).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterClient can't be nil when calling verifyMachineDeploymentMachineAndNodeTaints")
+	Expect(input.WorkloadClusterClient).ToNot(BeNil(), "Invalid argument. input.WorkloadClusterClient can't be nil when calling verifyMachineDeploymentMachineAndNodeTaints")
+	Expect(input.ClusterName).NotTo(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling verifyMachineDeploymentMachineAndNodeTaints")
+	Expect(input.MachineDeployments).NotTo(BeNil(), "Invalid argument. input.MachineDeployments can't be nil when calling verifyMachineDeploymentMachineAndNodeTaints")
 
 	Eventually(func(g Gomega) {
 		for _, md := range input.MachineDeployments {

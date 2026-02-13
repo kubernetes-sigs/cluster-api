@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -32,14 +31,27 @@ import (
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
+// ValidateResourceVersionStableInput contains parameters for [ValidateResourceVersionStable].
+type ValidateResourceVersionStableInput struct {
+	ClusterProxy             ClusterProxy
+	Namespace                string
+	OwnerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction
+	WaitToBecomeStable       []any
+	WaitToRemainStable       []any
+}
+
 // ValidateResourceVersionStable checks that resourceVersions are stable.
-func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
+func ValidateResourceVersionStable(ctx context.Context, input ValidateResourceVersionStableInput) {
 	// Wait until resourceVersions are stable for a bit.
 	byf("Check resourceVersions are stable")
 	var previousResourceVersions map[string]string
 	var previousObjects map[string]client.Object
+	waitToBecomeStable := input.WaitToBecomeStable
+	if len(waitToBecomeStable) == 0 {
+		waitToBecomeStable = []any{"2m", "15s"}
+	}
 	Eventually(func(g Gomega) {
-		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
+		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, input.ClusterProxy, input.Namespace, input.OwnerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		defer func() {
@@ -49,15 +61,19 @@ func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, name
 		}()
 		// This is intentionally failing on the first run.
 		g.Expect(objectsWithResourceVersion).To(BeComparableTo(previousResourceVersions))
-	}, 2*time.Minute, 15*time.Second).MustPassRepeatedly(4).Should(Succeed(), "resourceVersions never became stable")
+	}, waitToBecomeStable...).MustPassRepeatedly(4).Should(Succeed(), "resourceVersions never became stable")
 
 	// Verify resourceVersions are stable for a while.
 	byf("Check resourceVersions remain stable")
+	waitToRemainStable := input.WaitToRemainStable
+	if len(waitToRemainStable) == 0 {
+		waitToRemainStable = []any{"2m", "5s"}
+	}
 	Consistently(func(g Gomega) {
-		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
+		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, input.ClusterProxy, input.Namespace, input.OwnerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(previousResourceVersions).To(BeComparableTo(objectsWithResourceVersion), printObjectDiff(previousObjects, objects))
-	}, 2*time.Minute, 5*time.Second).Should(Succeed(), "resourceVersions didn't stay stable")
+	}, waitToRemainStable...).Should(Succeed(), "resourceVersions didn't stay stable")
 }
 
 func printObjectDiff(previousObjects, newObjects map[string]client.Object) func() string {

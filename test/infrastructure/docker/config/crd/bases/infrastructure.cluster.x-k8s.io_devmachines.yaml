@@ -402,17 +402,28 @@ spec:
       jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
       name: Cluster
       type: string
-    - description: Machine object which owns with this DevMachine
-      jsonPath: .metadata.ownerReferences[?(@.kind=="Machine")].name
-      name: Machine
-      type: string
     - description: Provider ID
       jsonPath: .spec.providerID
-      name: ProviderID
+      name: Provider ID
+      priority: 10
       type: string
-    - description: Machine ready status
+    - description: The failure domain where the VSphereMachine has been scheduled
+      jsonPath: .status.failureDomain
+      name: Failure domain
+      type: string
+    - description: IP of the Machine
+      jsonPath: .status.addresses[?(@.type=="InternalIP")].address
+      name: IP
+      priority: 10
+      type: string
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
+    - description: DevMachine is provisioned
       jsonPath: .status.initialization.provisioned
-      name: Ready
+      name: Provisioned
       type: string
     - description: Time duration since creation of the DevMachine
       jsonPath: .metadata.creationTimestamp
@@ -782,6 +793,12 @@ spec:
                         type: array
                     type: object
                 type: object
+              failureDomain:
+                description: failureDomain is the unique identifier of the failure
+                  domain where this Machine has been placed in.
+                maxLength: 256
+                minLength: 1
+                type: string
               initialization:
                 description: |-
                   initialization provides observations of the DevMachine initialization process.

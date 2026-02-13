@@ -43,7 +43,7 @@ type DevMachineTemplateReconciler struct {
 	WatchFilterValue string
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates,verbs=get;list;watch;patch;update
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates/status,verbs=get;watch;list;update;patch
 
 // Reconcile reconciles the DevMachineTemplate to set the capcity information.

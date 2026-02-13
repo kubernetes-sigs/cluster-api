@@ -187,35 +187,3 @@ type EtcdMemberStatus struct {
 	Name       string
 	Responsive bool
 }
-
-// EtcdMembers returns the current set of members in an etcd cluster.
-//
-// NOTE: This methods uses control plane machines/nodes only to get in contact with etcd,
-// but then it relies on etcd as ultimate source of truth for the list of members.
-// This is intended to allow informed decisions on actions impacting etcd quorum.
-func (w *Workload) EtcdMembers(ctx context.Context) ([]string, error) {
-	nodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to list control plane nodes")
-	}
-	nodeNames := make([]string, 0, len(nodes.Items))
-	for _, node := range nodes.Items {
-		nodeNames = append(nodeNames, node.Name)
-	}
-	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodeNames)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create etcd client")
-	}
-	defer etcdClient.Close()
-
-	members, err := etcdClient.Members(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to list etcd members using etcd client")
-	}
-
-	names := []string{}
-	for _, member := range members {
-		names = append(names, member.Name)
-	}
-	return names, nil
-}

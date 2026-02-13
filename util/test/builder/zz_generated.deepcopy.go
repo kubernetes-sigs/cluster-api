@@ -133,6 +133,11 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 		*out = make([]v1beta2.MachineReadinessGate, len(*in))
 		copy(*out, *in)
 	}
+	if in.controlPlaneTaints != nil {
+		in, out := &in.controlPlaneTaints, &out.controlPlaneTaints
+		*out = make([]v1beta2.MachineTaint, len(*in))
+		copy(*out, *in)
+	}
 	if in.controlPlaneTemplate != nil {
 		in, out := &in.controlPlaneTemplate, &out.controlPlaneTemplate
 		*out = (*in).DeepCopy()
@@ -582,6 +587,11 @@ func (in *MachineDeploymentClassBuilder) DeepCopyInto(out *MachineDeploymentClas
 		in, out := &in.naming, &out.naming
 		*out = new(v1beta2.MachineDeploymentClassNamingSpec)
 		**out = **in
+	}
+	if in.taints != nil {
+		in, out := &in.taints, &out.taints
+		*out = make([]v1beta2.MachineTaint, len(*in))
+		copy(*out, *in)
 	}
 }
 

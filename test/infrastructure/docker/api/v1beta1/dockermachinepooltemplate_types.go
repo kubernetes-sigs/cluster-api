@@ -30,6 +30,7 @@ type DockerMachinePoolTemplateSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=dockermachinepooltemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:deprecatedversion
+// +kubebuilder:unservedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachinePoolTemplate"
 
 // DockerMachinePoolTemplate is the Schema for the dockermachinepooltemplates API.

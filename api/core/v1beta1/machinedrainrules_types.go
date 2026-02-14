@@ -197,6 +197,7 @@ type MachineDrainRulePodSelector struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machinedrainrules,scope=Namespaced,categories=cluster-api
 // +kubebuilder:deprecatedversion
+// +kubebuilder:unservedversion
 // +kubebuilder:printcolumn:name="Behavior",type="string",JSONPath=".spec.drain.behavior",description="Drain behavior"
 // +kubebuilder:printcolumn:name="Order",type="string",JSONPath=".spec.drain.order",description="Drain order"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of the MachineDrainRule"

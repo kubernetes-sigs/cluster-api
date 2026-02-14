@@ -30,6 +30,7 @@ type DevClusterTemplateSpec struct {
 // +kubebuilder:resource:path=devclustertemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
 // +kubebuilder:deprecatedversion
+// +kubebuilder:unservedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of the DevClusterTemplate"
 
 // DevClusterTemplate is the Schema for the DevClusterTemplate API.

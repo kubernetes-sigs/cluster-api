@@ -377,7 +377,7 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 func ConfigClusterWithBinary(ctx context.Context, clusterctlBinaryPath string, input ConfigClusterInput) []byte {
 	version, err := getClusterCtlVersion(clusterctlBinaryPath)
 	Expect(err).ToNot(HaveOccurred())
-	clusterctlSupportsGenerateCluster := version.GTE(semver.MustParse("1.0.0"))
+	clusterctlSupportsGenerateCluster := version.GTE(semver.MustParse("1.0.0")) // FIXME: cleanup
 
 	var command string
 	if clusterctlSupportsGenerateCluster {

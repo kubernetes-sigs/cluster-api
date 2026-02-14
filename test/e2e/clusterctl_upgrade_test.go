@@ -21,6 +21,8 @@ package e2e
 
 import (
 	"fmt"
+	"os"
+	"path"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -29,6 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
@@ -71,6 +74,13 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>v1
 					BootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease12)},
 					ControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease12)},
 					InfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease12)},
+					PreMachineDeploymentScaleUp: func(proxy framework.ClusterProxy, namespace string, clusterName string) {
+						// Added as PreMachineDeploymentScaleUp as it triggers a rollout and we have to avoid that the test fails because of the rollout detection
+						cc, err := os.ReadFile(path.Join(artifactFolder, "repository", "infrastructure-docker", "v" + stableRelease12, "clusterclass-quick-start-only.yaml"))
+						Expect(err).ToNot(HaveOccurred())
+						log.Logf("Applying the new ClusterClass")
+						Expect(proxy.CreateOrUpdate(ctx, cc)).To(Succeed())
+					},
 				},
 				{ // Upgrade to latest contract version.
 					Contract: clusterv1.GroupVersion.Version,

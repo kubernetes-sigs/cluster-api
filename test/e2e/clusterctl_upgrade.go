@@ -155,7 +155,8 @@ type ClusterctlUpgradeSpecInputUpgrade struct {
 	AddonProviders            []string
 
 	// PostUpgrade is called after the upgrade is completed.
-	PostUpgrade func(proxy framework.ClusterProxy, namespace string, clusterName string)
+	PostUpgrade                 func(proxy framework.ClusterProxy, namespace string, clusterName string)
+	PreMachineDeploymentScaleUp func(proxy framework.ClusterProxy, namespace string, clusterName string)
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -428,7 +429,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		workerMachineCount := ptr.To[int64](1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-			workloadClusterName, "(default)", kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
+			workloadClusterName, input.WorkloadFlavor, kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
 
 		log.Logf("Getting the cluster template yaml")
 		workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
@@ -652,7 +653,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			}, "3m", "10s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
 
 			Byf("[%d] Waiting for three minutes before checking if an unexpected rollout happened", i)
-			time.Sleep(time.Minute * 3)
+			//time.Sleep(time.Minute * 3) // FIXME
 
 			// After the upgrade: check that there were no unexpected rollouts.
 			postUpgradeMachineList := &unstructured.UnstructuredList{}
@@ -671,6 +672,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				)
 			}, "3m", "10s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
 			Expect(validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)).To(BeTrue(), "Machines should remain the same after the upgrade")
+
+			if upgrade.PreMachineDeploymentScaleUp != nil {
+				upgrade.PreMachineDeploymentScaleUp(managementClusterProxy, workloadCluster.Namespace, workloadCluster.Name)
+			}
 
 			// Scale up to 2 and back down to 1 so we can repeat this multiple times.
 			Byf("[%d] Scale MachineDeployment to ensure the providers work", i)

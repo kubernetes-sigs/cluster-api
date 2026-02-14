@@ -102,7 +102,12 @@ version::ldflags() {
     add_ldflag "gitReleaseCommit" "${GIT_RELEASE_COMMIT}"
 
     # The -ldflags parameter takes a single string, so join the output.
-    echo "${ldflags[*]-}"
+    # When DBG is set to 1 include DWARF and symbol table for delve degubbing
+    if [[ "${DBG:-}" == 1 ]]; then
+        echo "${ldflags[*]-}"
+    else
+        echo "${ldflags[*]-}" " -s -w"
+    fi
 }
 
 version::ldflags

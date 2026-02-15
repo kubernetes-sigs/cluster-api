@@ -394,6 +394,8 @@ spec:
         value:
           - name: admission-control-config-file
             value: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
+          - name: v
+            value: "0"
       - op: add
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraVolumes"
         value:

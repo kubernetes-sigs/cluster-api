@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -129,20 +130,24 @@ func Test_setReplicas(t *testing.T) {
 		{
 			name: "should count all conditions from a machine",
 			machines: []*clusterv1.Machine{
-				{Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineReadyCondition,
-						Status: metav1.ConditionTrue,
+				{Status: clusterv1.MachineStatus{
+					NodeInfo: &corev1.NodeSystemInfo{
+						KubeletVersion: "v1.31.1",
 					},
-					{
-						Type:   clusterv1.MachineAvailableCondition,
-						Status: metav1.ConditionTrue,
-					},
-					{
-						Type:   clusterv1.MachineUpToDateCondition,
-						Status: metav1.ConditionTrue,
-					},
-				}}},
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineReadyCondition,
+							Status: metav1.ConditionTrue,
+						},
+						{
+							Type:   clusterv1.MachineAvailableCondition,
+							Status: metav1.ConditionTrue,
+						},
+						{
+							Type:   clusterv1.MachineUpToDateCondition,
+							Status: metav1.ConditionTrue,
+						},
+					}}},
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectedStatus: clusterv1.MachineSetStatus{
@@ -150,6 +155,28 @@ func Test_setReplicas(t *testing.T) {
 				ReadyReplicas:     ptr.To[int32](1),
 				AvailableReplicas: ptr.To[int32](1),
 				UpToDateReplicas:  ptr.To[int32](1),
+				Versions: []clusterv1.StatusVersion{
+					{Version: "v1.31.1", Replicas: ptr.To[int32](1)},
+				},
+			},
+		},
+		{
+			name: "should aggregate kubelet versions",
+			machines: []*clusterv1.Machine{
+				{Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.31.1"}}},
+				{Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.31.1"}}},
+				{Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.32.0"}}},
+			},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			expectedStatus: clusterv1.MachineSetStatus{
+				Replicas:          ptr.To[int32](3),
+				ReadyReplicas:     ptr.To[int32](0),
+				AvailableReplicas: ptr.To[int32](0),
+				UpToDateReplicas:  ptr.To[int32](0),
+				Versions: []clusterv1.StatusVersion{
+					{Version: "v1.31.1", Replicas: ptr.To[int32](2)},
+					{Version: "v1.32.0", Replicas: ptr.To[int32](1)},
+				},
 			},
 		},
 		{

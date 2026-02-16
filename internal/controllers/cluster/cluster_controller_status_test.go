@@ -22,6 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
@@ -174,6 +175,7 @@ func TestSetControlPlaneReplicas(t *testing.T) {
 		expectReadyReplicas     *int32
 		expectAvailableReplicas *int32
 		expectUpToDateReplicas  *int32
+		expectVersions          []clusterv1.StatusVersion
 	}{
 		{
 			name:                   "counters should be nil for a cluster with control plane, control plane does not exist",
@@ -195,12 +197,13 @@ func TestSetControlPlaneReplicas(t *testing.T) {
 		{
 			name:                    "set counters for cluster with control plane, reporting counters",
 			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
-			controlPlane:            fakeControlPlane("cp", desiredReplicas(3), currentReplicas(2), readyReplicas(1), availableReplicas(2), upToDateReplicas(0)),
+			controlPlane:            fakeControlPlane("cp", desiredReplicas(3), currentReplicas(2), readyReplicas(1), availableReplicas(2), upToDateReplicas(0), statusVersions{{Version: "v1.31.1", Replicas: ptr.To[int32](2)}, {Version: "v1.32.0", Replicas: ptr.To[int32](1)}}),
 			expectDesiredReplicas:   ptr.To(int32(3)),
 			expectReplicas:          ptr.To(int32(2)),
 			expectReadyReplicas:     ptr.To(int32(1)),
 			expectAvailableReplicas: ptr.To(int32(2)),
 			expectUpToDateReplicas:  ptr.To(int32(0)),
+			expectVersions:          []clusterv1.StatusVersion{{Version: "v1.31.1", Replicas: ptr.To[int32](2)}, {Version: "v1.32.0", Replicas: ptr.To[int32](1)}},
 		},
 		{
 			name:                    "counters should be nil for a cluster with stand alone CP machines, failed to read descendants",
@@ -242,6 +245,7 @@ func TestSetControlPlaneReplicas(t *testing.T) {
 			g.Expect(tt.cluster.Status.ControlPlane.ReadyReplicas).To(Equal(tt.expectReadyReplicas))
 			g.Expect(tt.cluster.Status.ControlPlane.AvailableReplicas).To(Equal(tt.expectAvailableReplicas))
 			g.Expect(tt.cluster.Status.ControlPlane.UpToDateReplicas).To(Equal(tt.expectUpToDateReplicas))
+			g.Expect(tt.cluster.Status.ControlPlane.Versions).To(Equal(tt.expectVersions))
 		})
 	}
 }
@@ -260,6 +264,7 @@ func TestSetWorkersReplicas(t *testing.T) {
 		expectReadyReplicas     *int32
 		expectAvailableReplicas *int32
 		expectUpToDateReplicas  *int32
+		expectVersions          []clusterv1.StatusVersion
 	}{
 		{
 			name:                    "counters should be nil if failed to get descendants",
@@ -294,21 +299,21 @@ func TestSetWorkersReplicas(t *testing.T) {
 			name:    "should count workers from different objects",
 			cluster: fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
-				*fakeMachinePool("mp1", desiredReplicas(1), currentReplicas(2), readyReplicas(3), availableReplicas(4), upToDateReplicas(5)),
+				*fakeMachinePool("mp1", desiredReplicas(1), currentReplicas(2), readyReplicas(3), availableReplicas(4), upToDateReplicas(5), statusVersions{{Version: "v1.31.0", Replicas: ptr.To[int32](2)}}),
 			}},
 			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
-				*fakeMachineDeployment("md1", desiredReplicas(11), currentReplicas(12), readyReplicas(13), availableReplicas(14), upToDateReplicas(15)),
+				*fakeMachineDeployment("md1", desiredReplicas(11), currentReplicas(12), readyReplicas(13), availableReplicas(14), upToDateReplicas(15), statusVersions{{Version: "v1.31.0", Replicas: ptr.To[int32](3)}, {Version: "v1.32.0", Replicas: ptr.To[int32](9)}}),
 			}},
 			machineSets: clusterv1.MachineSetList{Items: []clusterv1.MachineSet{
-				*fakeMachineSet("ms1", OwnedByCluster("c"), desiredReplicas(21), currentReplicas(22), readyReplicas(23), availableReplicas(24), upToDateReplicas(25)),
-				*fakeMachineSet("ms2", desiredReplicas(31), currentReplicas(32), readyReplicas(33), availableReplicas(34), upToDateReplicas(35)), // not owned by the cluster
+				*fakeMachineSet("ms1", OwnedByCluster("c"), desiredReplicas(21), currentReplicas(22), readyReplicas(23), availableReplicas(24), upToDateReplicas(25), statusVersions{{Version: "v1.32.0", Replicas: ptr.To[int32](22)}}),
+				*fakeMachineSet("ms2", desiredReplicas(31), currentReplicas(32), readyReplicas(33), availableReplicas(34), upToDateReplicas(35), statusVersions{{Version: "v1.30.0", Replicas: ptr.To[int32](32)}}), // not owned by the cluster
 			}},
 			workerMachines: collections.FromMachines( // 4 replicas, 2 Ready, 3 Available, 1 UpToDate
-				fakeMachine("m1", OwnedByCluster("c"), condition{Type: clusterv1.MachineAvailableCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionTrue}),
-				fakeMachine("m2", OwnedByCluster("c"), condition{Type: clusterv1.MachineAvailableCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse}, condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse}),
-				fakeMachine("m3", OwnedByCluster("c"), condition{Type: clusterv1.MachineAvailableCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse}),
+				fakeMachine("m1", OwnedByCluster("c"), kubeletVersion("v1.31.0"), condition{Type: clusterv1.MachineAvailableCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionTrue}),
+				fakeMachine("m2", OwnedByCluster("c"), kubeletVersion("v1.33.0"), condition{Type: clusterv1.MachineAvailableCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse}, condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse}),
+				fakeMachine("m3", OwnedByCluster("c"), kubeletVersion("v1.33.0"), condition{Type: clusterv1.MachineAvailableCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionTrue}, condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse}),
 				fakeMachine("m4", OwnedByCluster("c")),
-				fakeMachine("m5"), // not owned by the cluster
+				fakeMachine("m5", kubeletVersion("v1.29.0")), // not owned by the cluster
 			),
 			getDescendantsSucceeded: true,
 			expectDesiredReplicas:   ptr.To(int32(37)),
@@ -316,6 +321,11 @@ func TestSetWorkersReplicas(t *testing.T) {
 			expectReadyReplicas:     ptr.To(int32(41)),
 			expectAvailableReplicas: ptr.To(int32(45)),
 			expectUpToDateReplicas:  ptr.To(int32(46)),
+			expectVersions: []clusterv1.StatusVersion{
+				{Version: "v1.31.0", Replicas: ptr.To[int32](6)},
+				{Version: "v1.32.0", Replicas: ptr.To[int32](31)},
+				{Version: "v1.33.0", Replicas: ptr.To[int32](2)},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -330,6 +340,7 @@ func TestSetWorkersReplicas(t *testing.T) {
 			g.Expect(tt.cluster.Status.Workers.ReadyReplicas).To(Equal(tt.expectReadyReplicas))
 			g.Expect(tt.cluster.Status.Workers.AvailableReplicas).To(Equal(tt.expectAvailableReplicas))
 			g.Expect(tt.cluster.Status.Workers.UpToDateReplicas).To(Equal(tt.expectUpToDateReplicas))
+			g.Expect(tt.cluster.Status.Workers.Versions).To(Equal(tt.expectVersions))
 		})
 	}
 }
@@ -3286,6 +3297,24 @@ func (r upToDateReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
 	ms.Status.UpToDateReplicas = ptr.To(int32(r))
 }
 
+type statusVersions []clusterv1.StatusVersion
+
+func (v statusVersions) ApplyToControlPlane(cp *unstructured.Unstructured) {
+	_ = contract.ControlPlane().StatusVersions().Set(cp, []clusterv1.StatusVersion(v))
+}
+
+func (v statusVersions) ApplyToMachinePool(mp *clusterv1.MachinePool) {
+	mp.Status.Versions = []clusterv1.StatusVersion(v)
+}
+
+func (v statusVersions) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
+	md.Status.Versions = []clusterv1.StatusVersion(v)
+}
+
+func (v statusVersions) ApplyToMachineSet(ms *clusterv1.MachineSet) {
+	ms.Status.Versions = []clusterv1.StatusVersion(v)
+}
+
 type deleted bool
 
 func (s deleted) ApplyToCluster(c *clusterv1.Cluster) {
@@ -3358,6 +3387,15 @@ func (c OwnedByCluster) ApplyToMachine(m *clusterv1.Machine) {
 		Kind:       "Cluster",
 		Name:       string(c),
 	})
+}
+
+type kubeletVersion string
+
+func (v kubeletVersion) ApplyToMachine(m *clusterv1.Machine) {
+	if m.Status.NodeInfo == nil {
+		m.Status.NodeInfo = &corev1.NodeSystemInfo{}
+	}
+	m.Status.NodeInfo.KubeletVersion = string(v)
 }
 
 type provisioned bool

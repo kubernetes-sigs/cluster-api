@@ -44,6 +44,22 @@ func TestIsMachineDeploymentUpgrading(t *testing.T) {
 		wantErr  bool
 	}{
 		{
+			name: "should return true if status.versions reports a different version",
+			md: builder.MachineDeployment("ns", "md1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				WithStatus(clusterv1.MachineDeploymentStatus{
+					Versions: []clusterv1.StatusVersion{
+						{Version: "v1.2.2"},
+						{Version: "v1.2.3"},
+					},
+				}).
+				Build(),
+			machines: []*clusterv1.Machine{},
+			want:     true,
+			wantErr:  false,
+		},
+		{
 			name: "should return false if all the machines of MachineDeployment have the same version as the MachineDeployment",
 			md: builder.MachineDeployment("ns", "md1").
 				WithClusterName("cluster1").
@@ -128,6 +144,22 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 		want    bool
 		wantErr bool
 	}{
+		{
+			name: "should return true if status.versions reports a different version",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				WithStatus(clusterv1.MachinePoolStatus{
+					Versions: []clusterv1.StatusVersion{
+						{Version: "v1.2.2"},
+						{Version: "v1.2.3"},
+					},
+				}).
+				Build(),
+			nodes:   []*corev1.Node{},
+			want:    true,
+			wantErr: false,
+		},
 		{
 			name: "should return false if all the nodes of MachinePool have the same version as the MachinePool",
 			mp: builder.MachinePool("ns", "mp1").

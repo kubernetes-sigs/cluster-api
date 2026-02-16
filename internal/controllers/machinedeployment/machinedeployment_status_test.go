@@ -38,6 +38,7 @@ func Test_setReplicas(t *testing.T) {
 		expectReadyReplicas     *int32
 		expectAvailableReplicas *int32
 		expectUpToDateReplicas  *int32
+		expectVersions          []clusterv1.StatusVersion
 	}{
 		{
 			name:                    "No MachineSets",
@@ -58,16 +59,34 @@ func Test_setReplicas(t *testing.T) {
 			expectUpToDateReplicas:  nil,
 		},
 		{
+			name: "MachineSets including nil should be handled",
+			machineSets: []*clusterv1.MachineSet{
+				nil,
+				fakeMachineSet("ms1", withStatusReplicas(1), withStatusV1beta2Versions(clusterv1.StatusVersion{Version: "v1.31.1", Replicas: ptr.To[int32](1)})),
+			},
+			expectReplicas:          1,
+			expectReadyReplicas:     nil,
+			expectAvailableReplicas: nil,
+			expectUpToDateReplicas:  nil,
+			expectVersions: []clusterv1.StatusVersion{
+				{Version: "v1.31.1", Replicas: ptr.To[int32](1)},
+			},
+		},
+		{
 			name: "MachineSets with replicas set",
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withStatusReplicas(6), withStatusV1beta2ReadyReplicas(5), withStatusV1beta2AvailableReplicas(3), withStatusV1beta2UpToDateReplicas(3)),
-				fakeMachineSet("ms2", withStatusReplicas(3), withStatusV1beta2ReadyReplicas(2), withStatusV1beta2AvailableReplicas(2), withStatusV1beta2UpToDateReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(6), withStatusV1beta2ReadyReplicas(5), withStatusV1beta2AvailableReplicas(3), withStatusV1beta2UpToDateReplicas(3), withStatusV1beta2Versions(clusterv1.StatusVersion{Version: "v1.31.1", Replicas: ptr.To[int32](4)}, clusterv1.StatusVersion{Version: "v1.32.0", Replicas: ptr.To[int32](2)})),
+				fakeMachineSet("ms2", withStatusReplicas(3), withStatusV1beta2ReadyReplicas(2), withStatusV1beta2AvailableReplicas(2), withStatusV1beta2UpToDateReplicas(1), withStatusV1beta2Versions(clusterv1.StatusVersion{Version: "v1.32.0", Replicas: ptr.To[int32](3)})),
 				fakeMachineSet("ms3"),
 			},
 			expectReplicas:          9,
 			expectReadyReplicas:     ptr.To(int32(7)),
 			expectAvailableReplicas: ptr.To(int32(5)),
 			expectUpToDateReplicas:  ptr.To(int32(4)),
+			expectVersions: []clusterv1.StatusVersion{
+				{Version: "v1.31.1", Replicas: ptr.To[int32](4)},
+				{Version: "v1.32.0", Replicas: ptr.To[int32](5)},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -80,6 +99,7 @@ func Test_setReplicas(t *testing.T) {
 			g.Expect(md.Status.ReadyReplicas).To(Equal(tt.expectReadyReplicas))
 			g.Expect(md.Status.AvailableReplicas).To(Equal(tt.expectAvailableReplicas))
 			g.Expect(md.Status.UpToDateReplicas).To(Equal(tt.expectUpToDateReplicas))
+			g.Expect(md.Status.Versions).To(Equal(tt.expectVersions))
 		})
 	}
 }
@@ -1249,6 +1269,12 @@ func withStatusV1beta2AvailableReplicas(n int32) fakeMachineSetOption {
 func withStatusV1beta2UpToDateReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
 		ms.Status.UpToDateReplicas = ptr.To(n)
+	}
+}
+
+func withStatusV1beta2Versions(versions ...clusterv1.StatusVersion) fakeMachineSetOption {
+	return func(ms *clusterv1.MachineSet) {
+		ms.Status.Versions = versions
 	}
 }
 

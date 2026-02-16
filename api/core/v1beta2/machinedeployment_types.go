@@ -460,6 +460,13 @@ type MachineDeploymentStatus struct {
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
+	// versions is the aggregated Kubernetes versions in this MachineDeployment.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
+
 	// phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
 	// +optional
 	// +kubebuilder:validation:Enum=ScalingUp;ScalingDown;Running;Failed;Unknown

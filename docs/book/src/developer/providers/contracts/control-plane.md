@@ -405,15 +405,23 @@ type FooControlPlaneSpec struct {
 }
 ```
 
-Following fields MUST be implemented in the ControlPlane `status`.
+Following fields SHOULD be implemented in the ControlPlane `status`.
 
 ```go
 type FooControlPlaneStatus struct {
+    // versions is the aggregated Kubernetes versions in this control plane.
+    // +optional
+    // +listType=map
+    // +listMapKey=version
+    // +kubebuilder:validation:MaxItems=100
+    Versions []clusterv1.StatusVersion `json:"versions,omitempty"`
+
     // version represents the minimum Kubernetes version for the control plane machines
     // in the cluster.
+    //
+    // Deprecated: This field is deprecated and is going to be removed in a future API version.
+    // Please use status.versions instead.
     // +optional
-    // +kubebuilder:validation:MinLength=1
-    // +kubebuilder:validation:MaxLength=256
     Version string `json:"version,omitempty"`
     
     // See other rules for more details about mandatory/optional fields in ControlPlane status.
@@ -421,11 +429,14 @@ type FooControlPlaneStatus struct {
 }
 ```
 
-NOTE: To align with API conventions, we recommend since the v1beta2 contract that the `Version` field should be 
+`status.versions` is the preferred source of truth for surfacing control plane versions.
+`status.version` is still read as fallback for backward compatibility.
+
+NOTE: To align with API conventions, we recommend since the v1beta2 contract that the `Version` field should be
 of type `string` (it was `*string` before). Both are compatible with the v1beta2 contract though.
-NOTE: The minimum Kubernetes version, and more specifically the API server version, will be used to determine 
-when a control plane is fully upgraded (spec.version == status.version) and for enforcing Kubernetes version skew 
-policies when a Cluster derived from a ClusterClass is managed by the Topology controller.
+NOTE: The minimum Kubernetes version, and more specifically the API server version, will be used to determine
+when a control plane is fully upgraded and for enforcing Kubernetes version skew policies when a Cluster derived
+from a ClusterClass is managed by the Topology controller.
 
 ### ControlPlane: machines
 

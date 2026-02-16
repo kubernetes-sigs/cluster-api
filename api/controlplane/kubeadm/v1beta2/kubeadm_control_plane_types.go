@@ -713,8 +713,17 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
+	// versions is the aggregated Kubernetes versions in this KubeadmControlPlane.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MaxItems=100
+	Versions []clusterv1.StatusVersion `json:"versions,omitempty"`
+
 	// version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
+	// Deprecated: This field is deprecated and is going to be removed in a future API version. Please use status.versions instead.
+	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256

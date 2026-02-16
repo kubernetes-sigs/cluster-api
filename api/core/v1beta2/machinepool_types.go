@@ -138,6 +138,13 @@ type MachinePoolStatus struct {
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
+	// versions is the aggregated Kubernetes versions in this MachinePool.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
+
 	// phase represents the current phase of cluster actuation.
 	// +optional
 	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;ScalingUp;ScalingDown;Scaling;Deleting;Failed;Unknown

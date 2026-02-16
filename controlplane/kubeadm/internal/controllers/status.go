@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -38,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	clog "sigs.k8s.io/cluster-api/util/log"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // updateV1Beta1Status is called after every reconciliation loop in a defer statement to always make sure we have the
@@ -124,10 +126,12 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	selector := collections.ControlPlaneSelectorForCluster(controlPlane.Cluster.Name)
 	controlPlane.KCP.Status.Selector = selector.String()
 
-	// Set status.version with the lowest K8s version from CP machines.
-	lowestVersion := controlPlane.Machines.LowestVersion()
-	if lowestVersion != "" {
-		controlPlane.KCP.Status.Version = lowestVersion
+	// Surface status.versions by aggregating existing machine kubelet versions.
+	controlPlane.KCP.Status.Versions = versionsFromMachines(controlPlane.Machines)
+
+	// Keep status.version as a deprecated fallback by reporting the lowest version.
+	if len(controlPlane.KCP.Status.Versions) > 0 {
+		controlPlane.KCP.Status.Version = controlPlane.KCP.Status.Versions[0].Version
 	}
 
 	allErrors := []error{}
@@ -204,6 +208,46 @@ func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, mac
 	kcp.Status.ReadyReplicas = ptr.To(readyReplicas)
 	kcp.Status.AvailableReplicas = ptr.To(availableReplicas)
 	kcp.Status.UpToDateReplicas = ptr.To(upToDateReplicas)
+}
+
+func versionsFromMachines(machines collections.Machines) []clusterv1.StatusVersion {
+	versionCounts := map[string]int32{}
+	for _, machine := range machines {
+		if machine.Status.NodeInfo == nil || machine.Status.NodeInfo.KubeletVersion == "" {
+			continue
+		}
+		versionCounts[machine.Status.NodeInfo.KubeletVersion]++
+	}
+	if len(versionCounts) == 0 {
+		return nil
+	}
+
+	versions := make([]clusterv1.StatusVersion, 0, len(versionCounts))
+	for v, replicas := range versionCounts {
+		versions = append(versions, clusterv1.StatusVersion{
+			Version:  v,
+			Replicas: ptr.To(replicas),
+		})
+	}
+
+	sort.Slice(versions, func(i, j int) bool {
+		vi, erri := semver.ParseTolerant(versions[i].Version)
+		vj, errj := semver.ParseTolerant(versions[j].Version)
+		if erri == nil && errj == nil {
+			if cmp := version.Compare(vi, vj, version.WithBuildTags()); cmp != 0 {
+				return cmp < 0
+			}
+		}
+		if erri == nil {
+			return true
+		}
+		if errj == nil {
+			return false
+		}
+		return versions[i].Version < versions[j].Version
+	})
+
+	return versions
 }
 
 func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane) {

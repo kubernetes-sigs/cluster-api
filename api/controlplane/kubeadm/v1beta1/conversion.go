@@ -215,7 +215,7 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneSta
 	out.Initialized = deref(in.Initialization.ControlPlaneInitialized, false)
 	out.Ready = out.ReadyReplicas > 0
 
-	// Move new conditions (v1beta2) and replica counter to the v1beta2 field.
+	// Move new conditions (v1beta2) and replica counters to the v1beta2 field.
 	if in.Conditions == nil && in.ReadyReplicas == nil && in.AvailableReplicas == nil && in.UpToDateReplicas == nil {
 		return nil
 	}
@@ -246,7 +246,7 @@ func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneSta
 	// NOTE: old replica counters should not be automatically be converted into replica counters with a new semantic.
 	out.ReadyReplicas = nil
 
-	// Retrieve new conditions (v1beta2) and replica counter from the v1beta2 field.
+	// Retrieve new conditions (v1beta2) and replica counters from the v1beta2 field.
 	if in.V1Beta2 != nil {
 		out.Conditions = in.V1Beta2.Conditions
 		out.ReadyReplicas = in.V1Beta2.ReadyReplicas

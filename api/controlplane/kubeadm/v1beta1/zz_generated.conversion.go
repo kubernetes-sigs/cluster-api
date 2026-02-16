@@ -372,6 +372,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlan
 		out.Conditions = nil
 	}
 	// WARNING: in.LastRemediation requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1.LastRemediationStatus vs sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2.LastRemediationStatus)
+	out.Versions = *(*[]corev1beta2.StatusVersion)(unsafe.Pointer(&in.Versions))
 	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -398,6 +399,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlan
 	}
 	// WARNING: in.AvailableReplicas requires manual conversion: does not exist in peer-type
 	// WARNING: in.UpToDateReplicas requires manual conversion: does not exist in peer-type
+	out.Versions = *(*[]corev1beta1.StatusVersion)(unsafe.Pointer(&in.Versions))
 	if err := v1.Convert_string_To_Pointer_string(&in.Version, &out.Version, s); err != nil {
 		return err
 	}

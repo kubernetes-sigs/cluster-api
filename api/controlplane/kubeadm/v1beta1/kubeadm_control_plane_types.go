@@ -388,6 +388,14 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	LastRemediation *LastRemediationStatus `json:"lastRemediation,omitempty"`
 
+	// versions is the aggregated Kubernetes versions in this KubeadmControlPlane.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []clusterv1beta1.StatusVersion `json:"versions,omitempty"`
+
 	// v1beta2 groups all the fields that will be added or modified in KubeadmControlPlane's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *KubeadmControlPlaneV1Beta2Status `json:"v1beta2,omitempty"`

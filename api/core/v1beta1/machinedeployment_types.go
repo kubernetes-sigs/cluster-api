@@ -484,6 +484,14 @@ type MachineDeploymentStatus struct {
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 
+	// versions is the aggregated Kubernetes versions in this MachineDeployment.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
+
 	// v1beta2 groups all the fields that will be added or modified in MachineDeployment's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *MachineDeploymentV1Beta2Status `json:"v1beta2,omitempty"`

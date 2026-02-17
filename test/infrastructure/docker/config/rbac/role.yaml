@@ -76,6 +76,7 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - devclusters
+  - devmachinepools
   - devmachines
   - dockerclusters
   - dockermachinepools
@@ -94,6 +95,8 @@ rules:
   - devclusters/finalizers
   - devclusters/status
   - devclustertemplates
+  - devmachinepools/finalizers
+  - devmachinepools/status
   - devmachines/finalizers
   - devmachines/status
   - devmachinetemplates

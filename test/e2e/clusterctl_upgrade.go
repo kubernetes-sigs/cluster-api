@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -429,7 +430,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		workerMachineCount := ptr.To[int64](1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-			workloadClusterName, "(default)", kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
+			workloadClusterName, cmp.Or(input.WorkloadFlavor, "(default)"), kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
 
 		log.Logf("Getting the cluster template yaml")
 		workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
@@ -826,9 +827,6 @@ func setupClusterctl(ctx context.Context, clusterctlBinaryURL, clusterctlConfigP
 
 	err := os.Chmod(clusterctlBinaryPath, 0744) //nolint:gosec
 	Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
-
-	// Adjusts the clusterctlConfigPath in case the clusterctl version <= v1.3 (thus using a config file with only the providers supported in those versions)
-	clusterctlConfigPath = clusterctl.AdjustConfigPathForBinary(clusterctlBinaryPath, clusterctlConfigPath)
 
 	return clusterctlBinaryPath, clusterctlConfigPath
 }

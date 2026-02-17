@@ -531,7 +531,6 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 				Name:    namespace.Name,
 			})
 			if deployClusterInSeparateNamespaces {
-				Byf("Deleting namespace used for hosting the %q test spec ClusterClass", specName)
 				for _, clusterName := range clusterNames {
 					namespaceName := clusterName
 					framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{

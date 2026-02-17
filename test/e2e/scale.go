@@ -192,10 +192,12 @@ type ScaleSpecInput struct {
 // ScaleSpec implements a scale test for clusters with MachineDeployments.
 func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 	var (
-		specName      = "scale"
-		input         ScaleSpecInput
-		namespace     *corev1.Namespace
-		cancelWatches context.CancelFunc
+		specName                          = "scale"
+		input                             ScaleSpecInput
+		namespace                         *corev1.Namespace
+		deployClusterInSeparateNamespaces bool
+		clusterNames                      []string
+		cancelWatches                     context.CancelFunc
 	)
 
 	BeforeEach(func() {
@@ -263,7 +265,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 		additionalClusterClassCount := *cmp.Or(variableAsInt64(input.E2EConfig.GetVariableOrEmpty(scaleAdditionalClusterClassCount)),
 			input.AdditionalClusterClassCount, ptr.To[int64](0),
 		)
-		deployClusterInSeparateNamespaces := *cmp.Or(variableAsBool(input.E2EConfig.GetVariableOrEmpty(scaleDeployClusterInSeparateNamespaces)),
+		deployClusterInSeparateNamespaces = *cmp.Or(variableAsBool(input.E2EConfig.GetVariableOrEmpty(scaleDeployClusterInSeparateNamespaces)),
 			input.DeployClusterInSeparateNamespaces, ptr.To[bool](false),
 		)
 		useCrossNamespaceClusterClass := *cmp.Or(variableAsBool(input.E2EConfig.GetVariableOrEmpty(scaleUseCrossNamespaceClusterClass)),
@@ -375,7 +377,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 		By("Create workload clusters concurrently")
 		// Create multiple clusters concurrently from the same base cluster template.
 
-		clusterNames := make([]string, 0, clusterCount)
+		clusterNames = make([]string, 0, clusterCount)
 		clusterNameDigits := 1 + int(math.Log10(float64(clusterCount)))
 		for i := int64(1); i <= clusterCount; i++ {
 			// This ensures we always have the right number of leading zeros in our cluster names, e.g.
@@ -528,12 +530,15 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 				Deleter: input.BootstrapClusterProxy.GetClient(),
 				Name:    namespace.Name,
 			})
-			if *input.DeployClusterInSeparateNamespaces {
+			if deployClusterInSeparateNamespaces {
 				Byf("Deleting namespace used for hosting the %q test spec ClusterClass", specName)
-				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
-					Deleter: input.BootstrapClusterProxy.GetClient(),
-					Name:    namespace.Name,
-				})
+				for _, clusterName := range clusterNames {
+					namespaceName := clusterName
+					framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+						Deleter: input.BootstrapClusterProxy.GetClient(),
+						Name:    namespaceName,
+					})
+				}
 			}
 		}
 		cancelWatches()

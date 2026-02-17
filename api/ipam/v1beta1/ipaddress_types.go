@@ -51,6 +51,7 @@ type IPAddressSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=ipaddresses,scope=Namespaced,categories=cluster-api
 // +kubebuilder:deprecatedversion
+// +kubebuilder:unservedversion
 // +kubebuilder:printcolumn:name="Address",type="string",JSONPath=".spec.address",description="Address"
 // +kubebuilder:printcolumn:name="Pool Name",type="string",JSONPath=".spec.poolRef.name",description="Name of the pool the address is from"
 // +kubebuilder:printcolumn:name="Pool Kind",type="string",JSONPath=".spec.poolRef.kind",description="Kind of the pool the address is from"

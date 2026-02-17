@@ -118,6 +118,7 @@ type DockerMachineV1Beta2Status struct {
 // +kubebuilder:resource:path=dockermachines,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
 // +kubebuilder:deprecatedversion
+// +kubebuilder:unservedversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels['cluster\\.x-k8s\\.io/cluster-name']",description="Cluster"
 // +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this DockerMachine"

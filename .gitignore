@@ -19,6 +19,7 @@ test/e2e/data/infrastructure-docker/**/cluster-template*.yaml
 test/e2e/data/infrastructure-docker/**/clusterclass-*.yaml
 test/e2e/data/infrastructure-inmemory/**/cluster-template*.yaml
 !test/e2e/data/infrastructure-docker/**/clusterclass-quick-start.yaml
+!test/e2e/data/infrastructure-docker/**/clusterclass-quick-start-only.yaml
 
 # Output of Makefile targets using sed on MacOS systems
 *.yaml-e

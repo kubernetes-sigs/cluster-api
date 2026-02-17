@@ -196,7 +196,7 @@ func AdjustConfigPathForBinary(clusterctlBinaryPath, clusterctlConfigPath string
 	version, err := getClusterCtlVersion(clusterctlBinaryPath)
 	Expect(err).ToNot(HaveOccurred())
 
-	if version.LT(semver.MustParse("1.3.0")) {
+	if version.LT(semver.MustParse("1.3.0")) { // FIXME: remove
 		return strings.ReplaceAll(clusterctlConfigPath, clusterctlConfigFileName, clusterctlConfigV1_2FileName)
 	}
 	return clusterctlConfigPath

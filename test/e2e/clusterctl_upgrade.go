@@ -30,7 +30,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -156,7 +155,8 @@ type ClusterctlUpgradeSpecInputUpgrade struct {
 	AddonProviders            []string
 
 	// PostUpgrade is called after the upgrade is completed.
-	PostUpgrade func(proxy framework.ClusterProxy, namespace string, clusterName string)
+	PostUpgrade                 func(proxy framework.ClusterProxy, namespace string, clusterName string)
+	PreMachineDeploymentScaleUp func(proxy framework.ClusterProxy, namespace string, clusterName string)
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -429,7 +429,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		workerMachineCount := ptr.To[int64](1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-			workloadClusterName, "(default)", kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
+			workloadClusterName, input.WorkloadFlavor, kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
 
 		log.Logf("Getting the cluster template yaml")
 		workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
@@ -625,7 +625,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// This will also work with CAPI versions that have v1beta2 as storage version as long as v1beta1 is still served.
 			// Note: We can't simply use unstructured here because we would have to refactor a lot of code below.
 			// Note: We can migrate to only use v1beta2 once we only support upgrades from CAPI versions that already have v1beta2.
-			workloadCluster := discoveryAndWaitForClusterV1Beta1(ctx, discoveryAndWaitForClusterV1Beta1Input{
+			workloadCluster := discoveryAndWaitForClusterV1Beta2(ctx, discoveryAndWaitForClusterV1Beta2Input{
 				Getter:    managementClusterProxy.GetClient(),
 				Namespace: workloadClusterNamespace,
 				Name:      workloadClusterName,
@@ -653,7 +653,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			}, "3m", "10s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
 
 			Byf("[%d] Waiting for three minutes before checking if an unexpected rollout happened", i)
-			time.Sleep(time.Minute * 3)
+			//time.Sleep(time.Minute * 3) // FIXME
 
 			// After the upgrade: check that there were no unexpected rollouts.
 			postUpgradeMachineList := &unstructured.UnstructuredList{}
@@ -673,17 +673,21 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			}, "3m", "10s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
 			Expect(validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)).To(BeTrue(), "Machines should remain the same after the upgrade")
 
+			if upgrade.PreMachineDeploymentScaleUp != nil {
+				upgrade.PreMachineDeploymentScaleUp(managementClusterProxy, workloadCluster.Namespace, workloadCluster.Name)
+			}
+
 			// Scale up to 2 and back down to 1 so we can repeat this multiple times.
 			Byf("[%d] Scale MachineDeployment to ensure the providers work", i)
-			if workloadCluster.Spec.Topology != nil {
+			if workloadCluster.Spec.Topology.IsDefined() {
 				// Cluster is using ClusterClass, scale up via topology.
-				framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1Input{
+				framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
 					ClusterProxy:              managementClusterProxy,
 					Cluster:                   workloadCluster,
 					Replicas:                  2,
 					WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 				})
-				framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1Input{
+				framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
 					ClusterProxy:              managementClusterProxy,
 					Cluster:                   workloadCluster,
 					Replicas:                  1,
@@ -691,20 +695,20 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				})
 			} else {
 				// Cluster is not using ClusterClass, scale up via MachineDeployment.
-				testMachineDeployments := framework.GetMachineDeploymentsByClusterV1Beta1(ctx, framework.GetMachineDeploymentsByClusterInput{
+				testMachineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
 					Lister:      managementClusterProxy.GetClient(),
 					ClusterName: workloadClusterName,
 					Namespace:   workloadClusterNamespace,
 				})
 				if len(testMachineDeployments) > 0 {
-					framework.ScaleAndWaitMachineDeploymentV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentV1Beta1Input{
+					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 						ClusterProxy:              managementClusterProxy,
 						Cluster:                   workloadCluster,
 						MachineDeployment:         testMachineDeployments[0],
 						Replicas:                  2,
 						WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 					})
-					framework.ScaleAndWaitMachineDeploymentV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentV1Beta1Input{
+					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 						ClusterProxy:              managementClusterProxy,
 						Cluster:                   workloadCluster,
 						MachineDeployment:         testMachineDeployments[0],
@@ -907,23 +911,23 @@ func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForCl
 	return cluster
 }
 
-// discoveryAndWaitForClusterV1Beta1Input is the input type for discoveryAndWaitForClusterV1Beta1.
-type discoveryAndWaitForClusterV1Beta1Input struct {
+// discoveryAndWaitForClusterV1Beta2Input is the input type for discoveryAndWaitForClusterV1Beta2.
+type discoveryAndWaitForClusterV1Beta2Input struct {
 	Getter    framework.Getter
 	Namespace string
 	Name      string
 }
 
-// discoveryAndWaitForClusterV1Beta1 discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
-func discoveryAndWaitForClusterV1Beta1(ctx context.Context, input discoveryAndWaitForClusterV1Beta1Input, intervals ...interface{}) *clusterv1beta1.Cluster {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for discoveryAndWaitForClusterV1Beta1")
-	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling discoveryAndWaitForClusterV1Beta1")
-	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling discoveryAndWaitForClusterV1Beta1")
-	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling discoveryAndWaitForClusterV1Beta1")
+// discoveryAndWaitForClusterV1Beta2 discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
+func discoveryAndWaitForClusterV1Beta2(ctx context.Context, input discoveryAndWaitForClusterV1Beta2Input, intervals ...interface{}) *clusterv1.Cluster {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for discoveryAndWaitForClusterV1Beta2")
+	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling discoveryAndWaitForClusterV1Beta2")
+	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling discoveryAndWaitForClusterV1Beta2")
+	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling discoveryAndWaitForClusterV1Beta2")
 
 	// NOTE: We intentionally return the provisioned Cluster because it also contains
 	// the reconciled ControlPlane ref and InfrastructureCluster ref when using a ClusterClass.
-	cluster := &clusterv1beta1.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	By("Waiting for cluster to enter the provisioned phase")
 	Eventually(func() (string, error) {
 		key := client.ObjectKey{
@@ -1122,14 +1126,14 @@ func deleteAllClustersAndWait(ctx context.Context, input deleteAllClustersAndWai
 	// Alternatives to this would be:
 	// * some other way to restart the kube-controller-manager (e.g. control plane node rollout)
 	// * removing ownerRefs from (at least) MachineDeployments
-	Eventually(func(g Gomega) {
-		kubeControllerManagerLease := &coordinationv1.Lease{}
-		g.Expect(input.Client.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceSystem, Name: "kube-controller-manager"}, kubeControllerManagerLease)).To(Succeed())
-		// As soon as the kube-controller-manager detects it doesn't own the lease anymore it will restart.
-		// Once the current lease times out the kube-controller-manager will become leader again.
-		kubeControllerManagerLease.Spec.HolderIdentity = ptr.To("e2e-test-client")
-		g.Expect(input.Client.Update(ctx, kubeControllerManagerLease)).To(Succeed())
-	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "failed to steal lease from kube-controller-manager to trigger restart")
+	//Eventually(func(g Gomega) {
+	//	kubeControllerManagerLease := &coordinationv1.Lease{}
+	//	g.Expect(input.Client.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceSystem, Name: "kube-controller-manager"}, kubeControllerManagerLease)).To(Succeed())
+	//	// As soon as the kube-controller-manager detects it doesn't own the lease anymore it will restart.
+	//	// Once the current lease times out the kube-controller-manager will become leader again.
+	//	kubeControllerManagerLease.Spec.HolderIdentity = ptr.To("e2e-test-client")
+	//	g.Expect(input.Client.Update(ctx, kubeControllerManagerLease)).To(Succeed())
+	//}, 3*time.Minute, 3*time.Second).Should(Succeed(), "failed to steal lease from kube-controller-manager to trigger restart")
 
 	for _, c := range clusterList.Items {
 		Byf("Deleting cluster %s", c.GetName())

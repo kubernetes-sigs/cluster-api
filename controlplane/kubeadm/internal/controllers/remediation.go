@@ -21,20 +21,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -254,33 +261,31 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			return ctrl.Result{}, nil
 		}
 
-		// Remediation MUST preserve etcd quorum. This rule ensures that KCP will not remove a member that would result in etcd
-		// losing a majority of members and thus become unable to field new requests.
-		if controlPlane.IsEtcdManaged() {
-			canSafelyRemediate, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, machineToBeRemediated)
-			if err != nil {
-				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.RemediationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		// At this point we can assume that:
+		// - There are Machines to be remediated, remediation is possible because there are is more than one control plane Machine,
+		//   and remediation is allowed by remediation settings (e.g. retry limits).
+		// - No other operations are in progress on control plane Machines:
+		//   - There is no another remediation in progress
+		//   - There are no Machines still provisioning or deleting
+		//
+		// Once all the preconditions of remediating a Machine are met, KCP should assess the potential effects of this operation.
+		//
+		// Most specifically, before deleting the Machine to be remediated, KCP should determine if this operation
+		// is going to leave the K8s control plane components and the etcd cluster in operational state or not.
+		//
+		// NOTE: A similar check will be performed again right before removing the etcd member/removing the pre-terminate hook
+		// at the end of the deletion process for control plane Machines.
+		if !r.canSafelyRemediateMachine(ctx, controlPlane, machineToBeRemediated) {
+			log.Info("A control plane machine needs remediation, but removing this machine could result in loosing K8s control plane components or in etcd quorum loss. Skipping remediation")
+			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because this could result in loosing K8s control plane components or in etcd quorum loss")
 
-				conditions.Set(machineToBeRemediated, metav1.Condition{
-					Type:    clusterv1.MachineOwnerRemediatedCondition,
-					Status:  metav1.ConditionFalse,
-					Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationInternalErrorReason,
-					Message: "Please check controller logs for errors",
-				})
-				return ctrl.Result{}, err
-			}
-			if !canSafelyRemediate {
-				log.Info("A control plane machine needs remediation, but removing this machine could result in etcd quorum loss. Skipping remediation")
-				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because this could result in etcd loosing quorum")
-
-				conditions.Set(machineToBeRemediated, metav1.Condition{
-					Type:    clusterv1.MachineOwnerRemediatedCondition,
-					Status:  metav1.ConditionFalse,
-					Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
-					Message: "KubeadmControlPlane can't remediate this Machine because this could result in etcd loosing quorum",
-				})
-				return ctrl.Result{}, nil
-			}
+			conditions.Set(machineToBeRemediated, metav1.Condition{
+				Type:    clusterv1.MachineOwnerRemediatedCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
+				Message: "KubeadmControlPlane can't remediate this machine because this could result in loosing K8s control plane components or in etcd quorum loss",
+			})
+			return ctrl.Result{}, nil
 		}
 
 		// Start remediating the unhealthy control plane machine by deleting it.
@@ -564,48 +569,140 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	return remediationInProgressData, true, nil
 }
 
-// canSafelyRemoveEtcdMember assess if it is possible to remove the member hosted on the machine to be remediated
+// canSafelyRemediateMachine determine if remediating a Machine will leave the K8s control plane components and the etcd cluster in operational state or not.
+func (r *KubeadmControlPlaneReconciler) canSafelyRemediateMachine(ctx context.Context, controlPlane *internal.ControlPlane, machineToBeRemediated *clusterv1.Machine) bool {
+	log := ctrl.LoggerFrom(ctx)
+	if controlPlane.EtcdMembers == nil {
+		return false
+	}
+
+	// In order to determine if remediation a Machine will leave the K8s control plane components and the etcd cluster in operational state or not,
+	// KCP must determine how the list of Machines after remediation and consider the health of the corresponding K8s control plane components/etcd members.
+	//
+	// Target list of Machines will have current Machines -1 Machine (the machineToBeRemediated).
+	// As a consequence:
+	// - k8sControlPlane on the Machine being remediated is going to be deleted, no k8sControlPlan are going to be added.
+	k8sControlPlaneToBeDeleted := machineToBeRemediated.Name
+	k8sControlPlaneToBeAdded := 0
+	// - etcd member on the Machine being remediated is going to be deleted, no etcd member are going to be added.
+	etcdMemberToBeDeleted := r.tryGetNode(ctx, controlPlane, machineToBeRemediated)
+	etcdMemberToBeAdded := 0
+
+	// Check id the target k8s control plane will have at least one set of operational k8s control plane components.
+	if !r.targetK8sControlPlaneComponentsHealthy(ctx, controlPlane, k8sControlPlaneToBeAdded, k8sControlPlaneToBeDeleted) {
+		return false
+	}
+
+	// Check target etcd cluster.
+	if len(controlPlane.EtcdMembers) == 0 {
+		log.Info("cannot check etcd cluster health before remediation, etcd member list is empty")
+		return false
+	}
+	if controlPlane.IsEtcdManaged() {
+		return r.targetEtcdClusterHealthy(ctx, controlPlane, etcdMemberToBeAdded, etcdMemberToBeDeleted)
+	}
+	return true
+}
+
+func (r *KubeadmControlPlaneReconciler) tryGetNode(ctx context.Context, controlPlane *internal.ControlPlane, deletingMachine *clusterv1.Machine) string {
+	log := ctrl.LoggerFrom(ctx)
+
+	if deletingMachine.Status.NodeRef.Name != "" {
+		return deletingMachine.Status.NodeRef.Name
+	}
+
+	var providerID, node string
+	if deletingMachine.Spec.ProviderID != "" {
+		providerID = deletingMachine.Spec.ProviderID
+	} else if infraMachine := controlPlane.InfraResources[deletingMachine.Name]; infraMachine != nil {
+		// Fallback to retrieve from infraMachine.
+		if providerIDFromInfraMachine, err := contract.InfrastructureMachine().ProviderID().Get(infraMachine); err == nil {
+			providerID = *providerIDFromInfraMachine
+		}
+	}
+	if providerID != "" {
+		remoteClient, err := r.ClusterCache.GetClient(ctx, client.ObjectKeyFromObject(controlPlane.Cluster))
+		if err != nil {
+			log.Error(err, "Failed to get cluster client while deleting Machine and checking for nodes")
+		} else {
+			nodeList := corev1.NodeList{}
+			if err := remoteClient.List(ctx, &nodeList, client.MatchingFields{index.NodeProviderIDField: providerID}); err == nil {
+				if len(nodeList.Items) == 1 {
+					node = nodeList.Items[0].Name
+				}
+			}
+		}
+	}
+	return node
+}
+
+// targetEtcdClusterHealthy assess if it is possible to transition to the target state of the etcd cluster
 // without loosing etcd quorum.
 //
-// The answer mostly depend on the existence of other failing members on top of the one being deleted, and according
-// to the etcd fault tolerance specification (see https://etcd.io/docs/v3.3/faq/#what-is-failure-tolerance):
-//   - 3 CP cluster does not tolerate additional failing members on top of the one being deleted (the target
+// The result of the assessment mostly depend on the existence of failing members in the target cluster.
+// E.g. according to the etcd fault tolerance specification (see https://etcd.io/docs/v3.3/faq/#what-is-failure-tolerance)
+//
+//   - 3 CP etcd cluster does not tolerate additional failing members on top of the one being deleted (the target
 //     cluster size after deletion is 2, fault tolerance 0)
-//   - 5 CP cluster tolerates 1 additional failing members on top of the one being deleted (the target
+//   - 5 CP etcd cluster tolerates 1 additional failing members on top of the one being deleted (the target
 //     cluster size after deletion is 4, fault tolerance 1)
-//   - 7 CP cluster tolerates 2 additional failing members on top of the one being deleted (the target
+//   - 7 CP etcd cluster tolerates 2 additional failing members on top of the one being deleted (the target
 //     cluster size after deletion is 6, fault tolerance 2)
 //   - etc.
 //
-// NOTE: this func assumes the list of members in sync with the list of machines/nodes, it is required to call reconcileEtcdMembers
-// as well as reconcileControlPlaneAndMachinesConditions before this.
-func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Context, controlPlane *internal.ControlPlane, machineToBeRemediated *clusterv1.Machine) (bool, error) {
+// Similar considerations must be taken into account when adding new etcd members, because this operation
+// might also increase the number of failing members in the etcd clusters.
+//
+// Note: This check leverage the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
+// the info are also used to compute status.Conditions.
+//
+// Note: This check is performed on the actual list of members, so it account also for cases where
+// there is a mis-alignment between number of Machines, corresponding Nodes and etcd members.
+func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Context, controlPlane *internal.ControlPlane, etcdMembersToBeAdded int, etcdMemberToBeDeleted string) bool {
 	log := ctrl.LoggerFrom(ctx)
-
-	if len(controlPlane.EtcdMembers) == 0 {
-		return false, errors.New("cannot determine etcd cluster status after remediation. etcd member list is empty")
-	}
 
 	currentTotalMembers := len(controlPlane.EtcdMembers)
 
-	log.Info("etcd cluster before remediation",
+	log.Info("etcd cluster current state",
 		"currentTotalMembers", currentTotalMembers,
-		"currentMembers", controlPlane.EtcdMembers)
+		"currentMembers", util.MemberNames(controlPlane.EtcdMembers))
 
-	// Projects the target etcd cluster after remediation, considering all the etcd members except the one being remediated.
-	targetTotalMembers := 0
-	targetUnhealthyMembers := 0
-
+	// Projects the target etcd cluster after required changes.
 	healthyMembers := []string{}
 	unhealthyMembers := []string{}
+
+	targetTotalMembers := 0
+	targetLearnerMembers := 0
+	targetVotingMembers := 0
+
+	// When assessing the impact of adding new members, KCP always assume the worst case, that is the new etcd members won't be healthy.
+	// This is why targetUnhealthyMembers is also set to etcdMembersToBeAdded; the only exception is when there is zero or one etcd member
+	// in the cluster, because otherwise it won't be possible to scale up from 0 to 1 and from 1 to 2 (with tot members 2, tolerance to failure is still 0).
+	if etcdMembersToBeAdded > 0 {
+		targetTotalMembers = etcdMembersToBeAdded
+		targetVotingMembers = etcdMembersToBeAdded
+		if len(controlPlane.EtcdMembers) <= 1 {
+			etcdMembersToBeAdded--
+			healthyMembers = append(healthyMembers, "1 new member (best case)")
+		}
+		if etcdMembersToBeAdded > 0 {
+			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%d new member (worst case)", etcdMembersToBeAdded))
+		}
+	}
+
 	for _, etcdMember := range controlPlane.EtcdMembers {
-		// Skip the machine to be deleted because it won't be part of the target etcd cluster.
-		if machineToBeRemediated.Status.NodeRef.IsDefined() && machineToBeRemediated.Status.NodeRef.Name == etcdMember.Name {
+		// Skip the etcd member to be deleted because it won't be part of the target etcd cluster.
+		if etcdMemberToBeDeleted == etcdMember.Name {
 			continue
 		}
 
 		// Include the member in the target etcd cluster.
 		targetTotalMembers++
+		if etcdMember.IsLearner {
+			targetLearnerMembers++
+		} else {
+			targetVotingMembers++
+		}
 
 		// Search for the machine corresponding to the etcd member.
 		var machine *clusterv1.Machine
@@ -616,20 +713,33 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 			}
 		}
 
-		// If an etcd member does not have a corresponding machine it is not possible to retrieve etcd member health,
-		// so KCP is assuming the worst scenario and considering the member unhealthy.
-		//
-		// NOTE: This should not happen given that KCP is running reconcileEtcdMembers before calling this method.
+		// If an etcd member does not have a corresponding Machine, it is not possible to retrieve etcd member health,
+		// computed in reconcileControlPlaneAndMachinesConditions. Fallback on checking etcd alarms only.
+		// Note: members alarms are only a subset of the checks included in the condition.
 		if machine == nil {
-			log.Info("An etcd member does not have a corresponding machine, assuming this member is unhealthy", "memberName", etcdMember.Name)
-			targetUnhealthyMembers++
-			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (no machine)", etcdMember.Name))
+			hasAlarms := false
+			for _, alarm := range controlPlane.EtcdMembersAlarms {
+				if alarm.Type == etcd.AlarmOK {
+					continue
+				}
+
+				if alarm.MemberID != etcdMember.ID {
+					continue
+				}
+				log.Info("An etcd member does not have a corresponding Machine, the member is reporting alarms", "memberName", etcdMember.Name)
+				unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (no machine)", etcdMember.Name))
+			}
+			if hasAlarms {
+				continue
+			}
+
+			log.Info("An etcd member does not have a corresponding Machine", "memberName", etcdMember.Name)
+			healthyMembers = append(healthyMembers, fmt.Sprintf("%s (no machine)", etcdMember.Name))
 			continue
 		}
 
-		// Check member health as reported by machine's health conditions
+		// Check etcd member health as reported by Machine's eEtcdMemberHealthy condition.
 		if !conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition) {
-			targetUnhealthyMembers++
 			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (%s)", etcdMember.Name, machine.Name))
 			continue
 		}
@@ -638,18 +748,112 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 	}
 
 	// See https://etcd.io/docs/v3.3/faq/#what-is-failure-tolerance for fault tolerance formula explanation.
-	targetQuorum := (targetTotalMembers / 2.0) + 1
-	canSafelyRemediate := targetTotalMembers-targetUnhealthyMembers >= targetQuorum
+	targetQuorum := (targetVotingMembers / 2.0) + 1
+	canSafelyTransitionToTargetState := targetVotingMembers-len(unhealthyMembers) >= targetQuorum
 
-	log.Info(fmt.Sprintf("etcd cluster projected after remediation of Machine %s", machineToBeRemediated.Name),
+	// Force the result to false in case there are learner etcd members; KCP should wait for those members being promoted
+	// before taking further steps.
+	if targetLearnerMembers > 0 {
+		canSafelyTransitionToTargetState = false
+	}
+
+	operations := []string{}
+	if etcdMemberToBeDeleted != "" {
+		operations = append(operations, fmt.Sprintf("removal of etcdMember %s", etcdMemberToBeDeleted))
+	}
+	if etcdMembersToBeAdded > 0 {
+		operations = append(operations, fmt.Sprintf("addition of %d etcdMembers", etcdMembersToBeAdded))
+	}
+	log.Info(fmt.Sprintf("etcd cluster projected after %s", strings.Join(operations, ",")),
 		"healthyMembers", healthyMembers,
 		"unhealthyMembers", unhealthyMembers,
-		"targetTotalMembers", targetTotalMembers,
-		"targetQuorum", targetQuorum,
-		"targetUnhealthyMembers", targetUnhealthyMembers,
-		"canSafelyRemediate", canSafelyRemediate)
+		"totalMembers", targetTotalMembers,
+		"totalLearnerMembers", targetLearnerMembers,
+		"totalVotingMembers", targetVotingMembers,
+		"quorum", targetQuorum,
+		"totalHealthyMembers", len(healthyMembers),
+		"canSafelyTransitionToTargetState", canSafelyTransitionToTargetState)
 
-	return canSafelyRemediate, nil
+	return canSafelyTransitionToTargetState
+}
+
+// targetK8sControlPlaneComponentsHealthy assess if it is possible to transition to the target state of the K8s control plane components
+// while preserving at least one fully operational set of K8s control plane components.
+//
+// This operation takes into account how kubeadm is wiring up control plane components and more specifically:
+// - API server on one machine only connect to the local etcd member
+// - ControllerManager and scheduler on a machine connect to the local API server (not to the control plane endpoint)
+// - KCP enables KubeletLocalMode.
+//
+// As a consequence, we consider the K8s control plane on this machine healthy only if everything is healthy.
+//
+// Note: This check leverage the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
+// the info are also used to compute status.conditions.
+//
+// Note: When etcd is managed also the etcd pod is included in the check.
+func (r *KubeadmControlPlaneReconciler) targetK8sControlPlaneComponentsHealthy(ctx context.Context, controlPlane *internal.ControlPlane, k8sControlPlaneToBeAdded int, k8sControlPlaneToBeDeleted string) bool {
+	log := ctrl.LoggerFrom(ctx)
+
+	log.Info("k8s control plane components current state",
+		"currentControlPlanes", len(controlPlane.Machines),
+		"currentControlPlanes", controlPlane.Machines.Names())
+
+	totControlPlanes := 0
+
+	healthyControlPlanes := []string{}
+	unhealthyControlPlanes := []string{}
+
+	// When assessing the impact of adding new k8s control plane instances, KCP always assume the worst case, that is the new set of
+	// k8s control plane components won't be healthy; the only exception is when there are no Machines
+	// in the cluster, because otherwise it won't be possible to scale up from 0 to 1.
+	if k8sControlPlaneToBeAdded > 0 {
+		totControlPlanes = k8sControlPlaneToBeAdded
+		if len(controlPlane.Machines) == 0 {
+			healthyControlPlanes = append(healthyControlPlanes, "1 new machine (best case)")
+		} else {
+			unhealthyControlPlanes = append(unhealthyControlPlanes, fmt.Sprintf("%d new machine (worst case)", k8sControlPlaneToBeAdded))
+		}
+	}
+
+	for _, machine := range controlPlane.Machines {
+		if k8sControlPlaneToBeDeleted == machine.Name {
+			continue
+		}
+		totControlPlanes++
+
+		if !conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition) ||
+			!conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition) ||
+			!conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition) {
+			unhealthyControlPlanes = append(unhealthyControlPlanes, machine.Name)
+			continue
+		}
+		if controlPlane.IsEtcdManaged() {
+			if !conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition) {
+				unhealthyControlPlanes = append(unhealthyControlPlanes, machine.Name)
+				continue
+			}
+		}
+
+		healthyControlPlanes = append(healthyControlPlanes, machine.Name)
+	}
+
+	canSafelyTransitionToTargetState := len(healthyControlPlanes) >= 1
+
+	operations := []string{}
+	if k8sControlPlaneToBeDeleted != "" {
+		operations = append(operations, fmt.Sprintf("removal of Machine %s", k8sControlPlaneToBeDeleted))
+	}
+	if k8sControlPlaneToBeAdded > 0 {
+		operations = append(operations, fmt.Sprintf("addition of %d Machines", k8sControlPlaneToBeAdded))
+	}
+	log.Info(fmt.Sprintf("k8s control plane components projected after %s", strings.Join(operations, ",")),
+		"healthyControlPlanes", healthyControlPlanes,
+		"unhealthyControlPlanes", unhealthyControlPlanes,
+		"totalControlPlanes", totControlPlanes,
+		"totalHealthyControlPlanes", len(healthyControlPlanes),
+		"canSafelyTransitionToTargetState", canSafelyTransitionToTargetState)
+
+	return canSafelyTransitionToTargetState
 }
 
 // RemediationData struct is used to keep track of information stored in the RemediationInProgressAnnotation in KCP

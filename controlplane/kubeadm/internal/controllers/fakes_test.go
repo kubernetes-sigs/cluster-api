@@ -27,7 +27,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
@@ -72,8 +71,8 @@ type fakeWorkloadCluster struct {
 	Status                     internal.ClusterStatus
 	APIServerCertificateExpiry *time.Time
 
-	forwardEtcdLeadershipCalled      int
-	removeEtcdMemberForMachineCalled int
+	forwardEtcdLeadershipCalled int
+	removeEtcdMemberCalled      int
 }
 
 func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
@@ -82,10 +81,6 @@ func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *cluste
 		return errors.New("leaderCandidate is nil")
 	}
 	return nil
-}
-
-func (f *fakeWorkloadCluster) ReconcileEtcdMembersAndControlPlaneNodes(_ context.Context, _ []*etcd.Member, _ []string) ([]string, error) {
-	return nil, nil
 }
 
 func (f *fakeWorkloadCluster) ClusterStatus(_ context.Context) (internal.ClusterStatus, error) {
@@ -104,8 +99,8 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 	return nil
 }
 
-func (f *fakeWorkloadCluster) RemoveEtcdMemberForMachine(_ context.Context, _ *clusterv1.Machine) error {
-	f.removeEtcdMemberForMachineCalled++
+func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ string) error {
+	f.removeEtcdMemberCalled++
 	return nil
 }
 

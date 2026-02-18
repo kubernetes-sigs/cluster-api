@@ -168,6 +168,11 @@ func patchDockerClusterTemplate(_ context.Context, obj runtime.Object, templateV
 func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
+	cpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
+	if err != nil {
+		return errors.Wrap(err, "could not patch KubeadmControlPlane: could not get builtin.controlPlane.version")
+	}
+
 	// 1) Set extraArgs
 	switch obj := obj.(type) {
 	case *controlplanev1beta1.KubeadmControlPlaneTemplate:
@@ -196,6 +201,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 			obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		}
 		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
+		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["node-labels"] = fmt.Sprintf("kubernetesVersion=%s", cpVersion)
 
 		if obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
 			obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
@@ -204,6 +210,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 			obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		}
 		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
+		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["node-labels"] = fmt.Sprintf("kubernetesVersion=%s", cpVersion)
 	case *controlplanev1.KubeadmControlPlaneTemplate:
 		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 
@@ -211,8 +218,14 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 
 		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 
-		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
-		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs,
+			bootstrapv1.Arg{Name: "v", Value: ptr.To("2")},
+			bootstrapv1.Arg{Name: "node-labels", Value: ptr.To(fmt.Sprintf("kubernetesVersion=%s", cpVersion))},
+		)
+		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs,
+			bootstrapv1.Arg{Name: "v", Value: ptr.To("2")},
+			bootstrapv1.Arg{Name: "node-labels", Value: ptr.To(fmt.Sprintf("kubernetesVersion=%s", cpVersion))},
+		)
 	}
 
 	// 2) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.

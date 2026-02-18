@@ -527,9 +527,16 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 			t.Machine,
 			corev1.EventTypeNormal,
 			EventMachineMarkedUnhealthy,
-			"Machine %s has been marked as unhealthy by %s",
-			klog.KObj(t.Machine),
+			"Marked as unhealthy by MachineHealthCheck %s",
 			klog.KObj(t.MHC),
+		)
+		// Record event on MachineHealthCheck to track remediation history
+		r.recorder.Eventf(
+			m,
+			corev1.EventTypeNormal,
+			EventMachineMarkedUnhealthy,
+			"Observed machine %s is now marked as unhealthy",
+			klog.KObj(t.Machine),
 		)
 	}
 	return errList

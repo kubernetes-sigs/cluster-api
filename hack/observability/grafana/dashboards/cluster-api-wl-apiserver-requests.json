@@ -127,7 +127,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(rate(capim_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\"}[5m]))",
+          "expr": "sum(rate(inmemory_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\"}[5m]))",
           "legendFormat": "All",
           "range": true,
           "refId": "A"
@@ -229,7 +229,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(rate(capim_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\",dry_run!=\"\"}[5m])) by (dry_run)",
+          "expr": "sum(rate(inmemory_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\",dry_run!=\"\"}[5m])) by (dry_run)",
           "hide": false,
           "legendFormat": "dry_run = {{dry_run}}",
           "range": true,
@@ -334,7 +334,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(rate(capim_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\"}[5m])) by (resource)",
+          "expr": "sum(rate(inmemory_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\"}[5m])) by (resource)",
           "legendFormat": "{{resource}}",
           "range": true,
           "refId": "A"
@@ -438,7 +438,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(rate(capim_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\",dry_run!=\"\"}[5m])) by (resource)",
+          "expr": "sum(rate(inmemory_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\",dry_run!=\"\"}[5m])) by (resource)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -542,7 +542,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(rate(capim_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\"}[5m])) by (resource,subresource,verb) > 0",
+          "expr": "sum(rate(inmemory_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\"}[5m])) by (resource,subresource,verb) > 0",
           "legendFormat": "{{resource}} {{subresource}} {{verb}}",
           "range": true,
           "refId": "A"
@@ -646,7 +646,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(rate(capim_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\",dry_run!=\"\"}[5m])) by (resource,subresource,verb) > 0",
+          "expr": "sum(rate(inmemory_apiserver_request_total{group=~\"$Group\",version=~\"$Version\",resource=~\"$Resource\",subresource=~\"$Subresource\",verb=~\"$Verb\",dry_run!=\"\"}[5m])) by (resource,subresource,verb) > 0",
           "legendFormat": "{{resource}} {{subresource}} {{verb}}",
           "range": true,
           "refId": "A"
@@ -751,7 +751,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(rate(capim_apiserver_request_duration_seconds_sum{verb!=\"WATCH\",verb!=\"CONNECT\"}[5m])) by (verb) / sum(rate(capim_apiserver_request_duration_seconds_count[5m])) by (verb)",
+          "expr": "sum(rate(inmemory_apiserver_request_duration_seconds_sum{verb!=\"WATCH\",verb!=\"CONNECT\"}[5m])) by (verb) / sum(rate(inmemory_apiserver_request_duration_seconds_count[5m])) by (verb)",
           "legendFormat": "{{resource}} {{subresource}} {{verb}}",
           "range": true,
           "refId": "A"
@@ -866,7 +866,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(label_replace(sum(rate(rest_client_requests_total{pod=~\"$Pod\",method=~\"$Verb\"}[5m])) by (pod,method,host), \"pod_ip\", \"$1\", \"host\", \"(.*):.*\")  * on (pod_ip) group_left avg(kube_pod_info{pod=~\"capim-controller-manager-.*\"}) by (pod_ip)) by (pod)",
+          "expr": "sum(label_replace(sum(rate(rest_client_requests_total{pod=~\"$Pod\",method=~\"$Verb\"}[5m])) by (pod,method,host), \"pod_ip\", \"$1\", \"host\", \"(.*):.*\")  * on (pod_ip) group_left avg(kube_pod_info{pod=~\"$Pod\"}) by (pod_ip)) by (pod)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -970,7 +970,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(label_replace(sum(rate(rest_client_requests_total{pod=~\"$Pod\",method=~\"$Verb\"}[5m])) by (pod,method,host), \"pod_ip\", \"$1\", \"host\", \"(.*):.*\")  * on (pod_ip) group_left avg(kube_pod_info{pod=~\"capim-controller-manager-.*\"}) by (pod_ip)) by (pod,method)",
+          "expr": "sum(label_replace(sum(rate(rest_client_requests_total{pod=~\"$Pod\",method=~\"$Verb\"}[5m])) by (pod,method,host), \"pod_ip\", \"$1\", \"host\", \"(.*):.*\")  * on (pod_ip) group_left avg(kube_pod_info{pod=~\"$Pod\"}) by (pod_ip)) by (pod,method)",
           "legendFormat": "{{pod}}: {{method}}",
           "range": true,
           "refId": "A"
@@ -1051,14 +1051,14 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(capim_apiserver_request_total,group)",
+        "definition": "label_values(inmemory_apiserver_request_total,group)",
         "includeAll": true,
         "label": "Group",
         "multi": true,
         "name": "Group",
         "options": [],
         "query": {
-          "query": "label_values(capim_apiserver_request_total,group)",
+          "query": "label_values(inmemory_apiserver_request_total,group)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -1075,14 +1075,14 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(capim_apiserver_request_total,version)",
+        "definition": "label_values(inmemory_apiserver_request_total,version)",
         "includeAll": true,
         "label": "Version",
         "multi": true,
         "name": "Version",
         "options": [],
         "query": {
-          "query": "label_values(capim_apiserver_request_total,version)",
+          "query": "label_values(inmemory_apiserver_request_total,version)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -1099,14 +1099,14 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(capim_apiserver_request_total,resource)",
+        "definition": "label_values(inmemory_apiserver_request_total,resource)",
         "includeAll": true,
         "label": "Resource",
         "multi": true,
         "name": "Resource",
         "options": [],
         "query": {
-          "query": "label_values(capim_apiserver_request_total,resource)",
+          "query": "label_values(inmemory_apiserver_request_total,resource)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -1123,14 +1123,14 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(capim_apiserver_request_total,subresource)",
+        "definition": "label_values(inmemory_apiserver_request_total,subresource)",
         "includeAll": true,
         "label": "Subresource",
         "multi": true,
         "name": "Subresource",
         "options": [],
         "query": {
-          "query": "label_values(capim_apiserver_request_total,subresource)",
+          "query": "label_values(inmemory_apiserver_request_total,subresource)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -1147,14 +1147,14 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(capim_apiserver_request_total,verb)",
+        "definition": "label_values(inmemory_apiserver_request_total,verb)",
         "includeAll": true,
         "label": "Verb",
         "multi": true,
         "name": "Verb",
         "options": [],
         "query": {
-          "query": "label_values(capim_apiserver_request_total,verb)",
+          "query": "label_values(inmemory_apiserver_request_total,verb)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,

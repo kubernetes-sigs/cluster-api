@@ -18,12 +18,14 @@ package machinedeployment
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -221,6 +223,26 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			}
 			return len(machineSets.Items)
 		}, timeout).Should(BeEquivalentTo(1))
+
+		//
+		// Verify managedField mitigation (purge managedFields and verify they are re-added)
+		//
+		jsonPatch := []map[string]interface{}{
+			{
+				"op":    "replace",
+				"path":  "/metadata/managedFields",
+				"value": []metav1.ManagedFieldsEntry{{}},
+			},
+		}
+		patch, err := json.Marshal(jsonPatch)
+		g.Expect(err).ToNot(HaveOccurred())
+		ms := machineSets.Items[0].DeepCopy()
+		g.Expect(env.Client.Patch(ctx, ms, client.RawPatch(types.JSONPatchType, patch))).To(Succeed())
+		g.Expect(ms.GetManagedFields()).To(BeEmpty())
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.Client.Get(ctx, client.ObjectKeyFromObject(ms), ms)).To(Succeed())
+			g.Expect(ms.GetManagedFields()).ToNot(BeEmpty())
+		}, timeout).Should(Succeed())
 
 		t.Log("Verifying that the deployment's deletion.order was propagated to the machineset")
 		g.Expect(machineSets.Items[0].Spec.Deletion.Order).To(Equal(clusterv1.OldestMachineSetDeletionOrder))

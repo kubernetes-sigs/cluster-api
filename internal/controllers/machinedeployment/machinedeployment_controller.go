@@ -282,6 +282,18 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		return err
 	}
 
+	var anyManagedFieldIssueMitigated bool
+	for _, ms := range s.machineSets {
+		managedFieldIssueMitigated, err := ssa.MitigateManagedFieldsIssue(ctx, r.Client, ms, machineDeploymentManagerName)
+		if err != nil {
+			return err
+		}
+		anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
+	}
+	if anyManagedFieldIssueMitigated {
+		return nil // No requeue needed, changes will trigger another reconcile.
+	}
+
 	// If not already present, add a label specifying the MachineDeployment name to MachineSets.
 	// Ensure all required labels exist on the controlled MachineSets.
 	// This logic is needed to add the `cluster.x-k8s.io/deployment-name` label to MachineSets

@@ -385,6 +385,14 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 		return ctrl.Result{}, errors.Wrap(err, "error creating dynamic watch")
 	}
 
+	anyManagedFieldIssueMitigated, err := r.mitigateManagedFieldsIssue(ctx, s)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if anyManagedFieldIssueMitigated {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // Explicitly requeue as we are not watching all objects.
+	}
+
 	// Computes the desired state of the Cluster and store it in the request scope.
 	s.Desired, err = r.desiredStateGenerator.Generate(ctx, s)
 	if err != nil {

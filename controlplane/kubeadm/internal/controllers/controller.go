@@ -454,7 +454,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		return ctrl.Result{}, errors.Wrap(err, "failed to sync Machines")
 	}
 	if stopReconcile {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // Explicitly requeue as we are not watching all objects.
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // Explicitly requeue as we are not watching for changes to BootstrapConfig and InfraMachine objects.
 	}
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
@@ -859,7 +859,7 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		if !m.DeletionTimestamp.IsZero() {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
-				return true, err
+				return false, err
 			}
 
 			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
@@ -870,13 +870,13 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 
 			// Note: We intentionally don't set "minReadySeconds" on Machines because we consider it enough to have machine availability driven by readiness of control plane components.
 			if err := patchHelper.Patch(ctx, m); err != nil {
-				return true, err
+				return false, err
 			}
 
 			controlPlane.Machines[machineName] = m
 			patchHelper, err = patch.NewHelper(m, r.Client)
 			if err != nil {
-				return true, err
+				return false, err
 			}
 			patchHelpers[machineName] = patchHelper
 			continue
@@ -884,14 +884,14 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 
 		managedFieldIssueMitigated, err := ssa.MitigateManagedFieldsIssue(ctx, r.Client, m, kcpManagerName)
 		if err != nil {
-			return true, err
+			return false, err
 		}
 		anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
 		if !anyManagedFieldIssueMitigated {
 			// Update Machine to propagate in-place mutable fields from KCP.
 			updatedMachine, err := r.updateMachine(ctx, m, controlPlane.KCP, controlPlane.Cluster)
 			if err != nil {
-				return true, errors.Wrapf(err, "failed to update Machine: %s", klog.KObj(m))
+				return false, errors.Wrapf(err, "failed to update Machine: %s", klog.KObj(m))
 			}
 			// Note: Ensure ControlPlane has the latest version of the Machine. This is required because
 			//       e.g. the in-place update code that is called later has to use the latest version of the Machine.
@@ -909,7 +909,7 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 			// TODO: This should be cleaned-up to have a more streamline way of constructing and using patchHelpers.
 			patchHelper, err := patch.NewHelper(updatedMachine, r.Client)
 			if err != nil {
-				return true, err
+				return false, err
 			}
 			patchHelpers[machineName] = patchHelper
 		}
@@ -920,7 +920,7 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		if infraMachineFound {
 			managedFieldIssueMitigated, err = ssa.MitigateManagedFieldsIssue(ctx, r.Client, infraMachine, kcpMetadataManagerName)
 			if err != nil {
-				return true, err
+				return false, err
 			}
 			anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
 			if !anyManagedFieldIssueMitigated {
@@ -931,11 +931,11 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 				//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
 				//       be removed with CAPI v1.15.
 				if err := ssa.MigrateManagedFields(ctx, r.Client, infraMachine, kcpManagerName, kcpMetadataManagerName); err != nil {
-					return true, errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
+					return false, errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
 				}
 				// Update in-place mutating fields on InfrastructureMachine.
 				if err := r.updateLabelsAndAnnotations(ctx, infraMachine, infraMachine.GroupVersionKind(), controlPlane.KCP, controlPlane.Cluster); err != nil {
-					return true, errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
+					return false, errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
 				}
 			}
 		}
@@ -946,7 +946,7 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		if kubeadmConfigFound {
 			managedFieldIssueMitigated, err = ssa.MitigateManagedFieldsIssue(ctx, r.Client, kubeadmConfig, kcpMetadataManagerName)
 			if err != nil {
-				return true, err
+				return false, err
 			}
 			anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
 			if !anyManagedFieldIssueMitigated {
@@ -957,11 +957,11 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 				//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
 				//       be removed with CAPI v1.15.
 				if err := ssa.MigrateManagedFields(ctx, r.Client, kubeadmConfig, kcpManagerName, kcpMetadataManagerName); err != nil {
-					return true, errors.Wrapf(err, "failed to clean up managedFields of KubeadmConfig %s", klog.KObj(kubeadmConfig))
+					return false, errors.Wrapf(err, "failed to clean up managedFields of KubeadmConfig %s", klog.KObj(kubeadmConfig))
 				}
 				// Update in-place mutating fields on BootstrapConfig.
 				if err := r.updateLabelsAndAnnotations(ctx, kubeadmConfig, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"), controlPlane.KCP, controlPlane.Cluster); err != nil {
-					return true, errors.Wrapf(err, "failed to update KubeadmConfig %s", klog.KObj(kubeadmConfig))
+					return false, errors.Wrapf(err, "failed to update KubeadmConfig %s", klog.KObj(kubeadmConfig))
 				}
 			}
 		}

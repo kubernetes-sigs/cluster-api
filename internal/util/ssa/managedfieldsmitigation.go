@@ -137,7 +137,7 @@ func MitigateManagedFieldsIssue(ctx context.Context, c client.Client, obj client
 		return false, errors.Wrap(err, "failed to mitigate managedFields issue: failed to marshal patch for managedFields entry")
 	}
 
-	log.V(2).Info("Fixing up managedFields to mitigate managedFields issue", objGVK.Kind, klog.KObj(obj))
+	log.Info("Fixing up managedFields to mitigate kube-apiserver managedFields issue", objGVK.Kind, klog.KObj(obj))
 	if err := c.Patch(ctx, obj, client.RawPatch(types.JSONPatchType, patch)); err != nil {
 		return false, errors.Wrapf(err, "failed to mitigate managedFields issue: failed to patch %s %s", objGVK.Kind, klog.KObj(obj))
 	}

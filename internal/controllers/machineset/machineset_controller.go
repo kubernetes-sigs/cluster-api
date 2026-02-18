@@ -750,7 +750,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, b
 	}
 
 	if anyManagedFieldIssueMitigated {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, true, nil // Explicitly requeue as we are not watching all objects.
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, true, nil // Explicitly requeue as we are not watching for changes to BootstrapConfig and InfraMachine objects.
 	}
 
 	return ctrl.Result{}, false, nil

@@ -185,7 +185,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 			},
 		},
 	}
-	kubeadmControlPlaneManagedFields := trimSpaces(`{
+	kubeadmControlPlaneManagedFieldsAfterMitigation := trimSpaces(`{
 "f:spec":{
 	"f:kubeadmConfigSpec":{
 		"f:clusterConfiguration":{
@@ -575,7 +575,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 			},
 		},
 	}
-	kubeadmControlPlaneV1Beta1ManagedFields := trimSpaces(`{
+	kubeadmControlPlaneV1Beta1ManagedFieldsAfterMitigation := trimSpaces(`{
 "f:spec":{
 	"f:kubeadmConfigSpec":{
 		"f:clusterConfiguration":{
@@ -863,7 +863,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneManagedFields)},
+				FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneManagedFieldsAfterMitigation)},
 			}},
 			objectApplies: []objectApply{{
 				object: kubeadmControlPlaneApply.DeepCopy(),
@@ -920,7 +920,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1beta1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneV1Beta1ManagedFields)},
+				FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneV1Beta1ManagedFieldsAfterMitigation)},
 			}},
 			objectApplies: []objectApply{
 				{ // Apply v1beta1

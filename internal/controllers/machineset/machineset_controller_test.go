@@ -18,6 +18,7 @@ package machineset
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -34,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
@@ -1483,8 +1485,9 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		machines:   machines,
 		getAndAdoptMachinesForMachineSetSucceeded: true,
 	}
-	_, err = reconciler.syncMachines(ctx, s)
+	_, stopReconcile, err := reconciler.syncMachines(ctx, s)
 	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(stopReconcile).To(BeFalse())
 
 	updatedInPlaceMutatingMachine := inPlaceMutatingMachine.DeepCopy()
 	g.Eventually(func(g Gomega) {
@@ -1592,8 +1595,9 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		machines:   []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine},
 		getAndAdoptMachinesForMachineSetSucceeded: true,
 	}
-	_, err = reconciler.syncMachines(ctx, s)
+	_, stopReconcile, err = reconciler.syncMachines(ctx, s)
 	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(stopReconcile).To(BeFalse())
 
 	// Verify in-place mutable fields are updated on the Machine.
 	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
@@ -1671,6 +1675,56 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	deletingMachine.Spec.ReadinessGates = ms.Spec.Template.Spec.ReadinessGates
 	deletingMachine.Spec.Taints = machineTaints
 	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
+
+	//
+	// Verify managedField mitigation (purge managedFields and verify they are re-added)
+	//
+	// Remove managedField entries
+	jsonPatch := []map[string]interface{}{
+		{
+			"op":    "replace",
+			"path":  "/metadata/managedFields",
+			"value": []metav1.ManagedFieldsEntry{{}},
+		},
+	}
+	patch, err := json.Marshal(jsonPatch)
+	g.Expect(err).ToNot(HaveOccurred())
+	for _, object := range []client.Object{updatedInPlaceMutatingMachine, updatedInfraMachine, updatedBootstrapConfig} {
+		g.Expect(env.Client.Patch(ctx, object, client.RawPatch(types.JSONPatchType, patch))).To(Succeed())
+		g.Expect(object.GetManagedFields()).To(BeEmpty())
+	}
+	// syncMachines to run mitigation code.
+	m := *updatedInPlaceMutatingMachine
+	s = &scope{
+		machineSet: ms,
+		machines:   []*clusterv1.Machine{&m},
+		getAndAdoptMachinesForMachineSetSucceeded: true,
+	}
+	_, stopReconcile, err = reconciler.syncMachines(ctx, s)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(stopReconcile).To(BeTrue())
+	// verify mitigation worked
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(&m), &m)).To(Succeed())
+	g.Expect(cleanupTime(m.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Manager:    machineSetManagerName, // matches manager of next Apply.
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1:   `{"f:metadata":{"f:name":{}}}`,
+	}})))
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
+	g.Expect(cleanupTime(updatedInfraMachine.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		APIVersion: updatedInfraMachine.GetAPIVersion(),
+		Manager:    machineSetMetadataManagerName, // matches manager of next Apply.
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1:   `{"f:metadata":{"f:name":{}}}`,
+	}})))
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig)).To(Succeed())
+	g.Expect(cleanupTime(updatedBootstrapConfig.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		APIVersion: updatedBootstrapConfig.GetAPIVersion(),
+		Manager:    machineSetMetadataManagerName, // matches manager of next Apply.
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1:   `{"f:metadata":{"f:name":{}}}`,
+	}})))
 }
 
 func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
@@ -3980,8 +4034,9 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			}
 
 			// populate s.machines
-			_, err := r.getAndAdoptMachinesForMachineSet(ctx, s)
+			_, stopReconcile, err := r.getAndAdoptMachinesForMachineSet(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(stopReconcile).To(BeFalse())
 			_, err = r.reconcileDelete(ctx, s)
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())

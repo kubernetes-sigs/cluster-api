@@ -51,7 +51,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -734,15 +733,21 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 	// NOTE, it is required to surface intermediate steps of the upgrade plan to allow creation of machines in KCP/MS.
 	// TODO: consider if we want to surface the upgrade plan (or the list of desired versions) in cluster status;
 	//   TBD if the semantic of the new field can replace this annotation.
+	if cluster.Annotations == nil {
+		cluster.Annotations = map[string]string{}
+	}
 	if hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) {
 		// NOTE: to detect if we are at the beginning of an upgrade, we check if the intent to call the AfterClusterUpgrade is already tracked.
 		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting control plane version")
 		}
-		annotations.AddAnnotations(cluster, map[string]string{clusterv1.ClusterTopologyUpgradeStepAnnotation: *controlPlaneVersion})
+		cluster.Annotations[clusterv1.ClusterTopologyUpgradeStepAnnotation] = *controlPlaneVersion
 	} else {
-		delete(cluster.Annotations, clusterv1.ClusterTopologyUpgradeStepAnnotation)
+		// Note: Setting the annotation to "" instead of deleting it because we cannot be sure
+		// that we are able to remove the annotation from the Cluster with SSA if we lost ownership of
+		// the annotation in managedFields e.g. because of: https://github.com/kubernetes/kubernetes/issues/136919.
+		cluster.Annotations[clusterv1.ClusterTopologyUpgradeStepAnnotation] = ""
 	}
 
 	return cluster, nil

@@ -2069,7 +2069,9 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		SecretCachingClient: secretCachingClient,
 		ssaCache:            ssa.NewCache("test-controller"),
 	}
-	g.Expect(reconciler.syncMachines(ctx, controlPlane)).To(Succeed())
+	stopReconcile, err := reconciler.syncMachines(ctx, controlPlane)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(stopReconcile).To(BeFalse())
 
 	updatedInPlaceMutatingMachine := inPlaceMutatingMachine.DeepCopy()
 	g.Eventually(func(g Gomega) {
@@ -2145,7 +2147,9 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = duration10s
 	kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration10s
 	controlPlane.KCP = kcp
-	g.Expect(reconciler.syncMachines(ctx, controlPlane)).To(Succeed())
+	stopReconcile, err = reconciler.syncMachines(ctx, controlPlane)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(stopReconcile).To(BeFalse())
 
 	// Verify in-place mutable fields are updated on the Machine.
 	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()

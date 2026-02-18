@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -2449,13 +2449,13 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "workqueue_depth{pod=~\"$Pod\",name=~\"$Controller\"}",
-              "legendFormat": "{{pod}}: {{name}}",
+              "expr": "workqueue_depth{pod=~\"$Pod\",name=~\"$Controller\",priority!=\"-100\"}",
+              "legendFormat": "{{pod}}: {{name}} {{ priority }}",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Workqueue Depth",
+          "title": "Workqueue Depth (priority != 100)",
           "type": "timeseries"
         },
         {
@@ -2520,6 +2520,105 @@
             "w": 12,
             "x": 12,
             "y": 12
+          },
+          "id": 73,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "workqueue_depth{pod=~\"$Pod\",name=~\"$Controller\",priority=\"-100\"}",
+              "legendFormat": "{{pod}}: {{name}} {{ priority }}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Workqueue Depth (priority == -100)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 20
           },
           "id": 32,
           "options": {
@@ -5450,9 +5549,7 @@
       {
         "allValue": ".*",
         "current": {
-          "text": [
-            "All"
-          ],
+          "text": "All",
           "value": [
             "$__all"
           ]

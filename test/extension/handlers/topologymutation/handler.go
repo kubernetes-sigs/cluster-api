@@ -24,6 +24,7 @@ package topologymutation
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
@@ -201,7 +202,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 			obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		}
 		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
-		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["node-labels"] = fmt.Sprintf("kubernetesVersion=%s", cpVersion)
+		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["node-labels"] = fmt.Sprintf("kubernetesVersion=%s", strings.ReplaceAll(cpVersion, "+", "_"))
 
 		if obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
 			obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
@@ -210,7 +211,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 			obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		}
 		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
-		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["node-labels"] = fmt.Sprintf("kubernetesVersion=%s", cpVersion)
+		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["node-labels"] = fmt.Sprintf("kubernetesVersion=%s", strings.ReplaceAll(cpVersion, "+", "_"))
 	case *controlplanev1.KubeadmControlPlaneTemplate:
 		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 
@@ -220,11 +221,11 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 
 		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs,
 			bootstrapv1.Arg{Name: "v", Value: ptr.To("2")},
-			bootstrapv1.Arg{Name: "node-labels", Value: ptr.To(fmt.Sprintf("kubernetesVersion=%s", cpVersion))},
+			bootstrapv1.Arg{Name: "node-labels", Value: ptr.To(fmt.Sprintf("kubernetesVersion=%s", strings.ReplaceAll(cpVersion, "+", "_")))},
 		)
 		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs,
 			bootstrapv1.Arg{Name: "v", Value: ptr.To("2")},
-			bootstrapv1.Arg{Name: "node-labels", Value: ptr.To(fmt.Sprintf("kubernetesVersion=%s", cpVersion))},
+			bootstrapv1.Arg{Name: "node-labels", Value: ptr.To(fmt.Sprintf("kubernetesVersion=%s", strings.ReplaceAll(cpVersion, "+", "_")))},
 		)
 	}
 

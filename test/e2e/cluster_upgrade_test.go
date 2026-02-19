@@ -45,7 +45,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("upgrades"),
+			Flavor:                ptr.To("topology"),
 		}
 	})
 })

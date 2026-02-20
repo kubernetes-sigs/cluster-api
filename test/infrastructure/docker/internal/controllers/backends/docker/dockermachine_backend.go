@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -566,6 +567,9 @@ func (r *MachineBackendReconciler) getUnsafeLoadBalancerConfigTemplate(ctx conte
 		Namespace: dockerCluster.Namespace,
 	}
 	if err := r.Get(ctx, key, cm); err != nil {
+		if apierrors.IsNotFound(err) && !dockerCluster.DeletionTimestamp.IsZero() {
+			return "", nil
+		}
 		return "", errors.Wrapf(err, "failed to retrieve custom HAProxy configuration ConfigMap %s", key)
 	}
 	template, ok := cm.Data["value"]

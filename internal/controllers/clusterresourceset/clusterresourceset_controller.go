@@ -234,12 +234,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, clusters []*clusterv1.
 			return nil
 		}
 
-		// Initialize the patch helper.
-		patchHelper, err := patch.NewHelper(clusterResourceSetBinding, r.Client)
-		if err != nil {
-			return err
-		}
-
+		original := clusterResourceSetBinding.DeepCopy()
 		clusterResourceSetBinding.RemoveBinding(crs)
 		clusterResourceSetBinding.OwnerReferences = util.RemoveOwnerRef(clusterResourceSetBinding.GetOwnerReferences(), metav1.OwnerReference{
 			APIVersion: addonsv1.GroupVersion.String(),
@@ -250,10 +245,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, clusters []*clusterv1.
 		// If CRS list is empty in the binding, delete the binding else
 		// attempt to Patch the ClusterResourceSetBinding object after delete reconciliation if there is at least 1 binding left.
 		if len(clusterResourceSetBinding.Spec.Bindings) == 0 {
-			if r.Client.Delete(ctx, clusterResourceSetBinding) != nil {
+			if err := r.Client.Delete(ctx, clusterResourceSetBinding); err != nil {
 				log.Error(err, "Failed to delete empty ClusterResourceSetBinding")
 			}
-		} else if err := patchHelper.Patch(ctx, clusterResourceSetBinding); err != nil {
+		} else if err := r.Client.Patch(ctx, clusterResourceSetBinding, client.MergeFrom(original)); err != nil {
 			return err
 		}
 	}
@@ -497,19 +492,19 @@ func (r *Reconciler) getResource(ctx context.Context, resourceRef addonsv1.Resou
 
 // ensureResourceOwnerRef adds the ClusterResourceSet as a OwnerReference to the resource.
 func (r *Reconciler) ensureResourceOwnerRef(ctx context.Context, clusterResourceSet *addonsv1.ClusterResourceSet, resource *unstructured.Unstructured) error {
-	obj := resource.DeepCopy()
-	patchHelper, err := patch.NewHelper(obj, r.Client)
-	if err != nil {
-		return err
-	}
 	newRef := metav1.OwnerReference{
 		APIVersion: addonsv1.GroupVersion.String(),
 		Kind:       clusterResourceSet.GroupVersionKind().Kind,
 		Name:       clusterResourceSet.GetName(),
 		UID:        clusterResourceSet.GetUID(),
 	}
-	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), newRef))
-	return patchHelper.Patch(ctx, obj)
+	if util.HasExactOwnerRef(resource.GetOwnerReferences(), newRef) {
+		return nil
+	}
+
+	original := resource.DeepCopy()
+	resource.SetOwnerReferences(util.EnsureOwnerRef(resource.GetOwnerReferences(), newRef))
+	return r.Client.Patch(ctx, resource, client.MergeFrom(original))
 }
 
 // clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet.

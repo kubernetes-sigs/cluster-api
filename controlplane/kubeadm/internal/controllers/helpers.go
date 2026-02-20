@@ -92,15 +92,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	if needsRotation {
 		log.Info("Rotating kubeconfig secret")
 
-		// Emit event to notify about automatic certificate rotation
-		r.recorder.Eventf(
-			controlPlane.KCP,
-			corev1.EventTypeNormal,
-			EventKubeconfigCertificateRotated,
-			"Automatically rotated kubeconfig secret for cluster %s due to client certificate approaching expiry",
-			klog.KRef(controlPlane.Cluster.Namespace, controlPlane.Cluster.Name),
-		)
-
 		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret, kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm())); err != nil {
 			// Emit warning event on failure
 			r.recorder.Eventf(
@@ -113,6 +104,15 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 			)
 			return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
 		}
+
+		// Emit event to notify about automatic certificate rotation
+		r.recorder.Eventf(
+			controlPlane.KCP,
+			corev1.EventTypeNormal,
+			EventKubeconfigCertificateRotated,
+			"Automatically rotated kubeconfig secret for cluster %s due to client certificate approaching expiry",
+			klog.KRef(controlPlane.Cluster.Namespace, controlPlane.Cluster.Name),
+		)
 	}
 
 	return ctrl.Result{}, nil

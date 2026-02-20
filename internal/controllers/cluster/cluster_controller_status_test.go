@@ -2441,6 +2441,9 @@ func TestSetAvailableCondition(t *testing.T) {
 					Conditions: []metav1.Condition{
 						// No condition reported yet, the required ones should be reported as missing.
 					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(1)),
+					},
 				},
 			},
 			expectCondition: metav1.Condition{
@@ -2452,6 +2455,57 @@ func TestSetAvailableCondition(t *testing.T) {
 					"* InfrastructureReady: Condition not yet reported\n" +
 					"* ControlPlaneAvailable: Condition not yet reported\n" +
 					"* WorkersAvailable: Condition not yet reported",
+			},
+		},
+		{
+			name: "WorkerAvailable is ignored when no workers required",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: clusterv1.Topology{}, // not using CC
+				},
+				Status: clusterv1.ClusterStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.ClusterInfrastructureReadyCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterControlPlaneAvailableCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterWorkersAvailableCondition,
+							Status: metav1.ConditionFalse, // WorkersAvailable is False when workers are not required, it should be ignored.
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterRemoteConnectionProbeCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterDeletingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: "Foo",
+						},
+						// TopologyReconciled missing
+					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(0)),
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterAvailableCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.ClusterAvailableReason,
+				Message: "",
 			},
 		},
 		{
@@ -2492,6 +2546,9 @@ func TestSetAvailableCondition(t *testing.T) {
 							Reason: "Foo",
 						},
 						// TopologyReconciled missing
+					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(3)),
 					},
 				},
 			},
@@ -2543,6 +2600,9 @@ func TestSetAvailableCondition(t *testing.T) {
 								"* MachineSets: ms1, ms2\n" +
 								"* Worker Machines: w1, w2, w3, w4, w5, ... (3 more)",
 						},
+					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(3)),
 					},
 				},
 			},
@@ -2599,6 +2659,9 @@ func TestSetAvailableCondition(t *testing.T) {
 							Reason: "Foo",
 						},
 						// TopologyReconciled missing
+					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(3)),
 					},
 				},
 			},
@@ -2667,6 +2730,9 @@ func TestSetAvailableCondition(t *testing.T) {
 							Message: "Some other message",
 						},
 					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(3)),
+					},
 				},
 			},
 			clusterClass: &clusterv1.ClusterClass{
@@ -2733,6 +2799,9 @@ func TestSetAvailableCondition(t *testing.T) {
 							Message: "Some other message",
 						},
 					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(3)),
+					},
 				},
 			},
 			clusterClass: &clusterv1.ClusterClass{
@@ -2793,6 +2862,9 @@ func TestSetAvailableCondition(t *testing.T) {
 							Message: "Some message",
 						},
 					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(3)),
+					},
 				},
 			},
 			expectCondition: metav1.Condition{
@@ -2850,6 +2922,9 @@ func TestSetAvailableCondition(t *testing.T) {
 							Message: "Cluster is upgrading to v1.22.0\n" +
 								"  * MachineDeployment md1 upgrading to version v1.22.0",
 						},
+					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(3)),
 					},
 				},
 			},
@@ -2912,6 +2987,9 @@ func TestSetAvailableCondition(t *testing.T) {
 								"  * MachineDeployment md1 upgrading to version v1.22.0",
 						},
 					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(9)),
+					},
 				},
 			},
 			expectCondition: metav1.Condition{
@@ -2969,6 +3047,9 @@ func TestSetAvailableCondition(t *testing.T) {
 							Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 								".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 						},
+					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(3)),
 					},
 				},
 			},
@@ -3030,14 +3111,17 @@ func TestSetAvailableCondition(t *testing.T) {
 								".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 						},
 					},
+					Workers: &clusterv1.WorkersStatus{
+						DesiredReplicas: ptr.To(int32(9)),
+					},
 				},
 			},
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterAvailableCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterNotAvailableReason,
-				Message: "* WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1\n" +
-					"* TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if.status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
+				Message: "* TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if.status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused\n" +
+					"* WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
 			},
 		},
 	}

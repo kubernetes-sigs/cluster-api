@@ -305,12 +305,9 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 			continue
 		}
 
-		helper, err := patch.NewHelper(machineSet, r.Client)
-		if err != nil {
-			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
-		}
+		original := machineSet.DeepCopy()
 		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = md.Name
-		if err := helper.Patch(ctx, machineSet); err != nil {
+		if err := r.Client.Patch(ctx, machineSet, client.MergeFrom(original)); err != nil {
 			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 	}
@@ -669,12 +666,7 @@ func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cl
 		return nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, c)
-	if err != nil {
-		return err
-	}
-
+	original := obj.DeepCopyObject().(client.Object)
 	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef))
-
-	return patchHelper.Patch(ctx, obj)
+	return c.Patch(ctx, obj, client.MergeFrom(original))
 }

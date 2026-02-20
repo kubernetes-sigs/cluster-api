@@ -41,7 +41,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -111,11 +110,7 @@ func ensureOwnerRefAndLabel(ctx context.Context, c client.Client, obj *unstructu
 		return nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, c)
-	if err != nil {
-		return err
-	}
-
+	original := obj.DeepCopyObject().(client.Object)
 	if err := controllerutil.SetControllerReference(cluster, obj, c.Scheme()); err != nil {
 		return err
 	}
@@ -127,7 +122,7 @@ func ensureOwnerRefAndLabel(ctx context.Context, c client.Client, obj *unstructu
 	labels[clusterv1.ClusterNameLabel] = cluster.Name
 	obj.SetLabels(labels)
 
-	return patchHelper.Patch(ctx, obj)
+	return c.Patch(ctx, obj, client.MergeFrom(original))
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.

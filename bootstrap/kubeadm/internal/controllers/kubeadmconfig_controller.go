@@ -1407,22 +1407,28 @@ func (r *KubeadmConfigReconciler) ensureBootstrapSecretOwnersRef(ctx context.Con
 		}
 		return errors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
 	}
-	patchHelper, err := patch.NewHelper(secret, r.Client)
-	if err != nil {
-		return errors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
-	}
-	if c := metav1.GetControllerOf(secret); c != nil && c.Kind != "KubeadmConfig" {
-		secret.SetOwnerReferences(util.RemoveOwnerRef(secret.GetOwnerReferences(), *c))
-	}
-	secret.SetOwnerReferences(util.EnsureOwnerRef(secret.GetOwnerReferences(), metav1.OwnerReference{
+
+	configRef := metav1.OwnerReference{
 		APIVersion: bootstrapv1.GroupVersion.String(),
 		Kind:       "KubeadmConfig",
 		UID:        scope.Config.UID,
 		Name:       scope.Config.Name,
 		Controller: ptr.To(true),
-	}))
-	err = patchHelper.Patch(ctx, secret)
-	if err != nil {
+	}
+
+	// No op if ownership is already set and up to date.
+	if util.HasExactOwnerRef(secret.OwnerReferences, configRef) {
+		return nil
+	}
+
+	// Otherwise replace existing controller OwnerReferences with the configRef.
+	original := secret.DeepCopy()
+	if c := metav1.GetControllerOf(secret); c != nil && c.Kind != "KubeadmConfig" {
+		secret.SetOwnerReferences(util.RemoveOwnerRef(secret.GetOwnerReferences(), *c))
+	}
+
+	secret.SetOwnerReferences(util.EnsureOwnerRef(secret.GetOwnerReferences(), configRef))
+	if err := r.Client.Patch(ctx, secret, client.MergeFrom(original)); err != nil {
 		return errors.Wrapf(err, "could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
 	}
 	return nil

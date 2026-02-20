@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -128,10 +127,7 @@ func (r *Reconciler) clusterToClusterResourceSetBinding(_ context.Context, o cli
 // Before 1.4 cluster name was stored as an ownerReference. This function migrates the cluster name to the spec.clusterName and removes the Cluster OwnerReference.
 // Ref: https://github.com/kubernetes-sigs/cluster-api/issues/7669.
 func (r *Reconciler) updateClusterReference(ctx context.Context, binding *addonsv1.ClusterResourceSetBinding) error {
-	patchHelper, err := patch.NewHelper(binding, r.Client)
-	if err != nil {
-		return err
-	}
+	original := binding.DeepCopy()
 
 	// If the `.spec.clusterName` is not set, take the value from the ownerReference.
 	if binding.Spec.ClusterName == "" {
@@ -152,7 +148,11 @@ func (r *Reconciler) updateClusterReference(ctx context.Context, binding *addons
 		Name:       binding.Spec.ClusterName,
 	})
 
-	return patchHelper.Patch(ctx, binding)
+	if binding.Spec.ClusterName == original.Spec.ClusterName && len(binding.OwnerReferences) == len(original.OwnerReferences) {
+		return nil
+	}
+
+	return r.Client.Patch(ctx, binding, client.MergeFrom(original))
 }
 
 func getClusterNameFromOwnerRef(obj metav1.ObjectMeta) (string, error) {

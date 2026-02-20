@@ -44,7 +44,6 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
@@ -813,10 +812,7 @@ func pauseClusterClass(ctx context.Context, proxy Proxy, n *node, pause bool, mu
 		return errors.Wrapf(err, "error reading ClusterClass %s/%s", n.identity.Namespace, n.identity.Name)
 	}
 
-	patchHelper, err := patch.NewHelper(clusterClass, cFrom)
-	if err != nil {
-		return err
-	}
+	original := clusterClass.DeepCopy()
 
 	// Update the annotation to the desired state
 	ccAnnotations := clusterClass.GetAnnotations()
@@ -834,7 +830,7 @@ func pauseClusterClass(ctx context.Context, proxy Proxy, n *node, pause bool, mu
 	// Update the ClusterClass with the new annotations.
 	clusterClass.SetAnnotations(ccAnnotations)
 
-	return patchHelper.Patch(ctx, clusterClass)
+	return cFrom.Patch(ctx, clusterClass, client.MergeFrom(original))
 }
 
 // ensureNamespaces ensures all the expected target namespaces are in place before creating objects.

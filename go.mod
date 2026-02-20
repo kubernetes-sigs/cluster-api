@@ -56,6 +56,8 @@ require (
 	sigs.k8s.io/yaml v1.6.0
 )
 
+require sigs.k8s.io/structured-merge-diff/v6 v6.3.0
+
 require (
 	cel.dev/expr v0.24.0 // indirect
 	dario.cat/mergo v1.0.1 // indirect

@@ -530,6 +530,8 @@ type KubeadmConfigV1Beta1DeprecatedStatus struct {
 // +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10
 // +kubebuilder:printcolumn:name="Data secret created",type="string",JSONPath=`.status.initialization.dataSecretCreated`,description="Boostrap secret is created"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfig"
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // KubeadmConfig is the Schema for the kubeadmconfigs API.
 type KubeadmConfig struct {

@@ -658,9 +658,10 @@ func setWorkersAvailableCondition(ctx context.Context, cluster *clusterv1.Cluste
 
 	if len(machinePools.Items)+len(machineDeployments.Items) == 0 {
 		conditions.Set(cluster, metav1.Condition{
-			Type:   clusterv1.ClusterWorkersAvailableCondition,
-			Status: metav1.ConditionTrue,
-			Reason: clusterv1.ClusterWorkersAvailableNoWorkersReason,
+			Type:    clusterv1.ClusterWorkersAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.ClusterWorkersAvailableNoWorkersReason,
+			Message: "No workers found",
 		})
 		return
 	}
@@ -789,9 +790,10 @@ func (s machinesConditionSetter) setMachinesCondition(ctx context.Context, clust
 
 	if len(machines) == 0 {
 		conditions.Set(cluster, metav1.Condition{
-			Type:   s.condition,
-			Status: metav1.ConditionTrue,
-			Reason: s.noReplicasReason,
+			Type:    s.condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  s.noReplicasReason,
+			Message: "No machines found",
 		})
 		return
 	}
@@ -1157,9 +1159,14 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 		clusterv1.ClusterRemoteConnectionProbeCondition,
 		clusterv1.ClusterInfrastructureReadyCondition,
 		clusterv1.ClusterControlPlaneAvailableCondition,
-		clusterv1.ClusterWorkersAvailableCondition,
 		clusterv1.ClusterTopologyReconciledCondition,
 	}
+	// WorkersAvailable condition is considered for the cluster Available condition summary only if at least one worker machine is required, to avoid
+	// marking the cluster as Available=False just because workers are not yet required.
+	if cluster.Status.Workers != nil && cluster.Status.Workers.DesiredReplicas != nil && *cluster.Status.Workers.DesiredReplicas > 0 {
+		forConditionTypes = append(forConditionTypes, clusterv1.ClusterWorkersAvailableCondition)
+	}
+
 	negativePolarityConditionTypes := []string{clusterv1.ClusterDeletingCondition}
 	availabilityGates := cluster.Spec.AvailabilityGates
 	if availabilityGates == nil && clusterClass != nil {

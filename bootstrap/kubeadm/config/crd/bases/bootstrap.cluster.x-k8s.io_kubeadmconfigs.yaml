@@ -2351,7 +2351,6 @@ spec:
                         type: array
                         x-kubernetes-list-map-keys:
                         - name
-                        - value
                         x-kubernetes-list-type: map
                         x-kubernetes-validations:
                         - message: extraArgs name must be unique
@@ -2637,7 +2636,6 @@ spec:
                         type: array
                         x-kubernetes-list-map-keys:
                         - name
-                        - value
                         x-kubernetes-list-type: map
                         x-kubernetes-validations:
                         - message: extraArgs name must be unique
@@ -2973,7 +2971,6 @@ spec:
                             type: array
                             x-kubernetes-list-map-keys:
                             - name
-                            - value
                             x-kubernetes-list-type: map
                             x-kubernetes-validations:
                             - message: extraArgs name must be unique
@@ -3226,7 +3223,6 @@ spec:
                         type: array
                         x-kubernetes-list-map-keys:
                         - name
-                        - value
                         x-kubernetes-list-type: map
                         x-kubernetes-validations:
                         - message: extraArgs name must be unique
@@ -3812,7 +3808,6 @@ spec:
                         type: array
                         x-kubernetes-list-map-keys:
                         - name
-                        - value
                         x-kubernetes-list-type: map
                         x-kubernetes-validations:
                         - message: kubeletExtraArgs name must be unique
@@ -4293,7 +4288,6 @@ spec:
                         type: array
                         x-kubernetes-list-map-keys:
                         - name
-                        - value
                         x-kubernetes-list-type: map
                         x-kubernetes-validations:
                         - message: kubeletExtraArgs name must be unique

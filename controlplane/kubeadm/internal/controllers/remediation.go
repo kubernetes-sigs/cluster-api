@@ -578,11 +578,11 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemediateMachine(ctx context.Co
 	// Target list of Machines will have current Machines -1 Machine (the machineToBeRemediated).
 	// As a consequence:
 	// - Kubernetes control plane components on the Machine being remediated is going to be deleted, no Kubernetes control plane components are going to be added.
-	KubernetesControlPlaneToBeDeleted := machineToBeRemediated.Name
+	kubernetesControlPlaneToBeDeleted := machineToBeRemediated.Name
 	addKubernetesControlPlane := false
 
 	// Check id the target Kubernetes control plane will have at least one set of operational Kubernetes control plane components.
-	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, KubernetesControlPlaneToBeDeleted) {
+	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {
 		return false
 	}
 
@@ -703,6 +703,7 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 			targetTotalMembers++
 			targetLearnerMembers++
 			unhealthyMembers = append(unhealthyMembers, "1 member starting (worst case)")
+			continue
 		}
 
 		// Skip the etcd member to be deleted because it won't be part of the target etcd cluster.
@@ -777,7 +778,7 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 		operations = append(operations, fmt.Sprintf("removal of etcdMember %s", etcdMemberToBeDeleted))
 	}
 	if addEtcdMember {
-		operations = append(operations, "addition of 1 etcdMembers")
+		operations = append(operations, "addition of 1 etcdMember")
 	}
 	log.Info(fmt.Sprintf("etcd cluster considering %s", strings.Join(operations, ",")),
 		"healthyMembers", healthyMembers,
@@ -862,7 +863,7 @@ func (r *KubeadmControlPlaneReconciler) targetKubernetesControlPlaneComponentsHe
 	if addKubernetesControlPlane {
 		operations = append(operations, "addition of 1 Machines")
 	}
-	log.Info(fmt.Sprintf("Kubernetes control plane components assuming %s", strings.Join(operations, ",")),
+	log.Info(fmt.Sprintf("Kubernetes control plane components considering %s", strings.Join(operations, ",")),
 		"healthyControlPlanes", healthyControlPlanes,
 		"unhealthyControlPlanes", unhealthyControlPlanes,
 		"totalControlPlanes", totControlPlanes,

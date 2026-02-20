@@ -227,7 +227,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
 	})
-	t.Run("remediation is cleaned up when state and there are no machines to be remediated", func(t *testing.T) {
+	t.Run("RemediationInProgressAnnotation is cleaned up when stale and there are no machines to be remediated", func(t *testing.T) {
 		g := NewWithT(t)
 
 		m := createMachine(ctx, g, ns.Name, "m1-healthy-")

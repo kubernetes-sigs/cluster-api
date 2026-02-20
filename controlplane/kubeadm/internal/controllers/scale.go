@@ -334,10 +334,10 @@ func (r *KubeadmControlPlaneReconciler) checkHealthinessWhileRemediationInProgre
 	//
 	// As a consequence:
 	// - one Kubernetes control plane components is going to be added, no Kubernetes control plane components are going to be deleted.
-	addKubernetesControlPlane := false
+	addKubernetesControlPlane := true
 	kubernetesControlPlaneToBeDeleted := ""
 	// - one etcd member is going to be added, no etcd member are going to be deleted.
-	addEtcdMember := false
+	addEtcdMember := true
 	etcdMemberToBeDeleted := ""
 
 	// Check id the target Kubernetes control plane will have at least one set of operational Kubernetes control plane components.
@@ -347,9 +347,13 @@ func (r *KubeadmControlPlaneReconciler) checkHealthinessWhileRemediationInProgre
 	}
 
 	// Check target etcd cluster.
-	if controlPlane.IsEtcdManaged() && !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
-		allErrors = append(allErrors, errors.New("adding a new control plane Machine can lead to etcd quorum loss. Please check the etcd status"))
-		controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
+	if controlPlane.IsEtcdManaged() {
+		if len(controlPlane.EtcdMembers) == 0 {
+			allErrors = append(allErrors, errors.New("cannot check etcd cluster health before scale up, etcd member list is empty"))
+		} else if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
+			allErrors = append(allErrors, errors.New("adding a new control plane Machine can lead to etcd quorum loss. Please check the etcd status"))
+			controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
+		}
 	}
 
 	return kerrors.NewAggregate(allErrors)

@@ -1278,7 +1278,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 
 		// If there are no errors, force a new reconcile after removing an etcd member.
 		if len(allErrors) == 0 {
-			return ctrl.Result{RequeueAfter: 1 * time.Second}, err
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 	}
 
@@ -1349,11 +1349,11 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	// Target list of machines will have current machines -1 machine (the deletingMachine).
 	// As a consequence:
 	// - KubernetesControlPlane on the deletingMachine is going to be deleted, no KubernetesControlPlane is going to be added.
-	KubernetesControlPlaneToBeDeleted := deletingMachine.Name
+	kubernetesControlPlaneToBeDeleted := deletingMachine.Name
 	addKubernetesControlPlane := false
 
 	// Check target Kubernetes control plane components.
-	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, KubernetesControlPlaneToBeDeleted) {
+	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {
 		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status", klog.KObj(deletingMachine)))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}

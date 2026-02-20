@@ -43,7 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 

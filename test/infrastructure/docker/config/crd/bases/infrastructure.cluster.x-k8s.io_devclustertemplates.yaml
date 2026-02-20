@@ -315,6 +315,15 @@ spec:
                                         type: string
                                     type: object
                                     x-kubernetes-map-type: atomic
+                                  externallyManaged:
+                                    description: |-
+                                      ExternallyManaged indicates that the load balancer is managed externally.
+                                      When set to true, the controller will not create, update, or delete
+                                      the load balancer container. The user is responsible for:
+                                      - Setting spec.controlPlaneEndpoint.host and spec.controlPlaneEndpoint.port
+                                      - Ensuring the external load balancer routes traffic to control plane nodes
+                                      - Managing the lifecycle of the external load balancer
+                                    type: boolean
                                   imageRepository:
                                     description: |-
                                       ImageRepository sets the container registry to pull the haproxy image from.

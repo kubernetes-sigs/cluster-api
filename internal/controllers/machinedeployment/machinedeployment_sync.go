@@ -35,7 +35,6 @@ import (
 	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // sync is responsible for reconciling deployments on scaling events or when they
@@ -294,25 +293,17 @@ func (r *Reconciler) scaleMachineSet(ctx context.Context, ms *clusterv1.MachineS
 	}
 
 	// If we're here, a scaling operation is required.
-	patchHelper, err := patch.NewHelper(ms, r.Client)
-	if err != nil {
-		return err
-	}
-
-	// Save original replicas to log in event.
-	originalReplicas := *(ms.Spec.Replicas)
-
-	// Mutate replicas.
+	original := ms.DeepCopy()
 	ms.Spec.Replicas = &newScale
 
-	if err := patchHelper.Patch(ctx, ms); err != nil {
+	if err := r.Client.Patch(ctx, ms, client.MergeFrom(original)); err != nil {
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %v: %v",
 			client.ObjectKeyFromObject(ms), err)
 		return err
 	}
 
 	r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulScale", "Scaled MachineSet %v: %d -> %d",
-		client.ObjectKeyFromObject(ms), originalReplicas, *ms.Spec.Replicas)
+		client.ObjectKeyFromObject(ms), *original.Spec.Replicas, *ms.Spec.Replicas)
 
 	return nil
 }

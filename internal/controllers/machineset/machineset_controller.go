@@ -656,10 +656,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, b
 		// If the machine is already being deleted, we only need to sync
 		// the subset of fields that impact tearing down a machine
 		if !m.DeletionTimestamp.IsZero() {
-			patchHelper, err := patch.NewHelper(m, r.Client)
-			if err != nil {
-				return ctrl.Result{}, true, err
-			}
+			original := m.DeepCopy()
 
 			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
 			m.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
@@ -669,7 +666,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, b
 			m.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
 			m.Spec.Taints = machineSet.Spec.Template.Spec.Taints
 
-			if err := patchHelper.Patch(ctx, m); err != nil {
+			if err := r.Client.Patch(ctx, m, client.MergeFrom(original)); err != nil {
 				return ctrl.Result{}, true, err
 			}
 			continue
@@ -1767,14 +1764,9 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 		return false, nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, r.Client)
-	if err != nil {
-		return false, err
-	}
-
+	original := obj.DeepCopyObject().(client.Object)
 	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef))
-
-	return false, patchHelper.Patch(ctx, obj)
+	return false, r.Client.Patch(ctx, obj, client.MergeFrom(original))
 }
 
 func (r *Reconciler) createBootstrapConfig(ctx context.Context, ms *clusterv1.MachineSet, machine *clusterv1.Machine) (*unstructured.Unstructured, clusterv1.ContractVersionedObjectReference, error) {

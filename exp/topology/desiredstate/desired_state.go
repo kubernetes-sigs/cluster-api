@@ -446,6 +446,19 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 		}
 	}
 
+	// If it is required to manage the taints for the control plane, set the corresponding field.
+	// NOTE: If taints value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
+	// does not implement support for this field and the ControlPlane object is generated without taints.
+	if s.Blueprint.Topology.ControlPlane.Taints != nil {
+		if err := contract.ControlPlane().MachineTemplate().Taints().Set(controlPlane, s.Blueprint.Topology.ControlPlane.Taints); err != nil {
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints().Path())
+		}
+	} else if s.Blueprint.ClusterClass.Spec.ControlPlane.Taints != nil {
+		if err := contract.ControlPlane().MachineTemplate().Taints().Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.Taints); err != nil {
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints().Path())
+		}
+	}
+
 	// If it is required to manage the NodeDrainTimeoutSeconds for the control plane, set the corresponding field.
 	nodeDrainTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds
 	if s.Blueprint.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds != nil {
@@ -945,6 +958,11 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		readinessGates = machineDeploymentTopology.ReadinessGates
 	}
 
+	taints := machineDeploymentClass.Taints
+	if machineDeploymentTopology.Taints != nil {
+		taints = machineDeploymentTopology.Taints
+	}
+
 	// Compute the MachineDeployment object.
 	desiredBootstrapTemplateRef := contract.ObjToContractVersionedObjectReference(desiredMachineDeployment.BootstrapTemplate)
 	desiredInfraMachineTemplateRef := contract.ObjToContractVersionedObjectReference(desiredMachineDeployment.InfrastructureMachineTemplate)
@@ -990,6 +1008,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 						NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
 					},
 					ReadinessGates:  readinessGates,
+					Taints:          taints,
 					MinReadySeconds: minReadySeconds,
 				},
 			},
@@ -1300,6 +1319,11 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 		nodeDeletionTimeout = machinePoolTopology.Deletion.NodeDeletionTimeoutSeconds
 	}
 
+	taints := machinePoolClass.Taints
+	if machinePoolTopology.Taints != nil {
+		taints = machinePoolTopology.Taints
+	}
+
 	// Compute the MachinePool object.
 	desiredBootstrapConfigRef := contract.ObjToContractVersionedObjectReference(desiredMachinePool.BootstrapObject)
 	desiredInfraMachinePoolRef := contract.ObjToContractVersionedObjectReference(desiredMachinePool.InfrastructureMachinePoolObject)
@@ -1338,6 +1362,7 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 						NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
 					},
 					MinReadySeconds: minReadySeconds,
+					Taints:          taints,
 				},
 			},
 		},

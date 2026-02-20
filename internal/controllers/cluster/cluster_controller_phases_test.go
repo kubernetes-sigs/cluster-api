@@ -906,3 +906,103 @@ func generateInfraClusterV1Beta1(withFailureDomain bool) map[string]interface{} 
 
 	return infraRef
 }
+
+func TestEnsureOwnerRefAndLabel(t *testing.T) {
+	tests := []struct {
+		name           string
+		cluster        *clusterv1.Cluster
+		obj            *unstructured.Unstructured
+		expectOwnerRef bool
+	}{
+		{
+			name: "Topology defined - should set ownerReference with controller: true",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+					UID:       "test-uid",
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: clusterv1.Topology{
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "test-class",
+						},
+						Version: "v1.25.0",
+					},
+				},
+			},
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+					"kind":       "GenericInfrastructureCluster",
+					"metadata": map[string]interface{}{
+						"name":      "test-infra",
+						"namespace": "test-namespace",
+					},
+				},
+			},
+			expectOwnerRef: true,
+		},
+		{
+			name: "Topology not defined - should not set ownerReference",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+					UID:       "test-uid",
+				},
+				Spec: clusterv1.ClusterSpec{},
+			},
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+					"kind":       "GenericInfrastructureCluster",
+					"metadata": map[string]interface{}{
+						"name":      "test-infra",
+						"namespace": "test-namespace",
+					},
+				},
+			},
+			expectOwnerRef: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := fake.NewClientBuilder().
+				WithObjects(builder.GenericInfrastructureClusterCRD.DeepCopy(), tt.cluster, tt.obj).
+				Build()
+
+			err := ensureOwnerRefAndLabel(ctx, c, tt.obj, tt.cluster)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Verify the object was updated
+			updatedObj := &unstructured.Unstructured{}
+			updatedObj.SetGroupVersionKind(tt.obj.GroupVersionKind())
+			err = c.Get(ctx, client.ObjectKey{Name: tt.obj.GetName(), Namespace: tt.obj.GetNamespace()}, updatedObj)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Check owner references
+			ownerRefs := updatedObj.GetOwnerReferences()
+			var clusterOwnerRef *metav1.OwnerReference
+			for i := range ownerRefs {
+				if ownerRefs[i].Kind == "Cluster" && ownerRefs[i].Name == tt.cluster.Name {
+					clusterOwnerRef = &ownerRefs[i]
+					break
+				}
+			}
+
+			if tt.expectOwnerRef {
+				g.Expect(clusterOwnerRef).ToNot(BeNil(), "expected ownerReference to Cluster")
+				g.Expect(ptr.Deref(clusterOwnerRef.Controller, false)).To(BeTrue(), "expected controller: true")
+			} else {
+				g.Expect(clusterOwnerRef).To(BeNil(), "expected no ownerReference to Cluster")
+			}
+
+			// Verify label is always set
+			g.Expect(updatedObj.GetLabels()[clusterv1.ClusterNameLabel]).To(Equal(tt.cluster.Name))
+		})
+	}
+}

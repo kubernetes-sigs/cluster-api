@@ -130,6 +130,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 	currentMembers, alarms, err := w.getCurrentEtcdMembersAndAlarms(ctx, machinesNotProvisioningOrDeleting, controlPlaneNodes)
 	if err == nil {
 		controlPlane.EtcdMembers = currentMembers
+		controlPlane.EtcdMembersAlarms = alarms
 
 		for _, machine := range machinesNotProvisioningOrDeleting {
 			// Retrieve the member hosted on the machine.

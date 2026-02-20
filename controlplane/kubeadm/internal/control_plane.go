@@ -82,6 +82,7 @@ type ControlPlane struct {
 	// NOTE: Those info are specifically designed for computing KCP's Available condition.
 	EtcdMembers                       []*etcd.Member
 	EtcdMembersAndMachinesAreMatching bool
+	EtcdMembersAlarms                 []etcd.MemberAlarm
 
 	managementCluster ManagementCluster
 	workloadCluster   WorkloadCluster

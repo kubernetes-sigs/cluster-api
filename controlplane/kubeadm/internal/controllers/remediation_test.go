@@ -27,14 +27,19 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	utilptr "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/feature"
@@ -221,6 +226,38 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+	})
+	t.Run("RemediationInProgressAnnotation is cleaned up when stale and there are no machines to be remediated", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m := createMachine(ctx, g, ns.Name, "m1-healthy-")
+		controlPlane := &internal.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
+							Machine:    "foo",
+							Timestamp:  metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
+							RetryCount: 0,
+						}),
+					},
+				},
+			},
+			Cluster:  &clusterv1.Cluster{},
+			Machines: collections.FromMachines(m),
+		}
+		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
+
+		g.Expect(ret.IsZero()).To(BeTrue())
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
+
+		err = env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(m.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+
+		g.Expect(env.Cleanup(ctx, m)).To(Succeed())
 	})
 	t.Run("remediation in progress is ignored when stale", func(t *testing.T) {
 		g := NewWithT(t)
@@ -717,8 +754,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because this could result in etcd loosing quorum")
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason, "KubeadmControlPlane can't remediate this Machine because this could result in etcd loosing quorum")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this Machine because this could result in loosing Kubernetes control plane components or in etcd quorum loss")
+		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason, "KubeadmControlPlane can't remediate this Machine because this could result in loosing Kubernetes control plane components or in etcd quorum loss")
 
 		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
 	})
@@ -761,8 +798,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because this could result in etcd loosing quorum")
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason, "KubeadmControlPlane can't remediate this Machine because this could result in etcd loosing quorum")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this Machine because this could result in loosing Kubernetes control plane components or in etcd quorum loss")
+		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason, "KubeadmControlPlane can't remediate this Machine because this could result in loosing Kubernetes control plane components or in etcd quorum loss")
 
 		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4, m5)).To(Succeed())
 	})
@@ -909,7 +946,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
-		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
@@ -960,8 +997,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
-		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember())
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
@@ -1012,8 +1049,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withoutNodeRef())
-		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember())
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
@@ -1064,9 +1101,9 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
-		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember())
-		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withHealthyEtcdMember())
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
@@ -1117,9 +1154,9 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withoutNodeRef())
-		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember())
-		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withHealthyEtcdMember())
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
@@ -1170,9 +1207,9 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
-		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember())
-		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember())
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember(), withHealthyK8sControlPlane())
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
@@ -1215,8 +1252,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
-		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember())
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
@@ -1419,7 +1456,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		// Control plane initialized yet, First CP healthy, second CP is unhealthy and gets remediated:
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-healthy-", withHealthyEtcdMember())
+		m1 := createMachine(ctx, g, ns.Name, "m1-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
 		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
 
 		controlPlane := &internal.ControlPlane{
@@ -1530,7 +1567,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		// Control plane initialized yet, First CP healthy, second and third CP are unhealthy. second gets remediated:
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-healthy-", withHealthyEtcdMember())
+		m1 := createMachine(ctx, g, ns.Name, "m1-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
 		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withHealthyEtcdMember(), withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
 		m3 := createMachine(ctx, g, ns.Name, "m3-unhealthy-", withHealthyEtcdMember(), withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
 
@@ -1606,333 +1643,453 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 	})
 }
 
-func TestCanSafelyRemoveEtcdMember(t *testing.T) {
-	g := NewWithT(t)
+func TestCanSafelyRemediateMachine(t *testing.T) {
+	r := &KubeadmControlPlaneReconciler{}
 
-	ns, err := env.CreateNamespace(ctx, "ns1")
-	g.Expect(err).ToNot(HaveOccurred())
-	defer func() {
-		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
-	}()
-
-	t.Run("Can't safely remediate 1 machine CP", func(t *testing.T) {
+	t.Run("Can safely remediate when both target etcd cluster and k8s control plane will be healthy state", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withHealthyEtcdMember(), withHealthyK8sControlPlane(), withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember(), withHealthyK8sControlPlane())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](1),
-			}},
-			Cluster:  &clusterv1.Cluster{},
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyRemediate := r.canSafelyRemediateMachine(ctx, controlPlane, m1)
+		g.Expect(canSafelyRemediate).To(BeTrue())
+	})
+	t.Run("Can safely remediate when k8s control plane will be healthy state and it is not possible to get a member for the machine being remediated", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withHealthyEtcdMember(), withHealthyK8sControlPlane(), withMachineHealthCheckFailed())
+		m1.Status.NodeRef.Name = ""
+		m2 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+
+		controlPlane := &internal.ControlPlane{
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(m1, m2),
+		}
+
+		canSafelyRemediate := r.canSafelyRemediateMachine(ctx, controlPlane, m1)
+		g.Expect(canSafelyRemediate).To(BeTrue())
+	})
+	t.Run("Can safely remediate when external etcd and k8s control plane will be healthy state", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withHealthyEtcdMember(), withHealthyK8sControlPlane(), withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+
+		controlPlane := &internal.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+							Etcd: bootstrapv1.Etcd{
+								External: bootstrapv1.ExternalEtcd{
+									Endpoints: make([]string, 0),
+								},
+							},
+						},
+					},
+				},
+			},
+			Machines: collections.FromMachines(m1, m2),
+		}
+
+		canSafelyRemediate := r.canSafelyRemediateMachine(ctx, controlPlane, m1)
+		g.Expect(canSafelyRemediate).To(BeTrue())
+	})
+	t.Run("Can't safely remediate when target k8s control plane will be in unhealthy state", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withHealthyEtcdMember(), withHealthyK8sControlPlane(), withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m1-k8s-unhealthy", withHealthyEtcdMember(), withUnhealthyK8sControlPlane())
+
+		controlPlane := &internal.ControlPlane{
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyRemediate := r.canSafelyRemediateMachine(ctx, controlPlane, m1)
+		g.Expect(canSafelyRemediate).To(BeFalse())
+	})
+	t.Run("Can't safely remediate when target etcd cluster will be in unhealthy state", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withHealthyEtcdMember(), withHealthyK8sControlPlane(), withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m1-etcd-unhealthy", withUnhealthyEtcdMember(), withHealthyK8sControlPlane())
+
+		controlPlane := &internal.ControlPlane{
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyRemediate := r.canSafelyRemediateMachine(ctx, controlPlane, m1)
+		g.Expect(canSafelyRemediate).To(BeFalse())
+	})
+}
+
+func TestTryGetEtcdMemberName(t *testing.T) {
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceDefault,
+			Name:      "test-cluster",
+		},
+	}
+
+	tests := []struct {
+		name               string
+		machine            *clusterv1.Machine
+		infraMachine       *unstructured.Unstructured
+		node               *corev1.Node
+		wantEtcdMemberName string
+	}{
+		{
+			name: "Return status.NodeRef.Name if set",
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					NodeRef: clusterv1.MachineNodeReference{
+						Name: "foo-node",
+					},
+				},
+			},
+			wantEtcdMemberName: "foo-node",
+		},
+		{
+			name: "Lookup node name when ProviderID is set, but node ref not",
+			machine: &clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					ProviderID: "foo-node-provider-id",
+				},
+			},
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "foo-node",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "foo-node-provider-id",
+				},
+			},
+			wantEtcdMemberName: "foo-node",
+		},
+		{
+			name:    "Lookup node name when ProviderID from infra machine when not set in the machine",
+			machine: &clusterv1.Machine{},
+			infraMachine: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"providerID": "foo-node-provider-id",
+					},
+				},
+			},
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "foo-node",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "foo-node-provider-id",
+				},
+			},
+			wantEtcdMemberName: "foo-node",
+		},
+		{
+			name: "Provider ID set on the machine but node cannot be found",
+			machine: &clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					ProviderID: "foo-node-provider-id",
+				},
+			},
+			wantEtcdMemberName: "",
+		},
+		{
+			name:    "Provider ID set on the infra machine but node cannot be found",
+			machine: &clusterv1.Machine{},
+			infraMachine: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"providerID": "foo-node-provider-id",
+					},
+				},
+			},
+			wantEtcdMemberName: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			g := NewWithT(t)
+			controlPlane := &internal.ControlPlane{
+				Cluster: testCluster,
+				InfraResources: map[string]*unstructured.Unstructured{
+					tt.machine.Name: tt.infraMachine,
+				},
+				Machines: collections.FromMachines(tt.machine),
+			}
+
+			remoteClient := fake.NewClientBuilder().
+				WithIndex(&corev1.Node{}, index.MachineProviderIDField, index.NodeByProviderID).
+				Build()
+
+			if tt.node != nil {
+				err := remoteClient.Create(ctx, tt.node)
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			r := &KubeadmControlPlaneReconciler{
+				ClusterCache: clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
+			}
+
+			node := r.tryGetEtcdMemberName(ctx, controlPlane, tt.machine)
+			g.Expect(node).To(Equal(tt.wantEtcdMemberName))
+		})
+	}
+}
+
+func TestTargetEtcdClusterHealthy(t *testing.T) {
+	r := &KubeadmControlPlaneReconciler{}
+
+	t.Run("Can't safely remove a member from a CP with one Machine", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+
+		controlPlane := &internal.ControlPlane{
 			Machines: collections.FromMachines(m1),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeFalse())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
-
-	t.Run("Can safely remediate 2 machine CP without additional etcd member failures", func(t *testing.T) {
+	t.Run("Can safely remove a member from a CP with two Machines without additional etcd member failures", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-healthy-", withHealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](3),
-			}},
-			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeTrue())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1, m2)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
-	t.Run("Can safely remediate 2 machines CP when the etcd member being remediated is missing", func(t *testing.T) {
+	t.Run("Can safely remove a member from a CP with two Machines when the etcd member being remediated is missing", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-healthy-", withHealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](3),
-			}},
-			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
 		}
+		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m2)) // m1 missing
 
-		members := make([]*etcd.Member, 0, len(controlPlane.Machines)-1)
-		for _, n := range nodes(controlPlane.Machines) {
-			if !strings.Contains(n, "m1-mhc-unhealthy-") {
-				members = append(members, &etcd.Member{Name: n})
-			}
-		}
-		controlPlane.EtcdMembers = members
-
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeTrue())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1, m2)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
-	t.Run("Can't safely remediate 2 machines CP with one additional etcd member failure", func(t *testing.T) {
+	t.Run("Can't safely remove a member from a CP with two Machines with one additional etcd member failure", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-unhealthy-", withUnhealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](3),
-			}},
-			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeFalse())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1, m2)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
-	t.Run("Can safely remediate 3 machines CP without additional etcd member failures", func(t *testing.T) {
+	t.Run("Can safely remove a member from a CP with three Machines without additional etcd member failures", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-healthy-", withHealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-etcd-healthy-", withHealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](3),
-			}},
-			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeTrue())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
-	t.Run("Can safely remediate 3 machines CP when the etcd member being remediated is missing", func(t *testing.T) {
+	t.Run("Can safely remove a member from a CP with three Machines when the etcd member being remediated is missing", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-healthy-", withHealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-etcd-healthy-", withHealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](3),
-			}},
-			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
 
 		members := make([]*etcd.Member, 0, len(controlPlane.Machines)-1)
 		for _, n := range nodes(controlPlane.Machines) {
-			if !strings.Contains(n, "m1-mhc-unhealthy-") {
+			if !strings.Contains(n, "m1-mhc-unhealthy") {
 				members = append(members, &etcd.Member{Name: n})
 			}
 		}
 		controlPlane.EtcdMembers = members
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeTrue())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
-	t.Run("Can't safely remediate 3 machines CP with one additional etcd member failure", func(t *testing.T) {
+	t.Run("Can't safely remove a member from a CP with three Machines with one additional etcd member failure", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-unhealthy-", withUnhealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-etcd-healthy-", withHealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](3),
-			}},
-			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeFalse())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
-	t.Run("Can safely remediate 5 machines CP less than 2 additional etcd member failures", func(t *testing.T) {
+	t.Run("Can safely remove a member from a CP with three Machines when another etcd member is missing", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-unhealthy-", withUnhealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-etcd-healthy-", withHealthyEtcdMember())
-		m4 := createMachine(ctx, g, ns.Name, "m4-etcd-healthy-", withHealthyEtcdMember())
-		m5 := createMachine(ctx, g, ns.Name, "m5-etcd-healthy-", withHealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](5),
-			}},
-			Cluster:  &clusterv1.Cluster{},
+			Machines: collections.FromMachines(m1, m2, m3),
+		}
+		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3)) // m2 missing -> target etcd cluster size 1, 0 unhealthy (OK)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can safely remove a member from a CP with three Machines when the etcd member being remediated is missing and another etcd member is missing", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3),
+		}
+		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m3)) // m1, m2 missing -> target etcd cluster size 1, 0 unhealthy (OK)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can safely remove a member from a CP with five Machines with less than 2 additional etcd member failures", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-healthy", withHealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-etcd-healthy", withHealthyEtcdMember())
+		m5 := getMachine(metav1.NamespaceDefault, "m5-etcd-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeTrue())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4, m5)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
-	t.Run("Can't safely remediate 5 machines CP with 2 additional etcd member failures", func(t *testing.T) {
+	t.Run("Can safely remove a member from a CP with five Machines with missing members but quorum", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-unhealthy-", withUnhealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-etcd-unhealthy-", withUnhealthyEtcdMember())
-		m4 := createMachine(ctx, g, ns.Name, "m4-etcd-healthy-", withHealthyEtcdMember())
-		m5 := createMachine(ctx, g, ns.Name, "m5-etcd-healthy-", withHealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-unhealthy", withUnhealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-etcd-healthy", withHealthyEtcdMember())
+		m5 := getMachine(metav1.NamespaceDefault, "m5-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](7),
-			}},
-			Cluster:  &clusterv1.Cluster{},
+			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
+		}
+		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3, m4, m5)) // m2 missing -> target etcd cluster size 3, 1 unhealthy (OK)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can't safely remove a member from a CP with five Machines with 2 additional etcd member failures", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-unhealthy", withUnhealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-etcd-healthy", withHealthyEtcdMember())
+		m5 := getMachine(metav1.NamespaceDefault, "m5-etcd-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeFalse())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4, m5)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
-	t.Run("Can safely remediate 7 machines CP with less than 3 additional etcd member failures", func(t *testing.T) {
+	t.Run("Can safely remove a member from a CP with seven Machines with less than 3 additional etcd member failures", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-unhealthy-", withUnhealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-etcd-unhealthy-", withUnhealthyEtcdMember())
-		m4 := createMachine(ctx, g, ns.Name, "m4-etcd-healthy-", withHealthyEtcdMember())
-		m5 := createMachine(ctx, g, ns.Name, "m5-etcd-healthy-", withHealthyEtcdMember())
-		m6 := createMachine(ctx, g, ns.Name, "m6-etcd-healthy-", withHealthyEtcdMember())
-		m7 := createMachine(ctx, g, ns.Name, "m7-etcd-healthy-", withHealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-unhealthy", withUnhealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-etcd-healthy", withHealthyEtcdMember())
+		m5 := getMachine(metav1.NamespaceDefault, "m5-etcd-healthy", withHealthyEtcdMember())
+		m6 := getMachine(metav1.NamespaceDefault, "m6-etcd-healthy", withHealthyEtcdMember())
+		m7 := getMachine(metav1.NamespaceDefault, "m7-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilptr.To[int32](7),
-			}},
-			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5, m6, m7),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeTrue())
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4, m5, m6, m7)).To(Succeed())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
-	t.Run("Can't safely remediate 7 machines CP with 3 additional etcd member failures", func(t *testing.T) {
+	t.Run("Can safely remove a member from a CP with seven Machines with missing members but quorum", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m1 := createMachine(ctx, g, ns.Name, "m1-mhc-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-etcd-unhealthy-", withUnhealthyEtcdMember())
-		m3 := createMachine(ctx, g, ns.Name, "m3-etcd-unhealthy-", withUnhealthyEtcdMember())
-		m4 := createMachine(ctx, g, ns.Name, "m4-etcd-unhealthy-", withUnhealthyEtcdMember())
-		m5 := createMachine(ctx, g, ns.Name, "m5-etcd-healthy-", withHealthyEtcdMember())
-		m6 := createMachine(ctx, g, ns.Name, "m6-etcd-healthy-", withHealthyEtcdMember())
-		m7 := createMachine(ctx, g, ns.Name, "m7-etcd-healthy-", withHealthyEtcdMember())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-unhealthy", withUnhealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-etcd-unhealthy", withUnhealthyEtcdMember())
+		m5 := getMachine(metav1.NamespaceDefault, "m5-etcd-healthy", withHealthyEtcdMember())
+		m6 := getMachine(metav1.NamespaceDefault, "m6-etcd-healthy", withHealthyEtcdMember())
+		m7 := getMachine(metav1.NamespaceDefault, "m7-etcd-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3, m4, m5, m6, m7),
+		}
+		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3, m4, m5, m6, m7)) // m2 missing -> target etcd cluster size 5, 2 unhealthy (OK)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can't safely remove a member from a CP with seven Machines with 3 additional etcd member failures", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-unhealthy", withUnhealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-etcd-unhealthy", withUnhealthyEtcdMember())
+		m5 := getMachine(metav1.NamespaceDefault, "m5-etcd-healthy", withHealthyEtcdMember())
+		m6 := getMachine(metav1.NamespaceDefault, "m6-etcd-healthy", withHealthyEtcdMember())
+		m7 := getMachine(metav1.NamespaceDefault, "m7-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -1943,18 +2100,372 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+
+	t.Run("Can safely add a member to a CP without Machines", func(t *testing.T) {
+		g := NewWithT(t)
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(),
 		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
-		g.Expect(ret).To(BeFalse())
-		g.Expect(err).ToNot(HaveOccurred())
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can safely add a member to a CP with one Machine", func(t *testing.T) {
+		g := NewWithT(t)
 
-		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4, m5, m6, m7)).To(Succeed())
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can't safely add a member to a CP with one Machine with unhealthy etcd member", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-unhealthy", withUnhealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+	t.Run("Can safely add a member to a CP with two Machine", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can safely add a member to a CP with two Machine when one member is missing", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-unhealthy", withUnhealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1)) // m2 missing -> target etcd cluster size 2, 0 unhealthy/best case (OK)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can't safely add a member to a CP with two Machine with one additional etcd member failure", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-unhealthy", withUnhealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+	t.Run("Can safely add a member to a CP with three Machine", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-healthy", withHealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can safely add a member to a CP with three Machine with one member is missing", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3),
+		}
+		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3)) // m2 missing -> target etcd cluster size 3, 1 unhealthy/worst case (OK)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can't safely add a member to a CP with three Machine with one additional etcd member failure", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+	t.Run("Can safely add a member to a CP with four Machine", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-healthy", withHealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-healthy", withHealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3, m4),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can safely add a member to a CP with four Machine with one member is missing", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-healthy", withHealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3, m4),
+		}
+		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3, m4)) // m2 missing -> target etcd cluster size 4, 1 unhealthy/worst case (OK)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can safely add a member to a CP with four Machine with one additional etcd member failure", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-healthy", withHealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3, m4),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can't safely add a member to a CP with four Machine with two additional etcd member failure", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-unhealthy", withUnhealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3, m4),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+	t.Run("Can safely add a member to a CP with five Machine", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-healthy", withHealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-healthy", withHealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-healthy", withHealthyEtcdMember())
+		m5 := getMachine(metav1.NamespaceDefault, "m5-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can't safely add a member to a CP with five Machine with two additional etcd member failure", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-unhealthy", withUnhealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-unhealthy", withUnhealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-healthy", withHealthyEtcdMember())
+		m5 := getMachine(metav1.NamespaceDefault, "m5-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+
+	t.Run("Can't safely add a member to a CP with a learner etcd member", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+		controlPlane.EtcdMembers[0].IsLearner = true
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+	t.Run("Can't safely remove a member from a CP with a learner etcd member", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+		controlPlane.EtcdMembers[1].IsLearner = true
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+	t.Run("Can't safely remove a member from a CP with an etcd member starting up", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+		controlPlane.EtcdMembers[1].Name = ""
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+
+	t.Run("Can't safely remove a member from a CP with an etcd member without a machine but with alarms", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1),
+		}
+		controlPlane.EtcdMembers = []*etcd.Member{
+			{
+				ID:   1,
+				Name: "member-without-machine",
+			},
+		}
+		controlPlane.EtcdMembersAlarms = []etcd.MemberAlarm{
+			{
+				MemberID: 1,
+				Type:     etcd.AlarmNoSpace,
+			},
+		}
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+}
+
+func TestTargetK8sControlPlaneHealthy(t *testing.T) {
+	r := &KubeadmControlPlaneReconciler{}
+
+	t.Run("Can safely remove a K8s control plane when there is at least one K8s control plane healthy", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyK8sControlPlane())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-healthy", withHealthyK8sControlPlane())
+
+		controlPlane := &internal.ControlPlane{
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(m1, m2),
+		}
+
+		canSafelyTransitionToTargetState := r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, false, m1.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can't safely remove a K8s control plane when there is no K8s control plane healthy left", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyK8sControlPlane())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-unhealthy", withUnhealthyK8sControlPlane())
+
+		controlPlane := &internal.ControlPlane{
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(m1, m2),
+		}
+
+		canSafelyTransitionToTargetState := r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, false, m1.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+
+	t.Run("Can safely add a K8s control plane to an empty cluster", func(t *testing.T) {
+		g := NewWithT(t)
+
+		controlPlane := &internal.ControlPlane{
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(),
+		}
+
+		canSafelyTransitionToTargetState := r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can safely add a K8s control plane when there is at least one K8s control plane healthy", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-healthy", withHealthyK8sControlPlane())
+
+		controlPlane := &internal.ControlPlane{
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(m1),
+		}
+
+		canSafelyTransitionToTargetState := r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+	t.Run("Can't safely add a K8s control plane when there is at least one K8s control plane healthy", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-unhealthy", withUnhealthyK8sControlPlane())
+
+		controlPlane := &internal.ControlPlane{
+			KCP:      &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(m1),
+		}
+
+		canSafelyTransitionToTargetState := r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, true, "")
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 }
 
@@ -2036,6 +2547,24 @@ func withHealthyAPIServerPod() machineOption {
 	}
 }
 
+func withHealthyK8sControlPlane() machineOption {
+	return func(machine *clusterv1.Machine) {
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningReason})
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningReason})
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningReason})
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningReason})
+	}
+}
+
+func withUnhealthyK8sControlPlane() machineOption {
+	return func(machine *clusterv1.Machine) {
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningReason})
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningReason})
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachinePodFailedReason})
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachinePodFailedReason})
+	}
+}
+
 func withUnhealthyAPIServerPod() machineOption {
 	return func(machine *clusterv1.Machine) {
 		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachinePodFailedReason})
@@ -2071,11 +2600,10 @@ func withWaitBeforeDeleteFinalizer() machineOption {
 	}
 }
 
-func createMachine(ctx context.Context, g *WithT, namespace, name string, options ...machineOption) *clusterv1.Machine {
+func getMachine(namespace, name string, options ...machineOption) *clusterv1.Machine {
 	m := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:    namespace,
-			GenerateName: name,
+			Namespace: namespace,
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",
@@ -2089,6 +2617,19 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 			},
 		},
 	}
+	if strings.HasSuffix(name, "-") {
+		m.GenerateName = name
+	} else {
+		m.Name = name
+	}
+	for _, opt := range append([]machineOption{withNodeRef(fmt.Sprintf("node-%s", m.Name))}, options...) {
+		opt(m)
+	}
+	return m
+}
+
+func createMachine(ctx context.Context, g *WithT, namespace, name string, options ...machineOption) *clusterv1.Machine {
+	m := getMachine(namespace, name)
 	g.Expect(env.CreateAndWait(ctx, m)).To(Succeed())
 
 	patchHelper, err := patch.NewHelper(m, env.GetClient())

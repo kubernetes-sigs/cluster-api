@@ -46,7 +46,9 @@ func TestEtcdMembers_WithErrors(t *testing.T) {
 		MoveLeaderResponse:   &clientv3.MoveLeaderResponse{},
 		MemberRemoveResponse: &clientv3.MemberRemoveResponse{},
 		StatusResponse:       &clientv3.StatusResponse{},
-		ErrorResponse:        errors.New("something went wrong"),
+		MemberListError:      errors.New("something went wrong"),
+		MoveLeaderError:      errors.New("something went wrong"),
+		MemberRemoveError:    errors.New("something went wrong"),
 	}
 
 	client, err := newEtcdClient(ctx, fakeEtcdClient, DefaultCallTimeout)

@@ -66,6 +66,10 @@ const (
 	// DevClusterDockerLoadBalancerDeletingReason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is deleting.
 	DevClusterDockerLoadBalancerDeletingReason = clusterv1.DeletingReason
+
+	// DevClusterDockerLoadBalancerExternallyManagedReason surfaces when the load balancer
+	// for a DevCluster's docker backend is externally managed.
+	DevClusterDockerLoadBalancerExternallyManagedReason = "ExternallyManaged"
 )
 
 // DevClusterSpec defines the desired state of the DevCluster infrastructure.

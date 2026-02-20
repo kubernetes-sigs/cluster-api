@@ -54,6 +54,10 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization = initialization
 	}
 
+	if ok {
+		dst.Spec.LoadBalancer.ExternallyManaged = restored.Spec.LoadBalancer.ExternallyManaged
+	}
+
 	return nil
 }
 
@@ -70,13 +74,31 @@ func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerClusterTemplate)
 
-	return Convert_v1beta1_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(src, dst, nil)
+	if err := Convert_v1beta1_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &infrav1.DockerClusterTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		dst.Spec.Template.Spec.LoadBalancer.ExternallyManaged = restored.Spec.Template.Spec.LoadBalancer.ExternallyManaged
+	}
+
+	return nil
 }
 
 func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerClusterTemplate)
 
-	return Convert_v1beta2_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(src, dst, nil)
+	if err := Convert_v1beta2_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
@@ -177,6 +199,10 @@ func (src *DevCluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization = initialization
 	}
 
+	if ok && restored.Spec.Backend.Docker != nil {
+		dst.Spec.Backend.Docker.LoadBalancer.ExternallyManaged = restored.Spec.Backend.Docker.LoadBalancer.ExternallyManaged
+	}
+
 	return nil
 }
 
@@ -193,13 +219,31 @@ func (dst *DevCluster) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DevClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DevClusterTemplate)
 
-	return Convert_v1beta1_DevClusterTemplate_To_v1beta2_DevClusterTemplate(src, dst, nil)
+	if err := Convert_v1beta1_DevClusterTemplate_To_v1beta2_DevClusterTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &infrav1.DevClusterTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	if ok && restored.Spec.Template.Spec.Backend.Docker != nil {
+		dst.Spec.Template.Spec.Backend.Docker.LoadBalancer.ExternallyManaged = restored.Spec.Template.Spec.Backend.Docker.LoadBalancer.ExternallyManaged
+	}
+
+	return nil
 }
 
 func (dst *DevClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DevClusterTemplate)
 
-	return Convert_v1beta2_DevClusterTemplate_To_v1beta1_DevClusterTemplate(src, dst, nil)
+	if err := Convert_v1beta2_DevClusterTemplate_To_v1beta1_DevClusterTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DevMachine) ConvertTo(dstRaw conversion.Hub) error {
@@ -720,4 +764,8 @@ func (dst *DockerMachinePoolTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta2_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolStatus(in *infrav1.DockerMachinePoolStatus, out *DockerMachinePoolStatus, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolStatus(in, out, s)
+}
+
+func Convert_v1beta2_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer(in *infrav1.DockerLoadBalancer, out *DockerLoadBalancer, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer(in, out, s)
 }

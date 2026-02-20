@@ -1476,6 +1476,13 @@ type ClusterControlPlaneStatus struct {
 	// availableReplicas is the total number of available control plane machines in this cluster. A machine is considered available when Machine's Available condition is true.
 	// +optional
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in this control plane.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
 }
 
 // WorkersStatus groups all the observations about workers current state.
@@ -1500,6 +1507,13 @@ type WorkersStatus struct {
 	// availableReplicas is the total number of available worker machines in this cluster. A machine is considered available when Machine's Available condition is true.
 	// +optional
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in cluster workers.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of ClusterPhase.

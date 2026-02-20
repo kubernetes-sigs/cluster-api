@@ -267,6 +267,20 @@ var NodeOutdatedRevisionTaint = corev1.Taint{
 	Effect: corev1.TaintEffectPreferNoSchedule,
 }
 
+// StatusVersion groups version-related status information.
+// +kubebuilder:validation:MinProperties=1
+type StatusVersion struct {
+	// version is the Kubernetes version.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version"`
+
+	// replicas is the number of replicas at this version.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
+}
+
 // NodeUninitializedTaint can be added to Nodes at creation by the bootstrap provider, e.g. the
 // KubeadmBootstrap provider will add the taint.
 // This taint is used to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.

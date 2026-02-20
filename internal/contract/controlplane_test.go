@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -56,6 +57,22 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal("1.2.3"))
+	})
+	t.Run("Manages status.versions", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(ControlPlane().StatusVersions().Path()).To(Equal(Path{"status", "versions"}))
+
+		value := []clusterv1.StatusVersion{
+			{Version: "v1.2.2"},
+			{Version: "v1.2.3", Replicas: ptr.To[int32](2)},
+		}
+		err := ControlPlane().StatusVersions().Set(obj, value)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().StatusVersions().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).To(Equal(value))
 	})
 	t.Run("Manages status.initialization.controlPlaneInitialized", func(t *testing.T) {
 		g := NewWithT(t)
@@ -721,7 +738,7 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 			wantUpgrading: false,
 		},
 		{
-			name: "should return false if status.version is equal to spec.version",
+			name: "should return false if status.versions is not set and status.version is equal to spec.version",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{
 					"version": "v1.2.3",
@@ -733,7 +750,58 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 			wantUpgrading: false,
 		},
 		{
-			name: "should return true if status.version is less than spec.version",
+			name: "should return false if status.versions has current spec.version",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version": "v1.2.3",
+						},
+					},
+				},
+			}},
+			wantUpgrading: false,
+		},
+		{
+			name: "should return true if status.versions lowest version is less than spec.version",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version": "v1.2.2",
+						},
+						map[string]interface{}{
+							"version": "v1.2.3",
+						},
+					},
+				},
+			}},
+			wantUpgrading: true,
+		},
+		{
+			name: "should return false if status.versions lowest version is greater than spec.version",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.2",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version": "v1.2.3",
+						},
+					},
+				},
+			}},
+			wantUpgrading: false,
+		},
+		{
+			name: "should use status.version as fallback when status.versions is not set",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{
 					"version": "v1.2.3",
@@ -743,18 +811,6 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 				},
 			}},
 			wantUpgrading: true,
-		},
-		{
-			name: "should return false if status.version is greater than spec.version",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
-					"version": "v1.2.2",
-				},
-				"status": map[string]interface{}{
-					"version": "v1.2.3",
-				},
-			}},
-			wantUpgrading: false,
 		},
 	}
 	for _, tt := range tests {

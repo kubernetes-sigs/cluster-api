@@ -1405,6 +1405,30 @@ spec:
                   UpToDate condition is true.
                 format: int32
                 type: integer
+              versions:
+                description: versions is the aggregated Kubernetes versions in this
+                  MachineSet.
+                items:
+                  description: StatusVersion groups version-related status information.
+                  minProperties: 1
+                  properties:
+                    replicas:
+                      description: replicas is the number of replicas at this version.
+                      format: int32
+                      type: integer
+                    version:
+                      description: version is the Kubernetes version.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - version
+                  type: object
+                maxItems: 100
+                type: array
+                x-kubernetes-list-map-keys:
+                - version
+                x-kubernetes-list-type: map
             type: object
         required:
         - spec

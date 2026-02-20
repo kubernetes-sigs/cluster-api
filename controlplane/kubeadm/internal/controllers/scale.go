@@ -231,18 +231,19 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 	}
 
 	// At this point we can assume that:
-	// - No other operations are in progress on control plane Machines.
-	// - There are no blockers for joining a machine (e.g. missing certificates, or kubeadm version skew)
+	// - No control plane Machines are being deleted
+	// - There are no blockers for joining a machine in case of scale up (e.g. missing certificates, or kubeadm version skew)
 	//
-	// Next steps is to assess the potential effects of the operation we are running preflight checks for.
+	// Next steps is to assess the potential effects of the scale up/scale down operation we are running preflight checks for.
 	//
-	// Most specifically, KCP should determine if this operation
-	// is going to leave the K8s control plane components and the etcd cluster in operational state or not.
+	// Most specifically, KCP should determine if this operation is going to leave the Kubernetes control plane components
+	// and the etcd cluster in operational state or not.
+	// This check will return false if there are machines not yet fully provisioned or if there are etcd members still in learner mode.
 	err := r.checkHealthiness(ctx, controlPlane, excludeFor)
 
-	// If the control plane doesn't meet the "fully stable" criteria, and the control plane is scaling up after a remediation,
-	// perform a more precise check on K8s control plane components and etcd members, thus allowing the system to recover also
-	// when there are multiple failures.
+	// If the control plane doesn't meet the "fully stable" criteria, and the control plane is trying to perform a scale up after
+	// a machine deletion due to remediation, perform a more precise check on Kubernetes control plane components and etcd members,
+	// thus allowing the system to recover also when there are multiple failures.
 	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok && isScaleUp && err != nil {
 		log.Info("Performing checks to allow creation of a replacement machine while remediation is in progress")
 		err = r.checkHealthinessWhileRemediationInProgress(ctx, controlPlane)
@@ -262,7 +263,7 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 	return ctrl.Result{}
 }
 
-// checkHealthiness verifies if the control plane is fully stable checking that all K8s control plane components and etcd members are ok.
+// checkHealthiness verifies if the control plane is fully stable checking that all Kubernetes control plane components and etcd members are ok.
 // When performing a scale down operation, the deleting machine is ignored.
 func (r *KubeadmControlPlaneReconciler) checkHealthiness(_ context.Context, controlPlane *internal.ControlPlane, excludeFor []*clusterv1.Machine) error {
 	// Check machine health conditions; if there are conditions with False or Unknown, then wait.
@@ -316,8 +317,11 @@ loopmachines:
 	return kerrors.NewAggregate(machineErrors)
 }
 
-// checkHealthinessWhileRemediationInProgress verifies if the K8s control plane components and etcd members are healthy enough
+// checkHealthinessWhileRemediationInProgress verifies if the Kubernetes control plane components and etcd members are healthy enough
 // to allow the creation of the replacement Machine after one control plane Machine has been deleted because unhealthy.
+// Note: In this case it is not required to check if there are machines not yet fully provisioned, because remediation
+// can start only when all the machines are provisioned (already checked before setting remediation in progress, and
+// after that only machine deletion could happen).
 func (r *KubeadmControlPlaneReconciler) checkHealthinessWhileRemediationInProgress(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	allErrors := []error{}
 
@@ -329,21 +333,21 @@ func (r *KubeadmControlPlaneReconciler) checkHealthinessWhileRemediationInProgre
 	// we can assume that the target cluster will have current Machines +1 new Machine (the replacement machine).
 	//
 	// As a consequence:
-	// - one k8sControlPlane is going to be added, no k8sControlPlan are going to be deleted.
-	k8sControlPlaneToBeAdded := 1
-	k8sControlPlaneToBeDeleted := ""
+	// - one Kubernetes control plane components is going to be added, no Kubernetes control plane components are going to be deleted.
+	addKubernetesControlPlane := false
+	kubernetesControlPlaneToBeDeleted := ""
 	// - one etcd member is going to be added, no etcd member are going to be deleted.
-	etcdMemberToBeAdded := 1
+	addEtcdMember := false
 	etcdMemberToBeDeleted := ""
 
-	// Check id the target k8s control plane will have at least one set of operational k8s control plane components.
-	if !r.targetK8sControlPlaneComponentsHealthy(ctx, controlPlane, k8sControlPlaneToBeAdded, k8sControlPlaneToBeDeleted) {
+	// Check id the target Kubernetes control plane will have at least one set of operational Kubernetes control plane components.
+	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {
 		controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
-		allErrors = append(allErrors, errors.New("cannot add a new control plane Machine when there are no control plane Machines with all the k8s control plane component in healthy state. Please k8s control plane components status"))
+		allErrors = append(allErrors, errors.New("cannot add a new control plane Machine when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status"))
 	}
 
 	// Check target etcd cluster.
-	if controlPlane.IsEtcdManaged() && !r.targetEtcdClusterHealthy(ctx, controlPlane, etcdMemberToBeAdded, etcdMemberToBeDeleted) {
+	if controlPlane.IsEtcdManaged() && !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
 		allErrors = append(allErrors, errors.New("adding a new control plane Machine can lead to etcd quorum loss. Please check the etcd status"))
 		controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
 	}

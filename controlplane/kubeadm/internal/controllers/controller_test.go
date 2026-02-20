@@ -3777,6 +3777,33 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				deletingMachineWithKCPPreTerminateHook.Name: nil, // pre-terminate hook has been removed
 			},
 		},
+		{
+			name: "Skip forward etcd leadership, skip remove member and remove pre-terminate hook if > 1 CP Machines without a node",
+			controlPlane: &internal.ControlPlane{
+				Cluster: cluster,
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					machine.Name: machine,
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						m.Status.NodeRef.Name = ""
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
+						return m
+					}(),
+				},
+			},
+			wantForwardEtcdLeadershipCalled: 0, // skipped
+			wantRemoveEtcdMemberCalled:      0, // skipped
+			wantResult:                      ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantMachineAnnotations: map[string]map[string]string{
+				machine.Name: machine.Annotations, // unchanged
+				deletingMachineWithKCPPreTerminateHook.Name: nil, // pre-terminate hook has been removed
+			},
+		},
 	}
 
 	for _, tt := range tests {

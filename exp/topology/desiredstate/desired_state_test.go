@@ -53,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
+	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
@@ -2092,6 +2093,151 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
+	})
+
+	t.Run("Should normalize rollout strategy rollingUpdate fields", func(t *testing.T) {
+		rolloutMaxSurge := intstr.FromInt32(1)
+		rolloutMaxUnavailable := intstr.FromString("25%")
+		rolloutAfter := metav1.NewTime(time.Date(2026, time.July, 9, 0, 0, 0, 0, time.UTC))
+
+		tests := []struct {
+			name                 string
+			clusterClassStrategy clusterv1.MachineDeploymentClassRolloutStrategy
+			topologyRollout      *clusterv1.MachineDeploymentTopologyRolloutSpec
+			wantType             clusterv1.MachineDeploymentRolloutStrategyType
+			wantAfter            metav1.Time
+			wantMaxUnavailable   *intstr.IntOrString
+			wantMaxSurge         *intstr.IntOrString
+		}{
+			{
+				name: "Should not propagate rollingUpdate fields when strategy type is OnDelete from MachineDeploymentClass",
+				clusterClassStrategy: clusterv1.MachineDeploymentClassRolloutStrategy{
+					Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+					RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+						MaxUnavailable: &rolloutMaxUnavailable,
+						MaxSurge:       &rolloutMaxSurge,
+					},
+				},
+				wantType: clusterv1.OnDeleteMachineDeploymentStrategyType,
+			},
+			{
+				name: "Should not propagate rollingUpdate fields when strategy type is OnDelete from topology override",
+				clusterClassStrategy: clusterv1.MachineDeploymentClassRolloutStrategy{
+					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+					RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+						MaxUnavailable: &rolloutMaxUnavailable,
+						MaxSurge:       &rolloutMaxSurge,
+					},
+				},
+				topologyRollout: &clusterv1.MachineDeploymentTopologyRolloutSpec{
+					Strategy: clusterv1.MachineDeploymentTopologyRolloutStrategy{
+						Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+						RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+							MaxUnavailable: &rolloutMaxUnavailable,
+							MaxSurge:       &rolloutMaxSurge,
+						},
+					},
+				},
+				wantType: clusterv1.OnDeleteMachineDeploymentStrategyType,
+			},
+			{
+				name: "Should propagate rollout after while not propagating rollingUpdate fields when strategy type is OnDelete from topology override",
+				clusterClassStrategy: clusterv1.MachineDeploymentClassRolloutStrategy{
+					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+					RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+						MaxUnavailable: &rolloutMaxUnavailable,
+						MaxSurge:       &rolloutMaxSurge,
+					},
+				},
+				topologyRollout: &clusterv1.MachineDeploymentTopologyRolloutSpec{
+					After: rolloutAfter,
+					Strategy: clusterv1.MachineDeploymentTopologyRolloutStrategy{
+						Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+						RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+							MaxUnavailable: &rolloutMaxUnavailable,
+							MaxSurge:       &rolloutMaxSurge,
+						},
+					},
+				},
+				wantType:  clusterv1.OnDeleteMachineDeploymentStrategyType,
+				wantAfter: rolloutAfter,
+			},
+			{
+				name: "Should propagate rollingUpdate fields when strategy type is RollingUpdate",
+				clusterClassStrategy: clusterv1.MachineDeploymentClassRolloutStrategy{
+					Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				},
+				topologyRollout: &clusterv1.MachineDeploymentTopologyRolloutSpec{
+					Strategy: clusterv1.MachineDeploymentTopologyRolloutStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+							MaxUnavailable: &rolloutMaxUnavailable,
+							MaxSurge:       &rolloutMaxSurge,
+						},
+					},
+				},
+				wantType:           clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				wantMaxUnavailable: &rolloutMaxUnavailable,
+				wantMaxSurge:       &rolloutMaxSurge,
+			},
+			{
+				name: "Should propagate rollingUpdate fields when strategy type is empty",
+				clusterClassStrategy: clusterv1.MachineDeploymentClassRolloutStrategy{
+					RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+						MaxUnavailable: &rolloutMaxUnavailable,
+						MaxSurge:       &rolloutMaxSurge,
+					},
+				},
+				wantMaxUnavailable: &rolloutMaxUnavailable,
+				wantMaxSurge:       &rolloutMaxSurge,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				g := NewWithT(t)
+
+				testClusterClass := fakeClass.DeepCopy()
+				testClusterClass.Spec.Workers.MachineDeployments[0].Rollout.Strategy = tt.clusterClassStrategy
+				testClusterClass.Spec.Workers.MachineDeployments[0].Taints = nil
+				testWorkerBootstrapTemplate := workerBootstrapTemplate.DeepCopy()
+				testWorkerInfrastructureMachineTemplate := workerInfrastructureMachineTemplate.DeepCopy()
+				testScope := scope.New(cluster.DeepCopy())
+				testScope.Blueprint = &scope.ClusterBlueprint{
+					Topology:     cluster.Spec.Topology,
+					ClusterClass: testClusterClass,
+					MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
+						"linux-worker": {
+							BootstrapTemplate:             testWorkerBootstrapTemplate,
+							InfrastructureMachineTemplate: testWorkerInfrastructureMachineTemplate,
+						},
+					},
+				}
+
+				mdTopology := builder.MachineDeploymentTopology("big-pool-of-machines").
+					WithClass("linux-worker").
+					Build()
+				if tt.topologyRollout != nil {
+					mdTopology.Rollout = *tt.topologyRollout.DeepCopy()
+				}
+
+				e := generator{}
+
+				actual, err := e.computeMachineDeployment(ctx, testScope, mdTopology)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				actualMD := actual.Object
+				g.Expect(actualMD.Spec.Rollout.Strategy.Type).To(Equal(tt.wantType))
+				g.Expect(actualMD.Spec.Rollout.After).To(Equal(tt.wantAfter))
+				g.Expect(actualMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable).To(Equal(tt.wantMaxUnavailable))
+				g.Expect(actualMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge).To(Equal(tt.wantMaxSurge))
+
+				machineDeploymentWebhook := webhooks.MachineDeployment{}
+				warnings, err := machineDeploymentWebhook.ValidateCreate(ctx, actualMD)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			})
+		}
 	})
 
 	t.Run("Skips setting readinessGates if not set in Cluster and ClusterClass", func(t *testing.T) {

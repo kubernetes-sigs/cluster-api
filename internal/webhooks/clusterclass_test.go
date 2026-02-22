@@ -25,6 +25,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/version"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
@@ -145,7 +146,8 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			webhook := &ClusterClass{}
-			err := webhook.validate(ctx, tt.old, tt.in)
+			warnings, err := webhook.validate(ctx, tt.old, tt.in)
+			g.Expect(warnings).To(BeEmpty())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1838,7 +1840,8 @@ func TestClusterClassValidation(t *testing.T) {
 
 			// Create the webhook and add the fakeClient as its client.
 			webhook := &ClusterClass{Client: fakeClient}
-			err := webhook.validate(ctx, tt.old, tt.in)
+			warnings, err := webhook.validate(ctx, tt.old, tt.in)
+			g.Expect(warnings).To(BeEmpty())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -2678,7 +2681,8 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 
 			// Create the webhook and add the fakeClient as its client.
 			webhook := &ClusterClass{Client: fakeClient}
-			err := webhook.validate(ctx, tt.oldClusterClass, tt.newClusterClass)
+			warnings, err := webhook.validate(ctx, tt.oldClusterClass, tt.newClusterClass)
+			g.Expect(warnings).To(BeEmpty())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -2839,6 +2843,148 @@ func invalidLabels() map[string]string {
 		"bar":          strings.Repeat("a", 64) + "too-long-value",
 		"/invalid-key": "foo",
 	}
+}
+
+func TestValidateClusterClassRolloutRatcheting(t *testing.T) {
+	maxSurge1 := intstr.FromInt32(1)
+	maxSurge2 := intstr.FromInt32(2)
+
+	tests := []struct {
+		name          string
+		oldCC         *clusterv1.ClusterClass
+		newCC         *clusterv1.ClusterClass
+		expectErr     bool
+		expectWarning bool
+	}{
+		{
+			name: "Should reject rollingUpdate fields when creating ClusterClass with OnDelete rollout strategy",
+			newCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+			expectErr: true,
+		},
+		{
+			name: "Should reject rollingUpdate fields when updating ClusterClass from RollingUpdate to OnDelete rollout strategy",
+			oldCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+			newCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+			expectErr: true,
+		},
+		{
+			name: "Should allow unchanged invalid rollout strategy on update",
+			oldCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+			newCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+			expectWarning: true,
+		},
+		{
+			name: "Should reject changed invalid rollout strategy on update",
+			oldCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+			newCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge2,
+				},
+			}),
+			expectErr: true,
+		},
+		{
+			name: "Should allow fixing pre-existing invalid rollout strategy on update",
+			oldCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+			newCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+			}),
+		},
+		{
+			name: "Should reject invalid rollout strategy when MachineDeploymentClass is renamed",
+			oldCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+			newCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc2", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+			expectErr: true,
+		},
+		{
+			name: "Should allow rollingUpdate fields when rollout strategy type is empty",
+			newCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var oldCC *clusterv1.ClusterClass
+			if tt.oldCC != nil {
+				oldCC = tt.oldCC.DeepCopy()
+			}
+			warnings, errs := validateClusterClassRollout(oldCC, tt.newCC.DeepCopy())
+			if tt.expectErr {
+				g.Expect(errs).ToNot(BeEmpty())
+				g.Expect(errs.ToAggregate()).ToNot(Succeed())
+				g.Expect(errs.ToAggregate().Error()).To(ContainSubstring("rollingUpdate"))
+			} else {
+				g.Expect(errs).To(BeEmpty())
+			}
+			if tt.expectWarning {
+				g.Expect(warnings).To(HaveLen(1))
+				g.Expect(warnings[0]).To(ContainSubstring("rollingUpdate configuration is ignored while type is OnDelete"))
+				g.Expect(warnings[0]).To(ContainSubstring("remove rollingUpdate fields"))
+			} else {
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func clusterClassWithMachineDeploymentClassRolloutStrategy(clusterClassName, machineDeploymentClassName string, strategy clusterv1.MachineDeploymentClassRolloutStrategy) *clusterv1.ClusterClass {
+	return builder.ClusterClass("ns", clusterClassName).
+		WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass(machineDeploymentClassName).
+			WithStrategy(strategy).
+			Build()).
+		Build()
 }
 
 func invalidAnnotations() map[string]string {

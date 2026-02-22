@@ -19,6 +19,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -223,7 +224,24 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		)
 	}
 
-	allErrs = append(allErrs, validateRolloutStrategy(specPath.Child("rollout", "strategy"), newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+	rolloutStrategyPath := specPath.Child("rollout", "strategy")
+	rolloutStrategyTypeMismatchErrs := field.ErrorList{}
+	if shouldEnforceRolloutStrategyTypeMismatchValidationForMachineDeployment(oldMD, newMD) {
+		rolloutStrategyTypeMismatchErrs = validateRolloutStrategyTypeMismatch(
+			rolloutStrategyPath,
+			newMD.Spec.Rollout.Strategy.Type,
+			newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+			newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge,
+		)
+		allErrs = append(allErrs, rolloutStrategyTypeMismatchErrs...)
+	}
+	if len(rolloutStrategyTypeMismatchErrs) == 0 {
+		allErrs = append(allErrs, validateRolloutStrategy(
+			rolloutStrategyPath,
+			newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+			newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge,
+		)...)
+	}
 	allErrs = append(allErrs, validateRemediationMaxInFlight(specPath.Child("remediation"), newMD.Spec.Remediation.MaxInFlight)...)
 
 	if newMD.Spec.Template.Spec.Version != "" {
@@ -250,6 +268,7 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind(), newMD.Name, allErrs)
 }
 
+// validateRolloutStrategy validates the rollingUpdate values for a MachineDeployment rollout strategy.
 func validateRolloutStrategy(fldPath *field.Path, maxUnavailable, maxSurge *intstr.IntOrString) field.ErrorList {
 	var allErrs field.ErrorList
 	if maxUnavailable != nil {
@@ -282,6 +301,79 @@ func validateRolloutStrategy(fldPath *field.Path, maxUnavailable, maxSurge *ints
 		)
 	}
 	return allErrs
+}
+
+// validateRolloutStrategyTypeMismatch rejects rollingUpdate values when the rollout strategy type does not use them.
+func validateRolloutStrategyTypeMismatch(
+	fldPath *field.Path,
+	strategyType clusterv1.MachineDeploymentRolloutStrategyType,
+	maxUnavailable, maxSurge *intstr.IntOrString,
+) field.ErrorList {
+	var allErrs field.ErrorList
+	if isRolloutStrategyTypeMismatch(strategyType, maxUnavailable, maxSurge) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				fldPath.Child("rollingUpdate"),
+				fmt.Sprintf("can be set only if type is %q", clusterv1.RollingUpdateMachineDeploymentStrategyType),
+			),
+		)
+	}
+	return allErrs
+}
+
+// isRolloutStrategyTypeMismatch returns true if rollingUpdate values are set for a non-RollingUpdate strategy type.
+// An empty type never counts as a mismatch because the MachineDeployment defaulting webhook defaults it to RollingUpdate,
+// while topology and ClusterClass fields leave it empty to inherit defaults.
+func isRolloutStrategyTypeMismatch(
+	strategyType clusterv1.MachineDeploymentRolloutStrategyType,
+	maxUnavailable, maxSurge *intstr.IntOrString,
+) bool {
+	return strategyType != "" &&
+		strategyType != clusterv1.RollingUpdateMachineDeploymentStrategyType &&
+		(maxUnavailable != nil || maxSurge != nil)
+}
+
+// shouldEnforceRolloutStrategyTypeMismatchValidationForMachineDeployment returns false only when the invalid configuration
+// is pre-existing and unchanged, so MachineDeployments created before this validation existed can still receive updates to
+// unrelated fields.
+func shouldEnforceRolloutStrategyTypeMismatchValidationForMachineDeployment(oldMD, newMD *clusterv1.MachineDeployment) bool {
+	if oldMD == nil {
+		return true
+	}
+
+	return shouldEnforceRolloutStrategyTypeMismatchValidation(
+		newMD.Spec.Rollout.Strategy.Type,
+		newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+		newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge,
+		oldMD.Spec.Rollout.Strategy.Type,
+		oldMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+		oldMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge,
+	)
+}
+
+// shouldEnforceRolloutStrategyTypeMismatchValidation returns false only when the invalid configuration is pre-existing and
+// unchanged, so objects created before this validation existed can still receive updates to unrelated fields.
+func shouldEnforceRolloutStrategyTypeMismatchValidation(
+	newType clusterv1.MachineDeploymentRolloutStrategyType,
+	newMaxUnavailable, newMaxSurge *intstr.IntOrString,
+	oldType clusterv1.MachineDeploymentRolloutStrategyType,
+	oldMaxUnavailable, oldMaxSurge *intstr.IntOrString,
+) bool {
+	if !isRolloutStrategyTypeMismatch(newType, newMaxUnavailable, newMaxSurge) {
+		return true
+	}
+	if !isRolloutStrategyTypeMismatch(oldType, oldMaxUnavailable, oldMaxSurge) {
+		return true
+	}
+
+	// Allow unchanged pre-existing invalid values so users can still update unrelated fields.
+	if oldType == newType &&
+		reflect.DeepEqual(oldMaxUnavailable, newMaxUnavailable) &&
+		reflect.DeepEqual(oldMaxSurge, newMaxSurge) {
+		return false
+	}
+	return true
 }
 
 func validateRemediationMaxInFlight(fldPath *field.Path, maxInFlight *intstr.IntOrString) field.ErrorList {

@@ -21,6 +21,8 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -101,4 +103,74 @@ func Test_ValidateCluster(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestClusterTopologyRolloutStrategyValidation(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := env.CreateNamespace(ctx, "test-cluster-rollout-strategy")
+	g.Expect(err).ToNot(HaveOccurred())
+	t.Cleanup(func() {
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+	})
+
+	clusterClass := clusterClassForTemplateRefOrTemplateTest(ns.Name, "cluster-rollout-strategy")
+	g.Expect(env.CreateAndWait(ctx, clusterClass)).To(Succeed())
+	t.Cleanup(func() {
+		g.Expect(env.CleanupAndWait(ctx, clusterClass)).To(Succeed())
+	})
+
+	maxSurge := intstr.FromInt32(1)
+	newCluster := func(name string, strategy clusterv1.MachineDeploymentTopologyRolloutStrategy) *clusterv1.Cluster {
+		cluster := builder.Cluster(ns.Name, name).
+			WithTopology(
+				builder.ClusterTopology().
+					WithClass(clusterClass.Name).
+					WithVersion("v1.22.2").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("md1").
+							WithClass("md1").
+							Build()).
+					Build()).
+			Build()
+		cluster.Spec.Topology.Workers.MachineDeployments[0].Rollout.Strategy = strategy
+		return cluster
+	}
+
+	t.Run("Should reject rollingUpdate on create if type is OnDelete", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster := newCluster("cluster-ondelete-rollingupdate", clusterv1.MachineDeploymentTopologyRolloutStrategy{
+			Type:          clusterv1.OnDeleteMachineDeploymentStrategyType,
+			RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{MaxSurge: &maxSurge},
+		})
+		err := env.Create(ctx, cluster)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring(rollingUpdateCELErrMsg))
+	})
+
+	t.Run("Should reject switching to OnDelete while keeping rollingUpdate", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster := newCluster("cluster-rollingupdate", clusterv1.MachineDeploymentTopologyRolloutStrategy{
+			Type:          clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{MaxSurge: &maxSurge},
+		})
+		g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
+		t.Cleanup(func() {
+			g.Expect(env.CleanupAndWait(ctx, cluster)).To(Succeed())
+		})
+
+		invalid := cluster.DeepCopy()
+		invalid.Spec.Topology.Workers.MachineDeployments[0].Rollout.Strategy.Type = clusterv1.OnDeleteMachineDeploymentStrategyType
+		err := env.Patch(ctx, invalid, client.MergeFrom(cluster))
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring(rollingUpdateCELErrMsg))
+
+		valid := cluster.DeepCopy()
+		valid.Spec.Topology.Workers.MachineDeployments[0].Rollout.Strategy = clusterv1.MachineDeploymentTopologyRolloutStrategy{
+			Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+		}
+		g.Expect(env.Patch(ctx, valid, client.MergeFrom(cluster))).To(Succeed())
+	})
 }

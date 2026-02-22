@@ -4893,6 +4893,12 @@ spec:
                               required:
                               - type
                               type: object
+                              x-kubernetes-validations:
+                              - message: rollingUpdate can only be set if type is
+                                  RollingUpdate
+                                optionalOldSelf: true
+                                rule: (oldSelf.hasValue() && self == oldSelf.value())
+                                  || !has(self.rollingUpdate) || self.type == 'RollingUpdate'
                           type: object
                         taints:
                           description: |-

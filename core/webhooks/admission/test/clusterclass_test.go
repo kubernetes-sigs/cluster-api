@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -743,4 +744,59 @@ func createTemplates(ns *corev1.Namespace) (func() error, error) {
 		}
 	}
 	return cleanup, nil
+}
+
+func TestClusterClassRolloutStrategyValidation(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := env.CreateNamespace(ctx, "test-clusterclass-rollout-strategy")
+	g.Expect(err).ToNot(HaveOccurred())
+	t.Cleanup(func() {
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+	})
+
+	maxSurge := intstr.FromInt32(1)
+	newClusterClass := func(name string, strategy clusterv1.MachineDeploymentClassRolloutStrategy) *clusterv1.ClusterClass {
+		clusterClass := clusterClassForTemplateRefOrTemplateTest(ns.Name, name)
+		clusterClass.Spec.Workers.MachineDeployments[0].Rollout.Strategy = strategy
+		return clusterClass
+	}
+
+	t.Run("Should reject rollingUpdate on create if type is OnDelete", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClass := newClusterClass("cc-ondelete-rollingupdate", clusterv1.MachineDeploymentClassRolloutStrategy{
+			Type:          clusterv1.OnDeleteMachineDeploymentStrategyType,
+			RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{MaxSurge: &maxSurge},
+		})
+		err := env.Create(ctx, clusterClass)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring(rollingUpdateCELErrMsg))
+	})
+
+	t.Run("Should reject switching to OnDelete while keeping rollingUpdate", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClass := newClusterClass("cc-rollingupdate", clusterv1.MachineDeploymentClassRolloutStrategy{
+			Type:          clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{MaxSurge: &maxSurge},
+		})
+		g.Expect(env.CreateAndWait(ctx, clusterClass)).To(Succeed())
+		t.Cleanup(func() {
+			g.Expect(env.CleanupAndWait(ctx, clusterClass)).To(Succeed())
+		})
+
+		// Note: Using merge patches because the ClusterClass reconciler concurrently updates the object.
+		invalid := clusterClass.DeepCopy()
+		invalid.Spec.Workers.MachineDeployments[0].Rollout.Strategy.Type = clusterv1.OnDeleteMachineDeploymentStrategyType
+		err := env.Patch(ctx, invalid, client.MergeFrom(clusterClass))
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring(rollingUpdateCELErrMsg))
+
+		valid := clusterClass.DeepCopy()
+		valid.Spec.Workers.MachineDeployments[0].Rollout.Strategy = clusterv1.MachineDeploymentClassRolloutStrategy{
+			Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+		}
+		g.Expect(env.Patch(ctx, valid, client.MergeFrom(clusterClass))).To(Succeed())
+	})
 }

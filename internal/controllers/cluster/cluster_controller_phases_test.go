@@ -909,10 +909,10 @@ func generateInfraClusterV1Beta1(withFailureDomain bool) map[string]interface{} 
 
 func TestEnsureOwnerRefAndLabel(t *testing.T) {
 	tests := []struct {
-		name           string
-		cluster        *clusterv1.Cluster
-		obj            *unstructured.Unstructured
-		expectOwnerRef bool
+		name                string
+		cluster             *clusterv1.Cluster
+		obj                 *unstructured.Unstructured
+		expectControllerRef bool
 	}{
 		{
 			name: "Topology defined - should set ownerReference with controller: true",
@@ -941,10 +941,10 @@ func TestEnsureOwnerRefAndLabel(t *testing.T) {
 					},
 				},
 			},
-			expectOwnerRef: true,
+			expectControllerRef: true,
 		},
 		{
-			name: "Topology not defined - should not set ownerReference",
+			name: "Topology not defined - should set ownerReference with controller: false",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
@@ -963,7 +963,7 @@ func TestEnsureOwnerRefAndLabel(t *testing.T) {
 					},
 				},
 			},
-			expectOwnerRef: false,
+			expectControllerRef: false,
 		},
 	}
 
@@ -994,12 +994,10 @@ func TestEnsureOwnerRefAndLabel(t *testing.T) {
 				}
 			}
 
-			if tt.expectOwnerRef {
-				g.Expect(clusterOwnerRef).ToNot(BeNil(), "expected ownerReference to Cluster")
-				g.Expect(ptr.Deref(clusterOwnerRef.Controller, false)).To(BeTrue(), "expected controller: true")
-			} else {
-				g.Expect(clusterOwnerRef).To(BeNil(), "expected no ownerReference to Cluster")
-			}
+			// ownerReference should always be set
+			g.Expect(clusterOwnerRef).ToNot(BeNil(), "expected ownerReference to Cluster")
+			g.Expect(ptr.Deref(clusterOwnerRef.Controller, false)).To(Equal(tt.expectControllerRef),
+				"expected controller: %v", tt.expectControllerRef)
 
 			// Verify label is always set
 			g.Expect(updatedObj.GetLabels()[clusterv1.ClusterNameLabel]).To(Equal(tt.cluster.Name))

@@ -687,6 +687,7 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 	// When assessing the impact of adding new members, KCP always assume the worst case, that is the new etcd members won't be healthy.
 	// This is why the additional etcd member is added to unhealthyMembers; the only exception is when there is zero or one etcd member
 	// in the cluster, because otherwise it won't be possible to scale up from 0 to 1 and from 1 to 2 (with tot members 2, tolerance to failure is still 0).
+	// Note: the new member is always considered in total members amd total voting members, no matter we assuming it will be healthy or not.
 	if addEtcdMember {
 		targetTotalMembers = 1
 		targetVotingMembers = 1
@@ -741,15 +742,16 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 				if alarm.MemberID != etcdMember.ID {
 					continue
 				}
-				log.Info("An etcd member does not have a corresponding Machine, the member is reporting alarms", "memberName", etcdMember.Name)
 				hasAlarms = true
-				unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (no machine)", etcdMember.Name))
+				break
 			}
 			if hasAlarms {
+				log.Info("An etcd member does not have a corresponding Machine, the member is reporting alarms", "memberName", etcdMember.Name)
+				unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (no machine)", etcdMember.Name))
 				continue
 			}
 
-			log.Info("An etcd member does not have a corresponding Machine", "memberName", etcdMember.Name)
+			log.Info("An etcd member does not have a corresponding Machine, assuming member is healthy because it has no alarms", "memberName", etcdMember.Name)
 			healthyMembers = append(healthyMembers, fmt.Sprintf("%s (no machine)", etcdMember.Name))
 			continue
 		}
@@ -861,7 +863,7 @@ func (r *KubeadmControlPlaneReconciler) targetKubernetesControlPlaneComponentsHe
 		operations = append(operations, fmt.Sprintf("removal of Machine %s", kubernetesControlPlaneToBeDeleted))
 	}
 	if addKubernetesControlPlane {
-		operations = append(operations, "addition of 1 Machines")
+		operations = append(operations, "addition of 1 Machine")
 	}
 	log.Info(fmt.Sprintf("Kubernetes control plane components considering %s", strings.Join(operations, ",")),
 		"healthyControlPlanes", healthyControlPlanes,

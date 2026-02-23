@@ -468,9 +468,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	}
 
 	// Ensures the number of etcd members is in sync with the number of machines/nodes.
-	// NOTE: This is usually required after a machine deletion.
-	if err := r.reconcileEtcdMembers(ctx, controlPlane); err != nil {
-		return ctrl.Result{}, err
+	if result, err := r.reconcileEtcdMembers(ctx, controlPlane); err != nil || !result.IsZero() {
+		return result, err
 	}
 
 	// Handle machines in deletion phase; when drain and wait for volume detach completed, forward etcd leadership
@@ -1207,62 +1206,109 @@ func maxTime(t1, t2 time.Time) time.Time {
 	return t2
 }
 
-// reconcileEtcdMembers ensures the number of etcd members is in sync with the number of machines/nodes.
-// This is usually required after a machine deletion.
+// reconcileEtcdMembers ensures that the list of etcd members is consistent with the list of Machine/Node.
+// If etcd members are not consistent with the list of Machine/Node "unknown" etcd members are removed and a new
+// reconcile is triggered.
 //
-// NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneAndMachinesConditions before this.
-func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *internal.ControlPlane) error {
+// NOTE: This operation is a safeguard in case for some reason the etcd member removal operation that is performed
+// as part of the Machine deletion workflow doesn't work as expected (see reconcilePreTerminateHook).
+// It is also a safeguard against "unmanaged" etcd members being added to the etcd cluster.
+func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If etcd is not managed by KCP this is a no-op.
 	if !controlPlane.IsEtcdManaged() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet.
 	if controlPlane.Machines.Len() == 0 {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// No op if for any reason the etcdMember list is not populated at this stage.
-	if controlPlane.EtcdMembers == nil {
-		return nil
+	if len(controlPlane.EtcdMembers) == 0 {
+		return ctrl.Result{}, nil
 	}
 
-	// Potential inconsistencies between the list of members and the list of machines/nodes are
+	// Potential inconsistencies between the list of members and the list of Machine/Node are
 	// surfaced using the EtcdClusterHealthyCondition; if this condition is true, meaning no inconsistencies exists, return early.
 	if conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition) {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
-	// Collect all the node names.
-	// Note: EtcdClusterHealthyCondition true also implies that there are no machines still provisioning,
-	// so we can ignore this case.
+	// Collect all the Node names from control plane Machines.
 	nodeNames := []string{}
 	for _, machine := range controlPlane.Machines {
 		if !machine.Status.NodeRef.IsDefined() {
-			// If there are provisioning machines (machines without a node yet), return.
-			return nil
+			// If there are provisioning machines (machines without a Node yet), KCP must wait for the control plane
+			// to become stable before acting on etcd members.
+			return ctrl.Result{}, nil
 		}
 		nodeNames = append(nodeNames, machine.Status.NodeRef.Name)
 	}
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		// Failing at connecting to the workload cluster can mean workload cluster is unhealthy for a variety of reasons such as etcd quorum loss.
-		return errors.Wrap(err, "cannot get remote client to workload cluster")
+		return ctrl.Result{}, errors.Wrap(err, "cannot get remote client to workload cluster")
 	}
 
-	removedMembers, err := workloadCluster.ReconcileEtcdMembersAndControlPlaneNodes(ctx, controlPlane.EtcdMembers, nodeNames)
-	if err != nil {
-		return errors.Wrap(err, "failed attempt to reconcile etcd members")
+	// Check if there are etcd member without the corresponding Node/Machines.
+	// If any, delete it with best effort
+	removedMembers := []string{}
+	allErrors := []error{}
+
+	for _, member := range controlPlane.EtcdMembers {
+		// If this member is just added, it has a empty name until the etcd pod starts. Ignore this member until a name will show up.
+		if member.Name == "" {
+			continue
+		}
+
+		// If the member have a corresponding Node/Machine, continue.
+		nodeFound := false
+		for _, nodeName := range nodeNames {
+			if member.Name == nodeName {
+				nodeFound = true
+				break
+			}
+		}
+		if nodeFound {
+			continue
+		}
+
+		// If the Node/Machineg corresponding to an etcd member cannot be found, KCP must remove it.
+		//
+		// Before deleting the etcd member, KCP should assess the potential effects of this operation.
+		//
+		// Most specifically KCP should determine if this operation is going to leave the Kubernetes control plane components
+		// and the etcd cluster in operational state or not.
+		//
+		// In this case, the Target cluster will have the same list of machines as the current clusters
+		// but we are going to remove the etcd members without a corresponding Node/Machine (no etcd member are going to be added).
+		etcdMemberToBeDeleted := member.Name
+		addEtcdMember := false
+		if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
+			allErrors = append(allErrors, errors.Errorf("etcd member %s does not have a corresponding Machine, it must be removed from the cluster but this operation can lead to quorum loss. Please check the etcd status", etcdMemberToBeDeleted))
+			break
+		}
+
+		if err := workloadCluster.RemoveEtcdMember(ctx, member.Name); err != nil {
+			allErrors = append(allErrors, err)
+			continue
+		}
+		removedMembers = append(removedMembers, member.Name)
 	}
 
 	if len(removedMembers) > 0 {
-		log.Info("Etcd members without nodes removed from the cluster", "members", removedMembers)
+		log.Info("Etcd members without a corresponding Machines removed from the cluster", "members", removedMembers)
+
+		// If there are no errors, force a new reconcile after removing an etcd member.
+		if len(allErrors) == 0 {
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
 	}
 
-	return nil
+	return ctrl.Result{}, kerrors.NewAggregate(allErrors)
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
@@ -1307,34 +1353,97 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
+	// If removing the last control plane machine, no need of additional checks/operations.
+	if controlPlane.Machines.Len() <= 1 {
+		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	// Before removing the etcd member/removing the pre-terminate hook on KCP machines
+	// KCP determines again if deleting this machine is going to leave the Kubernetes control plane components
+	// and the etcd cluster in operational state or not.
+	//
+	// NOTE: This check acts as additional safeguard preventing deletion to complete.
+	// Similar checks are also performed before triggering deletion when remediating unhealthy machines and
+	// also before triggering deletion when scaling down the number of control plane replicas.
+	// (in case of scale down KCP actually checks that everything must be in healthy state).
+	//
+	// Target list of machines will have current machines -1 machine (the deletingMachine).
+	// As a consequence:
+	// - KubernetesControlPlane on the deletingMachine is going to be deleted, no KubernetesControlPlane is going to be added.
+	kubernetesControlPlaneToBeDeleted := deletingMachine.Name
+	addKubernetesControlPlane := false
+
+	// Check target Kubernetes control plane components.
+	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {
+		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status", klog.KObj(deletingMachine)))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
 	// The following will execute and remove the pre-terminate hook from the Machine.
-
-	// If we have more than 1 Machine and etcd is managed we forward etcd leadership and remove the member
-	// to keep the etcd cluster healthy.
-	if controlPlane.Machines.Len() > 1 && controlPlane.IsEtcdManaged() {
-		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s: failed to create client to workload cluster", klog.KObj(deletingMachine))
+	if !controlPlane.IsEtcdManaged() {
+		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
+			return ctrl.Result{}, err
 		}
 
-		// Note: In regular deletion cases (remediation, scale down) the leader should have been already moved.
-		// We're doing this again here in case the Machine became leader again or the Machine deletion was
-		// triggered in another way (e.g. a user running kubectl delete machine)
-		etcdLeaderCandidate := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp)).Newest()
-		if etcdLeaderCandidate != nil {
-			if err := workloadCluster.ForwardEtcdLeadership(ctx, deletingMachine, etcdLeaderCandidate); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to move leadership to candidate Machine %s", etcdLeaderCandidate.Name)
-			}
-		} else {
-			log.Info("Skip forwarding etcd leadership, because there is no other control plane Machine without a deletionTimestamp")
+		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	if len(controlPlane.EtcdMembers) == 0 {
+		log.Info("Cannot check etcd cluster health before remediation, etcd member list is empty")
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	// If etcd is managed by KCP, check target etcd cluster.
+	// Target list of machines will have current machines -1 machine (the deletingMachine).
+	// As a consequence:
+	// - etcd member on the deletingMachine is going to be deleted, no etcd member are going to be added.
+	etcdMemberToBeDeleted := r.tryGetEtcdMemberName(ctx, controlPlane, deletingMachine)
+	addEtcdMember := false
+
+	// If it was not possible to get the etcd member, no other checks can be performed. Continue with deletion.
+	// Note: reconcileEtcMembers acts a safeguard if an etcdMember is added/reported after this point.
+	if etcdMemberToBeDeleted == "" {
+		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
+			return ctrl.Result{}, err
 		}
 
-		// Note: Removing the etcd member will lead to the etcd and the kube-apiserver Pod on the Machine shutting down.
-		// If ControlPlaneKubeletLocalMode is used, the kubelet is communicating with the local apiserver and thus now
-		// won't be able to see any updates to e.g. Pods anymore.
-		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, deletingMachine); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
+		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
+		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s, the operation can lead to etcd quorum loss. Please check the etcd status", klog.KObj(deletingMachine)))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s: failed to create client to workload cluster", klog.KObj(deletingMachine))
+	}
+
+	// Note: In regular deletion cases (remediation, scale down) the leader should have been already moved.
+	// We're doing this again here in case the Machine became leader again or the Machine deletion was
+	// triggered in another way (e.g. a user running kubectl delete machine)
+	etcdLeaderCandidate := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp)).Newest()
+	if etcdLeaderCandidate != nil {
+		if err := workloadCluster.ForwardEtcdLeadership(ctx, deletingMachine, etcdLeaderCandidate); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to move leadership to candidate Machine %s", etcdLeaderCandidate.Name)
 		}
+	} else {
+		log.Info("Skip forwarding etcd leadership, there is no other control plane Machine without a deletionTimestamp")
+	}
+
+	// Note: Removing the etcd member will lead to the etcd and the kube-apiserver Pod on the Machine shutting down.
+	// If ControlPlaneKubeletLocalMode is used, the kubelet is communicating with the local apiserver and thus now
+	// won't be able to see any updates to e.g. Pods anymore.
+	if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
 	}
 
 	if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {

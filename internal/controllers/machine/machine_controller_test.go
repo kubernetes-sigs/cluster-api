@@ -3734,3 +3734,748 @@ func podByNodeName(o client.Object) []string {
 
 	return []string{pod.Spec.NodeName}
 }
+
+func TestNodeDeletionWithHooks(t *testing.T) {
+	deletionTime := metav1.Now().Add(-1 * time.Second)
+
+	testCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+	}
+
+	testMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "test",
+			},
+		},
+	}
+
+	cpmachine1 := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers: []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "cp1",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		expectNodeDeletion     bool
+		expectDeletingReason   string
+		annotations            map[string]string
+		createFakeClient       func(...client.Object) client.Client
+	}{
+		{
+			name:                   "should return no error when pre-drain hook label is set",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              false,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingWaitingForPreDrainHookReason,
+			annotations: map[string]string{
+				"pre-drain.delete.hook.machine.cluster.x-k8s.io": "",
+			},
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				return fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+			},
+		},
+		{
+			name:                   "should return no error when pre-terminate hook label is set",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              false,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingWaitingForPreTerminateHookReason,
+			annotations: map[string]string{
+				"pre-terminate.delete.hook.machine.cluster.x-k8s.io": "",
+				"machine.cluster.x-k8s.io/exclude-node-draining":     "",
+			},
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				return fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+			},
+		},
+		{
+			name:                   "should return error when draining Node",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingDrainingNodeReason,
+			annotations: map[string]string{
+				"machine.cluster.x-k8s.io/exclude-wait-for-node-volume-detach": "",
+			},
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				return fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			testMachine.Annotations = tc.annotations
+
+			m := testMachine.DeepCopy()
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
+
+			fakeClient := tc.createFakeClient(node, m, cpmachine1)
+
+			r := &Reconciler{
+				Client:                   fakeClient,
+				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
+				recorder:                 record.NewFakeRecorder(10),
+				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+			}
+
+			s := &scope{
+				cluster:                   &testCluster,
+				machine:                   m,
+				infraMachineIsNotFound:    true,
+				bootstrapConfigIsNotFound: true,
+			}
+			_, err := r.reconcileDelete(context.Background(), s)
+
+			if tc.resultErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				if tc.expectNodeDeletion {
+					n := &corev1.Node{}
+					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
+				}
+			}
+			g.Expect(s.deletingReason).To(Equal(tc.expectDeletingReason))
+		})
+	}
+}
+
+func TestNodeDeletionWithPreDrainHook(t *testing.T) {
+	deletionTime := metav1.Now().Add(-1 * time.Second)
+
+	testCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+	}
+
+	testMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Annotations: map[string]string{
+				"machine.cluster.x-k8s.io/exclude-wait-for-node-volume-detach": "",
+			},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "test",
+			},
+		},
+	}
+
+	cpmachine1 := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers: []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "cp1",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		expectNodeDeletion     bool
+		expectDeletingReason   string
+		pods                   []*corev1.Pod
+		createFakeClient       func(...client.Object) client.Client
+	}{
+		{
+			name:                   "should return no error when pre-drain is successful",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              false,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingDeletionCompletedReason,
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-1-skip-mirror-pod",
+						Namespace: "test-namespace",
+						Annotations: map[string]string{
+							corev1.MirrorPodAnnotationKey: "some-value",
+						},
+					},
+					Spec: corev1.PodSpec{NodeName: "cp1"},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-2-delete-running-deployment-pod",
+						Namespace: "test-namespace",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								Kind:       "Deployment",
+								Controller: ptr.To(true),
+							},
+						},
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodRunning,
+					},
+					Spec: corev1.PodSpec{NodeName: "cp1"},
+				},
+			},
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				return fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			m := testMachine.DeepCopy()
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
+
+			var remoteObjs []client.Object
+			remoteObjs = append(remoteObjs, node)
+			for _, p := range tc.pods {
+				remoteObjs = append(remoteObjs, p)
+			}
+			remoteObjs = append(remoteObjs, &appsv1.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "daemonset-does-exist",
+					Namespace: "test-namespace",
+				},
+			}, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-namespace",
+					Labels: map[string]string{
+						"kubernetes.io/metadata.name": "test-namespace",
+					},
+				},
+			})
+			remoteClient := fake.NewClientBuilder().
+				WithIndex(&corev1.Pod{}, "spec.nodeName", podByNodeName).
+				WithObjects(remoteObjs...).
+				Build()
+
+			fakeClient := tc.createFakeClient(node, m, cpmachine1)
+
+			r := &Reconciler{
+				Client:                   fakeClient,
+				ClusterCache:             clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(&testCluster)),
+				recorder:                 record.NewFakeRecorder(10),
+				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+			}
+
+			s := &scope{
+				cluster:                   &testCluster,
+				machine:                   m,
+				infraMachineIsNotFound:    true,
+				bootstrapConfigIsNotFound: true,
+			}
+			_, err := r.reconcileDelete(context.Background(), s)
+
+			if tc.resultErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				if tc.expectNodeDeletion {
+					n := &corev1.Node{}
+					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
+				}
+			}
+			g.Expect(s.deletingReason).To(Equal(tc.expectDeletingReason))
+		})
+	}
+}
+
+func TestNodeDeletionWithInfraAndBootstrap(t *testing.T) {
+	deletionTime := metav1.Now().Add(-1 * time.Second)
+
+	testCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+	}
+
+	testMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Annotations: map[string]string{
+				"machine.cluster.x-k8s.io/exclude-node-draining": "",
+			},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config1",
+				},
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "test",
+			},
+		},
+	}
+
+	cpmachine1 := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers: []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "cp1",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		clusterDeleted         bool
+		expectNodeDeletion     bool
+		bootstrapConfigFound   bool
+		infraMachineFound      bool
+		infraMachine           *unstructured.Unstructured
+		bootstrapConfig        *unstructured.Unstructured
+		expectDeletingReason   string
+		createFakeClient       func(...client.Object) client.Client
+	}{
+		{
+			name:                   "should return error when deleting infra",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			infraMachine: util.ObjectReferenceToUnstructured(corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Name:       "infra-config1",
+			}),
+			bootstrapConfigFound: true,
+			expectDeletingReason: clusterv1.MachineDeletingInternalErrorReason,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				return fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+			},
+		},
+		{
+			name:                   "should return no error when deleting bootstrap",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			infraMachineFound:      true,
+			bootstrapConfig: util.ObjectReferenceToUnstructured(corev1.ObjectReference{
+				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				Name:       "bootstrap-config1",
+			}),
+			expectDeletingReason: clusterv1.MachineDeletingInternalErrorReason,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				return fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			m := testMachine.DeepCopy()
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
+
+			fakeClient := tc.createFakeClient(node, m, cpmachine1)
+
+			r := &Reconciler{
+				Client:                   fakeClient,
+				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
+				recorder:                 record.NewFakeRecorder(10),
+				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+			}
+
+			s := &scope{
+				cluster:                   &testCluster,
+				machine:                   m,
+				infraMachineIsNotFound:    tc.infraMachineFound,
+				infraMachine:              tc.infraMachine,
+				bootstrapConfigIsNotFound: tc.bootstrapConfigFound,
+				bootstrapConfig:           tc.bootstrapConfig,
+			}
+			_, err := r.reconcileDelete(context.Background(), s)
+
+			if tc.resultErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				if tc.expectNodeDeletion {
+					n := &corev1.Node{}
+					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
+				}
+			}
+			g.Expect(s.deletingReason).To(Equal(tc.expectDeletingReason))
+		})
+	}
+}
+
+func TestNodeDeletionWithVolumeDetach(t *testing.T) {
+	deletionTime := metav1.Now().Add(-1 * time.Second)
+
+	testCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	persistentVolume := &corev1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pv",
+		},
+		Spec: corev1.PersistentVolumeSpec{
+			ClaimRef: &corev1.ObjectReference{
+				Kind:      "PersistentVolumeClaim",
+				Namespace: "default",
+				Name:      "test-pvc",
+			},
+			PersistentVolumeSource: corev1.PersistentVolumeSource{
+				CSI: &corev1.CSIPersistentVolumeSource{
+					VolumeHandle: "foo",
+					Driver:       "dummy",
+				},
+			},
+		},
+	}
+
+	persistentVolumeWithoutClaim := persistentVolume.DeepCopy()
+	persistentVolumeWithoutClaim.Spec.ClaimRef.Kind = "NotAPVC"
+
+	attachedVolumes := []corev1.AttachedVolume{
+		{
+			Name:       corev1.UniqueVolumeName(fmt.Sprintf("kubernetes.io/csi/%s^%s", persistentVolume.Spec.PersistentVolumeSource.CSI.Driver, persistentVolume.Spec.PersistentVolumeSource.CSI.VolumeHandle)),
+			DevicePath: "test-path",
+		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
+				},
+			},
+			VolumesAttached: attachedVolumes,
+		},
+	}
+
+	volumeAttachment := &storagev1.VolumeAttachment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-va",
+		},
+		Spec: storagev1.VolumeAttachmentSpec{
+			NodeName: "test",
+			Source:   storagev1.VolumeAttachmentSource{},
+		},
+		Status: storagev1.VolumeAttachmentStatus{
+			Attached: true,
+		},
+	}
+
+	testMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Annotations: map[string]string{
+				"machine.cluster.x-k8s.io/exclude-node-draining": "",
+			},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "test",
+			},
+		},
+	}
+
+	cpmachine1 := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers: []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "cp1",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		remoteObjects          []client.Object
+		expectNodeDeletion     bool
+		expectDeletingReason   string
+		createFakeClient       func(...client.Object) client.Client
+	}{
+		{
+			name:                   "should return error when detaching the volume",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingWaitingForVolumeDetachReason,
+			remoteObjects: []client.Object{
+				volumeAttachment,
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "test-pod",
+						Namespace:         "default",
+						DeletionTimestamp: ptr.To(metav1.NewTime(time.Now().Add(time.Hour * 24 * -1))),
+						Finalizers: []string{
+							"prevent-removal",
+						},
+					},
+					Spec: corev1.PodSpec{
+						NodeName: "test",
+						Volumes: []corev1.Volume{
+							{
+								Name: "test-pvc",
+								VolumeSource: corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+										ClaimName: "test-pvc",
+									},
+								},
+							},
+						},
+					},
+				},
+				persistentVolume,
+			},
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				return fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			m := testMachine.DeepCopy()
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
+
+			var remoteObjs []client.Object
+			remoteObjs = append(remoteObjs, tc.remoteObjects...)
+			remoteObjs = append(remoteObjs, node, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						"kubernetes.io/metadata.name": "default",
+					},
+				},
+			}, &appsv1.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "daemonset-does-exist",
+					Namespace: "test-namespace",
+				},
+			}, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-namespace",
+					Labels: map[string]string{
+						"kubernetes.io/metadata.name": "test-namespace",
+					},
+				},
+			})
+			remoteClient := fake.NewClientBuilder().
+				WithIndex(&corev1.Pod{}, "spec.nodeName", podByNodeName).
+				WithObjects(remoteObjs...).
+				Build()
+
+			fakeClient := tc.createFakeClient(node, m, cpmachine1)
+
+			r := &Reconciler{
+				Client:                   fakeClient,
+				ClusterCache:             clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(&testCluster)),
+				recorder:                 record.NewFakeRecorder(10),
+				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+			}
+
+			s := &scope{
+				cluster:                   &testCluster,
+				machine:                   m,
+				infraMachineIsNotFound:    true,
+				bootstrapConfigIsNotFound: true,
+			}
+			_, err := r.reconcileDelete(context.Background(), s)
+
+			if tc.resultErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				if tc.expectNodeDeletion {
+					n := &corev1.Node{}
+					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
+				}
+			}
+			g.Expect(s.deletingReason).To(Equal(tc.expectDeletingReason))
+		})
+	}
+}

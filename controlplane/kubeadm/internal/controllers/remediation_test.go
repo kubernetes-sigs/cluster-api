@@ -2351,7 +2351,11 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 			Machines: collections.FromMachines(m1, m2),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
-		controlPlane.EtcdMembers[1].IsLearner = true
+		for i := range controlPlane.EtcdMembers {
+			if controlPlane.EtcdMembers[i].Name == "node-m2-etcd-healthy" {
+				controlPlane.EtcdMembers[i].IsLearner = true
+			}
+		}
 
 		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
@@ -2366,7 +2370,11 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 			Machines: collections.FromMachines(m1, m2),
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
-		controlPlane.EtcdMembers[1].Name = ""
+		for i := range controlPlane.EtcdMembers {
+			if controlPlane.EtcdMembers[i].Name == "node-m2-etcd-healthy" {
+				controlPlane.EtcdMembers[i].Name = ""
+			}
+		}
 
 		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())

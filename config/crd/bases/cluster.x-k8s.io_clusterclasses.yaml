@@ -2875,6 +2875,69 @@ spec:
                     x-kubernetes-list-map-keys:
                     - conditionType
                     x-kubernetes-list-type: map
+                  taints:
+                    description: |-
+                      taints are the node taints that Cluster API will manage.
+                      This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                      e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+                      Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                      There can be at most 64 taints.
+                      A pod would have to tolerate all existing taints to run on the corresponding node.
+
+                      NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                    items:
+                      description: MachineTaint defines a taint equivalent to corev1.Taint,
+                        but additionally having a propagation field.
+                      properties:
+                        effect:
+                          description: effect is the effect for the taint. Valid values
+                            are NoSchedule, PreferNoSchedule and NoExecute.
+                          enum:
+                          - NoSchedule
+                          - PreferNoSchedule
+                          - NoExecute
+                          type: string
+                        key:
+                          description: |-
+                            key is the taint key to be applied to a node.
+                            Must be a valid qualified name of maximum size 63 characters
+                            with an optional subdomain prefix of maximum size 253 characters,
+                            separated by a `/`.
+                          maxLength: 317
+                          minLength: 1
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                          type: string
+                        propagation:
+                          description: |-
+                            propagation defines how this taint should be propagated to nodes.
+                            Valid values are 'Always' and 'OnInitialization'.
+                            Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                            OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                          enum:
+                          - Always
+                          - OnInitialization
+                          type: string
+                        value:
+                          description: |-
+                            value is the taint value corresponding to the taint key.
+                            It must be a valid label value of maximum size 63 characters.
+                          maxLength: 63
+                          minLength: 1
+                          pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                          type: string
+                      required:
+                      - effect
+                      - key
+                      - propagation
+                      type: object
+                    maxItems: 64
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - key
+                    - effect
+                    x-kubernetes-list-type: map
                   templateRef:
                     description: templateRef contains the reference to a provider-specific
                       control plane template.
@@ -4188,6 +4251,70 @@ spec:
                               - type
                               type: object
                           type: object
+                        taints:
+                          description: |-
+                            taints are the node taints that Cluster API will manage.
+                            This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                            e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+                            Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                            There can be at most 64 taints.
+                            A pod would have to tolerate all existing taints to run on the corresponding node.
+
+                            NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                          items:
+                            description: MachineTaint defines a taint equivalent to
+                              corev1.Taint, but additionally having a propagation
+                              field.
+                            properties:
+                              effect:
+                                description: effect is the effect for the taint. Valid
+                                  values are NoSchedule, PreferNoSchedule and NoExecute.
+                                enum:
+                                - NoSchedule
+                                - PreferNoSchedule
+                                - NoExecute
+                                type: string
+                              key:
+                                description: |-
+                                  key is the taint key to be applied to a node.
+                                  Must be a valid qualified name of maximum size 63 characters
+                                  with an optional subdomain prefix of maximum size 253 characters,
+                                  separated by a `/`.
+                                maxLength: 317
+                                minLength: 1
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                                type: string
+                              propagation:
+                                description: |-
+                                  propagation defines how this taint should be propagated to nodes.
+                                  Valid values are 'Always' and 'OnInitialization'.
+                                  Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                                  OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                                enum:
+                                - Always
+                                - OnInitialization
+                                type: string
+                              value:
+                                description: |-
+                                  value is the taint value corresponding to the taint key.
+                                  It must be a valid label value of maximum size 63 characters.
+                                maxLength: 63
+                                minLength: 1
+                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                                type: string
+                            required:
+                            - effect
+                            - key
+                            - propagation
+                            type: object
+                          maxItems: 64
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - key
+                          - effect
+                          x-kubernetes-list-type: map
                       required:
                       - bootstrap
                       - class
@@ -4396,6 +4523,70 @@ spec:
                               minLength: 1
                               type: string
                           type: object
+                        taints:
+                          description: |-
+                            taints are the node taints that Cluster API will manage.
+                            This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                            e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+                            Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                            There can be at most 64 taints.
+                            A pod would have to tolerate all existing taints to run on the corresponding node.
+
+                            NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                          items:
+                            description: MachineTaint defines a taint equivalent to
+                              corev1.Taint, but additionally having a propagation
+                              field.
+                            properties:
+                              effect:
+                                description: effect is the effect for the taint. Valid
+                                  values are NoSchedule, PreferNoSchedule and NoExecute.
+                                enum:
+                                - NoSchedule
+                                - PreferNoSchedule
+                                - NoExecute
+                                type: string
+                              key:
+                                description: |-
+                                  key is the taint key to be applied to a node.
+                                  Must be a valid qualified name of maximum size 63 characters
+                                  with an optional subdomain prefix of maximum size 253 characters,
+                                  separated by a `/`.
+                                maxLength: 317
+                                minLength: 1
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                                type: string
+                              propagation:
+                                description: |-
+                                  propagation defines how this taint should be propagated to nodes.
+                                  Valid values are 'Always' and 'OnInitialization'.
+                                  Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                                  OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                                enum:
+                                - Always
+                                - OnInitialization
+                                type: string
+                              value:
+                                description: |-
+                                  value is the taint value corresponding to the taint key.
+                                  It must be a valid label value of maximum size 63 characters.
+                                maxLength: 63
+                                minLength: 1
+                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                                type: string
+                            required:
+                            - effect
+                            - key
+                            - propagation
+                            type: object
+                          maxItems: 64
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - key
+                          - effect
+                          x-kubernetes-list-type: map
                       required:
                       - bootstrap
                       - class

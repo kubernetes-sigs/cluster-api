@@ -791,6 +791,11 @@ func (in *ControlPlaneClass) DeepCopyInto(out *ControlPlaneClass) {
 	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
 	out.Naming = in.Naming
 	in.Deletion.DeepCopyInto(&out.Deletion)
+	if in.Taints != nil {
+		in, out := &in.Taints, &out.Taints
+		*out = make([]MachineTaint, len(*in))
+		copy(*out, *in)
+	}
 	if in.ReadinessGates != nil {
 		in, out := &in.ReadinessGates, &out.ReadinessGates
 		*out = make([]MachineReadinessGate, len(*in))
@@ -968,6 +973,11 @@ func (in *ControlPlaneTopology) DeepCopyInto(out *ControlPlaneTopology) {
 	}
 	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
 	in.Deletion.DeepCopyInto(&out.Deletion)
+	if in.Taints != nil {
+		in, out := &in.Taints, &out.Taints
+		*out = make([]MachineTaint, len(*in))
+		copy(*out, *in)
+	}
 	if in.ReadinessGates != nil {
 		in, out := &in.ReadinessGates, &out.ReadinessGates
 		*out = make([]MachineReadinessGate, len(*in))
@@ -1547,6 +1557,11 @@ func (in *MachineDeploymentClass) DeepCopyInto(out *MachineDeploymentClass) {
 	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
 	out.Naming = in.Naming
 	in.Deletion.DeepCopyInto(&out.Deletion)
+	if in.Taints != nil {
+		in, out := &in.Taints, &out.Taints
+		*out = make([]MachineTaint, len(*in))
+		copy(*out, *in)
+	}
 	if in.MinReadySeconds != nil {
 		in, out := &in.MinReadySeconds, &out.MinReadySeconds
 		*out = new(int32)
@@ -2031,6 +2046,11 @@ func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology
 	}
 	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
 	in.Deletion.DeepCopyInto(&out.Deletion)
+	if in.Taints != nil {
+		in, out := &in.Taints, &out.Taints
+		*out = make([]MachineTaint, len(*in))
+		copy(*out, *in)
+	}
 	if in.MinReadySeconds != nil {
 		in, out := &in.MinReadySeconds, &out.MinReadySeconds
 		*out = new(int32)
@@ -2841,6 +2861,11 @@ func (in *MachinePoolClass) DeepCopyInto(out *MachinePoolClass) {
 	}
 	out.Naming = in.Naming
 	in.Deletion.DeepCopyInto(&out.Deletion)
+	if in.Taints != nil {
+		in, out := &in.Taints, &out.Taints
+		*out = make([]MachineTaint, len(*in))
+		copy(*out, *in)
+	}
 	if in.MinReadySeconds != nil {
 		in, out := &in.MinReadySeconds, &out.MinReadySeconds
 		*out = new(int32)
@@ -3106,6 +3131,11 @@ func (in *MachinePoolTopology) DeepCopyInto(out *MachinePoolTopology) {
 		copy(*out, *in)
 	}
 	in.Deletion.DeepCopyInto(&out.Deletion)
+	if in.Taints != nil {
+		in, out := &in.Taints, &out.Taints
+		*out = make([]MachineTaint, len(*in))
+		copy(*out, *in)
+	}
 	if in.MinReadySeconds != nil {
 		in, out := &in.MinReadySeconds, &out.MinReadySeconds
 		*out = new(int32)

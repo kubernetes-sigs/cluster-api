@@ -968,13 +968,6 @@ spec:
                       minLength: 1
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
                       type: string
-                      x-kubernetes-validations:
-                      - message: key must be a valid qualified name of max size 63
-                          characters with an optional subdomain prefix of max size
-                          253 characters
-                        rule: 'self.contains(''/'') ? ( self.split(''/'') [0].size()
-                          <= 253 && self.split(''/'') [1].size() <= 63 && self.split(''/'').size()
-                          == 2 ) : self.size() <= 63'
                     propagation:
                       description: |-
                         propagation defines how this taint should be propagated to nodes.

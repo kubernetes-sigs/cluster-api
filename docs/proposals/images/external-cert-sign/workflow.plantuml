@@ -1,0 +1,37 @@
+@startuml
+title Cluster API External CA / External Certificate Signing Flow
+
+actor "Cluster API User" as User
+entity "Management Cluster (CAPI)" as CAPI
+entity "PKI System" as PKI
+entity "Control Plane Node" as CP
+entity "Bootstrap Provider" as BP
+
+User -> CAPI : Sets `externalCA=true` in Cluster spec
+
+User -> PKI : Generate and submit CSR for admin certificate
+User-> PKI : Generate and submit CSR for etcd-client certificate
+PKI -> User : Sign etcd-client certificate
+PKI -> User : Sign admin certificate
+
+User -> CAPI : Provides admin certificate for kubeconfig
+User -> CAPI : Provides etcd-client certificate for etcd healthcheck and others actions.
+
+CAPI -> CP : Provides ClusterConfiguration / InitConfiguration
+CP -> BP : Provides ClusterConfiguration / InitConfiguration
+BP -> CP : Generates CSRs for required certs
+CP -> PKI : Submits CSRs for signing
+CA -> CP : Returns signed certificates
+CP -> CAPI : Registers certificates / updates status
+CP -> CP : Uses signed certs for kube-apiserver, etcd, kubelet
+
+note right of PKI
+CA keys never leave the PKI system
+end note
+
+note left of User
+Responsible for providing signed certificates
+and managing rotation
+end note
+
+@enduml

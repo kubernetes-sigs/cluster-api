@@ -56,6 +56,31 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// In the case of Docker, failure domains don't mean much so we simply copy the Spec into the Status.
 	dockerCluster.Status.FailureDomains = dockerCluster.Spec.Backend.Docker.FailureDomains
 
+	if dockerCluster.Spec.Backend.Docker.LoadBalancer.ExternallyManaged {
+		// Validate that controlPlaneEndpoint is set when externally managed.
+		if dockerCluster.Spec.ControlPlaneEndpoint.Host == "" {
+			v1beta1conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableV1Beta1Condition, infrav1.LoadBalancerProvisioningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "controlPlaneEndpoint.host must be set when load balancer is externally managed")
+			conditions.Set(dockerCluster, metav1.Condition{
+				Type:    infrav1.DevClusterDockerLoadBalancerAvailableCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  infrav1.DevClusterDockerLoadBalancerNotAvailableReason,
+				Message: "controlPlaneEndpoint.host must be set when load balancer is externally managed",
+			})
+			return ctrl.Result{}, errors.New("controlPlaneEndpoint.host must be set when load balancer is externally managed")
+		}
+
+		// Mark the dockerCluster ready (load balancer is externally managed).
+		dockerCluster.Status.Initialization.Provisioned = ptr.To(true)
+		v1beta1conditions.MarkTrue(dockerCluster, infrav1.LoadBalancerAvailableV1Beta1Condition)
+		conditions.Set(dockerCluster, metav1.Condition{
+			Type:    infrav1.DevClusterDockerLoadBalancerAvailableCondition,
+			Status:  metav1.ConditionTrue,
+			Reason:  infrav1.DevClusterDockerLoadBalancerExternallyManagedReason,
+			Message: "Load balancer is externally managed",
+		})
+		return ctrl.Result{}, nil
+	}
+
 	// Create a helper for managing a docker container hosting the loadbalancer.
 	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster,
 		dockerCluster.Spec.Backend.Docker.LoadBalancer.ImageRepository,
@@ -119,6 +144,12 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster) (ctrl.Result, error) {
 	if dockerCluster.Spec.Backend.Docker == nil {
 		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevClusters without a Docker backend")
+	}
+
+	if dockerCluster.Spec.Backend.Docker.LoadBalancer.ExternallyManaged {
+		// Cluster is deleted so remove the finalizer.
+		controllerutil.RemoveFinalizer(dockerCluster, infrav1.ClusterFinalizer)
+		return ctrl.Result{}, nil
 	}
 
 	// Create a helper for managing a docker container hosting the loadbalancer.

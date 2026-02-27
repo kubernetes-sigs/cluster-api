@@ -69,6 +69,15 @@ type DockerLoadBalancer struct {
 	// node is added or removed. The template will also support the JoinHostPort function to join the host and port of the backend server.
 	// +optional
 	CustomHAProxyConfigTemplateRef *corev1.LocalObjectReference `json:"customHAProxyConfigTemplateRef,omitempty"`
+
+	// ExternallyManaged indicates that the load balancer is managed externally.
+	// When set to true, the controller will not create, update, or delete
+	// the load balancer container. The user is responsible for:
+	// - Setting spec.controlPlaneEndpoint.host and spec.controlPlaneEndpoint.port
+	// - Ensuring the external load balancer routes traffic to control plane nodes
+	// - Managing the lifecycle of the external load balancer
+	// +optional
+	ExternallyManaged bool `json:"externallyManaged,omitempty"`
 }
 
 // ImageMeta allows customizing the image used for components that are not

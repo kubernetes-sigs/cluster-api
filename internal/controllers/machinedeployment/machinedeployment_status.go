@@ -32,6 +32,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
+	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	clog "sigs.k8s.io/cluster-api/util/log"
@@ -83,6 +84,19 @@ func setReplicas(machineDeployment *clusterv1.MachineDeployment, machineSets []*
 	machineDeployment.Status.ReadyReplicas = mdutil.GetReadyReplicaCountForMachineSets(machineSets)
 	machineDeployment.Status.AvailableReplicas = mdutil.GetAvailableReplicaCountForMachineSets(machineSets)
 	machineDeployment.Status.UpToDateReplicas = mdutil.GetUptoDateReplicaCountForMachineSets(machineSets)
+	machineDeployment.Status.Versions = versionsFromMachineSets(machineSets)
+}
+
+func versionsFromMachineSets(machineSets []*clusterv1.MachineSet) []clusterv1.StatusVersion {
+	versionCounts := map[string]int32{}
+	for _, ms := range machineSets {
+		if ms == nil {
+			continue
+		}
+		internalversion.AddStatusVersions(versionCounts, ms.Status.Versions)
+	}
+
+	return internalversion.StatusVersionsFromCountMap(versionCounts)
 }
 
 func setPhase(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, getAndAdoptMachineSetsForDeploymentSucceeded bool) {

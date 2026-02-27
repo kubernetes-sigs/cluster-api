@@ -332,6 +332,13 @@ type MachineSetStatus struct {
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
+	// versions is the aggregated Kubernetes versions in this MachineSet.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
+
 	// observedGeneration reflects the generation of the most recently observed MachineSet.
 	// +optional
 	// +kubebuilder:validation:Minimum=1

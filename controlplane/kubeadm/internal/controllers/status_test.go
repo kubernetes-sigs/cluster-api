@@ -222,6 +222,22 @@ func TestSetReplicas(t *testing.T) {
 	g.Expect(*kcp.Status.UpToDateReplicas).To(Equal(int32(4)))
 }
 
+func TestVersionsFromMachines(t *testing.T) {
+	g := NewWithT(t)
+
+	versions := versionsFromMachines(collections.FromMachines(
+		&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.31.1"}}},
+		&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.31.1"}}},
+		&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.32.0"}}},
+		&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m4"}},
+	))
+
+	g.Expect(versions).To(Equal([]clusterv1.StatusVersion{
+		{Version: "v1.31.1", Replicas: ptr.To[int32](2)},
+		{Version: "v1.32.0", Replicas: ptr.To[int32](1)},
+	}))
+}
+
 func Test_setInitializedCondition(t *testing.T) {
 	tests := []struct {
 		name            string

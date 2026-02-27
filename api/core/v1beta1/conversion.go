@@ -95,6 +95,20 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	if !reflect.DeepEqual(initialization, clusterv1.ClusterInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}
+	if ok {
+		if restored.Status.ControlPlane != nil {
+			if dst.Status.ControlPlane == nil {
+				dst.Status.ControlPlane = &clusterv1.ClusterControlPlaneStatus{}
+			}
+			dst.Status.ControlPlane.Versions = restored.Status.ControlPlane.Versions
+		}
+		if restored.Status.Workers != nil {
+			if dst.Status.Workers == nil {
+				dst.Status.Workers = &clusterv1.WorkersStatus{}
+			}
+			dst.Status.Workers.Versions = restored.Status.Workers.Versions
+		}
+	}
 	return nil
 }
 
@@ -473,6 +487,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		dst.Spec.Template.Spec.Taints = restored.Spec.Template.Spec.Taints
+		dst.Status.Versions = restored.Status.Versions
 	}
 
 	return nil
@@ -521,6 +536,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		dst.Spec.Template.Spec.Taints = restored.Spec.Template.Spec.Taints
+		dst.Status.Versions = restored.Status.Versions
 	}
 
 	return nil
@@ -612,6 +628,7 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		dst.Spec.Template.Spec.Taints = restored.Spec.Template.Spec.Taints
+		dst.Status.Versions = restored.Status.Versions
 	}
 
 	return nil
@@ -1271,6 +1288,16 @@ func Convert_v1beta1_ClusterClassStatus_To_v1beta2_ClusterClassStatus(in *Cluste
 	return nil
 }
 
+func Convert_v1beta2_ClusterControlPlaneStatus_To_v1beta1_ClusterControlPlaneStatus(in *clusterv1.ClusterControlPlaneStatus, out *ClusterControlPlaneStatus, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ClusterControlPlaneStatus_To_v1beta1_ClusterControlPlaneStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Versions does not exist in the v1beta1 peer type and cannot be represented here.
+	// It is restored during full-object conversion from data preserved in annotations.
+	return nil
+}
+
 func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in, out, s); err != nil {
 		return err
@@ -1425,6 +1452,16 @@ func Convert_v1beta2_Topology_To_v1beta1_Topology(in *clusterv1.Topology, out *T
 	}
 	out.Class = in.ClassRef.Name
 	out.ClassNamespace = in.ClassRef.Namespace
+	return nil
+}
+
+func Convert_v1beta2_WorkersStatus_To_v1beta1_WorkersStatus(in *clusterv1.WorkersStatus, out *WorkersStatus, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_WorkersStatus_To_v1beta1_WorkersStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Versions does not exist in the v1beta1 peer type and cannot be represented here.
+	// It is restored during full-object conversion from data preserved in annotations.
 	return nil
 }
 

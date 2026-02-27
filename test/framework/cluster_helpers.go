@@ -496,20 +496,19 @@ func VerifyMachinesReady(ctx context.Context, input VerifyMachinesReadyInput) {
 			client.MatchingLabels{
 				clusterv1.ClusterNameLabel: input.Name,
 			})).To(Succeed())
+	}, 5*time.Minute, 10*time.Second).Should(Succeed(), "Failed to list Machines to check the Ready condition for Cluster %s", klog.KRef(input.Namespace, input.Name))
 
-		g.Expect(machineList.Items).ToNot(BeEmpty(), "No machines found for cluster %s", input.Name)
-
-		for _, machine := range machineList.Items {
-			readyConditionFound := false
-			for _, condition := range machine.Status.Conditions {
-				if condition.Type == clusterv1.ReadyCondition {
-					readyConditionFound = true
-					g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Ready condition on Machine %q should be set to true; message: %s", machine.Name, condition.Message)
-					g.Expect(condition.Message).To(BeEmpty(), "The Ready condition on Machine %q should have an empty message", machine.Name)
-					break
-				}
+	Expect(machineList.Items).ToNot(BeEmpty(), "No machines found for cluster %s", input.Name)
+	for _, machine := range machineList.Items {
+		readyConditionFound := false
+		for _, condition := range machine.Status.Conditions {
+			if condition.Type == clusterv1.ReadyCondition {
+				readyConditionFound = true
+				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Ready condition on Machine %q should be set to true; message: %s", machine.Name, condition.Message)
+				Expect(condition.Message).To(BeEmpty(), "The Ready condition on Machine %q should have an empty message", machine.Name)
+				break
 			}
-			g.Expect(readyConditionFound).To(BeTrue(), "Machine %q should have a Ready condition", machine.Name)
 		}
-	}, 5*time.Minute, 10*time.Second).Should(Succeed(), "Failed to verify Machines Ready condition for Cluster %s", klog.KRef(input.Namespace, input.Name))
+		Expect(readyConditionFound).To(BeTrue(), "Machine %q should have a Ready condition", machine.Name)
+	}
 }

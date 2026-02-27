@@ -242,7 +242,6 @@ type APIServer struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
-	// +listMapKey=value
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"
@@ -283,7 +282,6 @@ type ControllerManager struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
-	// +listMapKey=value
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"
@@ -315,7 +313,6 @@ type Scheduler struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
-	// +listMapKey=value
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"
@@ -411,7 +408,6 @@ type NodeRegistrationOptions struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
-	// +listMapKey=value
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="kubeletExtraArgs name must be unique"
@@ -534,7 +530,6 @@ type LocalEtcd struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
-	// +listMapKey=value
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"

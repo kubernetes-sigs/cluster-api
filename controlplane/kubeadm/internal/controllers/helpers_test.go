@@ -441,7 +441,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 		"f:controlPlane":{},
 		"f:nodeRegistration":{
 			"f:kubeletExtraArgs":{
-				"k:{\"name\":\"v\",\"value\":\"8\"}":{
+				"k:{\"name\":\"v\"}":{
 					".":{},"f:name":{},"f:value":{}}
 				}
 			}
@@ -526,7 +526,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 		"f:controlPlane":{},
 		"f:nodeRegistration":{
 			"f:kubeletExtraArgs":{
-				"k:{\"name\":\"v\",\"value\":\"8\"}":{
+				"k:{\"name\":\"v\"}":{
 					".":{},"f:name":{},"f:value":{}}
 				}
 			}

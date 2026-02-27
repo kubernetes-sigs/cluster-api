@@ -137,6 +137,15 @@ To test another iteration, you'll need to follow the steps to build, push, updat
 
 ## Videos explaining CAPI architecture and code walkthroughs
 
+<aside class="note warning">
+
+<h1>AI-Generated Content</h1>
+
+[DeepWiki](https://deepwiki.com/kubernetes-sigs/cluster-api) provides an AI-generated overview of the Cluster API codebase.
+Please note this content is automatically generated and may not always be accurate or up-to-date.
+
+</aside>
+
 **CAPI components and architecture**
 
 * [Simplified Experience Of Building Cluster API Provider In Multitenant Cloud - October 2022](https://www.youtube.com/watch?v=1oj9BuV2dzA)

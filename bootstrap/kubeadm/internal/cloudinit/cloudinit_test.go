@@ -132,19 +132,18 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	g.Expect(out).To(ContainSubstring(expectedRunCmd))
 }
 
-func TestNewInitControlPlaneDiskMounts(t *testing.T) {
-	g := NewWithT(t)
-
-	cpinput := &ControlPlaneInput{
-		BaseUserData: BaseUserData{
-			Header:              "test",
-			BootCommands:        nil,
-			PreKubeadmCommands:  nil,
-			PostKubeadmCommands: nil,
-			WriteFiles:          nil,
-			Users:               nil,
-			NTP:                 nil,
-			DiskSetup: &bootstrapv1.DiskSetup{
+func TestNewInitControlPlaneDiskSetup(t *testing.T) {
+	tests := []struct {
+		name              string
+		diskSetup         *bootstrapv1.DiskSetup
+		mounts            []bootstrapv1.MountPoints
+		expectedDiskSetup string
+		expectedFSSetup   string
+		expectedMounts    string
+	}{
+		{
+			name: "Disk setup with partitions, filesystems and mounts",
+			diskSetup: &bootstrapv1.DiskSetup{
 				Partitions: []bootstrapv1.Partition{
 					{
 						Device:    "test-device",
@@ -162,38 +161,110 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
 					},
 				},
 			},
-			Mounts: []bootstrapv1.MountPoints{
+			mounts: []bootstrapv1.MountPoints{
 				{"test_disk", "/var/lib/testdir"},
 			},
-		},
-		Certificates:         secret.Certificates{},
-		ClusterConfiguration: "my-cluster-config",
-		InitConfiguration:    "my-init-config",
-	}
-
-	out, err := NewInitControlPlane(cpinput)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	expectedDiskSetup := `disk_setup:
+			expectedDiskSetup: `disk_setup:
   test-device:
     table_type: gpt
     layout: true
-    overwrite: false`
-	expectedFSSetup := `fs_setup:
+    overwrite: false`,
+			expectedFSSetup: `fs_setup:
   - label: test_disk
     filesystem: ext4
     device: test-device
     extra_opts:
       - -F
       - -E
-      - lazy_itable_init=1,lazy_journal_init=1`
-	expectedMounts := `mounts:
+      - lazy_itable_init=1,lazy_journal_init=1`,
+			expectedMounts: `mounts:
   - - test_disk
-    - /var/lib/testdir`
+    - /var/lib/testdir`,
+		},
+		{
+			name: "Disk setup with DiskLayout",
+			diskSetup: &bootstrapv1.DiskSetup{
+				Partitions: []bootstrapv1.Partition{
+					{
+						Device:    "test-device",
+						TableType: "gpt",
+						DiskLayout: []bootstrapv1.PartitionSpec{
+							{
+								Percentage:    30,
+								PartitionType: bootstrapv1.PartitionTypeLinux,
+							},
+							{
+								Percentage: 20,
+							},
+							{
+								Percentage:    50,
+								PartitionType: bootstrapv1.PartitionTypeLinuxRAID,
+							},
+						},
+					},
+				},
+			},
+			expectedDiskSetup: `disk_setup:
+  test-device:
+    table_type: gpt
+    layout:
+      - [30, 83]
+      - 20
+      - [50, fd]`,
+		},
+		{
+			name: "Disk setup with DiskLayout user-friendly partition type literal",
+			diskSetup: &bootstrapv1.DiskSetup{
+				Partitions: []bootstrapv1.Partition{
+					{
+						Device:    "test-device",
+						TableType: "gpt",
+						DiskLayout: []bootstrapv1.PartitionSpec{
+							{
+								Percentage:    100,
+								PartitionType: "LinuxSwap",
+							},
+						},
+					},
+				},
+			},
+			expectedDiskSetup: `disk_setup:
+  test-device:
+    table_type: gpt
+    layout:
+      - [100, 82]`,
+		},
+	}
 
-	g.Expect(string(out)).To(ContainSubstring(expectedDiskSetup))
-	g.Expect(string(out)).To(ContainSubstring(expectedFSSetup))
-	g.Expect(string(out)).To(ContainSubstring(expectedMounts))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cpinput := &ControlPlaneInput{
+				BaseUserData: BaseUserData{
+					Header:    "test",
+					DiskSetup: tt.diskSetup,
+					Mounts:    tt.mounts,
+				},
+				Certificates:         secret.Certificates{},
+				ClusterConfiguration: "my-cluster-config",
+				InitConfiguration:    "my-init-config",
+			}
+
+			out, err := NewInitControlPlane(cpinput)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			if tt.expectedDiskSetup != "" {
+				g.Expect(string(out)).To(ContainSubstring(tt.expectedDiskSetup))
+			}
+			if tt.expectedFSSetup != "" {
+				g.Expect(string(out)).To(ContainSubstring(tt.expectedFSSetup))
+			}
+			if tt.expectedMounts != "" {
+				g.Expect(string(out)).To(ContainSubstring(tt.expectedMounts))
+			}
+		})
+	}
 }
 
 func TestNewJoinControlPlaneAdditionalFileEncodings(t *testing.T) {

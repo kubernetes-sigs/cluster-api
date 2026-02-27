@@ -17,13 +17,15 @@ limitations under the License.
 package cloudinit
 
 import (
+	"fmt"
 	"strings"
 	"text/template"
 )
 
 var (
 	defaultTemplateFuncMap = template.FuncMap{
-		"Indent": templateYAMLIndent,
+		"Indent":                 templateYAMLIndent,
+		"CloudInitPartitionType": cloudInitPartitionType,
 	}
 )
 
@@ -31,4 +33,26 @@ func templateYAMLIndent(i int, input string) string {
 	split := strings.Split(input, "\n")
 	ident := "\n" + strings.Repeat(" ", i)
 	return strings.Repeat(" ", i) + strings.Join(split, ident)
+}
+
+func cloudInitPartitionType(partitionType any) string {
+	switch v := fmt.Sprint(partitionType); v {
+	case "Linux":
+		return "83"
+	case "LinuxSwap":
+		return "82"
+	case "LinuxRaid":
+		return "fd"
+	case "LVM":
+		return "8e"
+	case "Fat32":
+		return "0c"
+	case "NTFS":
+		return "07"
+	case "LinuxExtended":
+		return "85"
+	default:
+		// Preserve any raw cloud-init-compatible values to avoid breaking older input.
+		return v
+	}
 }

@@ -149,6 +149,7 @@ func (c *KubeadmConfigSpec) Validate(isKCP bool, pathPrefix *field.Path) field.E
 	allErrs = append(allErrs, c.validateFiles(pathPrefix)...)
 	allErrs = append(allErrs, c.validateUsers(pathPrefix)...)
 	allErrs = append(allErrs, c.validateIgnition(pathPrefix)...)
+	allErrs = append(allErrs, c.validateDiskSetup(pathPrefix)...)
 
 	// Validate JoinConfiguration.
 	if c.JoinConfiguration.IsDefined() {
@@ -401,6 +402,32 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 					cannotUseWithIgnition,
 				),
 			)
+		}
+	}
+
+	return allErrs
+}
+
+func (c *KubeadmConfigSpec) validateDiskSetup(pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for i, partition := range c.DiskSetup.Partitions {
+		if len(partition.DiskLayout) > 0 {
+			var totalPercentage int32
+			for _, layout := range partition.DiskLayout {
+				totalPercentage += layout.Percentage
+			}
+
+			if totalPercentage > 100 {
+				allErrs = append(
+					allErrs,
+					field.Invalid(
+						pathPrefix.Child("diskSetup", "partitions").Index(i).Child("diskLayout"),
+						totalPercentage,
+						"the sum of all partition percentages must not be greater than 100",
+					),
+				)
+			}
 		}
 	}
 
@@ -847,7 +874,52 @@ type Partition struct {
 	// +optional
 	// +kubebuilder:validation:Enum=mbr;gpt
 	TableType string `json:"tableType,omitempty"`
+
+	// diskLayout specifies an ordered list of partitions, where each item defines the
+	// percentage of disk space and optional partition type for that partition.
+	// The sum of all partition percentages must not be greater than 100.
+	// If specified, this will override the Layout field.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=100
+	DiskLayout []PartitionSpec `json:"diskLayout,omitempty"`
 }
+
+// PartitionSpec defines the size and optional type for a partition.
+type PartitionSpec struct {
+	// percentage of disk that partition will take (1-100)
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	// +required
+	Percentage int32 `json:"percentage,omitempty"`
+
+	// partitionType is the partition type (optional).
+	// Supported values are Linux, LinuxSwap, LinuxRaid, LVM, Fat32, NTFS,
+	// and LinuxExtended. These are translated to cloud-init partition type codes.
+	// +optional
+	PartitionType PartitionType `json:"partitionType,omitempty"`
+}
+
+// PartitionType defines the partition type.
+// +kubebuilder:validation:Enum="Linux";"LinuxSwap";"LinuxRaid";"LVM";"Fat32";"NTFS";"LinuxExtended"
+type PartitionType string
+
+const (
+	// PartitionTypeLinux maps to the cloud-init/Linux partition type code 83.
+	PartitionTypeLinux PartitionType = "Linux"
+	// PartitionTypeSwap maps to the cloud-init/Linux swap partition type code 82.
+	PartitionTypeSwap PartitionType = "LinuxSwap"
+	// PartitionTypeLinuxRAID maps to the cloud-init/Linux RAID partition type code fd.
+	PartitionTypeLinuxRAID PartitionType = "LinuxRaid"
+	// PartitionTypeLVM maps to the cloud-init/LVM partition type code 8e.
+	PartitionTypeLVM PartitionType = "LVM"
+	// PartitionTypeWin95FAT32LBA maps to the cloud-init/FAT32 partition type code 0c.
+	PartitionTypeWin95FAT32LBA PartitionType = "Fat32"
+	// PartitionTypeNTFS maps to the cloud-init/NTFS partition type code 07.
+	PartitionTypeNTFS PartitionType = "NTFS"
+	// PartitionTypeLinuxExtended maps to the cloud-init/Linux extended partition type code 85.
+	PartitionTypeLinuxExtended PartitionType = "LinuxExtended"
+)
 
 // Filesystem defines the file systems to be created.
 type Filesystem struct {

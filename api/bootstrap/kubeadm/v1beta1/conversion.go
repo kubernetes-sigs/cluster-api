@@ -449,6 +449,11 @@ func Convert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in, out, s)
 }
 
+func Convert_v1beta2_Partition_To_v1beta1_Partition(in *bootstrapv1.Partition, out *Partition, s apimachineryconversion.Scope) error {
+	// DiskLayout exists only in v1beta2 and is intentionally dropped when down-converting to v1beta1.
+	return autoConvert_v1beta2_Partition_To_v1beta1_Partition(in, out, s)
+}
+
 func Convert_v1beta2_BootstrapToken_To_v1beta1_BootstrapToken(in *bootstrapv1.BootstrapToken, out *BootstrapToken, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_BootstrapToken_To_v1beta1_BootstrapToken(in, out, s); err != nil {
 		return err

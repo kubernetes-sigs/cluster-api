@@ -703,7 +703,7 @@ func getClusterCreateAndWaitFn(input clusterctl.ApplyCustomClusterTemplateAndWai
 			WaitForClusterIntervals:      input.WaitForClusterIntervals,
 			WaitForControlPlaneIntervals: input.WaitForControlPlaneIntervals,
 			WaitForMachineDeployments:    input.WaitForMachineDeployments,
-			CreateOrUpdateOpts:           input.CreateOrUpdateOpts,
+			CreateOpts:                   input.CreateOpts,
 			PreWaitForCluster:            input.PreWaitForCluster,
 			PostMachinesProvisioned:      input.PostMachinesProvisioned,
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,

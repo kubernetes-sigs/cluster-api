@@ -19,6 +19,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -221,7 +222,13 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		)
 	}
 
-	allErrs = append(allErrs, validateRolloutStrategy(specPath.Child("rollout", "strategy"), newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+	allErrs = append(allErrs, validateRolloutStrategy(
+		specPath.Child("rollout", "strategy"),
+		newMD.Spec.Rollout.Strategy.Type,
+		newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+		newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge,
+		shouldEnforceRolloutStrategyTypeMismatchValidationForMachineDeployment(oldMD, newMD),
+	)...)
 	allErrs = append(allErrs, validateRemediationMaxInFlight(specPath.Child("remediation"), newMD.Spec.Remediation.MaxInFlight)...)
 
 	if newMD.Spec.Template.Spec.Version != "" {
@@ -245,8 +252,23 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind(), newMD.Name, allErrs)
 }
 
-func validateRolloutStrategy(fldPath *field.Path, maxUnavailable, maxSurge *intstr.IntOrString) field.ErrorList {
+func validateRolloutStrategy(
+	fldPath *field.Path,
+	strategyType clusterv1.MachineDeploymentRolloutStrategyType,
+	maxUnavailable, maxSurge *intstr.IntOrString,
+	enforceTypeMismatchValidation bool,
+) field.ErrorList {
 	var allErrs field.ErrorList
+	if enforceTypeMismatchValidation && isRolloutStrategyTypeMismatch(strategyType, maxUnavailable, maxSurge) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				fldPath.Child("rollingUpdate"),
+				fmt.Sprintf("can be set only if type is %q", clusterv1.RollingUpdateMachineDeploymentStrategyType),
+			),
+		)
+		return allErrs
+	}
 	if maxUnavailable != nil {
 		// Note: total and roundUp parameters don't matter for validation.
 		if _, err := intstr.GetScaledValueFromIntOrPercent(maxUnavailable, 0, false); err != nil {
@@ -277,6 +299,57 @@ func validateRolloutStrategy(fldPath *field.Path, maxUnavailable, maxSurge *ints
 		)
 	}
 	return allErrs
+}
+
+func isRolloutStrategyTypeMismatch(
+	strategyType clusterv1.MachineDeploymentRolloutStrategyType,
+	maxUnavailable, maxSurge *intstr.IntOrString,
+) bool {
+	return strategyType != "" &&
+		strategyType != clusterv1.RollingUpdateMachineDeploymentStrategyType &&
+		(maxUnavailable != nil || maxSurge != nil)
+}
+
+func shouldEnforceRolloutStrategyTypeMismatchValidationForMachineDeployment(oldMD, newMD *clusterv1.MachineDeployment) bool {
+	if oldMD == nil {
+		return true
+	}
+
+	oldType := oldMD.Spec.Rollout.Strategy.Type
+	newType := newMD.Spec.Rollout.Strategy.Type
+	return shouldEnforceRolloutStrategyTypeMismatchValidation(
+		newType,
+		newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+		newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge,
+		&oldType,
+		oldMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+		oldMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge,
+	)
+}
+
+func shouldEnforceRolloutStrategyTypeMismatchValidation(
+	newType clusterv1.MachineDeploymentRolloutStrategyType,
+	newMaxUnavailable, newMaxSurge *intstr.IntOrString,
+	oldType *clusterv1.MachineDeploymentRolloutStrategyType,
+	oldMaxUnavailable, oldMaxSurge *intstr.IntOrString,
+) bool {
+	if !isRolloutStrategyTypeMismatch(newType, newMaxUnavailable, newMaxSurge) {
+		return true
+	}
+	if oldType == nil {
+		return true
+	}
+	if !isRolloutStrategyTypeMismatch(*oldType, oldMaxUnavailable, oldMaxSurge) {
+		return true
+	}
+
+	// allow unchanged pre-existing invalid values so users can still update unrelated fields.
+	if *oldType == newType &&
+		reflect.DeepEqual(oldMaxUnavailable, newMaxUnavailable) &&
+		reflect.DeepEqual(oldMaxSurge, newMaxSurge) {
+		return false
+	}
+	return true
 }
 
 func validateRemediationMaxInFlight(fldPath *field.Path, maxInFlight *intstr.IntOrString) field.ErrorList {

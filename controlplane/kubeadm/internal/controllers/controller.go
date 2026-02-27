@@ -69,6 +69,20 @@ const (
 	kcpManagerName          = "capi-kubeadmcontrolplane"
 	kcpMetadataManagerName  = "capi-kubeadmcontrolplane-metadata"
 	kubeadmControlPlaneKind = "KubeadmControlPlane"
+
+	// Event reasons for certificate-related automatic actions.
+
+	// EventKubeconfigCertificateRotated is emitted when kubeconfig certificate
+	// is automatically rotated due to approaching expiry.
+	EventKubeconfigCertificateRotated = "KubeconfigCertificateRotated"
+
+	// EventKubeconfigCertificateRotationFailed is emitted when kubeconfig
+	// certificate rotation fails.
+	EventKubeconfigCertificateRotationFailed = "KubeconfigCertificateRotationFailed"
+
+	// EventCertificateExpiryTriggeredRollout is emitted when a machine is marked
+	// for rollout due to certificate expiry approaching the threshold.
+	EventCertificateExpiryTriggeredRollout = "CertificateExpiryTriggeredRollout"
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -518,6 +532,44 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", name, strings.Join(machinesUpToDateResults[name].LogMessages, ", ")))
 		}
 		log.Info(fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
+
+		// Emit events for machines being rolled out due to certificate expiry
+		// Following the double-sided event pattern: emit on both Machine (victim) and KCP (actor)
+		for _, machine := range machinesNeedingRollout {
+			upToDateResult, ok := machinesUpToDateResults[machine.Name]
+			if !ok {
+				continue
+			}
+
+			// Check if the rollout is due to certificate expiry
+			isCertExpiryRollout := false
+			for _, msg := range upToDateResult.LogMessages {
+				if strings.Contains(msg, internal.CertificateExpiryRolloutLogMessage) {
+					isCertExpiryRollout = true
+					break
+				}
+			}
+
+			if isCertExpiryRollout {
+				// Event on Machine (the victim) - tells the machine why it's being rolled out
+				r.recorder.Eventf(
+					machine,
+					corev1.EventTypeWarning,
+					EventCertificateExpiryTriggeredRollout,
+					"Machine will be rolled out due to certificate expiry approaching the configured threshold",
+				)
+
+				// Event on KCP (the actor) - tells the administrator what the controller is doing
+				r.recorder.Eventf(
+					controlPlane.KCP,
+					corev1.EventTypeNormal,
+					EventCertificateExpiryTriggeredRollout,
+					"Rolling out machine %s due to certificate expiry approaching threshold",
+					machine.Name,
+				)
+			}
+		}
+
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
 		return r.updateControlPlane(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
 	default:

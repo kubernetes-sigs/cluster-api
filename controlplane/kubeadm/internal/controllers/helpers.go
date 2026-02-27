@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -90,9 +91,28 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 
 	if needsRotation {
 		log.Info("Rotating kubeconfig secret")
+
 		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret, kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm())); err != nil {
+			// Emit warning event on failure
+			r.recorder.Eventf(
+				controlPlane.KCP,
+				corev1.EventTypeWarning,
+				EventKubeconfigCertificateRotationFailed,
+				"Failed to rotate kubeconfig secret for cluster %s: %v",
+				klog.KRef(controlPlane.Cluster.Namespace, controlPlane.Cluster.Name),
+				err,
+			)
 			return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
 		}
+
+		// Emit event to notify about automatic certificate rotation
+		r.recorder.Eventf(
+			controlPlane.KCP,
+			corev1.EventTypeNormal,
+			EventKubeconfigCertificateRotated,
+			"Automatically rotated kubeconfig secret for cluster %s due to client certificate approaching expiry",
+			klog.KRef(controlPlane.Cluster.Namespace, controlPlane.Cluster.Name),
+		)
 	}
 
 	return ctrl.Result{}, nil

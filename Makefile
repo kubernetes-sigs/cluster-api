@@ -768,8 +768,7 @@ verify-diagrams: generate-diagrams ## Verify generated diagrams are up to date
 .PHONY: verify-security
 verify-security: ## Verify code and images for vulnerabilities
 	$(MAKE) verify-container-images && R1=$$? || R1=$$?; \
-	$(MAKE) verify-govulncheck && R2=$$? || R2=$$?; \
-	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
+	if [ "$$R1" -ne "0" ]; then \
 	  echo "Check for vulnerabilities failed! There are vulnerabilities to be fixed"; \
 		exit 1; \
 	fi

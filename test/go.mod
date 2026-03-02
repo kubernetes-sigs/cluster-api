@@ -22,7 +22,7 @@ require (
 	github.com/vincent-petithory/dataurl v1.0.0
 	go.etcd.io/etcd/api/v3 v3.6.8
 	go.etcd.io/etcd/client/v3 v3.6.8
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.51.0
 	gomodules.xyz/jsonpatch/v2 v2.5.0
 	google.golang.org/grpc v1.78.0
 	k8s.io/api v0.35.1

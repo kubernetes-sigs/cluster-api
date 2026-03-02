@@ -263,7 +263,7 @@ the implementer should exit reconciliation until it sees Cluster's `spec.control
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in Apr 2027.
 
 ```go
 type FooClusterSpec struct {
@@ -320,7 +320,7 @@ the Cluster controller will surface this info in Cluster's `status.failureDomain
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in Apr 2027.
 
 For reference, with the v1beta1 contract the field is of type `clusterv1beta1.FailureDomains`, which is a map defined as 
 `map[string]clusterv1beta1.FailureDomainSpec`. A unique key must be used for each `FailureDomainSpec`.
@@ -365,7 +365,7 @@ and `status.failureDomains` will be surfaced on Cluster's corresponding fields a
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in Apr 2027.
 
 With regards to initialization completed:
 
@@ -405,7 +405,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in Apr 2027.
 
 With regards to conditions:
 
@@ -430,7 +430,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in Apr 2027.
 
 With regards to terminal failures:
 

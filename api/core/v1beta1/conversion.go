@@ -75,10 +75,12 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 
 	if ok {
 		dst.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = restored.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions
+		dst.Spec.Topology.ControlPlane.Rollout = restored.Spec.Topology.ControlPlane.Rollout
 		for _, restoredMD := range restored.Spec.Topology.Workers.MachineDeployments {
 			for i, dstMD := range dst.Spec.Topology.Workers.MachineDeployments {
 				if restoredMD.Name == dstMD.Name {
 					dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = restoredMD.HealthCheck.Checks.UnhealthyMachineConditions
+					dst.Spec.Topology.Workers.MachineDeployments[i].Rollout.After = restoredMD.Rollout.After
 				}
 			}
 		}

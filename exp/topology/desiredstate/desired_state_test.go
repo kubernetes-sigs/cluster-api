@@ -396,6 +396,7 @@ func TestComputeControlPlane(t *testing.T) {
 	nodeDrainTimeout := topologyDuration
 	nodeVolumeDetachTimeout := topologyDuration
 	nodeDeletionTimeout := topologyDuration
+	rolloutAfter := metav1.Now().Rfc3339Copy()
 	readinessGates := []clusterv1.MachineReadinessGate{
 		{ConditionType: "foo"},
 		{ConditionType: "bar"},
@@ -415,6 +416,9 @@ func TestComputeControlPlane(t *testing.T) {
 					},
 					ReadinessGates: readinessGates,
 					Replicas:       &replicas,
+					Rollout: clusterv1.ControlPlaneTopologyRolloutSpec{
+						After: rolloutAfter,
+					},
 					Deletion: clusterv1.ControlPlaneTopologyMachineDeletionSpec{
 						NodeDrainTimeoutSeconds:        &nodeDrainTimeout,
 						NodeVolumeDetachTimeoutSeconds: &nodeVolumeDetachTimeout,
@@ -481,6 +485,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
+		assertNestedField(g, obj, rolloutAfter.ToUnstructured(), contract.ControlPlane().RolloutAfter().Path()...)
 		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
@@ -521,6 +526,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
+		assertNestedField(g, obj, rolloutAfter.ToUnstructured(), contract.ControlPlane().RolloutAfter().Path()...)
 		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path()...)
 		assertNestedField(g, obj, int64(topologyDuration), contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(topologyDuration), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Path()...)

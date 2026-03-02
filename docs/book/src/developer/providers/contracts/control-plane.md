@@ -67,6 +67,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [ControlPlane: replicas]                                             | No        | Mandatory if control plane has a notion of number of instances.                                                            |
 | [ControlPlane: version]                                              | No        | Mandatory if control plane allows direct management of the Kubernetes version in use; Mandatory for cluster class support. |
 | [ControlPlane: machines]                                             | No        | Mandatory if control plane instances are represented with a set of Cluster API Machines.                                   |
+| [ControlPlane: rolloutAfter]                                         | No        |                                                                                                                            |
 | [ControlPlane: initialization completed]                             | Yes       |                                                                                                                            |
 | [ControlPlane: in-place updates]                                     | No        | Only supported for control plane providers with control plane machines                                                     |
 | [ControlPlane: conditions]                                           | No        |                                                                                                                            |
@@ -598,6 +599,34 @@ can benefit from several Cluster API behaviours, for example:
 - Machine health checking
 - Machine drain and wait for volume detach during deletion
 
+### ControlPlane: rolloutAfter
+
+In case you are developing a control plane provider which supports scheduled rollout via
+the `rolloutAfter` field, following fields MUST be implemented in the ControlPlane `spec`.
+
+```go
+type FooControlPlaneSpec struct {
+    // rollout allows you to configure the behaviour of rolling updates to the control plane.
+    // +optional
+    Rollout FooControlPlaneRolloutSpec `json:"rollout,omitempty,omitzero"`
+	
+    // See other rules for more details about mandatory/optional fields in ControlPlane status.
+    // Other fields SHOULD be added based on the needs of your provider.
+}
+
+// +kubebuilder:validation:MinProperties=1
+type FooControlPlaneRolloutSpec struct {
+    // after is a field to indicate a rollout should be performed
+    // after the specified time even if no changes have been made to the
+    // KubeadmControlPlane.
+    // Example: In the YAML the time can be specified in the RFC3339 format.
+    // To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+    // use "2023-03-09T09:00:00Z".
+    // +optional
+    After metav1.Time `json:"after,omitempty,omitzero"`
+}
+```
+
 ### ControlPlane: initialization completed
 
 Each ControlPlane MUST report when the Kubernetes control plane is initialized; usually a control plane is considered
@@ -934,6 +963,7 @@ is implemented in ControlPlane controllers:
 [ControlPlane: replicas]: #controlplane-replicas 
 [scale]: https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#subresources
 [ControlPlane: machines]: #controlplane-machines
+[ControlPlane: rolloutAfter]: #controlplane-rolloutafter
 [In place propagation of changes affecting Kubernetes objects only]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20221003-In-place-propagation-of-Kubernetes-objects-only-changes.md
 [ControlPlane: version]: #controlplane-version 
 [ControlPlane: initialization completed]: #controlplane-initialization-completed

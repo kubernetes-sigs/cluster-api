@@ -180,7 +180,7 @@ type HealthCheckingState struct {
 
 // ErrClusterNotConnected is returned by the ClusterCache when e.g. a Client cannot be returned
 // because there is no connection to the workload cluster.
-var ErrClusterNotConnected = errors.New("connection to the workload cluster is down")
+var ErrClusterNotConnected = fmt.Errorf("connection to the workload cluster is down")
 
 // Watcher is an interface that can start a Watch.
 type Watcher interface {
@@ -326,7 +326,7 @@ func SetupWithManager(ctx context.Context, mgr manager.Manager, options Options,
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), log, options.WatchFilterValue)).
 		Complete(cc)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed setting up ClusterCache with a controller manager")
+		return nil, errors.WithMessage(err, "failed setting up ClusterCache with a controller manager")
 	}
 
 	return cc, nil
@@ -377,7 +377,7 @@ type clusterSource struct {
 func (cc *clusterCache) GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.Wrapf(ErrClusterNotConnected, "error getting client")
+		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting client")
 	}
 	return accessor.GetClient(ctx)
 }
@@ -385,7 +385,7 @@ func (cc *clusterCache) GetClient(ctx context.Context, cluster client.ObjectKey)
 func (cc *clusterCache) GetReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.Wrapf(ErrClusterNotConnected, "error getting client reader")
+		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting client reader")
 	}
 	return accessor.GetReader(ctx)
 }
@@ -395,7 +395,7 @@ func (cc *clusterCache) GetReader(ctx context.Context, cluster client.ObjectKey)
 func (cc *clusterCache) GetUncachedClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.Wrapf(ErrClusterNotConnected, "error getting uncached client")
+		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting uncached client")
 	}
 	return accessor.GetUncachedClient(ctx)
 }
@@ -403,7 +403,7 @@ func (cc *clusterCache) GetUncachedClient(ctx context.Context, cluster client.Ob
 func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.ObjectKey) (*rest.Config, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.Wrapf(ErrClusterNotConnected, "error getting REST config")
+		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting REST config")
 	}
 	return accessor.GetRESTConfig(ctx)
 }
@@ -411,7 +411,7 @@ func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.Object
 func (cc *clusterCache) Watch(ctx context.Context, cluster client.ObjectKey, watcher Watcher) error {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
+		return errors.WithMessagef(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
 	return accessor.Watch(ctx, watcher)
 }

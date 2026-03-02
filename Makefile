@@ -760,7 +760,7 @@ verify-import-restrictions: $(IMPORT_BOSS) ## Verify import restrictions with im
 
 .PHONY: clusterctl
 clusterctl: ## Build the clusterctl binary
-	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
+	go build -trimpath -ldflags "-s -w $(LDFLAGS)" -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 ALL_MANAGERS = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure
 

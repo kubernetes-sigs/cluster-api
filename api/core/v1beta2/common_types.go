@@ -309,7 +309,7 @@ type MachineAddress struct {
 }
 
 // MachineAddresses is a slice of MachineAddress items to be used by infrastructure providers.
-// +kubebuilder:validation:MaxItems=128
+// +kubebuilder:validation:MaxItems=256
 // +listType=atomic
 type MachineAddresses []MachineAddress
 

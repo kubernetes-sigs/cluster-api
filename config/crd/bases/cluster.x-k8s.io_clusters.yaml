@@ -2096,6 +2096,21 @@ spec:
                           When specified against a control plane provider that lacks support for this field, this value will be ignored.
                         format: int32
                         type: integer
+                      rollout:
+                        description: rollout allows you to configure the behavior
+                          of rolling updates to the control plane.
+                        minProperties: 1
+                        properties:
+                          after:
+                            description: |-
+                              after is a field to indicate a rollout should be performed
+                              after the specified time even if no changes have been made to the ControlPlane.
+                              Example: In the YAML the time can be specified in the RFC3339 format.
+                              To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+                              use "2023-03-09T09:00:00Z".
+                            format: date-time
+                            type: string
+                        type: object
                       variables:
                         description: variables can be used to customize the ControlPlane
                           through patches.
@@ -2586,6 +2601,16 @@ spec:
                                 It allows you to define the strategy used during rolling replacements.
                               minProperties: 1
                               properties:
+                                after:
+                                  description: |-
+                                    after is a field to indicate a rollout should be performed
+                                    after the specified time even if no changes have been made to the
+                                    MachineDeployment.
+                                    Example: In the YAML the time can be specified in the RFC3339 format.
+                                    To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+                                    use "2023-03-09T09:00:00Z".
+                                  format: date-time
+                                  type: string
                                 strategy:
                                   description: strategy specifies how to roll out
                                     control plane Machines.

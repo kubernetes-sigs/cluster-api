@@ -632,6 +632,10 @@ type ControlPlaneTopology struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
+	// rollout allows you to configure the behavior of rolling updates to the control plane.
+	// +optional
+	Rollout ControlPlaneTopologyRolloutSpec `json:"rollout,omitempty,omitzero"`
+
 	// healthCheck allows to enable, disable and override control plane health check
 	// configuration from the ClusterClass for this control plane.
 	// +optional
@@ -660,6 +664,18 @@ type ControlPlaneTopology struct {
 	// variables can be used to customize the ControlPlane through patches.
 	// +optional
 	Variables ControlPlaneVariables `json:"variables,omitempty,omitzero"`
+}
+
+// ControlPlaneTopologyRolloutSpec defines the rollout behavior.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneTopologyRolloutSpec struct {
+	// after is a field to indicate a rollout should be performed
+	// after the specified time even if no changes have been made to the ControlPlane.
+	// Example: In the YAML the time can be specified in the RFC3339 format.
+	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+	// use "2023-03-09T09:00:00Z".
+	// +optional
+	After metav1.Time `json:"after,omitempty,omitzero"`
 }
 
 // ControlPlaneTopologyHealthCheck defines a MachineHealthCheck for control plane machines.
@@ -1107,6 +1123,15 @@ type MachineDeploymentTopologyMachineDeletionSpec struct {
 // MachineDeploymentTopologyRolloutSpec defines the rollout behavior.
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentTopologyRolloutSpec struct {
+	// after is a field to indicate a rollout should be performed
+	// after the specified time even if no changes have been made to the
+	// MachineDeployment.
+	// Example: In the YAML the time can be specified in the RFC3339 format.
+	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+	// use "2023-03-09T09:00:00Z".
+	// +optional
+	After metav1.Time `json:"after,omitempty,omitzero"`
+
 	// strategy specifies how to roll out control plane Machines.
 	// +optional
 	Strategy MachineDeploymentTopologyRolloutStrategy `json:"strategy,omitempty,omitzero"`

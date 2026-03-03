@@ -1646,6 +1646,7 @@ func autoConvert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in
 		return err
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
+	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))

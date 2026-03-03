@@ -118,6 +118,13 @@ func (c *ControlPlaneContract) ControlPlaneEndpoint() *ControlPlaneEndpoint {
 	}
 }
 
+// RolloutAfter provides access to the rolloutAfter spec field.
+func (c *ControlPlaneContract) RolloutAfter() *Time {
+	return &Time{
+		path: Path{"spec", "rollout", "after"},
+	}
+}
+
 // Replicas provide access to replicas field in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.

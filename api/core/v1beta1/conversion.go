@@ -140,7 +140,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsCluster(dst)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
@@ -387,7 +387,7 @@ func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 	dropEmptyStringsClusterClass(dst)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
@@ -444,7 +444,7 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsMachineSpec(&dst.Spec)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
@@ -493,7 +493,7 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
@@ -541,7 +541,7 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
@@ -577,7 +577,7 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.RemediationTemplate.Namespace = src.Namespace
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
@@ -632,7 +632,7 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachineDrainRule) ConvertTo(dstRaw conversion.Hub) error {

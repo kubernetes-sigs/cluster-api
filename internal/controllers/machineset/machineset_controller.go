@@ -55,6 +55,7 @@ import (
 	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -665,6 +666,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, b
 			m.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
 			m.Spec.Deletion.NodeDrainTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
 			m.Spec.Deletion.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+			webhooks.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on MS.
 			m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 			m.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
 			m.Spec.Taints = machineSet.Spec.Template.Spec.Taints

@@ -63,11 +63,16 @@ func (webhook *Machine) Default(_ context.Context, m *clusterv1.Machine) error {
 		m.Spec.Version = normalizedVersion
 	}
 
+	DefaultMachineNodeDeletionTimeoutSeconds(m)
+
+	return nil
+}
+
+// DefaultMachineNodeDeletionTimeoutSeconds defaults the Machine NodeDeletionTimeoutSeconds field.
+func DefaultMachineNodeDeletionTimeoutSeconds(m *clusterv1.Machine) {
 	if m.Spec.Deletion.NodeDeletionTimeoutSeconds == nil {
 		m.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(defaultNodeDeletionTimeoutSeconds)
 	}
-
-	return nil
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.

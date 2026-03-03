@@ -618,7 +618,7 @@ type FooControlPlaneSpec struct {
 type FooControlPlaneRolloutSpec struct {
     // after is a field to indicate a rollout should be performed
     // after the specified time even if no changes have been made to the
-    // KubeadmControlPlane.
+    // FooControlPlane.
     // Example: In the YAML the time can be specified in the RFC3339 format.
     // To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
     // use "2023-03-09T09:00:00Z".

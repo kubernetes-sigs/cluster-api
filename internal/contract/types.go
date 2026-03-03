@@ -235,12 +235,12 @@ type Time struct {
 	path Path
 }
 
-// Path returns the path to the metav1.Duration value.
+// Path returns the path to the metav1.Time value.
 func (i *Time) Path() Path {
 	return i.path
 }
 
-// Get gets the metav1.Duration value.
+// Get gets the metav1.Time value.
 func (i *Time) Get(obj *unstructured.Unstructured) (*metav1.Time, error) {
 	timeString, ok, err := unstructured.NestedString(obj.UnstructuredContent(), i.path...)
 	if err != nil {
@@ -252,13 +252,13 @@ func (i *Time) Get(obj *unstructured.Unstructured) (*metav1.Time, error) {
 
 	d := &metav1.Time{}
 	if err := d.UnmarshalJSON([]byte(strconv.Quote(timeString))); err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal duration %s from object", "."+strings.Join(i.path, "."))
+		return nil, errors.Wrapf(err, "failed to unmarshal time %s from object", "."+strings.Join(i.path, "."))
 	}
 
 	return d, nil
 }
 
-// Set sets the metav1.Duration value in the path.
+// Set sets the metav1.Time value in the path.
 func (i *Time) Set(obj *unstructured.Unstructured, value metav1.Time) error {
 	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value.ToUnstructured(), i.path...); err != nil {
 		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(i.path, "."), obj.GroupVersionKind())

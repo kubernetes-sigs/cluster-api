@@ -278,24 +278,48 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 
 		By("Rolling out control plane and MachineDeployment (rollout.after)")
 		machinesBeforeUpgrade = getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
-		By("Setting rollout.after on control plane")
-		Eventually(func(g Gomega) {
-			kcp := clusterResources.ControlPlane
-			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
-			patchHelper, err := patch.NewHelper(kcp, input.BootstrapClusterProxy.GetClient())
-			g.Expect(err).ToNot(HaveOccurred())
-			kcp.Spec.Rollout.After = metav1.Time{Time: time.Now()}
-			g.Expect(patchHelper.Patch(ctx, kcp)).To(Succeed())
-		}, 10*time.Second, 1*time.Second).Should(Succeed())
-		By("Setting rollout.after on MachineDeployments")
-		for _, md := range clusterResources.MachineDeployments {
+		if !clusterResources.Cluster.Spec.Topology.IsDefined() {
+			By("Setting rollout.after on control plane")
 			Eventually(func(g Gomega) {
-				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(md), md)).To(Succeed())
-				patchHelper, err := patch.NewHelper(md, input.BootstrapClusterProxy.GetClient())
+				kcp := clusterResources.ControlPlane
+				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
+				patchHelper, err := patch.NewHelper(kcp, input.BootstrapClusterProxy.GetClient())
 				g.Expect(err).ToNot(HaveOccurred())
-				md.Spec.Rollout.After = metav1.Time{Time: time.Now()}
-				g.Expect(patchHelper.Patch(ctx, md)).To(Succeed())
+				kcp.Spec.Rollout.After = metav1.Time{Time: time.Now()}
+				g.Expect(patchHelper.Patch(ctx, kcp)).To(Succeed())
 			}, 10*time.Second, 1*time.Second).Should(Succeed())
+			By("Setting rollout.after on MachineDeployments")
+			for _, md := range clusterResources.MachineDeployments {
+				Eventually(func(g Gomega) {
+					g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(md), md)).To(Succeed())
+					patchHelper, err := patch.NewHelper(md, input.BootstrapClusterProxy.GetClient())
+					g.Expect(err).ToNot(HaveOccurred())
+					md.Spec.Rollout.After = metav1.Time{Time: time.Now()}
+					g.Expect(patchHelper.Patch(ctx, md)).To(Succeed())
+				}, 10*time.Second, 1*time.Second).Should(Succeed())
+			}
+		} else {
+			By("Setting rollout.after on control plane")
+			Eventually(func(g Gomega) {
+				cluster := clusterResources.Cluster
+				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), cluster)).To(Succeed())
+				patchHelper, err := patch.NewHelper(cluster, input.BootstrapClusterProxy.GetClient())
+				g.Expect(err).ToNot(HaveOccurred())
+				cluster.Spec.Topology.ControlPlane.Rollout.After = metav1.Time{Time: time.Now()}
+				g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
+			}, 10*time.Second, 1*time.Second).Should(Succeed())
+			By("Setting rollout.after on MachineDeployments")
+			for i, md := range clusterResources.Cluster.Spec.Topology.Workers.MachineDeployments {
+				Eventually(func(g Gomega) {
+					cluster := clusterResources.Cluster
+					g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), cluster)).To(Succeed())
+					patchHelper, err := patch.NewHelper(cluster, input.BootstrapClusterProxy.GetClient())
+					g.Expect(err).ToNot(HaveOccurred())
+					md.Rollout.After = metav1.Time{Time: time.Now()}
+					clusterResources.Cluster.Spec.Topology.Workers.MachineDeployments[i] = md
+					g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
+				}, 10*time.Second, 1*time.Second).Should(Succeed())
+			}
 		}
 		By("Verifying all Machines are replaced through rollout.after")
 		Eventually(func(g Gomega) {

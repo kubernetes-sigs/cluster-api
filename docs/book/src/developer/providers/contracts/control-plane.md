@@ -280,7 +280,7 @@ the implementer should exit reconciliation until it sees Cluster's `spec.control
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 ```go
 type FooControlPlaneSpec struct {
@@ -376,7 +376,7 @@ documentation][scale].
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to v1beta1 replica counters, the Cluster controller with temporarily continue to read
 `status.readyReplicas`,  `status.updatedReplicas` and `status.unavailableReplicas`, even if the semantic of the 
@@ -504,7 +504,7 @@ See [In place propagation of changes affecting Kubernetes objects only] as well 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 For reference. The v1beta1 contract had `nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout` fields
 of type `*metav1.Duration` instead of the new fields with `Seconds` suffix of type `*int32`.
@@ -641,7 +641,7 @@ If defined, also ControlPlane's `spec.controlPlaneEndpoint` will be surfaced on 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to initialization completed:
 
@@ -718,7 +718,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to conditions:
 
@@ -743,7 +743,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to terminal failures:
 
@@ -870,7 +870,7 @@ propagated to Kubernetes Nodes.
 
 <h1>Heads up! this will change with the v1beta2 contract</h1>
 
-When the v1beta2 contract will be released (tentative Apr 2025), Cluster API is going to standardize how
+When the v1beta2 contract will be released (August 2025), Cluster API is going to standardize how
 machines determine if they are available or up to date with the spec of the owner resource.
 
 In order to ensure a nice and consistent user experience across the entire Cluster, also ControlPlane providers

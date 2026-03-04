@@ -32,9 +32,10 @@ import (
 )
 
 type reconcilerWrapper struct {
-	name           string
-	reconcileCache cache.Cache[reconcileCacheEntry]
-	reconciler     reconcile.Reconciler
+	name              string
+	reconcileCache    cache.Cache[reconcileCacheEntry]
+	reconciler        reconcile.Reconciler
+	rateLimitInterval time.Duration
 }
 
 func (r reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
@@ -52,7 +53,7 @@ func (r reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request)
 		// Under certain circumstances the ReconcileAfter time will be set to a later time via DeferNextReconcile /
 		// DeferNextReconcileForObject, e.g. when we're waiting for Pods to terminate during node drain or
 		// volumes to detach. This is done to ensure we're not spamming the workload cluster API server.
-		r.reconcileCache.Add(reconcileCacheEntry{Request: req, ReconcileAfter: reconcileStartTime.Add(1 * time.Second)})
+		r.reconcileCache.Add(reconcileCacheEntry{Request: req, ReconcileAfter: reconcileStartTime.Add(r.rateLimitInterval)})
 	}
 
 	// Update metrics after processing each item

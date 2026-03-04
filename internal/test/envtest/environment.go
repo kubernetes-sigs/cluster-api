@@ -129,8 +129,8 @@ func registerSchemes(s *runtime.Scheme) {
 // RunInput is the input for Run.
 type RunInput struct {
 	M                           *testing.M
-	ManagerUncachedObjs         []client.Object
 	ManagerCacheOptions         cache.Options
+	ManagerClientOptions        client.Options
 	SetupIndexes                func(ctx context.Context, mgr ctrl.Manager)
 	SetupReconcilers            func(ctx context.Context, mgr ctrl.Manager)
 	SetupEnv                    func(e *Environment)
@@ -170,7 +170,7 @@ func Run(ctx context.Context, input RunInput) int {
 	}
 
 	// Bootstrapping test environment
-	env := newEnvironment(ctx, scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerUncachedObjs...)
+	env := newEnvironment(ctx, scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerClientOptions)
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	env.cancelManager = cancel
@@ -255,7 +255,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, uncachedObjs ...client.Object) *Environment {
+func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, managerClientOptions client.Options) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
@@ -357,13 +357,8 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 		Metrics: metricsserver.Options{
 			BindAddress: "0",
 		},
-		Client: client.Options{
-			Cache: &client.CacheOptions{
-				DisableFor: uncachedObjs,
-				// Use the cache for all Unstructured get/list calls.
-				Unstructured: true,
-			},
-		},
+		Cache:  managerCacheOptions,
+		Client: managerClientOptions,
 		WebhookServer: webhook.NewServer(
 			webhook.Options{
 				Port:    env.WebhookInstallOptions.LocalServingPort,
@@ -371,7 +366,6 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 				Host:    host,
 			},
 		),
-		Cache: managerCacheOptions,
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)

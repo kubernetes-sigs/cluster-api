@@ -64,9 +64,15 @@ func TestMain(m *testing.M) {
 				},
 			},
 		},
-		ManagerUncachedObjs: []client.Object{
-			&corev1.ConfigMap{},
-			&corev1.Secret{},
+		ManagerClientOptions: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+				// Use the cache for all Unstructured get/list calls.
+				Unstructured: true,
+			},
 		},
 		SetupEnv: func(e *envtest.Environment) { env = e },
 		// We are testing the patch helper against a real API Server, no need of additional indexes/reconcilers.

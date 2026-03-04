@@ -425,11 +425,17 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 	oldMSCreatedThreeBeforeRolloutAfter := *oldMS.DeepCopy()
 	oldMSCreatedThreeBeforeRolloutAfter.CreationTimestamp = threeBeforeRolloutAfter
 
+	oldMSCreatedAtRolloutAfter := *oldMS.DeepCopy()
+	oldMSCreatedAtRolloutAfter.CreationTimestamp = rolloutAfter
+
 	msCreatedThreeBeforeRolloutAfter := generateMS(deployment)
 	msCreatedThreeBeforeRolloutAfter.CreationTimestamp = threeBeforeRolloutAfter
 
 	msCreatedTwoBeforeRolloutAfter := generateMS(deployment)
 	msCreatedTwoBeforeRolloutAfter.CreationTimestamp = twoBeforeRolloutAfter
+
+	msCreatedAtRolloutAfter := generateMS(deployment)
+	msCreatedAtRolloutAfter.CreationTimestamp = rolloutAfter
 
 	msCreatedAfterRolloutAfter := generateMS(deployment)
 	msCreatedAfterRolloutAfter.CreationTimestamp = oneAfterRolloutAfter
@@ -574,6 +580,26 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s needs rollout: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required, MachineDeployment spec.rolloutAfter expired`, oldMS.Name),
 		},
 		{
+			Name:               "Get nil if no MachineSet matches the desired intent of the MachineDeployment, reconciliationTime is > rolloutAfter, MachineSet created at rolloutAfter",
+			deployment:         *deploymentWithRolloutAfter,
+			msList:             []*clusterv1.MachineSet{&oldMSCreatedAtRolloutAfter},
+			reconciliationTime: oneAfterRolloutAfter,
+			expectedNewMS:      nil,
+			expectedOldMSs:     []*clusterv1.MachineSet{&oldMSCreatedAtRolloutAfter},
+			expectedUpToDateResults: map[string]UpToDateResult{
+				oldMS.Name: {
+					ConditionMessages: []string{"InfrastructureMachine is not up-to-date"},
+					LogMessages: []string{
+						// No additional message must be added to old machine sets when reconciliationTime is > rolloutAfter but MachineSet is created at rolloutAfter.
+						"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required",
+					},
+					// EligibleForInPlaceUpdate decision should not change for oldMS when reconciliationTime is > rolloutAfter but MachineSet is created at rolloutAfter.
+					EligibleForInPlaceUpdate: true,
+				},
+			},
+			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s needs rollout: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required`, oldMS.Name),
+		},
+		{
 			Name:               "Get the MachineSet if reconciliationTime < rolloutAfter",
 			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter, &msCreatedThreeBeforeRolloutAfter},
@@ -628,6 +654,22 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 					EligibleForInPlaceUpdate: false,
 				},
 				msCreatedAfterRolloutAfter.Name: {
+					EligibleForInPlaceUpdate: false,
+				},
+			},
+		},
+		{
+			Name:               "Get MachineSet created at RolloutAfter if reconciliationTime is > rolloutAfter",
+			deployment:         *deploymentWithRolloutAfter,
+			msList:             []*clusterv1.MachineSet{&msCreatedAtRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: twoAfterRolloutAfter,
+			expectedNewMS:      &msCreatedAtRolloutAfter,
+			expectedOldMSs:     []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
+			expectedUpToDateResults: map[string]UpToDateResult{
+				msCreatedTwoBeforeRolloutAfter.Name: {
+					EligibleForInPlaceUpdate: false,
+				},
+				msCreatedAtRolloutAfter.Name: {
 					EligibleForInPlaceUpdate: false,
 				},
 			},

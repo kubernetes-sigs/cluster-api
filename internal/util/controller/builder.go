@@ -46,12 +46,13 @@ const (
 
 // Builder is a wrapper around controller-runtime's builder.Builder.
 type Builder struct {
-	builder        *builder.Builder
-	mgr            manager.Manager
-	predicateLog   logr.Logger
-	options        controller.TypedOptions[reconcile.Request]
-	forObject      client.Object
-	controllerName string
+	builder           *builder.Builder
+	mgr               manager.Manager
+	predicateLog      logr.Logger
+	options           controller.TypedOptions[reconcile.Request]
+	forObject         client.Object
+	controllerName    string
+	rateLimitInterval time.Duration
 }
 
 // NewControllerManagedBy returns a new controller builder that will be started by the provided Manager.
@@ -113,6 +114,13 @@ func (blder *Builder) WatchesRawSource(src source.TypedSource[reconcile.Request]
 // WithOptions overrides the controller options used in doController. Defaults to empty.
 func (blder *Builder) WithOptions(options controller.TypedOptions[reconcile.Request]) *Builder {
 	blder.options = options
+	return blder
+}
+
+// WithRateLimitInterval overrides the default rate limit interval, 1s.
+// Note: intervals lower than 1s will be ignored.
+func (blder *Builder) WithRateLimitInterval(interval time.Duration) *Builder {
+	blder.rateLimitInterval = interval
 	return blder
 }
 
@@ -200,6 +208,12 @@ func (blder *Builder) Build(r reconcile.TypedReconciler[reconcile.Request]) (Con
 		}
 	}
 
+	// Sets the rate limit interval.
+	rateLimitInterval := time.Second
+	if blder.rateLimitInterval > time.Second {
+		rateLimitInterval = blder.rateLimitInterval
+	}
+
 	// Passing the options to the underlying builder here because we modified them above.
 	blder.builder.WithOptions(blder.options)
 
@@ -207,9 +221,10 @@ func (blder *Builder) Build(r reconcile.TypedReconciler[reconcile.Request]) (Con
 	reconcileCache := cache.New[reconcileCacheEntry](cache.DefaultTTL)
 
 	c, err := blder.builder.Build(reconcilerWrapper{
-		name:           controllerName,
-		reconciler:     r,
-		reconcileCache: reconcileCache,
+		name:              controllerName,
+		reconciler:        r,
+		reconcileCache:    reconcileCache,
+		rateLimitInterval: rateLimitInterval,
 	})
 	if err != nil {
 		return nil, err

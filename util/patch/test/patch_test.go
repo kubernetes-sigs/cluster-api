@@ -324,7 +324,8 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 				g.Expect(cl.specPatchCalls).To(Equal(0))
-				g.Expect(cl.statusPatchCalls).To(Equal(1))
+				// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+				g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 				t.Log("Validating the object has been updated")
 				g.Eventually(func() bool {
@@ -399,7 +400,8 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 				g.Expect(cl.specPatchCalls).To(Equal(1))
-				g.Expect(cl.statusPatchCalls).To(Equal(2))
+				// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+				g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(2), Equal(3)))
 
 				t.Log("Validating the object has been updated")
 				objAfter := obj.DeepCopy()
@@ -472,7 +474,8 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
 				g.Expect(cl.specPatchCalls).To(Equal(0))
-				g.Expect(cl.statusPatchCalls).To(Equal(0))
+				// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+				g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(0), Equal(1)))
 
 				t.Log("Validating the object has not been updated")
 				g.Eventually(func() bool {
@@ -530,7 +533,8 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 				g.Expect(cl.specPatchCalls).To(Equal(0))
-				g.Expect(cl.statusPatchCalls).To(Equal(1))
+				// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+				g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 				t.Log("Validating the object has been updated")
 				readyBefore := conditions.Get(obj, "Ready")
@@ -582,7 +586,8 @@ func TestPatchHelper(t *testing.T) {
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 				g.Expect(cl.specPatchCalls).To(Equal(0))
-				g.Expect(cl.statusPatchCalls).To(Equal(1))
+				// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+				g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 				t.Log("Validating the object has been updated")
 				readyBefore := conditions.Get(obj, "Ready")
@@ -1293,7 +1298,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -1366,7 +1372,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(1))
-			g.Expect(cl.statusPatchCalls).To(Equal(2))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(2), Equal(3)))
 
 			t.Log("Validating the object has been updated")
 			objAfter := obj.DeepCopy()
@@ -1438,7 +1445,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(0))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(0), Equal(1)))
 
 			t.Log("Validating the object has not been updated")
 			g.Eventually(func() bool {
@@ -1496,7 +1504,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType("Ready")}})).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			readyBefore := v1beta1conditions.Get(obj, clusterv1.ConditionType("Ready"))
@@ -1548,7 +1557,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			readyBefore := v1beta1conditions.Get(obj, clusterv1.ConditionType("Ready"))
@@ -1617,7 +1627,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() clusterv1.Conditions {
@@ -1733,7 +1744,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -1828,7 +1840,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(1))
-			g.Expect(cl.statusPatchCalls).To(Equal(2))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(2), Equal(3)))
 
 			t.Log("Validating the object has been updated")
 			objAfter := obj.DeepCopy()
@@ -1921,7 +1934,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(0))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(0), Equal(1)))
 
 			t.Log("Validating the object has not been updated")
 			g.Eventually(func() clusterv1.Conditions {
@@ -2023,7 +2037,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType("Ready")}}, patch.WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2096,7 +2111,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2184,12 +2200,16 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() clusterv1.Conditions {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
+					return clusterv1.Conditions{}
+				}
+				if objAfter.Status.Deprecated == nil || objAfter.Status.Deprecated.V1Beta1 == nil {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Deprecated.V1Beta1.Conditions
@@ -2249,6 +2269,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return clusterv1.Conditions{}
 				}
+				if objAfter.Status.Deprecated == nil || objAfter.Status.Deprecated.V1Beta1 == nil {
+					return clusterv1.Conditions{}
+				}
 				return objAfter.Status.Deprecated.V1Beta1.Conditions
 			}, timeout).Should(v1beta1conditions.MatchConditions(obj.Status.Deprecated.V1Beta1.Conditions))
 			g.Eventually(func() []metav1.Condition {
@@ -2300,7 +2323,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2395,7 +2419,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(1))
-			g.Expect(cl.statusPatchCalls).To(Equal(2))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(2), Equal(3)))
 
 			t.Log("Validating the object has been updated")
 			objAfter := obj.DeepCopy()
@@ -2488,12 +2513,16 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(0))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(0), Equal(1)))
 
 			t.Log("Validating the object has not been updated")
 			g.Eventually(func() clusterv1.Conditions {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
+					return clusterv1.Conditions{}
+				}
+				if objAfter.Status.Deprecated == nil || objAfter.Status.Deprecated.V1Beta1 == nil {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Deprecated.V1Beta1.Conditions
@@ -2590,7 +2619,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType("Ready")}}, patch.WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2663,7 +2693,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2750,7 +2781,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() []metav1.Condition {
@@ -2849,7 +2881,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2922,7 +2955,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(1))
-			g.Expect(cl.statusPatchCalls).To(Equal(2))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(2), Equal(3)))
 
 			t.Log("Validating the object has been updated")
 			objAfter := obj.DeepCopy()
@@ -3045,7 +3079,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, patch.WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -3106,7 +3141,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, patch.WithForceOverwriteConditions{})).To(Succeed())
 			g.Expect(cl.specPatchCalls).To(Equal(0))
-			g.Expect(cl.statusPatchCalls).To(Equal(1))
+			// If patchStatusConditions gets the object from a stale cache it will hit a conflict error and require another Patch call.
+			g.Expect(cl.statusPatchCalls).To(SatisfyAny(Equal(1), Equal(2)))
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {

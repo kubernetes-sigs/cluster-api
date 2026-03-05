@@ -1652,6 +1652,39 @@ func TestSetUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "up-to-date, rollout After expired and a new MS created at rollout after time",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Rollout: clusterv1.MachineDeploymentRolloutSpec{
+						After: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
+					},
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // MS created at rollout after
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineUpToDateReason,
+			},
+		},
+		{
 			name: "not up-to-date, rollout After expired",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{

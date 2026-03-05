@@ -18,6 +18,7 @@ limitations under the License.
 package conversion
 
 import (
+	"maps"
 	"math/rand"
 	"testing"
 
@@ -199,6 +200,18 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 				// First convert hub to spoke
 				dstCopy := input.Spoke.DeepCopyObject().(conversion.Convertible)
 				g.Expect(dstCopy.ConvertFrom(hubBefore)).To(gomega.Succeed())
+
+				// Note: The check here is needed because not all runtime.Objects are metav1.Objects (e.g. CABPK ClusterConfiguration)
+				if _, ok := dstCopy.(metav1.Object); ok {
+					// Sometimes the apiserver sends us objects without a spec (likely in the context of managedField conversion)
+					// This test verifies that the ConvertTo code can handle this scenario (i.e. it doesn't return an error
+					// and it doesn't panic)
+					// Note: It's important that this test is run here, because dstCopy.ConvertTo below clears the restore annotation from dstCopy.
+					dstCopyNoSpec := input.Spoke.DeepCopyObject().(conversion.Convertible)
+					dstCopyNoSpec.(metav1.Object).SetLabels(maps.Clone(dstCopy.(metav1.Object).GetLabels()))
+					dstCopyNoSpec.(metav1.Object).SetAnnotations(maps.Clone(dstCopy.(metav1.Object).GetAnnotations()))
+					g.Expect(dstCopyNoSpec.ConvertTo(input.Hub.DeepCopyObject().(conversion.Hub))).To(gomega.Succeed())
+				}
 
 				// Convert spoke back to hub and check if the resulting hub is equal to the hub before the round trip
 				hubAfter := input.Hub.DeepCopyObject().(conversion.Hub)

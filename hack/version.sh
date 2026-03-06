@@ -114,7 +114,7 @@ version::ldflags() {
     add_ldflag "gitReleaseCommit" "${GIT_RELEASE_COMMIT}"
 
     # Explicitly identify a fork
-    [ "$GIT_GH_USER" != "kubernetes-sigs" ] && add_flag "gitFork" "true"
+    [ "$GIT_GH_USER" != "kubernetes-sigs" ] && add_ldflag "gitFork" "true"
 
     # Identify a shallow copy of this repository
     if [ -f "$(git rev-parse --git-dir)/shallow" ]; then

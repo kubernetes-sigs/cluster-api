@@ -116,6 +116,9 @@ version::ldflags() {
     add_ldflag "gitVersion" "${GIT_VERSION}"
     add_ldflag "gitReleaseCommit" "${GIT_RELEASE_COMMIT}"
 
+    # Identify a shallow copy of this repository
+    [ -f "$(git rev-parse --git-dir)/shallow" ] && add_ldflag "gitShallow" "true" || add_ldflag "gitShallow" "false"
+
     # The -ldflags parameter takes a single string, so join the output.
     # When DBG is set to 1 include DWARF and symbol table for delve debugging
     if [[ "${DBG:-}" == 1 ]]; then

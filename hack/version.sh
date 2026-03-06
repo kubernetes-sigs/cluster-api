@@ -58,10 +58,6 @@ version::get_version_vars() {
             GIT_VERSION+="-dirty"
         fi
 
-        # Check if we are on top of a shallow copy, as that will impact a release tag with
-        # semantic version to be identified.
-        [ -f "$(git rev-parse --git-dir)/shallow" ] && GIT_VERSION+="-shallow"
-
         # Try to match the "git describe" output to a regex to try to extract
         # the "major" and "minor" versions and whether this is the exact tagged
         # version or whether the tree is between two tagged versions.

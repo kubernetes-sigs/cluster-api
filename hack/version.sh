@@ -57,7 +57,6 @@ version::get_version_vars() {
             # so use our idea of "dirty" from git status instead.
             GIT_VERSION+="-dirty"
         fi
-
         # Try to match the "git describe" output to a regex to try to extract
         # the "major" and "minor" versions and whether this is the exact tagged
         # version or whether the tree is between two tagged versions.
@@ -65,16 +64,18 @@ version::get_version_vars() {
             GIT_MAJOR=${BASH_REMATCH[1]}
             GIT_MINOR=${BASH_REMATCH[2]}
         else
-            # We are assuming here to be in a shallow copy or perhaps a fork. Define GIT_MAJOR to be the value extracted
-            # from GIT_VERSION itself and GIT_MINOR would be the GitHub handler (if present).
-            GIT_MAJOR=$GIT_VERSION
-            # Try to set GIT_MINOR from https://github.com/<username>
-            GIT_MINOR=$(git config --get remote.origin.url | cut -d/ -f4)
-            # ... otherwise, set it from git@github.com:<username>
-            [ "$GIT_MINOR" == "" ] && GIT_MINOR=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
-        fi
+            # We assume to be in a shallow copy or perhaps a fork; mock values for GIT_MAJOR and GIT_MINOR.
+            # Set GIT_VERSION to a value accepted by 'clusterctl/cmd/version_checker' (gitVersionRegEx).
+            GIT_MAJOR="0.0"
+            GIT_MINOR="0"
 
-        # Check if there are at least tags present on this repository before proceeding with parsing GIT_VERSION
+            # Set GIT_GH_USER; perhaps we are building on top of a forked repository.
+            # Try extrating it from a remote with the following format: https://github.com/<username>
+            GIT_GH_USER=$(git config --get remote.origin.url | cut -d/ -f4)
+            # ... otherwise, try using git@github.com:<username>
+            [ "$GIT_GH_USER" == "" ] && GIT_GH_USER=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
+        fi
+        # Check if there are at least tags present on this repository before proceeding with parsing GIT_VERSION to abort building
         if [ "$(git tag --list | wc -l)" -gt 0 ]; then
             # If GIT_VERSION is not a valid Semantic Version, then refuse to build.
             if ! [[ "${GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
@@ -111,6 +112,9 @@ version::ldflags() {
     add_ldflag "gitMinor" "${GIT_MINOR}"
     add_ldflag "gitVersion" "${GIT_VERSION}"
     add_ldflag "gitReleaseCommit" "${GIT_RELEASE_COMMIT}"
+
+    # Explicitly identify a fork
+    [ "$GIT_GH_USER" != "kubernetes-sigs" ] && add_flag "gitFork" "true"
 
     # Identify a shallow copy of this repository
     if [ -f "$(git rev-parse --git-dir)/shallow" ]; then

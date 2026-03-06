@@ -27,6 +27,7 @@ import (
 // controller-runtime metrics are also counting the Requeues for rate-limiting.
 // Note: The following controller-runtime metrics are correct even with rate-limiting:
 // ReconcileErrors, TerminalReconcileErrors, ReconcilePanics, WorkerCount, ActiveWorkers.
+// FIXME: revisit statement above and add more metrics
 
 var (
 	// reconcileTotal is a prometheus counter metrics which holds the total

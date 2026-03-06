@@ -75,6 +75,7 @@ const (
 
 	// ReconcilerRateLimiting is a feature gate that controls if reconcilers are rate-limited.
 	// Note: Currently the feature gate is rate-limiting to 1 request / 1 second.
+	// Note: If this feature is enabled the controllers will always use PriorityQueue.
 	//
 	// alpha: v1.12
 	// beta: v1.13

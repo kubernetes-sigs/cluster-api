@@ -28,8 +28,10 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/workqueue"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/priorityqueue"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -48,12 +50,26 @@ func TestReconcile(t *testing.T) {
 	reconcileCache := cache.New[reconcileCacheEntry](250 * 365 * 24 * time.Hour) // 250 years
 
 	synctest.Test(t, func(t *testing.T) {
+		// FIXME: Add test cases:
+		// * interaction of exponential backoff with rate-limiting (we had a bug that rate-limiting kills the exp backoff)
+		// * verify that Requeues <1s requeue with >= 1s
 		g := NewWithT(t)
+
+		controllerName := "cluster"
+
+		priorityQueue := trackingPriorityQueue{
+			PriorityQueue: priorityqueue.New(controllerName, func(o *priorityqueue.Opts[reconcile.Request]) {
+				o.RateLimiter = workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](5*time.Millisecond, 1000*time.Second)
+			}),
+		}
+		defer priorityQueue.ShutDown()
 
 		var reconcileCounter int
 		r := reconcilerWrapper{
-			name:           "cluster",
+			name:           controllerName,
 			reconcileCache: reconcileCache,
+			Queue:          priorityQueue,
+			rateLimiter:    workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](5*time.Millisecond, 1000*time.Second),
 			reconciler: reconcile.Func(func(_ context.Context, _ reconcile.Request) (reconcile.Result, error) {
 				reconcileCounter++
 				return reconcile.Result{}, nil

@@ -79,7 +79,7 @@ version::get_version_vars() {
         fi
 
         # Check if there are at least tags present on this repository before proceeding with parsing GIT_VERSION
-        if [ $(git tag --list | wc -l) -gt 0 ]; then
+        if [ "$(git tag --list | wc -l)" -gt 0 ]; then
             # If GIT_VERSION is not a valid Semantic Version, then refuse to build.
             if ! [[ "${GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
                 echo "GIT_VERSION should be a valid Semantic Version. Current value: ${GIT_VERSION}"
@@ -117,7 +117,11 @@ version::ldflags() {
     add_ldflag "gitReleaseCommit" "${GIT_RELEASE_COMMIT}"
 
     # Identify a shallow copy of this repository
-    [ -f "$(git rev-parse --git-dir)/shallow" ] && add_ldflag "gitShallow" "true" || add_ldflag "gitShallow" "false"
+    if [ -f "$(git rev-parse --git-dir)/shallow" ]; then
+        add_ldflag "gitShallow" "true"
+    else
+        add_ldflag "gitShallow" "false"
+    fi
 
     # The -ldflags parameter takes a single string, so join the output.
     echo "${ldflags[*]-}"

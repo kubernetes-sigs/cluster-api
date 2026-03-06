@@ -33,7 +33,7 @@ version::get_version_vars() {
 
     # stolen from k8s.io/hack/lib/version.sh
     # Use git describe to find the version based on annotated tags.
-    if [[ -n ${GIT_VERSION-} ]] || GIT_VERSION=$(git describe --abbrev=14 --match "v[0-9]*" 2>/dev/null); then
+    if [[ -n ${GIT_VERSION-} ]] || GIT_VERSION=$(git describe --always --abbrev=14 --match "v[0-9]*" 2>/dev/null); then
         # This translates the "git describe" to an actual semver.org
         # compatible semantic version that looks something like this:
         #   v1.1.0-alpha.0.6+84c76d1142ea4d
@@ -56,26 +56,38 @@ version::get_version_vars() {
             # that is problematic since new untracked .go files affect the build,
             # so use our idea of "dirty" from git status instead.
             GIT_VERSION+="-dirty"
+            # Check if we are on top of a shallow copy, as that will impact a release tag with
+            # semantic version to be identified.
+            [ -f "$(git rev-parse --git-dir)/shallow" ] && GIT_VERSION+="-shallow"
         fi
-
-
         # Try to match the "git describe" output to a regex to try to extract
         # the "major" and "minor" versions and whether this is the exact tagged
         # version or whether the tree is between two tagged versions.
         if [[ "${GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?([+].*)?$ ]]; then
             GIT_MAJOR=${BASH_REMATCH[1]}
             GIT_MINOR=${BASH_REMATCH[2]}
+        else
+            # We are assuming here to be in a shallow copy or perhaps a fork. Define GIT_MAJOR to be the value extracted
+            # from GIT_VERSION itself and GIT_MINOR would be the GitHub handler (if present).
+            GIT_MAJOR=$GIT_VERSION
+            # Try to set GIT_MINOR from https://github.com/<username>
+            GIT_MINOR=$(git config --get remote.origin.url | cut -d/ -f4)
+            # ...otherwise, set it from git@github.com:<username>
+            [ "$GIT_MINOR" == "" ] && GIT_MINOR=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
         fi
-
-        # If GIT_VERSION is not a valid Semantic Version, then refuse to build.
-        if ! [[ "${GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-            echo "GIT_VERSION should be a valid Semantic Version. Current value: ${GIT_VERSION}"
-            echo "Please see more details here: https://semver.org"
-            exit 1
+        # If we are not in a shallow copy that's no need to check for semver; abort build otherwise.
+        if ! [ -f "$(git rev-parse --git-dir)/shallow" ]; then
+            # If GIT_VERSION is not a valid Semantic Version, then refuse to build.
+            if ! [[ "${GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+                echo "GIT_VERSION should be a valid Semantic Version. Current value: ${GIT_VERSION}"
+                echo "Please see more details here: https://semver.org"
+                exit 1
+            fi
         fi
     fi
 
-    GIT_RELEASE_TAG=$(git describe --abbrev=0 --tags)
+    # This provides the tag identifying a proper release. The code must not be a shallow copy.
+    GIT_RELEASE_TAG=$(git describe --always --abbrev=0 --tags)
     GIT_RELEASE_COMMIT=$(git rev-list -n 1  "${GIT_RELEASE_TAG}")
 }
 

@@ -56,10 +56,12 @@ version::get_version_vars() {
             # that is problematic since new untracked .go files affect the build,
             # so use our idea of "dirty" from git status instead.
             GIT_VERSION+="-dirty"
-            # Check if we are on top of a shallow copy, as that will impact a release tag with
-            # semantic version to be identified.
-            [ -f "$(git rev-parse --git-dir)/shallow" ] && GIT_VERSION+="-shallow"
         fi
+
+        # Check if we are on top of a shallow copy, as that will impact a release tag with
+        # semantic version to be identified.
+        [ -f "$(git rev-parse --git-dir)/shallow" ] && GIT_VERSION+="-shallow"
+
         # Try to match the "git describe" output to a regex to try to extract
         # the "major" and "minor" versions and whether this is the exact tagged
         # version or whether the tree is between two tagged versions.
@@ -72,11 +74,12 @@ version::get_version_vars() {
             GIT_MAJOR=$GIT_VERSION
             # Try to set GIT_MINOR from https://github.com/<username>
             GIT_MINOR=$(git config --get remote.origin.url | cut -d/ -f4)
-            # ...otherwise, set it from git@github.com:<username>
+            # ... otherwise, set it from git@github.com:<username>
             [ "$GIT_MINOR" == "" ] && GIT_MINOR=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
         fi
-        # If we are not in a shallow copy that's no need to check for semver; abort build otherwise.
-        if ! [ -f "$(git rev-parse --git-dir)/shallow" ]; then
+
+        # Check if there are at least tags present on this repository before proceeding with parsing GIT_VERSION
+        if [ $(git tag --list | wc -l) -gt 0 ]; then
             # If GIT_VERSION is not a valid Semantic Version, then refuse to build.
             if ! [[ "${GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
                 echo "GIT_VERSION should be a valid Semantic Version. Current value: ${GIT_VERSION}"

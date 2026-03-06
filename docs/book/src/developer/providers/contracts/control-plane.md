@@ -67,6 +67,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [ControlPlane: replicas]                                             | No        | Mandatory if control plane has a notion of number of instances.                                                            |
 | [ControlPlane: version]                                              | No        | Mandatory if control plane allows direct management of the Kubernetes version in use; Mandatory for cluster class support. |
 | [ControlPlane: machines]                                             | No        | Mandatory if control plane instances are represented with a set of Cluster API Machines.                                   |
+| [ControlPlane: rolloutAfter]                                         | No        |                                                                                                                            |
 | [ControlPlane: initialization completed]                             | Yes       |                                                                                                                            |
 | [ControlPlane: in-place updates]                                     | No        | Only supported for control plane providers with control plane machines                                                     |
 | [ControlPlane: conditions]                                           | No        |                                                                                                                            |
@@ -280,7 +281,7 @@ the implementer should exit reconciliation until it sees Cluster's `spec.control
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 ```go
 type FooControlPlaneSpec struct {
@@ -376,7 +377,7 @@ documentation][scale].
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to v1beta1 replica counters, the Cluster controller with temporarily continue to read
 `status.readyReplicas`,  `status.updatedReplicas` and `status.unavailableReplicas`, even if the semantic of the 
@@ -504,7 +505,7 @@ See [In place propagation of changes affecting Kubernetes objects only] as well 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 For reference. The v1beta1 contract had `nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout` fields
 of type `*metav1.Duration` instead of the new fields with `Seconds` suffix of type `*int32`.
@@ -598,6 +599,34 @@ can benefit from several Cluster API behaviours, for example:
 - Machine health checking
 - Machine drain and wait for volume detach during deletion
 
+### ControlPlane: rolloutAfter
+
+In case you are developing a control plane provider which supports scheduled rollout via
+the `rolloutAfter` field, following fields MUST be implemented in the ControlPlane `spec`.
+
+```go
+type FooControlPlaneSpec struct {
+    // rollout allows you to configure the behaviour of rolling updates to the control plane.
+    // +optional
+    Rollout FooControlPlaneRolloutSpec `json:"rollout,omitempty,omitzero"`
+	
+    // See other rules for more details about mandatory/optional fields in ControlPlane status.
+    // Other fields SHOULD be added based on the needs of your provider.
+}
+
+// +kubebuilder:validation:MinProperties=1
+type FooControlPlaneRolloutSpec struct {
+    // after is a field to indicate a rollout should be performed
+    // after the specified time even if no changes have been made to the
+    // FooControlPlane.
+    // Example: In the YAML the time can be specified in the RFC3339 format.
+    // To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+    // use "2023-03-09T09:00:00Z".
+    // +optional
+    After metav1.Time `json:"after,omitempty,omitzero"`
+}
+```
+
 ### ControlPlane: initialization completed
 
 Each ControlPlane MUST report when the Kubernetes control plane is initialized; usually a control plane is considered
@@ -641,7 +670,7 @@ If defined, also ControlPlane's `spec.controlPlaneEndpoint` will be surfaced on 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to initialization completed:
 
@@ -718,7 +747,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to conditions:
 
@@ -743,7 +772,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to terminal failures:
 
@@ -870,7 +899,7 @@ propagated to Kubernetes Nodes.
 
 <h1>Heads up! this will change with the v1beta2 contract</h1>
 
-When the v1beta2 contract will be released (tentative Apr 2025), Cluster API is going to standardize how
+When the v1beta2 contract will be released (August 2025), Cluster API is going to standardize how
 machines determine if they are available or up to date with the spec of the owner resource.
 
 In order to ensure a nice and consistent user experience across the entire Cluster, also ControlPlane providers
@@ -934,6 +963,7 @@ is implemented in ControlPlane controllers:
 [ControlPlane: replicas]: #controlplane-replicas 
 [scale]: https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#subresources
 [ControlPlane: machines]: #controlplane-machines
+[ControlPlane: rolloutAfter]: #controlplane-rolloutafter
 [In place propagation of changes affecting Kubernetes objects only]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20221003-In-place-propagation-of-Kubernetes-objects-only-changes.md
 [ControlPlane: version]: #controlplane-version 
 [ControlPlane: initialization completed]: #controlplane-initialization-completed

@@ -65,9 +65,15 @@ func TestMain(m *testing.M) {
 				},
 			},
 		},
-		ManagerUncachedObjs: []client.Object{
-			&corev1.ConfigMap{},
-			&corev1.Secret{},
+		ManagerClientOptions: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+				// Use the cache for all Unstructured get/list calls.
+				Unstructured: true,
+			},
 		},
 		SetupEnv:         func(e *envtest.Environment) { env = e },
 		SetupReconcilers: setupReconcilers,

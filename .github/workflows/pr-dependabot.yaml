@@ -24,7 +24,7 @@ jobs:
       id: vars
       run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT
     - name: Set up Go
-      uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # tag=v6.2.0
+      uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # tag=v6.3.0
       with:
         go-version: ${{ steps.vars.outputs.go_version }}
     - uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # tag=v5.0.3

@@ -156,10 +156,10 @@ An API version is considered deprecated when a new API version is published.
 API deprecation and removal follow the [Kubernetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/);
 Cluster API maintainers might decide to support API versions longer than what is defined in the Kubernetes policy.
 
-| API Version | Status      | Supported Until                                                                  |
-|-------------|-------------|----------------------------------------------------------------------------------|
-| v1beta2     | Supported   | at least 9 months or 3 minor releases after a newer API version will be released |
-| v1beta1     | Deprecated  | Deprecated since CAPI v1.11; in v1.14, Aug 26 v1beta1 will stop to be served     |
+| API Version | Status     | Supported Until                                                                  |
+|-------------|------------|----------------------------------------------------------------------------------|
+| v1beta2     | Supported  | at least 9 months or 3 minor releases after a newer API version will be released |
+| v1beta1     | Deprecated | Deprecated since CAPI v1.11; in v1.16, April 2027 v1beta1 will stop to be served |
 
 See [11920](https://github.com/kubernetes-sigs/cluster-api/issues/11920) for details about the v1beta1 removal plan.
 
@@ -218,10 +218,10 @@ providers of an older contract version) e.g.
 
 </aside>
 
-| Contract Version | Compatible with contract versions | Status      | Supported Until                                                                                                               |
-|------------------|-----------------------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------|
-| v1beta2          | v1beta1 (temporarily)             | Supported   | After a newer API contract will be released                                                                                   |
-| v1beta1          |                                   | Deprecated  | Deprecated since CAPI v1.11; in v1.14, Aug 26 v1beta2 will drop compatibility with v1beta1 and v1beta1 will be considered EOL |
+| Contract Version | Compatible with contract versions | Status     | Supported Until                                                                                                  |
+|------------------|-----------------------------------|------------|------------------------------------------------------------------------------------------------------------------|
+| v1beta2          | v1beta1 (temporarily)             | Supported  | After a newer API contract will be released                                                                      |
+| v1beta1          |                                   | Deprecated | Deprecated since CAPI v1.11; in v1.16, April 2027 compatibility with the v1beta1 contract will be considered EOL |
 
 See [11920](https://github.com/kubernetes-sigs/cluster-api/issues/11920) for details about the v1beta1 removal plan.
 

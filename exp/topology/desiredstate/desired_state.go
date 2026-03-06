@@ -433,6 +433,13 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 		}
 	}
 
+	// If it is required to manage rolloutAfter for the control plane, set the corresponding field.
+	if !s.Blueprint.Topology.ControlPlane.Rollout.After.IsZero() {
+		if err := contract.ControlPlane().RolloutAfter().Set(controlPlane, s.Blueprint.Topology.ControlPlane.Rollout.After); err != nil {
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().RolloutAfter().Path())
+		}
+	}
+
 	// If it is required to manage the readinessGates for the control plane, set the corresponding field.
 	// NOTE: If readinessGates value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
 	// does not implement support for this field and the ControlPlane object is generated without readinessGates.
@@ -900,6 +907,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 	if !reflect.DeepEqual(machineDeploymentTopology.Rollout, clusterv1.MachineDeploymentTopologyRolloutSpec{}) {
 		rollout = clusterv1.MachineDeploymentRolloutSpec{
+			After: machineDeploymentTopology.Rollout.After,
 			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 				Type: machineDeploymentTopology.Rollout.Strategy.Type,
 				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{

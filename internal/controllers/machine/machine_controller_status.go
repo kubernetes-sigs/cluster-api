@@ -690,11 +690,9 @@ func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1
 
 	upToDate, notUpToDateResult := mdutil.MachineTemplateUpToDate(current, desired)
 
-	if !md.Spec.Rollout.After.IsZero() {
-		if md.Spec.Rollout.After.Time.Before(time.Now()) && !ms.CreationTimestamp.After(md.Spec.Rollout.After.Time) {
-			upToDate = false
-			notUpToDateResult.ConditionMessages = append(notUpToDateResult.ConditionMessages, "MachineDeployment spec.rolloutAfter expired")
-		}
+	if !md.Spec.Rollout.After.IsZero() && md.Spec.Rollout.After.Before(ptr.To(metav1.Now())) && ms.CreationTimestamp.Before(ptr.To(md.Spec.Rollout.After)) {
+		upToDate = false
+		notUpToDateResult.ConditionMessages = append(notUpToDateResult.ConditionMessages, "MachineDeployment spec.rolloutAfter expired")
 	}
 
 	if !upToDate {

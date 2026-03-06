@@ -566,6 +566,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Path(),
 		contract.ControlPlane().Replicas().Path(),
 		contract.ControlPlane().Version().Path(),
+		contract.ControlPlane().RolloutAfter().Path(),
 	}); err != nil {
 		return err
 	}

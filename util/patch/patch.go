@@ -17,6 +17,7 @@ limitations under the License.
 package patch
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"reflect"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -201,7 +203,17 @@ func (h *Helper) patch(ctx context.Context, obj client.Object) error {
 	if err != nil {
 		return err
 	}
-	return h.client.Patch(ctx, afterObject, client.MergeFrom(beforeObject))
+
+	// Check for empty patches as a safeguard to avoid continuously sending empty patches to the apiserver.
+	data, err := client.MergeFrom(beforeObject).Data(afterObject)
+	if err != nil {
+		return err
+	}
+	if bytes.Equal(data, []byte("{}")) {
+		return nil
+	}
+
+	return h.client.Patch(ctx, afterObject, client.RawPatch(types.MergePatchType, data))
 }
 
 // patchStatus issues a patch if the status has changed.
@@ -213,7 +225,22 @@ func (h *Helper) patchStatus(ctx context.Context, obj client.Object) error {
 	if err != nil {
 		return err
 	}
-	return h.client.Status().Patch(ctx, afterObject, client.MergeFrom(beforeObject))
+
+	// Check for empty patches as a safeguard to avoid continuously sending empty patches to the apiserver.
+	// Additionally, there is a known case that if there are only changes for status.conditions
+	// patchStatus is accidentally executed as well because of limitations of calculateChanges.
+	data, err := client.MergeFrom(beforeObject).Data(afterObject)
+	if err != nil {
+		return err
+	}
+	if bytes.Equal(data, []byte("{}")) ||
+		// The following two cases occur if conditions are written for the first time on an object.
+		bytes.Equal(data, []byte(`{"status":{"v1beta2":{}}}`)) ||
+		bytes.Equal(data, []byte(`{"status":{"deprecated":{"v1beta1":{}}}}`)) {
+		return nil
+	}
+
+	return h.client.Status().Patch(ctx, afterObject, client.RawPatch(types.MergePatchType, data))
 }
 
 // patchStatusConditions issues a patch if there are any changes to the conditions slice under

@@ -40,6 +40,7 @@ import (
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -99,6 +100,12 @@ func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
+	}
+
+	// Return early if the DevCluster is externally managed.
+	if annotations.IsExternallyManaged(devCluster) {
+		log.V(4).Info("DevCluster is externally managed, skipping reconciliation")
+		return ctrl.Result{}, nil
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.

@@ -69,11 +69,11 @@ version::get_version_vars() {
             GIT_MAJOR="0.0"
             GIT_MINOR="0"
 
-            # Set GIT_GH_USER; perhaps we are building on top of a forked repository.
+            # Set GIT_USER_FORK; perhaps we are building on top of a forked repository.
             # Try extrating it from a remote with the following format: https://github.com/<username>
-            GIT_GH_USER=$(git config --get remote.origin.url | cut -d/ -f4)
+            GIT_USER_FORK=$(git config --get remote.origin.url | cut -d/ -f4)
             # ... otherwise, try using git@github.com:<username>
-            [ "$GIT_GH_USER" == "" ] && GIT_GH_USER=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
+            [ -z "${GIT_USER_FORK}" ] && GIT_USER_FORK=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
         fi
         # Check if there are at least tags present on this repository before proceeding with parsing GIT_VERSION to abort building
         if [ "$(git tag --list | wc -l)" -gt 0 ]; then
@@ -112,8 +112,8 @@ version::ldflags() {
     add_ldflag "gitReleaseCommit" "${GIT_RELEASE_COMMIT}"
     add_ldflag "gitTreeState" "${GIT_TREE_STATE}"
 
-    # Explicitly identify a fork
-    [ "$GIT_GH_USER" != "kubernetes-sigs" ] && add_ldflag "gitFork" "true"
+    # Explicitly identify a fork if GIT_USER_FORK is not the official account
+    [ "$GIT_USER_FORK" != "kubernetes-sigs" ] && add_ldflag "gitFork" "true"
 
     # Identify a shallow copy of this repository
     if [ -f "$(git rev-parse --git-dir)/shallow" ]; then
@@ -126,6 +126,7 @@ version::ldflags() {
     if [ "$GIT_MAJOR" == "0.0" ]; then
         GIT_VERSION="v0.0.0-${GIT_VERSION}"
     fi
+
     # Finally set the version here
     add_ldflag "gitVersion" "${GIT_VERSION}"
 

@@ -76,21 +76,22 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	if ok {
 		dst.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = restored.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions
 		dst.Spec.Topology.ControlPlane.Rollout = restored.Spec.Topology.ControlPlane.Rollout
+		dst.Spec.Topology.ControlPlane.Taints = restored.Spec.Topology.ControlPlane.Taints
 		for _, restoredMD := range restored.Spec.Topology.Workers.MachineDeployments {
 			for i, dstMD := range dst.Spec.Topology.Workers.MachineDeployments {
 				if restoredMD.Name == dstMD.Name {
 					dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = restoredMD.HealthCheck.Checks.UnhealthyMachineConditions
 					dst.Spec.Topology.Workers.MachineDeployments[i].Rollout.After = restoredMD.Rollout.After
+					dst.Spec.Topology.Workers.MachineDeployments[i].Taints = restoredMD.Taints
 				}
 			}
 		}
-		dst.Spec.Topology.ControlPlane.Taints = restored.Spec.Topology.ControlPlane.Taints
-		for i, md := range restored.Spec.Topology.Workers.MachineDeployments {
-			dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = md.HealthCheck.Checks.UnhealthyMachineConditions
-			dst.Spec.Topology.Workers.MachineDeployments[i].Taints = md.Taints
-		}
-		for i, mp := range restored.Spec.Topology.Workers.MachinePools {
-			dst.Spec.Topology.Workers.MachinePools[i].Taints = mp.Taints
+		for _, restoredMP := range restored.Spec.Topology.Workers.MachinePools {
+			for i, dstMP := range dst.Spec.Topology.Workers.MachinePools {
+				if restoredMP.Name == dstMP.Name {
+					dst.Spec.Topology.Workers.MachinePools[i].Taints = restoredMP.Taints
+				}
+			}
 		}
 	}
 
@@ -168,20 +169,21 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 
 	if ok {
 		dst.Spec.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = restored.Spec.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions
+		dst.Spec.ControlPlane.Taints = restored.Spec.ControlPlane.Taints
 		for _, restoredMD := range restored.Spec.Workers.MachineDeployments {
 			for i, dstMD := range dst.Spec.Workers.MachineDeployments {
 				if restoredMD.Class == dstMD.Class {
 					dst.Spec.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = restoredMD.HealthCheck.Checks.UnhealthyMachineConditions
+					dst.Spec.Workers.MachineDeployments[i].Taints = restoredMD.Taints
 				}
 			}
 		}
-		dst.Spec.ControlPlane.Taints = restored.Spec.ControlPlane.Taints
-		for i, md := range restored.Spec.Workers.MachineDeployments {
-			dst.Spec.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = md.HealthCheck.Checks.UnhealthyMachineConditions
-			dst.Spec.Workers.MachineDeployments[i].Taints = md.Taints
-		}
-		for i, mp := range restored.Spec.Workers.MachinePools {
-			dst.Spec.Workers.MachinePools[i].Taints = mp.Taints
+		for _, restoredMP := range restored.Spec.Workers.MachinePools {
+			for i, dstMP := range dst.Spec.Workers.MachinePools {
+				if restoredMP.Class == dstMP.Class {
+					dst.Spec.Workers.MachinePools[i].Taints = restoredMP.Taints
+				}
+			}
 		}
 	}
 

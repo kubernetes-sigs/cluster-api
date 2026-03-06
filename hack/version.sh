@@ -107,11 +107,10 @@ version::ldflags() {
 
     add_ldflag "buildDate" "$(date ${SOURCE_DATE_EPOCH:+"--date=@${SOURCE_DATE_EPOCH}"} -u +'%Y-%m-%dT%H:%M:%SZ')"
     add_ldflag "gitCommit" "${GIT_COMMIT}"
-    add_ldflag "gitTreeState" "${GIT_TREE_STATE}"
     add_ldflag "gitMajor" "${GIT_MAJOR}"
     add_ldflag "gitMinor" "${GIT_MINOR}"
-    add_ldflag "gitVersion" "${GIT_VERSION}"
     add_ldflag "gitReleaseCommit" "${GIT_RELEASE_COMMIT}"
+    add_ldflag "gitTreeState" "${GIT_TREE_STATE}"
 
     # Explicitly identify a fork
     [ "$GIT_GH_USER" != "kubernetes-sigs" ] && add_ldflag "gitFork" "true"
@@ -122,6 +121,13 @@ version::ldflags() {
     else
         add_ldflag "gitShallow" "false"
     fi
+
+    # Should we be on mocked version, also adjust GIT_VERSION to pass clusterctl's gitVersionRegEx
+    if [ "$GIT_MAJOR" == "0.0" ]; then
+        GIT_VERSION="v0.0.0-${GIT_VERSION}"
+    fi
+    # Finally set the version here
+    add_ldflag "gitVersion" "${GIT_VERSION}"
 
     # The -ldflags parameter takes a single string, so join the output.
     echo "${ldflags[*]-}"

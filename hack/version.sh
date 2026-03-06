@@ -71,11 +71,11 @@ version::get_version_vars() {
         else
             # We are assuming here to be in a shallow copy or perhaps a fork. Define GIT_MAJOR to be the value extracted
             # from GIT_VERSION itself and GIT_MINOR would be the GitHub handler (if present).
-            GIT_MAJOR="0.0.$GIT_VERSION"
+            GIT_MAJOR=$GIT_VERSION
             # Try to set GIT_MINOR from https://github.com/<username>
-            GIT_MINOR="0.$(git config --get remote.origin.url | cut -d/ -f4)"
+            GIT_MINOR=$(git config --get remote.origin.url | cut -d/ -f4)
             # ... otherwise, set it from git@github.com:<username>
-            [ "$GIT_MINOR" == "0." ] && GIT_MINOR="0.$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)"
+            [ "$GIT_MINOR" == "" ] && GIT_MINOR=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
         fi
 
         # Check if there are at least tags present on this repository before proceeding with parsing GIT_VERSION

@@ -34,6 +34,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/docker"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
@@ -69,6 +70,12 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
+	}
+
+	// Return early if the DockerCluster is externally managed.
+	if annotations.IsExternallyManaged(dockerCluster) {
+		log.V(4).Info("DockerCluster is externally managed, skipping reconciliation")
+		return ctrl.Result{}, nil
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.

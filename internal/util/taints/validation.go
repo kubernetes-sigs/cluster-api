@@ -19,6 +19,7 @@ package taints
 import (
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/validate/content"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -55,6 +56,14 @@ func ValidateMachineTaints(taints []clusterv1.MachineTaint, taintsPath *field.Pa
 		// Validate for the deprecated kubeadm node-role taint.
 		case taint.Key == "node-role.kubernetes.io/master":
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint is deprecated since 1.24 and should not be used anymore"))
+		}
+
+		for _, msg := range content.IsLabelKey(taint.Key) {
+			allErrs = append(allErrs, field.Invalid(
+				idxPath.Child("key"),
+				taint.Key,
+				msg,
+			))
 		}
 	}
 

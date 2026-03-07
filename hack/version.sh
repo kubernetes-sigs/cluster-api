@@ -66,7 +66,7 @@ version::get_version_vars() {
         else
             # We assume to be in a shallow copy or perhaps a fork; mock values for GIT_MAJOR and GIT_MINOR.
             # Set GIT_VERSION to a value accepted by 'clusterctl/cmd/version_checker' (gitVersionRegEx).
-            GIT_MAJOR="0.0"
+            GIT_MAJOR="0"
             GIT_MINOR="0"
             # Set GIT_USER_FORK; perhaps we are building on top of a forked repository.
             # Try extrating it from a remote with the following format: https://github.com/<username>
@@ -118,8 +118,8 @@ version::ldflags() {
         add_ldflag "gitShallow" "false"
     fi
 
-    # Should we be on mocked version, also adjust GIT_VERSION to pass clusterctl's gitVersionRegEx
-    if [ "$GIT_MAJOR" == "0.0" ]; then
+    # Should we be on mocked version (shallow or fork), adjust GIT_VERSION to pass clusterctl's gitVersionRegEx
+    if [ "$GIT_MAJOR" -eq 0 ] && [ "$GIT_MINOR" -eq 0 ]; then
         GIT_VERSION="v0.0.0-${GIT_VERSION}"
     fi
 
@@ -129,7 +129,7 @@ version::ldflags() {
         GIT_VERSION+="-${GIT_USER_FORK}"
     fi
 
-    # Finally set the version here
+    # Finally set the release version here as we do have all necessary tags
     add_ldflag "gitVersion" "${GIT_VERSION}"
 
     # The -ldflags parameter takes a single string, so join the output.

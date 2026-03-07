@@ -126,7 +126,7 @@ version::ldflags() {
     # Explicitly identify a fork if GIT_USER_FORK is not the official account
     if [ "$GIT_USER_FORK" != "kubernetes-sigs" ]; then
         add_ldflag "gitFork" "true"
-        GIT_VERSION+="-${GIT_USER_FORK}"
+        GIT_VERSION+="-fork"
     fi
 
     # Finally set the release version here as we do have all necessary tags

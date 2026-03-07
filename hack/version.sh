@@ -69,12 +69,13 @@ version::get_version_vars() {
             GIT_MAJOR="0"
             GIT_MINOR="0"
             # Set GIT_USER_FORK; perhaps we are building on top of a forked repository.
-            # Try extrating it from a remote with the following format: https://github.com/<username>
+            # Try extrating it from a remote with the following format: proto://<server>/<gituser>
             GIT_USER_FORK=$(git config --get remote.origin.url | cut -d/ -f4)
-            # ... otherwise, try using git@github.com:<username>
+            # ... otherwise, try using <sshuser>@<server>:<gituser>
             [ -z "${GIT_USER_FORK}" ] && GIT_USER_FORK=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
         fi
-        # Check if there are at least tags present on this repository before proceeding with parsing GIT_VERSION to abort building
+        # Check if there are tags present on this repository before proceeding with parsing GIT_VERSION to abort building.
+        # Keeping it building fine without them as CI tools can be using shallow copies still; avoid breaking it all.
         if [ "$(git tag --list | wc -l)" -gt 0 ]; then
             # If GIT_VERSION is not a valid Semantic Version, then refuse to build.
             if ! [[ "${GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
@@ -85,7 +86,7 @@ version::get_version_vars() {
         fi
     fi
 
-    # This provides the tag identifying a proper release. The code must not be a shallow copy.
+    # This provides the tag identifying a proper release. The code present here must *NOT* be a shallow copy.
     GIT_RELEASE_TAG=$(git describe --always --abbrev=0 --tags)
     GIT_RELEASE_COMMIT=$(git rev-list -n 1  "${GIT_RELEASE_TAG}")
 }
@@ -111,25 +112,25 @@ version::ldflags() {
     add_ldflag "gitReleaseCommit" "${GIT_RELEASE_COMMIT}"
     add_ldflag "gitTreeState" "${GIT_TREE_STATE}"
 
-    # Identify a shallow copy of this repository
+    # Identify a shallow copy of this repository (works for older and newer versions of git).
     if [ -f "$(git rev-parse --git-dir)/shallow" ]; then
         add_ldflag "gitShallow" "true"
     else
         add_ldflag "gitShallow" "false"
     fi
 
-    # Should we be on mocked version (shallow or fork), adjust GIT_VERSION to pass clusterctl's gitVersionRegEx
+    # Should we be on mocked version (shallow or fork), adjust GIT_VERSION to pass clusterctl's cmd/version_checher (gitVersionRegEx).
     if [ "$GIT_MAJOR" -eq 0 ] && [ "$GIT_MINOR" -eq 0 ]; then
         GIT_VERSION="v0.0.0-${GIT_VERSION}"
     fi
 
-    # Explicitly identify a fork if GIT_USER_FORK is not the official account
+    # Explicitly identify a fork if GIT_USER_FORK is not the official Kubernetes account.
     if [ "$GIT_USER_FORK" != "kubernetes-sigs" ]; then
         add_ldflag "gitFork" "true"
         GIT_VERSION+="-fork"
     fi
 
-    # Finally set the release version here as we do have all necessary tags
+    # Finally set the release version here.
     add_ldflag "gitVersion" "${GIT_VERSION}"
 
     # The -ldflags parameter takes a single string, so join the output.

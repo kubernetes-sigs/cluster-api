@@ -230,7 +230,7 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	dropEmptyStringsKubeadmConfigStatus(&dst.Status)
 
 	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (dst *KubeadmConfigSpec) ConvertFrom(src *bootstrapv1.KubeadmConfigSpec) {
@@ -294,7 +294,7 @@ func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.Template.Spec)
 
 	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func Convert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {

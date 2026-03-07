@@ -68,7 +68,6 @@ version::get_version_vars() {
             # Set GIT_VERSION to a value accepted by 'clusterctl/cmd/version_checker' (gitVersionRegEx).
             GIT_MAJOR="0.0"
             GIT_MINOR="0"
-
             # Set GIT_USER_FORK; perhaps we are building on top of a forked repository.
             # Try extrating it from a remote with the following format: https://github.com/<username>
             GIT_USER_FORK=$(git config --get remote.origin.url | cut -d/ -f4)

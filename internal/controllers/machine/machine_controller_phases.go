@@ -29,6 +29,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
@@ -39,7 +40,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -117,10 +117,7 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 		return obj, nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, r.Client)
-	if err != nil {
-		return nil, err
-	}
+	original := obj.DeepCopyObject().(client.Object)
 
 	// removeOnCreateOwnerRefs removes MachineSet and control plane owners from the objects referred to by a Machine.
 	// These owner references are added initially because Machines don't exist when those objects are created.
@@ -141,7 +138,7 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 	labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 	obj.SetLabels(labels)
 
-	if err := patchHelper.Patch(ctx, obj); err != nil {
+	if err := r.Client.Patch(ctx, obj, client.MergeFrom(original)); err != nil {
 		return nil, err
 	}
 	return obj, nil

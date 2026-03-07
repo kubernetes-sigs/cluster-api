@@ -497,6 +497,17 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		setupLog.Error(err, "Unable to create controller", "controller", "DevMachineTemplate")
 		os.Exit(1)
 	}
+
+	if feature.Gates.Enabled(feature.MachinePool) {
+		if err := (&controllers.DevMachinePoolReconciler{
+			Client:           mgr.GetClient(),
+			ContainerRuntime: runtimeClient,
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
+			setupLog.Error(err, "Unable to create controller", "controller", "DevMachinePool")
+			os.Exit(1)
+		}
+	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {

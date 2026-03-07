@@ -21,6 +21,8 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_devclusters.yaml
 - bases/infrastructure.cluster.x-k8s.io_devclustertemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_devmachinetemplates.yaml
+- bases/infrastructure.cluster.x-k8s.io_devmachinepools.yaml
+- bases/infrastructure.cluster.x-k8s.io_devmachinepooltemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

@@ -18,16 +18,19 @@ package controller
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/priorityqueue"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -200,16 +203,32 @@ func (blder *Builder) Build(r reconcile.TypedReconciler[reconcile.Request]) (Con
 		}
 	}
 
+	priorityQueue := &trackingPriorityQueue{
+		PriorityQueue: priorityqueue.New(controllerName, func(o *priorityqueue.Opts[reconcile.Request]) {
+			//o.Log = options.Logger.WithValues("controller", controllerName) // FIXME
+			o.Log = blder.mgr.GetLogger().WithValues(
+				"controller", controllerName,
+			)
+			o.RateLimiter = workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](5*time.Millisecond, 1000*time.Second) // As far as we know that one is not used, but adding it to ensure we don't hit panics in the PriorityQueue
+		}),
+	}
+
+	blder.options.NewQueue = func(controllerName string, rateLimiter workqueue.TypedRateLimiter[reconcile.Request]) workqueue.TypedRateLimitingInterface[reconcile.Request] {
+		return priorityQueue
+	}
+
 	// Passing the options to the underlying builder here because we modified them above.
 	blder.builder.WithOptions(blder.options)
 
 	// Create reconcileCache.
 	reconcileCache := cache.New[reconcileCacheEntry](cache.DefaultTTL)
 
-	c, err := blder.builder.Build(reconcilerWrapper{
+	c, err := blder.builder.Build(&reconcilerWrapper{
 		name:           controllerName,
 		reconciler:     r,
 		reconcileCache: reconcileCache,
+		Queue:          priorityQueue,
+		rateLimiter:    workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](5*time.Millisecond, 1000*time.Second),
 	})
 	if err != nil {
 		return nil, err
@@ -227,4 +246,18 @@ func (blder *Builder) Build(r reconcile.TypedReconciler[reconcile.Request]) (Con
 		TypedController: c,
 		reconcileCache:  reconcileCache,
 	}, nil
+}
+
+type trackingPriorityQueue struct { // TODO we should get rid of this again and we hopefully can if reconcile.Request contains priority
+	PriorityMap sync.Map
+	priorityqueue.PriorityQueue[reconcile.Request]
+}
+
+func (q *trackingPriorityQueue) GetWithPriority() (reconcile.Request, int, bool) {
+	item, priority, shutdown := q.PriorityQueue.GetWithPriority()
+	if shutdown {
+		return item, priority, shutdown
+	}
+	q.PriorityMap.Store(item, priority)
+	return item, priority, shutdown
 }

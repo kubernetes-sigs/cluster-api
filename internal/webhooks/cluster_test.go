@@ -32,6 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -4073,6 +4075,143 @@ func TestValidateAutoscalerAnnotationsForCluster(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMachineHealthCheckDisabledWarnings(t *testing.T) {
+	tests := []struct {
+		name         string
+		mutate       func(*clusterv1.Cluster)
+		wantPathPart string
+	}{
+		{
+			name: "control plane healthCheck overrides cannot be set when disabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.ControlPlane.HealthCheck = clusterv1.ControlPlaneTopologyHealthCheck{
+					Enabled: ptr.To(false),
+					Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+			wantPathPart: "spec.topology.controlPlane.healthCheck",
+		},
+		{
+			name: "machine deployment healthCheck overrides cannot be set when disabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.Workers.MachineDeployments[0].HealthCheck = clusterv1.MachineDeploymentTopologyHealthCheck{
+					Enabled: ptr.To(false),
+					Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+			wantPathPart: "spec.topology.workers.machineDeployments[workers1].healthCheck",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cluster := builder.Cluster("ns", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("class1").
+					WithVersion("v1.29.0").
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("md-class-1").
+						Build()).
+					Build()).
+				Build()
+			clusterClass := builder.ClusterClass("ns", "class1").
+				WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate("ns", "cp-machine-template").Build()).
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("md-class-1").Build()).
+				Build()
+
+			tt.mutate(cluster)
+
+			// Disabled MHC with config overrides is allowed to support temporarily pausing remediation.
+			g.Expect(validateMachineHealthChecks(cluster, clusterClass)).To(BeEmpty())
+
+			warnings := machineHealthCheckDisabledWarnings(cluster)
+			g.Expect(warnings).To(HaveLen(1))
+			g.Expect(warnings[0]).To(ContainSubstring(tt.wantPathPart))
+			g.Expect(warnings[0]).To(ContainSubstring("checks and remediation are ignored while enabled is false"))
+		})
+	}
+}
+
+func TestValidateTopologyRolloutRejectsRollingUpdateForOnDelete(t *testing.T) {
+	g := NewWithT(t)
+
+	maxSurge := intstr.FromInt32(1)
+	oldTopology := clusterv1.Topology{
+		Workers: clusterv1.WorkersTopology{
+			MachineDeployments: []clusterv1.MachineDeploymentTopology{
+				{
+					Name: "workers1",
+					Rollout: clusterv1.MachineDeploymentTopologyRolloutSpec{
+						Strategy: clusterv1.MachineDeploymentTopologyRolloutStrategy{
+							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+							RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+								MaxSurge: &maxSurge,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	topology := clusterv1.Topology{
+		Workers: clusterv1.WorkersTopology{
+			MachineDeployments: []clusterv1.MachineDeploymentTopology{
+				{
+					Name: "workers1",
+					Rollout: clusterv1.MachineDeploymentTopologyRolloutSpec{
+						Strategy: clusterv1.MachineDeploymentTopologyRolloutStrategy{
+							Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+							RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+								MaxSurge: &maxSurge,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	errs := validateTopologyRollout(&oldTopology, topology, field.NewPath("spec", "topology"))
+	g.Expect(errs).ToNot(BeEmpty())
+	g.Expect(errs.ToAggregate()).ToNot(BeNil())
+	g.Expect(errs.ToAggregate().Error()).To(ContainSubstring("rollingUpdate"))
+	g.Expect(errs.ToAggregate().Error()).To(ContainSubstring("can be set only if type is \"RollingUpdate\""))
+}
+
+func TestValidateTopologyRolloutAllowsUnchangedInvalidRolloutStrategyOnUpdate(t *testing.T) {
+	g := NewWithT(t)
+
+	maxSurge := intstr.FromInt32(1)
+	oldTopology := clusterv1.Topology{
+		Workers: clusterv1.WorkersTopology{
+			MachineDeployments: []clusterv1.MachineDeploymentTopology{
+				{
+					Name: "workers1",
+					Rollout: clusterv1.MachineDeploymentTopologyRolloutSpec{
+						Strategy: clusterv1.MachineDeploymentTopologyRolloutStrategy{
+							Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+							RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+								MaxSurge: &maxSurge,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	newTopology := *oldTopology.DeepCopy()
+
+	errs := validateTopologyRollout(&oldTopology, newTopology, field.NewPath("spec", "topology"))
+	g.Expect(errs).To(BeEmpty())
 }
 
 func refToUnstructured(ref *clusterv1.ClusterClassTemplateReference) *unstructured.Unstructured {

@@ -104,7 +104,7 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	// Ensure all MachinePool classes are unique.
 	allErrs = append(allErrs, check.MachinePoolClassesAreUnique(newClusterClass)...)
 
-	allErrs = append(allErrs, validateClusterClassRollout(newClusterClass)...)
+	allErrs = append(allErrs, validateClusterClassRollout(oldClusterClass, newClusterClass)...)
 
 	// Ensure MachineHealthChecks are valid.
 	allErrs = append(allErrs, validateMachineHealthCheckClasses(newClusterClass)...)
@@ -371,12 +371,32 @@ func getClusterClassVariablesMapWithReverseIndex(clusterClassVariables []cluster
 	return variablesMap, variablesIndexMap
 }
 
-func validateClusterClassRollout(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func validateClusterClassRollout(oldClusterClass, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
 	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("rollout")
-		allErrs = append(allErrs, validateRolloutStrategy(fldPath.Child("strategy"), md.Rollout.Strategy.RollingUpdate.MaxUnavailable, md.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+		enforceTypeMismatchValidation := true
+		if oldClusterClass != nil {
+			if oldMDClass := machineDeploymentClassOfName(oldClusterClass, md.Class); oldMDClass != nil {
+				oldType := oldMDClass.Rollout.Strategy.Type
+				enforceTypeMismatchValidation = shouldEnforceRolloutStrategyTypeMismatchValidation(
+					md.Rollout.Strategy.Type,
+					md.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					md.Rollout.Strategy.RollingUpdate.MaxSurge,
+					&oldType,
+					oldMDClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					oldMDClass.Rollout.Strategy.RollingUpdate.MaxSurge,
+				)
+			}
+		}
+		allErrs = append(allErrs, validateRolloutStrategy(
+			fldPath.Child("strategy"),
+			md.Rollout.Strategy.Type,
+			md.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+			md.Rollout.Strategy.RollingUpdate.MaxSurge,
+			enforceTypeMismatchValidation,
+		)...)
 	}
 
 	return allErrs

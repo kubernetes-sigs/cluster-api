@@ -25,6 +25,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/version"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
@@ -2839,6 +2840,71 @@ func invalidLabels() map[string]string {
 		"bar":          strings.Repeat("a", 64) + "too-long-value",
 		"/invalid-key": "foo",
 	}
+}
+
+func TestValidateClusterClassRolloutRatcheting(t *testing.T) {
+	tests := []struct {
+		name      string
+		oldCC     *clusterv1.ClusterClass
+		newCC     *clusterv1.ClusterClass
+		expectErr bool
+	}{
+		{
+			name: "allows unchanged invalid rollout strategy on update",
+			oldCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: ptr.To(intstr.FromInt32(1)),
+				},
+			}),
+			newCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: ptr.To(intstr.FromInt32(1)),
+				},
+			}),
+			expectErr: false,
+		},
+		{
+			name: "rejects changed invalid rollout strategy on update",
+			oldCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: ptr.To(intstr.FromInt32(1)),
+				},
+			}),
+			newCC: clusterClassWithMachineDeploymentClassRolloutStrategy("class1", "mdc1", clusterv1.MachineDeploymentClassRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{
+					MaxSurge: ptr.To(intstr.FromInt32(2)),
+				},
+			}),
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			errs := validateClusterClassRollout(tt.oldCC, tt.newCC)
+			if tt.expectErr {
+				g.Expect(errs).ToNot(BeEmpty())
+				g.Expect(errs.ToAggregate()).ToNot(BeNil())
+				g.Expect(errs.ToAggregate().Error()).To(ContainSubstring("rollingUpdate"))
+			} else {
+				g.Expect(errs).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func clusterClassWithMachineDeploymentClassRolloutStrategy(clusterClassName, machineDeploymentClassName string, strategy clusterv1.MachineDeploymentClassRolloutStrategy) *clusterv1.ClusterClass {
+	return builder.ClusterClass("ns", clusterClassName).
+		WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass(machineDeploymentClassName).
+			WithStrategy(strategy).
+			Build()).
+		Build()
 }
 
 func invalidAnnotations() map[string]string {

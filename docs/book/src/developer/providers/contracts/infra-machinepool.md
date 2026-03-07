@@ -55,6 +55,7 @@ To provide feedback or open a discussion about the provider contract please [ope
 | [InfraMachinePool: terminal failures]                                | No        |                                      |
 | [InfraMachinePoolTemplate, InfraMachineTemplatePoolList resource definition] | No | Mandatory for ClusterClasses support |
 | [InfraMachinePoolTemplate: support for SSA dry run]                  | No        | Mandatory for ClusterClasses support |
+| [ClusterClass topology controller behavior]                          | No        | Mandatory for ClusterClasses support |
 | [Multi tenancy]                                                      | No        | Mandatory for clusterctl CLI support |
 | [Clusterctl support]                                                 | No        | Mandatory for clusterctl CLI support |
 
@@ -495,6 +496,36 @@ The implementation requires to use controller runtime's `CustomValidator`, avail
 This will allow to skip the immutability check only when the topology controller is dry running while preserving the
 validation behavior for all other cases.
 
+### ClusterClass topology controller behavior
+
+When using ClusterClass and managed topologies, the topology controller creates InfraMachinePool objects from InfraMachinePoolTemplates.
+Unlike templates (which are immutable), these InfraMachinePool objects have mutable specs, but the topology controller
+handles spec changes through a **rotation strategy** rather than in-place updates.
+
+When the topology controller detects that the InfraMachinePoolTemplate has changed (e.g., from template updates in ClusterClass), it performs
+a **rotation**:
+
+1. Creates a new InfraMachinePool object with a new name
+2. Copies `spec.providerIDList` from the old InfraMachinePool to the new one (to preserve instance tracking)
+3. Updates the MachinePool's `spec.template.spec.infrastructureRef` to reference the new object
+4. The old InfraMachinePool is garbage collected when no longer referenced
+
+<aside class="note">
+
+<h1>Provider expectations for rotation</h1>
+
+Providers SHOULD watch for changes to the MachinePool's `spec.template.spec.infrastructureRef.name` field.
+When the reference name changes, this indicates a rotation has occurred and the provider SHOULD:
+
+- Use the `spec.providerIDList` from the new InfraMachinePool to identify existing instances
+- Trigger any necessary rollout or reconciliation based on the spec changes
+
+This pattern is consistent with how MachineDeployments handle InfrastructureMachineTemplate rotations.
+
+</aside>
+
+Metadata-only changes (labels, annotations) MUST NOT trigger rotation; they are patched in-place on the existing object.
+
 ### Multi tenancy
 
 Multi tenancy in Cluster API defines the capability of an infrastructure provider to manage different credentials,
@@ -532,6 +563,7 @@ The clusterctl command is designed to work with all the providers compliant with
 [InfraMachinePool: terminal failures]: #inframachinepool-terminal-failures
 [InfraMachinePoolTemplate, InfraMachineTemplatePoolList resource definition]: #inframachinepooltemplate-inframachinetemplatepoollist-resource-definition
 [InfraMachinePoolTemplate: support for SSA dry run]: #inframachinepooltemplate-support-for-ssa-dry-run
+[ClusterClass topology controller behavior]: #clusterclass-topology-controller-behavior
 [MachinePoolMachines support]: #machinepoolmachines-support
 [Multi tenancy]: #multi-tenancy
 [Clusterctl support]: #clusterctl-support

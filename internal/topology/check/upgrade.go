@@ -46,6 +46,15 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 		return false, errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to list Machines", md.Name)
 	}
 	mdVersion := md.Spec.Template.Spec.Version
+	if len(md.Status.Versions) > 0 {
+		for _, statusVersion := range md.Status.Versions {
+			if statusVersion.Version != mdVersion {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
 	// Check if the versions of the all the Machines match the MachineDeployment version.
 	for i := range machines.Items {
 		machine := machines.Items[i]
@@ -69,6 +78,15 @@ func IsMachinePoolUpgrading(ctx context.Context, c client.Reader, mp *clusterv1.
 		return false, nil
 	}
 	mpVersion := mp.Spec.Template.Spec.Version
+	if len(mp.Status.Versions) > 0 {
+		for _, statusVersion := range mp.Status.Versions {
+			if statusVersion.Version != mpVersion {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
 	// Check if the kubelet versions of the MachinePool noderefs match the MachinePool version.
 	for _, nodeRef := range mp.Status.NodeRefs {
 		node := &corev1.Node{}

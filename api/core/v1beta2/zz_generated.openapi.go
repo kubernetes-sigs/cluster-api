@@ -174,6 +174,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatch":                                       schema_cluster_api_api_core_v1beta2_PatchSelectorMatch(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatchMachineDeploymentClass":                 schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachineDeploymentClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatchMachinePoolClass":                       schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachinePoolClass(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion":                                            schema_cluster_api_api_core_v1beta2_StatusVersion(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Topology":                                                 schema_cluster_api_api_core_v1beta2_Topology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition":                                schema_cluster_api_api_core_v1beta2_UnhealthyMachineCondition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition":                                   schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref),
@@ -1057,9 +1058,33 @@ func schema_cluster_api_api_core_v1beta2_ClusterControlPlaneStatus(ref common.Re
 							Format:      "int32",
 						},
 					},
+					"versions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"version",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "versions is the aggregated Kubernetes versions in this control plane.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"},
 	}
 }
 
@@ -3661,6 +3686,28 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentStatus(ref common.Refe
 							Format:      "int32",
 						},
 					},
+					"versions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"version",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "versions is the aggregated Kubernetes versions in this MachineDeployment.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"),
+									},
+								},
+							},
+						},
+					},
 					"phase": {
 						SchemaProps: spec.SchemaProps{
 							Description: "phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).",
@@ -3678,7 +3725,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentStatus(ref common.Refe
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeprecatedStatus"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"},
 	}
 }
 
@@ -5485,6 +5532,28 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceC
 							Format:      "int32",
 						},
 					},
+					"versions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"version",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "versions is the aggregated Kubernetes versions in this MachinePool.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"),
+									},
+								},
+							},
+						},
+					},
 					"phase": {
 						SchemaProps: spec.SchemaProps{
 							Description: "phase represents the current phase of cluster actuation.",
@@ -5509,7 +5578,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"},
 	}
 }
 
@@ -6026,6 +6095,28 @@ func schema_cluster_api_api_core_v1beta2_MachineSetStatus(ref common.ReferenceCa
 							Format:      "int32",
 						},
 					},
+					"versions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"version",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "versions is the aggregated Kubernetes versions in this MachineSet.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"),
+									},
+								},
+							},
+						},
+					},
 					"observedGeneration": {
 						SchemaProps: spec.SchemaProps{
 							Description: "observedGeneration reflects the generation of the most recently observed MachineSet.",
@@ -6043,7 +6134,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSetStatus(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeprecatedStatus"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"},
 	}
 }
 
@@ -6727,6 +6818,35 @@ func schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachinePoolClass(ref 
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_StatusVersion(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StatusVersion groups version-related status information.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the Kubernetes version.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"replicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "replicas is the number of replicas at this version.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"version"},
+			},
+		},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_Topology(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -7082,9 +7202,33 @@ func schema_cluster_api_api_core_v1beta2_WorkersStatus(ref common.ReferenceCallb
 							Format:      "int32",
 						},
 					},
+					"versions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"version",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "versions is the aggregated Kubernetes versions in cluster workers.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"},
 	}
 }
 

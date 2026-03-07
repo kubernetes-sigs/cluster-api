@@ -24,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -52,6 +53,7 @@ func setReplicas(mp *clusterv1.MachinePool, hasMachinePoolMachines bool, machine
 		mp.Status.ReadyReplicas = mp.Status.Replicas
 		mp.Status.AvailableReplicas = mp.Status.Replicas
 		mp.Status.UpToDateReplicas = mp.Spec.Replicas
+		mp.Status.Versions = nil
 
 		return
 	}
@@ -72,4 +74,5 @@ func setReplicas(mp *clusterv1.MachinePool, hasMachinePoolMachines bool, machine
 	mp.Status.ReadyReplicas = ptr.To(readyReplicas)
 	mp.Status.AvailableReplicas = ptr.To(availableReplicas)
 	mp.Status.UpToDateReplicas = ptr.To(upToDateReplicas)
+	mp.Status.Versions = internalversion.VersionsFromMachines(machines)
 }

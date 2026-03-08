@@ -769,7 +769,6 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 	case diff < 0:
 		// If there are not enough Machines, create missing Machines unless Machine creation is disabled.
 		machinesToAdd := -diff
-		log.Info(fmt.Sprintf("MachineSet is scaling up to %d replicas by creating %d Machines", *(ms.Spec.Replicas), machinesToAdd), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines))
 		if ms.Annotations != nil {
 			if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok && value == "true" {
 				log.Info("Automatic creation of new machines disabled for MachineSet")
@@ -841,6 +840,8 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 	}
 
+	log.V(4).Info(fmt.Sprintf("MachineSet is scaling up to %d replicas by creating %d Machines", *(ms.Spec.Replicas), machinesToAdd), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
+
 	machinesAdded := []*clusterv1.Machine{}
 	for i := range machinesToAdd {
 		// Create a new logger so the global logger is not modified.
@@ -908,7 +909,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		}
 
 		machinesAdded = append(machinesAdded, machine)
-		log.Info(fmt.Sprintf("Machine %s created (scale up, creating %d of %d)", machine.Name, i+1, machinesToAdd), "Machine", klog.KObj(machine))
+		log.Info(fmt.Sprintf("Machine %s created (scale up, creating %d of %d)", klog.KObj(machine), i+1, machinesToAdd), "Machine", klog.KObj(machine), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
 		r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created Machine %q", machine.Name)
 	}
 

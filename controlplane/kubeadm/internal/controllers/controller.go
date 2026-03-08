@@ -239,7 +239,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			if errors.As(err, &connFailure) {
 				log.Info(fmt.Sprintf("Could not connect to workload cluster to fetch status: %s", err.Error()))
 			} else {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to update KubeadmControlPlane status")})
+				reterr = kerrors.NewAggregate([]error{reterr, errors.WithMessage(err, "failed to update KubeadmControlPlane status")})
 			}
 		}
 
@@ -248,7 +248,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			if errors.As(err, &connFailure) {
 				log.Info(fmt.Sprintf("Could not connect to workload cluster to fetch deprecated v1beta1 status: %s", err.Error()))
 			} else {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to update KubeadmControlPlane deprecated v1beta1 status")})
+				reterr = kerrors.NewAggregate([]error{reterr, errors.WithMessage(err, "failed to update KubeadmControlPlane deprecated v1beta1 status")})
 			}
 		}
 
@@ -384,6 +384,9 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 // reconcile handles KubeadmControlPlane reconciliation.
 func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPlane *internal.ControlPlane) (res ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
+
+	// Note: Intentionally logging when KCP reconcile an object because it proved helpful during troubleshooting
+	// when KCP experienced some deadlock in the past due to the number of remote connections.
 	log.Info("Reconcile KubeadmControlPlane")
 
 	// Make sure to reconcile the external infrastructure reference.
@@ -539,17 +542,17 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	// We are creating the first replica
 	case numMachines < desiredReplicas && numMachines == 0:
 		// Create new Machine w/ init
-		log.Info("Initializing control plane", "desired", desiredReplicas, "existing", numMachines)
+		log.V(4).Info("Initializing control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition, controlplanev1.WaitingForKubeadmInitV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		return r.initializeControlPlane(ctx, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join
-		log.Info("Scaling up control plane", "desired", desiredReplicas, "existing", numMachines)
+		log.V(4).Info("Scaling up control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		return r.scaleUpControlPlane(ctx, controlPlane)
 	// We are scaling down
 	case numMachines > desiredReplicas:
-		log.Info("Scaling down control plane", "desired", desiredReplicas, "existing", numMachines)
+		log.V(4).Info("Scaling down control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		// The last parameter (i.e. machines needing to be rolled out) should always be empty here.
 		// Pick the Machine that we should scale down.
 		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, collections.Machines{})
@@ -1509,14 +1512,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 		nodeName := m.Status.NodeRef.Name
 		log = log.WithValues("Node", klog.KRef("", nodeName))
 
-		log.V(3).Info("Reconciling certificate expiry")
+		log.V(4).Info("Reconciling certificate expiry")
 		certificateExpiry, err := workloadCluster.GetAPIServerCertificateExpiry(ctx, kubeadmConfig, nodeName)
 		if err != nil {
 			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
 		}
 		expiry := certificateExpiry.Format(time.RFC3339)
 
-		log.V(2).Info(fmt.Sprintf("Setting certificate expiry to %s", expiry))
+		log.V(2).Info(fmt.Sprintf("Setting certificate expiry date on KubeadmConfig %s", klog.KObj(kubeadmConfig)), "expiryDate", expiry)
 		original := kubeadmConfig.DeepCopy()
 		if annotations == nil {
 			annotations = map[string]string{}

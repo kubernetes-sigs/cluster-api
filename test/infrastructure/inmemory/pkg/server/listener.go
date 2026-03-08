@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -52,7 +53,7 @@ type WorkloadClusterListener struct {
 	etcdMembers             sets.Set[string]
 	etcdServingCertificates map[string]*tls.Certificate
 
-	listener net.Listener
+	listener *trackingListener
 }
 
 // Host returns the host of a WorkloadClusterListener.
@@ -116,4 +117,55 @@ func (s *WorkloadClusterListener) RESTConfig() (*rest.Config, error) {
 	}
 
 	return restConfig, nil
+}
+
+type trackingListener struct {
+	net.Listener
+	mu    sync.Mutex
+	conns map[net.Conn]struct{}
+}
+
+func newTrackingListener(l net.Listener) *trackingListener {
+	return &trackingListener{
+		Listener: l,
+		conns:    make(map[net.Conn]struct{}),
+	}
+}
+
+func (tl *trackingListener) Accept() (net.Conn, error) {
+	conn, err := tl.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+
+	tl.mu.Lock()
+	tl.conns[conn] = struct{}{}
+	tl.mu.Unlock()
+
+	// Return a wrapped connection so we know when it's closed
+	return &trackedConn{Conn: conn, tl: tl}, nil
+}
+
+type trackedConn struct {
+	net.Conn
+	tl *trackingListener
+}
+
+func (tc *trackedConn) Close() error {
+	tc.tl.mu.Lock()
+	delete(tc.tl.conns, tc.Conn)
+	tc.tl.mu.Unlock()
+	return tc.Conn.Close()
+}
+
+func (tl *trackingListener) CloseAll() {
+	// Stop accepting new connections first
+	_ = tl.Listener.Close()
+
+	tl.mu.Lock()
+	defer tl.mu.Unlock()
+
+	for conn := range tl.conns {
+		_ = conn.Close() // This triggers the underlying TCP close
+	}
 }

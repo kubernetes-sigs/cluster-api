@@ -954,7 +954,7 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 			}
 
 			machinesDeleted = append(machinesDeleted, machine)
-			log.Info(fmt.Sprintf("Machine %s deleting (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete))
+			log.Info(fmt.Sprintf("Machine %s deleting (scale down, deleting %d of %d)", klog.KObj(machine), i+1, machinesToDelete))
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 		} else {
 			log.Info(fmt.Sprintf("Waiting for Machine to be deleted (scale down, deleting %d of %d)", i+1, machinesToDelete))

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -1575,11 +1576,6 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 
 	kcpRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	for _, m := range machines {
-		// No op if OwnerReferences is set and up to date.
-		if util.HasExactOwnerRef(m.OwnerReferences, kcpRef) {
-			continue
-		}
-
 		ref := m.Spec.Bootstrap.ConfigRef
 		cfg := &bootstrapv1.KubeadmConfig{}
 
@@ -1589,6 +1585,11 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 
 		if err := r.adoptOwnedSecrets(ctx, kcp, cfg, cluster.Name); err != nil {
 			return err
+		}
+
+		// No op if OwnerReferences is set and up to date.
+		if util.HasExactOwnerRef(m.OwnerReferences, kcpRef) {
+			continue
 		}
 
 		original := m.DeepCopy()
@@ -1642,23 +1643,28 @@ func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.C
 			continue
 		}
 
-		// If the Type doesn't match the type used for secrets created by core components continue without altering the owner reference further.
-		if c.Secret.Type != clusterv1.ClusterSecretType {
-			continue
-		}
-
-		// No op if the owner ref is already there
-		if util.HasExactOwnerRef(c.Secret.OwnerReferences, owner) {
-			continue
-		}
-
 		original := c.Secret.DeepCopy()
-
-		// Remove the current controller if one exists.
-		if controller := metav1.GetControllerOf(c.Secret); controller != nil && controller.Kind != kubeadmControlPlaneKind {
-			c.Secret.SetOwnerReferences(util.RemoveOwnerRef(c.Secret.GetOwnerReferences(), *controller))
+		controller := metav1.GetControllerOf(c.Secret)
+		// If the current controller is KCP, ensure the owner reference is up to date.
+		// Note: This ensures secrets created prior to v1alpha4 are updated to have the correct owner reference apiVersion.
+		if controller != nil && controller.Kind == kubeadmControlPlaneKind {
+			c.Secret.SetOwnerReferences(util.EnsureOwnerRef(c.Secret.GetOwnerReferences(), owner))
 		}
-		c.Secret.SetOwnerReferences(util.EnsureOwnerRef(c.Secret.GetOwnerReferences(), owner))
+
+		// If the Type doesn't match the type used for secrets created by core components continue without altering the owner reference further.
+		// Note: This ensures that control plane related secrets created by KubeadmConfig are eventually owned by KCP.
+		// TODO: Remove this logic once standalone control plane machines are no longer allowed.
+		if c.Secret.Type == clusterv1.ClusterSecretType {
+			// Remove the current controller if one exists.
+			if controller != nil {
+				c.Secret.SetOwnerReferences(util.RemoveOwnerRef(c.Secret.GetOwnerReferences(), *controller))
+			}
+			c.Secret.SetOwnerReferences(util.EnsureOwnerRef(c.Secret.GetOwnerReferences(), owner))
+		}
+
+		if reflect.DeepEqual(original.GetOwnerReferences(), c.Secret.GetOwnerReferences()) {
+			continue
+		}
 
 		if err := r.Client.Patch(ctx, c.Secret, client.MergeFrom(original)); err != nil {
 			return errors.Wrapf(err, "failed to set ownerReference")

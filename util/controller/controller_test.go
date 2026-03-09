@@ -58,6 +58,7 @@ func TestReconcile(t *testing.T) {
 				reconcileCounter++
 				return reconcile.Result{}, nil
 			}),
+			rateLimitInterval: 1 * time.Second,
 		}
 		c := controllerWrapper{
 			reconcileCache: reconcileCache,
@@ -149,8 +150,9 @@ func TestReconcileMetrics(t *testing.T) {
 		g := NewWithT(t)
 
 		r := reconcilerWrapper{
-			name:           "cluster",
-			reconcileCache: reconcileCache,
+			name:              "cluster",
+			reconcileCache:    reconcileCache,
+			rateLimitInterval: 1 * time.Second,
 		}
 
 		req := reconcile.Request{

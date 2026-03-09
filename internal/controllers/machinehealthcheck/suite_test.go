@@ -91,6 +91,8 @@ func TestMain(m *testing.M) {
 		if err := (&Reconciler{
 			Client:       mgr.GetClient(),
 			ClusterCache: clusterCache,
+			// use a shorter rate limit for testing.
+			overrideRateLimit: 1 * time.Second,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start Reconciler : %v", err))
 		}

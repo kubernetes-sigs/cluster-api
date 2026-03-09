@@ -488,7 +488,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	if machines := controlPlane.MachinesToCompleteTriggerInPlaceUpdate(); len(machines) > 0 {
 		_, machinesUpToDateResults := controlPlane.NotUpToDateMachines()
 		for _, m := range machines {
-			if err := r.triggerInPlaceUpdate(ctx, m, machinesUpToDateResults[m.Name]); err != nil {
+			if err := r.triggerInPlaceUpdate(ctx, m, machinesUpToDateResults[klog.KObj(m).String()]); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -525,6 +525,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		for _, name := range machinesNeedingRolloutNames {
 			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", name, strings.Join(machinesUpToDateResults[name].LogMessages, ", ")))
 		}
+		slices.Sort(allMessages)
+
 		log.Info(fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
 		return r.updateControlPlane(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
@@ -1097,7 +1099,7 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 		if machinesNotUptoDateNames.Has(machine.Name) {
 			// Note: the code computing the message for KCP's RolloutOut condition is making assumptions on the format/content of this message.
 			message := ""
-			if machineUpToDateResult, ok := machinesUpToDateResults[machine.Name]; ok && len(machineUpToDateResult.ConditionMessages) > 0 {
+			if machineUpToDateResult, ok := machinesUpToDateResults[klog.KObj(machine).String()]; ok && len(machineUpToDateResult.ConditionMessages) > 0 {
 				var reasons []string
 				for _, conditionMessage := range machineUpToDateResult.ConditionMessages {
 					reasons = append(reasons, fmt.Sprintf("* %s", conditionMessage))

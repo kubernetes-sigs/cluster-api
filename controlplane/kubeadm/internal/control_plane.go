@@ -28,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -142,7 +141,7 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 		}
 		// Set this even if machine is UpToDate. This is needed to complete triggering in-place updates
 		// MachinesNotUpToDate should always be used instead to check if a Machine is up-to-date.
-		machinesUpToDateResults[klog.KObj(m).String()] = *upToDateResult
+		machinesUpToDateResults[m.Name] = *upToDateResult
 	}
 
 	return &ControlPlane{

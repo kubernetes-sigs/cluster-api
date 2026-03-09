@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -1516,18 +1517,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 		expiry := certificateExpiry.Format(time.RFC3339)
 
 		log.V(2).Info(fmt.Sprintf("Setting certificate expiry to %s", expiry))
-		patchHelper, err := patch.NewHelper(kubeadmConfig, r.Client)
-		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
-		}
-
+		original := kubeadmConfig.DeepCopy()
 		if annotations == nil {
 			annotations = map[string]string{}
 		}
 		annotations[clusterv1.MachineCertificatesExpiryDateAnnotation] = expiry
 		kubeadmConfig.SetAnnotations(annotations)
 
-		if err := patchHelper.Patch(ctx, kubeadmConfig); err != nil {
+		if err := r.Client.Patch(ctx, kubeadmConfig, client.MergeFrom(original)); err != nil {
 			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
 		}
 	}
@@ -1577,6 +1574,7 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 		}
 	}
 
+	kcpRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	for _, m := range machines {
 		ref := m.Spec.Bootstrap.ConfigRef
 		cfg := &bootstrapv1.KubeadmConfig{}
@@ -1589,18 +1587,17 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 			return err
 		}
 
-		patchHelper, err := patch.NewHelper(m, r.Client)
-		if err != nil {
-			return err
+		// No op if OwnerReferences is set and up to date.
+		if util.HasExactOwnerRef(m.OwnerReferences, kcpRef) {
+			continue
 		}
 
-		if err := controllerutil.SetControllerReference(kcp, m, r.Client.Scheme()); err != nil {
-			return err
-		}
+		original := m.DeepCopy()
+		m.SetOwnerReferences(util.EnsureOwnerRef(m.GetOwnerReferences(), kcpRef))
 
 		// Note that ValidateOwnerReferences() will reject this patch if another
 		// OwnerReference exists with controller=true.
-		if err := patchHelper.Patch(ctx, m); err != nil {
+		if err := r.Client.Patch(ctx, m, client.MergeFrom(original)); err != nil {
 			return err
 		}
 	}
@@ -1613,32 +1610,29 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 		return errors.Wrap(err, "error finding secrets for adoption")
 	}
 
+	kcpRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	for i := range secrets.Items {
-		s := secrets.Items[i]
-		if !util.IsOwnedByObject(&s, currentOwner, bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind()) {
+		s := &secrets.Items[i]
+		if !util.IsOwnedByObject(s, currentOwner, bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind()) {
 			continue
 		}
+
 		// avoid taking ownership of the bootstrap data secret
 		if s.Name == currentOwner.Status.DataSecretName {
 			continue
 		}
 
-		ss := s.DeepCopy()
+		// No op if OwnerReferences is set and up to date.
+		if util.HasExactOwnerRef(s.OwnerReferences, kcpRef) {
+			continue
+		}
 
-		ss.SetOwnerReferences(util.ReplaceOwnerRef(ss.GetOwnerReferences(), currentOwner, metav1.OwnerReference{
-			APIVersion:         controlplanev1.GroupVersion.String(),
-			Kind:               "KubeadmControlPlane",
-			Name:               kcp.Name,
-			UID:                kcp.UID,
-			Controller:         ptr.To(true),
-			BlockOwnerDeletion: ptr.To(true),
-		}))
-
-		if err := r.Client.Update(ctx, ss); err != nil {
+		original := s.DeepCopy()
+		s.SetOwnerReferences(util.ReplaceOwnerRef(s.GetOwnerReferences(), currentOwner, kcpRef))
+		if err := r.Client.Patch(ctx, s, client.MergeFrom(original)); err != nil {
 			return errors.Wrapf(err, "error changing secret %v ownership from KubeadmConfig/%v to KubeadmControlPlane/%v", s.Name, currentOwner.GetName(), kcp.Name)
 		}
 	}
-
 	return nil
 }
 
@@ -1649,11 +1643,7 @@ func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.C
 			continue
 		}
 
-		patchHelper, err := patch.NewHelper(c.Secret, r.Client)
-		if err != nil {
-			return err
-		}
-
+		original := c.Secret.DeepCopy()
 		controller := metav1.GetControllerOf(c.Secret)
 		// If the current controller is KCP, ensure the owner reference is up to date.
 		// Note: This ensures secrets created prior to v1alpha4 are updated to have the correct owner reference apiVersion.
@@ -1671,7 +1661,12 @@ func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.C
 			}
 			c.Secret.SetOwnerReferences(util.EnsureOwnerRef(c.Secret.GetOwnerReferences(), owner))
 		}
-		if err := patchHelper.Patch(ctx, c.Secret); err != nil {
+
+		if reflect.DeepEqual(original.GetOwnerReferences(), c.Secret.GetOwnerReferences()) {
+			continue
+		}
+
+		if err := r.Client.Patch(ctx, c.Secret, client.MergeFrom(original)); err != nil {
 			return errors.Wrapf(err, "failed to set ownerReference")
 		}
 	}

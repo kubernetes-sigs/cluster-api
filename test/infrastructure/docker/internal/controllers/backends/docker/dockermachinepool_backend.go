@@ -62,7 +62,7 @@ type MachinePoolBackEndReconciler struct {
 
 // ReconcileNormal handle docker backend for DevMachinePool not yet deleted.
 func (r *MachinePoolBackEndReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, devMachinePool *infrav1.DevMachinePool) (ctrl.Result, error) {
-	if devMachinePool.Spec.Template.Docker == nil {
+	if devMachinePool.Spec.Backend.Docker == nil {
 		return ctrl.Result{}, errors.New("DockerMachinePoolBackEndReconciler can't be called for DevMachinePools without a Docker backend")
 	}
 
@@ -134,7 +134,7 @@ func (r *MachinePoolBackEndReconciler) ReconcileNormal(ctx context.Context, clus
 
 // ReconcileDelete handle docker backend for delete DevMachinePool.
 func (r *MachinePoolBackEndReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, devMachinePool *infrav1.DevMachinePool) (ctrl.Result, error) {
-	if devMachinePool.Spec.Template.Docker == nil {
+	if devMachinePool.Spec.Backend.Docker == nil {
 		return ctrl.Result{}, errors.New("DockerMachinePoolBackEndReconciler can't be called for DevMachinePools without a Docker backend")
 	}
 
@@ -195,7 +195,7 @@ func (r *MachinePoolBackEndReconciler) ReconcileDelete(ctx context.Context, clus
 
 // PatchDevMachinePool patch a DevMachinePool.
 func (r *MachinePoolBackEndReconciler) PatchDevMachinePool(ctx context.Context, patchHelper *patch.Helper, devMachinePool *infrav1.DevMachinePool) error {
-	if devMachinePool.Spec.Template.Docker == nil {
+	if devMachinePool.Spec.Backend.Docker == nil {
 		return errors.New("DockerMachinePoolBackEndReconciler can't be called for DevMachinePools without a Docker backend")
 	}
 
@@ -503,7 +503,7 @@ func isMachineMatchingInfrastructureSpec(_ context.Context, machine *docker.Mach
 		panic(errors.Wrap(err, "failed to parse DockerMachine version").Error())
 	}
 
-	kindMapping := kind.GetMapping(semVer, dockerMachinePool.Spec.Template.Docker.CustomImage)
+	kindMapping := kind.GetMapping(semVer, dockerMachinePool.Spec.Backend.Docker.CustomImage)
 
 	return machine.ContainerImage() == kindMapping.Image
 }
@@ -542,7 +542,7 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 	}
 
 	log.Info("Creating container for machinePool", "name", name, "MachinePool", klog.KObj(machinePool), "machinePool.Spec.Template.Spec.Version", machinePool.Spec.Template.Spec.Version)
-	if err := externalMachine.Create(ctx, devMachinePool.Spec.Template.Docker.CustomImage, constants.WorkerNodeRoleValue, machinePool.Spec.Template.Spec.Version, labels, devMachinePool.Spec.Template.Docker.ExtraMounts); err != nil {
+	if err := externalMachine.Create(ctx, devMachinePool.Spec.Backend.Docker.CustomImage, constants.WorkerNodeRoleValue, machinePool.Spec.Template.Spec.Version, labels, devMachinePool.Spec.Backend.Docker.ExtraMounts); err != nil {
 		return errors.Wrapf(err, "failed to create docker machine with name %s", name)
 	}
 	return nil
@@ -574,9 +574,9 @@ func computeDesiredDevMachine(name string, cluster *clusterv1.Cluster, machinePo
 		Spec: infrav1.DevMachineSpec{
 			Backend: infrav1.DevMachineBackendSpec{
 				Docker: &infrav1.DockerMachineBackendSpec{
-					CustomImage:   devMachinePool.Spec.Template.Docker.CustomImage,
-					PreLoadImages: devMachinePool.Spec.Template.Docker.PreLoadImages,
-					ExtraMounts:   devMachinePool.Spec.Template.Docker.ExtraMounts,
+					CustomImage:   devMachinePool.Spec.Backend.Docker.CustomImage,
+					PreLoadImages: devMachinePool.Spec.Backend.Docker.PreLoadImages,
+					ExtraMounts:   devMachinePool.Spec.Backend.Docker.ExtraMounts,
 				},
 			},
 		},

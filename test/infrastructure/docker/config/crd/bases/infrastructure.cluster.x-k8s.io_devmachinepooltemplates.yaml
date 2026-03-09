@@ -79,22 +79,12 @@ spec:
                   spec:
                     description: DevMachinePoolSpec defines the desired state of DevMachinePool.
                     properties:
-                      providerID:
-                        description: ProviderID is the identification ID of the Machine
-                          Pool
-                        type: string
-                      providerIDList:
-                        description: ProviderIDList is the list of identification
-                          IDs of machine instances managed by this Machine Pool
-                        items:
-                          type: string
-                        type: array
-                      template:
-                        description: Template contains the details used to build a
+                      backend:
+                        description: backend contains the details used to build a
                           replica machine within the Machine Pool
                         properties:
                           docker:
-                            description: docker defines a backend for a DevMachine
+                            description: docker defines a backend for a DevMachinePool
                               using docker containers.
                             properties:
                               customImage:
@@ -134,6 +124,16 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      providerID:
+                        description: ProviderID is the identification ID of the Machine
+                          Pool
+                        type: string
+                      providerIDList:
+                        description: ProviderIDList is the list of identification
+                          IDs of machine instances managed by this Machine Pool
+                        items:
+                          type: string
+                        type: array
                     type: object
                 required:
                 - spec

@@ -23,11 +23,6 @@ import (
 )
 
 const (
-	// DevMachinePoolFinalizer allows ReconcileDevMachinePool to clean up resources.
-	DevMachinePoolFinalizer = "devmachinepool.infrastructure.cluster.x-k8s.io"
-)
-
-const (
 	// ReplicasReadyCondition reports an aggregate of current status of the replicas controlled by the MachinePool.
 	ReplicasReadyCondition string = "ReplicasReady"
 
@@ -78,6 +73,24 @@ type DevMachinePoolList struct {
 	Items           []DevMachinePool `json:"items"`
 }
 
+// DockerMachinePoolBackendSpec defines the desired state of DockerMachine.
+type DockerMachinePoolBackendSpec struct {
+	// CustomImage allows customizing the container image that is used for
+	// running the machine
+	// +optional
+	CustomImage string `json:"customImage,omitempty"`
+
+	// PreLoadImages allows to pre-load images in a newly created machine. This can be used to
+	// speed up tests by avoiding e.g. to download CNI images on all the containers.
+	// +optional
+	PreLoadImages []string `json:"preLoadImages,omitempty"`
+
+	// ExtraMounts describes additional mount points for the node container
+	// These may be used to bind a hostPath
+	// +optional
+	ExtraMounts []Mount `json:"extraMounts,omitempty"`
+}
+
 // DevMachinePoolSpec defines the desired state of DevMachinePool.
 type DevMachinePoolSpec struct {
 	// ProviderID is the identification ID of the Machine Pool
@@ -88,16 +101,16 @@ type DevMachinePoolSpec struct {
 	// +optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 
-	// Template contains the details used to build a replica machine within the Machine Pool
+	// backend contains the details used to build a replica machine within the Machine Pool
 	// +optional
-	Template DevMachinePoolBackendTemplate `json:"template"`
+	Backend DevMachinePoolBackendSpec `json:"backend"`
 }
 
-// DevMachinePoolBackendTemplate defines backends for a DevMachinePool.
-type DevMachinePoolBackendTemplate struct {
-	// docker defines a backend for a DevMachine using docker containers.
+// DevMachinePoolBackendSpec defines backends for a DevMachinePool.
+type DevMachinePoolBackendSpec struct {
+	// docker defines a backend for a DevMachinePool using docker containers.
 	// +optional
-	Docker *DockerMachinePoolMachineTemplate `json:"docker,omitempty"`
+	Docker *DockerMachinePoolBackendSpec `json:"docker,omitempty"`
 }
 
 // DevMachinePoolStatus defines the observed state of DevMachinePool.
@@ -128,11 +141,11 @@ type DevMachinePoolStatus struct {
 
 	// Instances contains the status for each instance in the pool
 	// +optional
-	Instances []DevMachinePoolBackendInstanceStatus `json:"instances,omitempty"`
+	Instances []DevMachinePoolInstanceStatus `json:"instances,omitempty"`
 }
 
-// DevMachinePoolBackendInstanceStatus contains status information about a DevMachinePool instances.
-type DevMachinePoolBackendInstanceStatus struct {
+// DevMachinePoolInstanceStatus contains status information about a DevMachinePool instances.
+type DevMachinePoolInstanceStatus struct {
 	// docker define backend status for a DevMachine for a machine using docker containers.
 	// +optional
 	Docker *DockerMachinePoolInstanceStatus `json:"docker,omitempty"`

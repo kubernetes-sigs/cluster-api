@@ -180,10 +180,12 @@ func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field
 	allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.TemplateRef, desired.Spec.ControlPlane.TemplateRef,
 		field.NewPath("spec", "controlPlane", "templateRef"))...)
 	if desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() && !current.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
-		allErrs = append(allErrs, field.Invalid(field.NewPath(""), "", "could not compare ClusterClass compatibility: current ControPlane MachineInfra must not be nil"))
+		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.MachineInfrastructure.TemplateRef, desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
+			field.NewPath("spec", "controlPlane", "machineInfrastructure", "templateRef"))...)
 	}
 	if !desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() && current.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
-		allErrs = append(allErrs, field.Invalid(field.NewPath(""), "", "could not compare ClusterClass compatibility: desired ControPlane MachineInfra must not be nil"))
+		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.MachineInfrastructure.TemplateRef, desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
+			field.NewPath("spec", "controlPlane", "machineInfrastructure", "templateRef"))...)
 	}
 	if desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() && current.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
 		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.MachineInfrastructure.TemplateRef, desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef,

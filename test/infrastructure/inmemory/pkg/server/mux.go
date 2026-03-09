@@ -536,7 +536,7 @@ func (m *WorkloadClustersMux) StartListener(wclName string) error {
 
 	wcl, ok := m.workloadClusterListeners[wclName]
 	if !ok {
-		return errors.Errorf("workloadClusterListener with name %s must be initialized before being stopped", wclName)
+		return errors.Errorf("workloadClusterListener with name %s must be initialized before being started", wclName)
 	}
 
 	if wcl.listener != nil {
@@ -571,7 +571,9 @@ func (m *WorkloadClustersMux) DeleteAPIServer(wclName, podName string) error {
 	m.log.Info("APIServer instance removed from the workloadClusterListener", "listenerName", wclName, "address", wcl.Address(), "podName", podName)
 
 	if wcl.apiServers.Len() < 1 && wcl.listener != nil {
-		wcl.listener.CloseAll()
+		if err := wcl.listener.CloseAll(); err != nil {
+			return errors.Wrapf(err, "failed to stop WorkloadClusterListener %s, %s", wclName, wcl.HostPort())
+		}
 		wcl.listener = nil
 		m.log.Info("WorkloadClusterListener stopped because there are no APIServer left", "listenerName", wclName, "address", wcl.Address())
 	}
@@ -592,7 +594,9 @@ func (m *WorkloadClustersMux) StopListener(wclName string) error {
 		return nil
 	}
 
-	wcl.listener.CloseAll()
+	if err := wcl.listener.CloseAll(); err != nil {
+		return errors.Wrapf(err, "failed to stop WorkloadClusterListener %s, %s", wclName, wcl.HostPort())
+	}
 	wcl.listener = nil
 	m.log.Info("WorkloadClusterListener stopped", "listenerName", wclName, "address", wcl.Address())
 	return nil
@@ -720,7 +724,9 @@ func (m *WorkloadClustersMux) DeleteWorkloadClusterListener(wclName string) erro
 	}
 
 	if wcl.listener != nil {
-		wcl.listener.CloseAll()
+		if err := wcl.listener.CloseAll(); err != nil {
+			return errors.Wrapf(err, "failed to stop WorkloadClusterListener %s, %s", wclName, wcl.HostPort())
+		}
 	}
 
 	delete(m.workloadClusterListeners, wclName)

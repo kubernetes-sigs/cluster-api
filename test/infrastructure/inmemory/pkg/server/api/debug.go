@@ -114,7 +114,11 @@ func (h *debugHandler) getCluster(req *restful.Request, resp *restful.Response) 
 func (h *debugHandler) startOrStopListener(req *restful.Request, resp *restful.Response) {
 	defer func() { _ = req.Request.Body.Close() }()
 
-	reqBody, _ := io.ReadAll(req.Request.Body)
+	reqBody, err := io.ReadAll(req.Request.Body)
+	if err != nil {
+		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	switch action := string(reqBody); strings.ToLower(action) {
 	case "start":

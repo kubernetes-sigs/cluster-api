@@ -28,7 +28,7 @@ spec:
           # Note: this annotation is propagated to Nodes.
           Cluster.topology.controlPlane.annotation.node.cluster.x-k8s.io: "Cluster.topology.controlPlane.nodeAnnotationValue"
       deletion:
-        nodeDeletionTimeoutSeconds: 30
+        nodeDeletionTimeoutSeconds: 0 # using 0 so Node deletion doesn't time out, and we don't get test failures because of additional Nodes
         nodeVolumeDetachTimeoutSeconds: 300
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     workers:
@@ -45,7 +45,7 @@ spec:
             # Note: this annotation is propagated to Nodes. Shortened due to name length limitations
             Cluster.topology.md.annotation.node.cluster.x-k8s.io: "Cluster.topology.machineDeployment.nodeAnnotationValue"
         deletion:
-          nodeDeletionTimeoutSeconds: 30
+          nodeDeletionTimeoutSeconds: 0 # using 0 so Node deletion doesn't time out, and we don't get test failures because of additional Nodes
           nodeVolumeDetachTimeoutSeconds: 300
         minReadySeconds: 5
         replicas: ${WORKER_MACHINE_COUNT}
@@ -67,7 +67,7 @@ spec:
           annotations:
             Cluster.topology.machinePool.annotation: "Cluster.topology.machinePool.annotationValue"
         deletion:
-          nodeDeletionTimeoutSeconds: 30
+          nodeDeletionTimeoutSeconds: 0 # using 0 so Node deletion doesn't time out, and we don't get test failures because of additional Nodes
           nodeVolumeDetachTimeoutSeconds: 300
         minReadySeconds: 5
         replicas: ${WORKER_MACHINE_COUNT}

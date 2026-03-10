@@ -92,9 +92,9 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 
 	if cacheEntry, ok := p.canUpdateMachineSetCache.Has(entry.Key()); ok {
 		if cacheEntry.CanUpdateMachineSet {
-			log.V(5).Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions (cached)", oldMS.Name))
+			log.V(5).Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions (cached)", klog.KObj(oldMS)))
 		} else {
-			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions (cached)", oldMS.Name))
+			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions (cached)", klog.KObj(oldMS)))
 		}
 		return cacheEntry.CanUpdateMachineSet, nil
 	}
@@ -107,10 +107,10 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 	p.canUpdateMachineSetCache.Add(entry)
 
 	if !canUpdateMachineSet {
-		log.Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions", oldMS.Name), "reason", strings.Join(reasons, ","))
+		log.Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions", klog.KObj(oldMS)), "reason", strings.Join(reasons, ","))
 		return false, nil
 	}
-	log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions", oldMS.Name))
+	log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions", klog.KObj(oldMS)))
 	return true, nil
 }
 

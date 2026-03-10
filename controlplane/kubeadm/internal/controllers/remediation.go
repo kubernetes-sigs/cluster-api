@@ -860,7 +860,7 @@ func (r *KubeadmControlPlaneReconciler) targetKubernetesControlPlaneComponentsHe
 
 	operations := []string{}
 	if kubernetesControlPlaneToBeDeleted != "" {
-		operations = append(operations, fmt.Sprintf("removal of Machine %s", kubernetesControlPlaneToBeDeleted))
+		operations = append(operations, fmt.Sprintf("removal of Machine %s", klog.KRef(controlPlane.KCP.Namespace, kubernetesControlPlaneToBeDeleted)))
 	}
 	if addKubernetesControlPlane {
 		operations = append(operations, "addition of 1 Machine")

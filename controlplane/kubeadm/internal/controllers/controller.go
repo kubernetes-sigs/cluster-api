@@ -507,7 +507,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	// progress is not counted as needs rollout).
 	if machines := controlPlane.MachinesToCompleteInPlaceUpdate(); machines.Len() > 0 {
 		for _, machine := range machines {
-			log.Info(fmt.Sprintf("Waiting for in-place update of Machine %s to complete", machine.Name), "Machine", klog.KObj(machine))
+			log.Info(fmt.Sprintf("Waiting for in-place update of Machine %s to complete", klog.KObj(machine)), "Machine", klog.KObj(machine))
 		}
 		return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
 	}
@@ -517,11 +517,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	switch {
 	case len(machinesNeedingRollout) > 0:
 		var allMessages []string
-		machinesNeedingRolloutNames := machinesNeedingRollout.Names()
-		slices.Sort(machinesNeedingRolloutNames)
-		for _, name := range machinesNeedingRolloutNames {
-			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", name, strings.Join(machinesUpToDateResults[name].LogMessages, ", ")))
+		machinesNeedingRolloutNames := make([]string, 0, machinesNeedingRollout.Len())
+		for _, m := range machinesNeedingRollout {
+			machinesNeedingRolloutNames = append(machinesNeedingRolloutNames, klog.KObj(m).String())
+			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", klog.KObj(m), strings.Join(machinesUpToDateResults[m.Name].LogMessages, ", ")))
 		}
+		slices.Sort(machinesNeedingRolloutNames)
+		slices.Sort(allMessages)
+
 		log.Info(fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
 		return r.updateControlPlane(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
@@ -1515,7 +1518,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 		log.V(4).Info("Reconciling certificate expiry")
 		certificateExpiry, err := workloadCluster.GetAPIServerCertificateExpiry(ctx, kubeadmConfig, nodeName)
 		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
+			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine %s", klog.KObj(m))
 		}
 		expiry := certificateExpiry.Format(time.RFC3339)
 
@@ -1528,7 +1531,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 		kubeadmConfig.SetAnnotations(annotations)
 
 		if err := r.Client.Patch(ctx, kubeadmConfig, client.MergeFrom(original)); err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
+			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine %s", klog.KObj(m))
 		}
 	}
 

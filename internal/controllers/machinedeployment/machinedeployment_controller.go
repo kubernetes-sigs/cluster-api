@@ -380,9 +380,9 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			if len(p.oldMSs) > 0 {
 				log.Info(fmt.Sprintf("MachineSets need rollout: %s", strings.Join(machineSetNames(p.oldMSs), ", ")), "reason", p.createReason)
 			}
-			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", ms.Name))
+			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", klog.KObj(ms)))
 			if diff.DesiredReplicas > 0 {
-				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", ms.Name, diff.DesiredReplicas))
+				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", klog.KObj(ms), diff.DesiredReplicas))
 			}
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), diff.DesiredReplicas)
 
@@ -422,15 +422,15 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		}
 
 		if diff.DesiredReplicas < diff.OriginalReplicas {
-			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas))
+			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, klog.KObj(ms), diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas))
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
 		if diff.DesiredReplicas > diff.OriginalReplicas {
-			log.Info(fmt.Sprintf("Scaled up %s MachineSet %s from %d to %d replicas (+%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.DesiredReplicas-diff.OriginalReplicas))
+			log.Info(fmt.Sprintf("Scaled up %s MachineSet %s from %d to %d replicas (+%d)", diff.Type, klog.KObj(ms), diff.OriginalReplicas, diff.DesiredReplicas, diff.DesiredReplicas-diff.OriginalReplicas))
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
 		if diff.DesiredReplicas == diff.OriginalReplicas && diff.OtherChanges != "" {
-			log.Info(fmt.Sprintf("Updated %s MachineSet %s", diff.Type, ms.Name))
+			log.Info(fmt.Sprintf("Updated %s MachineSet %s", diff.Type, klog.KObj(ms)))
 		}
 
 		// Only wait for cache if the object was changed.
@@ -481,7 +481,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 			}
 			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 			// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
-			log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", ms.Name), "MachineSet", klog.KObj(ms))
+			log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", klog.KObj(ms)), "MachineSet", klog.KObj(ms))
 		}
 	}
 

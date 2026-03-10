@@ -347,7 +347,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 		machineSetsDeleted = append(machineSetsDeleted, ms)
 
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
-		log.Info(fmt.Sprintf("MachineSet %s deleting (cleanup of old MachineSets)", ms.Name), "MachineSet", klog.KObj(ms))
+		log.Info(fmt.Sprintf("MachineSet %s deleting (cleanup of old MachineSets)", klog.KObj(ms)), "MachineSet", klog.KObj(ms))
 		r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted MachineSet %q", ms.Name)
 	}
 

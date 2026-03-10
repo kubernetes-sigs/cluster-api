@@ -243,17 +243,20 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 		return nil
 	}
 
-	log.Info("Connecting")
+	start := time.Now()
+	log.V(4).Info("Connecting")
 
 	// Creating clients, cache etc. is intentionally done without a lock to avoid blocking other reconcilers.
 	connection, err := ca.createConnection(ctx)
+
+	duration := time.Since(start)
 
 	ca.lock(ctx)
 	defer ca.unlock(ctx)
 
 	defer func() {
 		if retErr != nil {
-			log.Error(retErr, "Connect failed")
+			log.Error(retErr, "Connect failed", "duration", duration)
 			connectionUp.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(0)
 			ca.lockedState.lastConnectionCreationErrorTime = time.Now()
 			// A client creation just failed, so let's count this as a failed probe.
@@ -269,7 +272,7 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 		return err
 	}
 
-	log.Info("Connected")
+	log.Info("Connected", "duration", duration)
 
 	now := time.Now()
 	ca.lockedState.healthChecking = clusterAccessorLockedHealthCheckingState{
@@ -304,7 +307,7 @@ func (ca *clusterAccessor) Disconnect(ctx context.Context) {
 		ca.unlock(ctx)
 		connectionUp.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(0)
 	}()
-	log.Info("Disconnecting")
+	log.V(4).Info("Disconnecting")
 
 	// Stopping the cache is non-blocking, so it's okay to do it while holding the lock.
 	// Note: Stopping the cache will also trigger shutdown of all informers that have been added to the cache.

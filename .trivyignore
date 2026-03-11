@@ -3,3 +3,6 @@ CVE-2025-47914
 CVE-2025-58181
 # otel CVE on Darwin
 CVE-2026-24051
+# Fix available in more recent versions
+CVE-2026-25679
+CVE-2026-27142

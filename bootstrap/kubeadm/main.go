@@ -198,6 +198,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	pflag.CommandLine.VisitAll(func(flag *pflag.Flag) {
+		klog.V(1).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
+	})
+
 	// klog.Background will automatically use the right logger.
 	ctrl.SetLogger(klog.Background())
 

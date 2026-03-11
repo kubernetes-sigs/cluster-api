@@ -570,11 +570,15 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			})
 			if deployClusterInSeparateNamespaces {
 				for _, clusterName := range clusterNames {
-					namespaceName := clusterName
-					framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
-						Deleter: input.BootstrapClusterProxy.GetClient(),
-						Name:    namespaceName,
-					})
+					ns := &corev1.Namespace{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: clusterName,
+						},
+					}
+					log.Logf("Deleting namespace %s", ns.Name)
+					Eventually(func() error {
+						return client.IgnoreNotFound(input.BootstrapClusterProxy.GetClient().Delete(ctx, ns))
+					}, 10*time.Second, 1*time.Second).Should(Succeed(), "Failed to delete namespace %s", ns.Name)
 				}
 			}
 		}

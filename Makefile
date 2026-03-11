@@ -23,17 +23,13 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.24.13
+GO_VERSION ?= 1.25.8
 GO_DIRECTIVE_VERSION ?= 1.24.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Ensure correct toolchain is used
 GOTOOLCHAIN = go$(GO_VERSION)
 export GOTOOLCHAIN
-
-# Required with Go 1.24 to enable usage of synctest in unit tests
-# Can be removed after we bumped to Go 1.25.
-export GOEXPERIMENT=synctest
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
@@ -1470,7 +1466,7 @@ $(CONVERSION_VERIFIER): $(TOOLS_DIR)/go.mod # Build conversion-verifier from too
 
 .PHONY: $(OPENAPI_GEN)
 $(OPENAPI_GEN): # Build openapi-gen from tools folder.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(OPENAPI_GEN_PKG) $(OPENAPI_GEN_BIN) $(OPENAPI_GEN_VER)
+	GOTOOLCHAIN=go1.24.13 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(OPENAPI_GEN_PKG) $(OPENAPI_GEN_BIN) $(OPENAPI_GEN_VER)
 
 ## We are forcing a rebuilt of runtime-openapi-gen via PHONY so that we're always using an up-to-date version.
 .PHONY: $(RUNTIME_OPENAPI_GEN)

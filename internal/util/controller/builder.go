@@ -17,7 +17,10 @@ limitations under the License.
 package controller
 
 import (
+	"errors"
+	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -34,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/cache"
 	predicatesutil "sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -46,12 +50,13 @@ const (
 
 // Builder is a wrapper around controller-runtime's builder.Builder.
 type Builder struct {
-	builder        *builder.Builder
-	mgr            manager.Manager
-	predicateLog   logr.Logger
-	options        controller.TypedOptions[reconcile.Request]
-	forObject      client.Object
-	controllerName string
+	builder           *builder.Builder
+	mgr               manager.Manager
+	predicateLog      logr.Logger
+	options           controller.TypedOptions[reconcile.Request]
+	forObject         client.Object
+	controllerName    string
+	rateLimitInterval time.Duration
 }
 
 // NewControllerManagedBy returns a new controller builder that will be started by the provided Manager.
@@ -116,6 +121,13 @@ func (blder *Builder) WithOptions(options controller.TypedOptions[reconcile.Requ
 	return blder
 }
 
+// WithRateLimitInterval overrides the default rate limit interval, 1s.
+// Note: intervals lower than 1s will be ignored.
+func (blder *Builder) WithRateLimitInterval(interval time.Duration) *Builder {
+	blder.rateLimitInterval = interval
+	return blder
+}
+
 // WithEventFilter sets the event filters, to filter which create/update/delete/generic events eventually
 // trigger reconciliations. For example, filtering on whether the resource version has changed.
 func (blder *Builder) WithEventFilter(p predicate.Predicate) *Builder {
@@ -148,6 +160,10 @@ func (blder *Builder) Complete(r reconcile.TypedReconciler[reconcile.Request]) e
 
 // Build builds the Application Controller and returns the Controller it created.
 func (blder *Builder) Build(r reconcile.TypedReconciler[reconcile.Request]) (Controller, error) {
+	if feature.Gates.Enabled(feature.ReconcilerRateLimiting) && !feature.Gates.Enabled(feature.PriorityQueue) {
+		return nil, errors.New("if feature gate ReconcilerRateLimiting is enabled, feature gate PriorityQueue must be enabled as well")
+	}
+
 	// Get GVK of the for object.
 	var gvk schema.GroupVersionKind
 	hasGVK := blder.forObject != nil
@@ -200,16 +216,30 @@ func (blder *Builder) Build(r reconcile.TypedReconciler[reconcile.Request]) (Con
 		}
 	}
 
+	// Sets the rate limit interval.
+	rateLimitInterval := time.Second
+	if blder.rateLimitInterval > time.Second {
+		rateLimitInterval = blder.rateLimitInterval
+	}
+
+	var queueRateLimiter *typedItemExponentialFailureRateLimiter[reconcile.Request]
+	if feature.Gates.Enabled(feature.ReconcilerRateLimiting) {
+		queueRateLimiter = newTypedItemExponentialFailureRateLimiter[reconcile.Request](rateLimitInterval, 5*time.Millisecond, 1000*time.Second)
+		blder.options.RateLimiter = queueRateLimiter
+	}
+
 	// Passing the options to the underlying builder here because we modified them above.
 	blder.builder.WithOptions(blder.options)
 
 	// Create reconcileCache.
 	reconcileCache := cache.New[reconcileCacheEntry](cache.DefaultTTL)
 
-	c, err := blder.builder.Build(reconcilerWrapper{
-		name:           controllerName,
-		reconciler:     r,
-		reconcileCache: reconcileCache,
+	c, err := blder.builder.Build(&reconcilerWrapper{
+		name:              controllerName,
+		reconciler:        r,
+		reconcileCache:    reconcileCache,
+		rateLimitInterval: rateLimitInterval,
+		queueRateLimiter:  queueRateLimiter,
 	})
 	if err != nil {
 		return nil, err
@@ -227,4 +257,66 @@ func (blder *Builder) Build(r reconcile.TypedReconciler[reconcile.Request]) (Con
 		TypedController: c,
 		reconcileCache:  reconcileCache,
 	}, nil
+}
+
+func newTypedItemExponentialFailureRateLimiter[T comparable](rateLimitInterval time.Duration, baseDelay time.Duration, maxDelay time.Duration) *typedItemExponentialFailureRateLimiter[T] {
+	return &typedItemExponentialFailureRateLimiter[T]{
+		failures:          map[T]int{},
+		rateLimitInterval: rateLimitInterval,
+		baseDelay:         baseDelay,
+		maxDelay:          maxDelay,
+	}
+}
+
+// typedItemExponentialFailureRateLimiter does a simple baseDelay*2^<num-failures> limit
+// dealing with max failures and expiration are up to the caller.
+// Note: In addition to the upstream TypedItemExponentialFailureRateLimiter it adds
+// rateLimitInterval to the backoff duration and it changes the behavior of the Forget method.
+// The Forget method is now a no-op and the ActualForget must be used to forget an item.
+// This is done to ensure the reconcileWrapper has full control over forget and the forget calls
+// in controller-runtime are no-ops.
+type typedItemExponentialFailureRateLimiter[T comparable] struct {
+	failuresLock sync.Mutex
+	failures     map[T]int
+
+	rateLimitInterval time.Duration
+	baseDelay         time.Duration
+	maxDelay          time.Duration
+}
+
+func (r *typedItemExponentialFailureRateLimiter[T]) When(item T) time.Duration {
+	r.failuresLock.Lock()
+	defer r.failuresLock.Unlock()
+
+	exp := r.failures[item]
+	r.failures[item]++
+
+	// The backoff is capped such that 'calculated' value never overflows.
+	backoff := float64(r.rateLimitInterval) + float64(r.baseDelay.Nanoseconds())*math.Pow(2, float64(exp))
+	if backoff > math.MaxInt64 {
+		return r.maxDelay
+	}
+
+	calculated := time.Duration(backoff)
+	if calculated > r.maxDelay {
+		return r.maxDelay
+	}
+
+	return calculated
+}
+
+func (r *typedItemExponentialFailureRateLimiter[T]) NumRequeues(item T) int {
+	r.failuresLock.Lock()
+	defer r.failuresLock.Unlock()
+
+	return r.failures[item]
+}
+
+func (r *typedItemExponentialFailureRateLimiter[T]) Forget(_ T) {}
+
+func (r *typedItemExponentialFailureRateLimiter[T]) ActualForget(item T) {
+	r.failuresLock.Lock()
+	defer r.failuresLock.Unlock()
+
+	delete(r.failures, item)
 }

@@ -71,6 +71,7 @@ const (
 
 	// ReconcilerRateLimiting is a feature gate that controls if reconcilers are rate-limited.
 	// Note: Currently the feature gate is rate-limiting to 1 request / 1 second.
+	// Note: If this feature gate is enabled the PriorityQueue feature gate must be enabled as well.
 	//
 	// alpha: v1.12
 	ReconcilerRateLimiting featuregate.Feature = "ReconcilerRateLimiting"

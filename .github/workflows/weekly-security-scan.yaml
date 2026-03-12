@@ -21,6 +21,8 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # tag=v6.0.2
       with:
         ref: ${{ matrix.branch }}
+        persist-credentials: false
+        fetch-depth: 1
     - name: Calculate go version
       id: vars
       run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT

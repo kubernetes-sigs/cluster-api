@@ -1,8 +1,10 @@
 name: PR title verifier
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, edited, synchronize, reopened]
+
+permissions: {}
 
 jobs:
   verify:
@@ -10,7 +12,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # tag=v6.0.2
-
+        with:
+          persist-credentials: false
       - name: Check if PR title is valid
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}

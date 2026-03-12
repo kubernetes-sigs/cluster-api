@@ -366,6 +366,9 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 				Host:    host,
 			},
 		),
+		// Increase GracefulShutdownTimeout to 90s from the 30s default to tolerate if tests like
+		// TestClusterCacheConcurrency need more time because informers are stuck.
+		GracefulShutdownTimeout: ptr.To(90 * time.Second),
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)
@@ -471,6 +474,11 @@ func (e *Environment) start(ctx context.Context) {
 	go func() {
 		fmt.Println("Starting the test environment manager")
 		if err := e.Start(ctx); err != nil {
+			// Print all goroutines to enable debugging in case the manager timed out during shutdown
+			buf := make([]byte, 1<<20)
+			stackLen := goruntime.Stack(buf, true)
+			_, _ = os.Stdout.Write(buf[:stackLen])
+
 			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
 		}
 	}()

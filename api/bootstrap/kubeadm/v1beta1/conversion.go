@@ -67,22 +67,13 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 
 func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *bootstrapv1.KubeadmConfigSpec) {
 	// Restore fields added in v1beta2
+	// Note: Because timeout fields partially exist already in v1beta1 we are using the conversion annotation
+	// instead of backporting the entire timeout fields to v1beta1 and then having some duplicate timeout fields.
 	if restored.InitConfiguration.IsDefined() && !reflect.DeepEqual(restored.InitConfiguration.Timeouts, bootstrapv1.Timeouts{}) {
 		dst.InitConfiguration.Timeouts = restored.InitConfiguration.Timeouts
 	}
 	if restored.JoinConfiguration.IsDefined() && !reflect.DeepEqual(restored.JoinConfiguration.Timeouts, bootstrapv1.Timeouts{}) {
 		dst.JoinConfiguration.Timeouts = restored.JoinConfiguration.Timeouts
-	}
-	if restored.ClusterConfiguration.CertificateValidityPeriodDays != 0 || restored.ClusterConfiguration.CACertificateValidityPeriodDays != 0 {
-		if restored.ClusterConfiguration.CertificateValidityPeriodDays != 0 {
-			dst.ClusterConfiguration.CertificateValidityPeriodDays = restored.ClusterConfiguration.CertificateValidityPeriodDays
-		}
-		if restored.ClusterConfiguration.CACertificateValidityPeriodDays != 0 {
-			dst.ClusterConfiguration.CACertificateValidityPeriodDays = restored.ClusterConfiguration.CACertificateValidityPeriodDays
-		}
-	}
-	if restored.ClusterConfiguration.EncryptionAlgorithm != "" {
-		dst.ClusterConfiguration.EncryptionAlgorithm = restored.ClusterConfiguration.EncryptionAlgorithm
 	}
 }
 

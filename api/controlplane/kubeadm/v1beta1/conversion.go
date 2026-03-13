@@ -78,7 +78,6 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec)
-		dst.Spec.MachineTemplate.Spec.Taints = restored.Spec.MachineTemplate.Spec.Taints
 	}
 
 	if src.Spec.RemediationStrategy != nil {
@@ -135,7 +134,6 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec)
-		dst.Spec.Template.Spec.MachineTemplate.Spec.Taints = restored.Spec.Template.Spec.MachineTemplate.Spec.Taints
 	}
 
 	if src.Spec.Template.Spec.RemediationStrategy != nil {
@@ -419,6 +417,14 @@ func Convert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1beta2_KubeadmContro
 			}
 		}
 	}
+	for _, c := range in.Taints {
+		out.Spec.Taints = append(out.Spec.Taints, clusterv1.MachineTaint{
+			Key:         c.Key,
+			Value:       c.Value,
+			Effect:      c.Effect,
+			Propagation: clusterv1.MachineTaintPropagation(c.Propagation),
+		})
+	}
 	out.Spec.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
 	out.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
 	out.Spec.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
@@ -437,6 +443,14 @@ func Convert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmContro
 			}
 		}
 	}
+	for _, c := range in.Spec.Taints {
+		out.Taints = append(out.Taints, clusterv1beta1.MachineTaint{
+			Key:         c.Key,
+			Value:       c.Value,
+			Effect:      c.Effect,
+			Propagation: clusterv1beta1.MachineTaintPropagation(c.Propagation),
+		})
+	}
 	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeDrainTimeoutSeconds)
 	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)
 	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeDeletionTimeoutSeconds)
@@ -447,6 +461,14 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta2_Kubea
 	if err := autoConvert_v1beta1_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta2_KubeadmControlPlaneTemplateMachineTemplate(in, out, s); err != nil {
 		return err
 	}
+	for _, c := range in.Taints {
+		out.Spec.Taints = append(out.Spec.Taints, clusterv1.MachineTaint{
+			Key:         c.Key,
+			Value:       c.Value,
+			Effect:      c.Effect,
+			Propagation: clusterv1.MachineTaintPropagation(c.Propagation),
+		})
+	}
 	out.Spec.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
 	out.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
 	out.Spec.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
@@ -456,6 +478,14 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta2_Kubea
 func Convert_v1beta2_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta1_KubeadmControlPlaneTemplateMachineTemplate(in *controlplanev1.KubeadmControlPlaneTemplateMachineTemplate, out *KubeadmControlPlaneTemplateMachineTemplate, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta1_KubeadmControlPlaneTemplateMachineTemplate(in, out, s); err != nil {
 		return err
+	}
+	for _, c := range in.Spec.Taints {
+		out.Taints = append(out.Taints, clusterv1beta1.MachineTaint{
+			Key:         c.Key,
+			Value:       c.Value,
+			Effect:      c.Effect,
+			Propagation: clusterv1beta1.MachineTaintPropagation(c.Propagation),
+		})
 	}
 	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeDrainTimeoutSeconds)
 	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)

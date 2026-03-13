@@ -32,7 +32,7 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 			BootstrapClusterProxy:    bootstrapClusterProxy,
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
-			Flavor:                   "topology",
+			Flavor:                   "topology-no-mp",
 			ControlPlaneMachineCount: ptr.To[int64](1),
 			WorkerMachineCount:       ptr.To[int64](1),
 		}
@@ -47,7 +47,7 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 			BootstrapClusterProxy:    bootstrapClusterProxy,
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
-			Flavor:                   "topology",
+			Flavor:                   "topology-no-mp",
 			ControlPlaneMachineCount: ptr.To[int64](3),
 			WorkerMachineCount:       ptr.To[int64](1),
 		}

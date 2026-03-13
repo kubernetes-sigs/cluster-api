@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -337,12 +338,24 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 	return nil
 }
 
+// Note: See https://github.com/kubernetes-sigs/kind/pull/2421 for more context.
+var waitUntilLogRegExp = regexp.MustCompile("Reached target .*Multi-User System.*")
+
 // ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`.
-func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstrapv1.Format, version string, image string) error {
+func (m *Machine) ExecBootstrap(ctx context.Context, containerRuntime container.Runtime, data string, format bootstrapv1.Format, version string, image string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if m.container == nil {
 		return errors.New("unable to set ExecBootstrap. the container hosting this machine does not exists")
+	}
+
+	logs, err := containerRuntime.GetContainerLogs(ctx, m.container.Name)
+	if err != nil {
+		return errors.Wrap(err, "failed to check if container is ready for DockerMachine bootstrap exec")
+	}
+
+	if !waitUntilLogRegExp.MatchString(logs) {
+		return errors.New("container is not yet ready for DockerMachine bootstrap exec (Multi-User System target not reached yet)")
 	}
 
 	// Get the kindMapping for the target K8s version.

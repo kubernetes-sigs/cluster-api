@@ -41,6 +41,7 @@ type Runtime interface {
 	ImageExistsLocally(ctx context.Context, image string) (bool, error)
 	GetHostPort(ctx context.Context, containerName, portAndProtocol string) (string, error)
 	GetContainerIPs(ctx context.Context, containerName string) (string, string, error)
+	GetContainerLogs(ctx context.Context, containerName string) (string, error)
 	ExecContainer(ctx context.Context, containerName string, config *ExecContainerInput, command string, args ...string) error
 	RunContainer(ctx context.Context, runConfig *RunContainerInput, output io.Writer) error
 	ListContainers(ctx context.Context, filters FilterBuilder) ([]Container, error)

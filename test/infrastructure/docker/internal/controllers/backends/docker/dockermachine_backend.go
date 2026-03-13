@@ -302,7 +302,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 			}()
 
 			// Run the bootstrap script. Simulates cloud-init/Ignition.
-			if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format, version, dockerMachine.Spec.Backend.Docker.CustomImage); err != nil {
+			if err := externalMachine.ExecBootstrap(timeoutCtx, r.ContainerRuntime, bootstrapData, format, version, dockerMachine.Spec.Backend.Docker.CustomImage); err != nil {
 				v1beta1conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededV1Beta1Condition, infrav1.BootstrapFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
 				conditions.Set(dockerMachine, metav1.Condition{
 					Type:    infrav1.DevMachineDockerContainerBootstrapExecSucceededCondition,

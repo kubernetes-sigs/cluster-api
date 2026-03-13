@@ -328,6 +328,25 @@ func (d *dockerRuntime) GetContainerIPs(ctx context.Context, containerName strin
 	return "", "", nil
 }
 
+// GetContainerLogs gets container logs.
+func (d *dockerRuntime) GetContainerLogs(ctx context.Context, containerName string) (string, error) {
+	logsReader, err := d.dockerClient.ContainerLogs(ctx, containerName, dockercontainer.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get container logs")
+	}
+	defer logsReader.Close()
+
+	logs, err := io.ReadAll(logsReader)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to read container logs")
+	}
+
+	return string(logs), nil
+}
+
 // ContainerDebugInfo gets the container metadata and logs from the runtime (docker inspect, docker logs).
 func (d *dockerRuntime) ContainerDebugInfo(ctx context.Context, containerName string, w io.Writer) error {
 	containerInfo, err := d.dockerClient.ContainerInspect(ctx, containerName)

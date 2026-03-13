@@ -496,6 +496,110 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	},
 	"f:version":{}
 }}`)
+	kubeadmControlPlaneApplyWithoutSomeExtraArgs := kubeadmControlPlaneApply.DeepCopy()
+	kubeadmControlPlaneApplyWithoutSomeExtraArgs.Spec.KubeadmConfigSpec.ClusterConfiguration = bootstrapv1.ClusterConfiguration{
+		APIServer: bootstrapv1.APIServer{
+			ExtraArgs: []bootstrapv1.Arg{
+				{
+					Name:  "profiling",
+					Value: ptr.To("false"),
+				},
+			},
+		},
+		Scheduler: bootstrapv1.Scheduler{
+			ExtraArgs: []bootstrapv1.Arg{
+				{
+					Name:  "profiling",
+					Value: ptr.To("false"),
+				},
+			},
+		},
+	}
+	kubeadmControlPlaneManagedFieldsAfterApplyWithoutSomeExtraArgs := trimSpaces(`{
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{}
+	},
+	"f:labels":{
+		"f:label-1":{}
+	}
+},
+"f:spec":{
+	"f:kubeadmConfigSpec":{
+		"f:clusterConfiguration":{
+			"f:apiServer":{
+				"f:extraArgs":{
+					"k:{\"name\":\"profiling\",\"value\":\"false\"}":{
+						".":{},
+						"f:name":{},
+						"f:value":{}
+					}
+				}
+			},
+			"f:scheduler":{
+				"f:extraArgs":{
+					"k:{\"name\":\"profiling\",\"value\":\"false\"}":{
+						".":{},
+						"f:name":{},
+						"f:value":{}
+					}
+				}
+			}
+		},
+		"f:format":{},
+		"f:initConfiguration":{
+			"f:nodeRegistration":{
+				"f:kubeletExtraArgs":{
+					"k:{\"name\":\"node-labels\",\"value\":\"kubernetesVersion=1-35-0\"}":{
+						".":{},
+						"f:name":{},
+						"f:value":{}
+					},
+					"k:{\"name\":\"v\",\"value\":\"5\"}":{
+						".":{},
+						"f:name":{},
+						"f:value":{}
+					}
+				}
+			}
+		},
+		"f:joinConfiguration":{
+			"f:nodeRegistration":{
+				"f:kubeletExtraArgs":{
+					"k:{\"name\":\"node-labels\",\"value\":\"kubernetesVersion=1-35-0\"}":{
+						".":{},
+						"f:name":{},
+						"f:value":{}
+					},
+					"k:{\"name\":\"v\",\"value\":\"6\"}":{
+						".":{},
+						"f:name":{},
+						"f:value":{}
+					}
+				}
+			}
+		}
+	},
+	"f:machineTemplate":{
+		"f:spec":{
+			"f:infrastructureRef":{
+				"f:apiGroup":{},
+				"f:kind":{},
+				"f:name":{}
+			}
+		}
+	},
+	"f:replicas":{},
+	"f:rollout":{
+		"f:strategy":{
+			"f:rollingUpdate":{
+				"f:maxSurge":{}
+			},
+			"f:type":{}
+		}
+	},
+	"f:version":{}
+}}`)
 
 	kubeadmControlPlaneV1Beta1 := &controlplanev1beta1.KubeadmControlPlane{
 		// Have to set TypeMeta explicitly when using SSA with typed objects.
@@ -963,6 +1067,27 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						APIVersion: controlplanev1.GroupVersion.String(),
 						FieldsType: "FieldsV1",
 						FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneManagedFieldsAfterApply)},
+					}},
+				},
+				{ // Apply v1beta2 again to verify that we can remove extraArgs
+					object: kubeadmControlPlaneApplyWithoutSomeExtraArgs,
+					expectedManagedFields: []metav1.ManagedFieldsEntry{{
+						Manager:    otherFieldManager,
+						Operation:  metav1.ManagedFieldsOperationApply,
+						APIVersion: controlplanev1beta1.GroupVersion.String(),
+						FieldsType: "FieldsV1",
+						FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))},
+					}, {
+						Manager:    testFieldManager,
+						Operation:  metav1.ManagedFieldsOperationApply,
+						APIVersion: controlplanev1.GroupVersion.String(),
+						FieldsType: "FieldsV1",
+						FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneManagedFieldsAfterApplyWithoutSomeExtraArgs)},
 					}},
 				},
 			},

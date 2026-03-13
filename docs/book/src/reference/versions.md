@@ -51,9 +51,12 @@ The Cluster API team actively supports the latest two minor releases (N, N-1); s
 - Accept bug fixes, perform golang or dependency bumps, etc. 
 - Periodically cut patch releases
 
-On top of supporting the N and N-1 releases, the Cluster API team also maintains CI signal for the Cluster API N-2 releases 
-in case we have to do an emergency patch release.  
-- If there is a need for an emergency patch, e.g. to fix a critical security issue, please bring this up to maintainers
+On top of supporting the N and N-1 releases, the Cluster API team also maintains a partial CI signal for the Cluster API N-2 releases 
+in case we have to do an emergency patch release. Please note that:
+- Even if a subset of the CI signal for the N-2 branch is preserved, the N-2 branch is considered in maintenance mode and
+  no change is back-ported proactively.
+- Security scans will be disabled (this signal does not make sense considering that CVE are not going to be fixed proactively)
+- If there is a need for an emergency patch, e.g. to fix a critical issue, please bring this up to maintainers
   and it will be considered on a case-by-case basis. 
 
 All considered, each Cluster API minor release is supported for a period of roughly 12 months:

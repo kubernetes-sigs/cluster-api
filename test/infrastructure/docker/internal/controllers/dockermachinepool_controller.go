@@ -43,6 +43,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -127,6 +128,12 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Return early if the object or Cluster is paused.
+	if annotations.IsPaused(cluster, dockerMachinePool) {
+		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
 
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(dockerMachinePool, r.Client)

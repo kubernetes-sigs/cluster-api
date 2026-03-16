@@ -526,7 +526,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		name          string
 		machine       *clusterv1.Machine
 		kubeadmConfig *bootstrapv1.KubeadmConfig
-		node          *corev1.Node
+		node          *Node
 		want          bool
 	}{
 		{
@@ -535,8 +535,8 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{},
-			node: &corev1.Node{
-				Spec: corev1.NodeSpec{
+			node: &Node{
+				Spec: NodeSpec{
 					Taints: []corev1.Taint{
 						{
 							Key:    labelNodeRoleControlPlane,
@@ -561,7 +561,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 				},
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{},
-			node:          &corev1.Node{},
+			node:          &Node{},
 			want:          true,
 		},
 		{
@@ -574,7 +574,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					// if join configuration is not defined, init configuration is used.
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: true,
 		},
 		{
@@ -589,7 +589,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: true,
 		},
 		{
@@ -611,7 +611,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: true,
 		},
 		{
@@ -634,7 +634,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: true,
 		},
 		{
@@ -651,7 +651,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: false,
 		},
 		{
@@ -669,7 +669,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: false,
 		},
 	}

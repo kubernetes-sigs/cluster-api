@@ -61,7 +61,7 @@ type ControlPlane struct {
 	// - The list includes existing nodes referenced from control plane machines, no matter
 	//   if they have the control plane label or not.
 	// - Once the list is set, it is used as input to methods accessing etcd via port-forward.
-	Nodes         []*corev1.Node
+	Nodes         []*Node
 	NodeListError error
 
 	// MachinesNotUpToDate is the source of truth for Machines that are not up-to-date.
@@ -512,7 +512,7 @@ func (c *ControlPlane) GetKeyEncryptionAlgorithm() bootstrapv1.EncryptionAlgorit
 }
 
 // DefaultTaintIsMissing reports true if the default control plane taint is missing.
-func (c *ControlPlane) DefaultTaintIsMissing(machine *clusterv1.Machine, node *corev1.Node) bool {
+func (c *ControlPlane) DefaultTaintIsMissing(machine *clusterv1.Machine, node *Node) bool {
 	shouldHaveTaint := func() bool {
 		// If the default taint is in the list of taints at machine level, the node should have the default kubeadm taint.
 		// Note: If the taint is defined with propagation OnInitialization only, KCP cannot determine if the user intent

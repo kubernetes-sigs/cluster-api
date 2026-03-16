@@ -22,7 +22,6 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -83,7 +82,7 @@ type fakeWorkloadCluster struct {
 	removeEtcdMemberCalled      int
 }
 
-func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine, _ []*corev1.Node) error {
+func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine, _ []*internal.Node) error {
 	f.forwardEtcdLeadershipCalled++
 	if leaderCandidate == nil {
 		return errors.New("leaderCandidate is nil")
@@ -107,7 +106,7 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 	return nil
 }
 
-func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ string, _ []*corev1.Node) error {
+func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ string, _ []*internal.Node) error {
 	f.removeEtcdMemberCalled++
 	return nil
 }

@@ -29,14 +29,9 @@ import (
 	"github.com/spf13/pflag"
 	"go.etcd.io/etcd/client/pkg/v3/logutil"
 	"go.uber.org/zap/zapcore"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/selection"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -46,7 +41,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -65,6 +59,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/setup"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
@@ -277,19 +272,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	var watchNamespaces map[string]cache.Config
-	if watchNamespace != "" {
-		watchNamespaces = map[string]cache.Config{
-			watchNamespace: {},
-		}
-	}
-
 	if enableContentionProfiling {
 		goruntime.SetBlockProfileRate(1)
 	}
-
-	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
-	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
 
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
@@ -305,31 +290,8 @@ func main() {
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
 		Metrics:                    *metricsOptions,
-		Cache: cache.Options{
-			DefaultNamespaces: watchNamespaces,
-			SyncPeriod:        &syncPeriod,
-			ByObject: map[client.Object]cache.ByObject{
-				// Note: Only Secrets with the cluster name label are cached.
-				// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).
-				// The cached secrets will only be used by the secretCachingClient we create below.
-				&corev1.Secret{}: {
-					Label: clusterSecretCacheSelector,
-				},
-			},
-		},
-		Client: client.Options{
-			Cache: &client.CacheOptions{
-				DisableFor: []client.Object{
-					&corev1.ConfigMap{},
-					&corev1.Secret{},
-				},
-				// This config ensures that the default client uses the cache for all Unstructured get/list calls.
-				// KCP is only using Unstructured to retrieve InfraMachines and InfraMachineTemplates.
-				// As the cache should be used in those cases, caching is configured globally instead of
-				// creating a separate client that caches Unstructured.
-				Unstructured: true,
-			},
-		},
+		Cache:                      setup.ManagerCacheOptions(watchNamespace, syncPeriod),
+		Client:                     setup.ManagerClientOptions(),
 		WebhookServer: webhook.NewServer(
 			webhook.Options{
 				Port:     webhookPort,
@@ -374,55 +336,16 @@ func setupChecks(mgr ctrl.Manager) {
 }
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
-	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
-		HTTPClient: mgr.GetHTTPClient(),
-		Cache: &client.CacheOptions{
-			Reader: mgr.GetCache(),
-		},
-	})
+	secretCachingClient, err := setup.CreateSecretCachingClient(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create secret caching client")
 		os.Exit(1)
 	}
 
-	must := func(r *labels.Requirement, err error) labels.Requirement {
-		if err != nil {
-			panic(err)
-		}
-		return *r
-	}
-	podSelector := labels.NewSelector().Add(
-		must(labels.NewRequirement("tier", selection.Equals, []string{"control-plane"})),
-		must(labels.NewRequirement("component", selection.In, []string{"kube-apiserver", "kube-controller-manager", "kube-scheduler", "etcd"})),
-	)
-
 	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
-		SecretClient: secretCachingClient,
-		Cache: clustercache.CacheOptions{
-			// Only cache kubeadm static pods
-			ByObject: map[client.Object]cache.ByObject{
-				&corev1.Pod{}: {
-					Namespaces: map[string]cache.Config{
-						metav1.NamespaceSystem: {
-							LabelSelector: podSelector,
-						},
-					},
-				},
-			},
-		},
-		Client: clustercache.ClientOptions{
-			QPS:       clusterCacheClientQPS,
-			Burst:     clusterCacheClientBurst,
-			UserAgent: remote.DefaultClusterAPIUserAgent(controllerName),
-			Cache: clustercache.ClientCacheOptions{
-				DisableFor: []client.Object{
-					&corev1.ConfigMap{},
-					&corev1.Secret{},
-					&appsv1.Deployment{},
-					&appsv1.DaemonSet{},
-				},
-			},
-		},
+		SecretClient:     secretCachingClient,
+		Cache:            setup.ClusterCacheCacheOptions(),
+		Client:           setup.ClusterCacheClientOptions(controllerName, clusterCacheClientQPS, clusterCacheClientBurst),
 		WatchFilterValue: watchFilterValue,
 	}, concurrency(clusterCacheConcurrency))
 	if err != nil {

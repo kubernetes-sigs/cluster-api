@@ -26,7 +26,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -658,10 +657,9 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to get cluster client while retrieving the etcd member name for %s", deletingMachine.Name))
 		} else {
-			nodeList := corev1.NodeList{}
-			if err := remoteClient.List(ctx, &nodeList, client.MatchingFields{index.NodeProviderIDField: providerID}); err == nil {
-				if len(nodeList.Items) == 1 {
-					node = nodeList.Items[0].Name
+			if nodes, err := internal.ListTransformedNodes(ctx, remoteClient, client.MatchingFields{index.NodeProviderIDField: providerID}); err == nil {
+				if len(nodes) == 1 {
+					node = nodes[0].Name
 				}
 			}
 		}

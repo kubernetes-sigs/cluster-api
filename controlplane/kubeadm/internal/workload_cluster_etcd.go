@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -54,7 +53,7 @@ func (w *Workload) UpdateEtcdExternalInKubeadmConfigMap(etcdExternal bootstrapv1
 // RemoveEtcdMember removes the etcd member from the target cluster's etcd cluster.
 // Removing the last remaining member of the cluster is not supported.
 // Note: It is a responsibility of the caller to check if this operation doesn't lead to quorum loss.
-func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*corev1.Node) error {
+func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*Node) error {
 	// Exclude node being removed from etcd client node list
 	// Note: this operation relies on the assumption that node name is equal to the name of the corresponding etcd member.
 	var remainingNodes []string
@@ -94,7 +93,7 @@ func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*c
 }
 
 // ForwardEtcdLeadership forwards etcd leadership to the first follower.
-func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*corev1.Node) error {
+func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*Node) error {
 	if machine == nil || !machine.Status.NodeRef.IsDefined() {
 		return nil
 	}

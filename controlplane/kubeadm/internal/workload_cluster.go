@@ -34,7 +34,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
@@ -80,8 +79,8 @@ type WorkloadCluster interface {
 	UpdateEncryptionAlgorithm(encryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) func(*bootstrapv1.ClusterConfiguration)
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
-	RemoveEtcdMember(ctx context.Context, name string, nodes []*corev1.Node) error
-	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*corev1.Node) error
+	RemoveEtcdMember(ctx context.Context, name string, nodes []*Node) error
+	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*Node) error
 	AllowClusterAdminPermissions(ctx context.Context, version semver.Version) error
 	UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error
 }
@@ -96,30 +95,10 @@ type Workload struct {
 
 var _ WorkloadCluster = &Workload{}
 
-func (w *Workload) getNodesWithControlPlaneLabel(ctx context.Context) (*corev1.NodeList, error) {
-	controlPlaneNodes := &corev1.NodeList{}
-	controlPlaneNodeNames := sets.Set[string]{}
-
-	nodes := &corev1.NodeList{}
-	if err := w.Client.List(ctx, nodes, client.MatchingLabels(map[string]string{
+func (w *Workload) getNodesWithControlPlaneLabel(ctx context.Context) ([]*Node, error) {
+	return ListTransformedNodes(ctx, w.Client, client.MatchingLabels(map[string]string{
 		labelNodeRoleControlPlane: "",
-	})); err != nil {
-		return nil, err
-	}
-
-	for i := range nodes.Items {
-		node := nodes.Items[i]
-
-		// Continue if we already added that node.
-		if controlPlaneNodeNames.Has(node.Name) {
-			continue
-		}
-
-		controlPlaneNodeNames.Insert(node.Name)
-		controlPlaneNodes.Items = append(controlPlaneNodes.Items, node)
-	}
-
-	return controlPlaneNodes, nil
+	}))
 }
 
 func (w *Workload) getConfigMap(ctx context.Context, configMap client.ObjectKey) (*corev1.ConfigMap, error) {

@@ -50,7 +50,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 		name                      string
 		kcp                       *controlplanev1.KubeadmControlPlane
 		machines                  []*clusterv1.Machine
-		nodes                     []*corev1.Node
+		nodes                     []*Node
 		injectEtcdClientGenerator etcdClientFor // This test is injecting a fake etcdClientGenerator because it is required to nodes with a controlled Status or to fail with a specific error.
 		expectedRetry             bool
 	}{
@@ -64,7 +64,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withNodeRef("n1")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
@@ -85,7 +85,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withNodeRef("n1")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
@@ -106,7 +106,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withNodeRef("n1")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
@@ -162,7 +162,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 		name                                      string
 		kcp                                       *controlplanev1.KubeadmControlPlane
 		machines                                  []*clusterv1.Machine
-		nodes                                     []*corev1.Node
+		nodes                                     []*Node
 		nodeListError                             error
 		injectEtcdClientGenerator                 etcdClientFor // This test is injecting a fake etcdClientGenerator because it is required to nodes with a controlled Status or to fail with a specific error.
 		expectedKCPV1Beta1Condition               *clusterv1.Condition
@@ -202,7 +202,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withProviderID("n1")), // without NodeRef (provisioning)
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			expectedKCPV1Beta1Condition: nil,
@@ -228,7 +228,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withProviderID("dummy-provider-id")), // without NodeRef (provisioning)
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			expectedKCPV1Beta1Condition: nil,
@@ -254,7 +254,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withProviderID("n1"), withNodeRef("n1")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
@@ -285,7 +285,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withNodeRef("n1")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
@@ -322,7 +322,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withProviderID("n1"), withNodeRef("n1")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
@@ -358,7 +358,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withNodeRef("n1")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
@@ -402,7 +402,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withNodeRef("n1")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
@@ -449,7 +449,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeMachine("m1", withNodeRef("n1")),
 				fakeMachine("m2", withNodeRef("n2")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 				fakeNode("n2"),
 			},
@@ -516,7 +516,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeMachine("m1", withNodeRef("n1")),
 				fakeMachine("m2", withNodeRef("n2")),
 			},
-			nodes: []*corev1.Node{
+			nodes: []*Node{
 				fakeNode("n1"),
 				fakeNode("n2"),
 			},
@@ -760,7 +760,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{
-					Items: []corev1.Node{*fakeNode("n1")},
+					Items: []corev1.Node{*fakeCoreV1Node("n1")},
 				},
 			},
 			expectedKCPV1Beta1Condition: nil,
@@ -790,7 +790,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{
-					Items: []corev1.Node{*fakeNode("n1")},
+					Items: []corev1.Node{*fakeCoreV1Node("n1")},
 				},
 			},
 			expectedKCPV1Beta1Condition: nil,
@@ -820,7 +820,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{
-					Items: []corev1.Node{*fakeNode("n1")},
+					Items: []corev1.Node{*fakeCoreV1Node("n1")},
 				},
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition, controlplanev1.ControlPlaneComponentsUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Control plane Node %s does not have a corresponding Machine", "n1"),
@@ -839,7 +839,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{
-					Items: []corev1.Node{*fakeNode("n1", withUnreachableTaint())},
+					Items: []corev1.Node{*fakeCoreV1Node("n1", withUnreachableTaint())},
 				},
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.UnknownCondition(controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition, controlplanev1.ControlPlaneComponentsUnknownV1Beta1Reason, "Following Machines are reporting unknown control plane status: m1"),
@@ -1065,7 +1065,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{
-					Items: []corev1.Node{*fakeNode("n1")},
+					Items: []corev1.Node{*fakeCoreV1Node("n1")},
 				},
 				get: map[string]interface{}{
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
@@ -1120,7 +1120,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{
-					Items: []corev1.Node{*fakeNode("n1")},
+					Items: []corev1.Node{*fakeCoreV1Node("n1")},
 				},
 				get: map[string]interface{}{
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
@@ -1178,7 +1178,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{
-					Items: []corev1.Node{*fakeNode("n1", withControlPlaneTaint())},
+					Items: []corev1.Node{*fakeCoreV1Node("n1", withControlPlaneTaint())},
 				},
 				get: map[string]interface{}{
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
@@ -1247,7 +1247,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{
-					Items: []corev1.Node{*fakeNode("n1", withControlPlaneTaint())},
+					Items: []corev1.Node{*fakeCoreV1Node("n1", withControlPlaneTaint())},
 				},
 				get: map[string]interface{}{
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
@@ -1346,7 +1346,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 	tests := []struct {
 		name                     string
 		injectClient             client.Client // This test is injecting a fake client because it is required to create pods with a controlled Status or to fail with a specific error.
-		node                     *corev1.Node
+		node                     *Node
 		expectedV1Beta1Condition clusterv1.Condition
 		expectedCondition        metav1.Condition
 	}{
@@ -1622,7 +1622,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 			w := &Workload{
 				Client: tt.injectClient,
 			}
-			w.updateStaticPodCondition(ctx, machine, *tt.node, component, condition, v1beta2Condition)
+			w.updateStaticPodCondition(ctx, machine, tt.node, component, condition, v1beta2Condition)
 
 			g.Expect(*v1beta1conditions.Get(machine, condition)).To(v1beta1conditions.MatchCondition(tt.expectedV1Beta1Condition))
 			g.Expect(*conditions.Get(machine, v1beta2Condition)).To(conditions.MatchCondition(tt.expectedCondition, conditions.IgnoreLastTransitionTime(true)))
@@ -1632,7 +1632,11 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 
 type fakeNodeOption func(*corev1.Node)
 
-func fakeNode(name string, options ...fakeNodeOption) *corev1.Node {
+func fakeNode(name string, options ...fakeNodeOption) *Node {
+	return TransformNode(fakeCoreV1Node(name, options...))
+}
+
+func fakeCoreV1Node(name string, options ...fakeNodeOption) *corev1.Node {
 	p := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -2053,7 +2057,7 @@ func TestCompareMachinesAndMembers(t *testing.T) {
 					{Name: "m2"},
 					// m3 is missing
 				},
-				Nodes: []*corev1.Node{
+				Nodes: []*Node{
 					// m3 is missing
 				},
 			},
@@ -2074,8 +2078,8 @@ func TestCompareMachinesAndMembers(t *testing.T) {
 					{Name: "m2"},
 					// m3 is missing
 				},
-				Nodes: []*corev1.Node{
-					{ObjectMeta: metav1.ObjectMeta{Name: "m3", CreationTimestamp: metav1.Time{Time: time.Now().Add(-110 * time.Second)}}}, // m3 is just provisioned
+				Nodes: []*Node{
+					{ObjectMeta: ObjectMeta{Name: "m3", CreationTimestamp: metav1.Time{Time: time.Now().Add(-110 * time.Second)}}}, // m3 is just provisioned
 				},
 			},
 			expectMembersAndMachinesAreMatching: true,
@@ -2095,8 +2099,8 @@ func TestCompareMachinesAndMembers(t *testing.T) {
 					{Name: "m2"},
 					// m3 is missing
 				},
-				Nodes: []*corev1.Node{
-					{ObjectMeta: metav1.ObjectMeta{Name: "m3", CreationTimestamp: metav1.Time{Time: time.Now().Add(-10 * time.Minute)}}}, // m3 is old
+				Nodes: []*Node{
+					{ObjectMeta: ObjectMeta{Name: "m3", CreationTimestamp: metav1.Time{Time: time.Now().Add(-10 * time.Minute)}}}, // m3 is old
 				},
 			},
 			expectMembersAndMachinesAreMatching: false,

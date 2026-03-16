@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -34,7 +35,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -93,8 +93,13 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta1Status(ctx context.Context,
 	if controlPlane.NodeListError == nil {
 		readyNodes := int32(0)
 		for _, node := range controlPlane.Nodes {
-			if util.IsNodeReady(node) {
-				readyNodes++
+			for _, condition := range node.Status.Conditions {
+				if condition.Type == corev1.NodeReady {
+					if condition.Status == corev1.ConditionTrue {
+						readyNodes++
+					}
+					break
+				}
 			}
 		}
 		controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = readyNodes

@@ -137,6 +137,10 @@ const (
 	// completed bootstrap exec commands.
 	DevMachineDockerContainerBootstrapExecSucceededReason string = "Succeeded"
 
+	// DevMachineDockerContainerBootstrapExecWaitingForMultiUserTargetReason documents the container for a DevMachine's docker backend not having
+	// completed bootstrap exec commands because it is waiting for the multi-user target.
+	DevMachineDockerContainerBootstrapExecWaitingForMultiUserTargetReason string = "WaitingForMultiUserTarget"
+
 	// DevMachineDockerContainerBootstrapExecNotSucceededReason documents the container for a DevMachine's docker backend not having
 	// completed bootstrap exec commands.
 	DevMachineDockerContainerBootstrapExecNotSucceededReason string = "NotSucceeded"

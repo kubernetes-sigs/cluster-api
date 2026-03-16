@@ -32,7 +32,9 @@ import (
 
 const (
 	// ttl is the duration for which we keep the keys in the cache.
-	ttl = 10 * time.Minute
+	// The ttl is a multiple of the default syncPeriod to ensure we have a few chances
+	// of refreshing cache entries before an entry expires.
+	ttl = 30 * time.Minute
 
 	// expirationInterval is the interval in which we will remove expired keys
 	// from the cache.

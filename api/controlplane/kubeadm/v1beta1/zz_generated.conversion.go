@@ -397,6 +397,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlan
 	}
 	// WARNING: in.AvailableReplicas requires manual conversion: does not exist in peer-type
 	// WARNING: in.UpToDateReplicas requires manual conversion: does not exist in peer-type
+	// WARNING: in.Versions requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_string_To_Pointer_string(&in.Version, &out.Version, s); err != nil {
 		return err
 	}

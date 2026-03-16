@@ -355,6 +355,13 @@ func (in *KubeadmControlPlaneStatus) DeepCopyInto(out *KubeadmControlPlaneStatus
 		*out = new(int32)
 		**out = **in
 	}
+	if in.Versions != nil {
+		in, out := &in.Versions, &out.Versions
+		*out = make([]corev1beta2.StatusVersion, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	in.LastRemediation.DeepCopyInto(&out.LastRemediation)
 	if in.Deprecated != nil {
 		in, out := &in.Deprecated, &out.Deprecated

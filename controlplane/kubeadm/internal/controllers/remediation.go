@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -333,7 +334,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		}
 	}
 
-	// Delete the machine
+	// Delete the machine (waiting for cache to observe the deletion at the end of this func, so everything in between is always executed)
 	if err := r.Client.Delete(ctx, machineToBeRemediated); err != nil {
 		v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.RemediationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 
@@ -371,6 +372,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	annotations.AddAnnotations(controlPlane.KCP, map[string]string{
 		controlplanev1.RemediationInProgressAnnotation: remediationInProgressValue,
 	})
+
+	// Using DeepCopy() to avoid overwriting the Machine because we still need it to Patch the Machine in defer.
+	if err := clientutil.WaitForObjectsToBeDeletedFromTheCache(ctx, r.Client, "Machine deletion (remediating unhealthy Machine)", machineToBeRemediated.DeepCopy()); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{RequeueAfter: time.Millisecond}, nil // Technically there is no need to requeue here. Machine deletion above triggers reconciliation. But we have to return a non-zero Result so reconcile above returns.
 }

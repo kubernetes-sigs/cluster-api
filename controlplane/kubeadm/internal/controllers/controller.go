@@ -100,9 +100,8 @@ type KubeadmControlPlaneReconciler struct {
 
 	RemoteConditionsGracePeriod time.Duration
 
-	managementCluster         internal.ManagementCluster
-	managementClusterUncached internal.ManagementCluster
-	ssaCache                  ssa.Cache
+	managementCluster internal.ManagementCluster
+	ssaCache          ssa.Cache
 
 	// Only used for testing.
 	overrideTryInPlaceUpdateFunc       func(ctx context.Context, controlPlane *internal.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, ctrl.Result, error)
@@ -169,10 +168,6 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 			EtcdLogger:          r.EtcdLogger,
 			ClientCertCache:     cache.New[internal.ClientCertEntry](24 * time.Hour),
 		}
-	}
-
-	if r.managementClusterUncached == nil {
-		r.managementClusterUncached = &internal.Management{Client: mgr.GetAPIReader()}
 	}
 
 	return nil
@@ -308,7 +303,7 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 	}
 
 	// Read control plane machines
-	controlPlaneMachines, err := r.managementClusterUncached.GetControlPlaneMachinesForCluster(ctx, cluster)
+	controlPlaneMachines, err := r.managementCluster.GetControlPlaneMachinesForCluster(ctx, cluster)
 	if err != nil {
 		log.Error(err, "Failed to retrieve control plane machines for cluster")
 		return nil, false, err
@@ -756,6 +751,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 			continue
 		}
 
+		// Note: It's not critical that the next Reconcile observes the deletion, so we don't wait for the cache.
 		if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 			errs = append(errs, errors.Wrapf(err, "failed to delete control plane Machine %s", klog.KObj(machineToDelete)))
 		}
@@ -1542,7 +1538,7 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 	// We do an uncached full quorum read against the KCP to avoid re-adopting Machines the garbage collector just intentionally orphaned
 	// See https://github.com/kubernetes/kubernetes/issues/42639
 	uncached := controlplanev1.KubeadmControlPlane{}
-	err := r.managementClusterUncached.Get(ctx, client.ObjectKey{Namespace: kcp.Namespace, Name: kcp.Name}, &uncached)
+	err := r.APIReader.Get(ctx, client.ObjectKey{Namespace: kcp.Namespace, Name: kcp.Name}, &uncached)
 	if err != nil {
 		return errors.Wrapf(err, "failed to check whether %v/%v was deleted before adoption", kcp.GetNamespace(), kcp.GetName())
 	}

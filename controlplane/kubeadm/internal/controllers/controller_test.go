@@ -553,10 +553,10 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fakeClient := newFakeClient(objs...)
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
-			Client:                    fakeClient,
-			SecretCachingClient:       fakeClient,
-			managementCluster:         fmc,
-			managementClusterUncached: fmc,
+			Client:              fakeClient,
+			APIReader:           fakeClient,
+			SecretCachingClient: fakeClient,
+			managementCluster:   fmc,
 		}
 
 		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
@@ -645,10 +645,10 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fakeClient := newFakeClient(objs...)
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
-			Client:                    fakeClient,
-			SecretCachingClient:       fakeClient,
-			managementCluster:         fmc,
-			managementClusterUncached: fmc,
+			Client:              fakeClient,
+			APIReader:           fakeClient,
+			SecretCachingClient: fakeClient,
+			managementCluster:   fmc,
 		}
 
 		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
@@ -731,10 +731,10 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fakeClient := newFakeClient(objs...)
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
-			Client:                    fakeClient,
-			SecretCachingClient:       fakeClient,
-			managementCluster:         fmc,
-			managementClusterUncached: fmc,
+			Client:              fakeClient,
+			APIReader:           fakeClient,
+			SecretCachingClient: fakeClient,
+			managementCluster:   fmc,
 		}
 
 		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
@@ -784,11 +784,11 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		recorder := record.NewFakeRecorder(32)
 		r := &KubeadmControlPlaneReconciler{
-			Client:                    fakeClient,
-			SecretCachingClient:       fakeClient,
-			recorder:                  recorder,
-			managementCluster:         fmc,
-			managementClusterUncached: fmc,
+			Client:              fakeClient,
+			APIReader:           fakeClient,
+			SecretCachingClient: fakeClient,
+			recorder:            recorder,
+			managementCluster:   fmc,
 		}
 
 		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
@@ -1343,18 +1343,10 @@ kubernetesVersion: metav1.16.1
 	expectedLabels := map[string]string{clusterv1.ClusterNameLabel: "foo"}
 	r := &KubeadmControlPlaneReconciler{
 		Client:              env,
+		APIReader:           env,
 		SecretCachingClient: secretCachingClient,
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
-			Management: &internal.Management{Client: env},
-			Workload: &fakeWorkloadCluster{
-				Workload: &internal.Workload{
-					Client: env,
-				},
-				Status: internal.ClusterStatus{},
-			},
-		},
-		managementClusterUncached: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
 			Workload: &fakeWorkloadCluster{
 				Workload: &internal.Workload{
@@ -1590,18 +1582,10 @@ kubernetesVersion: metav1.16.1`,
 
 	r := &KubeadmControlPlaneReconciler{
 		Client:              env,
+		APIReader:           env,
 		SecretCachingClient: secretCachingClient,
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
-			Management: &internal.Management{Client: env},
-			Workload: &fakeWorkloadCluster{
-				Workload: &internal.Workload{
-					Client: env,
-				},
-				Status: internal.ClusterStatus{},
-			},
-		},
-		managementClusterUncached: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
 			Workload: &fakeWorkloadCluster{
 				Workload: &internal.Workload{

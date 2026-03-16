@@ -65,6 +65,8 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Check if we already ran this request before by checking if the cache already contains this identifier.
 	// Note: We only add an identifier to the cache if the result of the dry run was no diff.
 	if exists := dryRunCtx.ssaCache.Has(requestIdentifier, dryRunCtx.originalUnstructured.GetKind()); exists {
+		// Refresh the cache entry so we don't have to execute the dry-runs again after the cache TTL.
+		dryRunCtx.ssaCache.Add(requestIdentifier)
 		return false, false, "", "", nil
 	}
 

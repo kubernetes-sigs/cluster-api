@@ -99,6 +99,7 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubClusterVariable,
 		hubFailureDomain,
 		hubUnhealthyNodeCondition,
+		hubUnhealthyMachineCondition,
 		spokeCluster,
 		spokeClusterTopology,
 		spokeObjectReference,
@@ -109,6 +110,7 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeMachinePoolTopology,
 		spokeMachineHealthCheckClass,
 		spokeUnhealthyCondition,
+		spokeUnhealthyMachineCondition,
 	}
 }
 
@@ -170,6 +172,14 @@ func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 }
 
 func hubUnhealthyNodeCondition(in *clusterv1.UnhealthyNodeCondition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TimeoutSeconds == nil {
+		in.TimeoutSeconds = ptr.To(int32(0)) // TimeoutSeconds is a required field and nil does not round trip
+	}
+}
+
+func hubUnhealthyMachineCondition(in *clusterv1.UnhealthyMachineCondition, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TimeoutSeconds == nil {
@@ -273,6 +283,7 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubJSONPatch,
 		hubJSONSchemaProps,
 		hubUnhealthyNodeCondition,
+		hubUnhealthyMachineCondition,
 		spokeClusterClass,
 		spokeObjectReference,
 		spokeClusterClassStatus,
@@ -283,6 +294,7 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeMachinePoolClass,
 		spokeMachineHealthCheckClass,
 		spokeUnhealthyCondition,
+		spokeUnhealthyMachineCondition,
 		spokeLocalObjectTemplate,
 	}
 }
@@ -731,12 +743,14 @@ func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c randfill.Contin
 func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubUnhealthyNodeCondition,
+		hubUnhealthyMachineCondition,
 		hubMachineHealthCheckStatus,
 		spokeMachineHealthCheck,
 		spokeMachineHealthCheckSpec,
 		spokeObjectReference,
 		spokeMachineHealthCheckStatus,
 		spokeUnhealthyCondition,
+		spokeUnhealthyMachineCondition,
 	}
 }
 
@@ -972,6 +986,12 @@ func spokeMachineHealthCheckSpec(in *MachineHealthCheckSpec, c randfill.Continue
 }
 
 func spokeUnhealthyCondition(in *UnhealthyCondition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.Timeout = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
+}
+
+func spokeUnhealthyMachineCondition(in *UnhealthyMachineCondition, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	in.Timeout = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}

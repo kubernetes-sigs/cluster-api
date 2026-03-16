@@ -207,6 +207,51 @@ spec:
                           type: object
                         maxItems: 100
                         type: array
+                      unhealthyMachineConditions:
+                        description: |-
+                          unhealthyMachineConditions contains a list of the machine conditions that determine
+                          whether a machine is considered unhealthy.  The conditions are combined in a
+                          logical OR, i.e. if any of the conditions is met, the machine is unhealthy.
+                        items:
+                          description: |-
+                            UnhealthyMachineCondition represents a Machine condition type and value with a timeout
+                            specified as a duration.  When the named condition has been in the given
+                            status for at least the timeout value, a machine is considered unhealthy.
+                          properties:
+                            status:
+                              description: status of the condition, one of True, False,
+                                Unknown.
+                              enum:
+                              - "True"
+                              - "False"
+                              - Unknown
+                              type: string
+                            timeout:
+                              description: |-
+                                timeout is the duration that a Machine must be in a given status for,
+                                after which the Machine is considered unhealthy.
+                                For example, with a value of "1h", the Machine must match the status
+                                for at least 1 hour before being considered unhealthy.
+                              type: string
+                            type:
+                              description: type of Machine condition
+                              maxLength: 316
+                              minLength: 1
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                              type: string
+                              x-kubernetes-validations:
+                              - message: 'type must not be one of: Ready, Available,
+                                  HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated'
+                                rule: '!(self in [''Ready'',''Available'',''HealthCheckSucceeded'',''OwnerRemediated'',''ExternallyRemediated''])'
+                          required:
+                          - status
+                          - timeout
+                          - type
+                          type: object
+                        maxItems: 100
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-type: atomic
                       unhealthyRange:
                         description: |-
                           unhealthyRange specifies the range of unhealthy machines allowed.
@@ -431,6 +476,69 @@ spec:
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic
+                  taints:
+                    description: |-
+                      taints are the node taints that Cluster API will manage.
+                      This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                      e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+                      Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                      There can be at most 64 taints.
+                      A pod would have to tolerate all existing taints to run on the corresponding node.
+
+                      NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                    items:
+                      description: MachineTaint defines a taint equivalent to corev1.Taint,
+                        but additionally having a propagation field.
+                      properties:
+                        effect:
+                          description: effect is the effect for the taint. Valid values
+                            are NoSchedule, PreferNoSchedule and NoExecute.
+                          enum:
+                          - NoSchedule
+                          - PreferNoSchedule
+                          - NoExecute
+                          type: string
+                        key:
+                          description: |-
+                            key is the taint key to be applied to a node.
+                            Must be a valid qualified name of maximum size 63 characters
+                            with an optional subdomain prefix of maximum size 253 characters,
+                            separated by a `/`.
+                          maxLength: 317
+                          minLength: 1
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                          type: string
+                        propagation:
+                          description: |-
+                            propagation defines how this taint should be propagated to nodes.
+                            Valid values are 'Always' and 'OnInitialization'.
+                            Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                            OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                          enum:
+                          - Always
+                          - OnInitialization
+                          type: string
+                        value:
+                          description: |-
+                            value is the taint value corresponding to the taint key.
+                            It must be a valid label value of maximum size 63 characters.
+                          maxLength: 63
+                          minLength: 1
+                          pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                          type: string
+                      required:
+                      - effect
+                      - key
+                      - propagation
+                      type: object
+                    maxItems: 64
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - key
+                    - effect
+                    x-kubernetes-list-type: map
                 required:
                 - ref
                 type: object
@@ -507,6 +615,20 @@ spec:
                     minLength: 1
                     type: string
                 type: object
+              kubernetesVersions:
+                description: |-
+                  kubernetesVersions is the list of Kubernetes versions that can be
+                  used for clusters using this ClusterClass.
+                  The list of version must be ordered from the older to the newer version, and there should be
+                  at least one version for every minor in between the first and the last version.
+                items:
+                  maxLength: 256
+                  minLength: 1
+                  type: string
+                maxItems: 100
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: atomic
               patches:
                 description: |-
                   patches defines the patches which are applied to customize
@@ -718,6 +840,24 @@ spec:
                   type: object
                 maxItems: 1000
                 type: array
+              upgrade:
+                description: upgrade defines the upgrade configuration for clusters
+                  using this ClusterClass.
+                minProperties: 1
+                properties:
+                  external:
+                    description: external defines external runtime extensions for
+                      upgrade operations.
+                    minProperties: 1
+                    properties:
+                      generateUpgradePlanExtension:
+                        description: generateUpgradePlanExtension references an extension
+                          which is called to generate upgrade plan.
+                        maxLength: 512
+                        minLength: 1
+                        type: string
+                    type: object
+                type: object
               variables:
                 description: |-
                   variables defines the variables which can be configured
@@ -1272,6 +1412,51 @@ spec:
                                 type: object
                               maxItems: 100
                               type: array
+                            unhealthyMachineConditions:
+                              description: |-
+                                unhealthyMachineConditions contains a list of the machine conditions that determine
+                                whether a machine is considered unhealthy.  The conditions are combined in a
+                                logical OR, i.e. if any of the conditions is met, the machine is unhealthy.
+                              items:
+                                description: |-
+                                  UnhealthyMachineCondition represents a Machine condition type and value with a timeout
+                                  specified as a duration.  When the named condition has been in the given
+                                  status for at least the timeout value, a machine is considered unhealthy.
+                                properties:
+                                  status:
+                                    description: status of the condition, one of True,
+                                      False, Unknown.
+                                    enum:
+                                    - "True"
+                                    - "False"
+                                    - Unknown
+                                    type: string
+                                  timeout:
+                                    description: |-
+                                      timeout is the duration that a Machine must be in a given status for,
+                                      after which the Machine is considered unhealthy.
+                                      For example, with a value of "1h", the Machine must match the status
+                                      for at least 1 hour before being considered unhealthy.
+                                    type: string
+                                  type:
+                                    description: type of Machine condition
+                                    maxLength: 316
+                                    minLength: 1
+                                    pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                                    type: string
+                                    x-kubernetes-validations:
+                                    - message: 'type must not be one of: Ready, Available,
+                                        HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated'
+                                      rule: '!(self in [''Ready'',''Available'',''HealthCheckSucceeded'',''OwnerRemediated'',''ExternallyRemediated''])'
+                                required:
+                                - status
+                                - timeout
+                                - type
+                                type: object
+                              maxItems: 100
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-type: atomic
                             unhealthyRange:
                               description: |-
                                 unhealthyRange specifies the range of unhealthy machines allowed.
@@ -1468,6 +1653,70 @@ spec:
                               - OnDelete
                               type: string
                           type: object
+                        taints:
+                          description: |-
+                            taints are the node taints that Cluster API will manage.
+                            This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                            e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+                            Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                            There can be at most 64 taints.
+                            A pod would have to tolerate all existing taints to run on the corresponding node.
+
+                            NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                          items:
+                            description: MachineTaint defines a taint equivalent to
+                              corev1.Taint, but additionally having a propagation
+                              field.
+                            properties:
+                              effect:
+                                description: effect is the effect for the taint. Valid
+                                  values are NoSchedule, PreferNoSchedule and NoExecute.
+                                enum:
+                                - NoSchedule
+                                - PreferNoSchedule
+                                - NoExecute
+                                type: string
+                              key:
+                                description: |-
+                                  key is the taint key to be applied to a node.
+                                  Must be a valid qualified name of maximum size 63 characters
+                                  with an optional subdomain prefix of maximum size 253 characters,
+                                  separated by a `/`.
+                                maxLength: 317
+                                minLength: 1
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                                type: string
+                              propagation:
+                                description: |-
+                                  propagation defines how this taint should be propagated to nodes.
+                                  Valid values are 'Always' and 'OnInitialization'.
+                                  Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                                  OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                                enum:
+                                - Always
+                                - OnInitialization
+                                type: string
+                              value:
+                                description: |-
+                                  value is the taint value corresponding to the taint key.
+                                  It must be a valid label value of maximum size 63 characters.
+                                maxLength: 63
+                                minLength: 1
+                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                                type: string
+                            required:
+                            - effect
+                            - key
+                            - propagation
+                            type: object
+                          maxItems: 64
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - key
+                          - effect
+                          x-kubernetes-list-type: map
                         template:
                           description: |-
                             template is a local struct containing a collection of templates for creation of
@@ -1691,6 +1940,70 @@ spec:
                             to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
                           type: string
+                        taints:
+                          description: |-
+                            taints are the node taints that Cluster API will manage.
+                            This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                            e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+                            Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                            There can be at most 64 taints.
+                            A pod would have to tolerate all existing taints to run on the corresponding node.
+
+                            NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                          items:
+                            description: MachineTaint defines a taint equivalent to
+                              corev1.Taint, but additionally having a propagation
+                              field.
+                            properties:
+                              effect:
+                                description: effect is the effect for the taint. Valid
+                                  values are NoSchedule, PreferNoSchedule and NoExecute.
+                                enum:
+                                - NoSchedule
+                                - PreferNoSchedule
+                                - NoExecute
+                                type: string
+                              key:
+                                description: |-
+                                  key is the taint key to be applied to a node.
+                                  Must be a valid qualified name of maximum size 63 characters
+                                  with an optional subdomain prefix of maximum size 253 characters,
+                                  separated by a `/`.
+                                maxLength: 317
+                                minLength: 1
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                                type: string
+                              propagation:
+                                description: |-
+                                  propagation defines how this taint should be propagated to nodes.
+                                  Valid values are 'Always' and 'OnInitialization'.
+                                  Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                                  OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                                enum:
+                                - Always
+                                - OnInitialization
+                                type: string
+                              value:
+                                description: |-
+                                  value is the taint value corresponding to the taint key.
+                                  It must be a valid label value of maximum size 63 characters.
+                                maxLength: 63
+                                minLength: 1
+                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                                type: string
+                            required:
+                            - effect
+                            - key
+                            - propagation
+                            type: object
+                          maxItems: 64
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - key
+                          - effect
+                          x-kubernetes-list-type: map
                         template:
                           description: |-
                             template is a local struct containing a collection of templates for creation of

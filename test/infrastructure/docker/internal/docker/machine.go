@@ -341,21 +341,30 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 // Note: See https://github.com/kubernetes-sigs/kind/pull/2421 for more context.
 var waitUntilLogRegExp = regexp.MustCompile("Reached target .*Multi-User System.*")
 
-// ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`.
-func (m *Machine) ExecBootstrap(ctx context.Context, containerRuntime container.Runtime, data string, format bootstrapv1.Format, version string, image string) error {
-	log := ctrl.LoggerFrom(ctx)
-
+// WaitForMultiUserTarget checks if the multi-user target is reached to figure out if the container is ready for bootstrap exec.
+func (m *Machine) WaitForMultiUserTarget(ctx context.Context, containerRuntime container.Runtime) error {
 	if m.container == nil {
-		return errors.New("unable to set ExecBootstrap. the container hosting this machine does not exists")
+		return errors.New("the container hosting this machine does not exist")
 	}
 
 	logs, err := containerRuntime.GetContainerLogs(ctx, m.container.Name)
 	if err != nil {
-		return errors.Wrap(err, "failed to check if container is ready for DockerMachine bootstrap exec")
+		return err
 	}
 
 	if !waitUntilLogRegExp.MatchString(logs) {
-		return errors.New("container is not yet ready for DockerMachine bootstrap exec (Multi-User System target not reached yet)")
+		return errors.New("multi-user target not reached yet")
+	}
+
+	return nil
+}
+
+// ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`.
+func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstrapv1.Format, version string, image string) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	if m.container == nil {
+		return errors.New("unable to set ExecBootstrap. the container hosting this machine does not exist")
 	}
 
 	// Get the kindMapping for the target K8s version.
@@ -397,6 +406,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, containerRuntime container.
 	var outErr bytes.Buffer
 	var outStd bytes.Buffer
 	for _, command := range commands {
+		log.Info("Running command", "instance", m.Name(), "command", command)
 		cmd := m.container.Commander.Command(command.Cmd, command.Args...)
 		cmd.SetStderr(&outErr)
 		cmd.SetStdout(&outStd)

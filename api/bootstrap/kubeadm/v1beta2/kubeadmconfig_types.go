@@ -897,27 +897,27 @@ type PartitionSpec struct {
 	Percentage int32 `json:"percentage,omitempty"`
 
 	// partitionType is the partition type (optional).
-	// Supported values are Linux, LinuxSwap, LinuxRaid, LVM, Fat32, NTFS,
+	// Supported values are Linux, LinuxSwap, LinuxRAID, LVM, Fat32, NTFS,
 	// and LinuxExtended. These are translated to cloud-init partition type codes.
 	// A full GPT partition GUID is also supported as a passthrough value.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=36
-	// +kubebuilder:validation:XValidation:rule="self.matches('^(Linux|LinuxSwap|LinuxRaid|LVM|Fat32|NTFS|LinuxExtended|[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12})$')",message="partitionType must be one of Linux, LinuxSwap, LinuxRaid, LVM, Fat32, NTFS, LinuxExtended or a full GPT partition GUID"
+	// +kubebuilder:validation:XValidation:rule="self.matches('^(Linux|LinuxSwap|LinuxRAID|LVM|Fat32|NTFS|LinuxExtended|[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12})$')",message="partitionType must be one of Linux, LinuxSwap, LinuxRAID, LVM, Fat32, NTFS, LinuxExtended or a full GPT partition GUID"
 	PartitionType string `json:"partitionType,omitempty"`
 }
 
 const (
 	// PartitionTypeLinux maps to the cloud-init/Linux partition type code 83.
 	PartitionTypeLinux = "Linux"
-	// PartitionTypeSwap maps to the cloud-init/Linux swap partition type code 82.
-	PartitionTypeSwap = "LinuxSwap"
+	// PartitionTypeLinuxSwap maps to the cloud-init/Linux swap partition type code 82.
+	PartitionTypeLinuxSwap = "LinuxSwap"
 	// PartitionTypeLinuxRAID maps to the cloud-init/Linux RAID partition type code fd.
-	PartitionTypeLinuxRAID = "LinuxRaid"
+	PartitionTypeLinuxRAID = "LinuxRAID"
 	// PartitionTypeLVM maps to the cloud-init/LVM partition type code 8e.
 	PartitionTypeLVM = "LVM"
-	// PartitionTypeWin95FAT32LBA maps to the cloud-init/FAT32 partition type code 0c.
-	PartitionTypeWin95FAT32LBA = "Fat32"
+	// PartitionTypeFat32 maps to the cloud-init/FAT32 partition type code 0c.
+	PartitionTypeFat32 = "Fat32"
 	// PartitionTypeNTFS maps to the cloud-init/NTFS partition type code 07.
 	PartitionTypeNTFS = "NTFS"
 	// PartitionTypeLinuxExtended maps to the cloud-init/Linux extended partition type code 85.

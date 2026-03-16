@@ -118,6 +118,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		// ensure ready state is set.
 		// This is required after move, because status is not moved to the target cluster.
 		dockerMachine.Status.Initialization.Provisioned = ptr.To(true)
+		dockerMachine.Status.FailureDomain = machine.Spec.FailureDomain
 
 		if externalMachine.Exists() {
 			v1beta1conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedV1Beta1Condition)
@@ -301,7 +302,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 			}()
 
 			// Run the bootstrap script. Simulates cloud-init/Ignition.
-			if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format, version, dockerMachine.Spec.Backend.Docker.CustomImage); err != nil {
+			if err := externalMachine.ExecBootstrap(timeoutCtx, r.ContainerRuntime, bootstrapData, format, version, dockerMachine.Spec.Backend.Docker.CustomImage); err != nil {
 				v1beta1conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededV1Beta1Condition, infrav1.BootstrapFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
 				conditions.Set(dockerMachine, metav1.Condition{
 					Type:    infrav1.DevMachineDockerContainerBootstrapExecSucceededCondition,
@@ -368,6 +369,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	dockerMachine.Spec.ProviderID = externalMachine.ProviderID()
 	dockerMachine.Status.Initialization.Provisioned = ptr.To(true)
+	dockerMachine.Status.FailureDomain = machine.Spec.FailureDomain
 
 	return ctrl.Result{}, nil
 }

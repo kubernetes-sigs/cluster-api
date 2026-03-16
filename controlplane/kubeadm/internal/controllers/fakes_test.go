@@ -27,7 +27,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
@@ -53,9 +52,16 @@ func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ *cluster
 	return f.Workload, f.WorkloadErr
 }
 
-func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error) {
+func (f *fakeManagementCluster) GetControlPlaneMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster) (collections.Machines, error) {
 	if f.Management != nil {
-		return f.Management.GetMachinesForCluster(c, cluster, filters...)
+		return f.Management.GetControlPlaneMachinesForCluster(ctx, cluster)
+	}
+	return f.Machines, nil
+}
+
+func (f *fakeManagementCluster) GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error) {
+	if f.Management != nil {
+		return f.Management.GetMachinesForCluster(ctx, cluster, filters...)
 	}
 	return f.Machines, nil
 }
@@ -70,11 +76,10 @@ func (f *fakeManagementCluster) GetMachinePoolsForCluster(c context.Context, clu
 type fakeWorkloadCluster struct {
 	*internal.Workload
 	Status                     internal.ClusterStatus
-	EtcdMembersResult          []string
 	APIServerCertificateExpiry *time.Time
 
-	forwardEtcdLeadershipCalled      int
-	removeEtcdMemberForMachineCalled int
+	forwardEtcdLeadershipCalled int
+	removeEtcdMemberCalled      int
 }
 
 func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
@@ -83,10 +88,6 @@ func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *cluste
 		return errors.New("leaderCandidate is nil")
 	}
 	return nil
-}
-
-func (f *fakeWorkloadCluster) ReconcileEtcdMembersAndControlPlaneNodes(_ context.Context, _ []*etcd.Member, _ []string) ([]string, error) {
-	return nil, nil
 }
 
 func (f *fakeWorkloadCluster) ClusterStatus(_ context.Context) (internal.ClusterStatus, error) {
@@ -105,13 +106,9 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 	return nil
 }
 
-func (f *fakeWorkloadCluster) RemoveEtcdMemberForMachine(_ context.Context, _ *clusterv1.Machine) error {
-	f.removeEtcdMemberForMachineCalled++
+func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ string) error {
+	f.removeEtcdMemberCalled++
 	return nil
-}
-
-func (f *fakeWorkloadCluster) EtcdMembers(_ context.Context) ([]string, error) {
-	return f.EtcdMembersResult, nil
 }
 
 func (f *fakeWorkloadCluster) UpdateClusterConfiguration(context.Context, semver.Version, ...func(*bootstrapv1.ClusterConfiguration)) error {

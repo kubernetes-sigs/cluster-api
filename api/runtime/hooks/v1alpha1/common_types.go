@@ -146,3 +146,23 @@ const (
 	// JSONMergePatchType identifies a https://datatracker.ietf.org/doc/html/rfc7386 JSON merge patch.
 	JSONMergePatchType PatchType = "JSONMergePatch"
 )
+
+// ObjectMeta is metadata that all persisted resources must have, which includes all objects
+// users must create. This is a copy of customizable fields from metav1.ObjectMeta.
+//
+// +kubebuilder:validation:MinProperties=1
+type ObjectMeta struct {
+	// labels is a map of string keys and values that can be used to organize and categorize
+	// (scope and select) objects. May match selectors of replication controllers
+	// and services.
+	// More info: http://kubernetes.io/docs/user-guide/labels
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// annotations is an unstructured key value map stored with a resource that may be
+	// set by external tools to store and retrieve arbitrary metadata. They are not
+	// queryable and should be preserved when modifying objects.
+	// More info: http://kubernetes.io/docs/user-guide/annotations
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+}

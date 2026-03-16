@@ -44,3 +44,21 @@ func GetFilteredMachinesForCluster(ctx context.Context, c client.Reader, cluster
 	machines := FromMachineList(ml)
 	return machines.Filter(filters...), nil
 }
+
+// GetControlPlaneMachinesForCluster returns a list of control plane machines.
+func GetControlPlaneMachinesForCluster(ctx context.Context, c client.Reader, cluster *clusterv1.Cluster) (Machines, error) {
+	ml := &clusterv1.MachineList{}
+	if err := c.List(
+		ctx,
+		ml,
+		client.InNamespace(cluster.Namespace),
+		client.MatchingLabels{
+			clusterv1.ClusterNameLabel:         cluster.Name,
+			clusterv1.MachineControlPlaneLabel: "",
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "failed to list control plane machines")
+	}
+
+	return FromMachineList(ml), nil
+}

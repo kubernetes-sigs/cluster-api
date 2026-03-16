@@ -26,7 +26,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -64,7 +63,7 @@ type InitInput struct {
 
 // Init calls clusterctl init with the list of providers defined in the local repository.
 func Init(ctx context.Context, input InitInput) {
-	args := calculateClusterCtlInitArgs(input, "")
+	args := calculateClusterCtlInitArgs(input)
 	log.Logf("clusterctl %s", strings.Join(args, " "))
 
 	initOpt := clusterctlclient.InitOptions{
@@ -92,7 +91,7 @@ func Init(ctx context.Context, input InitInput) {
 
 // InitWithBinary uses clusterctl binary to run init with the list of providers defined in the local repository.
 func InitWithBinary(ctx context.Context, binary string, input InitInput) {
-	args := calculateClusterCtlInitArgs(input, binary)
+	args := calculateClusterCtlInitArgs(input)
 	log.Logf("clusterctl %s", strings.Join(args, " "))
 
 	cmd := exec.CommandContext(ctx, binary, args...) //nolint:gosec // We don't care about command injection here.
@@ -109,19 +108,8 @@ func InitWithBinary(ctx context.Context, binary string, input InitInput) {
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl init:\nstdout:\n%s\nstderr:\n%s", string(out), stdErr)
 }
 
-func calculateClusterCtlInitArgs(input InitInput, clusterctlBinaryPath string) []string {
-	args := []string{"init", "--config", input.ClusterctlConfigPath, "--kubeconfig", input.KubeconfigPath}
-
-	// If we use the clusterctl binary, only set --wait-providers for clusterctl >= v0.4.0.
-	if clusterctlBinaryPath != "" {
-		version, err := getClusterCtlVersion(clusterctlBinaryPath)
-		Expect(err).ToNot(HaveOccurred())
-		if version.GTE(semver.MustParse("0.4.0")) {
-			args = append(args, "--wait-providers")
-		}
-	} else {
-		args = append(args, "--wait-providers")
-	}
+func calculateClusterCtlInitArgs(input InitInput) []string {
+	args := []string{"init", "--config", input.ClusterctlConfigPath, "--kubeconfig", input.KubeconfigPath, "--wait-providers"}
 
 	if input.CoreProvider != "" {
 		args = append(args, "--core", input.CoreProvider)
@@ -375,18 +363,7 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 // NOTE: This func detects the clusterctl version and uses config cluster or generate cluster
 // accordingly. We can drop the detection when we don't have to support clusterctl v0.3.x anymore.
 func ConfigClusterWithBinary(ctx context.Context, clusterctlBinaryPath string, input ConfigClusterInput) []byte {
-	version, err := getClusterCtlVersion(clusterctlBinaryPath)
-	Expect(err).ToNot(HaveOccurred())
-	clusterctlSupportsGenerateCluster := version.GTE(semver.MustParse("1.0.0"))
-
-	var command string
-	if clusterctlSupportsGenerateCluster {
-		command = "generate"
-	} else {
-		command = "config"
-	}
-
-	args := []string{command, "cluster",
+	args := []string{"generate", "cluster",
 		input.ClusterName,
 		"--infrastructure", input.InfrastructureProvider,
 		"--kubernetes-version", input.KubernetesVersion,

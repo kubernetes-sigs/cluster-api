@@ -380,9 +380,13 @@ func TestComputeControlPlane(t *testing.T) {
 	clusterClassReadinessGates := []clusterv1.MachineReadinessGate{
 		{ConditionType: "foo"},
 	}
+	clusterClassTaints := []clusterv1.MachineTaint{
+		{Key: "foo", Effect: corev1.TaintEffectPreferNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+	}
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneMetadata(labels, annotations).
 		WithControlPlaneReadinessGates(clusterClassReadinessGates).
+		WithControlPlaneTaints(clusterClassTaints).
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		WithControlPlaneNodeDrainTimeout(&clusterClassDuration).
 		WithControlPlaneNodeVolumeDetachTimeout(&clusterClassDuration).
@@ -396,9 +400,14 @@ func TestComputeControlPlane(t *testing.T) {
 	nodeDrainTimeout := topologyDuration
 	nodeVolumeDetachTimeout := topologyDuration
 	nodeDeletionTimeout := topologyDuration
+	rolloutAfter := metav1.Now().Rfc3339Copy()
 	readinessGates := []clusterv1.MachineReadinessGate{
 		{ConditionType: "foo"},
 		{ConditionType: "bar"},
+	}
+	taints := []clusterv1.MachineTaint{
+		{Key: "foo", Effect: corev1.TaintEffectPreferNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+		{Key: "bar", Effect: corev1.TaintEffectPreferNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
 	}
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -414,7 +423,11 @@ func TestComputeControlPlane(t *testing.T) {
 						Annotations: map[string]string{"a2": ""},
 					},
 					ReadinessGates: readinessGates,
+					Taints:         taints,
 					Replicas:       &replicas,
+					Rollout: clusterv1.ControlPlaneTopologyRolloutSpec{
+						After: rolloutAfter,
+					},
 					Deletion: clusterv1.ControlPlaneTopologyMachineDeletionSpec{
 						NodeDrainTimeoutSeconds:        &nodeDrainTimeout,
 						NodeVolumeDetachTimeoutSeconds: &nodeVolumeDetachTimeout,
@@ -433,6 +446,15 @@ func TestComputeControlPlane(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	var expectedReadinessGates []interface{}
 	g.Expect(json.Unmarshal(jsonValue, &expectedReadinessGates)).ToNot(HaveOccurred())
+
+	jsonValue, err = json.Marshal(&clusterClassTaints)
+	g.Expect(err).ToNot(HaveOccurred())
+	var expectedClusterClassTaints []interface{}
+	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassTaints)).ToNot(HaveOccurred())
+	jsonValue, err = json.Marshal(&taints)
+	g.Expect(err).ToNot(HaveOccurred())
+	var expectedTaints []interface{}
+	g.Expect(json.Unmarshal(jsonValue, &expectedTaints)).ToNot(HaveOccurred())
 
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)
@@ -481,6 +503,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
+		assertNestedField(g, obj, rolloutAfter.ToUnstructured(), contract.ControlPlane().RolloutAfter().Path()...)
 		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
@@ -521,7 +544,9 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
+		assertNestedField(g, obj, rolloutAfter.ToUnstructured(), contract.ControlPlane().RolloutAfter().Path()...)
 		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path()...)
+		assertNestedField(g, obj, expectedTaints, contract.ControlPlane().MachineTemplate().Taints().Path()...)
 		assertNestedField(g, obj, int64(topologyDuration), contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(topologyDuration), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(topologyDuration), contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Path()...)
@@ -616,6 +641,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		// checking only values from CC defaults
 		assertNestedField(g, obj, expectedClusterClassReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path()...)
+		assertNestedField(g, obj, expectedClusterClassTaints, contract.ControlPlane().MachineTemplate().Taints().Path()...)
 		assertNestedField(g, obj, int64(clusterClassDuration), contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(clusterClassDuration), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(clusterClassDuration), contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Path()...)
@@ -684,6 +710,33 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Path()...)
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path()...)
+	})
+	t.Run("Skips setting taints if not set in Cluster and ClusterClass", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClassWithoutTaints := clusterClass.DeepCopy()
+		clusterClassWithoutTaints.Spec.ControlPlane.Taints = nil
+
+		clusterWithoutTaints := cluster.DeepCopy()
+		clusterWithoutTaints.Spec.Topology.ControlPlane.Taints = nil
+
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     clusterWithoutTaints.Spec.Topology,
+			ClusterClass: clusterClassWithoutTaints,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template: controlPlaneTemplate,
+			},
+		}
+
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(clusterWithoutTaints)
+		scope.Blueprint = blueprint
+
+		obj, err := (&generator{Client: clientWithV1Beta2ContractCRD}).computeControlPlane(ctx, scope, nil)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+
+		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().Taints().Path()...)
 	})
 	t.Run("Generates the ControlPlane from the template and adds the infrastructure machine template if required (v1beta1 contract)", func(t *testing.T) {
 		g := NewWithT(t)
@@ -918,10 +971,8 @@ func TestComputeControlPlane(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":  "v1.2.2",
+						"status.replicas": int64(2),
 					}).
 					Build(),
 				topologyVersion: "v1.2.3",
@@ -936,10 +987,8 @@ func TestComputeControlPlane(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":  "v1.2.2",
+						"status.replicas": int64(2),
 					}).
 					Build(),
 				topologyVersion: "v1.5.3",
@@ -954,10 +1003,8 @@ func TestComputeControlPlane(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.4.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":  "v1.4.2",
+						"status.replicas": int64(2),
 					}).
 					Build(),
 				topologyVersion: "v1.5.3",
@@ -1230,11 +1277,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:     []string{"v1.2.3"},
@@ -1257,11 +1301,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1287,11 +1328,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(1),
-					"status.updatedReplicas":     int64(1),
-					"status.readyReplicas":       int64(1),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(1),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:   []string{"v1.2.3"},
@@ -1310,11 +1348,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:     []string{"v1.3.2", "v1.4.2", "v1.5.3"},
@@ -1335,11 +1370,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.4.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.4.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:     []string{"v1.5.3"},
@@ -1359,11 +1391,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:            []string{"v1.3.2", "v1.4.2", "v1.5.3"},
@@ -1385,11 +1414,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:            []string{"v1.3.2", "v1.4.2", "v1.5.3"},
@@ -1411,11 +1437,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:   []string{"v1.2.3"},
@@ -1433,11 +1456,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan: []string{"v1.2.3"},
@@ -1453,11 +1473,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1482,11 +1499,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan:   []string{"v1.2.3"},
@@ -1505,11 +1519,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			controlPlaneUpgradePlan: []string{"v1.2.3"},
@@ -1527,11 +1538,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1556,11 +1564,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1583,11 +1588,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1612,11 +1614,8 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"spec.replicas": int64(2),
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version":             "v1.2.2",
-					"status.replicas":            int64(2),
-					"status.updatedReplicas":     int64(2),
-					"status.readyReplicas":       int64(2),
-					"status.unavailableReplicas": int64(0),
+					"status.version":  "v1.2.2",
+					"status.replicas": int64(2),
 				}).
 				Build(),
 			clusterModifier: func(c *clusterv1.Cluster) {
@@ -1768,7 +1767,7 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.Namespace).To(Equal(cluster.Namespace))
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, cluster.Name))
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
-	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyUpgradeStepAnnotation))
+	g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.ClusterTopologyUpgradeStepAnnotation, ""))
 
 	// Spec
 	g.Expect(obj.Spec.InfrastructureRef).To(BeComparableTo(contract.ObjToContractVersionedObjectReference(infrastructureCluster)))
@@ -1796,7 +1795,7 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj).ToNot(BeNil())
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyUpgradeStepAnnotation))
+	g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.ClusterTopologyUpgradeStepAnnotation, ""))
 }
 
 func TestComputeMachineDeployment(t *testing.T) {
@@ -1853,6 +1852,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 	clusterClassReadinessGates := []clusterv1.MachineReadinessGate{
 		{ConditionType: "foo"},
 	}
+	clusterClassTaints := []clusterv1.MachineTaint{
+		{Key: "clusterClassTaintFoo", Effect: corev1.TaintEffectPreferNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+	}
 	md1 := builder.MachineDeploymentClass("linux-worker").
 		WithLabels(labels).
 		WithAnnotations(annotations).
@@ -1866,6 +1868,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			},
 		}).
 		WithReadinessGates(clusterClassReadinessGates).
+		WithTaints(clusterClassTaints).
 		WithFailureDomain(clusterClassFailureDomain).
 		WithNodeDrainTimeout(&clusterClassDuration).
 		WithNodeVolumeDetachTimeout(&clusterClassDuration).
@@ -1935,6 +1938,10 @@ func TestComputeMachineDeployment(t *testing.T) {
 		{ConditionType: "foo"},
 		{ConditionType: "bar"},
 	}
+	taints := []clusterv1.MachineTaint{
+		{Key: "clusterTaintFoo", Effect: corev1.TaintEffectPreferNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+		{Key: "clusterTaintBar", Effect: corev1.TaintEffectPreferNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+	}
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{
 			Labels: map[string]string{
@@ -1965,6 +1972,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		Rollout: clusterv1.MachineDeploymentTopologyRolloutSpec{
 			Strategy: topologyStrategy,
 		},
+		Taints: taints,
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
@@ -2002,6 +2010,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(readinessGates))
+		g.Expect(actualMd.Spec.Template.Spec.Taints).To(Equal(taints))
 		g.Expect(actualMd.Spec.ClusterName).To(Equal("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
@@ -2043,7 +2052,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Class:    "linux-worker",
 			Name:     "big-pool-of-machines",
 			Replicas: &replicas,
-			// missing ReadinessGates, FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds, Strategy, deletion.Order, remediation
+			// missing ReadinessGates, FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds, Strategy, deletion.Order, remediation, taints
 		}
 
 		e := generator{}
@@ -2057,6 +2066,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(clusterClassMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(clusterClassReadinessGates))
+		g.Expect(actualMd.Spec.Template.Spec.Taints).To(Equal(clusterClassTaints))
 		g.Expect(actualMd.Spec.Remediation.MaxInFlight).To(Equal(clusterClassHealthCheck.Remediation.MaxInFlight))
 		g.Expect(actualMd.Spec.Deletion.Order).To(Equal(clusterClassDeletionOrder))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
@@ -2113,6 +2123,57 @@ func TestComputeMachineDeployment(t *testing.T) {
 		// checking only values from CC defaults
 		actualMd := actual.Object
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(BeNil())
+	})
+
+	t.Run("Skips setting taints if not set in Cluster and ClusterClass", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClassWithoutTaints := fakeClass.DeepCopy()
+		clusterClassWithoutTaints.Spec.Workers.MachineDeployments[0].Taints = nil
+
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     cluster.Spec.Topology,
+			ClusterClass: clusterClassWithoutTaints,
+			MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
+				"linux-worker": {
+					Metadata: clusterv1.ObjectMeta{
+						Labels:      labels,
+						Annotations: annotations,
+					},
+					BootstrapTemplate:             workerBootstrapTemplate,
+					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+					HealthCheck: clusterv1.MachineDeploymentClassHealthCheck{
+						Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+							UnhealthyNodeConditions:    unhealthyNodeConditions,
+							UnhealthyMachineConditions: unhealthyMachineConditions,
+							NodeStartupTimeoutSeconds:  ptr.To(int32(1)),
+						},
+					},
+				},
+			},
+		}
+
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		mdTopology := clusterv1.MachineDeploymentTopology{
+			Metadata: clusterv1.ObjectMeta{
+				Labels: map[string]string{"foo": "baz"},
+			},
+			Class:    "linux-worker",
+			Name:     "big-pool-of-machines",
+			Replicas: &replicas,
+			// missing Taints
+		}
+
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// checking only values from CC defaults
+		actualMd := actual.Object
+		g.Expect(actualMd.Spec.Template.Spec.Taints).To(BeNil())
 	})
 
 	t.Run("If there is already a machine deployment, it preserves the object name and the reference names", func(t *testing.T) {
@@ -2209,10 +2270,10 @@ func TestComputeMachineDeployment(t *testing.T) {
 				"spec.replicas": int64(2),
 			}).
 			WithStatusFields(map[string]interface{}{
-				"status.version":         "v1.2.3",
-				"status.replicas":        int64(2),
-				"status.updatedReplicas": int64(2),
-				"status.readyReplicas":   int64(2),
+				"status.version":          "v1.2.3",
+				"status.replicas":         int64(2),
+				"status.upToDateReplicas": int64(2),
+				"status.readyReplicas":    int64(2),
 			}).
 			Build()
 
@@ -2621,10 +2682,10 @@ func TestComputeMachinePool(t *testing.T) {
 				"spec.replicas": int64(2),
 			}).
 			WithStatusFields(map[string]interface{}{
-				"status.version":         "v1.2.3",
-				"status.replicas":        int64(2),
-				"status.updatedReplicas": int64(2),
-				"status.readyReplicas":   int64(2),
+				"status.version":          "v1.2.3",
+				"status.replicas":         int64(2),
+				"status.upToDateReplicas": int64(2),
+				"status.readyReplicas":    int64(2),
 			}).
 			Build()
 
@@ -3611,6 +3672,7 @@ func assertTemplateToTemplate(g *WithT, in assertTemplateInput) {
 }
 
 func assertNestedField(g *WithT, obj *unstructured.Unstructured, value interface{}, fields ...string) {
+	g.THelper()
 	v, ok, err := unstructured.NestedFieldCopy(obj.UnstructuredContent(), fields...)
 
 	g.Expect(err).ToNot(HaveOccurred())

@@ -51,9 +51,12 @@ The Cluster API team actively supports the latest two minor releases (N, N-1); s
 - Accept bug fixes, perform golang or dependency bumps, etc. 
 - Periodically cut patch releases
 
-On top of supporting the N and N-1 releases, the Cluster API team also maintains CI signal for the Cluster API N-2 releases 
-in case we have to do an emergency patch release.  
-- If there is a need for an emergency patch, e.g. to fix a critical security issue, please bring this up to maintainers
+On top of supporting the N and N-1 releases, the Cluster API team also maintains a partial CI signal for the Cluster API N-2 releases 
+in case we have to do an emergency patch release. Please note that:
+- Even if a subset of the CI signal for the N-2 branch is preserved, the N-2 branch is considered in maintenance mode and
+  no change is back-ported proactively.
+- Security scans will be disabled (this signal does not make sense considering that CVE are not going to be fixed proactively)
+- If there is a need for an emergency patch, e.g. to fix a critical issue, please bring this up to maintainers
   and it will be considered on a case-by-case basis. 
 
 All considered, each Cluster API minor release is supported for a period of roughly 12 months:
@@ -156,10 +159,10 @@ An API version is considered deprecated when a new API version is published.
 API deprecation and removal follow the [Kubernetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/);
 Cluster API maintainers might decide to support API versions longer than what is defined in the Kubernetes policy.
 
-| API Version | Status      | Supported Until                                                                  |
-|-------------|-------------|----------------------------------------------------------------------------------|
-| v1beta2     | Supported   | at least 9 months or 3 minor releases after a newer API version will be released |
-| v1beta1     | Deprecated  | Deprecated since CAPI v1.11; in v1.14, Aug 26 v1beta1 will stop to be served     |
+| API Version | Status     | Supported Until                                                                  |
+|-------------|------------|----------------------------------------------------------------------------------|
+| v1beta2     | Supported  | at least 9 months or 3 minor releases after a newer API version will be released |
+| v1beta1     | Deprecated | Deprecated since CAPI v1.11; in v1.16, April 2027 v1beta1 will stop to be served |
 
 See [11920](https://github.com/kubernetes-sigs/cluster-api/issues/11920) for details about the v1beta1 removal plan.
 
@@ -218,10 +221,10 @@ providers of an older contract version) e.g.
 
 </aside>
 
-| Contract Version | Compatible with contract versions | Status      | Supported Until                                                                                                               |
-|------------------|-----------------------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------|
-| v1beta2          | v1beta1 (temporarily)             | Supported   | After a newer API contract will be released                                                                                   |
-| v1beta1          |                                   | Deprecated  | Deprecated since CAPI v1.11; in v1.14, Aug 26 v1beta2 will drop compatibility with v1beta1 and v1beta1 will be considered EOL |
+| Contract Version | Compatible with contract versions | Status     | Supported Until                                                                                                  |
+|------------------|-----------------------------------|------------|------------------------------------------------------------------------------------------------------------------|
+| v1beta2          | v1beta1 (temporarily)             | Supported  | After a newer API contract will be released                                                                      |
+| v1beta1          |                                   | Deprecated | Deprecated since CAPI v1.11; in v1.16, April 2027 compatibility with the v1beta1 contract will be considered EOL |
 
 See [11920](https://github.com/kubernetes-sigs/cluster-api/issues/11920) for details about the v1beta1 removal plan.
 
@@ -409,7 +412,9 @@ Notably, the Max CoreDNS version could change also with patch releases.
 | v1.11       | v1.12.3             |
 | v1.11.2     | v1.12.4             |
 | >= v1.11.3  | v1.13.1             |
+| >= v1.11.6  | v1.14.1             |
 | v1.12       | v1.13.1             |
+| >= v1.12.3  | v1.14.1             |
 
 See [corefile-migration](https://github.com/coredns/corefile-migration)
 

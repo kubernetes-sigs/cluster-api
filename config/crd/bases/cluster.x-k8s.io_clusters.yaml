@@ -258,8 +258,7 @@ spec:
                 description: |-
                   topology encapsulates the topology for the cluster.
                   NOTE: It is required to enable the ClusterTopology
-                  feature gate flag to activate managed topologies support;
-                  this feature is highly experimental, and parts of it might still be not implemented.
+                  feature gate flag to activate managed topologies support.
                 properties:
                   class:
                     description: class is the name of the ClusterClass object to create
@@ -1732,8 +1731,7 @@ spec:
                 description: |-
                   topology encapsulates the topology for the cluster.
                   NOTE: It is required to enable the ClusterTopology
-                  feature gate flag to activate managed topologies support;
-                  this feature is highly experimental, and parts of it might still be not implemented.
+                  feature gate flag to activate managed topologies support.
                 properties:
                   classRef:
                     description: classRef is the ref to the ClusterClass that should
@@ -2098,6 +2096,84 @@ spec:
                           When specified against a control plane provider that lacks support for this field, this value will be ignored.
                         format: int32
                         type: integer
+                      rollout:
+                        description: rollout allows you to configure the behavior
+                          of rolling updates to the control plane.
+                        minProperties: 1
+                        properties:
+                          after:
+                            description: |-
+                              after is a field to indicate a rollout should be performed
+                              after the specified time even if no changes have been made to the ControlPlane.
+                              Example: In the YAML the time can be specified in the RFC3339 format.
+                              To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+                              use "2023-03-09T09:00:00Z".
+                            format: date-time
+                            type: string
+                        type: object
+                      taints:
+                        description: |-
+                          taints are the node taints that Cluster API will manage.
+                          This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                          e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+                          Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                          There can be at most 64 taints.
+                          A pod would have to tolerate all existing taints to run on the corresponding node.
+
+                          NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                        items:
+                          description: MachineTaint defines a taint equivalent to
+                            corev1.Taint, but additionally having a propagation field.
+                          properties:
+                            effect:
+                              description: effect is the effect for the taint. Valid
+                                values are NoSchedule, PreferNoSchedule and NoExecute.
+                              enum:
+                              - NoSchedule
+                              - PreferNoSchedule
+                              - NoExecute
+                              type: string
+                            key:
+                              description: |-
+                                key is the taint key to be applied to a node.
+                                Must be a valid qualified name of maximum size 63 characters
+                                with an optional subdomain prefix of maximum size 253 characters,
+                                separated by a `/`.
+                              maxLength: 317
+                              minLength: 1
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                              type: string
+                            propagation:
+                              description: |-
+                                propagation defines how this taint should be propagated to nodes.
+                                Valid values are 'Always' and 'OnInitialization'.
+                                Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                                OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                              enum:
+                              - Always
+                              - OnInitialization
+                              type: string
+                            value:
+                              description: |-
+                                value is the taint value corresponding to the taint key.
+                                It must be a valid label value of maximum size 63 characters.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                              type: string
+                          required:
+                          - effect
+                          - key
+                          - propagation
+                          type: object
+                        maxItems: 64
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - key
+                        - effect
+                        x-kubernetes-list-type: map
                       variables:
                         description: variables can be used to customize the ControlPlane
                           through patches.
@@ -2588,6 +2664,16 @@ spec:
                                 It allows you to define the strategy used during rolling replacements.
                               minProperties: 1
                               properties:
+                                after:
+                                  description: |-
+                                    after is a field to indicate a rollout should be performed
+                                    after the specified time even if no changes have been made to the
+                                    MachineDeployment.
+                                    Example: In the YAML the time can be specified in the RFC3339 format.
+                                    To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+                                    use "2023-03-09T09:00:00Z".
+                                  format: date-time
+                                  type: string
                                 strategy:
                                   description: strategy specifies how to roll out
                                     control plane Machines.
@@ -2649,6 +2735,71 @@ spec:
                                   - type
                                   type: object
                               type: object
+                            taints:
+                              description: |-
+                                taints are the node taints that Cluster API will manage.
+                                This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                                e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+                                Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                                There can be at most 64 taints.
+                                A pod would have to tolerate all existing taints to run on the corresponding node.
+
+                                NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                              items:
+                                description: MachineTaint defines a taint equivalent
+                                  to corev1.Taint, but additionally having a propagation
+                                  field.
+                                properties:
+                                  effect:
+                                    description: effect is the effect for the taint.
+                                      Valid values are NoSchedule, PreferNoSchedule
+                                      and NoExecute.
+                                    enum:
+                                    - NoSchedule
+                                    - PreferNoSchedule
+                                    - NoExecute
+                                    type: string
+                                  key:
+                                    description: |-
+                                      key is the taint key to be applied to a node.
+                                      Must be a valid qualified name of maximum size 63 characters
+                                      with an optional subdomain prefix of maximum size 253 characters,
+                                      separated by a `/`.
+                                    maxLength: 317
+                                    minLength: 1
+                                    pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                                    type: string
+                                  propagation:
+                                    description: |-
+                                      propagation defines how this taint should be propagated to nodes.
+                                      Valid values are 'Always' and 'OnInitialization'.
+                                      Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                                      OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                                    enum:
+                                    - Always
+                                    - OnInitialization
+                                    type: string
+                                  value:
+                                    description: |-
+                                      value is the taint value corresponding to the taint key.
+                                      It must be a valid label value of maximum size 63 characters.
+                                    maxLength: 63
+                                    minLength: 1
+                                    pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                                    type: string
+                                required:
+                                - effect
+                                - key
+                                - propagation
+                                type: object
+                              maxItems: 64
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-map-keys:
+                              - key
+                              - effect
+                              x-kubernetes-list-type: map
                             variables:
                               description: variables can be used to customize the
                                 MachineDeployment through patches.
@@ -2807,6 +2958,71 @@ spec:
                                 of this value.
                               format: int32
                               type: integer
+                            taints:
+                              description: |-
+                                taints are the node taints that Cluster API will manage.
+                                This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                                e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+                                Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                                There can be at most 64 taints.
+                                A pod would have to tolerate all existing taints to run on the corresponding node.
+
+                                NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                              items:
+                                description: MachineTaint defines a taint equivalent
+                                  to corev1.Taint, but additionally having a propagation
+                                  field.
+                                properties:
+                                  effect:
+                                    description: effect is the effect for the taint.
+                                      Valid values are NoSchedule, PreferNoSchedule
+                                      and NoExecute.
+                                    enum:
+                                    - NoSchedule
+                                    - PreferNoSchedule
+                                    - NoExecute
+                                    type: string
+                                  key:
+                                    description: |-
+                                      key is the taint key to be applied to a node.
+                                      Must be a valid qualified name of maximum size 63 characters
+                                      with an optional subdomain prefix of maximum size 253 characters,
+                                      separated by a `/`.
+                                    maxLength: 317
+                                    minLength: 1
+                                    pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                                    type: string
+                                  propagation:
+                                    description: |-
+                                      propagation defines how this taint should be propagated to nodes.
+                                      Valid values are 'Always' and 'OnInitialization'.
+                                      Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                                      OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                                    enum:
+                                    - Always
+                                    - OnInitialization
+                                    type: string
+                                  value:
+                                    description: |-
+                                      value is the taint value corresponding to the taint key.
+                                      It must be a valid label value of maximum size 63 characters.
+                                    maxLength: 63
+                                    minLength: 1
+                                    pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                                    type: string
+                                required:
+                                - effect
+                                - key
+                                - propagation
+                                type: object
+                              maxItems: 64
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-map-keys:
+                              - key
+                              - effect
+                              x-kubernetes-list-type: map
                             variables:
                               description: variables can be used to customize the
                                 MachinePool through patches.

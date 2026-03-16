@@ -152,6 +152,10 @@ func (f *FakeRuntime) GetContainerIPs(_ context.Context, containerName string) (
 	return containerName + "IPv4", containerName + "IPv6", nil
 }
 
+func (f *FakeRuntime) GetContainerLogs(_ context.Context, _ string) (string, error) {
+	return "", nil
+}
+
 // ContainerDebugInfo gets the container metadata and logs from the runtime (docker inspect, docker logs).
 func (f *FakeRuntime) ContainerDebugInfo(_ context.Context, _ string, _ io.Writer) error {
 	return nil

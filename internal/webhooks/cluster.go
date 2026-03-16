@@ -28,7 +28,6 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -38,13 +37,14 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -277,6 +277,8 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 	allErrs = append(allErrs, validateTopologyRollout(newCluster.Spec.Topology, fldPath)...)
 
+	allErrs = append(allErrs, validateTopologyTaints(newCluster.Spec.Topology, fldPath)...)
+
 	// upgrade concurrency should be a numeric value.
 	if concurrency, ok := newCluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation]; ok {
 		concurrencyAnnotationField := field.NewPath("metadata", "annotations", clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation)
@@ -446,7 +448,7 @@ func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, fldPa
 	}
 
 	// Cannot upgrade when lifecycle hooks are still being completed for the previous upgrade.
-	if IsPending(runtimehooksv1.AfterClusterUpgrade, newCluster) {
+	if hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, newCluster) {
 		return field.Invalid(
 			fldPath,
 			fldValue,
@@ -635,6 +637,24 @@ func validateTopologyRollout(topology clusterv1.Topology, fldPath *field.Path) f
 	for _, md := range topology.Workers.MachineDeployments {
 		fldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("rollout")
 		allErrs = append(allErrs, validateRolloutStrategy(fldPath.Child("strategy"), md.Rollout.Strategy.RollingUpdate.MaxUnavailable, md.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+	}
+
+	return allErrs
+}
+
+func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, taints.ValidateMachineTaints(topology.ControlPlane.Taints, fldPath.Child("controlPlane", "taints"))...)
+
+	for _, md := range topology.Workers.MachineDeployments {
+		fldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("taints")
+		allErrs = append(allErrs, taints.ValidateMachineTaints(md.Taints, fldPath)...)
+	}
+
+	for _, mp := range topology.Workers.MachinePools {
+		fldPath := fldPath.Child("workers", "machinePools").Key(mp.Name).Child("taints")
+		allErrs = append(allErrs, taints.ValidateMachineTaints(mp.Taints, fldPath)...)
 	}
 
 	return allErrs
@@ -1062,28 +1082,4 @@ func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, cluster
 		}
 	}
 	return allErrs
-}
-
-// Note: code duplicated from internal/hooks/tracking.go to avoid a circular dependency when running tests
-// # sigs.k8s.io/cluster-api/util/patch
-// package sigs.k8s.io/cluster-api/util/patch
-//        imports sigs.k8s.io/cluster-api/internal/test/envtest from suite_test.go
-//        imports sigs.k8s.io/cluster-api/internal/webhooks from environment.go
-//        imports sigs.k8s.io/cluster-api/internal/hooks from cluster.go
-//        imports sigs.k8s.io/cluster-api/util/patch from tracking.go: import cycle not allowed in test
-// TODO: investigate.
-
-// IsPending returns true if there is an intent to call a hook being tracked in the object's PendingHooksAnnotation.
-func IsPending(hook runtimecatalog.Hook, obj client.Object) bool {
-	hookName := runtimecatalog.HookName(hook)
-	annotations := obj.GetAnnotations()
-	if annotations == nil {
-		return false
-	}
-	return isInCommaSeparatedList(annotations[runtimev1.PendingHooksAnnotation], hookName)
-}
-
-func isInCommaSeparatedList(list, item string) bool {
-	set := sets.Set[string]{}.Insert(strings.Split(list, ",")...)
-	return set.Has(item)
 }

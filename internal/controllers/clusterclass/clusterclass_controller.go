@@ -41,7 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -51,9 +50,9 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -312,28 +311,14 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 				continue
 			}
 
-			v1beta2Variables := make([]clusterv1.ClusterClassVariable, 0, len(resp.Variables))
-			for _, variable := range resp.Variables {
-				v := clusterv1.ClusterClassVariable{}
-				// Note: This conversion func converts Required == false to &false.
-				// This is intended as the Required field is required (so nil would not be valid)
-				// Accordingly we don't have to drop Required == &false in dropFalsePtrBool() below.
-				if err := clusterv1beta1.Convert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(&variable, &v, nil); err != nil {
-					errs = append(errs, errors.Errorf("failed to convert variable %s to v1beta2", variable.Name))
-					continue
-				}
-				v.Schema.OpenAPIV3Schema = *dropFalsePtrBool(&v.Schema.OpenAPIV3Schema)
-				v1beta2Variables = append(v1beta2Variables, v)
-			}
-
-			if len(v1beta2Variables) > 0 && len(errs) == 0 {
-				validationErrors := variables.ValidateClusterClassVariables(ctx, nil, v1beta2Variables, field.NewPath(patch.Name, "variables")).ToAggregate()
+			if len(resp.Variables) > 0 && len(errs) == 0 {
+				validationErrors := variables.ValidateClusterClassVariables(ctx, nil, resp.Variables, field.NewPath(patch.Name, "variables")).ToAggregate()
 				if validationErrors != nil {
 					errs = append(errs, validationErrors)
 					continue
 				}
 
-				for _, variable := range v1beta2Variables {
+				for _, variable := range resp.Variables {
 					// If a variable of the same name already exists in allVariableDefinitions add the new definition to the existing list.
 					if _, ok := allVariableDefinitions[variable.Name]; ok {
 						allVariableDefinitions[variable.Name] = addDefinitionToExistingStatusVariable(variable, patch.Name, allVariableDefinitions[variable.Name])
@@ -479,16 +464,12 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 		return nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, r.Client)
-	if err != nil {
-		return err
-	}
-
+	original := obj.DeepCopyObject().(client.Object)
 	if err := controllerutil.SetOwnerReference(clusterClass, obj, r.Client.Scheme()); err != nil {
 		return errors.Wrapf(err, "failed to set ClusterClass owner reference for %s %s", obj.GetKind(), klog.KObj(obj))
 	}
 
-	return patchHelper.Patch(ctx, obj)
+	return r.Client.Patch(ctx, obj, client.MergeFrom(original))
 }
 
 func uniqueObjectRefKey(ref *corev1.ObjectReference) string {

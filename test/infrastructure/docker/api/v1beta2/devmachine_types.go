@@ -368,6 +368,12 @@ type DevMachineStatus struct {
 	// +optional
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
+	// failureDomain is the unique identifier of the failure domain where this Machine has been placed in.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	FailureDomain string `json:"failureDomain,omitempty"`
+
 	// backend defines backends status for a DevMachine.
 	// +optional
 	Backend *DevMachineBackendStatus `json:"backend,omitempty"`
@@ -425,9 +431,11 @@ type DevMachineV1Beta1DeprecatedStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels['cluster\\.x-k8s\\.io/cluster-name']",description="Cluster"
-// +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this DevMachine"
-// +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
-// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.initialization.provisioned",description="Machine ready status"
+// +kubebuilder:printcolumn:name="Provider ID",type="string",JSONPath=".spec.providerID",description="Provider ID",priority=10
+// +kubebuilder:printcolumn:name="Failure domain",type="string",JSONPath=".status.failureDomain",description="The failure domain where the VSphereMachine has been scheduled"
+// +kubebuilder:printcolumn:name="IP",type="string",JSONPath=`.status.addresses[?(@.type=="InternalIP")].address`,description="IP of the Machine",priority=10
+// +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10
+// +kubebuilder:printcolumn:name="Provisioned",type="string",JSONPath=".status.initialization.provisioned",description="DevMachine is provisioned"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of the DevMachine"
 
 // DevMachine is the schema for the dev machine infrastructure API.

@@ -22,8 +22,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // EnsureFinalizer adds a finalizer if the object doesn't have a deletionTimestamp set
@@ -40,14 +38,10 @@ func EnsureFinalizer(ctx context.Context, c client.Client, o client.Object, fina
 		return false, nil
 	}
 
-	patchHelper, err := patch.NewHelper(o, c)
-	if err != nil {
-		return false, err
-	}
-
+	original := o.DeepCopyObject().(client.Object)
 	controllerutil.AddFinalizer(o, finalizer)
 
-	if err := patchHelper.Patch(ctx, o); err != nil {
+	if err := c.Patch(ctx, o, client.MergeFrom(original)); err != nil {
 		return false, err
 	}
 

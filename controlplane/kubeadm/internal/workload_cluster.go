@@ -38,19 +38,17 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 const (
@@ -75,7 +73,6 @@ type WorkloadCluster interface {
 	ClusterStatus(ctx context.Context) (ClusterStatus, error)
 	UpdateStaticPodConditions(ctx context.Context, controlPlane *ControlPlane)
 	UpdateEtcdConditions(ctx context.Context, controlPlane *ControlPlane)
-	EtcdMembers(ctx context.Context) ([]string, error)
 	GetAPIServerCertificateExpiry(ctx context.Context, kubeadmConfig *bootstrapv1.KubeadmConfig, nodeName string) (*time.Time, error)
 
 	// Upgrade related tasks.
@@ -90,18 +87,15 @@ type WorkloadCluster interface {
 	UpdateEncryptionAlgorithm(encryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) func(*bootstrapv1.ClusterConfiguration)
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
-	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
+	RemoveEtcdMember(ctx context.Context, name string) error
 	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error
 	AllowClusterAdminPermissions(ctx context.Context, version semver.Version) error
 	UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error
-
-	// State recovery tasks.
-	ReconcileEtcdMembersAndControlPlaneNodes(ctx context.Context, members []*etcd.Member, nodeNames []string) ([]string, error)
 }
 
 // Workload defines operations on workload clusters.
 type Workload struct {
-	Client              ctrlclient.Client
+	Client              client.Client
 	CoreDNSMigrator     coreDNSMigrator
 	etcdClientGenerator etcdClientFor
 	restConfig          *rest.Config
@@ -114,7 +108,7 @@ func (w *Workload) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, 
 	controlPlaneNodeNames := sets.Set[string]{}
 
 	nodes := &corev1.NodeList{}
-	if err := w.Client.List(ctx, nodes, ctrlclient.MatchingLabels(map[string]string{
+	if err := w.Client.List(ctx, nodes, client.MatchingLabels(map[string]string{
 		labelNodeRoleControlPlane: "",
 	})); err != nil {
 		return nil, err
@@ -135,7 +129,7 @@ func (w *Workload) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, 
 	return controlPlaneNodes, nil
 }
 
-func (w *Workload) getConfigMap(ctx context.Context, configMap ctrlclient.ObjectKey) (*corev1.ConfigMap, error) {
+func (w *Workload) getConfigMap(ctx context.Context, configMap client.ObjectKey) (*corev1.ConfigMap, error) {
 	original := &corev1.ConfigMap{}
 	if err := w.Client.Get(ctx, configMap, original); err != nil {
 		return nil, errors.Wrapf(err, "error getting %s/%s configmap from target cluster", configMap.Namespace, configMap.Name)
@@ -208,7 +202,7 @@ func (w *Workload) UpdateEncryptionAlgorithm(encryptionAlgorithm bootstrapv1.Enc
 // kubeadm-config ConfigMap updated.
 func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		key := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
+		key := client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
 		configMap, err := w.getConfigMap(ctx, key)
 		if err != nil {
 			return errors.Wrap(err, "failed to get kubeadmConfigMap")
@@ -280,7 +274,7 @@ func (w *Workload) ClusterStatus(ctx context.Context) (ClusterStatus, error) {
 	}
 
 	// find the kubeadm conifg
-	key := ctrlclient.ObjectKey{
+	key := client.ObjectKey{
 		Name:      kubeadmConfigKey,
 		Namespace: metav1.NamespaceSystem,
 	}
@@ -421,7 +415,7 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 
 	ds := &appsv1.DaemonSet{}
 
-	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {
+	if err := w.Client.Get(ctx, client.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {
 		if apierrors.IsNotFound(err) {
 			// if kube-proxy is missing, return without errors
 			return nil
@@ -449,12 +443,9 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 	}
 
 	if container.Image != newImageName {
-		helper, err := patch.NewHelper(ds, w.Client)
-		if err != nil {
-			return err
-		}
+		original := ds.DeepCopy()
 		patchKubeProxyImage(ds, newImageName)
-		return helper.Patch(ctx, ds)
+		return w.Client.Patch(ctx, ds, client.MergeFrom(original))
 	}
 	return nil
 }

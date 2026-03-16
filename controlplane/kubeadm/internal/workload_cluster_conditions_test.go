@@ -365,8 +365,8 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
-						EtcdEndpoints: []string{},
-						ErrorResponse: errors.New("something went wrong"),
+						EtcdEndpoints:   []string{},
+						MemberListError: errors.New("something went wrong"),
 					},
 				},
 			},

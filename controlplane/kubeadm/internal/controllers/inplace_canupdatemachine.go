@@ -79,7 +79,7 @@ func (r *KubeadmControlPlaneReconciler) canUpdateMachine(ctx context.Context, ma
 		return false, err
 	}
 	if !canUpdateMachine {
-		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions", machine.Name), "reason", strings.Join(reasons, ","))
+		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions", klog.KObj(machine)), "reason", strings.Join(reasons, ","))
 		return false, nil
 	}
 	return true, nil

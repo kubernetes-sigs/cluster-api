@@ -72,6 +72,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheckRemediation":               schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckRemediation(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheckRemediationTriggerIf":      schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckRemediationTriggerIf(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineDeletionSpec":                  schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineDeletionSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutSpec":                          schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyRolloutSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables":                                    schema_cluster_api_api_core_v1beta2_ControlPlaneVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ExternalPatchDefinition":                                  schema_cluster_api_api_core_v1beta2_ExternalPatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain":                                            schema_cluster_api_api_core_v1beta2_FailureDomain(ref),
@@ -1249,7 +1250,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterSpec(ref common.ReferenceCallbac
 					},
 					"topology": {
 						SchemaProps: spec.SchemaProps{
-							Description: "topology encapsulates the topology for the cluster. NOTE: It is required to enable the ClusterTopology feature gate flag to activate managed topologies support; this feature is highly experimental, and parts of it might still be not implemented.",
+							Description: "topology encapsulates the topology for the cluster. NOTE: It is required to enable the ClusterTopology feature gate flag to activate managed topologies support.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.Topology"),
 						},
@@ -1597,6 +1598,29 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec"),
 						},
 					},
+					"taints": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"key",
+									"effect",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints. A pod would have to tolerate all existing taints to run on the corresponding node.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint"),
+									},
+								},
+							},
+						},
+					},
 					"readinessGates": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
@@ -1624,7 +1648,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -1872,6 +1896,13 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 							Format:      "int32",
 						},
 					},
+					"rollout": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rollout allows you to configure the behavior of rolling updates to the control plane.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutSpec"),
+						},
+					},
 					"healthCheck": {
 						SchemaProps: spec.SchemaProps{
 							Description: "healthCheck allows to enable, disable and override control plane health check configuration from the ClusterClass for this control plane.",
@@ -1884,6 +1915,29 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 							Description: "deletion contains configuration options for Machine deletion.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineDeletionSpec"),
+						},
+					},
+					"taints": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"key",
+									"effect",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints. A pod would have to tolerate all existing taints to run on the corresponding node.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint"),
+									},
+								},
+							},
 						},
 					},
 					"readinessGates": {
@@ -1919,7 +1973,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -2107,6 +2161,27 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineDeletionSpec
 				},
 			},
 		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyRolloutSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneTopologyRolloutSpec defines the rollout behavior.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"after": {
+						SchemaProps: spec.SchemaProps{
+							Description: "after is a field to indicate a rollout should be performed after the specified time even if no changes have been made to the ControlPlane. Example: In the YAML the time can be specified in the RFC3339 format. To specify the rolloutAfter target as March 9, 2023, at 9 am UTC use \"2023-03-09T09:00:00Z\".",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 
@@ -2902,6 +2977,29 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec"),
 						},
 					},
+					"taints": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"key",
+									"effect",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints. A pod would have to tolerate all existing taints to run on the corresponding node.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint"),
+									},
+								},
+							},
+						},
+					},
 					"minReadySeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "minReadySeconds is the minimum number of seconds for which a newly created machine should be ready. Defaults to 0 (machine will be considered available as soon as it is ready) NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
@@ -2943,7 +3041,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -3710,6 +3808,29 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineDeletionSpec"),
 						},
 					},
+					"taints": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"key",
+									"effect",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints. A pod would have to tolerate all existing taints to run on the corresponding node.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint"),
+									},
+								},
+							},
+						},
+					},
 					"minReadySeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "minReadySeconds is the minimum number of seconds for which a newly created machine should be ready. Defaults to 0 (machine will be considered available as soon as it is ready)",
@@ -3758,7 +3879,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -3969,6 +4090,12 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyRolloutSpec(re
 				Description: "MachineDeploymentTopologyRolloutSpec defines the rollout behavior.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"after": {
+						SchemaProps: spec.SchemaProps{
+							Description: "after is a field to indicate a rollout should be performed after the specified time even if no changes have been made to the MachineDeployment. Example: In the YAML the time can be specified in the RFC3339 format. To specify the rolloutAfter target as March 9, 2023, at 9 am UTC use \"2023-03-09T09:00:00Z\".",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
 					"strategy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "strategy specifies how to roll out control plane Machines.",
@@ -3980,7 +4107,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyRolloutSpec(re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutStrategy"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutStrategy"},
 	}
 }
 
@@ -5076,6 +5203,29 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassMachineDeletionSpec"),
 						},
 					},
+					"taints": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"key",
+									"effect",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints. A pod would have to tolerate all existing taints to run on the corresponding node.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint"),
+									},
+								},
+							},
+						},
+					},
 					"minReadySeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "minReadySeconds is the minimum number of seconds for which a newly created machine pool should be ready. Defaults to 0 (machine will be considered available as soon as it is ready) NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
@@ -5088,7 +5238,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -5562,6 +5712,29 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopologyMachineDeletionSpec"),
 						},
 					},
+					"taints": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"key",
+									"effect",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints. A pod would have to tolerate all existing taints to run on the corresponding node.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint"),
+									},
+								},
+							},
+						},
+					},
 					"minReadySeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "minReadySeconds is the minimum number of seconds for which a newly created machine pool should be ready. Defaults to 0 (machine will be considered available as soon as it is ready)",
@@ -5588,7 +5761,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -6292,6 +6465,13 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 									},
 								},
 							},
+						},
+					},
+					"failureDomain": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureDomain is the failure domain where the Machine has been scheduled.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"phase": {

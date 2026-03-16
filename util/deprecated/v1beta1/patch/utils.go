@@ -182,7 +182,7 @@ func identifyConditionsFieldsPath(obj runtime.Object) ([]string, []string, error
 			// We assume the type is implemented according to transition guidelines
 			clusterv1ConditionsFields = []string{"status", "deprecated", "v1beta1", "conditions"}
 		} else {
-			if v1Beta1Field := deprecatedElem.FieldByName("V1Beta1"); deprecatedField != (reflect.Value{}) {
+			if v1Beta1Field := deprecatedElem.FieldByName("V1Beta1"); v1Beta1Field != (reflect.Value{}) {
 				if v1Beta1Field.Kind() != reflect.Pointer {
 					return nil, nil, errors.New("obj.status.deprecated.v1beta1 must be a pointer")
 				}

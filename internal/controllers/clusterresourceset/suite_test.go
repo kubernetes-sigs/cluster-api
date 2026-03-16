@@ -135,10 +135,16 @@ func TestMain(m *testing.M) {
 				},
 			},
 		},
-		ManagerUncachedObjs: []client.Object{
-			&corev1.ConfigMap{},
-			&corev1.Secret{},
-			&addonsv1.ClusterResourceSetBinding{},
+		ManagerClientOptions: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+					&addonsv1.ClusterResourceSetBinding{},
+				},
+				// Use the cache for all Unstructured get/list calls.
+				Unstructured: true,
+			},
 		},
 		SetupIndexes:     setupIndexes,
 		SetupReconcilers: setupReconcilers,

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -48,14 +49,15 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -237,7 +239,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			if errors.As(err, &connFailure) {
 				log.Info(fmt.Sprintf("Could not connect to workload cluster to fetch status: %s", err.Error()))
 			} else {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to update KubeadmControlPlane status")})
+				reterr = kerrors.NewAggregate([]error{reterr, errors.WithMessage(err, "failed to update KubeadmControlPlane status")})
 			}
 		}
 
@@ -246,7 +248,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			if errors.As(err, &connFailure) {
 				log.Info(fmt.Sprintf("Could not connect to workload cluster to fetch deprecated v1beta1 status: %s", err.Error()))
 			} else {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to update KubeadmControlPlane deprecated v1beta1 status")})
+				reterr = kerrors.NewAggregate([]error{reterr, errors.WithMessage(err, "failed to update KubeadmControlPlane deprecated v1beta1 status")})
 			}
 		}
 
@@ -306,7 +308,7 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 	}
 
 	// Read control plane machines
-	controlPlaneMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, cluster, collections.ControlPlaneMachines(cluster.Name))
+	controlPlaneMachines, err := r.managementClusterUncached.GetControlPlaneMachinesForCluster(ctx, cluster)
 	if err != nil {
 		log.Error(err, "Failed to retrieve control plane machines for cluster")
 		return nil, false, err
@@ -382,6 +384,9 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 // reconcile handles KubeadmControlPlane reconciliation.
 func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPlane *internal.ControlPlane) (res ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
+
+	// Note: Intentionally logging when KCP reconcile an object because it proved helpful during troubleshooting
+	// when KCP experienced some deadlock in the past due to the number of remote connections.
 	log.Info("Reconcile KubeadmControlPlane")
 
 	// Make sure to reconcile the external infrastructure reference.
@@ -444,13 +449,17 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		return result, err
 	}
 
-	if err := r.syncMachines(ctx, controlPlane); err != nil {
+	stopReconcile, err := r.syncMachines(ctx, controlPlane)
+	if err != nil {
 		// Note: If any of the calls got a NotFound error, it means that at least one Machine got deleted.
 		// Let's return here so that the next Reconcile will get the updated list of Machines.
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil // Note: Requeue is not needed, changes to Machines trigger another reconcile.
 		}
 		return ctrl.Result{}, errors.Wrap(err, "failed to sync Machines")
+	}
+	if stopReconcile {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // Explicitly requeue as we are not watching for changes to BootstrapConfig and InfraMachine objects.
 	}
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
@@ -464,9 +473,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	}
 
 	// Ensures the number of etcd members is in sync with the number of machines/nodes.
-	// NOTE: This is usually required after a machine deletion.
-	if err := r.reconcileEtcdMembers(ctx, controlPlane); err != nil {
-		return ctrl.Result{}, err
+	if result, err := r.reconcileEtcdMembers(ctx, controlPlane); err != nil || !result.IsZero() {
+		return result, err
 	}
 
 	// Handle machines in deletion phase; when drain and wait for volume detach completed, forward etcd leadership
@@ -499,7 +507,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	// progress is not counted as needs rollout).
 	if machines := controlPlane.MachinesToCompleteInPlaceUpdate(); machines.Len() > 0 {
 		for _, machine := range machines {
-			log.Info(fmt.Sprintf("Waiting for in-place update of Machine %s to complete", machine.Name), "Machine", klog.KObj(machine))
+			log.Info(fmt.Sprintf("Waiting for in-place update of Machine %s to complete", klog.KObj(machine)), "Machine", klog.KObj(machine))
 		}
 		return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
 	}
@@ -509,11 +517,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	switch {
 	case len(machinesNeedingRollout) > 0:
 		var allMessages []string
-		machinesNeedingRolloutNames := machinesNeedingRollout.Names()
-		slices.Sort(machinesNeedingRolloutNames)
-		for _, name := range machinesNeedingRolloutNames {
-			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", name, strings.Join(machinesUpToDateResults[name].LogMessages, ", ")))
+		machinesNeedingRolloutNames := make([]string, 0, machinesNeedingRollout.Len())
+		for _, m := range machinesNeedingRollout {
+			machinesNeedingRolloutNames = append(machinesNeedingRolloutNames, klog.KObj(m).String())
+			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", klog.KObj(m), strings.Join(machinesUpToDateResults[m.Name].LogMessages, ", ")))
 		}
+		slices.Sort(machinesNeedingRolloutNames)
+		slices.Sort(allMessages)
+
 		log.Info(fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
 		return r.updateControlPlane(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
@@ -534,17 +545,17 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	// We are creating the first replica
 	case numMachines < desiredReplicas && numMachines == 0:
 		// Create new Machine w/ init
-		log.Info("Initializing control plane", "desired", desiredReplicas, "existing", numMachines)
+		log.V(4).Info("Initializing control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition, controlplanev1.WaitingForKubeadmInitV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		return r.initializeControlPlane(ctx, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join
-		log.Info("Scaling up control plane", "desired", desiredReplicas, "existing", numMachines)
+		log.V(4).Info("Scaling up control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		return r.scaleUpControlPlane(ctx, controlPlane)
 	// We are scaling down
 	case numMachines > desiredReplicas:
-		log.Info("Scaling down control plane", "desired", desiredReplicas, "existing", numMachines)
+		log.V(4).Info("Scaling down control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		// The last parameter (i.e. machines needing to be rolled out) should always be empty here.
 		// Pick the Machine that we should scale down.
 		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, collections.Machines{})
@@ -845,8 +856,9 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(_ context.C
 }
 
 // syncMachines updates Machines, InfrastructureMachines and KubeadmConfigs to propagate in-place mutable fields from KCP.
-func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, controlPlane *internal.ControlPlane) error {
+func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, controlPlane *internal.ControlPlane) (bool, error) {
 	patchHelpers := map[string]*patch.Helper{}
+	var anyManagedFieldIssueMitigated bool
 	for machineName := range controlPlane.Machines {
 		m := controlPlane.Machines[machineName]
 		// If the Machine is already being deleted, we only need to sync
@@ -854,69 +866,85 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		if !m.DeletionTimestamp.IsZero() {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
-				return err
+				return false, err
 			}
 
 			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
 			m.Spec.Deletion.NodeDrainTimeoutSeconds = controlPlane.KCP.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds
 			m.Spec.Deletion.NodeDeletionTimeoutSeconds = controlPlane.KCP.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds
+			webhooks.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on KCP.
 			m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = controlPlane.KCP.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+			m.Spec.Taints = controlPlane.KCP.Spec.MachineTemplate.Spec.Taints
 
 			// Note: We intentionally don't set "minReadySeconds" on Machines because we consider it enough to have machine availability driven by readiness of control plane components.
 			if err := patchHelper.Patch(ctx, m); err != nil {
-				return err
+				return false, err
 			}
 
 			controlPlane.Machines[machineName] = m
 			patchHelper, err = patch.NewHelper(m, r.Client)
 			if err != nil {
-				return err
+				return false, err
 			}
 			patchHelpers[machineName] = patchHelper
 			continue
 		}
 
-		// Update Machine to propagate in-place mutable fields from KCP.
-		updatedMachine, err := r.updateMachine(ctx, m, controlPlane.KCP, controlPlane.Cluster)
+		managedFieldIssueMitigated, err := ssa.MitigateManagedFieldsIssue(ctx, r.Client, m, kcpManagerName)
 		if err != nil {
-			return errors.Wrapf(err, "failed to update Machine: %s", klog.KObj(m))
+			return false, err
 		}
-		// Note: Ensure ControlPlane has the latest version of the Machine. This is required because
-		//       e.g. the in-place update code that is called later has to use the latest version of the Machine.
-		controlPlane.Machines[machineName] = updatedMachine
-		if _, ok := controlPlane.MachinesNotUpToDate[machineName]; ok {
-			controlPlane.MachinesNotUpToDate[machineName] = updatedMachine
+		anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
+		if !anyManagedFieldIssueMitigated {
+			// Update Machine to propagate in-place mutable fields from KCP.
+			updatedMachine, err := r.updateMachine(ctx, m, controlPlane.KCP, controlPlane.Cluster)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to update Machine: %s", klog.KObj(m))
+			}
+			// Note: Ensure ControlPlane has the latest version of the Machine. This is required because
+			//       e.g. the in-place update code that is called later has to use the latest version of the Machine.
+			controlPlane.Machines[machineName] = updatedMachine
+			if _, ok := controlPlane.MachinesNotUpToDate[machineName]; ok {
+				controlPlane.MachinesNotUpToDate[machineName] = updatedMachine
+			}
+			// Since the machine is updated, re-create the patch helper so that any subsequent
+			// Patch calls use the correct base machine object to calculate the diffs.
+			// Example: reconcileControlPlaneAndMachinesConditions patches the machine objects in a subsequent call
+			// and, it should use the updated machine to calculate the diff.
+			// Note: If the patchHelpers are not re-computed based on the new updated machines, subsequent
+			// Patch calls will fail because the patch will be calculated based on an outdated machine and will error
+			// because of outdated resourceVersion.
+			// TODO: This should be cleaned-up to have a more streamline way of constructing and using patchHelpers.
+			patchHelper, err := patch.NewHelper(updatedMachine, r.Client)
+			if err != nil {
+				return false, err
+			}
+			patchHelpers[machineName] = patchHelper
 		}
-		// Since the machine is updated, re-create the patch helper so that any subsequent
-		// Patch calls use the correct base machine object to calculate the diffs.
-		// Example: reconcileControlPlaneAndMachinesConditions patches the machine objects in a subsequent call
-		// and, it should use the updated machine to calculate the diff.
-		// Note: If the patchHelpers are not re-computed based on the new updated machines, subsequent
-		// Patch calls will fail because the patch will be calculated based on an outdated machine and will error
-		// because of outdated resourceVersion.
-		// TODO: This should be cleaned-up to have a more streamline way of constructing and using patchHelpers.
-		patchHelper, err := patch.NewHelper(updatedMachine, r.Client)
-		if err != nil {
-			return err
-		}
-		patchHelpers[machineName] = patchHelper
 
 		infraMachine, infraMachineFound := controlPlane.InfraResources[machineName]
 		// Only update the InfraMachine if it is already found, otherwise just skip it.
 		// This could happen e.g. if the cache is not up-to-date yet.
 		if infraMachineFound {
-			// Drop managedFields for manager:Update and capi-kubeadmcontrolplane:Apply for all objects created with CAPI <= v1.11.
-			// Starting with CAPI v1.12 we have a new managedField structure where capi-kubeadmcontrolplane-metadata will own
-			// labels and annotations and capi-kubeadmcontrolplane everything else.
-			// Note: We have to call ssa.MigrateManagedFields for every Machine created with CAPI <= v1.11 once.
-			//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
-			//       be removed with CAPI v1.15.
-			if err := ssa.MigrateManagedFields(ctx, r.Client, infraMachine, kcpManagerName, kcpMetadataManagerName); err != nil {
-				return errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
+			managedFieldIssueMitigated, err = ssa.MitigateManagedFieldsIssue(ctx, r.Client, infraMachine, kcpMetadataManagerName)
+			if err != nil {
+				return false, err
 			}
-			// Update in-place mutating fields on InfrastructureMachine.
-			if err := r.updateLabelsAndAnnotations(ctx, infraMachine, infraMachine.GroupVersionKind(), controlPlane.KCP, controlPlane.Cluster); err != nil {
-				return errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
+			anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
+			if !anyManagedFieldIssueMitigated {
+				// Drop managedFields for manager:Update and capi-kubeadmcontrolplane:Apply for all objects created with CAPI <= v1.11.
+				// Starting with CAPI v1.12 we have a new managedField structure where capi-kubeadmcontrolplane-metadata will own
+				// labels and annotations and capi-kubeadmcontrolplane everything else.
+				// Note: We have to call ssa.MigrateManagedFields for every Machine created with CAPI <= v1.11 once.
+				//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
+				//       be removed with CAPI v1.15.
+				if err := ssa.MigrateManagedFields(ctx, r.Client, infraMachine, kcpManagerName, kcpMetadataManagerName); err != nil {
+					return false, errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
+				}
+				// Update in-place mutating fields on InfrastructureMachine.
+				if err := r.updateLabelsAndAnnotations(ctx, infraMachine, infraMachine.GroupVersionKind(), controlPlane.KCP, controlPlane.Cluster); err != nil {
+					return false, errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
+				}
 			}
 		}
 
@@ -924,24 +952,31 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		// Only update the KubeadmConfig if it is already found, otherwise just skip it.
 		// This could happen e.g. if the cache is not up-to-date yet.
 		if kubeadmConfigFound {
-			// Drop managedFields for manager:Update and capi-kubeadmcontrolplane:Apply for all objects created with CAPI <= v1.11.
-			// Starting with CAPI v1.12 we have a new managedField structure where capi-kubeadmcontrolplane-metadata will own
-			// labels and annotations and capi-kubeadmcontrolplane everything else.
-			// Note: We have to call ssa.MigrateManagedFields for every Machine created with CAPI <= v1.11 once.
-			//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
-			//       be removed with CAPI v1.15.
-			if err := ssa.MigrateManagedFields(ctx, r.Client, kubeadmConfig, kcpManagerName, kcpMetadataManagerName); err != nil {
-				return errors.Wrapf(err, "failed to clean up managedFields of KubeadmConfig %s", klog.KObj(kubeadmConfig))
+			managedFieldIssueMitigated, err = ssa.MitigateManagedFieldsIssue(ctx, r.Client, kubeadmConfig, kcpMetadataManagerName)
+			if err != nil {
+				return false, err
 			}
-			// Update in-place mutating fields on BootstrapConfig.
-			if err := r.updateLabelsAndAnnotations(ctx, kubeadmConfig, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"), controlPlane.KCP, controlPlane.Cluster); err != nil {
-				return errors.Wrapf(err, "failed to update KubeadmConfig %s", klog.KObj(kubeadmConfig))
+			anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
+			if !anyManagedFieldIssueMitigated {
+				// Drop managedFields for manager:Update and capi-kubeadmcontrolplane:Apply for all objects created with CAPI <= v1.11.
+				// Starting with CAPI v1.12 we have a new managedField structure where capi-kubeadmcontrolplane-metadata will own
+				// labels and annotations and capi-kubeadmcontrolplane everything else.
+				// Note: We have to call ssa.MigrateManagedFields for every Machine created with CAPI <= v1.11 once.
+				//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
+				//       be removed with CAPI v1.15.
+				if err := ssa.MigrateManagedFields(ctx, r.Client, kubeadmConfig, kcpManagerName, kcpMetadataManagerName); err != nil {
+					return false, errors.Wrapf(err, "failed to clean up managedFields of KubeadmConfig %s", klog.KObj(kubeadmConfig))
+				}
+				// Update in-place mutating fields on BootstrapConfig.
+				if err := r.updateLabelsAndAnnotations(ctx, kubeadmConfig, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"), controlPlane.KCP, controlPlane.Cluster); err != nil {
+					return false, errors.Wrapf(err, "failed to update KubeadmConfig %s", klog.KObj(kubeadmConfig))
+				}
 			}
 		}
 	}
 	// Update the patch helpers.
 	controlPlane.SetPatchHelpers(patchHelpers)
-	return nil
+	return anyManagedFieldIssueMitigated, nil
 }
 
 // reconcileControlPlaneAndMachinesConditions is responsible of reconciling conditions reporting the status of static pods and
@@ -1180,62 +1215,109 @@ func maxTime(t1, t2 time.Time) time.Time {
 	return t2
 }
 
-// reconcileEtcdMembers ensures the number of etcd members is in sync with the number of machines/nodes.
-// This is usually required after a machine deletion.
+// reconcileEtcdMembers ensures that the list of etcd members is consistent with the list of Machine/Node.
+// If etcd members are not consistent with the list of Machine/Node "unknown" etcd members are removed and a new
+// reconcile is triggered.
 //
-// NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneAndMachinesConditions before this.
-func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *internal.ControlPlane) error {
+// NOTE: This operation is a safeguard in case for some reason the etcd member removal operation that is performed
+// as part of the Machine deletion workflow doesn't work as expected (see reconcilePreTerminateHook).
+// It is also a safeguard against "unmanaged" etcd members being added to the etcd cluster.
+func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If etcd is not managed by KCP this is a no-op.
 	if !controlPlane.IsEtcdManaged() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet.
 	if controlPlane.Machines.Len() == 0 {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// No op if for any reason the etcdMember list is not populated at this stage.
-	if controlPlane.EtcdMembers == nil {
-		return nil
+	if len(controlPlane.EtcdMembers) == 0 {
+		return ctrl.Result{}, nil
 	}
 
-	// Potential inconsistencies between the list of members and the list of machines/nodes are
+	// Potential inconsistencies between the list of members and the list of Machine/Node are
 	// surfaced using the EtcdClusterHealthyCondition; if this condition is true, meaning no inconsistencies exists, return early.
 	if conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition) {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
-	// Collect all the node names.
-	// Note: EtcdClusterHealthyCondition true also implies that there are no machines still provisioning,
-	// so we can ignore this case.
+	// Collect all the Node names from control plane Machines.
 	nodeNames := []string{}
 	for _, machine := range controlPlane.Machines {
 		if !machine.Status.NodeRef.IsDefined() {
-			// If there are provisioning machines (machines without a node yet), return.
-			return nil
+			// If there are provisioning machines (machines without a Node yet), KCP must wait for the control plane
+			// to become stable before acting on etcd members.
+			return ctrl.Result{}, nil
 		}
 		nodeNames = append(nodeNames, machine.Status.NodeRef.Name)
 	}
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		// Failing at connecting to the workload cluster can mean workload cluster is unhealthy for a variety of reasons such as etcd quorum loss.
-		return errors.Wrap(err, "cannot get remote client to workload cluster")
+		return ctrl.Result{}, errors.Wrap(err, "cannot get remote client to workload cluster")
 	}
 
-	removedMembers, err := workloadCluster.ReconcileEtcdMembersAndControlPlaneNodes(ctx, controlPlane.EtcdMembers, nodeNames)
-	if err != nil {
-		return errors.Wrap(err, "failed attempt to reconcile etcd members")
+	// Check if there are etcd member without the corresponding Node/Machines.
+	// If any, delete it with best effort
+	removedMembers := []string{}
+	allErrors := []error{}
+
+	for _, member := range controlPlane.EtcdMembers {
+		// If this member is just added, it has a empty name until the etcd pod starts. Ignore this member until a name will show up.
+		if member.Name == "" {
+			continue
+		}
+
+		// If the member have a corresponding Node/Machine, continue.
+		nodeFound := false
+		for _, nodeName := range nodeNames {
+			if member.Name == nodeName {
+				nodeFound = true
+				break
+			}
+		}
+		if nodeFound {
+			continue
+		}
+
+		// If the Node/Machineg corresponding to an etcd member cannot be found, KCP must remove it.
+		//
+		// Before deleting the etcd member, KCP should assess the potential effects of this operation.
+		//
+		// Most specifically KCP should determine if this operation is going to leave the Kubernetes control plane components
+		// and the etcd cluster in operational state or not.
+		//
+		// In this case, the Target cluster will have the same list of machines as the current clusters
+		// but we are going to remove the etcd members without a corresponding Node/Machine (no etcd member are going to be added).
+		etcdMemberToBeDeleted := member.Name
+		addEtcdMember := false
+		if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
+			allErrors = append(allErrors, errors.Errorf("etcd member %s does not have a corresponding Machine, it must be removed from the cluster but this operation can lead to quorum loss. Please check the etcd status", etcdMemberToBeDeleted))
+			break
+		}
+
+		if err := workloadCluster.RemoveEtcdMember(ctx, member.Name); err != nil {
+			allErrors = append(allErrors, err)
+			continue
+		}
+		removedMembers = append(removedMembers, member.Name)
 	}
 
 	if len(removedMembers) > 0 {
-		log.Info("Etcd members without nodes removed from the cluster", "members", removedMembers)
+		log.Info("Etcd members without a corresponding Machines removed from the cluster", "members", removedMembers)
+
+		// If there are no errors, force a new reconcile after removing an etcd member.
+		if len(allErrors) == 0 {
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
 	}
 
-	return nil
+	return ctrl.Result{}, kerrors.NewAggregate(allErrors)
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
@@ -1280,34 +1362,97 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
+	// If removing the last control plane machine, no need of additional checks/operations.
+	if controlPlane.Machines.Len() <= 1 {
+		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	// Before removing the etcd member/removing the pre-terminate hook on KCP machines
+	// KCP determines again if deleting this machine is going to leave the Kubernetes control plane components
+	// and the etcd cluster in operational state or not.
+	//
+	// NOTE: This check acts as additional safeguard preventing deletion to complete.
+	// Similar checks are also performed before triggering deletion when remediating unhealthy machines and
+	// also before triggering deletion when scaling down the number of control plane replicas.
+	// (in case of scale down KCP actually checks that everything must be in healthy state).
+	//
+	// Target list of machines will have current machines -1 machine (the deletingMachine).
+	// As a consequence:
+	// - KubernetesControlPlane on the deletingMachine is going to be deleted, no KubernetesControlPlane is going to be added.
+	kubernetesControlPlaneToBeDeleted := deletingMachine.Name
+	addKubernetesControlPlane := false
+
+	// Check target Kubernetes control plane components.
+	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {
+		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status", klog.KObj(deletingMachine)))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
 	// The following will execute and remove the pre-terminate hook from the Machine.
-
-	// If we have more than 1 Machine and etcd is managed we forward etcd leadership and remove the member
-	// to keep the etcd cluster healthy.
-	if controlPlane.Machines.Len() > 1 && controlPlane.IsEtcdManaged() {
-		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s: failed to create client to workload cluster", klog.KObj(deletingMachine))
+	if !controlPlane.IsEtcdManaged() {
+		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
+			return ctrl.Result{}, err
 		}
 
-		// Note: In regular deletion cases (remediation, scale down) the leader should have been already moved.
-		// We're doing this again here in case the Machine became leader again or the Machine deletion was
-		// triggered in another way (e.g. a user running kubectl delete machine)
-		etcdLeaderCandidate := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp)).Newest()
-		if etcdLeaderCandidate != nil {
-			if err := workloadCluster.ForwardEtcdLeadership(ctx, deletingMachine, etcdLeaderCandidate); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to move leadership to candidate Machine %s", etcdLeaderCandidate.Name)
-			}
-		} else {
-			log.Info("Skip forwarding etcd leadership, because there is no other control plane Machine without a deletionTimestamp")
+		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	if len(controlPlane.EtcdMembers) == 0 {
+		log.Info("Cannot check etcd cluster health before remediation, etcd member list is empty")
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	// If etcd is managed by KCP, check target etcd cluster.
+	// Target list of machines will have current machines -1 machine (the deletingMachine).
+	// As a consequence:
+	// - etcd member on the deletingMachine is going to be deleted, no etcd member are going to be added.
+	etcdMemberToBeDeleted := r.tryGetEtcdMemberName(ctx, controlPlane, deletingMachine)
+	addEtcdMember := false
+
+	// If it was not possible to get the etcd member, no other checks can be performed. Continue with deletion.
+	// Note: reconcileEtcMembers acts a safeguard if an etcdMember is added/reported after this point.
+	if etcdMemberToBeDeleted == "" {
+		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
+			return ctrl.Result{}, err
 		}
 
-		// Note: Removing the etcd member will lead to the etcd and the kube-apiserver Pod on the Machine shutting down.
-		// If ControlPlaneKubeletLocalMode is used, the kubelet is communicating with the local apiserver and thus now
-		// won't be able to see any updates to e.g. Pods anymore.
-		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, deletingMachine); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
+		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
+		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s, the operation can lead to etcd quorum loss. Please check the etcd status", klog.KObj(deletingMachine)))
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s: failed to create client to workload cluster", klog.KObj(deletingMachine))
+	}
+
+	// Note: In regular deletion cases (remediation, scale down) the leader should have been already moved.
+	// We're doing this again here in case the Machine became leader again or the Machine deletion was
+	// triggered in another way (e.g. a user running kubectl delete machine)
+	etcdLeaderCandidate := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp)).Newest()
+	if etcdLeaderCandidate != nil {
+		if err := workloadCluster.ForwardEtcdLeadership(ctx, deletingMachine, etcdLeaderCandidate); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to move leadership to candidate Machine %s", etcdLeaderCandidate.Name)
 		}
+	} else {
+		log.Info("Skip forwarding etcd leadership, there is no other control plane Machine without a deletionTimestamp")
+	}
+
+	// Note: Removing the etcd member will lead to the etcd and the kube-apiserver Pod on the Machine shutting down.
+	// If ControlPlaneKubeletLocalMode is used, the kubelet is communicating with the local apiserver and thus now
+	// won't be able to see any updates to e.g. Pods anymore.
+	if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
 	}
 
 	if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
@@ -1370,27 +1515,23 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 		nodeName := m.Status.NodeRef.Name
 		log = log.WithValues("Node", klog.KRef("", nodeName))
 
-		log.V(3).Info("Reconciling certificate expiry")
+		log.V(4).Info("Reconciling certificate expiry")
 		certificateExpiry, err := workloadCluster.GetAPIServerCertificateExpiry(ctx, kubeadmConfig, nodeName)
 		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
+			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine %s", klog.KObj(m))
 		}
 		expiry := certificateExpiry.Format(time.RFC3339)
 
-		log.V(2).Info(fmt.Sprintf("Setting certificate expiry to %s", expiry))
-		patchHelper, err := patch.NewHelper(kubeadmConfig, r.Client)
-		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
-		}
-
+		log.V(2).Info(fmt.Sprintf("Setting certificate expiry date on KubeadmConfig %s", klog.KObj(kubeadmConfig)), "expiryDate", expiry)
+		original := kubeadmConfig.DeepCopy()
 		if annotations == nil {
 			annotations = map[string]string{}
 		}
 		annotations[clusterv1.MachineCertificatesExpiryDateAnnotation] = expiry
 		kubeadmConfig.SetAnnotations(annotations)
 
-		if err := patchHelper.Patch(ctx, kubeadmConfig); err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
+		if err := r.Client.Patch(ctx, kubeadmConfig, client.MergeFrom(original)); err != nil {
+			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine %s", klog.KObj(m))
 		}
 	}
 
@@ -1439,6 +1580,7 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 		}
 	}
 
+	kcpRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	for _, m := range machines {
 		ref := m.Spec.Bootstrap.ConfigRef
 		cfg := &bootstrapv1.KubeadmConfig{}
@@ -1451,18 +1593,17 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 			return err
 		}
 
-		patchHelper, err := patch.NewHelper(m, r.Client)
-		if err != nil {
-			return err
+		// No op if OwnerReferences is set and up to date.
+		if util.HasExactOwnerRef(m.OwnerReferences, kcpRef) {
+			continue
 		}
 
-		if err := controllerutil.SetControllerReference(kcp, m, r.Client.Scheme()); err != nil {
-			return err
-		}
+		original := m.DeepCopy()
+		m.SetOwnerReferences(util.EnsureOwnerRef(m.GetOwnerReferences(), kcpRef))
 
 		// Note that ValidateOwnerReferences() will reject this patch if another
 		// OwnerReference exists with controller=true.
-		if err := patchHelper.Patch(ctx, m); err != nil {
+		if err := r.Client.Patch(ctx, m, client.MergeFrom(original)); err != nil {
 			return err
 		}
 	}
@@ -1475,32 +1616,29 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 		return errors.Wrap(err, "error finding secrets for adoption")
 	}
 
+	kcpRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	for i := range secrets.Items {
-		s := secrets.Items[i]
-		if !util.IsOwnedByObject(&s, currentOwner, bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind()) {
+		s := &secrets.Items[i]
+		if !util.IsOwnedByObject(s, currentOwner, bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind()) {
 			continue
 		}
+
 		// avoid taking ownership of the bootstrap data secret
 		if s.Name == currentOwner.Status.DataSecretName {
 			continue
 		}
 
-		ss := s.DeepCopy()
+		// No op if OwnerReferences is set and up to date.
+		if util.HasExactOwnerRef(s.OwnerReferences, kcpRef) {
+			continue
+		}
 
-		ss.SetOwnerReferences(util.ReplaceOwnerRef(ss.GetOwnerReferences(), currentOwner, metav1.OwnerReference{
-			APIVersion:         controlplanev1.GroupVersion.String(),
-			Kind:               "KubeadmControlPlane",
-			Name:               kcp.Name,
-			UID:                kcp.UID,
-			Controller:         ptr.To(true),
-			BlockOwnerDeletion: ptr.To(true),
-		}))
-
-		if err := r.Client.Update(ctx, ss); err != nil {
+		original := s.DeepCopy()
+		s.SetOwnerReferences(util.ReplaceOwnerRef(s.GetOwnerReferences(), currentOwner, kcpRef))
+		if err := r.Client.Patch(ctx, s, client.MergeFrom(original)); err != nil {
 			return errors.Wrapf(err, "error changing secret %v ownership from KubeadmConfig/%v to KubeadmControlPlane/%v", s.Name, currentOwner.GetName(), kcp.Name)
 		}
 	}
-
 	return nil
 }
 
@@ -1511,11 +1649,7 @@ func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.C
 			continue
 		}
 
-		patchHelper, err := patch.NewHelper(c.Secret, r.Client)
-		if err != nil {
-			return err
-		}
-
+		original := c.Secret.DeepCopy()
 		controller := metav1.GetControllerOf(c.Secret)
 		// If the current controller is KCP, ensure the owner reference is up to date.
 		// Note: This ensures secrets created prior to v1alpha4 are updated to have the correct owner reference apiVersion.
@@ -1533,7 +1667,12 @@ func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.C
 			}
 			c.Secret.SetOwnerReferences(util.EnsureOwnerRef(c.Secret.GetOwnerReferences(), owner))
 		}
-		if err := patchHelper.Patch(ctx, c.Secret); err != nil {
+
+		if reflect.DeepEqual(original.GetOwnerReferences(), c.Secret.GetOwnerReferences()) {
+			continue
+		}
+
+		if err := r.Client.Patch(ctx, c.Secret, client.MergeFrom(original)); err != nil {
 			return errors.Wrapf(err, "failed to set ownerReference")
 		}
 	}

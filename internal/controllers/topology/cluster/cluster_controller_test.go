@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"encoding/json"
 	"fmt"
 	"maps"
 	"testing"
@@ -30,6 +31,7 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -37,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -87,9 +88,9 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 		g.Expect(cleanup()).To(Succeed())
 	}()
 
+	actualCluster := &clusterv1.Cluster{}
 	g.Eventually(func(g Gomega) error {
 		// Get the cluster object.
-		actualCluster := &clusterv1.Cluster{}
 		if err := env.GetAPIReader().Get(ctx, client.ObjectKey{Name: clusterName1, Namespace: ns.Name}, actualCluster); err != nil {
 			return err
 		}
@@ -113,6 +114,55 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 
 		return nil
+	}, timeout).Should(Succeed())
+
+	s := scope.New(actualCluster)
+	r := &Reconciler{
+		Client: env.GetClient(),
+	}
+	cc := &clusterv1.ClusterClass{}
+	g.Expect(env.GetAPIReader().Get(ctx, actualCluster.GetClassKey(), cc)).To(Succeed())
+	s.Blueprint, err = r.getBlueprint(ctx, actualCluster, cc)
+	g.Expect(err).ToNot(HaveOccurred())
+	s.Current, err = r.getCurrentState(ctx, s)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	//
+	// Verify managedField mitigation (purge managedFields and verify they are re-added)
+	//
+	objects := []client.Object{
+		s.Current.Cluster,
+		s.Current.InfrastructureCluster,
+		s.Current.ControlPlane.Object,
+		s.Current.ControlPlane.InfrastructureMachineTemplate,
+	}
+	for _, md := range s.Current.MachineDeployments {
+		objects = append(objects, md.Object, // TODO: MHC omitted for now as this test does not use MHC
+			md.InfrastructureMachineTemplate, md.BootstrapTemplate)
+	}
+	for _, mp := range s.Current.MachinePools {
+		objects = append(objects, mp.Object,
+			mp.InfrastructureMachinePoolObject, mp.BootstrapObject)
+	}
+	jsonPatch := []map[string]interface{}{
+		{
+			"op":    "replace",
+			"path":  "/metadata/managedFields",
+			"value": []metav1.ManagedFieldsEntry{{}},
+		},
+	}
+	patch, err := json.Marshal(jsonPatch)
+	g.Expect(err).ToNot(HaveOccurred())
+	for _, object := range objects {
+		g.Expect(env.Client.Patch(ctx, object, client.RawPatch(types.JSONPatchType, patch))).To(Succeed())
+		g.Expect(object.GetManagedFields()).To(BeEmpty())
+	}
+
+	g.Eventually(func(g Gomega) {
+		for _, object := range objects {
+			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(object), object)).To(Succeed())
+			g.Expect(object.GetManagedFields()).ToNot(BeEmpty())
+		}
 	}, timeout).Should(Succeed())
 }
 
@@ -1801,7 +1851,7 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 	// return a func that allows to check if expected transformations are applied to the Cluster parameter which is
 	// included in the payload for lifecycle hooks calls.
 	return func(req runtimehooksv1.RequestObject) error {
-		var cluster clusterv1beta1.Cluster
+		var cluster clusterv1.Cluster
 		switch req := req.(type) {
 		case *runtimehooksv1.BeforeClusterCreateRequest:
 			cluster = req.Cluster
@@ -1826,15 +1876,9 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 			return errors.New("conversion annotation should have been cleaned up")
 		}
 
-		// check the Cluster parameter included in the payload lifecycle hooks calls has been properly converted from v1beta2 to v1beta1.
-		// Note: to perform this check we convert the parameter back to v1beta2 and compare with the original cluster +/- expected transformations.
-		v1beta2Cluster := &clusterv1.Cluster{}
-		if err := cluster.ConvertTo(v1beta2Cluster); err != nil {
-			return err
-		}
+		// Check the Cluster parameter has been cleaned up as expected.
 
 		originalClusterCopy := originalCluster.DeepCopy()
-		originalClusterCopy.TypeMeta = metav1.TypeMeta{}
 		originalClusterCopy.SetManagedFields(nil)
 		if originalClusterCopy.Annotations != nil {
 			annotations := maps.Clone(cluster.Annotations)
@@ -1846,8 +1890,8 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		// drop conditions, it is not possible to round trip without the data annotation.
 		originalClusterCopy.Status.Conditions = nil
 
-		if !apiequality.Semantic.DeepEqual(originalClusterCopy, v1beta2Cluster) {
-			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, v1beta2Cluster))
+		if !apiequality.Semantic.DeepEqual(originalClusterCopy, &cluster) {
+			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, &cluster))
 		}
 		return nil
 	}

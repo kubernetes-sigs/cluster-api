@@ -28,10 +28,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends"
@@ -40,6 +40,8 @@ import (
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
@@ -100,6 +102,12 @@ func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	// Return early if the DevCluster is externally managed.
+	if annotations.IsExternallyManaged(devCluster) {
+		log.V(4).Info("DevCluster is externally managed, skipping reconciliation")
+		return ctrl.Result{}, nil
+	}
+
 	// Add finalizer first if not set to avoid the race condition between init and delete.
 	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, devCluster, infrav1.ClusterFinalizer); err != nil || finalizerAdded {
 		return ctrl.Result{}, err
@@ -111,6 +119,18 @@ func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
+		// Note: If ownerRef was not set, there is nothing to delete. Remove finalizer so deletion can succeed.
+		if !devCluster.DeletionTimestamp.IsZero() {
+			if controllerutil.ContainsFinalizer(devCluster, infrav1.ClusterFinalizer) {
+				devClusterWithoutFinalizer := devCluster.DeepCopy()
+				controllerutil.RemoveFinalizer(devClusterWithoutFinalizer, infrav1.ClusterFinalizer)
+				if err := r.Client.Patch(ctx, devClusterWithoutFinalizer, client.MergeFrom(devCluster)); err != nil {
+					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DevCluster %s", klog.KObj(devCluster))
+				}
+			}
+			return ctrl.Result{}, nil
+		}
+
 		log.Info("Waiting for Cluster Controller to set OwnerRef on DevCluster")
 		return ctrl.Result{}, nil
 	}

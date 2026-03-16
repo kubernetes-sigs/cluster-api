@@ -78,6 +78,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec)
+		dst.Spec.MachineTemplate.Spec.Taints = restored.Spec.MachineTemplate.Spec.Taints
 	}
 
 	if src.Spec.RemediationStrategy != nil {
@@ -110,7 +111,7 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	dropEmptyStringsKubeadmControlPlaneStatus(&dst.Status)
 
 	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -134,6 +135,7 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec)
+		dst.Spec.Template.Spec.MachineTemplate.Spec.Taints = restored.Spec.Template.Spec.MachineTemplate.Spec.Taints
 	}
 
 	if src.Spec.Template.Spec.RemediationStrategy != nil {
@@ -157,7 +159,7 @@ func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error
 	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.Template.Spec.KubeadmConfigSpec)
 
 	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apimachineryconversion.Scope) error {

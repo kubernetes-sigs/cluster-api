@@ -27,6 +27,7 @@ if [[ "${TRACE-0}" == "1" ]]; then
 fi
 
 KIND_CLUSTER_NAME=${CAPI_KIND_CLUSTER_NAME:-"capi-test"}
+KIND_CLUSTER_IMAGE=${CAPI_KIND_CLUSTER_IMAGE:-""}
 
 # 1. If kind cluster already exists exit.
 if [[ "$(kind get clusters)" =~ .*"${KIND_CLUSTER_NAME}".* ]]; then
@@ -51,7 +52,7 @@ fi
 # https://github.com/containerd/containerd/blob/main/docs/cri/config.md#registry-configuration
 # See: https://github.com/containerd/containerd/blob/main/docs/hosts.md
 
-echo "$KIND_CLUSTER_CONFIG" | kind create cluster --name="$KIND_CLUSTER_NAME"  --config=-
+echo "$KIND_CLUSTER_CONFIG" | kind create cluster --name="$KIND_CLUSTER_NAME" --image="$KIND_CLUSTER_IMAGE" --config=-
 
 # 4. Add the registry config to the nodes
 #

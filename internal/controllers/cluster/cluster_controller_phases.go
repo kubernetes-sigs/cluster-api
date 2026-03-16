@@ -41,7 +41,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -103,7 +102,7 @@ func ensureOwnerRefAndLabel(ctx context.Context, c client.Client, obj *unstructu
 		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
-		Controller: ptr.To(true),
+		Controller: ptr.To(cluster.Spec.Topology.IsDefined()),
 	}
 
 	if util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) &&
@@ -111,13 +110,21 @@ func ensureOwnerRefAndLabel(ctx context.Context, c client.Client, obj *unstructu
 		return nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, c)
-	if err != nil {
-		return err
-	}
+	original := obj.DeepCopyObject().(client.Object)
 
-	if err := controllerutil.SetControllerReference(cluster, obj, c.Scheme()); err != nil {
-		return err
+	// When Topology is defined, set controller ownerReference (controller: true)
+	// so that CAPI fully manages the lifecycle of InfraCluster/ControlPlane.
+	// When Topology is not defined, set regular ownerReference (controller: false)
+	// to allow external tools (e.g., metacontroller) to set their own controller
+	// ownerReference for lifecycle management.
+	if cluster.Spec.Topology.IsDefined() {
+		if err := controllerutil.SetControllerReference(cluster, obj, c.Scheme()); err != nil {
+			return err
+		}
+	} else {
+		if err := controllerutil.SetOwnerReference(cluster, obj, c.Scheme()); err != nil {
+			return err
+		}
 	}
 
 	labels := obj.GetLabels()
@@ -127,7 +134,7 @@ func ensureOwnerRefAndLabel(ctx context.Context, c client.Client, obj *unstructu
 	labels[clusterv1.ClusterNameLabel] = cluster.Name
 	obj.SetLabels(labels)
 
-	return patchHelper.Patch(ctx, obj)
+	return c.Patch(ctx, obj, client.MergeFrom(original))
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.

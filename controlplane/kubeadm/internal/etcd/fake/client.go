@@ -24,15 +24,25 @@ import (
 )
 
 type FakeEtcdClient struct { //nolint:revive
-	AlarmResponse        *clientv3.AlarmResponse
-	EtcdEndpoints        []string
-	MemberListResponse   *clientv3.MemberListResponse
+	EtcdEndpoints []string
+
+	AlarmResponse *clientv3.AlarmResponse
+	AlarmError    error
+
+	MemberListResponse *clientv3.MemberListResponse
+	MemberListError    error
+
 	MemberRemoveResponse *clientv3.MemberRemoveResponse
-	MoveLeaderResponse   *clientv3.MoveLeaderResponse
-	StatusResponse       *clientv3.StatusResponse
-	ErrorResponse        error
-	MovedLeader          uint64
-	RemovedMember        uint64
+	MemberRemoveError    error
+
+	MoveLeaderResponse *clientv3.MoveLeaderResponse
+	MoveLeaderError    error
+
+	StatusResponse *clientv3.StatusResponse
+	StatusError    error
+
+	MovedLeader   uint64
+	RemovedMember uint64
 }
 
 func (c *FakeEtcdClient) Endpoints() []string {
@@ -41,7 +51,7 @@ func (c *FakeEtcdClient) Endpoints() []string {
 
 func (c *FakeEtcdClient) MoveLeader(_ context.Context, i uint64) (*clientv3.MoveLeaderResponse, error) {
 	c.MovedLeader = i
-	return c.MoveLeaderResponse, c.ErrorResponse
+	return c.MoveLeaderResponse, c.MoveLeaderError
 }
 
 func (c *FakeEtcdClient) Close() error {
@@ -49,16 +59,16 @@ func (c *FakeEtcdClient) Close() error {
 }
 
 func (c *FakeEtcdClient) AlarmList(_ context.Context) (*clientv3.AlarmResponse, error) {
-	return c.AlarmResponse, c.ErrorResponse
+	return c.AlarmResponse, c.AlarmError
 }
 
 func (c *FakeEtcdClient) MemberList(_ context.Context, _ ...clientv3.OpOption) (*clientv3.MemberListResponse, error) {
-	return c.MemberListResponse, c.ErrorResponse
+	return c.MemberListResponse, c.MemberListError
 }
 func (c *FakeEtcdClient) MemberRemove(_ context.Context, i uint64) (*clientv3.MemberRemoveResponse, error) {
 	c.RemovedMember = i
-	return c.MemberRemoveResponse, c.ErrorResponse
+	return c.MemberRemoveResponse, c.MemberRemoveError
 }
 func (c *FakeEtcdClient) Status(_ context.Context, _ string) (*clientv3.StatusResponse, error) {
-	return c.StatusResponse, nil
+	return c.StatusResponse, c.StatusError
 }

@@ -1176,6 +1176,7 @@ func autoConvert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *v1beta
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.Backend = (*DevMachineBackendStatus)(unsafe.Pointer(in.Backend))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
@@ -2109,6 +2110,7 @@ func autoConvert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
 	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

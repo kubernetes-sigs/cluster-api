@@ -1623,6 +1623,7 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *v1be
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	return nil
 }
@@ -1646,8 +1647,10 @@ func autoConvert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in
 		return err
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
+	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.Variables requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables vs *sigs.k8s.io/cluster-api/api/core/v1beta1.ControlPlaneVariables)
 	return nil
@@ -2131,6 +2134,7 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClas
 	}
 	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
@@ -2307,6 +2311,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentT
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
@@ -2737,6 +2742,7 @@ func autoConvert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in *v1beta
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	return nil
 }
@@ -2894,6 +2900,7 @@ func autoConvert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *
 	out.Name = in.Name
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.Variables requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables vs *sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolVariables)
@@ -3220,6 +3227,7 @@ func autoConvert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *v1beta2.Mach
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
 	// WARNING: in.LastUpdated requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	out.Addresses = *(*MachineAddresses)(unsafe.Pointer(&in.Addresses))
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.Phase = in.Phase
 	// WARNING: in.CertificatesExpiryDate requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	out.ObservedGeneration = in.ObservedGeneration

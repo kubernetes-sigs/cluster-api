@@ -130,6 +130,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 	currentMembers, alarms, err := w.getCurrentEtcdMembersAndAlarms(ctx, machinesNotProvisioningOrDeleting, controlPlaneNodes)
 	if err == nil {
 		controlPlane.EtcdMembers = currentMembers
+		controlPlane.EtcdMembersAlarms = alarms
 
 		for _, machine := range machinesNotProvisioningOrDeleting {
 			// Retrieve the member hosted on the machine.
@@ -142,7 +143,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyReason,
-					Message: fmt.Sprintf("Etcd reports the cluster is composed by %s, but the etcd member hosted on this Machine is not included", etcdutil.MemberNames(currentMembers)),
+					Message: fmt.Sprintf("Etcd reports the cluster is composed by %s, but the etcd member hosted on Machine %s (%s) is not included", etcdutil.MemberNames(currentMembers), machine.Name, machine.Status.NodeRef.Name),
 				})
 				continue
 			}

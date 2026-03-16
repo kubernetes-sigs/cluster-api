@@ -28,12 +28,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/util"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -131,7 +132,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 // getCoreDNSInfo returns all necessary coredns based information.
 func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig bootstrapv1.ClusterConfiguration) (*coreDNSInfo, error) {
 	// Get the CoreDNS configmap and corefile.
-	key := ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
+	key := client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
 	cm, err := w.getConfigMap(ctx, key)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting %v config map from target cluster", key)
@@ -215,17 +216,18 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig bootstrapv1
 // imageRepo:imageTag in the KCP dns. It will also ensure the volume of the
 // deployment uses the Corefile key of the coredns configmap.
 func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInfo) error {
-	helper, err := patch.NewHelper(info.Deployment, w.Client)
-	if err != nil {
-		return err
+	if util.IsNil(info.Deployment) {
+		return errors.Errorf("failed to patch Deployment %s: modified object is nil", klog.KObj(info.Deployment))
 	}
+	original := info.Deployment.DeepCopy()
+
 	// Form the final image before issuing the patch.
 	patchCoreDNSDeploymentImage(info.Deployment, info.ToImage)
 
 	// Flip the deployment volume back to Corefile (from the backup key).
 	patchCoreDNSDeploymentVolume(info.Deployment, corefileBackupKey, corefileKey)
 
-	return helper.Patch(ctx, info.Deployment)
+	return w.Client.Patch(ctx, info.Deployment, client.MergeFrom(original))
 }
 
 // updateCoreDNSImageInfoInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
@@ -263,12 +265,13 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 
 	// Patching the coredns deployment to point to the Corefile-backup
 	// contents before performing the migration.
-	helper, err := patch.NewHelper(info.Deployment, w.Client)
-	if err != nil {
-		return err
+	if util.IsNil(info.Deployment) {
+		return errors.Errorf("failed to patch Deployment %s: modified object is nil", klog.KObj(info.Deployment))
 	}
+	original := info.Deployment.DeepCopy()
+
 	patchCoreDNSDeploymentVolume(info.Deployment, corefileKey, corefileBackupKey)
-	if err := helper.Patch(ctx, info.Deployment); err != nil {
+	if err := w.Client.Patch(ctx, info.Deployment, client.MergeFrom(original)); err != nil {
 		return err
 	}
 

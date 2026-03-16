@@ -55,6 +55,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [InfraMachine: initialization completed]                             | Yes       |                                      |
 | [InfraMachine: conditions]                                           | No        |                                      |
 | [InfraMachine: terminal failures]                                    | No        |                                      |
+| [InfraMachine: support for in-place changes]                         | No        |                                      |
 | [InfraMachineTemplate, InfraMachineTemplateList resource definition] | Yes       |                                      |
 | [InfraMachineTemplate: support for SSA dry run]                      | No        | Mandatory for ClusterClasses support |
 | [Multi tenancy]                                                      | No        | Mandatory for clusterctl CLI support |
@@ -238,28 +239,13 @@ In case you are developing an infrastructure provider which has a notion of fail
 placed in, the InfraMachine resource MUST comply to the value that exists in the `spec.failureDomain` field of the Machine
 (in other words, the InfraMachine MUST be placed in the failure domain specified at Machine level).
 
-Please note, that for allowing a transparent transition from when there was no failure domain support in Cluster API
-and InfraMachine was authoritative WRT to failure domain placement (before CAPI v0.3.0),
-Cluster API still supports a _deprecated_ reverse process for failure domain management.
-
-In the _deprecated_ reverse process, the failure domain where the machine should be placed is defined in the InfraMachine's 
-`spec.failureDomain` field; the value of this field is then surfaced on the corresponding field at Machine level.
-
-<aside class="note warning">
-
-<h1>Heads up! this will change with the v1beta2 contract</h1>
-
-Machine's controller will stop supporting the _deprecated_ reverse process; the InfraMachine's `spec.failureDomain`,
-if still present, will be ignored.
-
-However, InfraMachine will be allowed to surface the failure domain where the machine is actually placed in by 
-implementing a new, optional `status.failureDomain`; this info, if present, will then surface at Machine level in a 
-new corresponding field (also in status).
+Also, InfraMachine providers are allowed to surface the failure domain where the machine is actually placed by
+implementing the `status.failureDomain` field; this info, if present, will then surface at Machine level in a 
+corresponding field (also in status).
 
 ```go
 type FooMachineStatus struct {
     // failureDomain is the unique identifier of the failure domain where this Machine has been placed in.
-    // For this Foo infrastructure provider, the name is equivalent to the name of one of the available regions.
     // +optional
     // +kubebuilder:validation:MinLength=1
     // +kubebuilder:validation:MaxLength=256
@@ -269,6 +255,22 @@ type FooMachineStatus struct {
     // Other fields SHOULD be added based on the needs of your provider.
 }
 ```
+
+<aside class="note warning">
+
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
+
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+
+With regard to failure domain:
+
+Cluster API will continue to temporarily support InfraMachine resource using `spec.failureDomain` to
+set the failure domain. Note that this field has been preserved only for allowing transparent transition from when there 
+was no failure domain support in Cluster API and InfraMachine was authoritative WRT to failure domain placement (before CAPI v0.3.0).
+
+After compatibility with the deprecated v1beta1 contract will be removed, `spec.failureDomain` field in
+the InfraMachine resource will be ignored.
 
 </aside>
 
@@ -322,7 +324,7 @@ type FooMachineInitializationStatus struct {
 ```
 
 Once `status.initialization.provisioned` is set the Machine "core" controller will bubble up this info in Machine's
-`status.initialization.infrastructureProvisioned`; also InfraMachine's `spec.providerID` and `status.addresses` will 
+`status.initialization.infrastructureProvisioned`; also InfraMachine's `spec.providerID`, `status.failureDomain` and `status.addresses` will 
 be surfaced on Machine's corresponding fields at the same time.
 
 <aside class="note warning">
@@ -330,9 +332,9 @@ be surfaced on Machine's corresponding fields at the same time.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
-With regards to initialization completed:
+With regard to initialization completed:
 
 Cluster API will continue to temporarily support InfraMachine resource using `status.ready` field to
 report initialization completed.
@@ -370,7 +372,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to conditions:
 
@@ -395,7 +397,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 
 With regards to terminal failures:
 
@@ -412,6 +414,24 @@ After compatibility with the deprecated v1beta1 contract will be removed, `statu
 fields in the InfraMachine resource will be ignored and Machine's `status.deprecated.v1beta1` struct will be dropped.
 
 </aside>
+
+### InfraMachine: support for in-place changes
+
+In case you are developing an infrastructure provider with support for in-place updates of the Machine infrastructure,
+you should consider following recommendations during implementation.
+
+- The `Update Extension` is the component responsible for orchestrating in-place changes on Machines.
+  Accordingly, the InfraMachine controller should ignore in-place changes. As alternative the InfraMachine controller
+  must orchestrate those changes with the `Update Extension` (e.g. the `Update Extension` must report change progress).
+- It might be useful to start thinking about the InfraMachine API surface as a set of fields with one of the following behaviors:
+    - "Immutable" fields that can only be changed by performing a rollout.
+    - "Mutable" fields that will be “reconciled” by the `Update Extension`.
+    - Fields written back to spec by the infra provider (e.g. ProviderID).
+- The validation webhook for the InfraMachine CR should allow changes to "mutable" fields; in case an infra provider
+  wants to allow this change selectively, e.g. only when applied by core CAPI, please reach out to maintainers to discuss options.
+- Please note that the above field classification do not apply to the InfraMachineTemplate object.
+
+See [Proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md).
 
 ### InfraMachineTemplate, InfraMachineTemplateList resource definition
 
@@ -614,7 +634,7 @@ is implemented in InfraMachine controllers:
 1. Set `spec.providerID` to the provider-specific identifier for the provider's machine instance
 1. Set `status.infrastructure.provisioned` to `true`
 1. Set `status.addresses` to the provider-specific set of instance addresses (optional)
-1. Set `spec.failureDomain` to the provider-specific failure domain the instance is running in (optional)
+1. Set `status.failureDomain` to the provider-specific failure domain the instance is running in (optional)
 1. Patch the resource to persist changes
 
 ### Deleted resource
@@ -637,6 +657,7 @@ is implemented in InfraMachine controllers:
 [InfraMachine: failure domain]: #inframachine-failure-domain
 [InfraMachine: addresses]: #inframachine-addresses
 [InfraMachine: initialization completed]: #inframachine-initialization-completed
+[InfraMachine: support for in-place changes]: #inframachine-support-for-in-place-changes
 [Improving status in CAPI resources]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md
 [InfraMachine: conditions]: #inframachine-conditions
 [Kubernetes API Conventions]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties

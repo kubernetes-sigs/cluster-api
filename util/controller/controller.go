@@ -32,12 +32,18 @@ import (
 )
 
 type reconcilerWrapper struct {
-	name           string
-	reconcileCache cache.Cache[reconcileCacheEntry]
-	reconciler     reconcile.Reconciler
+	name              string
+	reconcileCache    cache.Cache[reconcileCacheEntry]
+	reconciler        reconcile.Reconciler
+	rateLimitInterval time.Duration
+	queueRateLimiter  *typedItemExponentialFailureRateLimiter[reconcile.Request]
 }
 
-func (r reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+func (r *reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+	if !feature.Gates.Enabled(feature.ReconcilerRateLimiting) {
+		return r.reconciler.Reconcile(ctx, req)
+	}
+
 	reconcileStartTime := time.Now()
 
 	// Check reconcileCache to ensure we won't run reconcile too frequently.
@@ -47,13 +53,11 @@ func (r reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request)
 		}
 	}
 
-	if feature.Gates.Enabled(feature.ReconcilerRateLimiting) {
-		// Add entry to the reconcileCache so we won't run Reconcile more than once per second.
-		// Under certain circumstances the ReconcileAfter time will be set to a later time via DeferNextReconcile /
-		// DeferNextReconcileForObject, e.g. when we're waiting for Pods to terminate during node drain or
-		// volumes to detach. This is done to ensure we're not spamming the workload cluster API server.
-		r.reconcileCache.Add(reconcileCacheEntry{Request: req, ReconcileAfter: reconcileStartTime.Add(1 * time.Second)})
-	}
+	// Add entry to the reconcileCache so we won't run Reconcile more than once per second.
+	// Under certain circumstances the ReconcileAfter time will be set to a later time via DeferNextReconcile /
+	// DeferNextReconcileForObject, e.g. when we're waiting for Pods to terminate during node drain or
+	// volumes to detach. This is done to ensure we're not spamming the workload cluster API server.
+	r.reconcileCache.Add(reconcileCacheEntry{Request: req, ReconcileAfter: reconcileStartTime.Add(r.rateLimitInterval)})
 
 	// Update metrics after processing each item
 	defer func() {
@@ -72,10 +76,25 @@ func (r reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request)
 	case err != nil:
 		reconcileTotal.WithLabelValues(r.name, labelError).Inc()
 	case result.RequeueAfter > 0:
+		// It does not make sense to use a requeueAfter that is lower than the rate-limiting enforced via
+		// the reconcileCache, so we use that as a minimum.
+		// Note: Evaluating this here includes the reconcileCache entry set above, but also the entry that
+		// might have been added during Reconcile via DeferNextReconcile / DeferNextReconcileForObject.
+		// TODO: It would also be possible to extend r.queueRateLimiter to set a request-specific minimum requeueAfter.
+		// This would allow us to also enforce a minimum requeueAfter for the err != nil and Requeue cases.
+		minimumRequeueAfter := r.rateLimitInterval
+		if cacheEntry, ok := r.reconcileCache.Has(reconcileCacheEntry{Request: req}.Key()); ok {
+			if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+				minimumRequeueAfter = requeueAfter
+			}
+		}
+		result.RequeueAfter = max(result.RequeueAfter, minimumRequeueAfter)
+		r.queueRateLimiter.ActualForget(req)
 		reconcileTotal.WithLabelValues(r.name, labelRequeueAfter).Inc()
 	case result.Requeue: //nolint: staticcheck // We have to handle Requeue until it is removed
 		reconcileTotal.WithLabelValues(r.name, labelRequeue).Inc()
 	default:
+		r.queueRateLimiter.ActualForget(req)
 		reconcileTotal.WithLabelValues(r.name, labelSuccess).Inc()
 	}
 
@@ -87,14 +106,14 @@ type controllerWrapper struct {
 	reconcileCache cache.Cache[reconcileCacheEntry]
 }
 
-func (c controllerWrapper) DeferNextReconcile(req reconcile.Request, reconcileAfter time.Time) {
+func (c *controllerWrapper) DeferNextReconcile(req reconcile.Request, reconcileAfter time.Time) {
 	c.reconcileCache.Add(reconcileCacheEntry{
 		Request:        req,
 		ReconcileAfter: reconcileAfter,
 	})
 }
 
-func (c controllerWrapper) DeferNextReconcileForObject(obj metav1.Object, reconcileAfter time.Time) {
+func (c *controllerWrapper) DeferNextReconcileForObject(obj metav1.Object, reconcileAfter time.Time) {
 	c.DeferNextReconcile(reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Namespace: obj.GetNamespace(),

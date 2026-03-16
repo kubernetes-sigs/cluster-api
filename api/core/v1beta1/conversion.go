@@ -73,9 +73,26 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	dst.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = restored.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions
-	for i, md := range restored.Spec.Topology.Workers.MachineDeployments {
-		dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = md.HealthCheck.Checks.UnhealthyMachineConditions
+	if ok {
+		dst.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = restored.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions
+		dst.Spec.Topology.ControlPlane.Rollout = restored.Spec.Topology.ControlPlane.Rollout
+		dst.Spec.Topology.ControlPlane.Taints = restored.Spec.Topology.ControlPlane.Taints
+		for _, restoredMD := range restored.Spec.Topology.Workers.MachineDeployments {
+			for i, dstMD := range dst.Spec.Topology.Workers.MachineDeployments {
+				if restoredMD.Name == dstMD.Name {
+					dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = restoredMD.HealthCheck.Checks.UnhealthyMachineConditions
+					dst.Spec.Topology.Workers.MachineDeployments[i].Rollout.After = restoredMD.Rollout.After
+					dst.Spec.Topology.Workers.MachineDeployments[i].Taints = restoredMD.Taints
+				}
+			}
+		}
+		for _, restoredMP := range restored.Spec.Topology.Workers.MachinePools {
+			for i, dstMP := range dst.Spec.Topology.Workers.MachinePools {
+				if restoredMP.Name == dstMP.Name {
+					dst.Spec.Topology.Workers.MachinePools[i].Taints = restoredMP.Taints
+				}
+			}
+		}
 	}
 
 	// Recover intent for bool values converted to *bool.
@@ -134,7 +151,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsCluster(dst)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
@@ -150,9 +167,24 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	dst.Spec.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = restored.Spec.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions
-	for i, md := range restored.Spec.Workers.MachineDeployments {
-		dst.Spec.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = md.HealthCheck.Checks.UnhealthyMachineConditions
+	if ok {
+		dst.Spec.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = restored.Spec.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions
+		dst.Spec.ControlPlane.Taints = restored.Spec.ControlPlane.Taints
+		for _, restoredMD := range restored.Spec.Workers.MachineDeployments {
+			for i, dstMD := range dst.Spec.Workers.MachineDeployments {
+				if restoredMD.Class == dstMD.Class {
+					dst.Spec.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = restoredMD.HealthCheck.Checks.UnhealthyMachineConditions
+					dst.Spec.Workers.MachineDeployments[i].Taints = restoredMD.Taints
+				}
+			}
+		}
+		for _, restoredMP := range restored.Spec.Workers.MachinePools {
+			for i, dstMP := range dst.Spec.Workers.MachinePools {
+				if restoredMP.Class == dstMP.Class {
+					dst.Spec.Workers.MachinePools[i].Taints = restoredMP.Taints
+				}
+			}
+		}
 	}
 
 	// Recover intent for bool values converted to *bool.
@@ -375,7 +407,7 @@ func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 	dropEmptyStringsClusterClass(dst)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
@@ -413,6 +445,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		// won't be able to write the Phase field. But that's okay as the only client writing the Phase
 		// field should be the Machine controller.
 		dst.Status.Phase = restored.Status.Phase
+		dst.Status.FailureDomain = restored.Status.FailureDomain
 	}
 
 	return nil
@@ -431,7 +464,7 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsMachineSpec(&dst.Spec)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
@@ -480,7 +513,7 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
@@ -528,7 +561,7 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
@@ -564,7 +597,7 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.RemediationTemplate.Namespace = src.Namespace
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
@@ -619,7 +652,7 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *MachineDrainRule) ConvertTo(dstRaw conversion.Hub) error {

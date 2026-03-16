@@ -663,6 +663,10 @@ spec:
       name: Provider ID
       priority: 10
       type: string
+    - description: The failure domain where the Machine has been scheduled
+      jsonPath: .status.failureDomain
+      name: Failure domain
+      type: string
     - description: Machine pass all readiness checks
       jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
@@ -964,13 +968,6 @@ spec:
                       minLength: 1
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
                       type: string
-                      x-kubernetes-validations:
-                      - message: key must be a valid qualified name of max size 63
-                          characters with an optional subdomain prefix of max size
-                          253 characters
-                        rule: 'self.contains(''/'') ? ( self.split(''/'') [0].size()
-                          <= 253 && self.split(''/'') [1].size() <= 63 && self.split(''/'').size()
-                          == 2 ) : self.size() <= 63'
                     propagation:
                       description: |-
                         propagation defines how this taint should be propagated to nodes.
@@ -1044,7 +1041,7 @@ spec:
                   - address
                   - type
                   type: object
-                maxItems: 128
+                maxItems: 256
                 type: array
                 x-kubernetes-list-type: atomic
               certificatesExpiryDate:
@@ -1256,6 +1253,12 @@ spec:
                         type: string
                     type: object
                 type: object
+              failureDomain:
+                description: failureDomain is the failure domain where the Machine
+                  has been scheduled.
+                maxLength: 256
+                minLength: 1
+                type: string
               initialization:
                 description: |-
                   initialization provides observations of the Machine initialization process.

@@ -624,6 +624,42 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 				Build(),
 			wantErr: false,
 		},
+		{
+			name: "error when current ControlPlane MachineInfrastructure TemplateRef is unset",
+			current: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				Build(),
+			desired: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(ref)).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "error when desired ControlPlane MachineInfrastructure TemplateRef is unset",
+			current: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(ref)).
+				Build(),
+			desired: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				Build(),
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		g := NewWithT(t)

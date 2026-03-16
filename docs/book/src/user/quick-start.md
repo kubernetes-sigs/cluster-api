@@ -900,7 +900,7 @@ The `clusterctl generate cluster` command by default uses cluster templates whic
 providers. See the provider's documentation for more information.
 
 See the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for
-details about how to use alternative sources. for cluster templates.
+details about how to use alternative sources for cluster templates.
 
 </aside>
 

@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -429,7 +430,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		workerMachineCount := ptr.To[int64](1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-			workloadClusterName, "(default)", kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
+			workloadClusterName, cmp.Or(input.WorkloadFlavor, "(default)"), kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
 
 		log.Logf("Getting the cluster template yaml")
 		workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
@@ -724,7 +725,14 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// continuous reconciles when everything should be stable.
 			if i == len(input.Upgrades)-1 {
 				Byf("[%d] Checking that resourceVersions are stable", i)
-				framework.ValidateResourceVersionStable(ctx, managementClusterProxy, workloadCluster.Namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(workloadCluster.Name))
+				resourceVersionInput := framework.ValidateResourceVersionStableInput{
+					ClusterProxy:             managementClusterProxy,
+					Namespace:                workloadCluster.Namespace,
+					OwnerGraphFilterFunction: clusterctlcluster.FilterClusterObjectsWithNameFilter(workloadCluster.Name),
+					WaitToBecomeStable:       input.E2EConfig.GetIntervals(specName, "wait-resource-versions-become-stable"),
+					WaitToRemainStable:       input.E2EConfig.GetIntervals(specName, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 
 				// NOTE: Checks on conditions works on v1beta2 only, so running this checks only in the last step which is
 				// always current version.
@@ -819,9 +827,6 @@ func setupClusterctl(ctx context.Context, clusterctlBinaryURL, clusterctlConfigP
 
 	err := os.Chmod(clusterctlBinaryPath, 0744) //nolint:gosec
 	Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
-
-	// Adjusts the clusterctlConfigPath in case the clusterctl version <= v1.3 (thus using a config file with only the providers supported in those versions)
-	clusterctlConfigPath = clusterctl.AdjustConfigPathForBinary(clusterctlBinaryPath, clusterctlConfigPath)
 
 	return clusterctlBinaryPath, clusterctlConfigPath
 }

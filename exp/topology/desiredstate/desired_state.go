@@ -34,7 +34,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -52,7 +51,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -435,6 +433,13 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 		}
 	}
 
+	// If it is required to manage rolloutAfter for the control plane, set the corresponding field.
+	if !s.Blueprint.Topology.ControlPlane.Rollout.After.IsZero() {
+		if err := contract.ControlPlane().RolloutAfter().Set(controlPlane, s.Blueprint.Topology.ControlPlane.Rollout.After); err != nil {
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().RolloutAfter().Path())
+		}
+	}
+
 	// If it is required to manage the readinessGates for the control plane, set the corresponding field.
 	// NOTE: If readinessGates value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
 	// does not implement support for this field and the ControlPlane object is generated without readinessGates.
@@ -445,6 +450,19 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	} else if s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates != nil {
 		if err := contract.ControlPlane().MachineTemplate().ReadinessGates(contractVersion).Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates); err != nil {
 			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().ReadinessGates(contractVersion).Path())
+		}
+	}
+
+	// If it is required to manage the taints for the control plane, set the corresponding field.
+	// NOTE: If taints value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
+	// does not implement support for this field and the ControlPlane object is generated without taints.
+	if s.Blueprint.Topology.ControlPlane.Taints != nil {
+		if err := contract.ControlPlane().MachineTemplate().Taints().Set(controlPlane, s.Blueprint.Topology.ControlPlane.Taints); err != nil {
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints().Path())
+		}
+	} else if s.Blueprint.ClusterClass.Spec.ControlPlane.Taints != nil {
+		if err := contract.ControlPlane().MachineTemplate().Taints().Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.Taints); err != nil {
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints().Path())
 		}
 	}
 
@@ -735,15 +753,21 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 	// NOTE, it is required to surface intermediate steps of the upgrade plan to allow creation of machines in KCP/MS.
 	// TODO: consider if we want to surface the upgrade plan (or the list of desired versions) in cluster status;
 	//   TBD if the semantic of the new field can replace this annotation.
+	if cluster.Annotations == nil {
+		cluster.Annotations = map[string]string{}
+	}
 	if hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) {
 		// NOTE: to detect if we are at the beginning of an upgrade, we check if the intent to call the AfterClusterUpgrade is already tracked.
 		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting control plane version")
 		}
-		annotations.AddAnnotations(cluster, map[string]string{clusterv1.ClusterTopologyUpgradeStepAnnotation: *controlPlaneVersion})
+		cluster.Annotations[clusterv1.ClusterTopologyUpgradeStepAnnotation] = *controlPlaneVersion
 	} else {
-		delete(cluster.Annotations, clusterv1.ClusterTopologyUpgradeStepAnnotation)
+		// Note: Setting the annotation to "" instead of deleting it because we cannot be sure
+		// that we are able to remove the annotation from the Cluster with SSA if we lost ownership of
+		// the annotation in managedFields e.g. because of: https://github.com/kubernetes/kubernetes/issues/136919.
+		cluster.Annotations[clusterv1.ClusterTopologyUpgradeStepAnnotation] = ""
 	}
 
 	return cluster, nil
@@ -896,6 +920,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 	if !reflect.DeepEqual(machineDeploymentTopology.Rollout, clusterv1.MachineDeploymentTopologyRolloutSpec{}) {
 		rollout = clusterv1.MachineDeploymentRolloutSpec{
+			After: machineDeploymentTopology.Rollout.After,
 			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 				Type: machineDeploymentTopology.Rollout.Strategy.Type,
 				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
@@ -939,6 +964,11 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	readinessGates := machineDeploymentClass.ReadinessGates
 	if machineDeploymentTopology.ReadinessGates != nil {
 		readinessGates = machineDeploymentTopology.ReadinessGates
+	}
+
+	taints := machineDeploymentClass.Taints
+	if machineDeploymentTopology.Taints != nil {
+		taints = machineDeploymentTopology.Taints
 	}
 
 	// Compute the MachineDeployment object.
@@ -986,6 +1016,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 						NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
 					},
 					ReadinessGates:  readinessGates,
+					Taints:          taints,
 					MinReadySeconds: minReadySeconds,
 				},
 			},
@@ -1296,6 +1327,11 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 		nodeDeletionTimeout = machinePoolTopology.Deletion.NodeDeletionTimeoutSeconds
 	}
 
+	taints := machinePoolClass.Taints
+	if machinePoolTopology.Taints != nil {
+		taints = machinePoolTopology.Taints
+	}
+
 	// Compute the MachinePool object.
 	desiredBootstrapConfigRef := contract.ObjToContractVersionedObjectReference(desiredMachinePool.BootstrapObject)
 	desiredInfraMachinePoolRef := contract.ObjToContractVersionedObjectReference(desiredMachinePool.InfrastructureMachinePoolObject)
@@ -1334,6 +1370,7 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 						NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
 					},
 					MinReadySeconds: minReadySeconds,
+					Taints:          taints,
 				},
 			},
 		},
@@ -1665,23 +1702,9 @@ func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
 	return nil
 }
 
-func cleanupV1Beta1Cluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
-	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
-	cluster.SetManagedFields(nil)
-
-	// The conversion that we run before calling cleanupCluster does not clone annotations
-	// So we have to do it here to not modify the original Cluster.
-	if cluster.Annotations != nil {
-		annotations := maps.Clone(cluster.Annotations)
-		delete(annotations, corev1.LastAppliedConfigAnnotation)
-		delete(annotations, conversion.DataAnnotation)
-		cluster.Annotations = annotations
-	}
-	cluster.Status = clusterv1beta1.ClusterStatus{}
-	return cluster
-}
-
 func cleanupCluster(cluster *clusterv1.Cluster) *clusterv1.Cluster {
+	cluster = cluster.DeepCopy()
+
 	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
 	cluster.SetManagedFields(nil)
 

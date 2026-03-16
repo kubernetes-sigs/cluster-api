@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
+	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -301,7 +302,8 @@ func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *
 	// Remove the annotation tracking that a remediation is in progress (the remediation completed when
 	// the replacement machine has been created above).
 	delete(kcp.Annotations, controlplanev1.RemediationInProgressAnnotation)
-	return nil
+
+	return clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "Machine creation", machine)
 }
 
 func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {
@@ -310,8 +312,8 @@ func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machi
 		return nil, errors.Wrap(err, "failed to apply Machine")
 	}
 
-	err = ssa.Patch(ctx, r.Client, kcpManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: machine})
-	if err != nil {
+	// Note: It's not critical that the next Reconcile observes the changes applied here, so we don't wait for the cache.
+	if err := ssa.Patch(ctx, r.Client, kcpManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: machine}); err != nil {
 		return nil, err
 	}
 	return updatedMachine, nil

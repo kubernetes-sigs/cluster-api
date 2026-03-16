@@ -73,7 +73,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	r := &KubeadmControlPlaneReconciler{
 		Client:   env,
 		recorder: record.NewFakeRecorder(32),
-		managementClusterUncached: &fakeManagementCluster{
+		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
 			Workload:   &fakeWorkloadCluster{},
 		},
@@ -152,10 +152,9 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		}
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:                    env,
-			managementCluster:         fmc,
-			managementClusterUncached: fmc,
-			recorder:                  record.NewFakeRecorder(32),
+			Client:            env,
+			managementCluster: fmc,
+			recorder:          record.NewFakeRecorder(32),
 		}
 		controlPlane := &internal.ControlPlane{
 			KCP:      kcp,
@@ -223,12 +222,11 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		fc := capicontrollerutil.NewFakeController()
 
 		r := &KubeadmControlPlaneReconciler{
-			Client:                    env,
-			SecretCachingClient:       secretCachingClient,
-			controller:                fc,
-			managementCluster:         fmc,
-			managementClusterUncached: fmc,
-			recorder:                  record.NewFakeRecorder(32),
+			Client:              env,
+			SecretCachingClient: secretCachingClient,
+			controller:          fc,
+			managementCluster:   fmc,
+			recorder:            record.NewFakeRecorder(32),
 		}
 
 		controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)

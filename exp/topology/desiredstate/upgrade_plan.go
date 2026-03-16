@@ -393,9 +393,19 @@ func GetUpgradePlanFromClusterClassVersions(clusterClassVersions []string) func(
 			}
 		}
 
+		if len(upgradePlan) == 0 {
+			return upgradePlan, nil, nil
+		}
+
 		// In case there is more than one version for one minor, drop all the versions for one minor except the last.
 		simplifiedUpgradePlan := []string{}
 		currentMinor := currentControlPlaneSemVer.Minor
+
+		// Note: Add the current minor version if the upgradePlan only upgrades patch versions.
+		// In this case the `semV.Minor > currentMinor` check below would not add the minor.
+		if currentMinor == desiredSemVer.Minor {
+			simplifiedUpgradePlan = append(simplifiedUpgradePlan, upgradePlan[0])
+		}
 		for _, v := range upgradePlan {
 			semV, err := semver.ParseTolerant(v)
 			if err != nil {

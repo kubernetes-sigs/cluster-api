@@ -52,9 +52,16 @@ func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ *cluster
 	return f.Workload, f.WorkloadErr
 }
 
-func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error) {
+func (f *fakeManagementCluster) GetControlPlaneMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster) (collections.Machines, error) {
 	if f.Management != nil {
-		return f.Management.GetMachinesForCluster(c, cluster, filters...)
+		return f.Management.GetControlPlaneMachinesForCluster(ctx, cluster)
+	}
+	return f.Machines, nil
+}
+
+func (f *fakeManagementCluster) GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error) {
+	if f.Management != nil {
+		return f.Management.GetMachinesForCluster(ctx, cluster, filters...)
 	}
 	return f.Machines, nil
 }

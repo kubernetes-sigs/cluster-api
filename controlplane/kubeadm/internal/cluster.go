@@ -43,6 +43,7 @@ import (
 type ManagementCluster interface {
 	client.Reader
 
+	GetControlPlaneMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster) (collections.Machines, error)
 	GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error)
 	GetMachinePoolsForCluster(ctx context.Context, cluster *clusterv1.Cluster) (*clusterv1.MachinePoolList, error)
 	GetWorkloadCluster(ctx context.Context, cluster *clusterv1.Cluster, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (WorkloadCluster, error)
@@ -92,6 +93,11 @@ func (m *Management) Get(ctx context.Context, key client.ObjectKey, obj client.O
 // List implements client.Reader.
 func (m *Management) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	return m.Client.List(ctx, list, opts...)
+}
+
+// GetControlPlaneMachinesForCluster returns a list of control plane machines.
+func (m *Management) GetControlPlaneMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster) (collections.Machines, error) {
+	return collections.GetControlPlaneMachinesForCluster(ctx, m.Client, cluster)
 }
 
 // GetMachinesForCluster returns a list of machines that can be filtered or not.

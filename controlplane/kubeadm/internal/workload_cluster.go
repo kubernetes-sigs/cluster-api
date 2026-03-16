@@ -46,7 +46,6 @@ import (
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 )
@@ -59,18 +58,12 @@ const (
 	clusterConfigurationKey        = "ClusterConfiguration"
 )
 
-var (
-	// ErrControlPlaneMinNodes signals that a cluster doesn't meet the minimum required nodes
-	// to remove an etcd member.
-	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
-)
-
 // WorkloadCluster defines all behaviors necessary to upgrade kubernetes on a workload cluster
 //
 // TODO: Add a detailed description to each of these method definitions.
 type WorkloadCluster interface {
 	// Basic health and status checks.
-	ClusterStatus(ctx context.Context) (ClusterStatus, error)
+	HasKubeadmConfig(ctx context.Context) (bool, error)
 	UpdateStaticPodConditions(ctx context.Context, controlPlane *ControlPlane)
 	UpdateEtcdConditions(ctx context.Context, controlPlane *ControlPlane)
 	GetAPIServerCertificateExpiry(ctx context.Context, kubeadmConfig *bootstrapv1.KubeadmConfig, nodeName string) (*time.Time, error)
@@ -87,8 +80,8 @@ type WorkloadCluster interface {
 	UpdateEncryptionAlgorithm(encryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) func(*bootstrapv1.ClusterConfiguration)
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
-	RemoveEtcdMember(ctx context.Context, name string) error
-	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error
+	RemoveEtcdMember(ctx context.Context, name string, nodes []*corev1.Node) error
+	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*corev1.Node) error
 	AllowClusterAdminPermissions(ctx context.Context, version semver.Version) error
 	UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error
 }
@@ -103,7 +96,7 @@ type Workload struct {
 
 var _ WorkloadCluster = &Workload{}
 
-func (w *Workload) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, error) {
+func (w *Workload) getNodesWithControlPlaneLabel(ctx context.Context) (*corev1.NodeList, error) {
 	controlPlaneNodes := &corev1.NodeList{}
 	controlPlaneNodeNames := sets.Set[string]{}
 
@@ -245,44 +238,17 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 	})
 }
 
-// ClusterStatus holds stats information about the cluster.
-type ClusterStatus struct {
-	// Nodes are a total count of nodes
-	Nodes int32
-	// ReadyNodes are the count of nodes that are reporting ready
-	ReadyNodes int32
-	// HasKubeadmConfig will be true if the kubeadm config map has been uploaded, false otherwise.
-	HasKubeadmConfig bool
-}
-
-// ClusterStatus returns the status of the cluster.
-func (w *Workload) ClusterStatus(ctx context.Context) (ClusterStatus, error) {
-	status := ClusterStatus{}
-
-	// count the control plane nodes
-	nodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return status, err
-	}
-
-	for _, node := range nodes.Items {
-		nodeCopy := node
-		status.Nodes++
-		if util.IsNodeReady(&nodeCopy) {
-			status.ReadyNodes++
-		}
-	}
-
+// HasKubeadmConfig returns if the cluster has the kubeadm-config ConfigMap.
+func (w *Workload) HasKubeadmConfig(ctx context.Context) (bool, error) {
 	// find the kubeadm conifg
 	key := client.ObjectKey{
 		Name:      kubeadmConfigKey,
 		Namespace: metav1.NamespaceSystem,
 	}
-	err = w.Client.Get(ctx, key, &corev1.ConfigMap{})
+	err := w.Client.Get(ctx, key, &corev1.ConfigMap{})
 	// TODO: Consider if this should only return false if the error is IsNotFound.
 	// TODO: Consider adding a third state of 'unknown' when there is an error retrieving the config map.
-	status.HasKubeadmConfig = err == nil
-	return status, nil
+	return err == nil, nil
 }
 
 // GetAPIServerCertificateExpiry returns the certificate expiry of the apiserver on the given node.

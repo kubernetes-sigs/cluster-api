@@ -96,9 +96,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{Nodes: 1},
-			},
+			Workload:   &fakeWorkloadCluster{},
 		},
 		ssaCache: ssa.NewCache("test-controller"),
 	}
@@ -167,7 +165,6 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	}, timeout).Should(Succeed())
 
 	// manually increase number of nodes, make control plane healthy again
-	r.managementCluster.(*fakeManagementCluster).Workload.Status.Nodes++
 	for i := range bothMachines.Items {
 		setMachineHealthy(&bothMachines.Items[i])
 	}
@@ -210,9 +207,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 
 	fmc := &fakeManagementCluster{
 		Machines: collections.Machines{},
-		Workload: &fakeWorkloadCluster{
-			Status: internal.ClusterStatus{Nodes: 3},
-		},
+		Workload: &fakeWorkloadCluster{},
 	}
 	objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 	for i := range 3 {

@@ -317,7 +317,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				})
 				return ctrl.Result{}, nil
 			}
-			if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToBeRemediated, etcdLeaderCandidate); err != nil {
+			if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToBeRemediated, etcdLeaderCandidate, controlPlane.Nodes); err != nil {
 				log.Error(err, "Failed to move etcd leadership to candidate machine", "candidate", klog.KObj(etcdLeaderCandidate))
 				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.RemediationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 
@@ -449,6 +449,9 @@ func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool
 		return *p
 	}
 	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition); p != nil {
+		return *p
+	}
+	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition); p != nil {
 		return *p
 	}
 

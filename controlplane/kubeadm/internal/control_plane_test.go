@@ -456,6 +456,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "healthy-node"},
 			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition, Status: metav1.ConditionTrue},
 				{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
 				{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
 				{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
@@ -470,6 +471,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			// NodeRef is not set
 			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition, Status: metav1.ConditionUnknown},
 				{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionUnknown},
 				{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionUnknown},
 				{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionUnknown},
@@ -512,7 +514,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		"just-deleted (just deleted)",
 		"marked-for-remediation (marked for remediation)",
 		"not-up-to-date (not up-to-date)",
-		"without-node (status.nodeRef not set, APIServerPod health unknown, ControllerManagerPod health unknown, SchedulerPod health unknown, EtcdPod health unknown, EtcdMember not healthy)",
+		"without-node (status.nodeRef not set, kubeadm labels and taints unknown, APIServerPod health unknown, ControllerManagerPod health unknown, SchedulerPod health unknown, EtcdPod health unknown, EtcdMember not healthy)",
 	}, ", ")
 	g.Expect(got[1]).To(Equal(machines), cmp.Diff(got[1], machines))
 	g.Expect(got[2]).To(Equal("etcdMembers"))

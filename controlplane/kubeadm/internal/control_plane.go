@@ -55,6 +55,14 @@ type ControlPlane struct {
 	Machines             collections.Machines
 	machinesPatchHelpers map[string]*patch.Helper
 
+	// Nodes is the list of nodes corresponding to control plane machines.
+	// Please note that:
+	// - The list is set while computing control plane conditions
+	// - The list includes only existing nodes referenced from control plane machines, no matter
+	//   if they have the control plane label or not.
+	// - Once the list is set, it is used as input to methods accessing etcd via port-forward.
+	Nodes []*corev1.Node
+
 	// MachinesNotUpToDate is the source of truth for Machines that are not up-to-date.
 	// It should be used to check if a Machine is up-to-date (not machinesUpToDateResults).
 	MachinesNotUpToDate collections.Machines
@@ -363,6 +371,7 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 				controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition,
 			}}, patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineUpToDateCondition,
+				controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
 				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
 				controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
@@ -425,6 +434,7 @@ func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementC
 // - etcdMembers list as reported by etcd.
 func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clusterv1.Machine) []any {
 	controlPlaneMachineHealthConditions := []string{
+		controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
 		controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 		controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
 		controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
@@ -450,10 +460,10 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 
 		for _, condition := range controlPlaneMachineHealthConditions {
 			if conditions.IsUnknown(m, condition) {
-				notes = append(notes, strings.ReplaceAll(condition, "Healthy", " health unknown"))
+				notes = append(notes, strings.ReplaceAll(strings.ReplaceAll(condition, "Healthy", " health unknown"), "NodeKubeadmLabelsAndTaintsSet", "kubeadm labels and taints unknown"))
 			}
 			if conditions.IsFalse(m, condition) {
-				notes = append(notes, strings.ReplaceAll(condition, "Healthy", " not healthy"))
+				notes = append(notes, strings.ReplaceAll(strings.ReplaceAll(condition, "Healthy", " not healthy"), "NodeKubeadmLabelsAndTaintsSet", "kubeadm labels and taints not set"))
 			}
 		}
 

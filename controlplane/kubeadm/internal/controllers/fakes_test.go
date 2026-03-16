@@ -22,6 +22,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -75,14 +76,14 @@ func (f *fakeManagementCluster) GetMachinePoolsForCluster(c context.Context, clu
 
 type fakeWorkloadCluster struct {
 	*internal.Workload
-	Status                     internal.ClusterStatus
+	KubeadmConfigExist         bool
 	APIServerCertificateExpiry *time.Time
 
 	forwardEtcdLeadershipCalled int
 	removeEtcdMemberCalled      int
 }
 
-func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
+func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine, _ []*corev1.Node) error {
 	f.forwardEtcdLeadershipCalled++
 	if leaderCandidate == nil {
 		return errors.New("leaderCandidate is nil")
@@ -90,8 +91,8 @@ func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *cluste
 	return nil
 }
 
-func (f *fakeWorkloadCluster) ClusterStatus(_ context.Context) (internal.ClusterStatus, error) {
-	return f.Status, nil
+func (f *fakeWorkloadCluster) HasKubeadmConfig(_ context.Context) (bool, error) {
+	return f.KubeadmConfigExist, nil
 }
 
 func (f *fakeWorkloadCluster) GetAPIServerCertificateExpiry(_ context.Context, _ *bootstrapv1.KubeadmConfig, _ string) (*time.Time, error) {
@@ -106,7 +107,7 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 	return nil
 }
 
-func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ string) error {
+func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ string, _ []*corev1.Node) error {
 	f.removeEtcdMemberCalled++
 	return nil
 }

@@ -7,6 +7,7 @@
       * [Skip upgrades](#skip-upgrades)
       * [Downgrades](#downgrades)
       * [Cluster API release vs API versions](#cluster-api-release-vs-api-versions)
+      * [API changes, multiple API versions, and recommendations for users and applications interacting with Cluster API objects](#api-changes-multiple-api-versions-and-recommendations-for-users-and-applications-interacting-with-cluster-api-objects)
       * [Cluster API release vs contract versions](#cluster-api-release-vs-contract-versions)
       * [Supported Cluster API - Cluster API provider version Skew](#supported-cluster-api---cluster-api-provider-version-skew)
     * [Kubernetes versions support](#kubernetes-versions-support)
@@ -165,6 +166,50 @@ Cluster API maintainers might decide to support API versions longer than what is
 | v1beta1     | Deprecated | Deprecated since CAPI v1.11; in v1.16, April 2027 v1beta1 will stop to be served |
 
 See [11920](https://github.com/kubernetes-sigs/cluster-api/issues/11920) for details about the v1beta1 removal plan.
+
+#### API changes, multiple API versions, and recommendations for users and applications interacting with Cluster API objects
+
+Considering the complexity that multiple API versions imply both for users and maintainers, the Cluster API project
+allows evolving API types in existing API versions.
+
+As a consequence, the project is not required to introduce new API versions frequently, and when this is necessary,
+the project aims to not have more than two supported API versions at the same time. Also, multiple API versions
+will exist only for a limited time according to Kubernetes deprecation guidelines. 
+
+When a change is applied to an existing API version, compatibility must be ensured.
+
+If more API versions co-exist when one of those API changes is introduced, as a general rule the change will 
+be backported to all API versions (including deprecated versions) and automatic conversion will be implemented.
+
+It is also worth to notice that even if this approach aligns with Kubernetes best practices, users and applications 
+interacting with Cluster API objects should adopt a set of recommendations to avoid common issues and pitfalls:
+
+- YAML files should be kept in sync with the latest supported API version, both if applied manually or with GitOps tools.
+- If an application is interacting with Cluster API objects programmatically, e.g. using client-go or the controller-runtime client,
+  it is recommended to use the exact API types that Cluster API uses (import types from the same version).
+- In order to mitigate issues when a client lags behind in adopting the new API types, it is strongly recommended to
+  use `Patch` instead of `Update`, because `Update` will entirely replace an object thus dropping API fields that don't exist
+  in older API types. 
+
+Please also note that issues might happen more frequently when:
+- The version of the API types used by clients is significantly older than the API types used by Cluster API
+- In the same environment there are multiple clients with different versions acting on the same API object and especially 
+  if they are acting on fields of type `array` (Merge Patch has limitations in this case).
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+We noticed that usage of server side apply in environments with multiple API versions might lead to issues
+(see e.g. https://github.com/kubernetes/kubernetes/issues/136919).
+
+We are working with the Kubernetes community to get this issue fixed (https://github.com/kubernetes/kubernetes/pull/136949) 
+and we've put mitigations in place (https://github.com/kubernetes-sigs/cluster-api/pull/13338).
+
+We welcome additional help from Cluster API users to further validate the proper functioning of the system
+under these circumstances, report issues, and to ensure consensus to get these issues fixed.
+
+</aside>
 
 <aside class="note warning">
 

@@ -163,6 +163,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 		kcp                                       *controlplanev1.KubeadmControlPlane
 		machines                                  []*clusterv1.Machine
 		nodes                                     []*corev1.Node
+		nodeListError                             error
 		injectEtcdClientGenerator                 etcdClientFor // This test is injecting a fake etcdClientGenerator because it is required to nodes with a controlled Status or to fail with a specific error.
 		expectedKCPV1Beta1Condition               *clusterv1.Condition
 		expectedKCPCondition                      *metav1.Condition
@@ -171,6 +172,31 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 		expectedEtcdMembers                       []string
 		expectedEtcdMembersAndMachinesAreMatching bool
 	}{
+		{
+			name: "if list nodes return an error should report all the conditions Unknown",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1"),
+			},
+			nodeListError:               errors.New("something went wrong"),
+			expectedKCPV1Beta1Condition: v1beta1conditions.UnknownCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterInspectionFailedV1Beta1Reason, "Failed to list Nodes which are hosting the etcd members"),
+			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
+				"m1": {
+					*v1beta1conditions.UnknownCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberInspectionFailedV1Beta1Reason, "Failed to get the Node which is hosting the etcd member"),
+				},
+			},
+			expectedKCPCondition: &metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedReason,
+				Message: "Failed to get Nodes hosting the etcd cluster",
+			},
+			expectedMachineConditions: map[string][]metav1.Condition{
+				"m1": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedReason, Message: "Failed to get the Node hosting the etcd member"},
+				},
+			},
+			expectedEtcdMembersAndMachinesAreMatching: false, // without reading nodes, we can not make assumptions.
+		},
 		{
 			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2 (without providerID)",
 			machines: []*clusterv1.Machine{
@@ -579,9 +605,10 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				etcdClientGenerator: tt.injectEtcdClientGenerator,
 			}
 			controlPane := &ControlPlane{
-				KCP:      tt.kcp,
-				Nodes:    tt.nodes,
-				Machines: collections.FromMachines(tt.machines...),
+				KCP:           tt.kcp,
+				Nodes:         tt.nodes,
+				NodeListError: tt.nodeListError,
+				Machines:      collections.FromMachines(tt.machines...),
 			}
 
 			w.updateManagedEtcdConditions(ctx, controlPane)
@@ -741,10 +768,9 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				"m1": {},
 			},
 			expectedKCPCondition: metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsNotHealthyReason,
-				Message: "* Control plane Node n1 does not have a corresponding Machine",
+				Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyReason,
 			},
 			expectedMachineConditions: map[string][]metav1.Condition{
 				"m1": {
@@ -773,11 +799,10 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			expectedKCPCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
-				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsNotHealthyReason,
+				Status: metav1.ConditionUnknown,
+				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownReason,
 				Message: "* Machine m1:\n" +
-					"  * Control plane components: Waiting for a Node with spec.providerID dummy-provider-id to exist\n" +
-					"* Control plane Node n1 does not have a corresponding Machine",
+					"  * Control plane components: Waiting for a Node with spec.providerID dummy-provider-id to exist",
 			},
 			expectedMachineConditions: map[string][]metav1.Condition{
 				"m1": {

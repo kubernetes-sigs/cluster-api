@@ -1248,6 +1248,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		return ctrl.Result{}, nil
 	}
 
+	// If for any reason KCP failed to get the list of nodes, it is not possible to connect to etcd to perform any operation.
+	if controlPlane.NodeListError != nil {
+		return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable reconcile etcd members, failed to list nodes")
+	}
+
 	// Potential inconsistencies between the list of members and the list of Machine/Node are
 	// surfaced using the EtcdClusterHealthyCondition; if this condition is true, meaning no inconsistencies exists, return early.
 	if conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition) {
@@ -1411,9 +1416,14 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
+	// Unable to proceed if for any reason KCP failed to get the list of nodes (it is not possible to connect to etcd).
+	if controlPlane.NodeListError != nil {
+		return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable remove pre terminate hooks, failed to list nodes")
+	}
+
+	// No op if for any reason the etcdMember list is not populated at this stage.
 	if len(controlPlane.EtcdMembers) == 0 {
-		log.Info("Cannot check etcd cluster health before remediation, etcd member list is empty")
-		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+		return ctrl.Result{}, errors.New("unable remove pre terminate hooks, etcd member list is empty")
 	}
 
 	// If etcd is managed by KCP, check target etcd cluster.

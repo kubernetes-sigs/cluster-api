@@ -140,6 +140,11 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 
 	// If KCP should manage etcd, If etcd leadership is on machine that is about to be deleted, move it to the newest member available.
 	if controlPlane.IsEtcdManaged() {
+		// We cannot perform any etcd operation without a list of nodes.
+		if controlPlane.NodeListError != nil {
+			return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable forward etcd leadership, failed to list nodes")
+		}
+
 		etcdLeaderCandidate := controlPlane.Machines.Newest()
 		if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete, etcdLeaderCandidate, controlPlane.Nodes); err != nil {
 			log.Error(err, "Failed to move leadership to candidate machine", "candidate", etcdLeaderCandidate.Name)

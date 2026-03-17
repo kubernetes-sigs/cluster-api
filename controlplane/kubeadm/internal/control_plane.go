@@ -58,10 +58,11 @@ type ControlPlane struct {
 	// Nodes is the list of nodes corresponding to control plane machines.
 	// Please note that:
 	// - The list is set while computing control plane conditions
-	// - The list includes only existing nodes referenced from control plane machines, no matter
+	// - The list includes existing nodes referenced from control plane machines, no matter
 	//   if they have the control plane label or not.
 	// - Once the list is set, it is used as input to methods accessing etcd via port-forward.
-	Nodes []*corev1.Node
+	Nodes         []*corev1.Node
+	NodeListError error
 
 	// MachinesNotUpToDate is the source of truth for Machines that are not up-to-date.
 	// It should be used to check if a Machine is up-to-date (not machinesUpToDateResults).

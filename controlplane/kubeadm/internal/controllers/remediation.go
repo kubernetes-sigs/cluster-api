@@ -261,6 +261,21 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			return ctrl.Result{}, nil
 		}
 
+		// Remediation is not possible if for any reason the etcdMember list is not populated at this stage.
+		// Note: also checking NodeListError for extra safety (even if, when NodeListError also etcdMember list is empty)
+		if len(controlPlane.EtcdMembers) == 0 || controlPlane.NodeListError != nil {
+			log.Info("A control plane machine needs remediation, but unable to check etcd cluster health before remediation. Skipping remediation")
+			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Failed check etcd cluster health before remediation")
+
+			conditions.Set(machineToBeRemediated, metav1.Condition{
+				Type:    clusterv1.MachineOwnerRemediatedCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationDeferredReason,
+				Message: "Failed to check etcd cluster health before remediation",
+			})
+			return ctrl.Result{}, nil
+		}
+
 		// At this point we can assume that:
 		// - There are Machines to be remediated, remediation is possible because there is more than one control plane Machine,
 		//   and remediation is allowed by remediation settings (e.g. retry limits).

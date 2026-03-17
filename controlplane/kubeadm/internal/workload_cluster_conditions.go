@@ -66,6 +66,30 @@ func (w *Workload) updateExternalEtcdConditions(_ context.Context, controlPlane 
 func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane *ControlPlane) {
 	log := ctrl.LoggerFrom(ctx)
 
+	// If there was an error reading nodes, it will be impossible to connect to etcd so setting all the conditions to unknown.
+	if controlPlane.NodeListError != nil {
+		for _, m := range controlPlane.Machines {
+			v1beta1conditions.MarkUnknown(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberInspectionFailedV1Beta1Reason, "Failed to get the Node which is hosting the etcd member")
+
+			conditions.Set(m, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedReason,
+				Message: "Failed to get the Node hosting the etcd member",
+			})
+		}
+
+		v1beta1conditions.MarkUnknown(controlPlane.KCP, controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterInspectionFailedV1Beta1Reason, "Failed to list Nodes which are hosting the etcd members")
+
+		conditions.Set(controlPlane.KCP, metav1.Condition{
+			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedReason,
+			Message: "Failed to get Nodes hosting the etcd cluster",
+		})
+		return
+	}
+
 	// Update etcd member healthy conditions for provisioning machines (machines without a node yet, and thus without a matching etcd member).
 	provisioningMachines := controlPlane.Machines.Filter(collections.Not(collections.HasNode()))
 	for _, machine := range provisioningMachines {
@@ -532,19 +556,17 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		// If the machine is deleting, report all the conditions as deleting without further checks on
 		// control plane components.
 		if !machine.DeletionTimestamp.IsZero() {
-			hasProvisioningMachines = true
-
 			for _, condition := range allMachinePodV1Beta1Conditions {
 				v1beta1conditions.MarkFalse(machine, condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			}
 
 			if nodeExist {
-				w.updateNodeConditions(controlPlane, machine, node)
+				w.updateNodeCondition(controlPlane, machine, node)
 			} else {
 				conditions.Set(machine, metav1.Condition{
 					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
 					Status:  metav1.ConditionFalse,
-					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeDeletingReason,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsDeletingReason,
 					Message: "Machine is deleting",
 				})
 			}
@@ -562,6 +584,8 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		// If the machine is still provisioning, set conditions for control plane components accordingly
 		// (too early to check control plane components state).
 		if !machine.Status.NodeRef.IsDefined() {
+			hasProvisioningMachines = true
+
 			var msg string
 			if machine.Spec.ProviderID != "" {
 				// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
@@ -649,7 +673,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		}
 
 		// Also updates other Machine Node conditions
-		w.updateNodeConditions(controlPlane, machine, node)
+		w.updateNodeCondition(controlPlane, machine, node)
 	}
 
 	// If there are no provisioning machines, check for control plane nodes
@@ -692,7 +716,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	})
 }
 
-func (w *Workload) updateNodeConditions(controlPlane *ControlPlane, machine *clusterv1.Machine, node corev1.Node) {
+func (w *Workload) updateNodeCondition(controlPlane *ControlPlane, machine *clusterv1.Machine, node corev1.Node) {
 	msg := ""
 	if _, ok := node.Labels[labelNodeRoleControlPlane]; !ok {
 		msg = fmt.Sprintf("Node %s does not have the %s label", machine.Status.NodeRef.Name, labelNodeRoleControlPlane)

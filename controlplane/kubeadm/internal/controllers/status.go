@@ -90,14 +90,16 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta1Status(ctx context.Context,
 	}
 
 	// count the control plane nodes
-	readyNodes := int32(0)
-	for _, node := range controlPlane.Nodes {
-		if util.IsNodeReady(node) {
-			readyNodes++
+	if controlPlane.NodeListError == nil {
+		readyNodes := int32(0)
+		for _, node := range controlPlane.Nodes {
+			if util.IsNodeReady(node) {
+				readyNodes++
+			}
 		}
+		controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = readyNodes
+		controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas - readyNodes
 	}
-	controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = readyNodes
-	controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas - readyNodes
 
 	if !v1beta1conditions.IsTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition) {
 		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)

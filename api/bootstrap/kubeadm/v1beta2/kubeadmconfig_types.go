@@ -149,6 +149,7 @@ func (c *KubeadmConfigSpec) Validate(isKCP bool, pathPrefix *field.Path) field.E
 	allErrs = append(allErrs, c.validateFiles(pathPrefix)...)
 	allErrs = append(allErrs, c.validateUsers(pathPrefix)...)
 	allErrs = append(allErrs, c.validateIgnition(pathPrefix)...)
+	allErrs = append(allErrs, c.validateDiskSetup(pathPrefix)...)
 
 	// Validate JoinConfiguration.
 	if c.JoinConfiguration.IsDefined() {
@@ -401,6 +402,32 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 					cannotUseWithIgnition,
 				),
 			)
+		}
+	}
+
+	return allErrs
+}
+
+func (c *KubeadmConfigSpec) validateDiskSetup(pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for i, partition := range c.DiskSetup.Partitions {
+		if len(partition.DiskLayout) > 0 {
+			var totalPercentage int32
+			for _, layout := range partition.DiskLayout {
+				totalPercentage += layout.Percentage
+			}
+
+			if totalPercentage > 100 {
+				allErrs = append(
+					allErrs,
+					field.Invalid(
+						pathPrefix.Child("diskSetup", "partitions").Index(i).Child("diskLayout"),
+						totalPercentage,
+						"the sum of all partition percentages must not be greater than 100",
+					),
+				)
+			}
 		}
 	}
 
@@ -823,6 +850,7 @@ func (r *DiskSetup) IsDefined() bool {
 }
 
 // Partition defines how to create and layout a partition.
+// +kubebuilder:validation:ExactlyOneOf=layout;diskLayout
 type Partition struct {
 	// device is the name of the device.
 	// +required
@@ -833,7 +861,8 @@ type Partition struct {
 	// layout specifies the device layout.
 	// If it is true, a single partition will be created for the entire device.
 	// When layout is false, it means don't partition or ignore existing partitioning.
-	// +required
+	// Mutually exclusive with diskLayout.
+	// +optional
 	Layout *bool `json:"layout,omitempty"`
 
 	// overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
@@ -847,7 +876,53 @@ type Partition struct {
 	// +optional
 	// +kubebuilder:validation:Enum=mbr;gpt
 	TableType string `json:"tableType,omitempty"`
+
+	// diskLayout specifies an ordered list of partitions, where each item defines the
+	// percentage of disk space and optional partition type for that partition.
+	// The sum of all partition percentages must not be greater than 100.
+	// Mutually exclusive with layout.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	DiskLayout []PartitionSpec `json:"diskLayout,omitempty"`
 }
+
+// PartitionSpec defines the size and optional type for a partition.
+type PartitionSpec struct {
+	// percentage of disk that partition will take (1-100)
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	// +required
+	Percentage int32 `json:"percentage,omitempty"`
+
+	// partitionType is the partition type (optional).
+	// Supported values are Linux, LinuxSwap, LinuxRAID, LVM, Fat32, NTFS,
+	// and LinuxExtended. These are translated to cloud-init partition type codes.
+	// A full GPT partition GUID is also supported as a passthrough value.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=36
+	// +kubebuilder:validation:XValidation:rule="self.matches('^(Linux|LinuxSwap|LinuxRAID|LVM|Fat32|NTFS|LinuxExtended|[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12})$')",message="partitionType must be one of Linux, LinuxSwap, LinuxRAID, LVM, Fat32, NTFS, LinuxExtended or a full GPT partition GUID"
+	PartitionType string `json:"partitionType,omitempty"`
+}
+
+const (
+	// PartitionTypeLinux maps to the cloud-init/Linux partition type code 83.
+	PartitionTypeLinux = "Linux"
+	// PartitionTypeLinuxSwap maps to the cloud-init/Linux swap partition type code 82.
+	PartitionTypeLinuxSwap = "LinuxSwap"
+	// PartitionTypeLinuxRAID maps to the cloud-init/Linux RAID partition type code fd.
+	PartitionTypeLinuxRAID = "LinuxRAID"
+	// PartitionTypeLVM maps to the cloud-init/LVM partition type code 8e.
+	PartitionTypeLVM = "LVM"
+	// PartitionTypeFat32 maps to the cloud-init/FAT32 partition type code 0c.
+	PartitionTypeFat32 = "Fat32"
+	// PartitionTypeNTFS maps to the cloud-init/NTFS partition type code 07.
+	PartitionTypeNTFS = "NTFS"
+	// PartitionTypeLinuxExtended maps to the cloud-init/Linux extended partition type code 85.
+	PartitionTypeLinuxExtended = "LinuxExtended"
+)
 
 // Filesystem defines the file systems to be created.
 type Filesystem struct {

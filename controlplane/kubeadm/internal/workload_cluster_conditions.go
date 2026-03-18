@@ -484,6 +484,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	// without a corresponding machine, and thus we use this list in the loop for updating static pod conditions as well.
 	nodesWithControlPlaneLabel, err := w.getNodesWithControlPlaneLabel(ctx)
 	if err != nil {
+		controlPlane.NodeListError = errors.Wrap(err, "failed to list control plane nodes")
 		for i := range controlPlane.Machines {
 			machine := controlPlane.Machines[i]
 			for _, condition := range allMachinePodV1Beta1Conditions {
@@ -530,26 +531,26 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		// Note: the lack of ControlPlane label is not relevant for assessing the status of control plane
 		// components (while the absence of a Node is relevant).
 		var node corev1.Node
-		nodeExist := false
+		nodeExists := false
 		for _, n := range nodesWithControlPlaneLabel.Items {
 			if machine.Status.NodeRef.IsDefined() && machine.Status.NodeRef.Name == n.Name {
 				node = n
-				nodeExist = true
+				nodeExists = true
 				break
 			}
 		}
 
-		if !nodeExist && machine.Status.NodeRef.IsDefined() {
+		if !nodeExists && machine.Status.NodeRef.IsDefined() {
 			n := &corev1.Node{}
 			if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: machine.Status.NodeRef.Name}, n); err == nil {
 				node = *n
-				nodeExist = true
+				nodeExists = true
 			}
 		}
 
 		// If a node corresponding to a Machine has been found, store it in the list of nodes to
 		// be used as input to methods accessing etcd via port-forward.
-		if nodeExist {
+		if nodeExists {
 			controlPlane.Nodes = append(controlPlane.Nodes, &node)
 		}
 
@@ -560,7 +561,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 				v1beta1conditions.MarkFalse(machine, condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			}
 
-			if nodeExist {
+			if nodeExists {
 				w.updateNodeCondition(controlPlane, machine, node)
 			} else {
 				conditions.Set(machine, metav1.Condition{
@@ -616,7 +617,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		// If the machine has been already provisioned but the node does not exist anymore,
 		// set conditions for control plane components accordingly
 		// (the system assumes control plane components state is not reliable anymore).
-		if !nodeExist {
+		if !nodeExists {
 			for _, condition := range allMachinePodV1Beta1Conditions {
 				v1beta1conditions.MarkFalse(machine, condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node")
 			}
@@ -680,14 +681,14 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	// without a corresponding machine and surface issues at KCP level.
 	if !hasProvisioningMachines {
 		for _, node := range nodesWithControlPlaneLabel.Items {
-			machineExist := false
+			machineExists := false
 			for _, m := range controlPlane.Machines {
 				if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == node.Name {
-					machineExist = true
+					machineExists = true
 					break
 				}
 			}
-			if !machineExist {
+			if !machineExists {
 				kcpErrors = append(kcpErrors, fmt.Sprintf("Control plane Node %s does not have a corresponding Machine", node.Name))
 			}
 		}

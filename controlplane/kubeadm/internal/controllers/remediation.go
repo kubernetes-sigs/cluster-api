@@ -265,7 +265,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		// Note: also checking NodeListError for extra safety (even if, when NodeListError also etcdMember list is empty)
 		if len(controlPlane.EtcdMembers) == 0 || controlPlane.NodeListError != nil {
 			log.Info("A control plane machine needs remediation, but unable to check etcd cluster health before remediation. Skipping remediation")
-			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Failed check etcd cluster health before remediation")
+			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Failed to check etcd cluster health before remediation")
 
 			conditions.Set(machineToBeRemediated, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedCondition,

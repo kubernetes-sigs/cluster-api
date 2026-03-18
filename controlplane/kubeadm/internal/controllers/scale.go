@@ -142,7 +142,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	if controlPlane.IsEtcdManaged() {
 		// We cannot perform any etcd operation without a list of nodes.
 		if controlPlane.NodeListError != nil {
-			return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable forward etcd leadership, failed to list nodes")
+			return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable to forward etcd leadership")
 		}
 
 		etcdLeaderCandidate := controlPlane.Machines.Newest()

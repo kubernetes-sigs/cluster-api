@@ -284,19 +284,20 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 			// (either because canceled intentionally due to machine deletion or canceled by the defer cancel()
 			// call when exiting from this func).
 			go func() {
+				ticker := time.NewTicker(5 * time.Second)
 				for {
 					select {
 					case <-timeoutCtx.Done():
 						return
-					default:
-						updatedDockerMachine := &infrav1.DockerMachine{}
-						if err := r.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil &&
-							!updatedDockerMachine.DeletionTimestamp.IsZero() {
-							log.Info("Cancelling Bootstrap because the underlying machine has been deleted")
-							cancel()
-							return
-						}
-						time.Sleep(5 * time.Second)
+					case <-ticker.C:
+					}
+
+					updatedDockerMachine := &infrav1.DockerMachine{}
+					if err := r.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil &&
+						!updatedDockerMachine.DeletionTimestamp.IsZero() {
+						log.Info("Cancelling Bootstrap because the underlying machine has been deleted")
+						cancel()
+						return
 					}
 				}
 			}()

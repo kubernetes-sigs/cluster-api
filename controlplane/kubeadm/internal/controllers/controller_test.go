@@ -1352,7 +1352,6 @@ kubernetesVersion: metav1.16.1
 				Workload: &internal.Workload{
 					Client: env,
 				},
-				Status: internal.ClusterStatus{},
 			},
 		},
 		ssaCache: ssa.NewCache("test-controller"),
@@ -1591,7 +1590,6 @@ kubernetesVersion: metav1.16.1`,
 				Workload: &internal.Workload{
 					Client: env,
 				},
-				Status: internal.ClusterStatus{},
 			},
 		},
 		ssaCache: ssa.NewCache("test-controller"),
@@ -2066,7 +2064,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			Manager:    kcpManagerName,
 			Operation:  metav1.ManagedFieldsOperationApply,
 			APIVersion: clusterv1.GroupVersion.String(),
-			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:pre-terminate.delete.hook.machine.cluster.x-k8s.io/kcp-cleanup\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/cluster-name\":{},\"f:cluster.x-k8s.io/control-plane\":{},\"f:cluster.x-k8s.io/control-plane-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}},\"f:ownerReferences\":{\"k:{\\\"uid\\\":\\\"abc-123-control-plane\\\"}\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:deletion\":{\"f:nodeDeletionTimeoutSeconds\":{},\"f:nodeDrainTimeoutSeconds\":{},\"f:nodeVolumeDetachTimeoutSeconds\":{}},\"f:failureDomain\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}},\"f:readinessGates\":{\"k:{\\\"conditionType\\\":\\\"APIServerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"ControllerManagerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"EtcdMemberHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"EtcdPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"SchedulerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}}},\"f:version\":{}}}",
+			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:pre-terminate.delete.hook.machine.cluster.x-k8s.io/kcp-cleanup\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/cluster-name\":{},\"f:cluster.x-k8s.io/control-plane\":{},\"f:cluster.x-k8s.io/control-plane-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}},\"f:ownerReferences\":{\"k:{\\\"uid\\\":\\\"abc-123-control-plane\\\"}\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:deletion\":{\"f:nodeDeletionTimeoutSeconds\":{},\"f:nodeDrainTimeoutSeconds\":{},\"f:nodeVolumeDetachTimeoutSeconds\":{}},\"f:failureDomain\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}},\"f:readinessGates\":{\"k:{\\\"conditionType\\\":\\\"APIServerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"ControllerManagerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"EtcdMemberHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"EtcdPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"NodeKubeadmLabelsAndTaintsSet\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"SchedulerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}}},\"f:version\":{}}}",
 		}})))
 	}, timeout).Should(Succeed())
 
@@ -2182,7 +2180,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			Manager:    kcpManagerName,
 			Operation:  metav1.ManagedFieldsOperationApply,
 			APIVersion: clusterv1.GroupVersion.String(),
-			FieldsV1:   "{\"f:metadata\":{\"f:finalizers\":{\"v:\\\"testing-finalizer\\\"\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}},\"f:readinessGates\":{\"k:{\\\"conditionType\\\":\\\"APIServerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"ControllerManagerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"SchedulerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}}}}}",
+			FieldsV1:   "{\"f:metadata\":{\"f:finalizers\":{\"v:\\\"testing-finalizer\\\"\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}},\"f:readinessGates\":{\"k:{\\\"conditionType\\\":\\\"APIServerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"ControllerManagerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"NodeKubeadmLabelsAndTaintsSet\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"SchedulerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}}}}}",
 		}, {
 			// capi-kubeadmcontrolplane owns the fields that are propagated in-place for deleting Machines in syncMachines via patchHelper.
 			Manager:    "manager",
@@ -2312,6 +2310,12 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for Cluster control plane to be initialized",
+				},
+				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
@@ -2389,6 +2393,12 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
@@ -2474,6 +2484,12 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
@@ -2552,6 +2568,12 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
@@ -2713,6 +2735,12 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsConnectionDownReason,
+					Message: "Remote connection not established yet",
+				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
@@ -2881,6 +2909,12 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsConnectionDownReason,
+					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
+				},
+				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownReason,
@@ -2987,6 +3021,12 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsConnectionDownReason,
+					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
+				},
+				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownReason,
@@ -3058,6 +3098,12 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+					Message: "Please check controller logs for errors",
+				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,

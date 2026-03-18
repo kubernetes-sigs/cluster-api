@@ -559,7 +559,7 @@ type MachineStatus struct {
 	// NodeHealthy, Updating, Deleting, Paused.
 	// If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added.
 	// Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions:
-	// APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy.
+	// APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy, NodeKubeadmLabelsAndTaintsSet.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -53,15 +54,11 @@ func (w *Workload) UpdateEtcdExternalInKubeadmConfigMap(etcdExternal bootstrapv1
 // RemoveEtcdMember removes the etcd member from the target cluster's etcd cluster.
 // Removing the last remaining member of the cluster is not supported.
 // Note: It is a responsibility of the caller to check if this operation doesn't lead to quorum loss.
-func (w *Workload) RemoveEtcdMember(ctx context.Context, name string) error {
-	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return err
-	}
-
+func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*corev1.Node) error {
 	// Exclude node being removed from etcd client node list
+	// Note: this operation relies on the assumption that node name is equal to the name of the corresponding etcd member.
 	var remainingNodes []string
-	for _, n := range controlPlaneNodes.Items {
+	for _, n := range nodes {
 		if n.Name != name {
 			remainingNodes = append(remainingNodes, n.Name)
 		}
@@ -97,7 +94,7 @@ func (w *Workload) RemoveEtcdMember(ctx context.Context, name string) error {
 }
 
 // ForwardEtcdLeadership forwards etcd leadership to the first follower.
-func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
+func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*corev1.Node) error {
 	if machine == nil || !machine.Status.NodeRef.IsDefined() {
 		return nil
 	}
@@ -108,12 +105,8 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 		return errors.New("leader candidate has no node reference")
 	}
 
-	nodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to list control plane nodes")
-	}
-	nodeNames := make([]string, 0, len(nodes.Items))
-	for _, node := range nodes.Items {
+	nodeNames := make([]string, 0, len(nodes))
+	for _, node := range nodes {
 		nodeNames = append(nodeNames, node.Name)
 	}
 	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodeNames)

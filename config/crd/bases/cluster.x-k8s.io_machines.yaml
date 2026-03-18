@@ -1120,7 +1120,7 @@ spec:
                   NodeHealthy, Updating, Deleting, Paused.
                   If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added.
                   Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions:
-                  APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy.
+                  APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy, NodeKubeadmLabelsAndTaintsSet.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.

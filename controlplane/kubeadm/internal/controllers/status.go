@@ -34,6 +34,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -88,19 +89,32 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta1Status(ctx context.Context,
 		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedV1Beta1Condition)
 	}
 
-	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to create remote cluster client")
+	// count the control plane nodes
+	if controlPlane.NodeListError == nil {
+		readyNodes := int32(0)
+		for _, node := range controlPlane.Nodes {
+			if util.IsNodeReady(node) {
+				readyNodes++
+			}
+		}
+		controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = readyNodes
+		controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas - readyNodes
 	}
-	status, err := workloadCluster.ClusterStatus(ctx)
-	if err != nil {
-		return err
-	}
-	controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = status.ReadyNodes
-	controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas - status.ReadyNodes
 
-	if status.HasKubeadmConfig {
-		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
+	if !v1beta1conditions.IsTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition) {
+		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to create remote cluster client")
+		}
+
+		hasKubeadmConfig, err := workloadCluster.HasKubeadmConfig(ctx)
+		if err != nil {
+			return err
+		}
+
+		if hasKubeadmConfig {
+			v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
+		}
 	}
 	return nil
 }
@@ -174,12 +188,12 @@ func setControlPlaneInitialized(ctx context.Context, controlPlane *internal.Cont
 		if err != nil {
 			return errors.Wrap(err, "failed to create remote cluster client")
 		}
-		status, err := workloadCluster.ClusterStatus(ctx)
+		hasKubeadmConfig, err := workloadCluster.HasKubeadmConfig(ctx)
 		if err != nil {
 			return err
 		}
 
-		if status.HasKubeadmConfig {
+		if hasKubeadmConfig {
 			controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 		}
 	}

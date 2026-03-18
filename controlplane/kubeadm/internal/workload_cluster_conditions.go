@@ -66,10 +66,8 @@ func (w *Workload) updateExternalEtcdConditions(_ context.Context, controlPlane 
 func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane *ControlPlane) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Read control plane nodes (instead of using node ref from the machines) so we will avoid trying to connect to nodes
-	// that have been incidentally deleted; also this allows to detect nodes without a machine.
-	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
+	// If there was an error reading nodes, it will be impossible to connect to etcd so setting all the conditions to unknown.
+	if controlPlane.NodeListError != nil {
 		for _, m := range controlPlane.Machines {
 			v1beta1conditions.MarkUnknown(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberInspectionFailedV1Beta1Reason, "Failed to get the Node which is hosting the etcd member")
 
@@ -127,7 +125,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 	// Update etcd member healthy conditions for machines not provisioning or deleting.
 	// This is implemented by reading info about members and alarms from etcd.
 	machinesNotProvisioningOrDeleting := controlPlane.Machines.Filter(collections.And(collections.HasNode(), collections.Not(collections.HasDeletionTimestamp)))
-	currentMembers, alarms, err := w.getCurrentEtcdMembersAndAlarms(ctx, machinesNotProvisioningOrDeleting, controlPlaneNodes)
+	currentMembers, alarms, err := w.getCurrentEtcdMembersAndAlarms(ctx, machinesNotProvisioningOrDeleting, controlPlane.Nodes)
 	if err == nil {
 		controlPlane.EtcdMembers = currentMembers
 		controlPlane.EtcdMembersAlarms = alarms
@@ -144,6 +142,18 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyReason,
 					Message: fmt.Sprintf("Etcd reports the cluster is composed by %s, but the etcd member hosted on Machine %s (%s) is not included", etcdutil.MemberNames(currentMembers), machine.Name, machine.Status.NodeRef.Name),
+				})
+				continue
+			}
+
+			if member.IsLearner {
+				v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Waiting for learner etcd member to be promoted")
+
+				conditions.Set(machine, metav1.Condition{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyReason,
+					Message: "Waiting for learner etcd member to be promoted",
 				})
 				continue
 			}
@@ -191,26 +201,9 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 
 	// Check if the list of etcd members and machines match each other.
 	// In case there are errors that we cannot link to a specific machine, consider them as kcp errors.
-	membersAndMachinesAreMatching, membersAndMachinesCompareErrors := compareMachinesAndMembers(controlPlane, controlPlaneNodes, controlPlane.EtcdMembers)
+	membersAndMachinesAreMatching, membersAndMachinesCompareErrors := compareMachinesAndMembers(controlPlane)
 	controlPlane.EtcdMembersAndMachinesAreMatching = membersAndMachinesAreMatching
 	kcpErrors := membersAndMachinesCompareErrors
-
-	// Report error at KCP level if there are nodes without a corresponding machine.
-	// Note: Skip this check if there are machines still provisioning because there is the chance that a node might be linked to a machine soon.
-	if len(provisioningMachines) == 0 {
-		for _, node := range controlPlaneNodes.Items {
-			isNodeRef := false
-			for _, m := range controlPlane.Machines {
-				if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == node.Name {
-					isNodeRef = true
-					break
-				}
-			}
-			if !isNodeRef {
-				kcpErrors = append(kcpErrors, fmt.Sprintf("Control plane Node %s does not have a corresponding Machine", node.Name))
-			}
-		}
-	}
 
 	// Aggregate components error from machines at KCP level
 	aggregateV1Beta1ConditionsFromMachinesToKCP(aggregateV1Beta1ConditionsFromMachinesToKCPInput{
@@ -249,7 +242,7 @@ func unwrapAll(err error) error {
 // getCurrentEtcdMembersAndAlarms returns the current list of etcd member and alarms.
 // Considering that the underlying etcd SDK calls (MemberList and AlarmList) requires quorum across all etcd members, it is possible
 // to run those calls towards any etcd Pod hosting an etcd member.
-func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines collections.Machines, nodes *corev1.NodeList) ([]*etcd.Member, []etcd.MemberAlarm, error) {
+func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines collections.Machines, nodes []*corev1.Node) ([]*etcd.Member, []etcd.MemberAlarm, error) {
 	// Get the list of nodes hosting an etcd member sorted by the last known etcd health,
 	// so the client generator in the following line will try to connect first to nodes with higher chance to answer.
 	nodeNames := getNodeNamesSortedByLastKnownEtcdHealth(nodes, machines)
@@ -326,12 +319,12 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 
 // getNodeNamesSortedByLastKnownEtcdHealth return the list of nodes hosting an etcd member sorted by the last known etcd health.
 // Note: sorting by last known etcd health is a best effort operations; only nodes with a corresponding machine are considered.
-func getNodeNamesSortedByLastKnownEtcdHealth(nodes *corev1.NodeList, machines collections.Machines) []string {
+func getNodeNamesSortedByLastKnownEtcdHealth(nodes []*corev1.Node, machines collections.Machines) []string {
 	// Get the list of nodes and the corresponding MachineEtcdMemberHealthyCondition
 	eligibleNodes := sets.Set[string]{}
 	nodeEtcdHealthyCondition := map[string]metav1.Condition{}
 
-	for _, node := range nodes.Items {
+	for _, node := range nodes {
 		var machine *clusterv1.Machine
 		for _, m := range machines {
 			if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == node.Name {
@@ -379,12 +372,12 @@ func getNodeNamesSortedByLastKnownEtcdHealth(nodes *corev1.NodeList, machines co
 	return nodeNames
 }
 
-func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeList, members []*etcd.Member) (bool, []string) {
+func compareMachinesAndMembers(controlPlane *ControlPlane) (bool, []string) {
 	membersAndMachinesAreMatching := true
 	var kcpErrors []string
 
 	// If it failed to get members, consider the check failed in case there is at least a machine already provisioned.
-	if members == nil {
+	if controlPlane.EtcdMembers == nil {
 		if len(controlPlane.Machines.Filter(collections.HasNode())) > 0 {
 			membersAndMachinesAreMatching = false
 		}
@@ -397,7 +390,7 @@ func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeLis
 			continue
 		}
 		found := false
-		for _, member := range members {
+		for _, member := range controlPlane.EtcdMembers {
 			if machine.Status.NodeRef.Name == member.Name {
 				found = true
 				break
@@ -421,11 +414,9 @@ func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeLis
 			// Note: Two minutes is the time after which we expect the system to detect the new etcd member on the machine.
 			if machine.DeletionTimestamp.IsZero() {
 				oldNode := false
-				if nodes != nil {
-					for _, node := range nodes.Items {
-						if machine.Status.NodeRef.Name == node.Name && time.Since(node.CreationTimestamp.Time) > 2*time.Minute {
-							oldNode = true
-						}
+				for _, node := range controlPlane.Nodes {
+					if machine.Status.NodeRef.Name == node.Name && time.Since(node.CreationTimestamp.Time) > 2*time.Minute {
+						oldNode = true
 					}
 				}
 				if oldNode {
@@ -436,7 +427,7 @@ func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeLis
 	}
 
 	// Check Etcd member -> Machine.
-	for _, member := range members {
+	for _, member := range controlPlane.EtcdMembers {
 		found := false
 		hasProvisioningMachine := false
 		for _, machine := range controlPlane.Machines {
@@ -489,15 +480,23 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		allMachinePodConditions = append(allMachinePodConditions, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition)
 	}
 
-	// NOTE: this fun uses control plane nodes from the workload cluster as a source of truth for the current state.
-	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
+	// NOTE: Reading the list of nodes with the control plane label because down below we check for control plane nodes
+	// without a corresponding machine, and thus we use this list in the loop for updating static pod conditions as well.
+	nodesWithControlPlaneLabel, err := w.getNodesWithControlPlaneLabel(ctx)
 	if err != nil {
+		controlPlane.NodeListError = errors.Wrap(err, "failed to list control plane nodes")
 		for i := range controlPlane.Machines {
 			machine := controlPlane.Machines[i]
 			for _, condition := range allMachinePodV1Beta1Conditions {
 				v1beta1conditions.MarkUnknown(machine, condition, controlplanev1.PodInspectionFailedV1Beta1Reason, "Failed to get the Node which is hosting this component: %v", err)
 			}
 
+			conditions.Set(machine, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+				Message: "Failed to get the Node",
+			})
 			for _, condition := range allMachinePodConditions {
 				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
@@ -522,54 +521,56 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	// Update conditions for control plane components hosted as static pods on the nodes.
 	var kcpErrors []string
 
-	provisioningMachines := controlPlane.Machines.Filter(collections.Not(collections.HasNode()))
-	for _, machine := range provisioningMachines {
-		for _, condition := range allMachinePodConditions {
-			var msg string
-			if machine.Spec.ProviderID != "" {
-				// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
-				// for a matching Node to exists, surface this.
-				msg = fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", machine.Spec.ProviderID)
-			} else {
-				// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
-				msg = fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind)
-			}
-			conditions.Set(machine, metav1.Condition{
-				Type:    condition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
-				Message: msg,
-			})
-		}
-	}
+	hasProvisioningMachines := false
+	for i := range controlPlane.Machines {
+		machine := controlPlane.Machines[i]
 
-	for _, node := range controlPlaneNodes.Items {
-		// Search for the machine corresponding to the node.
-		var machine *clusterv1.Machine
-		for _, m := range controlPlane.Machines {
-			if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == node.Name {
-				machine = m
+		// Get the node corresponding to a Machine.
+		// If the node is not included in the list of nodes with the ControlPlane label,
+		// fallback in getting the node by name.
+		// Note: the lack of ControlPlane label is not relevant for assessing the status of control plane
+		// components (while the absence of a Node is relevant).
+		var node corev1.Node
+		nodeExists := false
+		for _, n := range nodesWithControlPlaneLabel.Items {
+			if machine.Status.NodeRef.IsDefined() && machine.Status.NodeRef.Name == n.Name {
+				node = n
+				nodeExists = true
 				break
 			}
 		}
 
-		// If there is no machine corresponding to a node, determine if this is an error or not.
-		if machine == nil {
-			// If there are machines still provisioning there is the chance that a node might be linked to a machine soon,
-			// otherwise report the error at KCP level given that there is no machine to report on.
-			if len(provisioningMachines) > 0 {
-				continue
+		if !nodeExists && machine.Status.NodeRef.IsDefined() {
+			n := &corev1.Node{}
+			if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: machine.Status.NodeRef.Name}, n); err == nil {
+				node = *n
+				nodeExists = true
 			}
-			kcpErrors = append(kcpErrors, fmt.Sprintf("Control plane Node %s does not have a corresponding Machine", node.Name))
-			continue
 		}
 
-		// If the machine is deleting, report all the conditions as deleting
+		// If a node corresponding to a Machine has been found, store it in the list of nodes to
+		// be used as input to methods accessing etcd via port-forward.
+		if nodeExists {
+			controlPlane.Nodes = append(controlPlane.Nodes, &node)
+		}
+
+		// If the machine is deleting, report all the conditions as deleting without further checks on
+		// control plane components.
 		if !machine.DeletionTimestamp.IsZero() {
 			for _, condition := range allMachinePodV1Beta1Conditions {
 				v1beta1conditions.MarkFalse(machine, condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			}
 
+			if nodeExists {
+				w.updateNodeCondition(controlPlane, machine, node)
+			} else {
+				conditions.Set(machine, metav1.Condition{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsDeletingReason,
+					Message: "Machine is deleting",
+				})
+			}
 			for _, condition := range allMachinePodConditions {
 				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
@@ -581,16 +582,61 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 			continue
 		}
 
-		// If the default control plane taint is missing, set all conditions to unknown.
-		if controlPlane.DefaultTaintIsMissing(machine, &node) {
+		// If the machine is still provisioning, set conditions for control plane components accordingly
+		// (too early to check control plane components state).
+		if !machine.Status.NodeRef.IsDefined() {
+			hasProvisioningMachines = true
+
+			var msg string
+			if machine.Spec.ProviderID != "" {
+				// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
+				// for a matching Node to exists, surface this.
+				msg = fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", machine.Spec.ProviderID)
+			} else {
+				// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
+				msg = fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind)
+			}
+
+			conditions.Set(machine, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+				Message: msg,
+			})
 			for _, condition := range allMachinePodConditions {
 				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
-					Message: fmt.Sprintf("Node %s does not have the %s:%s taint", machine.Status.NodeRef.Name, labelNodeRoleControlPlane, corev1.TaintEffectNoSchedule),
+					Message: msg,
 				})
 			}
+			continue
+		}
+
+		// If the machine has been already provisioned but the node does not exist anymore,
+		// set conditions for control plane components accordingly
+		// (the system assumes control plane components state is not reliable anymore).
+		if !nodeExists {
+			for _, condition := range allMachinePodV1Beta1Conditions {
+				v1beta1conditions.MarkFalse(machine, condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node")
+			}
+
+			conditions.Set(machine, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+				Message: fmt.Sprintf("Node %s does not exist", machine.Status.NodeRef.Name),
+			})
+			for _, condition := range allMachinePodConditions {
+				conditions.Set(machine, metav1.Condition{
+					Type:    condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: fmt.Sprintf("Node %s does not exist", machine.Status.NodeRef.Name),
+				})
+			}
+
 			continue
 		}
 
@@ -602,6 +648,12 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 				v1beta1conditions.MarkUnknown(machine, condition, controlplanev1.PodInspectionFailedV1Beta1Reason, "Node is unreachable")
 			}
 
+			conditions.Set(machine, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+				Message: fmt.Sprintf("Node %s is unreachable", node.Name),
+			})
 			for _, condition := range allMachinePodConditions {
 				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
@@ -620,54 +672,24 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		if controlPlane.IsEtcdManaged() {
 			w.updateStaticPodCondition(ctx, machine, node, "etcd", controlplanev1.MachineEtcdPodHealthyV1Beta1Condition, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition)
 		}
+
+		// Also updates other Machine Node conditions
+		w.updateNodeCondition(controlPlane, machine, node)
 	}
 
-	// If there are provisioned machines without corresponding nodes, report this as a failing conditions with SeverityError.
-	for i := range controlPlane.Machines {
-		machine := controlPlane.Machines[i]
-		if !machine.Status.NodeRef.IsDefined() {
-			continue
-		}
-		found := false
-		for _, node := range controlPlaneNodes.Items {
-			if machine.Status.NodeRef.Name == node.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			// tries to get the node by name, so we can detect when a node is missing or when a node exists, but it does not have the required CP label.
-			nodeWithoutLabelExist := false
-			n := &corev1.Node{}
-			if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: machine.Status.NodeRef.Name}, n); err == nil {
-				nodeWithoutLabelExist = true
-			}
-
-			for _, condition := range allMachinePodV1Beta1Conditions {
-				v1beta1conditions.MarkFalse(machine, condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node")
-			}
-
-			for _, condition := range allMachinePodConditions {
-				if nodeWithoutLabelExist {
-					msg := fmt.Sprintf("Node %s does not have the %s label", machine.Status.NodeRef.Name, labelNodeRoleControlPlane)
-					if controlPlane.DefaultTaintIsMissing(machine, n) {
-						msg += fmt.Sprintf(" and the %s:%s taint", labelNodeRoleControlPlane, corev1.TaintEffectNoSchedule)
-					}
-					conditions.Set(machine, metav1.Condition{
-						Type:    condition,
-						Status:  metav1.ConditionUnknown,
-						Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
-						Message: msg,
-					})
-					continue
+	// If there are no provisioning machines, check for control plane nodes
+	// without a corresponding machine and surface issues at KCP level.
+	if !hasProvisioningMachines {
+		for _, node := range nodesWithControlPlaneLabel.Items {
+			machineExists := false
+			for _, m := range controlPlane.Machines {
+				if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == node.Name {
+					machineExists = true
+					break
 				}
-
-				conditions.Set(machine, metav1.Condition{
-					Type:    condition,
-					Status:  metav1.ConditionUnknown,
-					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
-					Message: fmt.Sprintf("Node %s does not exist", machine.Status.NodeRef.Name),
-				})
+			}
+			if !machineExists {
+				kcpErrors = append(kcpErrors, fmt.Sprintf("Control plane Node %s does not have a corresponding Machine", node.Name))
 			}
 		}
 	}
@@ -692,6 +714,35 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		unknownReason:     controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownReason,
 		trueReason:        controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyReason,
 		note:              "control plane",
+	})
+}
+
+func (w *Workload) updateNodeCondition(controlPlane *ControlPlane, machine *clusterv1.Machine, node corev1.Node) {
+	msg := ""
+	if _, ok := node.Labels[labelNodeRoleControlPlane]; !ok {
+		msg = fmt.Sprintf("Node %s does not have the %s label", machine.Status.NodeRef.Name, labelNodeRoleControlPlane)
+	}
+	if controlPlane.DefaultTaintIsMissing(machine, &node) {
+		if msg != "" {
+			msg += fmt.Sprintf(" and the %s:%s taint", labelNodeRoleControlPlane, corev1.TaintEffectNoSchedule)
+		} else {
+			msg = fmt.Sprintf("Node %s does not have the %s:%s taint", machine.Status.NodeRef.Name, labelNodeRoleControlPlane, corev1.TaintEffectNoSchedule)
+		}
+	}
+
+	if msg != "" {
+		conditions.Set(machine, metav1.Condition{
+			Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsNotSetReason,
+			Message: msg,
+		})
+		return
+	}
+	conditions.Set(machine, metav1.Condition{
+		Type:   controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+		Status: metav1.ConditionTrue,
+		Reason: controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetReason,
 	})
 }
 

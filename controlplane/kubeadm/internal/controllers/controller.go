@@ -1004,6 +1004,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 			Overwrite:                           true,
 			EtcdClusterHealthyReason:            controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedReason,
 			ControlPlaneComponentsHealthyReason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedReason,
+			NodeReason:                          controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
 			StaticPodReason:                     controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
 			EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedReason,
 			Message:                             "Waiting for Cluster control plane to be initialized",
@@ -1022,6 +1023,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 			Overwrite:                           false, // Don't overwrite.
 			EtcdClusterHealthyReason:            controlplanev1.KubeadmControlPlaneEtcdClusterConnectionDownReason,
 			ControlPlaneComponentsHealthyReason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsConnectionDownReason,
+			NodeReason:                          controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsConnectionDownReason,
 			StaticPodReason:                     controlplanev1.KubeadmControlPlaneMachinePodConnectionDownReason,
 			EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownReason,
 			Message:                             "Remote connection not established yet",
@@ -1037,6 +1039,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 			Overwrite:                           true,
 			EtcdClusterHealthyReason:            controlplanev1.KubeadmControlPlaneEtcdClusterConnectionDownReason,
 			ControlPlaneComponentsHealthyReason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsConnectionDownReason,
+			NodeReason:                          controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsConnectionDownReason,
 			StaticPodReason:                     controlplanev1.KubeadmControlPlaneMachinePodConnectionDownReason,
 			EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownReason,
 			Message:                             lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime),
@@ -1057,6 +1060,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 				Overwrite:                           false, // Don't overwrite.
 				EtcdClusterHealthyReason:            controlplanev1.KubeadmControlPlaneEtcdClusterConnectionDownReason,
 				ControlPlaneComponentsHealthyReason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsConnectionDownReason,
+				NodeReason:                          controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsConnectionDownReason,
 				StaticPodReason:                     controlplanev1.KubeadmControlPlaneMachinePodConnectionDownReason,
 				EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownReason,
 				Message:                             lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime),
@@ -1070,6 +1074,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 			Overwrite:                           true,
 			EtcdClusterHealthyReason:            controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedReason,
 			ControlPlaneComponentsHealthyReason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedReason,
+			NodeReason:                          controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
 			StaticPodReason:                     controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
 			EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedReason,
 			Message:                             "Please check controller logs for errors",
@@ -1137,6 +1142,7 @@ type setConditionsToUnknownInput struct {
 	Overwrite                           bool
 	EtcdClusterHealthyReason            string
 	ControlPlaneComponentsHealthyReason string
+	NodeReason                          string
 	StaticPodReason                     string
 	EtcdMemberHealthyReason             string
 	Message                             string
@@ -1185,6 +1191,12 @@ func setConditionsToUnknown(input setConditionsToUnknownInput) {
 			allMachinePodV1beta2Conditions = append(allMachinePodV1beta2Conditions, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition)
 		}
 		for _, machine := range input.ControlPlane.Machines {
+			conditions.Set(machine, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  input.NodeReason,
+				Message: input.Message,
+			})
 			for _, condition := range allMachinePodV1beta2Conditions {
 				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
@@ -1234,6 +1246,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 	// No op if for any reason the etcdMember list is not populated at this stage.
 	if len(controlPlane.EtcdMembers) == 0 {
 		return ctrl.Result{}, nil
+	}
+
+	// If for any reason KCP failed to get the list of nodes, it is not possible to connect to etcd to perform any operation.
+	if controlPlane.NodeListError != nil {
+		return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable to reconcile etcd members")
 	}
 
 	// Potential inconsistencies between the list of members and the list of Machine/Node are
@@ -1297,7 +1314,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 			break
 		}
 
-		if err := workloadCluster.RemoveEtcdMember(ctx, member.Name); err != nil {
+		if err := workloadCluster.RemoveEtcdMember(ctx, member.Name, controlPlane.Nodes); err != nil {
 			allErrors = append(allErrors, err)
 			continue
 		}
@@ -1399,9 +1416,14 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
+	// Unable to proceed if for any reason KCP failed to get the list of nodes (it is not possible to connect to etcd).
+	if controlPlane.NodeListError != nil {
+		return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable to remove pre-terminate hook")
+	}
+
+	// No op if for any reason the etcdMember list is not populated at this stage.
 	if len(controlPlane.EtcdMembers) == 0 {
-		log.Info("Cannot check etcd cluster health before remediation, etcd member list is empty")
-		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+		return ctrl.Result{}, errors.New("unable to remove pre-terminate hook, etcd member list is empty")
 	}
 
 	// If etcd is managed by KCP, check target etcd cluster.
@@ -1437,7 +1459,7 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	// triggered in another way (e.g. a user running kubectl delete machine)
 	etcdLeaderCandidate := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp)).Newest()
 	if etcdLeaderCandidate != nil {
-		if err := workloadCluster.ForwardEtcdLeadership(ctx, deletingMachine, etcdLeaderCandidate); err != nil {
+		if err := workloadCluster.ForwardEtcdLeadership(ctx, deletingMachine, etcdLeaderCandidate, controlPlane.Nodes); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to move leadership to candidate Machine %s", etcdLeaderCandidate.Name)
 		}
 	} else {
@@ -1447,7 +1469,7 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	// Note: Removing the etcd member will lead to the etcd and the kube-apiserver Pod on the Machine shutting down.
 	// If ControlPlaneKubeletLocalMode is used, the kubelet is communicating with the local apiserver and thus now
 	// won't be able to see any updates to e.g. Pods anymore.
-	if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted); err != nil {
+	if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted, controlPlane.Nodes); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
 	}
 

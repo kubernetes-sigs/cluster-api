@@ -50,9 +50,7 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 		}
 		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
 			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{
-					HasKubeadmConfig: false,
-				},
+				KubeadmConfigExist: false,
 			},
 		})
 
@@ -81,9 +79,7 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 		}
 		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
 			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{
-					HasKubeadmConfig: true,
-				},
+				KubeadmConfigExist: true,
 			},
 		})
 
@@ -129,9 +125,7 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 		}
 		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
 			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{
-					HasKubeadmConfig: true,
-				},
+				KubeadmConfigExist: true,
 			},
 		})
 
@@ -160,9 +154,7 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 		}
 		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
 			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{
-					HasKubeadmConfig: true,
-				},
+				KubeadmConfigExist: true,
 			},
 		})
 
@@ -2295,11 +2287,13 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap()}
 	machines := map[string]*clusterv1.Machine{}
+	nodes := []*corev1.Node{}
 	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, true)
 		objs = append(objs, n, m)
 		machines[m.Name] = m
+		nodes = append(nodes, n)
 	}
 
 	fakeClient := newFakeClient(objs...)
@@ -2309,11 +2303,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
 			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{
-					Nodes:            3,
-					ReadyNodes:       3,
-					HasKubeadmConfig: true,
-				},
+				KubeadmConfigExist: true,
 			},
 		},
 		recorder: record.NewFakeRecorder(32),
@@ -2323,6 +2313,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		KCP:      kcp,
 		Cluster:  cluster,
 		Machines: machines,
+		Nodes:    nodes,
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -2369,15 +2360,18 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	g.Expect(err).ToNot(HaveOccurred())
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	nodes := []*corev1.Node{}
 	for i := range 4 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
 		machines[m.Name] = m
 		objs = append(objs, n, m)
+		nodes = append(nodes, n)
 	}
 	m, n := createMachineNodePair("testReady", cluster, kcp, true)
 	objs = append(objs, n, m, kubeadmConfigMap())
 	machines[m.Name] = m
+	nodes = append(nodes, n)
 	fakeClient := newFakeClient(objs...)
 
 	r := &KubeadmControlPlaneReconciler{
@@ -2385,11 +2379,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
 			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{
-					Nodes:            5,
-					ReadyNodes:       1,
-					HasKubeadmConfig: true,
-				},
+				KubeadmConfigExist: true,
 			},
 		},
 		recorder: record.NewFakeRecorder(32),
@@ -2399,6 +2389,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		KCP:      kcp,
 		Cluster:  cluster,
 		Machines: machines,
+		Nodes:    nodes,
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -2460,11 +2451,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
 			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{
-					Nodes:            0,
-					ReadyNodes:       0,
-					HasKubeadmConfig: true,
-				},
+				KubeadmConfigExist: true,
 			},
 		},
 		recorder: record.NewFakeRecorder(32),

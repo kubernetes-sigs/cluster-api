@@ -1191,7 +1191,7 @@ func TestGetUpgradePlanFromExtension(t *testing.T) {
 		Build()
 
 	// Call GetUpgradePlanFromExtension
-	generateUpgradePlanCache := cache.New[GenerateUpgradePlanCacheEntry](10 * time.Minute)
+	generateUpgradePlanCache := cache.New[GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute)
 	f := GetUpgradePlanFromExtension(fakeRuntimeClient, generateUpgradePlanCache, cluster, "test-extension")
 	controlPlaneUpgradePlan, workersUpgradePlan, err := f(ctx, "v1.33.0", "v1.31.0", "v1.31.0")
 
@@ -1278,7 +1278,7 @@ func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
 			fakeRuntimeClient := fakeRuntimeClientBuilder.Build()
 
 			// Call GetUpgradePlanFromExtension
-			f := GetUpgradePlanFromExtension(fakeRuntimeClient, cache.New[GenerateUpgradePlanCacheEntry](10*time.Minute), cluster, "test-extension")
+			f := GetUpgradePlanFromExtension(fakeRuntimeClient, cache.New[GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute), cluster, "test-extension")
 			_, _, err := f(ctx, tt.desiredVersion, tt.currentControlPlaneVersion, tt.currentMinWorkersVersion)
 
 			g.Expect(err).To(HaveOccurred())

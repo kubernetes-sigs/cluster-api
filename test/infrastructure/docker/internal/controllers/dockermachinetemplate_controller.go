@@ -82,7 +82,7 @@ func (r *DockerMachineTemplateReconciler) SetupWithManager(ctx context.Context, 
 		For(&infrav1.DockerMachineTemplate{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		Complete(r)
+		Complete(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

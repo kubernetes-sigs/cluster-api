@@ -333,7 +333,7 @@ func SetupWithManager(ctx context.Context, mgr manager.Manager, options Options,
 		For(&clusterv1.Cluster{}).
 		WithOptions(controllerOptions).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), log, options.WatchFilterValue)).
-		Complete(cc)
+		Complete(ctx, cc)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed setting up ClusterCache with a controller manager")
 	}

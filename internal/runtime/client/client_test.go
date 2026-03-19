@@ -799,7 +799,7 @@ func TestClient_CallExtension(t *testing.T) {
 				WithObjects(ns).
 				Build()
 
-			c, _, err := New(Options{
+			c, _, err := New(t.Context(), Options{
 				Catalog:  cat,
 				Registry: registry(tt.registeredExtensionConfigs),
 				Client:   fakeClient,
@@ -822,7 +822,7 @@ func TestClient_CallExtension(t *testing.T) {
 
 			// Call again with caching.
 			serverCallCount = 0
-			cache := cache.New[runtimeclient.CallExtensionCacheEntry](cache.DefaultTTL)
+			cache := cache.New[runtimeclient.CallExtensionCacheEntry](t.Context(), cache.DefaultTTL)
 			err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
 				runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
 			if tt.wantErr {
@@ -929,7 +929,7 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 		WithObjects(ns).
 		Build()
 
-	c, certWatcher, err := New(Options{
+	c, certWatcher, err := New(t.Context(), Options{
 		// Add client authentication credentials to the client
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,
@@ -1066,7 +1066,7 @@ func TestClient_GetHttpClient(t *testing.T) {
 		},
 	}
 
-	c, _, err := New(Options{})
+	c, _, err := New(t.Context(), Options{})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	internalClient := c.(*client)
@@ -1331,7 +1331,7 @@ func TestClient_GetAllExtensions(t *testing.T) {
 				WithScheme(scheme).
 				WithObjects(ns, nsDifferent).
 				Build()
-			c, _, err := New(Options{
+			c, _, err := New(t.Context(), Options{
 				Catalog:  cat,
 				Registry: registry(tt.registeredExtensionConfigs),
 				Client:   fakeClient,
@@ -1531,7 +1531,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 				WithScheme(scheme).
 				WithObjects(ns).
 				Build()
-			c, _, err := New(Options{
+			c, _, err := New(t.Context(), Options{
 				Catalog:  cat,
 				Registry: registry(tt.registeredExtensionConfigs),
 				Client:   fakeClient,

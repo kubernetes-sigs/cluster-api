@@ -83,7 +83,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 
 				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine, infra, bootstrap).Build()
 
-				return &Reconciler{Client: client, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{
+				return &Reconciler{Client: client, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{
 					machine:         machine,
 					infraMachine:    infra,
 					bootstrapConfig: bootstrap,
@@ -193,7 +193,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				return &Reconciler{
 						Client:        client,
 						RuntimeClient: runtimeClient,
-						hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+						hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
 					}, &scope{
 						machine:      machine,
 						infraMachine: infra,
@@ -259,7 +259,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				return &Reconciler{
 						Client:        client,
 						RuntimeClient: runtimeClient,
-						hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+						hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
 					}, &scope{
 						machine:         machine,
 						infraMachine:    infra,
@@ -357,7 +357,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 					WithCatalog(catalog).
 					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantErr:           true,
 			wantErrSubstrings: []string{"no extensions registered for UpdateMachine hook"},
@@ -372,7 +372,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 						updateGVH: {"ext-a", "ext-b"},
 					}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantErr:           true,
 			wantErrSubstrings: []string{"found multiple UpdateMachine hooks (ext-a,ext-b): only one hook is supported"},
@@ -394,7 +394,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 						},
 					}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantErr:           true,
 			wantErrSubstrings: []string{"runtime hook", "UpdateMachine", "failed"},
@@ -420,7 +420,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 						},
 					}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantResult:  ctrl.Result{RequeueAfter: 45 * time.Second},
 			wantMessage: "processing",
@@ -447,7 +447,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 						},
 					}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantResult:  ctrl.Result{},
 			wantMessage: "done",

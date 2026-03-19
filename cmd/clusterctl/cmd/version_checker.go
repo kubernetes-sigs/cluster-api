@@ -126,6 +126,12 @@ func (v *versionChecker) Check(ctx context.Context) (string, error) {
 		return "", errors.Wrap(err, "unable to semver parse latest release version")
 	}
 
+	// if we are using a mocked (shallow or fork) build, log it out
+	if v.cliVersion().Major == "0" && v.cliVersion().Minor == "0" {
+		log.V(1).Info("⚠️  Using a development build of clusterctl (mocked, shallow or fork).", "cliVersion", cliVer.String(), "latestGithubRelease", release.Version)
+		return "", nil
+	}
+
 	// if we are using a dirty dev build or go build, just log it out
 	if v.cliVersion().GitVersion == "" || strings.HasSuffix(cliVer.String(), "-dirty") {
 		log.V(1).Info("⚠️  Using a development build of clusterctl.", "cliVersion", cliVer.String(), "latestGithubRelease", release.Version)

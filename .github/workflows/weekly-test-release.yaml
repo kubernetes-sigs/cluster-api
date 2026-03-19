@@ -24,6 +24,7 @@ jobs:
         with:
           ref: ${{ matrix.branch }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Set env
         run:  echo "RELEASE_TAG=v9.9.9-fake" >> $GITHUB_ENV
       - name: Set fake tag for release

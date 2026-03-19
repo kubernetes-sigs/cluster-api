@@ -257,10 +257,15 @@ func (r *Reconciler) reconcileSetOwnerAndLabels(_ context.Context, s *scope) (ct
 
 // reconcileDelete delete machinePool related resources.
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result, error) {
-	if ok, err := r.reconcileDeleteExternal(ctx, s.machinePool); !ok || err != nil {
-		// Return early and don't remove the finalizer if we got an error or
-		// the external reconciliation deletion isn't ready.
+	ok, err := r.reconcileDeleteExternal(ctx, s.machinePool)
+	if err != nil {
+		// Return early and don't remove the finalizer if we got an error.
 		return ctrl.Result{}, fmt.Errorf("failed deleting external references: %s", err)
+	}
+
+	if !ok {
+		// Return early and don't remove the finalizer if we still have external references to delete.
+		return ctrl.Result{}, nil
 	}
 
 	// check nodes delete timeout passed.

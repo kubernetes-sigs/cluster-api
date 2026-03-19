@@ -328,7 +328,7 @@ func (w *Workload) GetAPIServerCertificateExpiry(ctx context.Context, kubeadmCon
 		}
 	}
 	if kubeAPIServerCert == nil {
-		return nil, errors.Wrapf(err, "unable to get certificate expiry for kube-apiserver on Node/%s: couldn't get peer certificate with cn=%q", nodeName, kubeadmAPIServerCertCommonName)
+		return nil, errors.Errorf("unable to get certificate expiry for kube-apiserver on Node/%s: couldn't get peer certificate with cn=%q", nodeName, kubeadmAPIServerCertCommonName)
 	}
 	return &kubeAPIServerCert.NotAfter, nil
 }

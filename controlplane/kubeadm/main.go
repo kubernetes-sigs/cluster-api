@@ -156,7 +156,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Grace period after which remote conditions (e.g. `APIServerPodHealthy`) are set to `Unknown`, "+
 			"the grace period starts from the last successful health probe to the workload cluster")
 
-	fs.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 10,
+	fs.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 100,
 		"Number of kubeadm control planes to process simultaneously")
 
 	fs.StringSliceVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
@@ -279,6 +279,9 @@ func main() {
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
 			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			// Give the manager more time to sync the caches during startup. This is required
+			// in high scale environments when they are more objects in the system (default is 3m).
+			CacheSyncTimeout: 5 * time.Minute,
 		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,

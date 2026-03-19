@@ -189,13 +189,13 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Grace period after which remote conditions (e.g. `NodeHealthy`) are set to `Unknown`, "+
 			"the grace period starts from the last successful health probe to the workload cluster")
 
-	fs.IntVar(&clusterTopologyConcurrency, "clustertopology-concurrency", 10,
+	fs.IntVar(&clusterTopologyConcurrency, "clustertopology-concurrency", 50,
 		"Number of clusters to process simultaneously")
 
 	fs.IntVar(&clusterClassConcurrency, "clusterclass-concurrency", 10,
 		"Number of ClusterClasses to process simultaneously")
 
-	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
+	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 50,
 		"Number of clusters to process simultaneously")
 
 	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
@@ -204,22 +204,22 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&extensionConfigConcurrency, "extensionconfig-concurrency", 10,
 		"Number of extension configs to process simultaneously")
 
-	fs.IntVar(&machineConcurrency, "machine-concurrency", 10,
+	fs.IntVar(&machineConcurrency, "machine-concurrency", 100,
 		"Number of machines to process simultaneously")
 
-	fs.IntVar(&machineSetConcurrency, "machineset-concurrency", 10,
+	fs.IntVar(&machineSetConcurrency, "machineset-concurrency", 50,
 		"Number of machine sets to process simultaneously")
 
-	fs.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 10,
+	fs.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 50,
 		"Number of machine deployments to process simultaneously")
 
-	fs.IntVar(&machinePoolConcurrency, "machinepool-concurrency", 10,
+	fs.IntVar(&machinePoolConcurrency, "machinepool-concurrency", 50,
 		"Number of machine pools to process simultaneously")
 
 	fs.IntVar(&clusterResourceSetConcurrency, "clusterresourceset-concurrency", 10,
 		"Number of cluster resource sets to process simultaneously")
 
-	fs.IntVar(&machineHealthCheckConcurrency, "machinehealthcheck-concurrency", 10,
+	fs.IntVar(&machineHealthCheckConcurrency, "machinehealthcheck-concurrency", 50,
 		"Number of machine health checks to process simultaneously")
 
 	fs.StringSliceVar(&machineSetPreflightChecks, "machineset-preflight-checks", []string{
@@ -368,6 +368,9 @@ func main() {
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
 			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			// Give the manager more time to sync the caches during startup. This is required
+			// in high scale environments when they are more objects in the system (default is 3m).
+			CacheSyncTimeout: 5 * time.Minute,
 		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,

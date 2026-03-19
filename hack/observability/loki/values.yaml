@@ -25,6 +25,11 @@ deploymentMode: SingleBinary
 
 singleBinary:
   replicas: 1
+  persistence:
+    # Using 256Gi so this also works during scale tests.
+    # In kind the local-path-provisioner is used that just mounts a local
+    # directory so this doesn't take up space until it is actually needed.
+    size: 256Gi
 
 gateway:
   enabled: false

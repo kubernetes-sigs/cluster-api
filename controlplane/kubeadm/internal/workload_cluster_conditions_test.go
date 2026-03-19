@@ -391,6 +391,52 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			expectedEtcdMembersAndMachinesAreMatching: false, // without reading members, we can not make assumptions.
 		},
 		{
+			name: "an etcd member in learner mode should be reported",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withNodeRef("n1")),
+			},
+			injectClient: &fakeClient{
+				list: &corev1.NodeList{
+					Items: []corev1.Node{*fakeNode("n1")},
+				},
+			},
+			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
+				forNodesClient: &etcd.Client{
+					EtcdClient: &fake2.FakeEtcdClient{
+						EtcdEndpoints: []string{},
+						MemberListResponse: &clientv3.MemberListResponse{
+							Members: []*pb.Member{
+								{Name: "n1", ID: uint64(1), IsLearner: true},
+							},
+						},
+						AlarmResponse: &clientv3.AlarmResponse{
+							Alarms: []*pb.AlarmMember{},
+						},
+					},
+				},
+			},
+			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
+			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
+				"m1": {
+					*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Waiting for learner etcd member to be promoted"),
+				},
+			},
+			expectedKCPCondition: &metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneEtcdClusterNotHealthyReason,
+				Message: "* Machine m1:\n" +
+					"  * EtcdMemberHealthy: Waiting for learner etcd member to be promoted",
+			},
+			expectedMachineConditions: map[string][]metav1.Condition{
+				"m1": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyReason, Message: "Waiting for learner etcd member to be promoted"},
+				},
+			},
+			expectedEtcdMembers:                       []string{"n1"},
+			expectedEtcdMembersAndMachinesAreMatching: true,
+		},
+		{
 			name: "an etcd member with alarms should report false condition",
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withNodeRef("n1")),

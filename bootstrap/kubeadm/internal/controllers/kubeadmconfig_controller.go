@@ -138,7 +138,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 	).WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmconfig", r.ClusterToKubeadmConfigs))
 
-	if err := b.Complete(r); err != nil {
+	if err := b.Complete(ctx, r); err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil

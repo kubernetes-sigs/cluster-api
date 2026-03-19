@@ -52,7 +52,7 @@ func TestReconcile(t *testing.T) {
 	// Note: synctest.Test below will run with a fake clock, so it will add
 	// entries to the cache with a timestamp ~ 2020. We are using a high expiration
 	// time here so that the cache does not expire our entries during the test run.
-	reconcileCache := cache.New[reconcileCacheEntry](250 * 365 * 24 * time.Hour) // 250 years
+	reconcileCache := cache.New[reconcileCacheEntry](t.Context(), 250*365*24*time.Hour) // 250 years
 
 	synctest.Test(t, func(t *testing.T) {
 		g := NewWithT(t)
@@ -248,7 +248,7 @@ func TestReconcileMetrics(t *testing.T) {
 
 	// reconcileCache has to be created outside synctest.Test, otherwise
 	// the test would fail because of the cleanup go routine in the cache.
-	reconcileCache := cache.New[reconcileCacheEntry](cache.DefaultTTL)
+	reconcileCache := cache.New[reconcileCacheEntry](t.Context(), cache.DefaultTTL)
 
 	synctest.Test(t, func(t *testing.T) {
 		g := NewWithT(t)

@@ -121,8 +121,8 @@ func TestHandler(t *testing.T) {
 		clientWithV1Beta2ContractCRD,
 		clustercache.NewFakeEmptyClusterCache(),
 		runtimeClient,
-		cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
-		cache.New[desiredstate.GenerateUpgradePlanCacheEntry](10*time.Minute),
+		cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+		cache.New[desiredstate.GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute),
 	)
 	g.Expect(err).ToNot(HaveOccurred())
 

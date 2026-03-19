@@ -154,7 +154,7 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("DockerCluster"), mgr.GetClient(), &infrav1.DockerCluster{})),
 			predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
-		).Complete(r)
+		).Complete(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

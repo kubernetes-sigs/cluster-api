@@ -111,7 +111,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			predicates.ResourceHasFilterLabel(mgr.GetScheme(), *r.predicateLog, r.WatchFilterValue),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("machinepool", clusterToMachinePools)).
-		Build(r)
+		Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

@@ -116,6 +116,8 @@ func (c *ClusterResourceSetBinding) RemoveBinding(clusterResourceSet *ClusterRes
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".spec.clusterName",description="Cluster"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterResourceSetBinding"
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterResourceSetBinding lists all matching ClusterResourceSets with the cluster it belongs to.
 type ClusterResourceSetBinding struct {

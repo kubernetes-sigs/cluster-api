@@ -147,6 +147,18 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 				continue
 			}
 
+			if member.IsLearner {
+				v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Waiting for learner etcd member to be promoted")
+
+				conditions.Set(machine, metav1.Condition{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyReason,
+					Message: "Waiting for learner etcd member to be promoted",
+				})
+				continue
+			}
+
 			// Check for alarms for the etcd member
 			alarmList := []string{}
 			for _, alarm := range alarms {

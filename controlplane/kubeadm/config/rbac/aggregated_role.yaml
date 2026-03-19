@@ -6,4 +6,3 @@ aggregationRule:
   clusterRoleSelectors:
   - matchLabels:
       kubeadm.controlplane.cluster.x-k8s.io/aggregate-to-manager: "true"
-rules: []

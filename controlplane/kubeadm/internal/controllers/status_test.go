@@ -2287,13 +2287,13 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap()}
 	machines := map[string]*clusterv1.Machine{}
-	nodes := []*corev1.Node{}
+	nodes := []*internal.Node{}
 	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, true)
 		objs = append(objs, n, m)
 		machines[m.Name] = m
-		nodes = append(nodes, n)
+		nodes = append(nodes, internal.TransformNode(n))
 	}
 
 	fakeClient := newFakeClient(objs...)
@@ -2360,18 +2360,18 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	g.Expect(err).ToNot(HaveOccurred())
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
-	nodes := []*corev1.Node{}
+	nodes := []*internal.Node{}
 	for i := range 4 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
 		machines[m.Name] = m
 		objs = append(objs, n, m)
-		nodes = append(nodes, n)
+		nodes = append(nodes, internal.TransformNode(n))
 	}
 	m, n := createMachineNodePair("testReady", cluster, kcp, true)
 	objs = append(objs, n, m, kubeadmConfigMap())
 	machines[m.Name] = m
-	nodes = append(nodes, n)
+	nodes = append(nodes, internal.TransformNode(n))
 	fakeClient := newFakeClient(objs...)
 
 	r := &KubeadmControlPlaneReconciler{

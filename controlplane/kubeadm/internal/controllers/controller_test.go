@@ -1872,9 +1872,10 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			Name:      "existing-machine",
 			Namespace: namespace.Name,
 			Labels: map[string]string{
-				"preserved-label": "preserved-value",
-				"dropped-label":   "dropped-value",
-				"modified-label":  "modified-value",
+				clusterv1.MachineControlPlaneLabel: "",
+				"preserved-label":                  "preserved-value",
+				"dropped-label":                    "dropped-value",
+				"modified-label":                   "modified-value",
 			},
 			Annotations: map[string]string{
 				"preserved-annotation": "preserved-value",
@@ -1902,9 +1903,11 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Existing machine that is in deleting state
 	deletingMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        "deleting-machine",
-			Namespace:   namespace.Name,
-			Labels:      map[string]string{},
+			Name:      "deleting-machine",
+			Namespace: namespace.Name,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
 			Annotations: map[string]string{},
 			Finalizers:  []string{"testing-finalizer"},
 		},
@@ -1934,9 +1937,11 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Existing machine that has a InfrastructureRef which does not exist.
 	nilInfraMachineMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        "nil-infra-machine-machine",
-			Namespace:   namespace.Name,
-			Labels:      map[string]string{},
+			Name:      "nil-infra-machine-machine",
+			Namespace: namespace.Name,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
 			Annotations: map[string]string{},
 			Finalizers:  []string{"testing-finalizer"},
 		},
@@ -2180,7 +2185,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			Manager:    kcpManagerName,
 			Operation:  metav1.ManagedFieldsOperationApply,
 			APIVersion: clusterv1.GroupVersion.String(),
-			FieldsV1:   "{\"f:metadata\":{\"f:finalizers\":{\"v:\\\"testing-finalizer\\\"\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}},\"f:readinessGates\":{\"k:{\\\"conditionType\\\":\\\"APIServerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"ControllerManagerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"NodeKubeadmLabelsAndTaintsSet\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"SchedulerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}}}}}",
+			FieldsV1:   "{\"f:metadata\":{\"f:finalizers\":{\"v:\\\"testing-finalizer\\\"\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/control-plane\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}},\"f:readinessGates\":{\"k:{\\\"conditionType\\\":\\\"APIServerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"ControllerManagerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"NodeKubeadmLabelsAndTaintsSet\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"SchedulerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}}}}}",
 		}, {
 			// capi-kubeadmcontrolplane owns the fields that are propagated in-place for deleting Machines in syncMachines via patchHelper.
 			Manager:    "manager",

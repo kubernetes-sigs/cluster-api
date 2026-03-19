@@ -2612,6 +2612,9 @@ func getMachine(namespace, name string, options ...machineOption) *clusterv1.Mac
 	m := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",

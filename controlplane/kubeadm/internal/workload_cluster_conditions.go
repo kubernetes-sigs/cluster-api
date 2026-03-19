@@ -242,7 +242,7 @@ func unwrapAll(err error) error {
 // getCurrentEtcdMembersAndAlarms returns the current list of etcd member and alarms.
 // Considering that the underlying etcd SDK calls (MemberList and AlarmList) requires quorum across all etcd members, it is possible
 // to run those calls towards any etcd Pod hosting an etcd member.
-func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines collections.Machines, nodes []*corev1.Node) ([]*etcd.Member, []etcd.MemberAlarm, error) {
+func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines collections.Machines, nodes []*Node) ([]*etcd.Member, []etcd.MemberAlarm, error) {
 	// Get the list of nodes hosting an etcd member sorted by the last known etcd health,
 	// so the client generator in the following line will try to connect first to nodes with higher chance to answer.
 	nodeNames := getNodeNamesSortedByLastKnownEtcdHealth(nodes, machines)
@@ -319,7 +319,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 
 // getNodeNamesSortedByLastKnownEtcdHealth return the list of nodes hosting an etcd member sorted by the last known etcd health.
 // Note: sorting by last known etcd health is a best effort operations; only nodes with a corresponding machine are considered.
-func getNodeNamesSortedByLastKnownEtcdHealth(nodes []*corev1.Node, machines collections.Machines) []string {
+func getNodeNamesSortedByLastKnownEtcdHealth(nodes []*Node, machines collections.Machines) []string {
 	// Get the list of nodes and the corresponding MachineEtcdMemberHealthyCondition
 	eligibleNodes := sets.Set[string]{}
 	nodeEtcdHealthyCondition := map[string]metav1.Condition{}
@@ -530,9 +530,9 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		// fallback in getting the node by name.
 		// Note: the lack of ControlPlane label is not relevant for assessing the status of control plane
 		// components (while the absence of a Node is relevant).
-		var node corev1.Node
+		var node *Node
 		nodeExists := false
-		for _, n := range nodesWithControlPlaneLabel.Items {
+		for _, n := range nodesWithControlPlaneLabel {
 			if machine.Status.NodeRef.IsDefined() && machine.Status.NodeRef.Name == n.Name {
 				node = n
 				nodeExists = true
@@ -541,9 +541,8 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		}
 
 		if !nodeExists && machine.Status.NodeRef.IsDefined() {
-			n := &corev1.Node{}
-			if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: machine.Status.NodeRef.Name}, n); err == nil {
-				node = *n
+			if n, err := GetTransformedNode(ctx, w.Client, ctrlclient.ObjectKey{Name: machine.Status.NodeRef.Name}); err == nil {
+				node = n
 				nodeExists = true
 			}
 		}
@@ -551,7 +550,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		// If a node corresponding to a Machine has been found, store it in the list of nodes to
 		// be used as input to methods accessing etcd via port-forward.
 		if nodeExists {
-			controlPlane.Nodes = append(controlPlane.Nodes, &node)
+			controlPlane.Nodes = append(controlPlane.Nodes, node)
 		}
 
 		// If the machine is deleting, report all the conditions as deleting without further checks on
@@ -680,7 +679,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	// If there are no provisioning machines, check for control plane nodes
 	// without a corresponding machine and surface issues at KCP level.
 	if !hasProvisioningMachines {
-		for _, node := range nodesWithControlPlaneLabel.Items {
+		for _, node := range nodesWithControlPlaneLabel {
 			machineExists := false
 			for _, m := range controlPlane.Machines {
 				if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == node.Name {
@@ -717,12 +716,12 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	})
 }
 
-func (w *Workload) updateNodeCondition(controlPlane *ControlPlane, machine *clusterv1.Machine, node corev1.Node) {
+func (w *Workload) updateNodeCondition(controlPlane *ControlPlane, machine *clusterv1.Machine, node *Node) {
 	msg := ""
 	if _, ok := node.Labels[labelNodeRoleControlPlane]; !ok {
 		msg = fmt.Sprintf("Node %s does not have the %s label", machine.Status.NodeRef.Name, labelNodeRoleControlPlane)
 	}
-	if controlPlane.DefaultTaintIsMissing(machine, &node) {
+	if controlPlane.DefaultTaintIsMissing(machine, node) {
 		if msg != "" {
 			msg += fmt.Sprintf(" and the %s:%s taint", labelNodeRoleControlPlane, corev1.TaintEffectNoSchedule)
 		} else {
@@ -747,7 +746,7 @@ func (w *Workload) updateNodeCondition(controlPlane *ControlPlane, machine *clus
 }
 
 // nodeHasUnreachableTaint returns true if the node has is unreachable from the node controller.
-func nodeHasUnreachableTaint(node corev1.Node) bool {
+func nodeHasUnreachableTaint(node *Node) bool {
 	for _, taint := range node.Spec.Taints {
 		if taint.Key == corev1.TaintNodeUnreachable && taint.Effect == corev1.TaintEffectNoExecute {
 			return true
@@ -759,7 +758,7 @@ func nodeHasUnreachableTaint(node corev1.Node) bool {
 // updateStaticPodCondition is responsible for updating machine conditions reflecting the status of a component running
 // in a static pod generated by kubeadm. This operation is best effort, in the sense that in case of problems
 // in retrieving the pod status, it sets the condition to Unknown state without returning any error.
-func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *clusterv1.Machine, node corev1.Node, component string, staticPodV1Beta1Condition clusterv1.ConditionType, staticPodCondition string) {
+func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *clusterv1.Machine, node *Node, component string, staticPodV1Beta1Condition clusterv1.ConditionType, staticPodCondition string) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If node ready is unknown there is a good chance that kubelet is not updating mirror pods, so we consider pod status
@@ -781,8 +780,8 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		Name:      staticPodName(component, node.Name),
 	}
 
-	pod := corev1.Pod{}
-	if err := w.Client.Get(ctx, podKey, &pod); err != nil {
+	pod, err := GetTransformedPod(ctx, w.Client, podKey)
+	if err != nil {
 		// If there is an error getting the Pod, do not set any conditions.
 		if apierrors.IsNotFound(err) {
 			v1beta1conditions.MarkFalse(machine, staticPodV1Beta1Condition, controlplanev1.PodMissingV1Beta1Reason, clusterv1.ConditionSeverityError, "Pod %s is missing", podKey.Name)
@@ -972,7 +971,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 	}
 }
 
-func nodeReadyUnknown(node corev1.Node) bool {
+func nodeReadyUnknown(node *Node) bool {
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == corev1.NodeReady {
 			return condition.Status == corev1.ConditionUnknown
@@ -981,7 +980,7 @@ func nodeReadyUnknown(node corev1.Node) bool {
 	return false
 }
 
-func podCondition(pod corev1.Pod, condition corev1.PodConditionType) corev1.ConditionStatus {
+func podCondition(pod *Pod, condition corev1.PodConditionType) corev1.ConditionStatus {
 	for _, c := range pod.Status.Conditions {
 		if c.Type == condition {
 			return c.Status

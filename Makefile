@@ -191,6 +191,11 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
+CRD_REF_DOCS_VER := v0.3.0
+CRD_REF_DOCS_BIN := crd-ref-docs
+CRD_REF_DOCS := $(abspath $(TOOLS_BIN_DIR)/$(CRD_REF_DOCS_BIN)-$(CRD_REF_DOCS_VER))
+CRD_REF_DOCS_PKG := github.com/elastic/crd-ref-docs
+
 TRIAGE_PARTY_IMAGE_NAME ?= extra/triage-party
 TRIAGE_PARTY_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(TRIAGE_PARTY_IMAGE_NAME)
 TRIAGE_PARTY_DIR := hack/tools/triage
@@ -553,6 +558,14 @@ generate-modules: ## Run go mod tidy to ensure modules are up to date
 .PHONY: generate-doctoc
 generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
+
+.PHONY: generate-crd-docs
+generate-crd-docs: $(CRD_REF_DOCS) ## Generate CRD API reference documentation using crd-ref-docs
+	$(CRD_REF_DOCS) \
+		--source-path=$(ROOT_DIR)/api \
+		--config=$(ROOT_DIR)/hack/crd-ref-docs-config.yaml \
+		--renderer=markdown \
+		--output-path=$(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference.md
 
 .PHONY: generate-e2e-templates
 generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.10 v1.11 v1.12 main) ## Generate cluster templates for all versions
@@ -1423,6 +1436,9 @@ $(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
 
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+
+$(CRD_REF_DOCS): # Build crd-ref-docs from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CRD_REF_DOCS_PKG) $(CRD_REF_DOCS_BIN) $(CRD_REF_DOCS_VER)
 
 ## We are forcing a rebuilt of conversion-gen via PHONY so that we're always using an up-to-date version.
 ## We can't use a versioned name for the binary, because that would be reflected in generated files.

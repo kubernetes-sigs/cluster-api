@@ -15,3 +15,5 @@ Following pages provide additional documentation to better understand and use Cl
 * [Metadata propagation](metadata-propagation.md)
 
 * [Owner References](owner-references.md)
+
+* [CRD API Reference](crd-api-reference.md)

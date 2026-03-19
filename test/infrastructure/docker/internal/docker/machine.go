@@ -406,7 +406,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstr
 	var outErr bytes.Buffer
 	var outStd bytes.Buffer
 	for _, command := range commands {
-		log.Info("Running command", "instance", m.Name(), "command", command)
+		log.Info("Running command", "instance", m.Name(), "command", command.Cmd)
 		cmd := m.container.Commander.Command(command.Cmd, command.Args...)
 		cmd.SetStderr(&outErr)
 		cmd.SetStdout(&outStd)

@@ -129,7 +129,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")
 
-	fs.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
+	fs.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 100,
 		"Number of kubeadm configs to process simultaneously")
 
 	fs.StringSliceVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
@@ -227,6 +227,9 @@ func main() {
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
 			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			// Give the manager more time to sync the caches during startup. This is required
+			// in high scale environments when they are more objects in the system (default is 3m).
+			CacheSyncTimeout: 5 * time.Minute,
 		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,

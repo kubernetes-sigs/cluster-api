@@ -42,7 +42,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/setup"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -211,18 +211,13 @@ func TestGetWorkloadCluster(t *testing.T) {
 				}(o)
 			}
 
+			secretCachingClient, err := setup.CreateSecretCachingClient(env.Manager)
+			g.Expect(err).ToNot(HaveOccurred())
+
 			clusterCache, err := clustercache.SetupWithManager(ctx, env.Manager, clustercache.Options{
-				SecretClient: env.GetClient(),
-				Client: clustercache.ClientOptions{
-					UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
-					Cache: clustercache.ClientCacheOptions{
-						DisableFor: []client.Object{
-							// Don't cache ConfigMaps & Secrets.
-							&corev1.ConfigMap{},
-							&corev1.Secret{},
-						},
-					},
-				},
+				SecretClient: secretCachingClient,
+				Cache:        setup.ClusterCacheCacheOptions(),
+				Client:       setup.ClusterCacheClientOptions("test-controller-manager", 20, 30),
 			}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)})
 			g.Expect(err).ToNot(HaveOccurred())
 			defer clusterCache.(interface{ Shutdown() }).Shutdown()

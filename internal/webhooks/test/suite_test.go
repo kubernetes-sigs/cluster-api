@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"k8s.io/component-base/featuregate"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/clusterclass"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
+	"sigs.k8s.io/cluster-api/internal/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
@@ -57,9 +59,11 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:                m,
-		SetupEnv:         func(e *envtest.Environment) { env = e },
-		SetupReconcilers: setupReconcilers,
-		SetupIndexes:     setupIndexes,
+		M:                    m,
+		ManagerCacheOptions:  setup.ManagerCacheOptions("", 10*time.Minute),
+		ManagerClientOptions: setup.ManagerClientOptions(),
+		SetupEnv:             func(e *envtest.Environment) { env = e },
+		SetupReconcilers:     setupReconcilers,
+		SetupIndexes:         setupIndexes,
 	}))
 }

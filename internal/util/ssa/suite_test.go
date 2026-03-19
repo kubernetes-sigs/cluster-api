@@ -19,6 +19,7 @@ package ssa
 import (
 	"os"
 	"testing"
+	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
@@ -43,7 +45,9 @@ func init() {
 
 func TestMain(m *testing.M) {
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:        m,
-		SetupEnv: func(e *envtest.Environment) { env = e },
+		M:                    m,
+		ManagerCacheOptions:  setup.ManagerCacheOptions("", 10*time.Minute),
+		ManagerClientOptions: setup.ManagerClientOptions(),
+		SetupEnv:             func(e *envtest.Environment) { env = e },
 	}))
 }

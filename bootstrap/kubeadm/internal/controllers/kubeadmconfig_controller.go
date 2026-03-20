@@ -44,6 +44,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/bootstrapfiles"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/ignition"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
@@ -579,6 +580,17 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		})
 		return ctrl.Result{}, err
 	}
+	files, err = bootstrapfiles.RenderTemplates(files, bootstrapfiles.DataFromVersion(parsedVersion))
+	if err != nil {
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
+			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
+			Message: "Failed to render go-template in spec.files",
+		})
+		return ctrl.Result{}, err
+	}
 
 	users, err := r.resolveUsers(ctx, scope.Config)
 	if err != nil {
@@ -765,6 +777,18 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		files = append(files, *kubeconfig)
 	}
 
+	files, err = bootstrapfiles.RenderTemplates(files, bootstrapfiles.DataFromVersion(parsedVersion))
+	if err != nil {
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
+			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
+			Message: "Failed to render go-template in spec.files",
+		})
+		return ctrl.Result{}, err
+	}
+
 	nodeInput := &cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
 			AdditionalFiles: files,
@@ -949,6 +973,18 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 			return ctrl.Result{}, err
 		}
 		files = append(files, *kubeconfig)
+	}
+
+	files, err = bootstrapfiles.RenderTemplates(files, bootstrapfiles.DataFromVersion(parsedVersion))
+	if err != nil {
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
+			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
+			Message: "Failed to render go-template in spec.files",
+		})
+		return ctrl.Result{}, err
 	}
 
 	controlPlaneJoinInput := &cloudinit.ControlPlaneJoinInput{

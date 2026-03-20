@@ -1,5 +1,5 @@
 /*
-Copyright 2025 The Kubernetes Authors.
+Copyright 2026 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -62,10 +62,10 @@ type KubeadmVersionOnJoinSpecInput struct {
 }
 
 // KubeadmVersionOnJoinSpec verifies that when a worker Machine joins a cluster during an
-// upgrade, the bootstrap controller uses the control plane's Kubernetes version for the
-// kubeadm version file. A fetch-kubeadm.sh preKubeadmCommand then downloads the matching
-// kubeadm binary so that kubeadm join succeeds against the upgraded control plane, even
-// though the worker's spec version is still the old version.
+// upgrade, the bootstrap controller renders spec.files go-template content with the control
+// plane's Kubernetes version. A fetch-kubeadm.sh preKubeadmCommand (installed from that
+// templated file) downloads the matching kubeadm binary so that kubeadm join succeeds against
+// the upgraded control plane, even though the worker's spec version is still the old version.
 func KubeadmVersionOnJoinSpec(ctx context.Context, inputGetter func() KubeadmVersionOnJoinSpecInput) {
 	const specName = "kubeadm-version-on-join"
 
@@ -224,7 +224,7 @@ func KubeadmVersionOnJoinSpec(ctx context.Context, inputGetter func() KubeadmVer
 		Expect(newMachine).ToNot(BeNil(), "Could not find new Machine (original: %s)", originalMachine.Name)
 		log.Logf("New worker machine: %s, nodeRef: %s", newMachine.Name, newMachine.Status.NodeRef.Name)
 
-		By("Verifying the kubeadm version file and fetch-kubeadm.sh on the new node")
+		By("Verifying fetch-kubeadm.sh was rendered with the control plane version on the new node")
 		containerName := newMachine.Status.NodeRef.Name
 		verifyKubeadmVersionOnNode(ctx, containerName, kubernetesVersionUpgradeTo)
 
@@ -276,33 +276,27 @@ func KubeadmVersionOnJoinSpec(ctx context.Context, inputGetter func() KubeadmVer
 	})
 }
 
-// verifyKubeadmVersionOnNode verifies the kubeadm version file and kubeadm binary
-// version on the CAPD container match the expected version.
+// verifyKubeadmVersionOnNode verifies fetch-kubeadm.sh was rendered with the expected
+// control plane Kubernetes version and ran before kubeadm join.
 func verifyKubeadmVersionOnNode(ctx context.Context, containerName, expectedVersion string) {
 	containerRuntime, err := container.NewDockerClient()
 	Expect(err).ToNot(HaveOccurred(), "Failed to create container runtime client")
 
-	// The version file is written by the bootstrap controller using semver.String(),
-	// which strips the "v" prefix (e.g. "1.35.0" not "v1.35.0").
+	// Bootstrap go-template data uses semver.String() (no "v" prefix).
 	expectedVersionNoPfx := strings.TrimPrefix(expectedVersion, "v")
 
-	// Verify the version file was written with the expected content.
-	log.Logf("Checking /run/cluster-api/kubeadm-version on container %s", containerName)
-	out, err := execInContainer(ctx, containerRuntime, containerName, "cat", "/run/cluster-api/kubeadm-version")
-	Expect(err).ToNot(HaveOccurred(), "Failed to read kubeadm version file: %s", out)
-	versionFileContent := strings.TrimSpace(out)
-	Expect(versionFileContent).To(Equal(expectedVersionNoPfx),
-		"Version file content %q does not match expected %q", versionFileContent, expectedVersionNoPfx)
-	log.Logf("Version file contains: %s", versionFileContent)
+	log.Logf("Checking /run/cluster-api/fetch-kubeadm.sh on container %s", containerName)
+	out, err := execInContainer(ctx, containerRuntime, containerName, "cat", "/run/cluster-api/fetch-kubeadm.sh")
+	Expect(err).ToNot(HaveOccurred(), "Failed to read fetch-kubeadm.sh: %s", out)
+	Expect(out).To(ContainSubstring(`version="`+expectedVersionNoPfx+`"`),
+		"fetch script should contain rendered KubernetesVersion %q; script:\n%s", expectedVersionNoPfx, out)
 
-	// Verify that fetch-kubeadm.sh ran and found the version file. This proves the
-	// version file was present before kubeadm join (i.e. before preKubeadmCommands ran).
 	log.Logf("Checking fetch-kubeadm.log on container %s", containerName)
 	out, err = execInContainer(ctx, containerRuntime, containerName, "cat", "/var/log/fetch-kubeadm.log")
 	Expect(err).ToNot(HaveOccurred(), "Failed to read fetch-kubeadm.log: %s", out)
 	log.Logf("fetch-kubeadm.log:\n%s", out)
-	Expect(out).To(ContainSubstring("raw version from file:"),
-		"fetch-kubeadm.sh must find the version file; log:\n%s", out)
+	Expect(out).To(ContainSubstring("raw version from template:"),
+		"fetch-kubeadm.sh must log embedded version; log:\n%s", out)
 
 	// Log the kubeadm binary version (soft check -- the curl download may fail in
 	// environments without internet access, so we don't fail on a version mismatch).

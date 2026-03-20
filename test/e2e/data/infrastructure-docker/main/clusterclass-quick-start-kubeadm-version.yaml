@@ -276,22 +276,17 @@ spec:
       - path: /run/cluster-api/fetch-kubeadm.sh
         owner: "root:root"
         permissions: "0755"
+        contentFormat: go-template
         content: |
           #!/bin/sh
           set -e
-          VERSION_FILE="/run/cluster-api/kubeadm-version"
           KUBEADM_INSTALL="/usr/bin/kubeadm"
           BASE_URL="https://dl.k8s.io/release"
+          version="{{ .KubernetesVersion }}"
           echo "fetch-kubeadm.sh: starting"
-          echo "fetch-kubeadm.sh: VERSION_FILE=$$VERSION_FILE KUBEADM_INSTALL=$$KUBEADM_INSTALL"
-          if [ ! -f "$$VERSION_FILE" ]; then
-            echo "fetch-kubeadm.sh: ERROR: $$VERSION_FILE not found, aborting"
-            exit 1
-          fi
-          version=$$(tr -d '[:space:]' <"$$VERSION_FILE")
-          echo "fetch-kubeadm.sh: raw version from file: '$$version'"
+          echo "fetch-kubeadm.sh: raw version from template: '$$version'"
           if [ -z "$$version" ]; then
-            echo "fetch-kubeadm.sh: ERROR: empty version in $$VERSION_FILE, aborting"
+            echo "fetch-kubeadm.sh: ERROR: empty KubernetesVersion in script, aborting"
             exit 1
           fi
           case "$$version" in
@@ -333,7 +328,7 @@ spec:
       preKubeadmCommands:
       - |
         command -v curl >/dev/null 2>&1 || (apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*)
-      - 'sh /run/cluster-api/kubeadm-version/fetch-kubeadm.sh 2>&1 | tee /var/log/fetch-kubeadm.log || true'
+      - 'sh /run/cluster-api/fetch-kubeadm.sh 2>&1 | tee /var/log/fetch-kubeadm.log || true'
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:

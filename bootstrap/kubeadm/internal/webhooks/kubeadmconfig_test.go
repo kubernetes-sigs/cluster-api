@@ -154,6 +154,41 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		"valid go-template contentFormat": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Path:          "/x",
+							Content:       "{{ .KubernetesVersion }}",
+							ContentFormat: bootstrapv1.FileContentFormatGoTemplate,
+						},
+					},
+				},
+			},
+		},
+		"invalid contentFormat": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Path:          "/x",
+							Content:       "foo",
+							ContentFormat: bootstrapv1.FileContentFormat("helm"),
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
 		"valid passwd": {
 			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{

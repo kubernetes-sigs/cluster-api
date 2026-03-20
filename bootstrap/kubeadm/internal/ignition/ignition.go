@@ -63,14 +63,6 @@ func NewNode(input *NodeInput) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("node input can't be nil")
 	}
 
-	// Write control plane version to KubeadmVersionPath so it exists before kubeadm join.
-	versionFile := bootstrapv1.File{
-		Path:        cloudinit.KubeadmVersionPath,
-		Owner:       "root:root",
-		Permissions: "0644",
-		Content:     input.KubernetesVersion.String(),
-	}
-	input.WriteFiles = append([]bootstrapv1.File{versionFile}, input.WriteFiles...)
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	input.KubeadmCommand = fmt.Sprintf(kubeadmCommandTemplate, joinSubcommand, input.KubeadmVerbosity)
 

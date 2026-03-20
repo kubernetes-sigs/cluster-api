@@ -16,6 +16,16 @@ limitations under the License.
 
 package cloudinit
 
+import (
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+)
+
+const (
+	// KubeadmVersionPath is the path where the control plane Kubernetes version is written for worker nodes.
+	// It must exist before kubeadm join runs.
+	KubeadmVersionPath = "/run/cluster-api/kubeadm-version"
+)
+
 const (
 	nodeCloudInit = `{{.Header}}
 {{template "files" .WriteFiles}}
@@ -52,5 +62,13 @@ type NodeInput struct {
 func NewNode(input *NodeInput) ([]byte, error) {
 	input.prepare()
 	input.Header = cloudConfigHeader
+	// Write control plane version to KubeadmVersionPath so it exists before kubeadm join.
+	versionFile := bootstrapv1.File{
+		Path:        KubeadmVersionPath,
+		Owner:       "root:root",
+		Permissions: "0644",
+		Content:     input.KubernetesVersion.String(),
+	}
+	input.WriteFiles = append([]bootstrapv1.File{versionFile}, input.WriteFiles...)
 	return generate("Node", nodeCloudInit, input)
 }

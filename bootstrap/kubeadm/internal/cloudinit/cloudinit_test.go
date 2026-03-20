@@ -416,6 +416,8 @@ func TestNewJoinNodeCommands(t *testing.T) {
   - "echo $(date) ': hello PostKubeadmCommands!'"`
 
 	g.Expect(out).To(ContainSubstring(expectedRunCmd))
+
+	g.Expect(out).To(ContainSubstring("path: " + KubeadmVersionPath))
 }
 
 func TestOmittableFields(t *testing.T) {

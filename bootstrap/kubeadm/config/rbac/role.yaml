@@ -93,3 +93,12 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - kubeadmcontrolplanes
+  - kubeadmcontrolplanes/status
+  verbs:
+  - get
+  - list
+  - watch

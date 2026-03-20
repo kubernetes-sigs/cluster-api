@@ -47,6 +47,7 @@ var (
 	missingSecretNameMsg                             = "secret file source must specify non-empty secret name"
 	missingSecretKeyMsg                              = "secret file source must specify non-empty secret key"
 	pathConflictMsg                                  = "path property must be unique among all files"
+	invalidFileContentFormatMsg                      = "contentFormat must be empty or go-template"
 )
 
 // KubeadmConfigSpec defines the desired state of KubeadmConfig.
@@ -220,6 +221,16 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 		// n.b.: if we ever add types besides Secret as a ContentFrom
 		// Source, we must add webhook validation here for one of the
 		// sources being non-nil.
+		if file.ContentFormat != "" && file.ContentFormat != FileContentFormatGoTemplate {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					pathPrefix.Child("files").Index(i).Child("contentFormat"),
+					file.ContentFormat,
+					invalidFileContentFormatMsg,
+				),
+			)
+		}
 		if file.ContentFrom.IsDefined() {
 			if file.ContentFrom.Secret.Name == "" {
 				allErrs = append(
@@ -624,6 +635,16 @@ func init() {
 // +kubebuilder:validation:Enum=base64;gzip;gzip+base64
 type Encoding string
 
+// FileContentFormat specifies how file content is interpreted after resolving content/contentFrom and before writing bootstrap data.
+// +kubebuilder:validation:Enum="";go-template
+type FileContentFormat string
+
+const (
+	// FileContentFormatGoTemplate means content is rendered as a Go text/template (see kubeadm bootstrap provider docs).
+	// The default empty value means content is used verbatim.
+	FileContentFormatGoTemplate FileContentFormat = "go-template"
+)
+
 const (
 	// Base64 implies the contents of the file are encoded as base64.
 	Base64 Encoding = "base64"
@@ -656,6 +677,13 @@ type File struct {
 	// encoding specifies the encoding of the file contents.
 	// +optional
 	Encoding Encoding `json:"encoding,omitempty"`
+
+	// contentFormat specifies how to interpret content after it is loaded (inline or from contentFrom).
+	// When set to "go-template", content is rendered as a Go text/template with data including KubernetesVersion
+	// (semver.String(), no "v" prefix). For a worker joining a cluster, that version is the control plane
+	// Kubernetes version when the controller can read it; otherwise the Machine's version.
+	// +optional
+	ContentFormat FileContentFormat `json:"contentFormat,omitempty"`
 
 	// append specifies whether to append Content to existing file if Path exists.
 	// +optional

@@ -128,16 +128,24 @@ func KubeadmVersionOnJoinSpec(ctx context.Context, inputGetter func() KubeadmVer
 		mgmtClient := input.BootstrapClusterProxy.GetClient()
 		cluster := clusterResources.Cluster
 
-		By("Adding defer-upgrade and skip-preflight-checks annotations to the MachineDeployment topology")
+		By("Adding defer-upgrade and targeted skip-preflight-checks annotations to the MachineDeployment topology")
 		patchHelper, err := patch.NewHelper(cluster, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
+
+		// Scale-out uses a worker template still at upgradeFrom while the control plane is already at
+		// upgradeTo. KubeadmVersionSkew and ControlPlaneVersionSkew would block that; other preflights
+		// (e.g. KubernetesVersionSkew, ControlPlaneIsStable) should still run.
+		skippedMachineSetPreflights := strings.Join([]string{
+			string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew),
+			string(clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew),
+		}, ",")
 
 		mdTopology := cluster.Spec.Topology.Workers.MachineDeployments[0]
 		if mdTopology.Metadata.Annotations == nil {
 			mdTopology.Metadata.Annotations = map[string]string{}
 		}
 		mdTopology.Metadata.Annotations[clusterv1.ClusterTopologyDeferUpgradeAnnotation] = ""
-		mdTopology.Metadata.Annotations[clusterv1.MachineSetSkipPreflightChecksAnnotation] = string(clusterv1.MachineSetPreflightCheckAll)
+		mdTopology.Metadata.Annotations[clusterv1.MachineSetSkipPreflightChecksAnnotation] = skippedMachineSetPreflights
 		cluster.Spec.Topology.Workers.MachineDeployments[0] = mdTopology
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, cluster)
@@ -228,7 +236,7 @@ func KubeadmVersionOnJoinSpec(ctx context.Context, inputGetter func() KubeadmVer
 		containerName := newMachine.Status.NodeRef.Name
 		verifyKubeadmVersionOnNode(ctx, containerName, kubernetesVersionUpgradeTo)
 
-		By("Removing the defer-upgrade and skip-preflight-checks annotations and syncing topology replicas")
+		By("Removing the defer-upgrade and skip-preflight annotations and syncing topology replicas")
 		// Update the topology replicas to 2 to match the direct MD scaling we did above,
 		// so the topology controller doesn't scale the MachineDeployment back down.
 		Expect(mgmtClient.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)).To(Succeed())

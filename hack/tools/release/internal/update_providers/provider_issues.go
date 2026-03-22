@@ -51,7 +51,6 @@ var (
 		"kubernetes-sigs/cluster-api-provider-kubemark",
 		"kubernetes-sigs/cluster-api-provider-kubevirt",
 		"kubernetes-sigs/cluster-api-provider-ibmcloud",
-		"kubernetes-sigs/cluster-api-provider-nested",
 		"oracle/cluster-api-provider-oci",
 		"kubernetes-sigs/cluster-api-provider-openstack",
 		"kubernetes-sigs/cluster-api-operator",

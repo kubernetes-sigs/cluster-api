@@ -173,68 +173,53 @@ spec:
                 type: string
               instances:
                 description: Instances contains the status for each instance in the
-                  pool
+                  pool.
                 items:
                   description: DevMachinePoolInstanceStatus contains status information
                     about a DevMachinePool instances.
                   properties:
-                    docker:
-                      description: docker define backend status for a DevMachine for
-                        a machine using docker containers.
-                      properties:
-                        addresses:
-                          description: Addresses contains the associated addresses
-                            for the docker machine.
-                          items:
-                            description: MachineAddress contains information for the
-                              node's address.
-                            properties:
-                              address:
-                                description: address is the machine address.
-                                maxLength: 256
-                                minLength: 1
-                                type: string
-                              type:
-                                description: type is the machine address type, one
-                                  of Hostname, ExternalIP, InternalIP, ExternalDNS
-                                  or InternalDNS.
-                                enum:
-                                - Hostname
-                                - ExternalIP
-                                - InternalIP
-                                - ExternalDNS
-                                - InternalDNS
-                                type: string
-                            required:
-                            - address
-                            - type
-                            type: object
-                          type: array
-                        bootstrapped:
-                          description: |-
-                            Bootstrapped is true when the kubeadm bootstrapping has been run
-                            against this machine
-
-                            Deprecated: This field will be removed in the next apiVersion.
-                            When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml
-                          type: boolean
-                        instanceName:
-                          description: InstanceName is the identification of the Machine
-                            Instance within the Machine Pool
-                          type: string
-                        providerID:
-                          description: ProviderID is the provider identification of
-                            the Machine Pool Instance
-                          type: string
-                        ready:
-                          description: Ready denotes that the machine (docker container)
-                            is ready
-                          type: boolean
-                        version:
-                          description: Version defines the Kubernetes version for
-                            the Machine Instance
-                          type: string
-                      type: object
+                    addresses:
+                      description: Addresses contains the associated addresses for
+                        the machine.
+                      items:
+                        description: MachineAddress contains information for the node's
+                          address.
+                        properties:
+                          address:
+                            description: address is the machine address.
+                            maxLength: 256
+                            minLength: 1
+                            type: string
+                          type:
+                            description: type is the machine address type, one of
+                              Hostname, ExternalIP, InternalIP, ExternalDNS or InternalDNS.
+                            enum:
+                            - Hostname
+                            - ExternalIP
+                            - InternalIP
+                            - ExternalDNS
+                            - InternalDNS
+                            type: string
+                        required:
+                        - address
+                        - type
+                        type: object
+                      type: array
+                    instanceName:
+                      description: InstanceName is the identification of the Machine
+                        Instance within the Machine Pool.
+                      type: string
+                    providerID:
+                      description: ProviderID is the provider identification of the
+                        Machine Pool Instance.
+                      type: string
+                    ready:
+                      description: Ready denotes that the machine is ready.
+                      type: boolean
+                    version:
+                      description: Version defines the Kubernetes version for the
+                        Machine Instance.
+                      type: string
                   type: object
                 type: array
               observedGeneration:

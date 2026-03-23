@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends"
 	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/docker"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -117,8 +118,6 @@ func (r *DevMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	log := ctrl.LoggerFrom(ctx)
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 
-	log.Info("Its not called")
-
 	// Fetch the DevMachinePool instance.
 	devMachinePool := &infrav1.DevMachinePool{}
 	if err := r.Client.Get(ctx, req.NamespacedName, devMachinePool); err != nil {
@@ -151,7 +150,7 @@ func (r *DevMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("MachinePool", machinePool.Name)
+	log = log.WithValues("MachinePool", klog.KObj(machinePool))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Fetch the Cluster.
@@ -168,6 +167,12 @@ func (r *DevMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Return early if the object or Cluster is paused.
+	if annotations.IsPaused(cluster, devMachinePool) {
+		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
 
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(devMachinePool, r.Client)
@@ -203,11 +208,11 @@ func (r *DevMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 func (r *DevMachinePoolReconciler) backendReconcilerFactory() backends.DevMachinePoolBackendReconciler {
-	return &dockerbackend.MachinePoolBackEndReconciler{
-		Client:           r.Client,
-		ContainerRuntime: r.ContainerRuntime,
-		SsaCache:         ssa.NewCache("devmachinepool"),
-	}
+	return dockerbackend.NewDockerMachinePoolBackEndReconciler(
+		r.Client,
+		r.ContainerRuntime,
+		ssa.NewCache("devmachinepool"),
+	)
 }
 
 // devMachineToDevMachinePool creates a mapping handler to transform DevMachine to DevMachinePool.

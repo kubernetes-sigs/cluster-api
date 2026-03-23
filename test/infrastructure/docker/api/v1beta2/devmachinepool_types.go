@@ -139,16 +139,31 @@ type DevMachinePoolStatus struct {
 	// +optional
 	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
 
-	// Instances contains the status for each instance in the pool
+	// Instances contains the status for each instance in the pool.
 	// +optional
 	Instances []DevMachinePoolInstanceStatus `json:"instances,omitempty"`
 }
 
 // DevMachinePoolInstanceStatus contains status information about a DevMachinePool instances.
 type DevMachinePoolInstanceStatus struct {
-	// docker define backend status for a DevMachine for a machine using docker containers.
+	// Addresses contains the associated addresses for the machine.
 	// +optional
-	Docker *DockerMachinePoolInstanceStatus `json:"docker,omitempty"`
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+
+	// InstanceName is the identification of the Machine Instance within the Machine Pool.
+	InstanceName string `json:"instanceName,omitempty"`
+
+	// ProviderID is the provider identification of the Machine Pool Instance.
+	// +optional
+	ProviderID *string `json:"providerID,omitempty"`
+
+	// Version defines the Kubernetes version for the Machine Instance.
+	// +optional
+	Version *string `json:"version,omitempty"`
+
+	// Ready denotes that the machine is ready.
+	// +optional
+	Ready bool `json:"ready"`
 }
 
 // GetConditions returns the set of conditions for this object.

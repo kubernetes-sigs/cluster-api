@@ -57,7 +57,16 @@ const (
 type MachinePoolBackEndReconciler struct {
 	client.Client
 	ContainerRuntime container.Runtime
-	SsaCache         ssa.Cache
+	ssaCache         ssa.Cache
+}
+
+// NewDockerMachinePoolBackEndReconciler creates a new DockerMachinePoolBackEndReconciler.
+func NewDockerMachinePoolBackEndReconciler(client client.Client, runtime container.Runtime, ssaCache ssa.Cache) *MachinePoolBackEndReconciler {
+	return &MachinePoolBackEndReconciler{
+		Client:           client,
+		ContainerRuntime: runtime,
+		ssaCache:         ssaCache,
+	}
 }
 
 // ReconcileNormal handle docker backend for DevMachinePool not yet deleted.
@@ -125,8 +134,6 @@ func (r *MachinePoolBackEndReconciler) ReconcileNormal(ctx context.Context, clus
 			Status: metav1.ConditionTrue,
 			Reason: infrav1.ReplicasReadyReason,
 		})
-
-		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -303,7 +310,7 @@ func (r *MachinePoolBackEndReconciler) reconcileDevMachines(ctx context.Context,
 		if existingMachine, ok := devMachineMap[machine.Name()]; ok {
 			log.V(2).Info("Patching existing DevMachine", "DevMachine", klog.KObj(&existingMachine))
 			desiredMachine := computeDesiredDevMachine(machine.Name(), cluster, machinePool, devMachinePool, &existingMachine)
-			if err := ssa.Patch(ctx, r.Client, devMachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.SsaCache, Original: &existingMachine}); err != nil {
+			if err := ssa.Patch(ctx, r.Client, devMachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: &existingMachine}); err != nil {
 				return errors.Wrapf(err, "failed to update DockerMachine %q", klog.KObj(desiredMachine))
 			}
 
@@ -411,7 +418,7 @@ func (r *MachinePoolBackEndReconciler) deleteMachinePoolMachine(ctx context.Cont
 	}
 	// util.GetOwnerMachine() returns a nil Machine without error if there is no Machine kind in the ownerRefs, so we must verify that machine is not nil.
 	if machine == nil {
-		log.V(2).Info("No owner Machine exists for DevMachine", "devMachine", klog.KObj(&devMachine))
+		log.V(2).Info("No owner Machine exists for DevMachine", "DevMachine", klog.KObj(&devMachine))
 
 		// If the DevMachine does not have an owner Machine, do not attempt to delete the DevMachine as the MachinePool controller will create the
 		// Machine and we want to let it catch up. If we are too hasty to delete, that introduces a race condition where the DevMachine could be deleted

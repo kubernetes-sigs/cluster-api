@@ -28,6 +28,7 @@ resources:
 patches:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
+- path: patches/webhook_in_dockermachinepools.yaml
 - path: patches/webhook_in_dockermachines.yaml
 - path: patches/webhook_in_dockermachinetemplates.yaml
 - path: patches/webhook_in_dockerclusters.yaml

@@ -1124,8 +1124,7 @@ release-binary: $(RELEASE_DIR)
 		-e GOCACHE=/go/build-cache/ \
 		--user $$(id -u):$$(id -g) \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
-		-v "$$(go env GOMODCACHE):/go/pkg/mod" \
-		-v "$$(go env GOCACHE):/go/build-cache" \
+		-v "$$(go env GOMODCACHE):/go/pkg/mod$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GO_VERSION) \
 		go build -a -trimpath -gcflags "$(GCFLAGS)" -ldflags "$(LDFLAGS) -extldflags '-static'" \

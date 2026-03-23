@@ -27,7 +27,7 @@ jobs:
       uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # tag=v6.3.0
       with:
         go-version: ${{ steps.vars.outputs.go_version }}
-    - uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # tag=v5.0.3
+    - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # tag=v5.0.4
       name: Restore go cache
       with:
         path: |
@@ -40,7 +40,7 @@ jobs:
       run: make generate-modules
     - name: Update generated code
       run: make generate
-    - uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # tag=v9.1.4
+    - uses: EndBug/add-and-commit@290ea2c423ad77ca9c62ae0f5b224379612c0321 # tag=v10.0.0
       name: Commit changes
       with:
         author_name: dependabot[bot]

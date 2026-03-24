@@ -1280,6 +1280,16 @@ spec:
                       maxLength: 10240
                       minLength: 1
                       type: string
+                    contentFormat:
+                      description: |-
+                        contentFormat specifies how to interpret content after it is loaded (inline or from contentFrom).
+                        When set to "go-template", content is rendered as a Go text/template with data including KubernetesVersion
+                        (semver.String(), no "v" prefix). For a worker joining a cluster, that version is the control plane
+                        Kubernetes version when the controller can read it; otherwise the Machine's version.
+                      enum:
+                      - ""
+                      - go-template
+                      type: string
                     contentFrom:
                       description: contentFrom is a referenced source of content to
                         populate the file.
@@ -2247,7 +2257,7 @@ spec:
                   conditions:
                     description: |-
                       conditions represents the observations of a KubeadmConfig's current state.
-                      Known condition types are Ready, DataSecretAvailable, CertificatesAvailable.
+                      Known condition types are Ready, DataSecretAvailable, CertificatesAvailable, ControlPlaneKubernetesVersionAvailable.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.
@@ -3669,6 +3679,16 @@ spec:
                       maxLength: 10240
                       minLength: 1
                       type: string
+                    contentFormat:
+                      description: |-
+                        contentFormat specifies how to interpret content after it is loaded (inline or from contentFrom).
+                        When set to "go-template", content is rendered as a Go text/template with data including KubernetesVersion
+                        (semver.String(), no "v" prefix). For a worker joining a cluster, that version is the control plane
+                        Kubernetes version when the controller can read it; otherwise the Machine's version.
+                      enum:
+                      - ""
+                      - go-template
+                      type: string
                     contentFrom:
                       description: contentFrom is a referenced source of content to
                         populate the file.
@@ -4718,7 +4738,7 @@ spec:
               conditions:
                 description: |-
                   conditions represents the observations of a KubeadmConfig's current state.
-                  Known condition types are Ready, DataSecretAvailable, CertificatesAvailable.
+                  Known condition types are Ready, DataSecretAvailable, CertificatesAvailable, ControlPlaneKubernetesVersionAvailable.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.

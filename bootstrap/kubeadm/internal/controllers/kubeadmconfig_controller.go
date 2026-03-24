@@ -44,6 +44,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/bootstrapfiles"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/ignition"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
@@ -51,7 +52,9 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -77,6 +80,7 @@ type InitLocker interface {
 
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status;kubeadmconfigs/finalizers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machinesets;machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes;kubeadmcontrolplanes/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
@@ -225,6 +229,10 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			conditions.ForConditionTypes{
 				bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 				bootstrapv1.KubeadmConfigCertificatesAvailableCondition,
+				bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
+			},
+			conditions.IgnoreTypesIfMissing{
+				bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
 			},
 			// Using a custom merge strategy to override reasons applied during merge and to ignore some
 			// info message so the ready condition aggregation in other resources is less noisy.
@@ -247,12 +255,14 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				clusterv1.ReadyV1Beta1Condition,
 				bootstrapv1.DataSecretAvailableV1Beta1Condition,
 				bootstrapv1.CertificatesAvailableV1Beta1Condition,
+				bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition,
 			}},
 			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedCondition,
 				bootstrapv1.KubeadmConfigReadyCondition,
 				bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 				bootstrapv1.KubeadmConfigCertificatesAvailableCondition,
+				bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
 			}},
 		}
 		if rerr == nil {
@@ -576,6 +586,17 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		})
 		return ctrl.Result{}, err
 	}
+	files, err = bootstrapfiles.RenderTemplates(files, bootstrapfiles.DataFromVersion(parsedVersion))
+	if err != nil {
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
+			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
+			Message: "Failed to render go-template in spec.files",
+		})
+		return ctrl.Result{}, err
+	}
 
 	users, err := r.resolveUsers(ctx, scope.Config)
 	if err != nil {
@@ -685,7 +706,45 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		return res, nil
 	}
 
-	kubernetesVersion := scope.ConfigOwner.KubernetesVersion()
+	// Use the control plane (cluster) version for worker join so that e.g. a 1.34 node uses kubeadm 1.35
+	// when the control plane is at 1.35. Fall back to the joining machine's version only when the cluster has
+	// no control plane ref or the referenced object does not expose spec.version (see getControlPlaneVersionForJoin).
+	kubernetesVersion, err := r.getControlPlaneVersionForJoin(ctx, scope)
+	if err != nil {
+		scope.Error(err, "Failed to resolve control plane Kubernetes version for worker join")
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition, bootstrapv1.ControlPlaneKubernetesVersionResolutionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
+			Type:    bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionResolutionFailedReason,
+			Message: err.Error(),
+		})
+		return ctrl.Result{}, err
+	}
+	var cpVersionReasonV1Beta1, cpVersionReason string
+	var cpVersionMsg string
+	if kubernetesVersion == "" {
+		kubernetesVersion = scope.ConfigOwner.KubernetesVersion()
+		cpVersionReasonV1Beta1 = bootstrapv1.ControlPlaneKubernetesVersionFromMachineV1Beta1Reason
+		cpVersionReason = bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromMachineReason
+		cpVersionMsg = "Kubernetes version for join uses the Machine's spec.version because the control plane reference is unset or does not expose a version."
+	} else {
+		cpVersionReasonV1Beta1 = bootstrapv1.ControlPlaneKubernetesVersionFromControlPlaneV1Beta1Reason
+		cpVersionReason = bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromControlPlaneReason
+		cpVersionMsg = "Kubernetes version for join was read from the Cluster's control plane reference."
+	}
+	v1beta1conditions.Set(scope.Config, &clusterv1.Condition{
+		Type:    bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition,
+		Status:  corev1.ConditionTrue,
+		Reason:  cpVersionReasonV1Beta1,
+		Message: cpVersionMsg,
+	})
+	conditions.Set(scope.Config, metav1.Condition{
+		Type:    bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
+		Status:  metav1.ConditionTrue,
+		Reason:  cpVersionReason,
+		Message: cpVersionMsg,
+	})
 	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
@@ -756,6 +815,18 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		files = append(files, *kubeconfig)
 	}
 
+	files, err = bootstrapfiles.RenderTemplates(files, bootstrapfiles.DataFromVersion(parsedVersion))
+	if err != nil {
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
+			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
+			Message: "Failed to render go-template in spec.files",
+		})
+		return ctrl.Result{}, err
+	}
+
 	nodeInput := &cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
 			AdditionalFiles: files,
@@ -805,6 +876,32 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 
 	// Ensure reconciling this object again so we keep refreshing the bootstrap token until it is consumed
 	return ctrl.Result{RequeueAfter: r.tokenCheckRefreshOrRotationInterval()}, nil
+}
+
+// getControlPlaneVersionForJoin returns the control plane (cluster) version from the cluster's ControlPlaneRef,
+// e.g. KubeadmControlPlane.spec.version. Returns ("", nil) if the cluster has no ControlPlaneRef or the referenced
+// control plane does not expose spec.version (ErrFieldNotFound or unset); callers should fall back to the machine's
+// Kubernetes version only in those cases. Returns an error if the control plane object cannot be fetched or if
+// the version field cannot be read for any other reason.
+func (r *KubeadmConfigReconciler) getControlPlaneVersionForJoin(ctx context.Context, scope *Scope) (string, error) {
+	if !scope.Cluster.Spec.ControlPlaneRef.IsDefined() {
+		return "", nil
+	}
+	controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, scope.Cluster.Spec.ControlPlaneRef, scope.Cluster.Namespace)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get control plane for join version")
+	}
+	cpVersion, err := contract.ControlPlane().Version().Get(controlPlane)
+	if err != nil {
+		if errors.Is(err, contract.ErrFieldNotFound) {
+			return "", nil
+		}
+		return "", errors.Wrap(err, "failed to read control plane version")
+	}
+	if cpVersion == nil {
+		return "", nil
+	}
+	return *cpVersion, nil
 }
 
 func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.Result, error) {
@@ -914,6 +1011,18 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 			return ctrl.Result{}, err
 		}
 		files = append(files, *kubeconfig)
+	}
+
+	files, err = bootstrapfiles.RenderTemplates(files, bootstrapfiles.DataFromVersion(parsedVersion))
+	if err != nil {
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
+			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
+			Message: "Failed to render go-template in spec.files",
+		})
+		return ctrl.Result{}, err
 	}
 
 	controlPlaneJoinInput := &cloudinit.ControlPlaneJoinInput{

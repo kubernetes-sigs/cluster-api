@@ -47,6 +47,7 @@ var (
 	missingSecretNameMsg                             = "secret file source must specify non-empty secret name"
 	missingSecretKeyMsg                              = "secret file source must specify non-empty secret key"
 	pathConflictMsg                                  = "path property must be unique among all files"
+	invalidFileContentFormatMsg                      = "contentFormat must be empty or go-template"
 )
 
 // KubeadmConfigSpec defines the desired state of KubeadmConfig.
@@ -214,6 +215,16 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 					pathPrefix.Child("files").Index(i),
 					file,
 					conflictingFileSourceMsg,
+				),
+			)
+		}
+		if file.ContentFormat != "" && file.ContentFormat != FileContentFormatGoTemplate {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					pathPrefix.Child("files").Index(i).Child("contentFormat"),
+					file.ContentFormat,
+					invalidFileContentFormatMsg,
 				),
 			)
 		}
@@ -475,7 +486,7 @@ func (r *ContainerLinuxConfig) IsDefined() bool {
 // +kubebuilder:validation:MinProperties=1
 type KubeadmConfigStatus struct {
 	// conditions represents the observations of a KubeadmConfig's current state.
-	// Known condition types are Ready, DataSecretAvailable, CertificatesAvailable.
+	// Known condition types are Ready, DataSecretAvailable, CertificatesAvailable, ControlPlaneKubernetesVersionAvailable.
 	// +optional
 	// +listType=map
 	// +listMapKey=type
@@ -624,6 +635,16 @@ func init() {
 // +kubebuilder:validation:Enum=base64;gzip;gzip+base64
 type Encoding string
 
+// FileContentFormat specifies how file content is interpreted after resolving content/contentFrom and before writing bootstrap data.
+// +kubebuilder:validation:Enum="";go-template
+type FileContentFormat string
+
+const (
+	// FileContentFormatGoTemplate means content is rendered as a Go text/template with KubernetesVersion and other
+	// fields documented by the kubeadm bootstrap provider. The default empty value means content is used verbatim.
+	FileContentFormatGoTemplate FileContentFormat = "go-template"
+)
+
 const (
 	// Base64 implies the contents of the file are encoded as base64.
 	Base64 Encoding = "base64"
@@ -656,6 +677,13 @@ type File struct {
 	// encoding specifies the encoding of the file contents.
 	// +optional
 	Encoding Encoding `json:"encoding,omitempty"`
+
+	// contentFormat specifies how to interpret content after it is loaded (inline or from contentFrom).
+	// When set to "go-template", content is rendered as a Go text/template with data including KubernetesVersion
+	// (semver.String(), no "v" prefix). For a worker joining a cluster, that version is the control plane
+	// Kubernetes version when the controller can read it; otherwise the Machine's version.
+	// +optional
+	ContentFormat FileContentFormat `json:"contentFormat,omitempty"`
 
 	// append specifies whether to append Content to existing file if Path exists.
 	// +optional

@@ -228,7 +228,7 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 
 			fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 
-			canUpdateMachineSetCache := cache.New[CanUpdateMachineSetCacheEntry](cache.HookCacheDefaultTTL)
+			canUpdateMachineSetCache := cache.New[CanUpdateMachineSetCacheEntry](ctx, cache.HookCacheDefaultTTL)
 
 			var canExtensionsUpdateMachineSetCalled bool
 			p := &rolloutPlanner{

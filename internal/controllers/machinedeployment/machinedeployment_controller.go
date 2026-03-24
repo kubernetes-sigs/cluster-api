@@ -116,12 +116,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
 			predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-		).Complete(r)
+		).Complete(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.canUpdateMachineSetCache = cache.New[CanUpdateMachineSetCacheEntry](cache.HookCacheDefaultTTL)
+	r.canUpdateMachineSetCache = cache.New[CanUpdateMachineSetCacheEntry](ctx, cache.HookCacheDefaultTTL)
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")
 	r.ssaCache = ssa.NewCache("machinedeployment")
 	return nil

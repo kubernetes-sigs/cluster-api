@@ -655,7 +655,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				Client:        fakeClient,
 				APIReader:     fakeClient,
 				RuntimeClient: fakeRuntimeClient,
-				hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+				hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
 			}
 
 			s := scope.New(tt.cluster)
@@ -871,7 +871,7 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 			r := &Reconciler{
 				RuntimeClient: runtimeClient,
 				Client:        fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build(),
-				hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+				hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
 			}
 			res, err := r.callBeforeClusterCreateHook(ctx, s)
 			if tt.wantErr {

@@ -73,7 +73,7 @@ func TestBuilder(t *testing.T) {
 		Watches(&clusterv1.MachinePool{}, handler.EnqueueRequestsFromMapFunc(nil)).
 		WithOptions(controller.Options{}).
 		WithEventFilter(predicates.ResourceHasFilterLabel(fakeManager.GetScheme(), predicateLog, "labelValue")).
-		Build(reconciler)
+		Build(t.Context(), reconciler)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(c).ToNot(BeNil())
 

@@ -392,7 +392,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if feature.Gates.Enabled(feature.InPlaceUpdates) {
 		// This is the creation of the runtimeClient for the controllers, embedding a shared catalog and registry instance.
 		var certWatcher *certwatcher.CertWatcher
-		runtimeClient, certWatcher, err = internalruntimeclient.New(internalruntimeclient.Options{
+		runtimeClient, certWatcher, err = internalruntimeclient.New(ctx, internalruntimeclient.Options{
 			CertFile: runtimeExtensionCertFile,
 			KeyFile:  runtimeExtensionKeyFile,
 			Catalog:  catalog,

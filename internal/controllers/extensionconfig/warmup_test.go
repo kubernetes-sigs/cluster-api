@@ -78,7 +78,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			})
 		}
 
-		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+		runtimeClient, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})
@@ -130,7 +130,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			})
 		}
 
-		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+		runtimeClient, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})
@@ -141,7 +141,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			RuntimeClient: runtimeClient,
 		}
 
-		runtimeClientReadOnly, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+		runtimeClientReadOnly, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
 			Catalog:  cat,
 			Registry: registryReadOnly,
 		})
@@ -209,7 +209,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			g.Expect(env.CreateAndWait(ctx, extensionConfig)).To(Succeed())
 		}
 
-		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+		runtimeClient, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})

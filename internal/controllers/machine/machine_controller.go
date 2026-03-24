@@ -500,6 +500,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 			slices.Sort(hooks)
 			log.Info("Waiting for pre-drain hooks to succeed", "hooks", strings.Join(hooks, ","))
+			if m.Status.Deletion == nil {
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+			}
+			if m.Status.Deletion.WaitForPreDrainHookStartTime.IsZero() {
+				m.Status.Deletion.WaitForPreDrainHookStartTime = metav1.Now()
+			}
 			v1beta1conditions.MarkFalse(m, clusterv1.PreDrainDeleteHookSucceededV1Beta1Condition, clusterv1.WaitingExternalHookV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			s.deletingReason = clusterv1.MachineDeletingWaitingForPreDrainHookReason
 			s.deletingMessage = fmt.Sprintf("Waiting for pre-drain hooks to succeed (hooks: %s)", strings.Join(hooks, ","))
@@ -508,7 +514,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		v1beta1conditions.MarkTrue(m, clusterv1.PreDrainDeleteHookSucceededV1Beta1Condition)
 
 		// Drain node before deletion and issue a patch in order to make this operation visible to the users.
-		if r.isNodeDrainAllowed(m) {
+		// In case the preTerminateHook is started or the infra machine is not found the detachment is skipped.
+		if r.isNodeDrainAllowed(m, s.infraMachine) {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
 				s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
@@ -555,8 +562,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 		// After node draining is completed, and if isNodeVolumeDetachingAllowed returns True, make sure all
 		// volumes are detached before proceeding to delete the Node.
-		// In case the node is unreachable, the detachment is skipped.
-		if r.isNodeVolumeDetachingAllowed(m) {
+		// In case the node is unreachable, preTerminateHook is started or the infra machine is not found the detachment is skipped.
+		if r.isNodeVolumeDetachingAllowed(m, s.infraMachine) {
 			if m.Status.Deletion == nil {
 				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
 			}
@@ -597,6 +604,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		}
 		slices.Sort(hooks)
 		log.Info("Waiting for pre-terminate hooks to succeed", "hooks", strings.Join(hooks, ","))
+		if m.Status.Deletion == nil {
+			m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+		}
+		if m.Status.Deletion.WaitForPreTerminateHookStartTime.IsZero() {
+			m.Status.Deletion.WaitForPreTerminateHookStartTime = metav1.Now()
+		}
 		v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition, clusterv1.WaitingExternalHookV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		s.deletingReason = clusterv1.MachineDeletingWaitingForPreTerminateHookReason
 		s.deletingMessage = fmt.Sprintf("Waiting for pre-terminate hooks to succeed (hooks: %s)", strings.Join(hooks, ","))
@@ -671,7 +684,7 @@ const (
 	KubeadmControlPlanePreTerminateHookCleanupAnnotation = clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/kcp-cleanup"
 )
 
-func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
+func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine, infraMachine *unstructured.Unstructured) bool {
 	if util.IsControlPlaneMachine(m) && util.HasOwner(m.GetOwnerReferences(), clusterv1.GroupVersionControlPlane.String(), []string{"KubeadmControlPlane"}) {
 		if _, exists := m.Annotations[KubeadmControlPlanePreTerminateHookCleanupAnnotation]; !exists {
 			return false
@@ -679,6 +692,14 @@ func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 	}
 
 	if _, exists := m.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; exists {
+		return false
+	}
+
+	if m.Status.Deletion != nil && !m.Status.Deletion.WaitForPreTerminateHookStartTime.IsZero() {
+		return false
+	}
+
+	if infraMachine == nil || !infraMachine.GetDeletionTimestamp().IsZero() {
 		return false
 	}
 
@@ -691,7 +712,7 @@ func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 
 // isNodeVolumeDetachingAllowed returns False if either ExcludeWaitForNodeVolumeDetachAnnotation annotation is set OR
 // nodeVolumeDetachTimeoutExceeded timeout is exceeded, otherwise returns True.
-func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine) bool {
+func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine, infraMachine *unstructured.Unstructured) bool {
 	if util.IsControlPlaneMachine(m) && util.HasOwner(m.GetOwnerReferences(), clusterv1.GroupVersionControlPlane.String(), []string{"KubeadmControlPlane"}) {
 		if _, exists := m.Annotations[KubeadmControlPlanePreTerminateHookCleanupAnnotation]; !exists {
 			return false
@@ -699,6 +720,14 @@ func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine) bool {
 	}
 
 	if _, exists := m.Annotations[clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation]; exists {
+		return false
+	}
+
+	if m.Status.Deletion != nil && !m.Status.Deletion.WaitForPreTerminateHookStartTime.IsZero() {
+		return false
+	}
+
+	if infraMachine == nil || !infraMachine.GetDeletionTimestamp().IsZero() {
 		return false
 	}
 

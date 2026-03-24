@@ -1,0 +1,18 @@
+# Configuration for crd-ref-docs (https://github.com/elastic/crd-ref-docs)
+# Used to generate CRD API reference documentation from Go types in api/
+
+processor:
+  # RE2 regular expressions for types to exclude from the generated documentation.
+  ignoreTypes:
+    - ".*List$"
+    - ".*Status$"
+    - "ListMeta$"
+    - "Time$"
+  # RE2 regular expressions for type fields to exclude.
+  ignoreFields:
+    - "status$"
+    - "TypeMeta$"
+
+render:
+  # Kubernetes version for links to Kubernetes API documentation.
+  kubernetesVersion: "1.35"

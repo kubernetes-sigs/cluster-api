@@ -68,8 +68,11 @@ const (
 	// could be resolved from the Cluster's control plane reference when applicable.
 	KubeadmConfigControlPlaneKubernetesVersionAvailableV1Beta2Condition = "ControlPlaneKubernetesVersionAvailable"
 
-	// KubeadmConfigControlPlaneKubernetesVersionAvailableV1Beta2Reason surfaces when join version resolution succeeded.
-	KubeadmConfigControlPlaneKubernetesVersionAvailableV1Beta2Reason = clusterv1beta1.AvailableV1Beta2Reason
+	// KubeadmConfigControlPlaneKubernetesVersionFromControlPlaneV1Beta2Reason surfaces when join version was read from the control plane.
+	KubeadmConfigControlPlaneKubernetesVersionFromControlPlaneV1Beta2Reason = "ControlPlaneKubernetesVersionFromControlPlane"
+
+	// KubeadmConfigControlPlaneKubernetesVersionFromMachineV1Beta2Reason surfaces when join version uses the Machine.
+	KubeadmConfigControlPlaneKubernetesVersionFromMachineV1Beta2Reason = "ControlPlaneKubernetesVersionFromMachine"
 
 	// KubeadmConfigControlPlaneKubernetesVersionResolutionFailedV1Beta2Reason surfaces when resolution failed.
 	KubeadmConfigControlPlaneKubernetesVersionResolutionFailedV1Beta2Reason = "ControlPlaneKubernetesVersionResolutionFailed"

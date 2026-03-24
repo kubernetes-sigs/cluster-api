@@ -218,9 +218,6 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 				),
 			)
 		}
-		// n.b.: if we ever add types besides Secret as a ContentFrom
-		// Source, we must add webhook validation here for one of the
-		// sources being non-nil.
 		if file.ContentFormat != "" && file.ContentFormat != FileContentFormatGoTemplate {
 			allErrs = append(
 				allErrs,
@@ -231,6 +228,9 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 				),
 			)
 		}
+		// n.b.: if we ever add types besides Secret as a ContentFrom
+		// Source, we must add webhook validation here for one of the
+		// sources being non-nil.
 		if file.ContentFrom.IsDefined() {
 			if file.ContentFrom.Secret.Name == "" {
 				allErrs = append(

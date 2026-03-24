@@ -73,15 +73,21 @@ const (
 )
 
 // KubeadmConfig's ControlPlaneKubernetesVersionAvailable condition and corresponding reasons.
-// This condition is set when reconciling worker join bootstrap data: it reflects whether the controller
-// could resolve the Kubernetes version from the Cluster's control plane reference (when present).
+// This condition is set when reconciling worker join bootstrap data: it reflects how the controller chose
+// the Kubernetes version for join (from the control plane reference when possible, otherwise from the Machine).
 const (
-	// KubeadmConfigControlPlaneKubernetesVersionAvailableCondition is true when the control plane Kubernetes
-	// version for join could be resolved or is not required (no controlPlaneRef or control plane has no spec.version).
+	// KubeadmConfigControlPlaneKubernetesVersionAvailableCondition is true when the Kubernetes version for worker
+	// join was chosen successfully (from the control plane or from the Machine).
 	KubeadmConfigControlPlaneKubernetesVersionAvailableCondition = "ControlPlaneKubernetesVersionAvailable"
 
-	// KubeadmConfigControlPlaneKubernetesVersionAvailableReason surfaces when join version resolution succeeded.
-	KubeadmConfigControlPlaneKubernetesVersionAvailableReason = clusterv1.AvailableReason
+	// KubeadmConfigControlPlaneKubernetesVersionFromControlPlaneReason surfaces when the Kubernetes version for
+	// worker join was read from the referenced control plane's spec.version.
+	KubeadmConfigControlPlaneKubernetesVersionFromControlPlaneReason = "FromControlPlane"
+
+	// KubeadmConfigControlPlaneKubernetesVersionFromMachineReason surfaces when the Kubernetes version for worker
+	// join uses the Machine's spec.version because the Cluster has no controlPlaneRef or the referenced control
+	// plane does not expose a version.
+	KubeadmConfigControlPlaneKubernetesVersionFromMachineReason = "FromMachine"
 
 	// KubeadmConfigControlPlaneKubernetesVersionResolutionFailedReason surfaces when the controller could not
 	// read the control plane object or its Kubernetes version while a controlPlaneRef is set.

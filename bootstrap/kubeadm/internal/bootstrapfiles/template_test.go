@@ -59,4 +59,14 @@ func TestRenderTemplates(t *testing.T) {
 		_, err := RenderTemplates(in, data)
 		g.Expect(err).To(HaveOccurred())
 	})
+
+	t.Run("template execution errors on missing field", func(t *testing.T) {
+		g := NewWithT(t)
+		in := []bootstrapv1.File{
+			{Path: "/d", ContentFormat: bootstrapv1.FileContentFormatGoTemplate, Content: "{{ .NonExistentField }}"},
+		}
+		_, err := RenderTemplates(in, data)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring(`failed to execute go-template for file "/d"`))
+	})
 }

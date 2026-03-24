@@ -721,14 +721,29 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		})
 		return ctrl.Result{}, err
 	}
+	var cpVersionReasonV1Beta1, cpVersionReason string
+	var cpVersionMsg string
 	if kubernetesVersion == "" {
 		kubernetesVersion = scope.ConfigOwner.KubernetesVersion()
+		cpVersionReasonV1Beta1 = bootstrapv1.ControlPlaneKubernetesVersionFromMachineV1Beta1Reason
+		cpVersionReason = bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromMachineReason
+		cpVersionMsg = "Kubernetes version for join uses the Machine's spec.version because the control plane reference is unset or does not expose a version."
+	} else {
+		cpVersionReasonV1Beta1 = bootstrapv1.ControlPlaneKubernetesVersionFromControlPlaneV1Beta1Reason
+		cpVersionReason = bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromControlPlaneReason
+		cpVersionMsg = "Kubernetes version for join was read from the Cluster's control plane reference."
 	}
-	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition)
+	v1beta1conditions.Set(scope.Config, &clusterv1.Condition{
+		Type:    bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition,
+		Status:  corev1.ConditionTrue,
+		Reason:  cpVersionReasonV1Beta1,
+		Message: cpVersionMsg,
+	})
 	conditions.Set(scope.Config, metav1.Condition{
-		Type:   bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
-		Status: metav1.ConditionTrue,
-		Reason: bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableReason,
+		Type:    bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
+		Status:  metav1.ConditionTrue,
+		Reason:  cpVersionReason,
+		Message: cpVersionMsg,
 	})
 	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
 	if err != nil {

@@ -25,8 +25,10 @@ import (
 
 	ignition "github.com/flatcar/ignition/config/v2_3"
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
@@ -2787,8 +2789,23 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 				condition := conditions.Get(newConfig, conditionType)
 				g.Expect(condition).ToNot(BeNil(), "condition %s is missing", conditionType)
 				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-				g.Expect(condition.Message).To(BeEmpty())
+				if conditionType == bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition {
+					g.Expect(condition.Reason).To(Equal(bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromMachineReason))
+					g.Expect(condition.Message).To(ContainSubstring("Machine"))
+				} else {
+					g.Expect(condition.Message).To(BeEmpty())
+				}
 			}
+			foundCPKubeVer := false
+			for _, c := range newConfig.GetV1Beta1Conditions() {
+				if c.Type == bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition {
+					g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
+					g.Expect(c.Reason).To(Equal(bootstrapv1.ControlPlaneKubernetesVersionFromMachineV1Beta1Reason))
+					foundCPKubeVer = true
+					break
+				}
+			}
+			g.Expect(foundCPKubeVer).To(BeTrue())
 			for _, conditionType := range []string{clusterv1.PausedCondition} {
 				condition := conditions.Get(newConfig, conditionType)
 				g.Expect(condition).ToNot(BeNil(), "condition %s is missing", conditionType)
@@ -2797,4 +2814,73 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions_ControlPlaneKubernetesVersionFromControlPlaneRef(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(bootstrapv1.AddToScheme(scheme)).To(Succeed())
+
+	clusterName := "my-cluster-cp"
+	cluster := builder.Cluster(metav1.NamespaceDefault, clusterName).Build()
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
+	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "example.com", Port: 6443}
+	cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
+		APIGroup: builder.ControlPlaneGroupVersion.Group,
+		Kind:     builder.TestControlPlaneKind,
+		Name:     "cp",
+	}
+	cp := builder.TestControlPlane(metav1.NamespaceDefault, "cp").WithVersion(testSkewK8sVersion).Build()
+	crd := builder.TestControlPlaneCRD.DeepCopy()
+
+	machine := builder.Machine(metav1.NamespaceDefault, "my-machine").
+		WithVersion(testK8sVersion).
+		WithClusterName(cluster.Name).
+		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "").Unstructured()).
+		Build()
+	kubeadmConfig := newKubeadmConfig(metav1.NamespaceDefault, "kubeadmconfig")
+	kubeadmConfig.SetOwnerReferences([]metav1.OwnerReference{{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Machine",
+		Name:       machine.Name,
+	}})
+
+	objects := []client.Object{cluster, machine, kubeadmConfig, cp, crd}
+	objects = append(objects, createSecrets(t, cluster, kubeadmConfig)...)
+
+	myclient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
+
+	r := &KubeadmConfigReconciler{
+		Client:              myclient,
+		SecretCachingClient: myclient,
+		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		KubeadmInitLock:     &myInitLocker{},
+	}
+
+	key := client.ObjectKeyFromObject(kubeadmConfig)
+	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	newConfig := &bootstrapv1.KubeadmConfig{}
+	g.Expect(myclient.Get(ctx, key, newConfig)).To(Succeed())
+
+	c := conditions.Get(newConfig, bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition)
+	g.Expect(c).ToNot(BeNil())
+	g.Expect(c.Status).To(Equal(metav1.ConditionTrue))
+	g.Expect(c.Reason).To(Equal(bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromControlPlaneReason))
+	g.Expect(c.Message).To(ContainSubstring("control plane reference"))
+
+	foundCPKubeVer := false
+	for _, cond := range newConfig.GetV1Beta1Conditions() {
+		if cond.Type == bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition {
+			g.Expect(cond.Status).To(Equal(corev1.ConditionTrue))
+			g.Expect(cond.Reason).To(Equal(bootstrapv1.ControlPlaneKubernetesVersionFromControlPlaneV1Beta1Reason))
+			foundCPKubeVer = true
+			break
+		}
+	}
+	g.Expect(foundCPKubeVer).To(BeTrue())
 }

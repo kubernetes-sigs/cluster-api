@@ -47,6 +47,14 @@ const (
 	// ControlPlaneKubernetesVersionResolutionFailedV1Beta1Reason (Severity=Warning) documents a failure to read
 	// the control plane object or its Kubernetes version while resolving join bootstrap data.
 	ControlPlaneKubernetesVersionResolutionFailedV1Beta1Reason = "ControlPlaneKubernetesVersionResolutionFailed"
+
+	// ControlPlaneKubernetesVersionFromControlPlaneV1Beta1Reason documents that the Kubernetes version for worker
+	// join was read from the Cluster's control plane reference.
+	ControlPlaneKubernetesVersionFromControlPlaneV1Beta1Reason = "ControlPlaneKubernetesVersionFromControlPlane"
+
+	// ControlPlaneKubernetesVersionFromMachineV1Beta1Reason documents that the Kubernetes version for worker join
+	// uses the Machine's spec.version because the control plane reference is unset or does not expose a version.
+	ControlPlaneKubernetesVersionFromMachineV1Beta1Reason = "ControlPlaneKubernetesVersionFromMachine"
 )
 
 const (

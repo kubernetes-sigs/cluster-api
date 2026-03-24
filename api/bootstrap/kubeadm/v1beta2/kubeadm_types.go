@@ -72,6 +72,22 @@ const (
 	KubeadmConfigDataSecretNotAvailableReason = clusterv1.NotAvailableReason
 )
 
+// KubeadmConfig's ControlPlaneKubernetesVersionAvailable condition and corresponding reasons.
+// This condition is set when reconciling worker join bootstrap data: it reflects whether the controller
+// could resolve the Kubernetes version from the Cluster's control plane reference (when present).
+const (
+	// KubeadmConfigControlPlaneKubernetesVersionAvailableCondition is true when the control plane Kubernetes
+	// version for join could be resolved or is not required (no controlPlaneRef or control plane has no spec.version).
+	KubeadmConfigControlPlaneKubernetesVersionAvailableCondition = "ControlPlaneKubernetesVersionAvailable"
+
+	// KubeadmConfigControlPlaneKubernetesVersionAvailableReason surfaces when join version resolution succeeded.
+	KubeadmConfigControlPlaneKubernetesVersionAvailableReason = clusterv1.AvailableReason
+
+	// KubeadmConfigControlPlaneKubernetesVersionResolutionFailedReason surfaces when the controller could not
+	// read the control plane object or its Kubernetes version while a controlPlaneRef is set.
+	KubeadmConfigControlPlaneKubernetesVersionResolutionFailedReason = "ResolutionFailed"
+)
+
 // EncryptionAlgorithmType can define an asymmetric encryption algorithm type.
 // +kubebuilder:validation:Enum=ECDSA-P256;ECDSA-P384;RSA-2048;RSA-3072;RSA-4096
 type EncryptionAlgorithmType string

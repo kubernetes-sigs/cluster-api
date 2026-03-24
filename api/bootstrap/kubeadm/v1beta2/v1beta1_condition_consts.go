@@ -39,6 +39,14 @@ const (
 	// an error while generating a data secret; those kind of errors are usually due to misconfigurations
 	// and user intervention is required to get them fixed.
 	DataSecretGenerationFailedV1Beta1Reason = "DataSecretGenerationFailed"
+
+	// ControlPlaneKubernetesVersionAvailableV1Beta1Condition documents whether the controller could resolve the
+	// Kubernetes version used for worker join from the Cluster's control plane reference (when applicable).
+	ControlPlaneKubernetesVersionAvailableV1Beta1Condition clusterv1.ConditionType = "ControlPlaneKubernetesVersionAvailable"
+
+	// ControlPlaneKubernetesVersionResolutionFailedV1Beta1Reason (Severity=Warning) documents a failure to read
+	// the control plane object or its Kubernetes version while resolving join bootstrap data.
+	ControlPlaneKubernetesVersionResolutionFailedV1Beta1Reason = "ControlPlaneKubernetesVersionResolutionFailed"
 )
 
 const (

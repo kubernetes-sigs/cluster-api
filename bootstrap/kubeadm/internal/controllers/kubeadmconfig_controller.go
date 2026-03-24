@@ -229,6 +229,10 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			conditions.ForConditionTypes{
 				bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 				bootstrapv1.KubeadmConfigCertificatesAvailableCondition,
+				bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
+			},
+			conditions.IgnoreTypesIfMissing{
+				bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
 			},
 			// Using a custom merge strategy to override reasons applied during merge and to ignore some
 			// info message so the ready condition aggregation in other resources is less noisy.
@@ -251,12 +255,14 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				clusterv1.ReadyV1Beta1Condition,
 				bootstrapv1.DataSecretAvailableV1Beta1Condition,
 				bootstrapv1.CertificatesAvailableV1Beta1Condition,
+				bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition,
 			}},
 			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedCondition,
 				bootstrapv1.KubeadmConfigReadyCondition,
 				bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 				bootstrapv1.KubeadmConfigCertificatesAvailableCondition,
+				bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
 			}},
 		}
 		if rerr == nil {
@@ -701,12 +707,29 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	}
 
 	// Use the control plane (cluster) version for worker join so that e.g. a 1.34 node uses kubeadm 1.35
-	// when the control plane is at 1.35. Fall back to the joining machine's version if the control plane
-	// version cannot be determined.
-	kubernetesVersion := r.getControlPlaneVersionForJoin(ctx, scope)
+	// when the control plane is at 1.35. Fall back to the joining machine's version only when the cluster has
+	// no control plane ref or the referenced object does not expose spec.version (see getControlPlaneVersionForJoin).
+	kubernetesVersion, err := r.getControlPlaneVersionForJoin(ctx, scope)
+	if err != nil {
+		scope.Error(err, "Failed to resolve control plane Kubernetes version for worker join")
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition, bootstrapv1.ControlPlaneKubernetesVersionResolutionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
+			Type:    bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionResolutionFailedReason,
+			Message: err.Error(),
+		})
+		return ctrl.Result{}, err
+	}
 	if kubernetesVersion == "" {
 		kubernetesVersion = scope.ConfigOwner.KubernetesVersion()
 	}
+	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition)
+	conditions.Set(scope.Config, metav1.Condition{
+		Type:   bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
+		Status: metav1.ConditionTrue,
+		Reason: bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableReason,
+	})
 	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
@@ -841,29 +864,29 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 }
 
 // getControlPlaneVersionForJoin returns the control plane (cluster) version from the cluster's ControlPlaneRef,
-// e.g. KubeadmControlPlane.spec.version. Returns empty string if the cluster has no ControlPlaneRef or the version
-// cannot be read (e.g. control plane not found or does not support version). Used for worker join so that
-// a 1.34 node uses kubeadm 1.35 when the control plane is at 1.35, for example.
-func (r *KubeadmConfigReconciler) getControlPlaneVersionForJoin(ctx context.Context, scope *Scope) string {
+// e.g. KubeadmControlPlane.spec.version. Returns ("", nil) if the cluster has no ControlPlaneRef or the referenced
+// control plane does not expose spec.version (ErrFieldNotFound or unset); callers should fall back to the machine's
+// Kubernetes version only in those cases. Returns an error if the control plane object cannot be fetched or if
+// the version field cannot be read for any other reason.
+func (r *KubeadmConfigReconciler) getControlPlaneVersionForJoin(ctx context.Context, scope *Scope) (string, error) {
 	if !scope.Cluster.Spec.ControlPlaneRef.IsDefined() {
-		return ""
+		return "", nil
 	}
 	controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, scope.Cluster.Spec.ControlPlaneRef, scope.Cluster.Namespace)
 	if err != nil {
-		scope.V(4).Info("Could not get control plane for version, falling back to machine version", "error", err)
-		return ""
+		return "", errors.Wrap(err, "failed to get control plane for join version")
 	}
 	cpVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 	if err != nil {
-		if !errors.Is(err, contract.ErrFieldNotFound) {
-			scope.V(4).Info("Could not get control plane version, falling back to machine version", "error", err)
+		if errors.Is(err, contract.ErrFieldNotFound) {
+			return "", nil
 		}
-		return ""
+		return "", errors.Wrap(err, "failed to read control plane version")
 	}
 	if cpVersion == nil {
-		return ""
+		return "", nil
 	}
-	return *cpVersion
+	return *cpVersion, nil
 }
 
 func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.Result, error) {

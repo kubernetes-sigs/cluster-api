@@ -486,7 +486,7 @@ func (r *ContainerLinuxConfig) IsDefined() bool {
 // +kubebuilder:validation:MinProperties=1
 type KubeadmConfigStatus struct {
 	// conditions represents the observations of a KubeadmConfig's current state.
-	// Known condition types are Ready, DataSecretAvailable, CertificatesAvailable.
+	// Known condition types are Ready, DataSecretAvailable, CertificatesAvailable, ControlPlaneKubernetesVersionAvailable.
 	// +optional
 	// +listType=map
 	// +listMapKey=type
@@ -640,8 +640,8 @@ type Encoding string
 type FileContentFormat string
 
 const (
-	// FileContentFormatGoTemplate means content is rendered as a Go text/template (see kubeadm bootstrap provider docs).
-	// The default empty value means content is used verbatim.
+	// FileContentFormatGoTemplate means content is rendered as a Go text/template with KubernetesVersion and other
+	// fields documented by the kubeadm bootstrap provider. The default empty value means content is used verbatim.
 	FileContentFormatGoTemplate FileContentFormat = "go-template"
 )
 

@@ -61,3 +61,16 @@ const (
 	// KubeadmConfigDataSecretNotAvailableV1Beta2Reason surfaces when the bootstrap secret is not available.
 	KubeadmConfigDataSecretNotAvailableV1Beta2Reason = clusterv1beta1.NotAvailableV1Beta2Reason
 )
+
+// KubeadmConfig's ControlPlaneKubernetesVersionAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// KubeadmConfigControlPlaneKubernetesVersionAvailableV1Beta2Condition documents whether join Kubernetes version
+	// could be resolved from the Cluster's control plane reference when applicable.
+	KubeadmConfigControlPlaneKubernetesVersionAvailableV1Beta2Condition = "ControlPlaneKubernetesVersionAvailable"
+
+	// KubeadmConfigControlPlaneKubernetesVersionAvailableV1Beta2Reason surfaces when join version resolution succeeded.
+	KubeadmConfigControlPlaneKubernetesVersionAvailableV1Beta2Reason = clusterv1beta1.AvailableV1Beta2Reason
+
+	// KubeadmConfigControlPlaneKubernetesVersionResolutionFailedV1Beta2Reason surfaces when resolution failed.
+	KubeadmConfigControlPlaneKubernetesVersionResolutionFailedV1Beta2Reason = "ControlPlaneKubernetesVersionResolutionFailed"
+)

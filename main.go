@@ -683,10 +683,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
+		machinePoolPreflightChecksSet := machineSetPreflightChecksSet.Clone()
+
 		if err := (&controllers.MachinePoolReconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			ClusterCache:     clusterCache,
+			PreflightChecks:  machinePoolPreflightChecksSet,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(machinePoolConcurrency)); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MachinePool")

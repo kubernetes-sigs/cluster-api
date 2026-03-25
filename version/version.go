@@ -56,6 +56,8 @@ func CheckKubernetesVersion(config *rest.Config, minK8sVersion string) error {
 }
 
 var (
+	gitShallow   string // flag the code to be part of a git shallow copy
+	gitFork      string // flag repository as fork of the official owned by 'kubernetes-sigs'
 	gitMajor     string // major version, always numeric
 	gitMinor     string // minor version, numeric possibly followed by "+"
 	gitVersion   string // semantic version, derived by build scripts
@@ -66,6 +68,8 @@ var (
 
 // Info exposes information about the version used for the current running code.
 type Info struct {
+	Shallow      string `json:"shallow,omitempty"`
+	Fork         string `json:"fork,omitempty"`
 	Major        string `json:"major,omitempty"`
 	Minor        string `json:"minor,omitempty"`
 	GitVersion   string `json:"gitVersion,omitempty"`
@@ -80,6 +84,8 @@ type Info struct {
 // Get returns an Info object with all the information about the current running code.
 func Get() Info {
 	return Info{
+		Shallow:      gitShallow,
+		Fork:         gitFork,
 		Major:        gitMajor,
 		Minor:        gitMinor,
 		GitVersion:   gitVersion,

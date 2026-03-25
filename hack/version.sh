@@ -68,12 +68,16 @@ version::get_version_vars() {
             # Set GIT_VERSION to a value accepted by 'clusterctl/cmd/version_checker' (gitVersionRegEx).
             GIT_MAJOR="0"
             GIT_MINOR="0"
-            # Set GIT_USER_FORK; perhaps we are building on top of a forked repository.
-            # Try extracting it from a remote with the following format: proto://<server>/<gituser>
-            GIT_USER_FORK=$(git config --get remote.origin.url | cut -d/ -f4)
-            # ... otherwise, try using <sshuser>@<server>:<gituser>
-            [ -z "${GIT_USER_FORK}" ] && GIT_USER_FORK=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
         fi
+
+        # Set GIT_USER_FORK; perhaps we are building on top of a forked repository.
+        # Try extracting it from a remote with the following format: proto://<server>/<gituser>
+        GIT_USER_FORK=$(git config --get remote.origin.url | cut -d/ -f4)
+        # ... otherwise, try using <sshuser>@<server>:<gituser>
+        if [ -z "${GIT_USER_FORK}" ]; then
+            GIT_USER_FORK=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
+        fi
+
         # Check if there are tags present on this repository before proceeding with parsing GIT_VERSION to abort building.
         # Keeping it building fine without them as CI tools can be using shallow copies still; avoid breaking it all.
         if [ "$(git tag --list | wc -l)" -gt 0 ]; then
@@ -125,9 +129,11 @@ version::ldflags() {
     fi
 
     # Explicitly identify a fork if GIT_USER_FORK is not the official Kubernetes account.
-    if [ -n "${GIT_USER_FORK:-}" ] && [ "$GIT_USER_FORK" != "kubernetes-sigs" ]; then
+    if [ -n "${GIT_USER_FORK:-}" ] && [ "${GIT_USER_FORK}" != "kubernetes-sigs" ]; then
         add_ldflag "gitFork" "true"
         GIT_VERSION+="-fork"
+    else
+        add_ldflag "gitFork" "false"
     fi
 
     # Finally set the release version here.

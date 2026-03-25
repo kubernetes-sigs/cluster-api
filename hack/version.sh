@@ -69,7 +69,7 @@ version::get_version_vars() {
             GIT_MAJOR="0"
             GIT_MINOR="0"
             # Set GIT_USER_FORK; perhaps we are building on top of a forked repository.
-            # Try extrating it from a remote with the following format: proto://<server>/<gituser>
+            # Try extracting it from a remote with the following format: proto://<server>/<gituser>
             GIT_USER_FORK=$(git config --get remote.origin.url | cut -d/ -f4)
             # ... otherwise, try using <sshuser>@<server>:<gituser>
             [ -z "${GIT_USER_FORK}" ] && GIT_USER_FORK=$(git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1)
@@ -119,7 +119,7 @@ version::ldflags() {
         add_ldflag "gitShallow" "false"
     fi
 
-    # Should we be on mocked version (shallow or fork), adjust GIT_VERSION to pass clusterctl's cmd/version_checher (gitVersionRegEx).
+    # Should we be on mocked version (shallow or fork), adjust GIT_VERSION to pass clusterctl's cmd/version_checker (gitVersionRegEx).
     if [ "$GIT_MAJOR" -eq 0 ] && [ "$GIT_MINOR" -eq 0 ]; then
         GIT_VERSION="v0.0.0-${GIT_VERSION}"
     fi

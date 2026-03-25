@@ -52,13 +52,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/exp/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
-	"sigs.k8s.io/cluster-api/internal/hooks"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
@@ -67,6 +66,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/cluster-api/util/hooks"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 

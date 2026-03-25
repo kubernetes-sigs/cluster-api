@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/external"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/inline"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
-	patchutil "sigs.k8s.io/cluster-api/internal/util/patch"
+	patchutil "sigs.k8s.io/cluster-api/util/patch/inplace"
 )
 
 // Engine is a patch engine which applies patches defined in a ClusterBlueprint to a ClusterState.

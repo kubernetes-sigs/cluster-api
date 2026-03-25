@@ -33,9 +33,9 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/internal/util/compare"
-	"sigs.k8s.io/cluster-api/internal/util/inplace"
-	"sigs.k8s.io/cluster-api/internal/util/patch"
+	"sigs.k8s.io/cluster-api/util/compare"
+	"sigs.k8s.io/cluster-api/util/inplace"
+	patch "sigs.k8s.io/cluster-api/util/patch/inplace"
 )
 
 // CanUpdateMachineSetCacheEntry is an entry for the CanUpdateMachineSet hook cache.

@@ -48,7 +48,7 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
-	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	runtimeregistry "sigs.k8s.io/cluster-api/exp/runtime/registry"
 	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
 	fakev1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
 	"sigs.k8s.io/cluster-api/util/cache"

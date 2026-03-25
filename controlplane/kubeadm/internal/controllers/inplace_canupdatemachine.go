@@ -34,10 +34,10 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/util/compare"
-	"sigs.k8s.io/cluster-api/internal/util/inplace"
-	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/util/compare"
+	"sigs.k8s.io/cluster-api/util/inplace"
+	patch "sigs.k8s.io/cluster-api/util/patch/inplace"
 )
 
 func (r *KubeadmControlPlaneReconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, error) {

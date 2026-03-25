@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package patch contains patch utils.
-package patch
+// Package inplace contains patch utils for applying in-place update patches.
+package inplace
 
 import (
 	"bytes"
@@ -35,8 +35,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/contract"
 )
+
+// Path represents a path to a field in an unstructured object.
+type Path = []string
 
 // ApplyPatchToTypedObject applies the patch to a typed obj.
 func ApplyPatchToTypedObject[T any](ctx context.Context, currentMachine *T, machinePath runtimehooksv1.Patch, patchPath string) error {
@@ -192,7 +194,7 @@ type CopySpecInput struct {
 	Dest             *unstructured.Unstructured
 	SrcSpecPath      string
 	DestSpecPath     string
-	FieldsToPreserve []contract.Path
+	FieldsToPreserve []Path
 }
 
 // CopySpec copies a field from a srcSpecPath in src to a destSpecPath in dest,

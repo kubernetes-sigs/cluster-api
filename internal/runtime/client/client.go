@@ -54,8 +54,8 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
+	runtimeregistry "sigs.k8s.io/cluster-api/exp/runtime/registry"
 	runtimemetrics "sigs.k8s.io/cluster-api/internal/runtime/metrics"
-	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 )
@@ -553,7 +553,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	// Observe request duration metric.
 	start := time.Now()
 	defer func() {
-		runtimemetrics.RequestDuration.Observe(opts.hookGVH, *extensionURL, time.Since(start))
+		runtimemetrics.DefaultMetrics.RequestDuration.Observe(opts.hookGVH, *extensionURL, time.Since(start))
 	}()
 	requireConversion := opts.registrationGVH.Version != opts.hookGVH.Version
 
@@ -617,7 +617,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 
 	// Create http request metric.
 	defer func() {
-		runtimemetrics.RequestsTotal.Observe(httpRequest, resp, opts.hookGVH, err, response)
+		runtimemetrics.DefaultMetrics.RequestsTotal.Observe(httpRequest, resp, opts.hookGVH, err, response)
 	}()
 
 	if err != nil {

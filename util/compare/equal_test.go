@@ -71,7 +71,7 @@ func TestDiff(t *testing.T) {
 			x:    struct{ a, b, c int }{1, 2, 3},
 			y:    struct{ a, b, c int }{1, 2, 4},
 			wantError: `error diffing objects: cannot handle unexported field at root.a:
-	"sigs.k8s.io/cluster-api/internal/util/compare".(struct { a int; b int; c int })
+	"sigs.k8s.io/cluster-api/util/compare".(struct { a int; b int; c int })
 consider using a custom Comparer; if you control the implementation of type, you can also consider using an Exporter, AllowUnexported, or cmpopts.IgnoreUnexported`,
 		},
 	}

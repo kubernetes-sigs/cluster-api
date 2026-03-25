@@ -37,12 +37,12 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
-	"sigs.k8s.io/cluster-api/internal/hooks"
-	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
+	"sigs.k8s.io/cluster-api/util/hooks"
+	"sigs.k8s.io/cluster-api/util/inplace"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 

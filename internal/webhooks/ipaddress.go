@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
-	"sigs.k8s.io/cluster-api/internal/util/compare"
+	"sigs.k8s.io/cluster-api/util/compare"
 )
 
 // SetupWebhookWithManager sets up IPAddress webhooks.

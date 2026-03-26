@@ -879,15 +879,19 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 		// Override the grace period of pods to reduce the time needed to skip them.
 		drainer.GracePeriodSeconds = 1
 
-		// Our drain code still respects PDBs when evicting Pods, but that does not mean they are respected
-		// in general by the entire system.
 		// When a Node becomes unreachable the following happens:
 		// * node.kubernetes.io/unreachable:NoExecute taint is set on the Node
 		// * taint manager will evict Pods immediately because of the NoExecute taint (without respecting PDBs)
 		//   * https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/#concepts
 		//     "NoExecute": "Pods that do not tolerate the taint are evicted immediately""
-		// * our drain code will now ignore the Pods (as they quickly have a deletionTimestamp older than 2 seconds)
-		log.V(3).Info("Node is unreachable, draining will use 1s GracePeriodSeconds and will ignore all Pods that have a deletionTimestamp > 1s old")
+		//
+		// However, when the underlying instance is stopped/terminated, kubelet is not running and
+		// cannot execute the taint manager's deletions. Pods that tolerate the unreachable taint
+		// or have PDBs blocking eviction will remain indefinitely.
+		// Use direct pod deletion (bypassing PDBs) because on unreachable nodes the pods are not
+		// actually running, so PDB protection is not meaningful.
+		drainer.DisableEviction = true
+		log.V(3).Info("Node is unreachable, draining will use 1s GracePeriodSeconds, disable eviction to bypass PDBs, and will ignore all Pods that have a deletionTimestamp > 1s old")
 	}
 
 	if err := drainer.CordonNode(ctx, node); err != nil {

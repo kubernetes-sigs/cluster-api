@@ -1210,6 +1210,9 @@ func (r *Reconciler) getOwnerMachineDeployment(ctx context.Context, machineSet *
 
 	md := &clusterv1.MachineDeployment{}
 	if err := r.Client.Get(ctx, client.ObjectKey{Namespace: machineSet.Namespace, Name: mdName}, md); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to retrieve owner MachineDeployment for MachineSet %s: %w", klog.KObj(machineSet), err)
 	}
 	return md, nil

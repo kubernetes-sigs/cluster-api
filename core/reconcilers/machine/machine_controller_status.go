@@ -669,6 +669,12 @@ func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1
 	//       - Core CAPI is not aware of specific details of every control plane implementation, so it is not possible to
 	//         compute the UpToDateCondition for control plane machines.
 	if ms == nil || md == nil {
+		// If this Machine was part of a MachineSet/MachineDeployment but the owner
+		// is now gone, remove the stale UpToDate condition to align with stand-alone
+		// machines where this condition does not exist.
+		if m.Labels[clusterv1.MachineDeploymentNameLabel] != "" {
+			conditions.Delete(m, clusterv1.MachineUpToDateCondition)
+		}
 		return
 	}
 

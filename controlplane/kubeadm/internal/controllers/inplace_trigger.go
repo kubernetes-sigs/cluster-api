@@ -30,9 +30,9 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/internal/hooks"
-	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	clientutil "sigs.k8s.io/cluster-api/util/client"
+	"sigs.k8s.io/cluster-api/util/hooks"
 )
 
 func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) error {

@@ -29,7 +29,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
-	patchutil "sigs.k8s.io/cluster-api/internal/util/patch"
+	patchutil "sigs.k8s.io/cluster-api/util/patch/inplace"
 )
 
 // PatchOption represents an option for the patchObject and patchTemplate funcs.
@@ -87,12 +87,16 @@ func patchUnstructured(ctx context.Context, original, modified *unstructured.Uns
 	patched := original.DeepCopy()
 
 	// copySpec overwrites patched.destSpecPath with modified.srcSpecPath.
+	fieldsToPreserve := make([]patchutil.Path, len(patchOptions.preserveFields))
+	for i, p := range patchOptions.preserveFields {
+		fieldsToPreserve[i] = []string(p)
+	}
 	if err := patchutil.CopySpec(patchutil.CopySpecInput{
 		Src:              modified,
 		Dest:             patched,
 		SrcSpecPath:      srcSpecPath,
 		DestSpecPath:     destSpecPath,
-		FieldsToPreserve: patchOptions.preserveFields,
+		FieldsToPreserve: fieldsToPreserve,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to apply patch to %s %s", original.GetKind(), klog.KObj(original))
 	}

@@ -34,11 +34,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/exp/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
-	"sigs.k8s.io/cluster-api/internal/util/compare"
-	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/util/cache"
+	"sigs.k8s.io/cluster-api/util/compare"
+	patch "sigs.k8s.io/cluster-api/util/patch/inplace"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 

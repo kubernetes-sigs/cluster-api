@@ -26,8 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/util/compare"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/compare"
 )
 
 // DockerClusterTemplate implements a validating and defaulting webhook for DockerClusterTemplate.

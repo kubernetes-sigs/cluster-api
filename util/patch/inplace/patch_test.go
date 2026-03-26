@@ -14,15 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package patch
+package inplace
 
 import (
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
 func TestCopySpec(t *testing.T) {
@@ -327,7 +325,7 @@ func TestCopySpec(t *testing.T) {
 				},
 				SrcSpecPath:  "spec.template.spec",
 				DestSpecPath: "spec",
-				FieldsToPreserve: []contract.Path{
+				FieldsToPreserve: []Path{
 					{"spec", "machineTemplate", "infrastructureRef"},
 					{"spec", "replicas"},
 					{"spec", "version"},

@@ -39,11 +39,11 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/defaulting"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/exp/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/feature"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
-	"sigs.k8s.io/cluster-api/internal/util/compare"
-	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/util/compare"
+	patch "sigs.k8s.io/cluster-api/util/patch/inplace"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 

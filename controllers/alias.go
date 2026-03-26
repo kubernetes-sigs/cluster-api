@@ -24,12 +24,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
+	runtimeregistry "sigs.k8s.io/cluster-api/exp/runtime/registry"
 	clustercontroller "sigs.k8s.io/cluster-api/internal/controllers/cluster"
 	clusterclasscontroller "sigs.k8s.io/cluster-api/internal/controllers/clusterclass"
 	"sigs.k8s.io/cluster-api/internal/controllers/clusterresourceset"
@@ -43,6 +46,7 @@ import (
 	clustertopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster"
 	machinedeploymenttopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machinedeployment"
 	machinesettopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
+	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -326,4 +330,34 @@ func (r *ExtensionConfigReconciler) SetupWithManager(ctx context.Context, mgr ct
 		ReadOnly:           r.ReadOnly,
 		WatchFilterValue:   r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
+}
+
+// RuntimeClientOptions contains the options for creating a new RuntimeClient.
+type RuntimeClientOptions struct {
+	// CertFile is the path to the TLS certificate file for connecting to runtime extensions.
+	CertFile string
+
+	// KeyFile is the path to the TLS key file for connecting to runtime extensions.
+	KeyFile string
+
+	// Catalog is the RuntimeHook catalog for looking up hook definitions.
+	Catalog *runtimecatalog.Catalog
+
+	// Registry is the extension registry for managing runtime extension registrations.
+	Registry runtimeregistry.ExtensionRegistry
+
+	// Client is the controller-runtime client for API server operations.
+	Client client.Client
+}
+
+// NewRuntimeClient creates a new RuntimeClient using the provided options.
+// The returned CertWatcher, if non-nil, should be started with manager.Add().
+func NewRuntimeClient(options RuntimeClientOptions) (runtimeclient.Client, *certwatcher.CertWatcher, error) {
+	return internalruntimeclient.New(internalruntimeclient.Options{
+		CertFile: options.CertFile,
+		KeyFile:  options.KeyFile,
+		Catalog:  options.Catalog,
+		Registry: options.Registry,
+		Client:   options.Client,
+	})
 }

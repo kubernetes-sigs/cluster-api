@@ -26,7 +26,7 @@ const (
 	// ReplicasReadyCondition reports an aggregate of current status of the replicas controlled by the MachinePool.
 	ReplicasReadyCondition string = "ReplicasReady"
 
-	// ReplicasReadyReason surfaces when the DevMachinePool ReplicasReadyConditio is met.
+	// ReplicasReadyReason surfaces when the DevMachinePool ReplicasReadyCondition is met.
 	ReplicasReadyReason string = clusterv1.ReadyReason
 )
 
@@ -116,7 +116,7 @@ type DevMachinePoolBackendSpec struct {
 // DevMachinePoolStatus defines the observed state of DevMachinePool.
 type DevMachinePoolStatus struct {
 	// conditions represents the observations of a DevMachinePool's current state.
-	// Known condition types are Ready, ReplicasReady, Resized, ReplicasReady.
+	// Known condition types are Ready, ReplicasReady.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

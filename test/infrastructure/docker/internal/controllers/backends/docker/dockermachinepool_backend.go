@@ -449,7 +449,7 @@ func (r *MachinePoolBackEndReconciler) propagateMachineDeleteAnnotation(ctx cont
 	for _, devMachine := range devMachineMap {
 		machine, err := util.GetOwnerMachine(ctx, r.Client, devMachine.ObjectMeta)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error getting owner Machine for DockerMachine %s/%s", devMachine.Namespace, devMachine.Name)
+			return nil, errors.Wrapf(err, "error getting owner Machine for DevMachine %s/%s", devMachine.Namespace, devMachine.Name)
 		}
 		if machine != nil && machine.Annotations != nil {
 			if devMachine.Annotations == nil {
@@ -607,7 +607,7 @@ func computeDesiredDevMachine(name string, cluster *clusterv1.Cluster, machinePo
 	return devMachine
 }
 
-// orderByDeleteMachineAnnotation will sort DevrMachines with the clusterv1.DeleteMachineAnnotation to the front of the list.
+// orderByDeleteMachineAnnotation will sort DevMachines with the clusterv1.DeleteMachineAnnotation to the front of the list.
 // It will preserve the existing order of the list otherwise so that it respects the existing delete priority otherwise.
 func orderByDeleteMachineAnnotation(machines []infrav1.DevMachine) []infrav1.DevMachine {
 	sort.SliceStable(machines, func(i, _ int) bool {

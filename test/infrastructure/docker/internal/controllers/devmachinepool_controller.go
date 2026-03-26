@@ -61,6 +61,7 @@ type DevMachinePoolReconciler struct {
 
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
+	ssaCache        ssa.Cache
 }
 
 // SetupWithManager will add watches for this controller.
@@ -104,6 +105,7 @@ func (r *DevMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		Scheme:          mgr.GetScheme(),
 		PredicateLogger: &predicateLog,
 	}
+	r.ssaCache = ssa.NewCache("devmachinepool")
 
 	return nil
 }
@@ -211,7 +213,7 @@ func (r *DevMachinePoolReconciler) backendReconcilerFactory() backends.DevMachin
 	return dockerbackend.NewDockerMachinePoolBackEndReconciler(
 		r.Client,
 		r.ContainerRuntime,
-		ssa.NewCache("devmachinepool"),
+		r.ssaCache,
 	)
 }
 

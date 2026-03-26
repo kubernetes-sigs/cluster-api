@@ -504,6 +504,17 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		setupLog.Error(err, "Unable to create controller", "controller", "DevMachineTemplate")
 		os.Exit(1)
 	}
+
+	if feature.Gates.Enabled(feature.MachinePool) {
+		if err := (&controllers.DevMachinePoolReconciler{
+			Client:           mgr.GetClient(),
+			ContainerRuntime: runtimeClient,
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
+			setupLog.Error(err, "Unable to create controller", "controller", "DevMachinePool")
+			os.Exit(1)
+		}
+	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
@@ -520,13 +531,6 @@ func setupWebhooks(mgr ctrl.Manager) {
 	if err := (&infrawebhooks.DockerClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerClusterTemplate")
 		os.Exit(1)
-	}
-
-	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&infrawebhooks.DockerMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "DockerMachinePool")
-			os.Exit(1)
-		}
 	}
 
 	if err := (&infrawebhooks.DevMachine{}).SetupWebhookWithManager(mgr); err != nil {

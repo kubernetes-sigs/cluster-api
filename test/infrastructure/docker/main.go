@@ -195,10 +195,10 @@ func InitFlags(fs *pflag.FlagSet) {
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 // ADD CRD RBAC for CRD Migrator.
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=devclusters.infrastructure.cluster.x-k8s.io;devclustertemplates.infrastructure.cluster.x-k8s.io;devmachines.infrastructure.cluster.x-k8s.io;devmachinetemplates.infrastructure.cluster.x-k8s.io;dockerclusters.infrastructure.cluster.x-k8s.io;dockerclustertemplates.infrastructure.cluster.x-k8s.io;dockermachinepools.infrastructure.cluster.x-k8s.io;dockermachinepooltemplates.infrastructure.cluster.x-k8s.io;dockermachines.infrastructure.cluster.x-k8s.io;dockermachinetemplates.infrastructure.cluster.x-k8s.io
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=devclusters.infrastructure.cluster.x-k8s.io;devclustertemplates.infrastructure.cluster.x-k8s.io;devmachinepools.infrastructure.cluster.x-k8s.io;devmachinepooltemplates.infrastructure.cluster.x-k8s.io;devmachines.infrastructure.cluster.x-k8s.io;devmachinetemplates.infrastructure.cluster.x-k8s.io;dockerclusters.infrastructure.cluster.x-k8s.io;dockerclustertemplates.infrastructure.cluster.x-k8s.io;dockermachinepools.infrastructure.cluster.x-k8s.io;dockermachinepooltemplates.infrastructure.cluster.x-k8s.io;dockermachines.infrastructure.cluster.x-k8s.io;dockermachinetemplates.infrastructure.cluster.x-k8s.io
 // ADD CR RBAC for CRD Migrator.
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockerclustertemplates;dockermachinetemplates;dockermachinepooltemplates,verbs=get;list;watch;patch;update
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devclustertemplates,verbs=get;list;watch;patch;update
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devclustertemplates;devmachinepooltemplates,verbs=get;list;watch;patch;update
 
 func main() {
 	if _, err := os.ReadDir("/tmp/"); err != nil {

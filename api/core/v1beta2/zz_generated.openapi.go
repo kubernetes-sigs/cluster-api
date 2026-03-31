@@ -150,6 +150,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolList":                                          schema_cluster_api_api_core_v1beta2_MachinePoolList(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolSpec":                                          schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolStatus":                                        schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTemplateSpec":                                  schema_cluster_api_api_core_v1beta2_MachinePoolTemplateSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopology":                                      schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopologyMachineDeletionSpec":                   schema_cluster_api_api_core_v1beta2_MachinePoolTopologyMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolV1Beta1DeprecatedStatus":                       schema_cluster_api_api_core_v1beta2_MachinePoolV1Beta1DeprecatedStatus(ref),
@@ -5447,11 +5448,24 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref common.ReferenceCal
 				Description: "MachinePoolSpec defines the desired state of MachinePool.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"bootstrap": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bootstrap is a reference to a local struct which encapsulates fields to configure the Machine’s bootstrapping mechanism. The configuration applies to all machines in the pool.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap"),
+						},
+					},
 					"clusterName": {
 						SchemaProps: spec.SchemaProps{
 							Description: "clusterName is the name of the Cluster this object belongs to.",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"infrastructureRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureRef is a required reference to a custom resource offered by an infrastructure provider. The custom resource is applied to all machines in the pool.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference"),
 						},
 					},
 					"replicas": {
@@ -5466,6 +5480,13 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref common.ReferenceCal
 							Description: "template describes the machines that will be created.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"),
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version defines the desired Kubernetes version. This field is meant to be optionally used by bootstrap providers. The version is applied to all machines in the pool.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"providerIDList": {
@@ -5508,12 +5529,41 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref common.ReferenceCal
 							},
 						},
 					},
+					"readinessGates": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"conditionType",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "readinessGates specifies additional conditions to include when evaluating Machine Ready condition for all machines in the pool.\n\nThis field can be used e.g. by Cluster API control plane providers to extend the semantic of the Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.\n\nAnother example are external controllers, e.g. responsible to install special software/hardware on the Machines; they can include the status of those components with a new condition and add this condition to ReadinessGates.\n\nNOTE: This field is considered only for computing v1beta2 conditions. NOTE: MachinePool is only responsible for worker nodes. ReadinessGates for control plane components are not supported.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"),
+									},
+								},
+							},
+						},
+					},
+					"deletion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "deletion contains configuration options for Machine deletion. Configuration is applied to all machines in the pool.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionSpec"),
+						},
+					},
 				},
-				Required: []string{"clusterName", "template"},
+				Required: []string{"clusterName", "infrastructureRef", "template"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap", "sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
 	}
 }
 
@@ -5625,6 +5675,51 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceC
 		},
 		Dependencies: []string{
 			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachinePoolTemplateSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolTemplateSpec describes per-machine properties for machines in a MachinePool.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "metadata is the standard object's metadata. Labels and annotations here are propagated to the pool's machines.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"),
+						},
+					},
+					"taints": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"key",
+									"effect",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints. A pod would have to tolerate all existing taints to run on the corresponding node.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 

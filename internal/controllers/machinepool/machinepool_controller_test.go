@@ -65,6 +65,9 @@ func TestMachinePoolFinalizer(t *testing.T) {
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
+			Bootstrap: &clusterv1.Bootstrap{
+				DataSecretName: &bootstrapData,
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -84,6 +87,9 @@ func TestMachinePoolFinalizer(t *testing.T) {
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
+			Bootstrap: &clusterv1.Bootstrap{
+				DataSecretName: &bootstrapData,
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -177,6 +183,9 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
+			Bootstrap: &clusterv1.Bootstrap{
+				DataSecretName: &bootstrapData,
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -205,6 +214,9 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
+			Bootstrap: &clusterv1.Bootstrap{
+				DataSecretName: &bootstrapData,
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -350,6 +362,12 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					ClusterName:    "test-cluster",
 					ProviderIDList: []string{"test://id-1"},
 					Replicas:       ptr.To[int32](1),
+					Bootstrap:      &clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachinePoolKind,
+						Name:     "infra-config1",
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -401,6 +419,15 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: "test-cluster",
 					Replicas:    ptr.To[int32](1),
+					Bootstrap:   &clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachinePoolKind,
+						Name:     "infra-config1-already-deleted",
+					},
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -465,6 +492,15 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: "test-cluster",
 					Replicas:    ptr.To[int32](1),
+					Bootstrap:   &clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachinePoolKind,
+						Name:     "infra-config1-already-deleted",
+					},
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -529,6 +565,15 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: "test-cluster",
 					Replicas:    ptr.To[int32](1),
+					Bootstrap:   &clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachinePoolKind,
+						Name:     "infra-config1-already-deleted",
+					},
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDeletionTimeoutSeconds: ptr.To(int32(10)),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -673,6 +718,9 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 					DeletionTimestamp: &timeNow,
 				},
 				Spec: clusterv1.MachinePoolSpec{
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDeletionTimeoutSeconds: ptr.To(int32(0)),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Deletion: clusterv1.MachineDeletionSpec{
@@ -693,6 +741,9 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 					DeletionTimestamp: &timeNow,
 				},
 				Spec: clusterv1.MachinePoolSpec{
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDeletionTimeoutSeconds: ptr.To(int32(60)),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Deletion: clusterv1.MachineDeletionSpec{
@@ -713,6 +764,9 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: timeNow.Add(time.Minute * -1)},
 				},
 				Spec: clusterv1.MachinePoolSpec{
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDeletionTimeoutSeconds: ptr.To(int32(10)),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Deletion: clusterv1.MachineDeletionSpec{
@@ -771,6 +825,18 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](1),
+			Bootstrap: &clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.BootstrapGroupVersion.Group,
+					Kind:     builder.TestBootstrapConfigKind,
+					Name:     "delete-bootstrap",
+				},
+			},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.TestInfrastructureMachinePoolKind,
+				Name:     "delete-infra",
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -874,6 +940,12 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](1),
+			Bootstrap:   &clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.TestInfrastructureMachinePoolKind,
+				Name:     "infra-config1",
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -968,6 +1040,18 @@ func TestMachinePoolConditions(t *testing.T) {
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](2),
+			Bootstrap: &clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.BootstrapGroupVersion.Group,
+					Kind:     builder.TestBootstrapConfigKind,
+					Name:     "bootstrap1",
+				},
+			},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.TestInfrastructureMachinePoolKind,
+				Name:     "infra1",
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{

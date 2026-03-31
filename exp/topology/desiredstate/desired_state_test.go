@@ -2581,8 +2581,8 @@ func TestComputeMachinePool(t *testing.T) {
 			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
 		})))
 
-		g.Expect(actualMp.Spec.Template.Spec.InfrastructureRef.Name).ToNot(Equal("linux-worker-inframachinetemplate"))
-		g.Expect(actualMp.Spec.Template.Spec.Bootstrap.ConfigRef.Name).ToNot(Equal("linux-worker-bootstraptemplate"))
+		g.Expect(actualMp.Spec.InfrastructureRef.Name).ToNot(Equal("linux-worker-inframachinetemplate"))
+		g.Expect(actualMp.Spec.Bootstrap.ConfigRef.Name).ToNot(Equal("linux-worker-bootstraptemplate"))
 	})
 	t.Run("Generates the machine pool and the referenced templates using ClusterClass defaults", func(t *testing.T) {
 		g := NewWithT(t)
@@ -2625,6 +2625,11 @@ func TestComputeMachinePool(t *testing.T) {
 			},
 			Spec: clusterv1.MachinePoolSpec{
 				Replicas: &currentReplicas,
+				Version:  version,
+				Bootstrap: &clusterv1.Bootstrap{
+					ConfigRef: contract.ObjToContractVersionedObjectReference(workerBootstrapConfig),
+				},
+				InfrastructureRef: contract.ObjToContractVersionedObjectReference(workerInfrastructureMachinePool),
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						Version: version,
@@ -2672,8 +2677,8 @@ func TestComputeMachinePool(t *testing.T) {
 			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
 		})))
 
-		g.Expect(actualMp.Spec.Template.Spec.InfrastructureRef.Name).To(Equal("linux-worker-inframachinepool"))
-		g.Expect(actualMp.Spec.Template.Spec.Bootstrap.ConfigRef.Name).To(Equal("linux-worker-bootstrap"))
+		g.Expect(actualMp.Spec.InfrastructureRef.Name).To(Equal("linux-worker-inframachinepool"))
+		g.Expect(actualMp.Spec.Bootstrap.ConfigRef.Name).To(Equal("linux-worker-bootstrap"))
 	})
 
 	t.Run("If a machine pool references a topology class that does not exist, machine pool generation fails", func(t *testing.T) {
@@ -2818,7 +2823,7 @@ func TestComputeMachinePool(t *testing.T) {
 
 				obj, err := e.computeMachinePool(ctx, s, mpTopology)
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
+				g.Expect(obj.Object.Spec.Version).To(Equal(tt.expectedVersion))
 			})
 		}
 	})

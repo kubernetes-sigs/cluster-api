@@ -38,6 +38,10 @@ func TestMachinePoolDefault(t *testing.T) {
 			Namespace: "foobar",
 		},
 		Spec: clusterv1.MachinePoolSpec{
+			Bootstrap: &clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
+				Name: "bootstrap",
+			}},
+			Version: "1.20.0",
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -251,6 +255,7 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 			webhook := &MachinePool{}
 			mp := &clusterv1.MachinePool{
 				Spec: clusterv1.MachinePoolSpec{
+					Bootstrap: &tt.bootstrap,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: tt.bootstrap,
@@ -306,6 +311,9 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 			newMP := &clusterv1.MachinePool{
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: tt.newClusterName,
+					Bootstrap: &clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
+						Name: "bootstrap",
+					}},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							ClusterName: tt.newClusterName,
@@ -320,6 +328,9 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 			oldMP := &clusterv1.MachinePool{
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: tt.oldClusterName,
+					Bootstrap: &clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
+						Name: "bootstrap",
+					}},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							ClusterName: tt.oldClusterName,
@@ -371,6 +382,9 @@ func TestMachinePoolClusterNamesEqual(t *testing.T) {
 			ms := &clusterv1.MachinePool{
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: tt.specClusterName,
+					Bootstrap: &clusterv1.Bootstrap{
+						DataSecretName: ptr.To("data-secret"),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							ClusterName: tt.specTemplateSpecClusterName,
@@ -428,6 +442,10 @@ func TestMachinePoolVersionValidation(t *testing.T) {
 
 			mp := &clusterv1.MachinePool{
 				Spec: clusterv1.MachinePoolSpec{
+					Bootstrap: &clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
+						Name: "bootstrap",
+					}},
+					Version: tt.version,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{

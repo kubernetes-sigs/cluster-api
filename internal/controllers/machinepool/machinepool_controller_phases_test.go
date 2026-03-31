@@ -71,6 +71,18 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: defaultCluster.Name,
 			Replicas:    ptr.To[int32](1),
+			Bootstrap: &clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.BootstrapGroupVersion.Group,
+					Kind:     builder.TestBootstrapConfigKind,
+					Name:     "bootstrap-config1",
+				},
+			},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.TestInfrastructureMachineTemplateKind,
+				Name:     "infra-config1",
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -825,6 +837,13 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			},
 		},
 		Spec: clusterv1.MachinePoolSpec{
+			Bootstrap: &clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.BootstrapGroupVersion.Group,
+					Kind:     builder.TestBootstrapConfigKind,
+					Name:     "bootstrap-config1",
+				},
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -972,6 +991,14 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachinePoolSpec{
+					Bootstrap: &clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
+						},
+						DataSecretName: ptr.To("data"),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
@@ -1020,6 +1047,9 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachinePoolSpec{
+					Bootstrap: &clusterv1.Bootstrap{
+						DataSecretName: ptr.To("data"),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
@@ -1063,6 +1093,14 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachinePoolSpec{
+					Bootstrap: &clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
+						},
+						DataSecretName: ptr.To("data"),
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
@@ -1140,6 +1178,18 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
+			Bootstrap: &clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.BootstrapGroupVersion.Group,
+					Kind:     builder.TestBootstrapConfigKind,
+					Name:     "bootstrap-config1",
+				},
+			},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.TestInfrastructureMachineTemplateKind,
+				Name:     "infra-config1",
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -1219,6 +1269,18 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](0),
+					Bootstrap: &clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
+						},
+					},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachineTemplateKind,
+						Name:     "infra-config1",
+					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
@@ -1743,6 +1805,18 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: testCluster.Name,
+			Bootstrap: &clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.BootstrapGroupVersion.Group,
+					Kind:     builder.TestBootstrapConfigKind,
+					Name:     "bootstrap-config1",
+				},
+			},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.TestInfrastructureMachineTemplateKind,
+				Name:     "infra-config1",
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -2169,6 +2243,18 @@ func getMachinePool(replicas int, mpName, clusterName, nsName string) clusterv1.
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: clusterName,
 			Replicas:    ptr.To[int32](int32(replicas)),
+			Bootstrap: &clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.BootstrapGroupVersion.Group,
+					Kind:     builder.GenericBootstrapConfigKind,
+					Name:     "bootstrap-config1",
+				},
+			},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.GenericInfrastructureMachineKind,
+				Name:     "infra-config1",
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName: clusterName,

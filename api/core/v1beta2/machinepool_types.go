@@ -64,13 +64,50 @@ const (
 ).
 */
 
+// MachinePoolTemplateSpec describes per-machine properties for machines in a MachinePool.
+type MachinePoolTemplateSpec struct {
+	// metadata is the standard object's metadata.
+	// Labels and annotations here are propagated to the pool's machines.
+	// +optional
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// taints are the node taints that Cluster API will manage.
+	// This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+	// e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+	// Only those taints defined in this list will be added or removed by core Cluster API controllers.
+	//
+	// There can be at most 64 taints.
+	// A pod would have to tolerate all existing taints to run on the corresponding node.
+	//
+	// NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +listMapKey=effect
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	Taints []MachineTaint `json:"taints,omitempty"`
+}
+
 // MachinePoolSpec defines the desired state of MachinePool.
 type MachinePoolSpec struct {
+	// bootstrap is a reference to a local struct which encapsulates
+	// fields to configure the Machine’s bootstrapping mechanism.
+	// The configuration applies to all machines in the pool.
+	// +optional
+	Bootstrap *Bootstrap `json:"bootstrap,omitempty"`
+
 	// clusterName is the name of the Cluster this object belongs to.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName,omitempty"`
+
+	// infrastructureRef is a required reference to a custom resource
+	// offered by an infrastructure provider.
+	// The custom resource is applied to all machines in the pool.
+	// +required
+	InfrastructureRef ContractVersionedObjectReference `json:"infrastructureRef,omitempty,omitzero"`
 
 	// replicas is the number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
@@ -80,6 +117,14 @@ type MachinePoolSpec struct {
 	// template describes the machines that will be created.
 	// +required
 	Template MachineTemplateSpec `json:"template,omitempty,omitzero"`
+
+	// version defines the desired Kubernetes version.
+	// This field is meant to be optionally used by bootstrap providers.
+	// The version is applied to all machines in the pool.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
 
 	// providerIDList are the identification IDs of machine instances provided by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
@@ -97,6 +142,30 @@ type MachinePoolSpec struct {
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
+
+	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition
+	// for all machines in the pool.
+	//
+	// This field can be used e.g. by Cluster API control plane providers to extend the semantic of the
+	// Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates
+	// for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+	//
+	// Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;
+	// they can include the status of those components with a new condition and add this condition to ReadinessGates.
+	//
+	// NOTE: This field is considered only for computing v1beta2 conditions.
+	// NOTE: MachinePool is only responsible for worker nodes.
+	// ReadinessGates for control plane components are not supported.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
+	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
+
+	// deletion contains configuration options for Machine deletion.
+	// Configuration is applied to all machines in the pool.
+	// +optional
+	Deletion MachineDeletionSpec `json:"deletion,omitzero,omitempty"`
 }
 
 // MachinePoolStatus defines the observed state of MachinePool.

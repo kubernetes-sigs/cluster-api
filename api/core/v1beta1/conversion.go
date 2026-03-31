@@ -550,6 +550,13 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
+	dst.Spec.InfrastructureRef = dst.Spec.Template.Spec.InfrastructureRef
+	bootstrap := dst.Spec.Template.Spec.Bootstrap
+	dst.Spec.Bootstrap = &bootstrap
+	dst.Spec.Version = dst.Spec.Template.Spec.Version
+	dst.Spec.ReadinessGates = dst.Spec.Template.Spec.ReadinessGates
+	dst.Spec.Deletion = dst.Spec.Template.Spec.Deletion
+
 	restored := &clusterv1.MachinePool{}
 	ok, err := utilconversion.UnmarshalData(src, restored)
 	if err != nil {
@@ -574,6 +581,22 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 
 	if err := Convert_v1beta2_MachinePool_To_v1beta1_MachinePool(src, dst, nil); err != nil {
 		return err
+	}
+
+	if src.Spec.InfrastructureRef.IsDefined() {
+		infraRef, err := convertToObjectReference(src.Spec.InfrastructureRef, src.Namespace)
+		if err != nil {
+			return err
+		}
+		dst.Spec.Template.Spec.InfrastructureRef = *infraRef
+	}
+
+	if src.Spec.Bootstrap != nil && src.Spec.Bootstrap.ConfigRef.IsDefined() {
+		bootstrapRef, err := convertToObjectReference(src.Spec.Bootstrap.ConfigRef, src.Namespace)
+		if err != nil {
+			return err
+		}
+		dst.Spec.Template.Spec.Bootstrap.ConfigRef = bootstrapRef
 	}
 
 	if err := convertMachineSpecToObjectReference(&src.Spec.Template.Spec, &dst.Spec.Template.Spec, src.Namespace); err != nil {
@@ -1951,7 +1974,45 @@ func Convert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachineP
 }
 
 func Convert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *MachinePoolSpec, out *clusterv1.MachinePoolSpec, s apimachineryconversion.Scope) error {
-	return autoConvert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s)
+	if err := autoConvert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s); err != nil {
+		return err
+	}
+
+	out.InfrastructureRef = out.Template.Spec.InfrastructureRef
+	bootstrap := out.Template.Spec.Bootstrap
+	out.Bootstrap = &bootstrap
+	out.Version = out.Template.Spec.Version
+	out.ReadinessGates = out.Template.Spec.ReadinessGates
+	out.Deletion = out.Template.Spec.Deletion
+	return nil
+}
+
+func Convert_v1beta2_MachinePoolSpec_To_v1beta1_MachinePoolSpec(in *clusterv1.MachinePoolSpec, out *MachinePoolSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachinePoolSpec_To_v1beta1_MachinePoolSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.Bootstrap != nil {
+		if err := Convert_v1beta2_Bootstrap_To_v1beta1_Bootstrap(in.Bootstrap, &out.Template.Spec.Bootstrap, s); err != nil {
+			return err
+		}
+	}
+
+	if in.Version != "" {
+		out.Template.Spec.Version = &in.Version
+	}
+	if in.ReadinessGates != nil {
+		out.Template.Spec.ReadinessGates = make([]MachineReadinessGate, len(in.ReadinessGates))
+		for i := range in.ReadinessGates {
+			if err := Convert_v1beta2_MachineReadinessGate_To_v1beta1_MachineReadinessGate(&in.ReadinessGates[i], &out.Template.Spec.ReadinessGates[i], s); err != nil {
+				return err
+			}
+		}
+	}
+	out.Template.Spec.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
+	out.Template.Spec.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.Template.Spec.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
+	return nil
 }
 
 func Convert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(in *ClusterClassStatusVariableDefinition, out *clusterv1.ClusterClassStatusVariableDefinition, s apimachineryconversion.Scope) error {

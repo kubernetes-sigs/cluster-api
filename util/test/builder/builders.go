@@ -1762,6 +1762,7 @@ func (m *MachinePoolBuilder) Build() *clusterv1.MachinePool {
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: m.clusterName,
 			Replicas:    m.replicas,
+			Version:     ptr.Deref(m.version, ""),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Version:     ptr.Deref(m.version, ""),
@@ -1774,9 +1775,12 @@ func (m *MachinePoolBuilder) Build() *clusterv1.MachinePool {
 		obj.Spec.Template.Spec.MinReadySeconds = m.minReadySeconds
 	}
 	if m.bootstrap != nil {
-		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrap)
+		ref := objToRef(m.bootstrap)
+		obj.Spec.Bootstrap = &clusterv1.Bootstrap{ConfigRef: ref}
+		obj.Spec.Template.Spec.Bootstrap.ConfigRef = ref
 	}
 	if m.infrastructure != nil {
+		obj.Spec.InfrastructureRef = objToRef(m.infrastructure)
 		obj.Spec.Template.Spec.InfrastructureRef = objToRef(m.infrastructure)
 	}
 	if m.status != nil {

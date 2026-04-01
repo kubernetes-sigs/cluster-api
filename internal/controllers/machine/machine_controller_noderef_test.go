@@ -708,16 +708,17 @@ func TestPatchNode(t *testing.T) {
 	clusterName := "test-cluster"
 
 	testCases := []struct {
-		name                string
-		oldNode             *corev1.Node
-		newLabels           map[string]string
-		newAnnotations      map[string]string
-		expectedLabels      map[string]string
-		expectedAnnotations map[string]string
-		expectedTaints      []corev1.Taint
-		machine             *clusterv1.Machine
-		ms                  *clusterv1.MachineSet
-		md                  *clusterv1.MachineDeployment
+		name                    string
+		oldNode                 *corev1.Node
+		newLabels               map[string]string
+		newAnnotations          map[string]string
+		expectedLabels          map[string]string
+		expectedAnnotations     map[string]string
+		expectedTaints          []corev1.Taint
+		expectedUnschedulable   bool
+		machine                 *clusterv1.Machine
+		ms                      *clusterv1.MachineSet
+		md                      *clusterv1.MachineDeployment
 	}{
 		{
 			name: "Check that patch works even if there are Status.Addresses with the same key",
@@ -1173,6 +1174,69 @@ func TestPatchNode(t *testing.T) {
 				},
 			},
 		},
+		{
+			// When a rolling upgrade reuses a node name, the previous Machine's drain leaves a
+			// node.kubernetes.io/unschedulable taint on the node. The new Machine joins with the
+			// same node name and should have the leftover cordon removed during reconciliation.
+			name: "Removes unschedulable taint and cordon from node when Machine is not being deleted",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				},
+				Spec: corev1.NodeSpec{
+					Unschedulable: true,
+					Taints: []corev1.Taint{
+						{Key: "node.kubernetes.io/unschedulable", Effect: corev1.TaintEffectNoSchedule},
+					},
+				},
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.AnnotationsFromMachineAnnotation: "",
+				clusterv1.LabelsFromMachineAnnotation:      "",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
+		},
+		{
+			// When a Machine is being deleted and the node is cordoned (as part of drain), the
+			// unschedulable taint must NOT be removed.
+			name: "Does not remove unschedulable taint from node when Machine is being deleted",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				},
+				Spec: corev1.NodeSpec{
+					Unschedulable: true,
+					Taints: []corev1.Taint{
+						{Key: "node.kubernetes.io/unschedulable", Effect: corev1.TaintEffectNoSchedule},
+					},
+				},
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.AnnotationsFromMachineAnnotation: "",
+				clusterv1.LabelsFromMachineAnnotation:      "",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"},    // Added by the API server
+				{Key: "node.kubernetes.io/unschedulable", Effect: "NoSchedule"}, // Must be preserved during drain
+			},
+			expectedUnschedulable: true,
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              fmt.Sprintf("ma-%s", util.RandomString(6)),
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+					Finalizers:        []string{"test-finalizer"},
+				},
+				Spec: newFakeMachineSpec(clusterName),
+			},
+			ms: newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md: newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
+		},
 	}
 
 	r := Reconciler{
@@ -1209,6 +1273,7 @@ func TestPatchNode(t *testing.T) {
 				g.Expect(gotNode.Labels).To(BeComparableTo(tc.expectedLabels))
 				g.Expect(gotNode.Annotations).To(BeComparableTo(tc.expectedAnnotations))
 				g.Expect(gotNode.Spec.Taints).To(BeComparableTo(tc.expectedTaints))
+				g.Expect(gotNode.Spec.Unschedulable).To(Equal(tc.expectedUnschedulable))
 			}, 10*time.Second).Should(Succeed())
 		})
 	}

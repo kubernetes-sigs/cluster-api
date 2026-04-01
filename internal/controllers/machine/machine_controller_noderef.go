@@ -335,6 +335,18 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	// Drop the NodeUninitializedTaint taint on the node given that we are reconciling labels.
 	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)
 
+	// If the node is cordoned (unschedulable) but the Machine is not being deleted, remove the cordon.
+	// This can happen when a rolling upgrade reuses a node name: the previous Machine's drain sets the
+	// unschedulable taint, the old Machine is deleted, and the new Machine joins with the same node name
+	// but inherits the leftover cordon taint.
+	if m.DeletionTimestamp.IsZero() && newNode.Spec.Unschedulable {
+		newNode.Spec.Unschedulable = false
+		hasTaintChanges = taints.RemoveNodeTaint(newNode, corev1.Taint{
+			Key:    "node.kubernetes.io/unschedulable",
+			Effect: corev1.TaintEffectNoSchedule,
+		}) || hasTaintChanges
+	}
+
 	// Propagate taints set on the Machine to the Node.
 	var propagateTaintsChanges bool
 	if feature.Gates.Enabled(feature.MachineTaintPropagation) {

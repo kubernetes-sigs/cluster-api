@@ -62,7 +62,7 @@ type KubeadmVersionOnJoinSpecInput struct {
 }
 
 // KubeadmVersionOnJoinSpec verifies that when a worker Machine joins a cluster during an
-// upgrade, the bootstrap controller renders spec.files go-template content with the control
+// upgrade, the bootstrap controller renders spec.files template content with the control
 // plane's Kubernetes version. A fetch-kubeadm.sh preKubeadmCommand (installed from that
 // templated file) downloads the matching kubeadm binary so that kubeadm join succeeds against
 // the upgraded control plane, even though the worker's spec version is still the old version.
@@ -290,14 +290,17 @@ func verifyKubeadmVersionOnNode(ctx context.Context, containerName, expectedVers
 	containerRuntime, err := container.NewDockerClient()
 	Expect(err).ToNot(HaveOccurred(), "Failed to create container runtime client")
 
-	// Bootstrap go-template data uses semver.String() (no "v" prefix).
-	expectedVersionNoPfx := strings.TrimPrefix(expectedVersion, "v")
+	// Template data provides controlPlane.version with "v" prefix.
+	expectedVersionWithV := expectedVersion
+	if !strings.HasPrefix(expectedVersionWithV, "v") {
+		expectedVersionWithV = "v" + expectedVersionWithV
+	}
 
 	log.Logf("Checking /run/cluster-api/fetch-kubeadm.sh on container %s", containerName)
 	out, err := execInContainer(ctx, containerRuntime, containerName, "cat", "/run/cluster-api/fetch-kubeadm.sh")
 	Expect(err).ToNot(HaveOccurred(), "Failed to read fetch-kubeadm.sh: %s", out)
-	Expect(out).To(ContainSubstring(`version="`+expectedVersionNoPfx+`"`),
-		"fetch script should contain rendered KubernetesVersion %q; script:\n%s", expectedVersionNoPfx, out)
+	Expect(out).To(ContainSubstring(`version="`+expectedVersionWithV+`"`),
+		"fetch script should contain rendered controlPlane.version %q; script:\n%s", expectedVersionWithV, out)
 
 	log.Logf("Checking fetch-kubeadm.log on container %s", containerName)
 	out, err = execInContainer(ctx, containerRuntime, containerName, "cat", "/var/log/fetch-kubeadm.log")

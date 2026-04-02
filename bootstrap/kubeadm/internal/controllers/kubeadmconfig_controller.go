@@ -44,7 +44,6 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/bootstrapfiles"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/ignition"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
@@ -229,10 +228,6 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			conditions.ForConditionTypes{
 				bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 				bootstrapv1.KubeadmConfigCertificatesAvailableCondition,
-				bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
-			},
-			conditions.IgnoreTypesIfMissing{
-				bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
 			},
 			// Using a custom merge strategy to override reasons applied during merge and to ignore some
 			// info message so the ready condition aggregation in other resources is less noisy.
@@ -255,14 +250,12 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				clusterv1.ReadyV1Beta1Condition,
 				bootstrapv1.DataSecretAvailableV1Beta1Condition,
 				bootstrapv1.CertificatesAvailableV1Beta1Condition,
-				bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition,
 			}},
 			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedCondition,
 				bootstrapv1.KubeadmConfigReadyCondition,
 				bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 				bootstrapv1.KubeadmConfigCertificatesAvailableCondition,
-				bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
 			}},
 		}
 		if rerr == nil {
@@ -586,14 +579,14 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		})
 		return ctrl.Result{}, err
 	}
-	files, err = bootstrapfiles.RenderTemplates(files, bootstrapfiles.DataFromVersion(parsedVersion))
+	files, err = renderTemplates(files, templateData("v"+parsedVersion.String()))
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to render go-template in spec.files",
+			Message: "Failed to render template in spec.files",
 		})
 		return ctrl.Result{}, err
 	}
@@ -709,42 +702,24 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	// Use the control plane (cluster) version for worker join so that e.g. a 1.34 node uses kubeadm 1.35
 	// when the control plane is at 1.35. Fall back to the joining machine's version only when the cluster has
 	// no control plane ref or the referenced object does not expose spec.version (see getControlPlaneVersionForJoin).
-	kubernetesVersion, err := r.getControlPlaneVersionForJoin(ctx, scope)
+	controlPlaneVersion, err := r.getControlPlaneVersionForJoin(ctx, scope)
 	if err != nil {
 		scope.Error(err, "Failed to resolve control plane Kubernetes version for worker join")
-		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition, bootstrapv1.ControlPlaneKubernetesVersionResolutionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
-			Type:    bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
+			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionResolutionFailedReason,
-			Message: err.Error(),
+			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
+			Message: fmt.Sprintf("Failed to resolve control plane Kubernetes version: %v", err),
 		})
 		return ctrl.Result{}, err
 	}
-	var cpVersionReasonV1Beta1, cpVersionReason string
-	var cpVersionMsg string
+	// Use the control plane version when available; fall back to the Machine's version
+	// when the cluster has no control plane ref or the referenced object does not expose a version.
+	kubernetesVersion := controlPlaneVersion
 	if kubernetesVersion == "" {
 		kubernetesVersion = scope.ConfigOwner.KubernetesVersion()
-		cpVersionReasonV1Beta1 = bootstrapv1.ControlPlaneKubernetesVersionFromMachineV1Beta1Reason
-		cpVersionReason = bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromMachineReason
-		cpVersionMsg = "Kubernetes version for join uses the Machine's spec.version because the control plane reference is unset or does not expose a version."
-	} else {
-		cpVersionReasonV1Beta1 = bootstrapv1.ControlPlaneKubernetesVersionFromControlPlaneV1Beta1Reason
-		cpVersionReason = bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromControlPlaneReason
-		cpVersionMsg = "Kubernetes version for join was read from the Cluster's control plane reference."
 	}
-	v1beta1conditions.Set(scope.Config, &clusterv1.Condition{
-		Type:    bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition,
-		Status:  corev1.ConditionTrue,
-		Reason:  cpVersionReasonV1Beta1,
-		Message: cpVersionMsg,
-	})
-	conditions.Set(scope.Config, metav1.Condition{
-		Type:    bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition,
-		Status:  metav1.ConditionTrue,
-		Reason:  cpVersionReason,
-		Message: cpVersionMsg,
-	})
 	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
@@ -815,14 +790,25 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		files = append(files, *kubeconfig)
 	}
 
-	files, err = bootstrapfiles.RenderTemplates(files, bootstrapfiles.DataFromVersion(parsedVersion))
+	// For template rendering on the worker join path, use the control plane version exclusively.
+	// If the CP version is not available and files use contentFormat "template", this will error
+	// because .controlPlane.version will be empty — operators should not use templates without a CP ref.
+	cpVersionForTemplate := controlPlaneVersion
+	if cpVersionForTemplate != "" {
+		cpParsed, err := semver.ParseTolerant(cpVersionForTemplate)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to parse control plane version %q for template data", cpVersionForTemplate)
+		}
+		cpVersionForTemplate = "v" + cpParsed.String()
+	}
+	files, err = renderTemplates(files, templateData(cpVersionForTemplate))
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to render go-template in spec.files",
+			Message: "Failed to render template in spec.files",
 		})
 		return ctrl.Result{}, err
 	}
@@ -1013,14 +999,14 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		files = append(files, *kubeconfig)
 	}
 
-	files, err = bootstrapfiles.RenderTemplates(files, bootstrapfiles.DataFromVersion(parsedVersion))
+	files, err = renderTemplates(files, templateData("v"+parsedVersion.String()))
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to render go-template in spec.files",
+			Message: "Failed to render template in spec.files",
 		})
 		return ctrl.Result{}, err
 	}

@@ -45,8 +45,7 @@ var (
 	kubeadmBootstrapFormatIgnitionFeatureDisabledMsg = "can be set only if the KubeadmBootstrapFormatIgnition feature gate is enabled"
 	missingSecretNameMsg                             = "secret file source must specify non-empty secret name"
 	missingSecretKeyMsg                              = "secret file source must specify non-empty secret key"
-	pathConflictMsg                                  = "path property must be unique among all files"
-	invalidFileContentFormatMsg                      = "contentFormat must be empty or go-template"
+	pathConflictMsg = "path property must be unique among all files"
 )
 
 // KubeadmConfigSpec defines the desired state of KubeadmConfig.
@@ -218,16 +217,6 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 					pathPrefix.Child("files").Index(i),
 					file,
 					conflictingFileSourceMsg,
-				),
-			)
-		}
-		if file.ContentFormat != "" && file.ContentFormat != FileContentFormatGoTemplate {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					pathPrefix.Child("files").Index(i).Child("contentFormat"),
-					file.ContentFormat,
-					invalidFileContentFormatMsg,
 				),
 			)
 		}
@@ -508,7 +497,7 @@ type KubeadmConfigStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type KubeadmConfigV1Beta2Status struct {
 	// conditions represents the observations of a KubeadmConfig's current state.
-	// Known condition types are Ready, DataSecretAvailable, CertificatesAvailable, ControlPlaneKubernetesVersionAvailable.
+	// Known condition types are Ready, DataSecretAvailable, CertificatesAvailable.
 	// +optional
 	// +listType=map
 	// +listMapKey=type
@@ -586,16 +575,6 @@ func init() {
 // +kubebuilder:validation:Enum=base64;gzip;gzip+base64
 type Encoding string
 
-// FileContentFormat specifies how file content is interpreted after resolving content/contentFrom and before writing bootstrap data.
-// +kubebuilder:validation:Enum="";go-template
-type FileContentFormat string
-
-const (
-	// FileContentFormatGoTemplate means content is rendered as a Go text/template with KubernetesVersion and other
-	// fields documented by the kubeadm bootstrap provider. The default empty value means content is used verbatim.
-	FileContentFormatGoTemplate FileContentFormat = "go-template"
-)
-
 const (
 	// Base64 implies the contents of the file are encoded as base64.
 	Base64 Encoding = "base64"
@@ -603,6 +582,18 @@ const (
 	Gzip Encoding = "gzip"
 	// GzipBase64 implies the contents of the file are first base64 encoded and then gzip encoded.
 	GzipBase64 Encoding = "gzip+base64"
+)
+
+// FileContentFormat specifies how file content is interpreted after resolving content/contentFrom and before writing bootstrap data.
+// +kubebuilder:validation:Enum=raw;template
+type FileContentFormat string
+
+const (
+	// FileContentFormatRaw means content is used verbatim.
+	FileContentFormatRaw FileContentFormat = "raw"
+	// FileContentFormatTemplate means content is rendered as a Go text/template.
+	// Available template variables are documented by the kubeadm bootstrap provider.
+	FileContentFormatTemplate FileContentFormat = "template"
 )
 
 // File defines the input for generating write_files in cloud-init.
@@ -629,13 +620,6 @@ type File struct {
 	// +optional
 	Encoding Encoding `json:"encoding,omitempty"`
 
-	// contentFormat specifies how to interpret content after it is loaded (inline or from contentFrom).
-	// When set to "go-template", content is rendered as a Go text/template with data including KubernetesVersion
-	// (semver.String(), no "v" prefix). For a worker joining a cluster, that version is the control plane
-	// Kubernetes version when the controller can read it; otherwise the Machine's version.
-	// +optional
-	ContentFormat FileContentFormat `json:"contentFormat,omitempty"`
-
 	// append specifies whether to append Content to existing file if Path exists.
 	// +optional
 	Append bool `json:"append,omitempty"`
@@ -649,6 +633,14 @@ type File struct {
 	// contentFrom is a referenced source of content to populate the file.
 	// +optional
 	ContentFrom *FileSource `json:"contentFrom,omitempty"`
+
+	// contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).
+	// When set to "template", content is rendered as a Go text/template.
+	// Available template variables:
+	//   - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").
+	// When set to "raw" or omitted, content is used verbatim.
+	// +optional
+	ContentFormat FileContentFormat `json:"contentFormat,omitempty"`
 }
 
 // FileSource is a union of all possible external source types for file data.

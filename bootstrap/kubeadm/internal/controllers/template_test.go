@@ -14,59 +14,57 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bootstrapfiles
+package controllers
 
 import (
 	"testing"
 
-	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 )
 
 func TestRenderTemplates(t *testing.T) {
-	v := semver.MustParse("1.29.0")
-	data := DataFromVersion(v)
+	data := templateData("v1.29.0")
 
 	t.Run("plain files unchanged", func(t *testing.T) {
 		g := NewWithT(t)
 		in := []bootstrapv1.File{
-			{Path: "/a", Content: "hello {{ .KubernetesVersion }}"},
+			{Path: "/a", Content: "hello {{ .controlPlane.version }}"},
 		}
-		out, err := RenderTemplates(in, data)
+		out, err := renderTemplates(in, data)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(out[0].Content).To(Equal("hello {{ .KubernetesVersion }}"))
+		g.Expect(out[0].Content).To(Equal("hello {{ .controlPlane.version }}"))
 		g.Expect(out[0].ContentFormat).To(BeEmpty())
 	})
 
-	t.Run("go-template renders and clears format", func(t *testing.T) {
+	t.Run("template renders and clears format", func(t *testing.T) {
 		g := NewWithT(t)
 		in := []bootstrapv1.File{
-			{Path: "/b", ContentFormat: bootstrapv1.FileContentFormatGoTemplate, Content: "v={{ .KubernetesVersion }}"},
+			{Path: "/b", ContentFormat: bootstrapv1.FileContentFormatTemplate, Content: "v={{ .controlPlane.version }}"},
 		}
-		out, err := RenderTemplates(in, data)
+		out, err := renderTemplates(in, data)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(out[0].Content).To(Equal("v=1.29.0"))
+		g.Expect(out[0].Content).To(Equal("v=v1.29.0"))
 		g.Expect(out[0].ContentFormat).To(BeEmpty())
 	})
 
 	t.Run("bad template errors", func(t *testing.T) {
 		g := NewWithT(t)
 		in := []bootstrapv1.File{
-			{Path: "/c", ContentFormat: bootstrapv1.FileContentFormatGoTemplate, Content: "{{ .KubernetesVersion "},
+			{Path: "/c", ContentFormat: bootstrapv1.FileContentFormatTemplate, Content: "{{ .controlPlane.version "},
 		}
-		_, err := RenderTemplates(in, data)
+		_, err := renderTemplates(in, data)
 		g.Expect(err).To(HaveOccurred())
 	})
 
 	t.Run("template execution errors on missing field", func(t *testing.T) {
 		g := NewWithT(t)
 		in := []bootstrapv1.File{
-			{Path: "/d", ContentFormat: bootstrapv1.FileContentFormatGoTemplate, Content: "{{ .NonExistentField }}"},
+			{Path: "/d", ContentFormat: bootstrapv1.FileContentFormatTemplate, Content: "{{ .nonExistent }}"},
 		}
-		_, err := RenderTemplates(in, data)
+		_, err := renderTemplates(in, data)
 		g.Expect(err).To(HaveOccurred())
-		g.Expect(err.Error()).To(ContainSubstring(`failed to execute go-template for file "/d"`))
+		g.Expect(err.Error()).To(ContainSubstring(`failed to execute template for file "/d"`))
 	})
 }

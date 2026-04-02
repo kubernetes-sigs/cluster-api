@@ -40,21 +40,6 @@ const (
 	// and user intervention is required to get them fixed.
 	DataSecretGenerationFailedV1Beta1Reason = "DataSecretGenerationFailed"
 
-	// ControlPlaneKubernetesVersionAvailableV1Beta1Condition documents whether the controller could resolve the
-	// Kubernetes version used for worker join from the Cluster's control plane reference (when applicable).
-	ControlPlaneKubernetesVersionAvailableV1Beta1Condition clusterv1.ConditionType = "ControlPlaneKubernetesVersionAvailable"
-
-	// ControlPlaneKubernetesVersionResolutionFailedV1Beta1Reason (Severity=Warning) documents a failure to read
-	// the control plane object or its Kubernetes version while resolving join bootstrap data.
-	ControlPlaneKubernetesVersionResolutionFailedV1Beta1Reason = "ControlPlaneKubernetesVersionResolutionFailed"
-
-	// ControlPlaneKubernetesVersionFromControlPlaneV1Beta1Reason documents that the Kubernetes version for worker
-	// join was read from the Cluster's control plane reference.
-	ControlPlaneKubernetesVersionFromControlPlaneV1Beta1Reason = "ControlPlaneKubernetesVersionFromControlPlane"
-
-	// ControlPlaneKubernetesVersionFromMachineV1Beta1Reason documents that the Kubernetes version for worker join
-	// uses the Machine's spec.version because the control plane reference is unset or does not expose a version.
-	ControlPlaneKubernetesVersionFromMachineV1Beta1Reason = "ControlPlaneKubernetesVersionFromMachine"
 )
 
 const (

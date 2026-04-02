@@ -1362,13 +1362,14 @@ spec:
                                   type: string
                                 contentFormat:
                                   description: |-
-                                    contentFormat specifies how to interpret content after it is loaded (inline or from contentFrom).
-                                    When set to "go-template", content is rendered as a Go text/template with data including KubernetesVersion
-                                    (semver.String(), no "v" prefix). For a worker joining a cluster, that version is the control plane
-                                    Kubernetes version when the controller can read it; otherwise the Machine's version.
+                                    contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).
+                                    When set to "template", content is rendered as a Go text/template.
+                                    Available template variables:
+                                      - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").
+                                    When set to "raw" or omitted, content is used verbatim.
                                   enum:
-                                  - ""
-                                  - go-template
+                                  - raw
+                                  - template
                                   type: string
                                 contentFrom:
                                   description: contentFrom is a referenced source
@@ -3958,13 +3959,14 @@ spec:
                                   type: string
                                 contentFormat:
                                   description: |-
-                                    contentFormat specifies how to interpret content after it is loaded (inline or from contentFrom).
-                                    When set to "go-template", content is rendered as a Go text/template with data including KubernetesVersion
-                                    (semver.String(), no "v" prefix). For a worker joining a cluster, that version is the control plane
-                                    Kubernetes version when the controller can read it; otherwise the Machine's version.
+                                    contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).
+                                    When set to "template", content is rendered as a Go text/template.
+                                    Available template variables:
+                                      - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").
+                                    When set to "raw" or omitted, content is used verbatim.
                                   enum:
-                                  - ""
-                                  - go-template
+                                  - raw
+                                  - template
                                   type: string
                                 contentFrom:
                                   description: contentFrom is a referenced source

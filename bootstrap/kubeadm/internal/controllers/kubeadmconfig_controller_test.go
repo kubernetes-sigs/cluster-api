@@ -2785,27 +2785,12 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 			newConfig := &bootstrapv1.KubeadmConfig{}
 			g.Expect(myclient.Get(ctx, key, newConfig)).To(Succeed())
 
-			for _, conditionType := range []string{bootstrapv1.KubeadmConfigReadyCondition, bootstrapv1.KubeadmConfigCertificatesAvailableCondition, bootstrapv1.KubeadmConfigDataSecretAvailableCondition, bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition} {
+			for _, conditionType := range []string{bootstrapv1.KubeadmConfigReadyCondition, bootstrapv1.KubeadmConfigCertificatesAvailableCondition, bootstrapv1.KubeadmConfigDataSecretAvailableCondition} {
 				condition := conditions.Get(newConfig, conditionType)
 				g.Expect(condition).ToNot(BeNil(), "condition %s is missing", conditionType)
 				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-				if conditionType == bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition {
-					g.Expect(condition.Reason).To(Equal(bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromMachineReason))
-					g.Expect(condition.Message).To(ContainSubstring("Machine"))
-				} else {
-					g.Expect(condition.Message).To(BeEmpty())
-				}
+				g.Expect(condition.Message).To(BeEmpty())
 			}
-			foundCPKubeVer := false
-			for _, c := range newConfig.GetV1Beta1Conditions() {
-				if c.Type == bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition {
-					g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
-					g.Expect(c.Reason).To(Equal(bootstrapv1.ControlPlaneKubernetesVersionFromMachineV1Beta1Reason))
-					foundCPKubeVer = true
-					break
-				}
-			}
-			g.Expect(foundCPKubeVer).To(BeTrue())
 			for _, conditionType := range []string{clusterv1.PausedCondition} {
 				condition := conditions.Get(newConfig, conditionType)
 				g.Expect(condition).ToNot(BeNil(), "condition %s is missing", conditionType)
@@ -2816,7 +2801,7 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 	}
 }
 
-func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions_ControlPlaneKubernetesVersionFromControlPlaneRef(t *testing.T) {
+func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions_WorkerJoinWithControlPlaneRef(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
@@ -2867,20 +2852,10 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions_ControlPlaneKubern
 	newConfig := &bootstrapv1.KubeadmConfig{}
 	g.Expect(myclient.Get(ctx, key, newConfig)).To(Succeed())
 
-	c := conditions.Get(newConfig, bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionAvailableCondition)
-	g.Expect(c).ToNot(BeNil())
-	g.Expect(c.Status).To(Equal(metav1.ConditionTrue))
-	g.Expect(c.Reason).To(Equal(bootstrapv1.KubeadmConfigControlPlaneKubernetesVersionFromControlPlaneReason))
-	g.Expect(c.Message).To(ContainSubstring("control plane reference"))
-
-	foundCPKubeVer := false
-	for _, cond := range newConfig.GetV1Beta1Conditions() {
-		if cond.Type == bootstrapv1.ControlPlaneKubernetesVersionAvailableV1Beta1Condition {
-			g.Expect(cond.Status).To(Equal(corev1.ConditionTrue))
-			g.Expect(cond.Reason).To(Equal(bootstrapv1.ControlPlaneKubernetesVersionFromControlPlaneV1Beta1Reason))
-			foundCPKubeVer = true
-			break
-		}
+	// Verify standard conditions are set.
+	for _, conditionType := range []string{bootstrapv1.KubeadmConfigReadyCondition, bootstrapv1.KubeadmConfigCertificatesAvailableCondition, bootstrapv1.KubeadmConfigDataSecretAvailableCondition} {
+		c := conditions.Get(newConfig, conditionType)
+		g.Expect(c).ToNot(BeNil(), "condition %s is missing", conditionType)
+		g.Expect(c.Status).To(Equal(metav1.ConditionTrue))
 	}
-	g.Expect(foundCPKubeVer).To(BeTrue())
 }

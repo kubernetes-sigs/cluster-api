@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When a worker joins during a control plane upgrade [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When a worker joins with kubeadm with an older version than the control plane", Label("ClusterClass"), func() {
 	KubeadmVersionOnJoinSpec(ctx, func() KubeadmVersionOnJoinSpecInput {
 		return KubeadmVersionOnJoinSpecInput{
 			E2EConfig:              e2eConfig,

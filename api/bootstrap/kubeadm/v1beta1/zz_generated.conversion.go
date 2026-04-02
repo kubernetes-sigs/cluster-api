@@ -885,12 +885,12 @@ func autoConvert_v1beta1_File_To_v1beta2_File(in *File, out *v1beta2.File, s con
 	out.Owner = in.Owner
 	out.Permissions = in.Permissions
 	out.Encoding = v1beta2.Encoding(in.Encoding)
-	out.ContentFormat = v1beta2.FileContentFormat(in.ContentFormat)
 	if err := v1.Convert_bool_To_Pointer_bool(&in.Append, &out.Append, s); err != nil {
 		return err
 	}
 	out.Content = in.Content
 	// WARNING: in.ContentFrom requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileSource vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileSource)
+	out.ContentFormat = v1beta2.FileContentFormat(in.ContentFormat)
 	return nil
 }
 
@@ -899,12 +899,12 @@ func autoConvert_v1beta2_File_To_v1beta1_File(in *v1beta2.File, out *File, s con
 	out.Owner = in.Owner
 	out.Permissions = in.Permissions
 	out.Encoding = Encoding(in.Encoding)
-	out.ContentFormat = FileContentFormat(in.ContentFormat)
 	if err := v1.Convert_Pointer_bool_To_bool(&in.Append, &out.Append, s); err != nil {
 		return err
 	}
 	out.Content = in.Content
 	// WARNING: in.ContentFrom requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileSource vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileSource)
+	out.ContentFormat = FileContentFormat(in.ContentFormat)
 	return nil
 }
 

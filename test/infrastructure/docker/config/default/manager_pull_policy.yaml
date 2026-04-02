@@ -8,4 +8,4 @@ spec:
     spec:
       containers:
       - name: manager
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent

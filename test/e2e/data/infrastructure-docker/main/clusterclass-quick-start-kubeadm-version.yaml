@@ -276,13 +276,13 @@ spec:
       - path: /run/cluster-api/fetch-kubeadm.sh
         owner: "root:root"
         permissions: "0755"
-        contentFormat: go-template
+        contentFormat: template
         content: |
           #!/bin/sh
           set -e
           KUBEADM_INSTALL="/usr/bin/kubeadm"
           BASE_URL="https://dl.k8s.io/release"
-          version="{{ .KubernetesVersion }}"
+          version="{{ .controlPlane.version }}"
           echo "fetch-kubeadm.sh: starting"
           echo "fetch-kubeadm.sh: raw version from template: '$$version'"
           if [ -z "$$version" ]; then
@@ -312,7 +312,7 @@ spec:
           echo "Fetching kubeadm $${version} ($${arch}) from $${url}"
           echo "fetch-kubeadm.sh: curl -fLsS -o <tmpfile> $$url"
           tmp=$$(mktemp -p /tmp kubeadm.XXXXXX)
-          if curl -fLsS -o "$$tmp" "$$url"; then
+          if curl --retry 5 --retry-all-errors -fLsS -o "$$tmp" "$$url"; then
             echo "fetch-kubeadm.sh: download succeeded, installing to $$KUBEADM_INSTALL"
             chmod 755 "$$tmp"
             mv -f "$$tmp" "$$KUBEADM_INSTALL"
@@ -328,7 +328,7 @@ spec:
       preKubeadmCommands:
       - |
         command -v curl >/dev/null 2>&1 || (apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*)
-      - 'sh /run/cluster-api/fetch-kubeadm.sh 2>&1 | tee /var/log/fetch-kubeadm.log || true'
+      - 'sh /run/cluster-api/fetch-kubeadm.sh 2>&1 | tee /var/log/fetch-kubeadm.log'
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:

@@ -97,10 +97,10 @@ spec:
     status: "False"
     timeout: 300s
   unhealthyMachineConditions:
-  - type: "Ready"
+  - type: "InfrastructureReady"
     status: Unknown
     timeout: 300s
-  - type: "Ready"
+  - type: "InfrastructureReady"
     status: "False"
     timeout: 300s
 ```

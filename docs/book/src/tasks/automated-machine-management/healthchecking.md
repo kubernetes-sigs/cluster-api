@@ -60,10 +60,10 @@ spec:
         status: "False"
         timeoutSeconds: 300
       unhealthyMachineConditions:
-      - type: "Ready"
+      - type: "InfrastructureReady"
         status: Unknown
         timeoutSeconds: 300
-      - type: "Ready"
+      - type: "InfrastructureReady"
         status: "False"
         timeoutSeconds: 300
   # remediation configures if and how remediation is triggered if a Machine is unhealthy.

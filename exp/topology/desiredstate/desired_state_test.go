@@ -1773,7 +1773,27 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.Spec.InfrastructureRef).To(BeComparableTo(contract.ObjToContractVersionedObjectReference(infrastructureCluster)))
 	g.Expect(obj.Spec.ControlPlaneRef).To(BeComparableTo(contract.ObjToContractVersionedObjectReference(controlPlane)))
 
-	// Surfaces the ClusterTopologyUpgradeStepAnnotation annotation during upgrades.
+	// Surfaces the ClusterTopologyUpgradeStepAnnotation annotation during upgrades when runtime SDK feature flag is off.
+
+	s.UpgradeTracker.MachineDeployments.UpgradePlan = []string{"v1.30.3"}
+
+	obj, err = computeCluster(ctx, s, infrastructureCluster, controlPlane)
+	g.Expect(obj).ToNot(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
+
+	g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.ClusterTopologyUpgradeStepAnnotation, "v1.30.3"))
+
+	s.UpgradeTracker.MachineDeployments.UpgradePlan = nil
+
+	obj, err = computeCluster(ctx, s, infrastructureCluster, controlPlane)
+	g.Expect(obj).ToNot(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
+
+	g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.ClusterTopologyUpgradeStepAnnotation, ""))
+
+	// Surfaces the ClusterTopologyUpgradeStepAnnotation annotation during upgrades when runtime SDK feature flag is on.
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+
 	annotations := s.Current.Cluster.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}

@@ -26,6 +26,8 @@ rules:
   resourceNames:
   - devclusters.infrastructure.cluster.x-k8s.io
   - devclustertemplates.infrastructure.cluster.x-k8s.io
+  - devmachinepools.infrastructure.cluster.x-k8s.io
+  - devmachinepooltemplates.infrastructure.cluster.x-k8s.io
   - devmachines.infrastructure.cluster.x-k8s.io
   - devmachinetemplates.infrastructure.cluster.x-k8s.io
   - dockerclusters.infrastructure.cluster.x-k8s.io
@@ -76,6 +78,7 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - devclusters
+  - devmachinepools
   - devmachines
   - dockerclusters
   - dockermachinepools
@@ -94,6 +97,9 @@ rules:
   - devclusters/finalizers
   - devclusters/status
   - devclustertemplates
+  - devmachinepools/finalizers
+  - devmachinepools/status
+  - devmachinepooltemplates
   - devmachines/finalizers
   - devmachines/status
   - devmachinetemplates

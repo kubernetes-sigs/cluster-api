@@ -21,6 +21,8 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_devclusters.yaml
 - bases/infrastructure.cluster.x-k8s.io_devclustertemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_devmachinetemplates.yaml
+- bases/infrastructure.cluster.x-k8s.io_devmachinepools.yaml
+- bases/infrastructure.cluster.x-k8s.io_devmachinepooltemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
@@ -36,6 +38,8 @@ patches:
 - path: patches/webhook_in_devmachinetemplates.yaml
 - path: patches/webhook_in_devclusters.yaml
 - path: patches/webhook_in_devclustertemplates.yaml
+- path: patches/webhook_in_devmachinepools.yaml
+- path: patches/webhook_in_devmachinepooltemplates.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.

@@ -435,33 +435,12 @@ All the Cluster API Kubeadm Control Plane providers currently supported are usin
 #### CoreDNS Support
 
 Each version of the Kubeadm Control Plane can upgrade up to a max CoreDNS version.
-Notably, the Max CoreDNS version could change also with patch releases.
+Notably, the Max CoreDNS version could change also with Cluster API patch releases.
+The version depends on the version of the `corefile-migration` library.
 
-| KCP Version | Max CoreDNS Version |
-|-------------|---------------------|
-| v1.5        | v1.10.1             |
-| >= v1.5.1   | v1.11.1             |
-| v1.6        | v1.11.1             |
-| v1.7        | v1.11.1             |
-| v1.8        | v1.11.3             |
-| >= v1.8.9   | v1.12.0             |
-| >= v1.8.12  | v1.12.1             |
-| v1.9        | v1.11.3             |
-| >= v1.9.4   | v1.12.0             |
-| >= v1.9.7   | v1.12.1             |
-| >= v1.9.11  | v1.12.3             |
-| v1.10       | v1.12.1             |
-| >= v1.10.5  | v1.12.3             |
-| v1.10.7     | v1.12.4             |
-| >= v1.10.8  | v1.13.1             |
-| v1.11       | v1.12.3             |
-| v1.11.2     | v1.12.4             |
-| >= v1.11.3  | v1.13.1             |
-| >= v1.11.6  | v1.14.1             |
-| v1.12       | v1.13.1             |
-| >= v1.12.3  | v1.14.1             |
-
-See [corefile-migration](https://github.com/coredns/corefile-migration)
+To look up the max supported CoreDNS version of a specific Cluster API version:
+* Look up the `corefile-migration` version in the CAPI top-level go.mod file, e.g. `github.com/coredns/corefile-migration v1.0.31`
+* Look up the highest supported CoreDNS version, e.g. in https://github.com/coredns/corefile-migration/blob/v1.0.31/migration/versions.go#L32
 
 ### Other providers
 

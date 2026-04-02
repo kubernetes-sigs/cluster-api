@@ -60,7 +60,7 @@ type DockerMachineSpec struct {
 	Bootstrapped bool `json:"bootstrapped,omitempty"`
 
 	// BootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
-	// The default value is 3m.
+	// The default value is 5m.
 	// +optional
 	BootstrapTimeout *metav1.Duration `json:"bootstrapTimeout,omitempty"`
 }

@@ -18,6 +18,7 @@ package v1beta2
 
 import clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
+
 // Conditions and condition Reasons for the KubeadmConfig object.
 
 const (

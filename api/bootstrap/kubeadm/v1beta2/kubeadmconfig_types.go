@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 )
 
+
 // Format specifies the output format of the bootstrap data
 // +kubebuilder:validation:Enum=cloud-config;ignition
 type Format string

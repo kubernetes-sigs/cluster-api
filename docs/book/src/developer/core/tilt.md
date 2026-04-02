@@ -302,6 +302,7 @@ Supported values are:
 * `parca`*: For visualizing profiling data.
 * `tempo`: To store traces.
 * `visualizer`*: Visualize Cluster API resources for each cluster, provide quick access to the specs and status of any resource.
+* `headlamp`*: A Kubernetes web UI with the [Cluster API plugin](https://artifacthub.io/packages/headlamp/headlamp-plugins/headlamp_cluster-api) for browsing and managing CAPI resources.
 
 \*: Note: the UI will be accessible via a link in the tilt console
 

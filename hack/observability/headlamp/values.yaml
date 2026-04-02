@@ -1,0 +1,32 @@
+replicaCount: 1
+
+config:
+  inCluster: false
+  watchPlugins: true
+  extraArgs:
+    - "-kubeconfig=/etc/headlamp/kubeconfig"
+
+volumes:
+  - name: headlamp-kubeconfig
+    configMap:
+      name: headlamp-kubeconfig
+
+volumeMounts:
+  - name: headlamp-kubeconfig
+    mountPath: /etc/headlamp
+    readOnly: true
+
+pluginsManager:
+  enabled: true
+  configContent: |
+    plugins:
+      - name: headlamp_cluster-api
+        source: https://artifacthub.io/packages/headlamp/headlamp-plugins/headlamp_cluster-api
+        version: 0.1.0-alpha
+
+clusterRoleBinding:
+  create: true
+
+serviceAccount:
+  create: false
+  name: default

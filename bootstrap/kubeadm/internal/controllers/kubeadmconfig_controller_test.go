@@ -2806,6 +2806,7 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions_WorkerJoinWithControlPlaneRef(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(bootstrapv1.AddToScheme(scheme)).To(Succeed())

@@ -118,7 +118,7 @@ This feature is only available for KubeadmControlPlane.
 
 </aside>
 
-KubeadmControlPlane allows to control how remediation happen by defining an optional `remediationStrategy`;
+KubeadmControlPlane allows to control how remediation happen by defining an optional `remediation`;
 this feature can be used for preventing unnecessary load on infrastructure provider e.g. in case of quota problems,or for allowing the infrastructure provider to stabilize in case of temporary problems.
 
 ```yaml
@@ -128,10 +128,10 @@ metadata:
   name: my-control-plane
 spec:
   ...
-  remediationStrategy:
+  remediation:
     maxRetry: 5
-    retryPeriod: 2m
-    minHealthyPeriod: 2h
+    retryPeriodSeconds: 120 # 2m
+    minHealthyPeriodSeconds: 7200 # 2h
 ```
 
 `maxRetry` is the maximum number of retries while attempting to remediate an unhealthy machine.
@@ -143,9 +143,9 @@ For example, given a control plane with three machines M1, M2, M3:
   remediated. This operation is considered a retry - remediation-retry #1.
 - If M1-2 (replacement of M1-1) becomes unhealthy, remediation-retry #2 will happen, etc.
 
-A retry will only happen after the `retryPeriod` from the previous retry has elapsed. If `retryPeriod` is not set (default), a retry will happen immediately.
+A retry will only happen after the `retryPeriodSeconds` from the previous retry has elapsed. If `retryPeriodSeconds` is not set (default), a retry will happen immediately.
 
-If a machine is marked as unhealthy after `minHealthyPeriod` (default 1h) has passed since the previous remediation this is no longer considered a retry because the new issue is assumed unrelated from the previous one.
+If a machine is marked as unhealthy after `minHealthyPeriodSeconds` (default 3600) has passed since the previous remediation this is no longer considered a retry because the new issue is assumed unrelated from the previous one.
 
 If `maxRetry` is not set (default), remediation will be retried infinitely.
 

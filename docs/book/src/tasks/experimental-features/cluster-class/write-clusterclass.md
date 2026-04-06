@@ -197,10 +197,10 @@ spec:
         unhealthyMachineConditions:
         - type: "InfrastructureReady"
           status: Unknown
-          timeoutSeconds: 300
+          timeoutSeconds: 1800
         - type: "InfrastructureReady"
           status: "False"
-          timeoutSeconds: 300
+          timeoutSeconds: 1800
       remediation:
         triggerIf:
           unhealthyLessThanOrEqualTo: 33%
@@ -221,10 +221,10 @@ spec:
           unhealthyMachineConditions:
           - type: InfrastructureReady
             status: Unknown
-            timeoutSeconds: 300
+            timeoutSeconds: 1800
           - type: InfrastructureReady
             status: "False"
-            timeoutSeconds: 300
+            timeoutSeconds: 1800
         remediation:
           triggerIf:
             unhealthyInRange: "[0-2]"

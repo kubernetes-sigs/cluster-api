@@ -97,7 +97,7 @@ spec:
     status: "False"
     timeout: 300s
   unhealthyMachineConditions:
-  - type: "InfrastructureReady"
+  - type: "NodeReady"
     status: Unknown
     timeout: 1800s
   - type: "InfrastructureReady"

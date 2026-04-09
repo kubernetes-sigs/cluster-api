@@ -40,10 +40,13 @@ type DockerMachineTemplateStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=dockermachinetemplates,scope=Namespaced,categories=cluster-api
+// +kubebuilder:deprecatedversion
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachineTemplate"
 
 // DockerMachineTemplate is the Schema for the dockermachinetemplates API.
+//
+// Deprecated: DockerMachineTemplate is deprecated. Use DevMachineTemplate instead.
 type DockerMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

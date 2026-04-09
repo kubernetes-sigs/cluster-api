@@ -246,6 +246,10 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
+        # Docker resources are marked as deprecated.
+      - linters:
+          - staticcheck
+        text: 'SA1019: .* is deprecated: .* Use Dev.* instead\.'
       - linters:
           - staticcheck
         text: 'SA1019: clusterv1\.(Condition|Conditions|ConditionSeverity|ConditionType) is deprecated'

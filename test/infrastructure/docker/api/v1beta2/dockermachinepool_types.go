@@ -145,12 +145,15 @@ type DockerMachinePoolInstanceStatus struct {
 }
 
 // +kubebuilder:resource:path=dockermachinepools,scope=Namespaced,categories=cluster-api
+// +kubebuilder:deprecatedversion
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachinePool"
 
 // DockerMachinePool is the Schema for the dockermachinepools API.
+//
+// Deprecated: DockerMachinePool is deprecated. Use DevMachinePool instead.
 type DockerMachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

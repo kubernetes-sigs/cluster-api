@@ -314,10 +314,14 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: DockerMachine is the Schema for the dockermachines API.
+        description: |-
+          DockerMachine is the Schema for the dockermachines API.
+
+          Deprecated: DockerMachine is deprecated. Use DevMachine instead.
         properties:
           apiVersion:
             description: |-

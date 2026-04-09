@@ -169,11 +169,14 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: DockerClusterTemplate is the Schema for the dockerclustertemplates
-          API.
+        description: |-
+          DockerClusterTemplate is the Schema for the dockerclustertemplates API.
+
+          Deprecated: DockerClusterTemplate is deprecated. Use DevClusterTemplate instead.
         properties:
           apiVersion:
             description: |-

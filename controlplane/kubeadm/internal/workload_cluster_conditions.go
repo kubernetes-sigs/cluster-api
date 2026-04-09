@@ -442,6 +442,8 @@ func compareMachinesAndMembers(controlPlane *ControlPlane) (bool, []string) {
 		}
 		if !found {
 			// Surface there is an etcd member without a machine into the EtcdClusterHealthy condition on kcp.
+			// Note: this surface an error, because there is no way to determine if this is happening in the brief time
+			// in between when kubeadm adds a member - when the member actually start, or if this is due to the member not starting.
 			name := member.Name
 			if name == "" {
 				name = fmt.Sprintf("%d (Name not yet assigned)", member.ID)

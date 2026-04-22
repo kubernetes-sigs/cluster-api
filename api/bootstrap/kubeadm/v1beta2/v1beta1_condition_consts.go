@@ -18,7 +18,6 @@ package v1beta2
 
 import clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
-
 // Conditions and condition Reasons for the KubeadmConfig object.
 
 const (
@@ -40,7 +39,6 @@ const (
 	// an error while generating a data secret; those kind of errors are usually due to misconfigurations
 	// and user intervention is required to get them fixed.
 	DataSecretGenerationFailedV1Beta1Reason = "DataSecretGenerationFailed"
-
 )
 
 const (

@@ -40,8 +40,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-// KubeadmVersionOnJoinSpecInput is the input for KubeadmVersionOnJoinSpec.
-type KubeadmVersionOnJoinSpecInput struct {
+// KubeadmJoinOldNodesSpecInput is the input for KubeadmJoinOldNodesSpec.
+type KubeadmJoinOldNodesSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -61,16 +61,16 @@ type KubeadmVersionOnJoinSpecInput struct {
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
-// KubeadmVersionOnJoinSpec verifies that when a worker Machine joins a cluster during an
+// KubeadmJoinOldNodesSpec verifies that when a worker Machine joins a cluster during an
 // upgrade, the bootstrap controller renders spec.files template content with the control
 // plane's Kubernetes version. A fetch-kubeadm.sh preKubeadmCommand (installed from that
 // templated file) downloads the matching kubeadm binary so that kubeadm join succeeds against
 // the upgraded control plane, even though the worker's spec version is still the old version.
-func KubeadmVersionOnJoinSpec(ctx context.Context, inputGetter func() KubeadmVersionOnJoinSpecInput) {
-	const specName = "kubeadm-version-on-join"
+func KubeadmJoinOldNodesSpec(ctx context.Context, inputGetter func() KubeadmJoinOldNodesSpecInput) {
+	const specName = "kubeadm-join-old-nodes"
 
 	var (
-		input            KubeadmVersionOnJoinSpecInput
+		input            KubeadmJoinOldNodesSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult

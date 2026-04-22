@@ -25,8 +25,8 @@ import (
 )
 
 var _ = Describe("When a worker joins with kubeadm with an older version than the control plane", Label("ClusterClass"), func() {
-	KubeadmVersionOnJoinSpec(ctx, func() KubeadmVersionOnJoinSpecInput {
-		return KubeadmVersionOnJoinSpecInput{
+	KubeadmJoinOldNodesSpec(ctx, func() KubeadmJoinOldNodesSpecInput {
+		return KubeadmJoinOldNodesSpecInput{
 			E2EConfig:              e2eConfig,
 			ClusterctlConfigPath:   clusterctlConfigPath,
 			BootstrapClusterProxy:  bootstrapClusterProxy,

@@ -163,17 +163,17 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.12.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.13.x"}} -o clusterctl
 ```
 
 Download for ARM64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.12.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.13.x"}} -o clusterctl
 ```
 
 Download for PPC64LE:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.12.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.13.x"}} -o clusterctl
 ```
 
 Install clusterctl:
@@ -193,12 +193,12 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.12.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.13.x"}} -o clusterctl
 ```
 
 Download for M1 CPU ("Apple Silicon") / ARM64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.12.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.13.x"}} -o clusterctl
 ```
 
 Make the clusterctl binary executable.
@@ -237,7 +237,7 @@ Go to the working directory where you want clusterctl downloaded.
 
 Download the latest release; on Windows, type:
 ```powershell
-curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.12.x"}} -o clusterctl.exe
+curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.13.x"}} -o clusterctl.exe
 ```
 Append or prepend the path of that directory to the `PATH` environment variable.
 
@@ -273,7 +273,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -478,6 +478,22 @@ kubectl create secret generic "${AZURE_CLUSTER_IDENTITY_SECRET_NAME}" --from-lit
 # Finally, initialize the management cluster
 clusterctl init --infrastructure azure
 ```
+
+{{#/tab }}
+{{#tab cloudscale}}
+
+```bash
+# The cloudscale API token.
+# You may want to set this in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml` so your token is not in
+# bash history
+export CLOUDSCALE_API_TOKEN="AAAEXAMPLE"
+
+# initialize the management cluster
+clusterctl init --infrastructure cloudscale-ch-cloudscale
+```
+
+For more information about the CAPI provider for cloudscale, see the [cloudscale cluster-api
+project][cloudscale getting started guide].
 
 {{#/tab }}
 {{#tab CloudStack}}
@@ -912,7 +928,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -959,6 +975,35 @@ export AZURE_NODE_MACHINE_TYPE="Standard_D2s_v3"
 # [Optional] Select resource group. The default value is ${CLUSTER_NAME}.
 export AZURE_RESOURCE_GROUP="<ResourceGroupName>"
 ```
+
+{{#/tab }}
+{{#tab cloudscale}}
+
+A ClusterAPI compatible image must be available in your cloudscale project. For instructions on how to build a compatible VM template
+see [image-builder](https://image-builder.sigs.k8s.io/capi/providers/openstack).
+
+```bash
+# The cloudscale API token.
+# You may want to set this in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml` so your token is not in
+# bash history
+export CLOUDSCALE_API_TOKEN="AAAEXAMPLE"
+# SSH public key added to nodes
+export CLOUDSCALE_SSH_PUBLIC_KEY="ssh-ed25519 AAAA..."
+# cloudscale.ch region
+export CLOUDSCALE_REGION="lpg"
+# Server image for nodes
+export CLOUDSCALE_MACHINE_IMAGE="custom:ubuntu-2404-kube-v1.35.2"
+# Flavor for control plane nodes
+export CLOUDSCALE_CONTROL_PLANE_MACHINE_FLAVOR="flex-4-2"
+# Flavor for worker nodes 
+export CLOUDSCALE_WORKER_MACHINE_FLAVOR="flex-4-2"
+# Root volume size in GB
+export CLOUDSCALE_ROOT_VOLUME_SIZE="50"
+
+```
+
+For more information about the setup for cloudscale, see the [cloudscale cluster-api
+project][cloudscale getting started guide].
 
 {{#/tab }}
 {{#tab CloudStack}}
@@ -2054,3 +2099,4 @@ kind delete cluster
 [Tinkerbell getting started guide]: https://github.com/tinkerbell/cluster-api-provider-tinkerbell/blob/main/docs/QUICK-START.md
 [CAPONE Wiki]: https://github.com/OpenNebula/cluster-api-provider-opennebula/wiki
 [CAPS getting started guide]: https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/getting-started.md
+[cloudscale getting started guide]: https://github.com/cloudscale-ch/cluster-api-provider-cloudscale/blob/main/README.md

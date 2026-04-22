@@ -115,6 +115,8 @@
       - [CRD relationships](reference/api/crd-relationships.md)
       - [Metadata propagation](reference/api/metadata-propagation.md)
       - [Owner References](reference/api/owner-references.md)
+      - [CRD API Reference (v1beta2)](reference/api/crd-api-reference.md)
+      - [CRD API Reference (deprecated versions)](reference/api/crd-api-reference-v1beta1.md)
     - [Glossary](./reference/glossary.md)
     - [Provider List](./reference/providers.md)
     - [Ports](./reference/ports.md)

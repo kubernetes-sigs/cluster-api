@@ -40,6 +40,7 @@ const (
 	AWSProviderName        = "aws"
 	AzureProviderName      = "azure"
 	BYOHProviderName       = "byoh"
+	CloudscaleProviderName = "cloudscale-ch-cloudscale"
 	CloudStackProviderName = "cloudstack"
 	DockerProviderName     = "docker"
 	DOProviderName         = "digitalocean"
@@ -186,6 +187,11 @@ func (p *providersClient) defaults() []Provider {
 			// NB. The Docker provider is not designed for production use and is intended for development environments only.
 			name:         DockerProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/infrastructure-components-development.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         CloudscaleProviderName,
+			url:          "https://github.com/cloudscale-ch/cluster-api-provider-cloudscale/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

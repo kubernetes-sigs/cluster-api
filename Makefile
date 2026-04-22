@@ -23,7 +23,7 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.25.8
+GO_VERSION ?= 1.25.9
 GO_DIRECTIVE_VERSION ?= 1.25.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
@@ -190,6 +190,11 @@ IMPORT_BOSS_BIN := import-boss
 IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
+
+CRD_REF_DOCS_VER := v0.3.0
+CRD_REF_DOCS_BIN := crd-ref-docs
+CRD_REF_DOCS := $(abspath $(TOOLS_BIN_DIR)/$(CRD_REF_DOCS_BIN)-$(CRD_REF_DOCS_VER))
+CRD_REF_DOCS_PKG := github.com/elastic/crd-ref-docs
 
 TRIAGE_PARTY_IMAGE_NAME ?= extra/triage-party
 TRIAGE_PARTY_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(TRIAGE_PARTY_IMAGE_NAME)
@@ -554,6 +559,20 @@ generate-modules: ## Run go mod tidy to ensure modules are up to date
 generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
 
+.PHONY: generate-crd-docs
+generate-crd-docs: $(CRD_REF_DOCS) ## Generate CRD API reference documentation using crd-ref-docs
+	$(CRD_REF_DOCS) \
+		--source-path=$(ROOT_DIR)/api \
+		--config=$(ROOT_DIR)/hack/crd-ref-docs-config-v1beta2.yaml \
+		--renderer=markdown \
+		--output-path=$(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference.md
+	$(CRD_REF_DOCS) \
+		--source-path=$(ROOT_DIR)/api \
+		--config=$(ROOT_DIR)/hack/crd-ref-docs-config-v1beta1.yaml \
+		--renderer=markdown \
+		--output-path=$(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md
+	printf '%s\n\n' '> This page documents **deprecated** API packages. For current types, see [CRD API Reference (v1beta2)](crd-api-reference.md).' | cat - $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md > $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md.tmp && mv $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md.tmp $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md
+
 .PHONY: generate-e2e-templates
 generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.10 v1.11 v1.12 main) ## Generate cluster templates for all versions
 
@@ -667,7 +686,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen conversions doctoc capi-book-summary diagrams import-restrictions go-directive
+ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen crd-docs conversions doctoc capi-book-summary diagrams import-restrictions go-directive
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
@@ -692,6 +711,13 @@ verify-gen: generate  ## Verify go generated files are up to date
 	@if !(git diff --quiet HEAD); then \
 		git diff; \
 		echo "generated files are out of date, run make generate"; exit 1; \
+	fi
+
+.PHONY: verify-crd-docs
+verify-crd-docs: generate-crd-docs ## Verify CRD API docs are up to date
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "CRD API docs are out of date, run make generate-crd-docs"; exit 1; \
 	fi
 
 .PHONY: verify-conversions
@@ -1424,6 +1450,9 @@ $(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
 
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+
+$(CRD_REF_DOCS): # Build crd-ref-docs from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CRD_REF_DOCS_PKG) $(CRD_REF_DOCS_BIN) $(CRD_REF_DOCS_VER)
 
 ## We are forcing a rebuilt of conversion-gen via PHONY so that we're always using an up-to-date version.
 ## We can't use a versioned name for the binary, because that would be reflected in generated files.

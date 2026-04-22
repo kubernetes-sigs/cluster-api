@@ -148,11 +148,14 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: DockerMachineTemplate is the Schema for the dockermachinetemplates
-          API.
+        description: |-
+          DockerMachineTemplate is the Schema for the dockermachinetemplates API.
+
+          Deprecated: DockerMachineTemplate is deprecated. Use DevMachineTemplate instead.
         properties:
           apiVersion:
             description: |-

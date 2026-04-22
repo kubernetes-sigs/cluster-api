@@ -21,11 +21,11 @@ images:
   loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/test-extension-{ARCH}:dev
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-cainjector:v1.20.1
+- name: quay.io/jetstack/cert-manager-cainjector:v1.20.2
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-webhook:v1.20.1
+- name: quay.io/jetstack/cert-manager-webhook:v1.20.2
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-controller:v1.20.1
+- name: quay.io/jetstack/cert-manager-controller:v1.20.2
   loadBehavior: tryLoad
 
 providers:
@@ -221,11 +221,11 @@ variables:
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.36.0-beta.0"
-  KUBERNETES_VERSION: "v1.36.0-beta.0"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.36.0-rc.1"
+  KUBERNETES_VERSION: "v1.36.0-rc.1"
   KUBERNETES_VERSION_CHAINED_UPGRADE_FROM: "v1.32.11" # Should always be KUBERNETES_VERSION_UPGRADE_TO - 4 minor
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.35.0"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.36.0-beta.0"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.36.0-rc.1"
   KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.36"
   ETCD_VERSION_UPGRADE_TO: "3.6.8-0"
   COREDNS_VERSION_UPGRADE_TO: "v1.14.2"

@@ -22,8 +22,8 @@ import (
 	"io"
 	"net"
 
-	dockercontainer "github.com/docker/docker/api/types/container"
-	dockersystem "github.com/docker/docker/api/types/system"
+	dockercontainer "github.com/moby/moby/api/types/container"
+	dockersystem "github.com/moby/moby/api/types/system"
 	"github.com/pkg/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"

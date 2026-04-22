@@ -361,17 +361,16 @@ In some cases, also Cluster API and/or Cluster API providers are defining additi
 The following table defines the support matrix for the Cluster API core provider.
 See [Cluster API release support](#cluster-api-release-support) and [Kubernetes versions support](#kubernetes-versions-support).
 
-|                  |v1.11, _Maintenance Mode_ | v1.12                | v1.13               |
-|------------------|--------------------------|----------------------|---------------------|
-| Kubernetes v1.28 | ✓ (only workload)        |                      |                     |
-| Kubernetes v1.29 | ✓ (only workload)        | ✓ (only workload)   |                      |
-| Kubernetes v1.30 | ✓                        | ✓ (only workload)   |  ✓ (only workload)   |
-| Kubernetes v1.31 | ✓                        | ✓                   |  ✓ (only workload)  |
-| Kubernetes v1.32 | ✓                        | ✓                   |  ✓                   |
-| Kubernetes v1.33 | ✓                        | ✓                   |  ✓                   |
-| Kubernetes v1.34 | ✓ >= v1.11.1             | ✓                   |  ✓                   |
-| Kubernetes v1.35 |                          | ✓ >= v1.12.1        |  ✓                   |
-
+|                  | v1.11, _Maintenance Mode_ | v1.12             | v1.13             |
+|------------------|---------------------------|-------------------|-------------------|
+| Kubernetes v1.28 | ✓ (only workload)         |                   |                   |
+| Kubernetes v1.29 | ✓ (only workload)         | ✓ (only workload) |                   |
+| Kubernetes v1.30 | ✓                         | ✓ (only workload) | ✓ (only workload) |
+| Kubernetes v1.31 | ✓                         | ✓                 | ✓ (only workload) |
+| Kubernetes v1.32 | ✓                         | ✓                 | ✓                 |
+| Kubernetes v1.33 | ✓                         | ✓                 | ✓                 |
+| Kubernetes v1.34 | ✓ >= v1.11.1              | ✓                 | ✓                 |
+| Kubernetes v1.35 |                           | ✓ >= v1.12.1      | ✓                 |
 
 See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
 

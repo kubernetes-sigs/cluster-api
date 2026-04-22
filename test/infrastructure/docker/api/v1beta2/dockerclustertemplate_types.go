@@ -29,10 +29,13 @@ type DockerClusterTemplateSpec struct {
 
 // +kubebuilder:resource:path=dockerclustertemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerClusterTemplate"
 
 // DockerClusterTemplate is the Schema for the dockerclustertemplates API.
+//
+// Deprecated: DockerClusterTemplate is deprecated. Use DevClusterTemplate instead.
 type DockerClusterTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -204,6 +205,10 @@ func matchesInfraMachine(
 
 	desiredInfraMachine, err := desiredstate.ComputeDesiredInfraMachine(ctx, c, kcp, cluster, machine.Name, currentInfraMachine)
 	if err != nil {
+		// If kcp is deleting, tolerate missing infra template (it should not be considered unmatching, no new machines will be created),
+		if !kcp.DeletionTimestamp.IsZero() && apierrors.IsNotFound(err) {
+			return "", nil, nil, true, nil
+		}
 		return "", nil, nil, false, errors.Wrapf(err, "failed to match %s", currentInfraMachine.GetKind())
 	}
 

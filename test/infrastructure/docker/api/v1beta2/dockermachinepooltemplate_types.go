@@ -29,10 +29,13 @@ type DockerMachinePoolTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=dockermachinepooltemplates,scope=Namespaced,categories=cluster-api
+// +kubebuilder:deprecatedversion
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachinePoolTemplate"
 
 // DockerMachinePoolTemplate is the Schema for the dockermachinepooltemplates API.
+//
+// Deprecated: DockerMachinePoolTemplate is deprecated. Use DevMachinePoolTemplate instead.
 type DockerMachinePoolTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -324,49 +324,50 @@ easier transition from `kubectl apply` to `clusterctl`.
 As a reference you can consider the labels applied to the following
 providers.
 
-| Provider Name | Label                                                 |
-|---------------|-------------------------------------------------------|
-| CAPI          | cluster.x-k8s.io/provider=cluster-api                 |
-| CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm           |
-| CABPM         | cluster.x-k8s.io/provider=bootstrap-microk8s          |
-| CABPKK3S      | cluster.x-k8s.io/provider=bootstrap-kubekey-k3s       |
-| CABPK0S       | cluster.x-k8s.io/provider=bootstrap-k0smotron         |
-| CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm       |
-| CACPM         | cluster.x-k8s.io/provider=control-plane-microk8s      |
-| CACPN         | cluster.x-k8s.io/provider=control-plane-nested        |
-| CACPKK3S      | cluster.x-k8s.io/provider=control-plane-kubekey-k3s   |
-| CACPK0S       | cluster.x-k8s.io/provider=control-plane-k0smotron     |
-| CAPA          | cluster.x-k8s.io/provider=infrastructure-aws          |
-| CAPB          | cluster.x-k8s.io/provider=infrastructure-byoh         |
-| CAPC          | cluster.x-k8s.io/provider=infrastructure-cloudstack   |
-| CAPD          | cluster.x-k8s.io/provider=infrastructure-docker       |
-| CAPDO         | cluster.x-k8s.io/provider=infrastructure-digitalocean |
-| CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp          |
-| CAPH          | cluster.x-k8s.io/provider=infrastructure-hetzner      |
-| CAPHV         | cluster.x-k8s.io/provider=infrastructure-hivelocity   |
-| CAPHW         | cluster.x-k8s.io/provider=infrastructure-huawei       |
-| CAPIBM        | cluster.x-k8s.io/provider=infrastructure-ibmcloud     |
-| CAPKK         | cluster.x-k8s.io/provider=infrastructure-kubekey      |
-| CAPK          | cluster.x-k8s.io/provider=infrastructure-kubevirt     |
-| CAPM3         | cluster.x-k8s.io/provider=infrastructure-metal3       |
-| CAPMS         | cluster.x-k8s.io/provider=infrastructure-metal-stack  |
-| CAPN          | cluster.x-k8s.io/provider=infrastructure-nested       |
-| CAPONE        | cluster.x-k8s.io/provider=infrastructure-opennebula   |
-| CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack    |
-| CAPOCI        | cluster.x-k8s.io/provider=infrastructure-oci          |
-| CAPS          | cluster.x-k8s.io/provider=infrastructure-scaleway     |
-| CAPT          | cluster.x-k8s.io/provider=infrastructure-tinkerbell   |
-| CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere      |
-| CAPVC         | cluster.x-k8s.io/provider=infrastructure-vcluster     |
-| CAPVCD        | cluster.x-k8s.io/provider=infrastructure-vcd          |
-| CAPX          | cluster.x-k8s.io/provider=infrastructure-nutanix      |
-| CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure        |
-| CAPOSC        | cluster.x-k8s.io/provider=infrastructure-outscale     |
-| CAPK0S        | cluster.x-k8s.io/provider=infrastructure-k0smotron    |
-| CAIPAMIC      | cluster.x-k8s.io/provider=ipam-in-cluster             |
-| CAIPAMX       | cluster.x-k8s.io/provider=ipam-nutanix                |
-| CAIPAM3       | cluster.x-k8s.io/provider=ipam-metal3                 |
-| CAREX         | cluster.x-k8s.io/provider=runtime-extensions-nutanix  |
+| Provider Name | Label                                                             |
+|---------------|-------------------------------------------------------------------|
+| CAPI          | cluster.x-k8s.io/provider=cluster-api                             |
+| CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm                       |
+| CABPM         | cluster.x-k8s.io/provider=bootstrap-microk8s                      |
+| CABPKK3S      | cluster.x-k8s.io/provider=bootstrap-kubekey-k3s                   |
+| CABPK0S       | cluster.x-k8s.io/provider=bootstrap-k0smotron                     |
+| CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm                   |
+| CACPM         | cluster.x-k8s.io/provider=control-plane-microk8s                  |
+| CACPN         | cluster.x-k8s.io/provider=control-plane-nested                    |
+| CACPKK3S      | cluster.x-k8s.io/provider=control-plane-kubekey-k3s               |
+| CACPK0S       | cluster.x-k8s.io/provider=control-plane-k0smotron                 |
+| CAPA          | cluster.x-k8s.io/provider=infrastructure-aws                      |
+| CAPB          | cluster.x-k8s.io/provider=infrastructure-byoh                     |
+| CAPC          | cluster.x-k8s.io/provider=infrastructure-cloudstack               |
+| CAPCS         | cluster.x-k8s.io/provider=infrastructure-cloudscale-ch-cloudscale |
+| CAPD          | cluster.x-k8s.io/provider=infrastructure-docker                   |
+| CAPDO         | cluster.x-k8s.io/provider=infrastructure-digitalocean             |
+| CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp                      |
+| CAPH          | cluster.x-k8s.io/provider=infrastructure-hetzner                  |
+| CAPHV         | cluster.x-k8s.io/provider=infrastructure-hivelocity               |
+| CAPHW         | cluster.x-k8s.io/provider=infrastructure-huawei                   |
+| CAPIBM        | cluster.x-k8s.io/provider=infrastructure-ibmcloud                 |
+| CAPKK         | cluster.x-k8s.io/provider=infrastructure-kubekey                  |
+| CAPK          | cluster.x-k8s.io/provider=infrastructure-kubevirt                 |
+| CAPM3         | cluster.x-k8s.io/provider=infrastructure-metal3                   |
+| CAPMS         | cluster.x-k8s.io/provider=infrastructure-metal-stack              |
+| CAPN          | cluster.x-k8s.io/provider=infrastructure-nested                   |
+| CAPONE        | cluster.x-k8s.io/provider=infrastructure-opennebula               |
+| CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack                |
+| CAPOCI        | cluster.x-k8s.io/provider=infrastructure-oci                      |
+| CAPS          | cluster.x-k8s.io/provider=infrastructure-scaleway                 |
+| CAPT          | cluster.x-k8s.io/provider=infrastructure-tinkerbell               |
+| CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere                  |
+| CAPVC         | cluster.x-k8s.io/provider=infrastructure-vcluster                 |
+| CAPVCD        | cluster.x-k8s.io/provider=infrastructure-vcd                      |
+| CAPX          | cluster.x-k8s.io/provider=infrastructure-nutanix                  |
+| CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure                    |
+| CAPOSC        | cluster.x-k8s.io/provider=infrastructure-outscale                 |
+| CAPK0S        | cluster.x-k8s.io/provider=infrastructure-k0smotron                |
+| CAIPAMIC      | cluster.x-k8s.io/provider=ipam-in-cluster                         |
+| CAIPAMX       | cluster.x-k8s.io/provider=ipam-nutanix                            |
+| CAIPAM3       | cluster.x-k8s.io/provider=ipam-metal3                             |
+| CAREX         | cluster.x-k8s.io/provider=runtime-extensions-nutanix              |
 
 ### Workload cluster templates
 

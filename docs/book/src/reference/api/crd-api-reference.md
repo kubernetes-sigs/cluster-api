@@ -616,6 +616,25 @@ _Appears in:_
 | `append` _boolean_ | append specifies whether to append Content to existing file if Path exists. |  | Optional: \{\} <br /> |
 | `content` _string_ | content is the actual content of the file. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `contentFrom` _[FileSource](#filesource)_ | contentFrom is a referenced source of content to populate the file. |  | Optional: \{\} <br /> |
+| `contentFormat` _[FileContentFormat](#filecontentformat)_ | contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).<br />When set to "template", content is rendered as a Go text/template.<br />Available template variables:<br />  - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").<br />When set to "raw" or omitted, content is used verbatim. |  | Enum: [raw template] <br />Optional: \{\} <br /> |
+
+
+#### FileContentFormat
+
+_Underlying type:_ _string_
+
+FileContentFormat specifies how file content is interpreted after resolving content/contentFrom and before writing bootstrap data.
+
+_Validation:_
+- Enum: [raw template]
+
+_Appears in:_
+- [File](#file)
+
+| Field | Description |
+| --- | --- |
+| `raw` | FileContentFormatRaw means content is used verbatim.<br /> |
+| `template` | FileContentFormatTemplate means content is rendered as a Go text/template.<br />Available template variables are documented by the kubeadm bootstrap provider.<br /> |
 
 
 #### FileDiscovery

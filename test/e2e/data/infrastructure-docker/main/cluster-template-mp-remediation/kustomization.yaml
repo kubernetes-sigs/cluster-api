@@ -1,0 +1,6 @@
+resources:
+  - ../cluster-template-machine-pool
+  - mhc.yaml
+
+patches:
+- path: mp.yaml

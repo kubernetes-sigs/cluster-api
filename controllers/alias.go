@@ -292,6 +292,8 @@ type MachinePoolReconciler struct {
 	APIReader    client.Reader
 	ClusterCache clustercache.ClusterCache
 
+	PreflightChecks sets.Set[clusterv1.MachineSetPreflightCheck]
+
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 }
@@ -301,6 +303,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		Client:           r.Client,
 		APIReader:        r.APIReader,
 		ClusterCache:     r.ClusterCache,
+		PreflightChecks:  r.PreflightChecks,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

@@ -64,6 +64,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 			endpoint.String(),
 			controllerOwnerRef,
 			kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm()),
+			kubeconfig.SecretAnnotations(controlPlane.Cluster.Spec.Kubeconfig.Metadata.Annotations),
+			kubeconfig.SecretLabels(controlPlane.Cluster.Spec.Kubeconfig.Metadata.Labels),
 		)
 		if errors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {
 			return ctrl.Result{RequeueAfter: dependentCertRequeueAfter}, nil
@@ -78,6 +80,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		return ctrl.Result{}, err
 	}
 
+	// Reconcile spec-declared metadata on every pass so changes take effect immediately.
+	if err := kubeconfig.ReconcileSecretMetadata(ctx, r.Client, configSecret, controlPlane.Cluster); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile kubeconfig secret metadata")
+	}
+
 	// only do rotation on owned secrets
 	if !util.IsControlledBy(configSecret, controlPlane.KCP, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind()) {
 		return ctrl.Result{}, nil
@@ -90,7 +97,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 
 	if needsRotation {
 		log.Info("Rotating kubeconfig secret")
-		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret, kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm())); err != nil {
+		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret, controlPlane.Cluster, kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm())); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
 		}
 	}

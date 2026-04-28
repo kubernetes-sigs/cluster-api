@@ -270,6 +270,107 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 	g.Expect(kubeconfigSecret.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, cluster.Name))
 }
 
+func TestKubeadmControlPlaneReconciler_reconcileKubeconfig_setsAnnotationsOnCreate(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: metav1.NamespaceDefault},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "test.local", Port: 8443},
+			Kubeconfig: clusterv1.KubeconfigSpec{
+				Metadata: clusterv1.ObjectMeta{
+					Annotations: map[string]string{"reflector.v1.k8s.emberstack.com/reflection-allowed": "true"},
+				},
+			},
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: metav1.NamespaceDefault},
+		Spec:       controlplanev1.KubeadmControlPlaneSpec{Version: "v1.16.6"},
+	}
+
+	clusterCerts := secret.NewCertificatesForInitialControlPlane(&bootstrapv1.ClusterConfiguration{})
+	g.Expect(clusterCerts.Generate()).To(Succeed())
+	caCert := clusterCerts.GetByPurpose(secret.ClusterCA)
+	existingCACertSecret := caCert.AsSecret(
+		client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "foo"},
+		*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+	)
+
+	fakeClient := newFakeClient(kcp.DeepCopy(), existingCACertSecret.DeepCopy())
+	r := &KubeadmControlPlaneReconciler{
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
+	}
+
+	_, err := r.reconcileKubeconfig(ctx, &internal.ControlPlane{KCP: kcp, Cluster: cluster})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	kubeconfigSecret := &corev1.Secret{}
+	g.Expect(r.Client.Get(ctx, client.ObjectKey{
+		Namespace: metav1.NamespaceDefault,
+		Name:      secret.Name(cluster.Name, secret.Kubeconfig),
+	}, kubeconfigSecret)).To(Succeed())
+	g.Expect(kubeconfigSecret.Annotations).To(HaveKeyWithValue("reflector.v1.k8s.emberstack.com/reflection-allowed", "true"))
+}
+
+func TestKubeadmControlPlaneReconciler_reconcileKubeconfig_updatesAnnotations(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: metav1.NamespaceDefault},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "test.local", Port: 8443},
+			Kubeconfig: clusterv1.KubeconfigSpec{
+				Metadata: clusterv1.ObjectMeta{
+					Annotations: map[string]string{"foo": "bar"},
+				},
+			},
+		},
+	}
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: metav1.NamespaceDefault,
+			UID:       "uid",
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{Version: "v1.16.6"},
+	}
+
+	// Pre-existing kubeconfig secret without the annotation. Use Opaque type so
+	// adoptKubeconfigSecret treats it as user-provided and returns early, which
+	// means cert rotation (which requires real kubeconfig bytes) is never attempted.
+	// ReconcileSecretMetadata runs before the ownership check so we can still
+	// verify annotation reconciliation.
+	existingKubeconfigSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secret.Name(cluster.Name, secret.Kubeconfig),
+			Namespace: metav1.NamespaceDefault,
+			Labels:    map[string]string{clusterv1.ClusterNameLabel: cluster.Name},
+		},
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	fakeClient := newFakeClient(kcp.DeepCopy(), existingKubeconfigSecret.DeepCopy())
+	r := &KubeadmControlPlaneReconciler{
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
+	}
+
+	_, err := r.reconcileKubeconfig(ctx, &internal.ControlPlane{KCP: kcp, Cluster: cluster})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	updated := &corev1.Secret{}
+	g.Expect(r.Client.Get(ctx, client.ObjectKey{
+		Namespace: metav1.NamespaceDefault,
+		Name:      secret.Name(cluster.Name, secret.Kubeconfig),
+	}, updated)).To(Succeed())
+	g.Expect(updated.Annotations).To(HaveKeyWithValue("foo", "bar"))
+}
+
 func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
 		t.Helper()

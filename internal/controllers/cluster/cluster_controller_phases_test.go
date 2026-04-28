@@ -588,12 +588,16 @@ func TestClusterReconcileKubeConfig(t *testing.T) {
 		},
 	}
 
+	clusterWithAnnotation := cluster.DeepCopy()
+	clusterWithAnnotation.Spec.Kubeconfig.Metadata.Annotations = map[string]string{"foo": "bar"}
+
 	tests := []struct {
-		name        string
-		cluster     *clusterv1.Cluster
-		secret      *corev1.Secret
-		wantErr     bool
-		wantRequeue bool
+		name            string
+		cluster         *clusterv1.Cluster
+		secret          *corev1.Secret
+		wantErr         bool
+		wantRequeue     bool
+		wantAnnotations map[string]string
 	}{
 		{
 			name:    "cluster not provisioned, apiEndpoint is not set",
@@ -609,6 +613,17 @@ func TestClusterReconcileKubeConfig(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name:    "kubeconfig secret found, spec annotations applied to existing secret",
+			cluster: clusterWithAnnotation,
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-cluster-kubeconfig",
+				},
+			},
+			wantErr:         false,
+			wantAnnotations: map[string]string{"foo": "bar"},
 		},
 		{
 			name:        "kubeconfig secret not found, should requeue",
@@ -656,6 +671,14 @@ func TestClusterReconcileKubeConfig(t *testing.T) {
 
 			if tt.wantRequeue {
 				g.Expect(res.RequeueAfter).To(BeNumerically(">=", 0))
+			}
+
+			if len(tt.wantAnnotations) > 0 {
+				updated := &corev1.Secret{}
+				g.Expect(c.Get(ctx, client.ObjectKey{Name: "test-cluster-kubeconfig", Namespace: tt.cluster.Namespace}, updated)).To(Succeed())
+				for k, v := range tt.wantAnnotations {
+					g.Expect(updated.Annotations).To(HaveKeyWithValue(k, v))
+				}
 			}
 		})
 	}

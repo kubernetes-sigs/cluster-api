@@ -54,3 +54,26 @@ formatted as described below.
 Notes: 
 - Also renewal of the above certificate should be taken care out of band.
 - This option does not prevent from providing a cluster CA which is required also for other purposes.
+
+#### Customizing the kubeconfig Secret's metadata
+
+Labels and annotations can be applied to the generated kubeconfig Secret by setting `spec.kubeconfig.metadata` on the
+Cluster object:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  kubeconfig:
+    metadata:
+      annotations:
+        reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      labels:
+        my-label: my-value
+```
+
+CAPI applies these on every reconcile using an additive merge — keys not declared in `spec.kubeconfig.metadata` are
+left untouched, so annotations placed by other controllers are preserved. Keys using the reserved `cluster.x-k8s.io/`
+or `topology.cluster.x-k8s.io/` prefixes are rejected by the webhook.

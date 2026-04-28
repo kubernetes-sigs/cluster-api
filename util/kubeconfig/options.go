@@ -27,6 +27,8 @@ type KubeConfigOption interface { //nolint:revive
 // KubeConfigOptions allows to set options for generating a kubeconfig.
 type KubeConfigOptions struct { //nolint:revive
 	keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType
+	extraLabels            map[string]string
+	extraAnnotations       map[string]string
 }
 
 // ApplyOptions applies the given list options on these options,
@@ -43,4 +45,20 @@ type KeyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType
 // ApplyKubeConfigOption applies this configuration to the given kube configuration options.
 func (t KeyEncryptionAlgorithm) ApplyKubeConfigOption(opts *KubeConfigOptions) {
 	opts.keyEncryptionAlgorithm = bootstrapv1.EncryptionAlgorithmType(t)
+}
+
+// SecretLabels carries extra labels to apply to the generated kubeconfig Secret.
+type SecretLabels map[string]string
+
+// ApplyKubeConfigOption applies this configuration to the given kube configuration options.
+func (l SecretLabels) ApplyKubeConfigOption(opts *KubeConfigOptions) {
+	opts.extraLabels = map[string]string(l)
+}
+
+// SecretAnnotations carries extra annotations to apply to the generated kubeconfig Secret.
+type SecretAnnotations map[string]string
+
+// ApplyKubeConfigOption applies this configuration to the given kube configuration options.
+func (a SecretAnnotations) ApplyKubeConfigOption(opts *KubeConfigOptions) {
+	opts.extraAnnotations = map[string]string(a)
 }

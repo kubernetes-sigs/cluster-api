@@ -461,7 +461,10 @@ func TestRegenerateClientCerts(t *testing.T) {
 	oldCert, err := certs.DecodeCertPEM(oldConfig.AuthInfos["test1-admin"].ClientCertificateData)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(RegenerateSecret(ctx, c, validSecret)).To(Succeed())
+	cluster := &clusterv1.Cluster{}
+	cluster.SetName("test1")
+	cluster.SetNamespace("test")
+	g.Expect(RegenerateSecret(ctx, c, validSecret, cluster)).To(Succeed())
 
 	newSecret := &corev1.Secret{}
 	g.Expect(c.Get(ctx, util.ObjectKey(validSecret), newSecret)).To(Succeed())
@@ -471,4 +474,128 @@ func TestRegenerateClientCerts(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(newCert.NotAfter).To(BeTemporally(">", oldCert.NotAfter))
+}
+
+func TestGenerateSecretWithOwner_options(t *testing.T) {
+	owner := metav1.OwnerReference{Name: "test1", Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()}
+	clusterKey := client.ObjectKey{Name: "test1", Namespace: "test"}
+
+	tests := []struct {
+		name            string
+		options         []KubeConfigOption
+		wantAnnotations map[string]string
+		wantExtraLabels map[string]string
+	}{
+		{
+			name:            "no options: annotations nil, only ClusterNameLabel",
+			wantAnnotations: nil,
+		},
+		{
+			name:            "SecretAnnotations sets annotation on secret",
+			options:         []KubeConfigOption{SecretAnnotations(map[string]string{"foo": "bar"})},
+			wantAnnotations: map[string]string{"foo": "bar"},
+		},
+		{
+			name:            "SecretLabels adds label alongside built-in ClusterNameLabel",
+			options:         []KubeConfigOption{SecretLabels(map[string]string{"extra": "label"})},
+			wantExtraLabels: map[string]string{"extra": "label"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			s := GenerateSecretWithOwner(clusterKey, []byte(validKubeConfig), owner, tt.options...)
+			g.Expect(s.Annotations).To(Equal(tt.wantAnnotations))
+			g.Expect(s.Labels).To(HaveKey(clusterv1.ClusterNameLabel))
+			for k, v := range tt.wantExtraLabels {
+				g.Expect(s.Labels).To(HaveKeyWithValue(k, v))
+			}
+		})
+	}
+}
+
+func TestReconcileSecretMetadata(t *testing.T) {
+	tests := []struct {
+		name             string
+		existingAnnots   map[string]string
+		specAnnotations  map[string]string
+		specLabels       map[string]string
+		wantAnnotations  map[string]string
+		wantNoUpdate     bool
+	}{
+		{
+			name:            "adds new annotations when not present",
+			specAnnotations: map[string]string{"foo": "bar"},
+			wantAnnotations: map[string]string{"foo": "bar"},
+		},
+		{
+			name:            "no-op when desired annotations already set",
+			existingAnnots:  map[string]string{"foo": "bar"},
+			specAnnotations: map[string]string{"foo": "bar"},
+			wantAnnotations: map[string]string{"foo": "bar"},
+			wantNoUpdate:    true,
+		},
+		{
+			name:         "no-op when spec has no metadata",
+			wantNoUpdate: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			existing := validSecret.DeepCopy()
+			if tt.existingAnnots != nil {
+				existing.Annotations = tt.existingAnnots
+			}
+			cluster := &clusterv1.Cluster{}
+			cluster.SetName("test1")
+			cluster.SetNamespace("test")
+			cluster.Spec.Kubeconfig.Metadata.Annotations = tt.specAnnotations
+			cluster.Spec.Kubeconfig.Metadata.Labels = tt.specLabels
+
+			c := fake.NewClientBuilder().WithObjects(existing).Build()
+			before := &corev1.Secret{}
+			g.Expect(c.Get(ctx, client.ObjectKey{Name: existing.Name, Namespace: existing.Namespace}, before)).To(Succeed())
+
+			g.Expect(ReconcileSecretMetadata(ctx, c, existing, cluster)).To(Succeed())
+
+			after := &corev1.Secret{}
+			g.Expect(c.Get(ctx, client.ObjectKey{Name: existing.Name, Namespace: existing.Namespace}, after)).To(Succeed())
+			if tt.wantNoUpdate {
+				g.Expect(after.ResourceVersion).To(Equal(before.ResourceVersion))
+			}
+			if tt.wantAnnotations != nil {
+				for k, v := range tt.wantAnnotations {
+					g.Expect(after.Annotations).To(HaveKeyWithValue(k, v))
+				}
+			}
+		})
+	}
+}
+
+func TestRegenerateSecret_preservesAnnotations(t *testing.T) {
+	g := NewWithT(t)
+	caKey, err := certs.NewPrivateKey()
+	g.Expect(err).ToNot(HaveOccurred())
+	caCert, err := getTestCACert(caKey)
+	g.Expect(err).ToNot(HaveOccurred())
+	caSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "test1-ca", Namespace: "test"},
+		Data: map[string][]byte{
+			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
+			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
+		},
+	}
+	configSecret := validSecret.DeepCopy()
+	cluster := &clusterv1.Cluster{}
+	cluster.SetName("test1")
+	cluster.SetNamespace("test")
+	cluster.Spec.Kubeconfig.Metadata.Annotations = map[string]string{"reflector.v1.k8s.emberstack.com/reflection-allowed": "true"}
+
+	c := fake.NewClientBuilder().WithObjects(configSecret, caSecret).Build()
+	g.Expect(RegenerateSecret(ctx, c, configSecret, cluster)).To(Succeed())
+
+	updated := &corev1.Secret{}
+	g.Expect(c.Get(ctx, util.ObjectKey(configSecret), updated)).To(Succeed())
+	g.Expect(updated.Annotations).To(HaveKeyWithValue("reflector.v1.k8s.emberstack.com/reflection-allowed", "true"))
 }

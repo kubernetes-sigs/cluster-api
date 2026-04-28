@@ -108,12 +108,16 @@ func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Si
 // CreateSecret creates the Kubeconfig secret for the given cluster.
 func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, options ...KubeConfigOption) error {
 	name := util.ObjectKey(cluster)
+	allOptions := append(options,
+		SecretAnnotations(cluster.Spec.Kubeconfig.Metadata.Annotations),
+		SecretLabels(cluster.Spec.Kubeconfig.Metadata.Labels),
+	)
 	return CreateSecretWithOwner(ctx, c, name, cluster.Spec.ControlPlaneEndpoint.String(), metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
-	}, options...)
+	}, allOptions...)
 }
 
 // CreateSecretWithOwner creates the Kubeconfig secret for the given cluster name, namespace, endpoint, and owner reference.
@@ -127,7 +131,7 @@ func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName cli
 		return err
 	}
 
-	return c.Create(ctx, GenerateSecretWithOwner(clusterName, out, owner))
+	return c.Create(ctx, GenerateSecretWithOwner(clusterName, out, owner, options...))
 }
 
 // GenerateSecret returns a Kubernetes secret for the given Cluster and kubeconfig data.
@@ -142,14 +146,27 @@ func GenerateSecret(cluster *clusterv1.Cluster, data []byte) *corev1.Secret {
 }
 
 // GenerateSecretWithOwner returns a Kubernetes secret for the given Cluster name, namespace, kubeconfig data, and ownerReference.
-func GenerateSecretWithOwner(clusterName client.ObjectKey, data []byte, owner metav1.OwnerReference) *corev1.Secret {
+func GenerateSecretWithOwner(clusterName client.ObjectKey, data []byte, owner metav1.OwnerReference, options ...KubeConfigOption) *corev1.Secret {
+	opts := &KubeConfigOptions{}
+	opts.ApplyOptions(options)
+
+	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName.Name}
+	for k, v := range opts.extraLabels {
+		labels[k] = v
+	}
+	var annotations map[string]string
+	if len(opts.extraAnnotations) > 0 {
+		annotations = make(map[string]string, len(opts.extraAnnotations))
+		for k, v := range opts.extraAnnotations {
+			annotations[k] = v
+		}
+	}
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
-			Namespace: clusterName.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName.Name,
-			},
+			Name:        secret.Name(clusterName.Name, secret.Kubeconfig),
+			Namespace:   clusterName.Namespace,
+			Labels:      labels,
+			Annotations: annotations,
 			OwnerReferences: []metav1.OwnerReference{
 				owner,
 			},
@@ -189,7 +206,7 @@ func NeedsClientCertRotation(configSecret *corev1.Secret, threshold time.Duratio
 }
 
 // RegenerateSecret creates and stores a new Kubeconfig in the given secret.
-func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1.Secret, options ...KubeConfigOption) error {
+func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1.Secret, cluster *clusterv1.Cluster, options ...KubeConfigOption) error {
 	clusterName, _, err := secret.ParseSecretName(configSecret.Name)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse secret name")
@@ -210,7 +227,62 @@ func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1
 		return err
 	}
 	configSecret.Data[secret.KubeconfigDataName] = out
+	for k, v := range cluster.Spec.Kubeconfig.Metadata.Labels {
+		if configSecret.Labels == nil {
+			configSecret.Labels = make(map[string]string)
+		}
+		configSecret.Labels[k] = v
+	}
+	for k, v := range cluster.Spec.Kubeconfig.Metadata.Annotations {
+		if configSecret.Annotations == nil {
+			configSecret.Annotations = make(map[string]string)
+		}
+		configSecret.Annotations[k] = v
+	}
 	return c.Update(ctx, configSecret)
+}
+
+// ReconcileSecretMetadata reconciles labels and annotations on an existing kubeconfig secret
+// to match spec.kubeconfig.metadata. Additive only — keys not in spec are not removed.
+func ReconcileSecretMetadata(ctx context.Context, c client.Client, configSecret *corev1.Secret, cluster *clusterv1.Cluster) error {
+	desired := cluster.Spec.Kubeconfig.Metadata
+	if len(desired.Labels) == 0 && len(desired.Annotations) == 0 {
+		return nil
+	}
+	needsUpdate := false
+	for k, v := range desired.Labels {
+		if configSecret.Labels[k] != v {
+			needsUpdate = true
+			break
+		}
+	}
+	if !needsUpdate {
+		for k, v := range desired.Annotations {
+			if configSecret.Annotations[k] != v {
+				needsUpdate = true
+				break
+			}
+		}
+	}
+	if !needsUpdate {
+		return nil
+	}
+	original := configSecret.DeepCopy()
+	if configSecret.Labels == nil {
+		configSecret.Labels = make(map[string]string)
+	}
+	for k, v := range desired.Labels {
+		configSecret.Labels[k] = v
+	}
+	if len(desired.Annotations) > 0 {
+		if configSecret.Annotations == nil {
+			configSecret.Annotations = make(map[string]string)
+		}
+		for k, v := range desired.Annotations {
+			configSecret.Annotations[k] = v
+		}
+	}
+	return c.Patch(ctx, configSecret, client.MergeFrom(original))
 }
 
 func generateKubeconfig(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, options ...KubeConfigOption) ([]byte, error) {

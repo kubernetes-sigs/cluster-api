@@ -243,6 +243,9 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 	if in.Spec.Topology != nil && reflect.DeepEqual(in.Spec.Topology, &Topology{}) {
 		in.Spec.Topology = nil
 	}
+	if in.Spec.Kubeconfig != nil && reflect.DeepEqual(in.Spec.Kubeconfig, &KubeconfigSpec{}) {
+		in.Spec.Kubeconfig = nil
+	}
 }
 
 func spokeClusterTopology(in *Topology, c randfill.Continue) {

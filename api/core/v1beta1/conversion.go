@@ -2158,6 +2158,11 @@ func Convert_v1beta1_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *cl
 			return err
 		}
 	}
+	if in.Kubeconfig != nil {
+		if err := Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(&in.Kubeconfig.Metadata, &out.Kubeconfig.Metadata, s); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -2175,6 +2180,12 @@ func Convert_v1beta2_ClusterSpec_To_v1beta1_ClusterSpec(in *clusterv1.ClusterSpe
 	if !reflect.DeepEqual(in.Topology, clusterv1.Topology{}) {
 		out.Topology = &Topology{}
 		if err := Convert_v1beta2_Topology_To_v1beta1_Topology(&in.Topology, out.Topology, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.Kubeconfig, clusterv1.KubeconfigSpec{}) {
+		out.Kubeconfig = &KubeconfigSpec{}
+		if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.Kubeconfig.Metadata, &out.Kubeconfig.Metadata, s); err != nil {
 			return err
 		}
 	}

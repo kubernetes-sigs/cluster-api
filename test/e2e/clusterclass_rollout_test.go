@@ -31,7 +31,7 @@ var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", Label("Clu
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                "topology",
+			Flavor:                "topology-taints",
 		}
 	})
 })

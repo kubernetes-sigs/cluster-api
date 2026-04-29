@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -43,6 +44,22 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal("vFoo"))
+	})
+	t.Run("Manages spec.rollout.after", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(ControlPlane().RolloutAfter().Path()).To(Equal(Path{"spec", "rollout", "after"}))
+
+		now := metav1.Now().Rfc3339Copy()
+
+		err := ControlPlane().RolloutAfter().Set(obj, now)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().RolloutAfter().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		gotToUnstructured := ptr.Deref(got, metav1.Time{}).ToUnstructured()
+		g.Expect(gotToUnstructured).To(Equal(now.ToUnstructured()))
 	})
 	t.Run("Manages status.version", func(t *testing.T) {
 		g := NewWithT(t)

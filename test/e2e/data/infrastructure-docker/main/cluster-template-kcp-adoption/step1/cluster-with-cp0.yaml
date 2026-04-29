@@ -31,6 +31,8 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachine
 metadata:
   name: "${CLUSTER_NAME}-control-plane-0"
+  labels:
+    cluster.x-k8s.io/control-plane: ''
 spec: {}
 ---
 # KubeadmConfig referenced by the Machine cp0
@@ -38,6 +40,8 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfig
 metadata:
   name: "${CLUSTER_NAME}-control-plane-0"
+  labels:
+    cluster.x-k8s.io/control-plane: ''
 spec:
   clusterConfiguration:
     apiServer:

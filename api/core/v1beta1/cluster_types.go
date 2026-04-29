@@ -603,6 +603,10 @@ type ControlPlaneTopology struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
+	// rollout allows you to configure the behavior of rolling updates to the control plane.
+	// +optional
+	Rollout ControlPlaneTopologyRolloutSpec `json:"rollout,omitempty,omitzero"`
+
 	// machineHealthCheck allows to enable, disable and override
 	// the MachineHealthCheck configuration in the ClusterClass for this control plane.
 	// +optional
@@ -625,6 +629,23 @@ type ControlPlaneTopology struct {
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
+	// taints are the node taints that Cluster API will manage.
+	// This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+	// e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+	// Only those taints defined in this list will be added or removed by core Cluster API controllers.
+	//
+	// There can be at most 64 taints.
+	// A pod would have to tolerate all existing taints to run on the corresponding node.
+	//
+	// NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +listMapKey=effect
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	Taints []MachineTaint `json:"taints,omitempty"`
+
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
 	//
 	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
@@ -644,6 +665,18 @@ type ControlPlaneTopology struct {
 	// variables can be used to customize the ControlPlane through patches.
 	// +optional
 	Variables *ControlPlaneVariables `json:"variables,omitempty"`
+}
+
+// ControlPlaneTopologyRolloutSpec defines the rollout behavior.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneTopologyRolloutSpec struct {
+	// after is a field to indicate a rollout should be performed
+	// after the specified time even if no changes have been made to the ControlPlane.
+	// Example: In the YAML the time can be specified in the RFC3339 format.
+	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+	// use "2023-03-09T09:00:00Z".
+	// +optional
+	After metav1.Time `json:"after,omitempty,omitzero"`
 }
 
 // WorkersTopology represents the different sets of worker nodes in the cluster.
@@ -724,6 +757,23 @@ type MachineDeploymentTopology struct {
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
+	// taints are the node taints that Cluster API will manage.
+	// This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+	// e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+	// Only those taints defined in this list will be added or removed by core Cluster API controllers.
+	//
+	// There can be at most 64 taints.
+	// A pod would have to tolerate all existing taints to run on the corresponding node.
+	//
+	// NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +listMapKey=effect
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	Taints []MachineTaint `json:"taints,omitempty"`
+
 	// minReadySeconds is the minimum number of seconds for which a newly created machine should
 	// be ready.
 	// Defaults to 0 (machine will be considered available as soon as it
@@ -745,6 +795,11 @@ type MachineDeploymentTopology struct {
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
+	// rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
+	// It allows you to define the strategy used during rolling replacements.
+	// +optional
+	Rollout MachineDeploymentTopologyRolloutSpec `json:"rollout,omitempty,omitzero"`
+
 	// strategy is the deployment strategy to use to replace existing machines with
 	// new ones.
 	// +optional
@@ -753,6 +808,19 @@ type MachineDeploymentTopology struct {
 	// variables can be used to customize the MachineDeployment through patches.
 	// +optional
 	Variables *MachineDeploymentVariables `json:"variables,omitempty"`
+}
+
+// MachineDeploymentTopologyRolloutSpec defines the rollout behavior.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentTopologyRolloutSpec struct {
+	// after is a field to indicate a rollout should be performed
+	// after the specified time even if no changes have been made to the
+	// MachineDeployment.
+	// Example: In the YAML the time can be specified in the RFC3339 format.
+	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+	// use "2023-03-09T09:00:00Z".
+	// +optional
+	After metav1.Time `json:"after,omitempty,omitzero"`
 }
 
 // MachineHealthCheckTopology defines a MachineHealthCheck for a group of machines.
@@ -823,6 +891,23 @@ type MachinePoolTopology struct {
 	// Defaults to 10 seconds.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+
+	// taints are the node taints that Cluster API will manage.
+	// This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+	// e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+	// Only those taints defined in this list will be added or removed by core Cluster API controllers.
+	//
+	// There can be at most 64 taints.
+	// A pod would have to tolerate all existing taints to run on the corresponding node.
+	//
+	// NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +listMapKey=effect
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	Taints []MachineTaint `json:"taints,omitempty"`
 
 	// minReadySeconds is the minimum number of seconds for which a newly created machine pool should
 	// be ready.

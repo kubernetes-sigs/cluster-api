@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package docker implements docker backends for DevClusters and DevMachines.
+// Package docker implements docker backends for DevClusters, DevMachines and DevMachinePools.
 package docker
 
 import (

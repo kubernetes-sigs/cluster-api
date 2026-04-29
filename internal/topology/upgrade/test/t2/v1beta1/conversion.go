@@ -61,7 +61,7 @@ func (dst *TestResourceTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	if dst.Spec.Template.Spec.PtrStringToString != nil && *dst.Spec.Template.Spec.PtrStringToString == "" {
 		dst.Spec.Template.Spec.PtrStringToString = nil
 	}
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *TestResource) ConvertTo(dstRaw conversion.Hub) error {
@@ -99,7 +99,7 @@ func (dst *TestResource) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.PtrStringToString = nil
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func Convert_v1beta1_TestResourceSpec_To_v1beta2_TestResourceSpec(in *TestResourceSpec, out *testv1.TestResourceSpec, s apimachineryconversion.Scope) error {

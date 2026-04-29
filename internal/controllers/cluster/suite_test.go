@@ -24,22 +24,17 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 	machinecontroller "sigs.k8s.io/cluster-api/internal/controllers/machine"
+	"sigs.k8s.io/cluster-api/internal/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
@@ -67,21 +62,15 @@ func TestMain(m *testing.M) {
 	}
 
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
+		secretCachingClient, err := setup.CreateSecretCachingClient(mgr)
+		if err != nil {
+			panic(fmt.Sprintf("Unable to create secret caching client: %s", err))
+		}
+
 		clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
-			SecretClient: mgr.GetClient(),
-			Cache: clustercache.CacheOptions{
-				Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
-			},
-			Client: clustercache.ClientOptions{
-				UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
-				Cache: clustercache.ClientCacheOptions{
-					DisableFor: []client.Object{
-						// Don't cache ConfigMaps & Secrets.
-						&corev1.ConfigMap{},
-						&corev1.Secret{},
-					},
-				},
-			},
+			SecretClient: secretCachingClient,
+			Cache:        setup.ClusterCacheCacheOptions(),
+			Client:       setup.ClusterCacheClientOptions("test-controller-manager", 20, 30),
 		}, controller.Options{MaxConcurrentReconciles: 10})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
@@ -117,26 +106,12 @@ func TestMain(m *testing.M) {
 	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
 	SetDefaultEventuallyTimeout(timeout)
 
-	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
-	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
-
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M: m,
-		ManagerCacheOptions: cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				// Only cache Secrets with the cluster name label.
-				// This is similar to the real world.
-				&corev1.Secret{}: {
-					Label: clusterSecretCacheSelector,
-				},
-			},
-		},
-		ManagerUncachedObjs: []client.Object{
-			&corev1.ConfigMap{},
-			&corev1.Secret{},
-		},
-		SetupEnv:         func(e *envtest.Environment) { env = e },
-		SetupIndexes:     setupIndexes,
-		SetupReconcilers: setupReconcilers,
+		M:                    m,
+		ManagerCacheOptions:  setup.ManagerCacheOptions("", 10*time.Minute),
+		ManagerClientOptions: setup.ManagerClientOptions(),
+		SetupEnv:             func(e *envtest.Environment) { env = e },
+		SetupIndexes:         setupIndexes,
+		SetupReconcilers:     setupReconcilers,
 	}))
 }

@@ -67,22 +67,13 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 
 func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *bootstrapv1.KubeadmConfigSpec) {
 	// Restore fields added in v1beta2
+	// Note: Because timeout fields partially exist already in v1beta1 we are using the conversion annotation
+	// instead of backporting the entire timeout fields to v1beta1 and then having some duplicate timeout fields.
 	if restored.InitConfiguration.IsDefined() && !reflect.DeepEqual(restored.InitConfiguration.Timeouts, bootstrapv1.Timeouts{}) {
 		dst.InitConfiguration.Timeouts = restored.InitConfiguration.Timeouts
 	}
 	if restored.JoinConfiguration.IsDefined() && !reflect.DeepEqual(restored.JoinConfiguration.Timeouts, bootstrapv1.Timeouts{}) {
 		dst.JoinConfiguration.Timeouts = restored.JoinConfiguration.Timeouts
-	}
-	if restored.ClusterConfiguration.CertificateValidityPeriodDays != 0 || restored.ClusterConfiguration.CACertificateValidityPeriodDays != 0 {
-		if restored.ClusterConfiguration.CertificateValidityPeriodDays != 0 {
-			dst.ClusterConfiguration.CertificateValidityPeriodDays = restored.ClusterConfiguration.CertificateValidityPeriodDays
-		}
-		if restored.ClusterConfiguration.CACertificateValidityPeriodDays != 0 {
-			dst.ClusterConfiguration.CACertificateValidityPeriodDays = restored.ClusterConfiguration.CACertificateValidityPeriodDays
-		}
-	}
-	if restored.ClusterConfiguration.EncryptionAlgorithm != "" {
-		dst.ClusterConfiguration.EncryptionAlgorithm = restored.ClusterConfiguration.EncryptionAlgorithm
 	}
 }
 
@@ -230,7 +221,7 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	dropEmptyStringsKubeadmConfigStatus(&dst.Status)
 
 	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (dst *KubeadmConfigSpec) ConvertFrom(src *bootstrapv1.KubeadmConfigSpec) {
@@ -294,7 +285,7 @@ func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.Template.Spec)
 
 	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func Convert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {

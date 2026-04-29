@@ -153,13 +153,13 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 		// Block when we expect an upgrade to be propagated to the control plane for topology clusters.
 		// NOTE: in case the cluster is performing an upgrade, allow creation of machines for the current step.
 		hasSameVersionOfCurrentUpgradeStep := false
-		if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok {
+		if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok && version != "" {
 			hasSameVersionOfCurrentUpgradeStep = version == controlPlaneVersion
 		}
 
 		if cluster.Spec.Topology.IsDefined() && cluster.Spec.Topology.Version != controlPlaneVersion && !hasSameVersionOfCurrentUpgradeStep {
 			v := cluster.Spec.Topology.Version
-			if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok {
+			if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok && version != "" {
 				v = version
 			}
 			return ptr.To(fmt.Sprintf("%s %s has a pending version upgrade to %s (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, v, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil

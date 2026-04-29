@@ -41,6 +41,9 @@ server:
     - source_labels: [__meta_kubernetes_pod_name]
       action: replace
       target_label: pod
+    - source_labels: [__meta_kubernetes_pod_container_port_name]
+      action: keep
+      regex: metrics # All pprof endpoints are served on the diagnostics endpoint
 
 agent:
   # Doesn't seem to work in kind, not sure why.

@@ -67,6 +67,16 @@ type MachineHealthCheckSpec struct {
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions,omitempty"`
 
+	// unhealthyMachineConditions contains a list of the machine conditions that determine
+	// whether a machine is considered unhealthy.  The conditions are combined in a
+	// logical OR, i.e. if any of the conditions is met, the machine is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
+
 	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
 	// Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
 	// "selector" are not healthy.
@@ -135,6 +145,31 @@ type UnhealthyCondition struct {
 	// timeout is the duration that a node must be in a given status for,
 	// after which the node is considered unhealthy.
 	// For example, with a value of "1h", the node must match the status
+	// for at least 1 hour before being considered unhealthy.
+	// +required
+	Timeout metav1.Duration `json:"timeout"`
+}
+
+// UnhealthyMachineCondition represents a Machine condition type and value with a timeout
+// specified as a duration.  When the named condition has been in the given
+// status for at least the timeout value, a machine is considered unhealthy.
+type UnhealthyMachineCondition struct {
+	// type of Machine condition
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=316
+	// +kubebuilder:validation:XValidation:rule="!(self in ['Ready','Available','HealthCheckSucceeded','OwnerRemediated','ExternallyRemediated'])",message="type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated"
+	// +required
+	Type string `json:"type,omitempty"`
+
+	// status of the condition, one of True, False, Unknown.
+	// +required
+	// +kubebuilder:validation:Enum=True;False;Unknown
+	Status metav1.ConditionStatus `json:"status,omitempty"`
+
+	// timeout is the duration that a Machine must be in a given status for,
+	// after which the Machine is considered unhealthy.
+	// For example, with a value of "1h", the Machine must match the status
 	// for at least 1 hour before being considered unhealthy.
 	// +required
 	Timeout metav1.Duration `json:"timeout"`

@@ -62,6 +62,7 @@ var (
 
 // MandatoryMachineReadinessGates are readinessGates KCP enforces to be set on machine it owns.
 var MandatoryMachineReadinessGates = []clusterv1.MachineReadinessGate{
+	{ConditionType: controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition},
 	{ConditionType: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition},
 	{ConditionType: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition},
 	{ConditionType: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition},

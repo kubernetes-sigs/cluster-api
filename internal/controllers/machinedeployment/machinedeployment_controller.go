@@ -42,12 +42,12 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -282,6 +282,18 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		return err
 	}
 
+	var anyManagedFieldIssueMitigated bool
+	for _, ms := range s.machineSets {
+		managedFieldIssueMitigated, err := ssa.MitigateManagedFieldsIssue(ctx, r.Client, ms, machineDeploymentManagerName)
+		if err != nil {
+			return err
+		}
+		anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
+	}
+	if anyManagedFieldIssueMitigated {
+		return nil // No requeue needed, changes will trigger another reconcile.
+	}
+
 	// If not already present, add a label specifying the MachineDeployment name to MachineSets.
 	// Ensure all required labels exist on the controlled MachineSets.
 	// This logic is needed to add the `cluster.x-k8s.io/deployment-name` label to MachineSets
@@ -293,12 +305,9 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 			continue
 		}
 
-		helper, err := patch.NewHelper(machineSet, r.Client)
-		if err != nil {
-			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
-		}
+		original := machineSet.DeepCopy()
 		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = md.Name
-		if err := helper.Patch(ctx, machineSet); err != nil {
+		if err := r.Client.Patch(ctx, machineSet, client.MergeFrom(original)); err != nil {
 			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 	}
@@ -371,9 +380,9 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			if len(p.oldMSs) > 0 {
 				log.Info(fmt.Sprintf("MachineSets need rollout: %s", strings.Join(machineSetNames(p.oldMSs), ", ")), "reason", p.createReason)
 			}
-			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", ms.Name))
+			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", klog.KObj(ms)))
 			if diff.DesiredReplicas > 0 {
-				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", ms.Name, diff.DesiredReplicas))
+				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", klog.KObj(ms), diff.DesiredReplicas))
 			}
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), diff.DesiredReplicas)
 
@@ -413,15 +422,15 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		}
 
 		if diff.DesiredReplicas < diff.OriginalReplicas {
-			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas))
+			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, klog.KObj(ms), diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas))
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
 		if diff.DesiredReplicas > diff.OriginalReplicas {
-			log.Info(fmt.Sprintf("Scaled up %s MachineSet %s from %d to %d replicas (+%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.DesiredReplicas-diff.OriginalReplicas))
+			log.Info(fmt.Sprintf("Scaled up %s MachineSet %s from %d to %d replicas (+%d)", diff.Type, klog.KObj(ms), diff.OriginalReplicas, diff.DesiredReplicas, diff.DesiredReplicas-diff.OriginalReplicas))
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
 		if diff.DesiredReplicas == diff.OriginalReplicas && diff.OtherChanges != "" {
-			log.Info(fmt.Sprintf("Updated %s MachineSet %s", diff.Type, ms.Name))
+			log.Info(fmt.Sprintf("Updated %s MachineSet %s", diff.Type, klog.KObj(ms)))
 		}
 
 		// Only wait for cache if the object was changed.
@@ -472,7 +481,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 			}
 			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 			// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
-			log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", ms.Name), "MachineSet", klog.KObj(ms))
+			log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", klog.KObj(ms)), "MachineSet", klog.KObj(ms))
 		}
 	}
 
@@ -657,12 +666,7 @@ func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cl
 		return nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, c)
-	if err != nil {
-		return err
-	}
-
+	original := obj.DeepCopyObject().(client.Object)
 	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef))
-
-	return patchHelper.Patch(ctx, obj)
+	return c.Patch(ctx, obj, client.MergeFrom(original))
 }

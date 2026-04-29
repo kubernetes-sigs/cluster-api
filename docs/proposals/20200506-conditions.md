@@ -20,14 +20,14 @@ The [Improve Status in CAPI resources](20240916-improve-status-in-CAPI-resources
 implementing Cluster API v1beta2 APIs, while "legacy" conditions described in this document are used in v1beta1 API version.
 
 The v1beta1 API types, including the "legacy" condition types described in this document are going to be deprecated
-when v1beta2 will be released (tentative Apr 2025).
+when v1beta2 will be released (August 2025).
 
 Providers implementing conditions won't be required to do the transition from "legacy" Cluster API Condition type
 to Kubernetes `metav1.Conditions` type, but this transition is recommended because it improves the consistency of each provider
 with Kubernetes, Cluster API and the ecosystem.
 
 However, providers choosing to keep using Cluster API "legacy" conditions should be aware that starting from the
-CAPI release when v1beta1 removal will happen (tentative Apr 2026), the Cluster API project will remove the
+CAPI release when v1beta1 removal will happen (tentative April 2027), the Cluster API project will remove the
 Cluster API "legacy" condition types, the "legacy" `util/conditions` package, the code handling "legacy" conditions in
 `util/patch.Helper` and everything related to the "legacy" Cluster API `v1beta.Condition` type.
 

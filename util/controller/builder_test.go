@@ -26,6 +26,7 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -92,6 +93,52 @@ func TestBuilder(t *testing.T) {
 		"controllerGroup", "cluster.x-k8s.io",
 		"controllerKind", "Cluster",
 	}))
+}
+
+func TestTypedItemExponentialFailureRateLimiter(t *testing.T) {
+	g := NewWithT(t)
+
+	rateLimitInterval := 1 * time.Second
+	rateLimiter := newTypedItemExponentialFailureRateLimiter[reconcile.Request](rateLimitInterval, 5*time.Millisecond, 1000*time.Second)
+
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: "default",
+			Name:      "cluster-1",
+		},
+	}
+
+	durations := make([]time.Duration, 0, 100)
+	for range 100 {
+		durations = append(durations, rateLimiter.When(req))
+	}
+	// rateLimitInterval + exp. backoff
+	expectedDurations := []time.Duration{
+		1*time.Second + 5*time.Millisecond,
+		1*time.Second + 10*time.Millisecond,
+		1*time.Second + 20*time.Millisecond,
+		1*time.Second + 40*time.Millisecond,
+		1*time.Second + 80*time.Millisecond,
+		1*time.Second + 160*time.Millisecond,
+		1*time.Second + 320*time.Millisecond,
+		1*time.Second + 640*time.Millisecond,
+		1*time.Second + 1280*time.Millisecond,
+		1*time.Second + 2560*time.Millisecond,
+		1*time.Second + 5120*time.Millisecond,
+		1*time.Second + 10240*time.Millisecond,
+		1*time.Second + 20480*time.Millisecond,
+		1*time.Second + 40960*time.Millisecond,
+		1*time.Second + 1*time.Minute + 21*time.Second + 920*time.Millisecond,
+		1*time.Second + 2*time.Minute + 43*time.Second + 840*time.Millisecond,
+		1*time.Second + 5*time.Minute + 27*time.Second + 680*time.Millisecond,
+		1*time.Second + 10*time.Minute + 55*time.Second + 360*time.Millisecond,
+		16*time.Minute + 40*time.Second, // max: 1000 seconds
+	}
+	for i := len(expectedDurations); i < len(durations); i++ {
+		expectedDurations = append(expectedDurations, 16*time.Minute+40*time.Second) // max: 1000 seconds
+	}
+
+	g.Expect(durations).To(Equal(expectedDurations))
 }
 
 type fakeManager struct {

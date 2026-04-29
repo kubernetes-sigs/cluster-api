@@ -78,7 +78,7 @@ Here's an example of how to do this for the `v1.11` release cycle. That means `v
             version of kubernetes that `v1.9` supports, which would be `1.32`. You can't just use the very latest version of k8s `1.32.X` that exists, because the e2e tests use the
             version of kind inside the `release-1.9` branch. So you have to use the latest version of k8s `1.32` that is in the `release-1.9` branch's `test/infrastructure/kind/mapper.go`
             file. Which would be `1.32.0` as of this writing.
-            2. You may even have to delay using the latest verison of k8s for the version of CAPI that just released until kind is updated with an image of that new version.
+            2. You may even have to delay using the latest version of k8s for the version of CAPI that just released until kind is updated with an image of that new version.
             So for `v1.10`, which supports k8s `v1.33`, we had to use `1.32.2` at first, as that was the latest version of `1.32` that was in the `release-1.10` branch's
             `test/infrastructure/kind/mapper.go` file. We usually add a comment in the test case to remind us to update `release-1.10`'s kind and use `1.33.X` later.
        2. :warning: Please ping maintainers after these changes are made for a first round of feedback before continuing with the steps below.

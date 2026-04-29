@@ -63,7 +63,9 @@ func TestGetConfigOwner(t *testing.T) {
 				},
 			}
 
-			c := fake.NewClientBuilder().WithObjects(myMachine).Build()
+			scheme := runtime.NewScheme()
+			_ = clusterv1.AddToScheme(scheme)
+			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(myMachine).Build()
 			obj := &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
@@ -77,7 +79,7 @@ func TestGetConfigOwner(t *testing.T) {
 					Name:      "my-resource-owned-by-machine",
 				},
 			}
-			configOwner, err := getFn(ctx, c, obj)
+			configOwner, err := getFn(t.Context(), c, obj)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(configOwner).ToNot(BeNil())
 			g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
@@ -115,7 +117,9 @@ func TestGetConfigOwner(t *testing.T) {
 				},
 			}
 
-			c := fake.NewClientBuilder().WithObjects(myPool).Build()
+			scheme := runtime.NewScheme()
+			_ = clusterv1.AddToScheme(scheme)
+			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(myPool).Build()
 			obj := &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
@@ -129,7 +133,7 @@ func TestGetConfigOwner(t *testing.T) {
 					Name:      "my-resource-owned-by-machine-pool",
 				},
 			}
-			configOwner, err := getFn(ctx, c, obj)
+			configOwner, err := getFn(t.Context(), c, obj)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(configOwner).ToNot(BeNil())
 			g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
@@ -156,7 +160,7 @@ func TestGetConfigOwner(t *testing.T) {
 					Name:      "my-resource-owned-by-machine",
 				},
 			}
-			_, err := getFn(ctx, c, obj)
+			_, err := getFn(t.Context(), c, obj)
 			g.Expect(err).To(HaveOccurred())
 		})
 
@@ -170,7 +174,7 @@ func TestGetConfigOwner(t *testing.T) {
 					Name:            "my-resource-owned-by-machine",
 				},
 			}
-			configOwner, err := getFn(ctx, c, obj)
+			configOwner, err := getFn(t.Context(), c, obj)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(configOwner).To(BeNil())
 		})

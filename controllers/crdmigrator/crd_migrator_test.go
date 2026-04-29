@@ -28,6 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -163,7 +164,14 @@ func TestReconcile(t *testing.T) {
 			defer func() {
 				crd := &apiextensionsv1.CustomResourceDefinition{}
 				crd.SetName(crdName)
-				g.Expect(env.CleanupAndWait(ctx, crd)).To(Succeed())
+				g.Expect(env.Cleanup(ctx, crd)).To(Succeed())
+				// Wait for the CRD to be fully deleted. CRDs have a built-in finalizer
+				// (customresourcecleanup.apiextensions.k8s.io) processed by the API server,
+				// which can take longer than cacheSyncBackoff under heavy load.
+				g.Eventually(func(g Gomega) {
+					err := env.Get(ctx, client.ObjectKeyFromObject(crd), crd)
+					g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "CRD %s still exists: %v", crdName, err)
+				}).WithTimeout(1 * time.Minute).WithPolling(100 * time.Millisecond).Should(Succeed())
 			}()
 
 			t.Logf("T1: Install CRDs")

@@ -91,6 +91,10 @@ type ClusterProxy interface {
 	// GetLogCollector returns the machine log collector for the Kubernetes cluster.
 	GetLogCollector() ClusterLogCollector
 
+	// Create creates objects using the clusterProxy client.
+	// It will return an error if any object already exists.
+	Create(ctx context.Context, resources []byte, options ...CreateOption) error
+
 	// CreateOrUpdate creates or updates objects using the clusterProxy client
 	CreateOrUpdate(ctx context.Context, resources []byte, options ...CreateOrUpdateOption) error
 
@@ -105,11 +109,42 @@ type ClusterProxy interface {
 	Dispose(context.Context)
 }
 
+// createConfig contains options for use with Create.
+type createConfig struct {
+	labelSelector             labels.Selector
+	createOpts                []client.CreateOption
+	pollTimeout, pollInterval time.Duration
+}
+
+// CreateOption is a configuration option supplied to Create.
+type CreateOption func(*createConfig)
+
+// CreateWithLabelSelector allows definition of the LabelSelector to be used in Create.
+func CreateWithLabelSelector(labelSelector labels.Selector) CreateOption {
+	return func(c *createConfig) {
+		c.labelSelector = labelSelector
+	}
+}
+
+// CreateWithCreateOpts allows definition of the Create options to be used in resource Create.
+func CreateWithCreateOpts(createOpts ...client.CreateOption) CreateOption {
+	return func(c *createConfig) {
+		c.createOpts = createOpts
+	}
+}
+
+// CreateWithPolling enables retries over the specified interval.
+func CreateWithPolling(pollTimeout, pollInterval time.Duration) CreateOption {
+	return func(c *createConfig) {
+		c.pollTimeout = pollTimeout
+		c.pollInterval = pollInterval
+	}
+}
+
 // createOrUpdateConfig contains options for use with CreateOrUpdate.
 type createOrUpdateConfig struct {
-	labelSelector labels.Selector
-	createOpts    []client.CreateOption
-	updateOpts    []client.UpdateOption
+	createConfig
+	updateOpts []client.UpdateOption
 }
 
 // CreateOrUpdateOption is a configuration option supplied to CreateOrUpdate.
@@ -133,6 +168,14 @@ func WithCreateOpts(createOpts ...client.CreateOption) CreateOrUpdateOption {
 func WithUpdateOpts(updateOpts ...client.UpdateOption) CreateOrUpdateOption {
 	return func(c *createOrUpdateConfig) {
 		c.updateOpts = updateOpts
+	}
+}
+
+// WithPolling enables retries over the specified interval.
+func WithPolling(pollTimeout, pollInterval time.Duration) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.pollTimeout = pollTimeout
+		c.pollInterval = pollInterval
 	}
 }
 
@@ -306,6 +349,56 @@ func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
 	return p.cache
 }
 
+// Create creates objects using the clusterProxy client.
+// It will return an error if any object already exists.
+// Defaults to use FieldValidation: strict, which can be overwritten with CreateOptions.
+func (p *clusterProxy) Create(ctx context.Context, resources []byte, opts ...CreateOption) error {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateOrUpdate")
+	Expect(resources).NotTo(BeNil(), "resources is required for CreateOrUpdate")
+	labelSelector := labels.Everything()
+	config := &createConfig{}
+	for _, opt := range opts {
+		opt(config)
+	}
+	if config.labelSelector != nil {
+		labelSelector = config.labelSelector
+	}
+	// Prepending field validation strict so that it is used per default, but can still be overwritten.
+	config.createOpts = append([]client.CreateOption{client.FieldValidation("Strict")}, config.createOpts...)
+	objs, err := yaml.ToUnstructured(resources)
+	if err != nil {
+		return err
+	}
+
+	retryDisabled := config.pollTimeout == 0 && config.pollInterval == 0
+	var retErrs []error
+	for _, o := range objs {
+		labels := labels.Set(o.GetLabels())
+		if labelSelector.Matches(labels) {
+			var err error
+			if retryDisabled {
+				err = p.GetClient().Create(ctx, &o, config.createOpts...)
+			} else {
+				err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /*immediate*/, func(ctx context.Context) (bool, error) {
+					if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
+						if apierrors.IsAlreadyExists(err) {
+							// Retrying won't help. Abort early.
+							return false, fmt.Errorf("create %s %s %s: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+						}
+						log.Logf("error creating %s %s %s, will retry: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+						return false, nil
+					}
+					return true, nil
+				})
+			}
+			if err != nil {
+				retErrs = append(retErrs, err)
+			}
+		}
+	}
+	return kerrors.NewAggregate(retErrs)
+}
+
 // CreateOrUpdate creates or updates objects using the clusterProxy client.
 // Defaults to use FieldValidation: strict, which can be overwritten with CreateOrUpdateOptions.
 func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opts ...CreateOrUpdateOption) error {
@@ -327,6 +420,7 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 		return err
 	}
 
+	retryDisabled := config.pollTimeout == 0 && config.pollInterval == 0
 	existingObject := &unstructured.Unstructured{}
 	var retErrs []error
 	for _, o := range objs {
@@ -341,7 +435,23 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 			if err := p.GetClient().Get(ctx, objectKey, existingObject); err != nil {
 				// Expected error -- if the object does not exist, create it
 				if apierrors.IsNotFound(err) {
-					if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
+					var err error
+					if retryDisabled {
+						err = p.GetClient().Create(ctx, &o, config.createOpts...)
+					} else {
+						err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /*immediate*/, func(ctx context.Context) (bool, error) {
+							if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
+								if apierrors.IsAlreadyExists(err) {
+									// Retrying won't help. Abort early.
+									return false, fmt.Errorf("create %s %s %s: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+								}
+								log.Logf("error creating %s %s %s, will retry: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+								return false, nil
+							}
+							return true, nil
+						})
+					}
+					if err != nil {
 						retErrs = append(retErrs, err)
 					}
 				} else {
@@ -349,7 +459,19 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 				}
 			} else {
 				o.SetResourceVersion(existingObject.GetResourceVersion())
-				if err := p.GetClient().Update(ctx, &o, config.updateOpts...); err != nil {
+				var err error
+				if retryDisabled {
+					err = p.GetClient().Update(ctx, &o, config.updateOpts...)
+				} else {
+					err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /*immediate*/, func(ctx context.Context) (bool, error) {
+						if err := p.GetClient().Update(ctx, &o, config.updateOpts...); err != nil {
+							log.Logf("error creating %s %s %s, will retry: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+							return false, nil
+						}
+						return true, nil
+					})
+				}
+				if err != nil {
 					retErrs = append(retErrs, err)
 				}
 			}

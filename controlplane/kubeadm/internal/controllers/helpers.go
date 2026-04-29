@@ -37,12 +37,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
+	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
@@ -119,32 +119,28 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 }
 
 // Ensure the KubeadmConfigSecret has an owner reference to the control plane if it is not a user-provided secret.
-func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) (reterr error) {
-	patchHelper, err := patch.NewHelper(configSecret, r.Client)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := patchHelper.Patch(ctx, configSecret); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, err})
-		}
-	}()
-	controller := metav1.GetControllerOf(configSecret)
-
-	// If the current controller is KCP, ensure the owner reference is up to date and return early.
-	// Note: This ensures secrets created prior to v1alpha4 are updated to have the correct owner reference apiVersion.
-	if controller != nil && controller.Kind == kubeadmControlPlaneKind {
-		configSecret.SetOwnerReferences(util.EnsureOwnerRef(configSecret.GetOwnerReferences(), *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))))
+func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) error {
+	// No op if the secret is provided by the user.
+	if configSecret.Type != clusterv1.ClusterSecretType {
 		return nil
 	}
 
-	// If secret type is a CAPI-created secret ensure the owner reference is to KCP.
-	if configSecret.Type == clusterv1.ClusterSecretType {
-		// Remove the current controller if one exists and ensure KCP is the controller of the secret.
-		if controller != nil {
-			configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.GetOwnerReferences(), *controller))
-		}
-		configSecret.SetOwnerReferences(util.EnsureOwnerRef(configSecret.GetOwnerReferences(), *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))))
+	// No op if ownership is already set and up to date.
+	kcpRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
+	if util.HasExactOwnerRef(configSecret.OwnerReferences, kcpRef) {
+		return nil
+	}
+
+	original := configSecret.DeepCopy()
+
+	// Remove the current controller if one exists and ensure KCP is the controller of the secret.
+	if controller := metav1.GetControllerOf(configSecret); controller != nil {
+		configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.GetOwnerReferences(), *controller))
+	}
+	configSecret.SetOwnerReferences(util.EnsureOwnerRef(configSecret.GetOwnerReferences(), kcpRef))
+
+	if err := r.Client.Patch(ctx, configSecret, client.MergeFrom(original)); err != nil {
+		return errors.Wrap(err, "failed to patch kubeadm config secret")
 	}
 	return nil
 }
@@ -176,14 +172,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 		return nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, r.Client)
-	if err != nil {
-		return err
-	}
-
+	original := obj.DeepCopyObject().(client.Object)
 	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef))
-
-	return patchHelper.Patch(ctx, obj)
+	return r.Client.Patch(ctx, obj, client.MergeFrom(original))
 }
 
 func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, isJoin bool, failureDomain string) (*clusterv1.Machine, error) {
@@ -331,7 +322,8 @@ func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *
 	// Remove the annotation tracking that a remediation is in progress (the remediation completed when
 	// the replacement machine has been created above).
 	delete(kcp.Annotations, controlplanev1.RemediationInProgressAnnotation)
-	return nil
+
+	return clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "Machine creation", machine)
 }
 
 func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {
@@ -340,8 +332,8 @@ func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machi
 		return nil, errors.Wrap(err, "failed to apply Machine")
 	}
 
-	err = ssa.Patch(ctx, r.Client, kcpManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: machine})
-	if err != nil {
+	// Note: It's not critical that the next Reconcile observes the changes applied here, so we don't wait for the cache.
+	if err := ssa.Patch(ctx, r.Client, kcpManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: machine}); err != nil {
 		return nil, err
 	}
 	return updatedMachine, nil

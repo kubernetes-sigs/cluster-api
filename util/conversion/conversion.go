@@ -18,6 +18,8 @@ limitations under the License.
 package conversion
 
 import (
+	"bytes"
+	"maps"
 	"math/rand"
 	"testing"
 
@@ -56,6 +58,47 @@ func MarshalData(src metav1.Object, dst metav1.Object) error {
 	if err != nil {
 		return err
 	}
+	annotations := dst.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[DataAnnotation] = string(data)
+	dst.SetAnnotations(annotations)
+	return nil
+}
+
+// MarshalDataUnsafeNoCopy stores the source object as json data in the destination object annotations map.
+// It ignores the metadata of the source object.
+// Note: It also mutates the metadata of the source object.
+func MarshalDataUnsafeNoCopy(src metav1.Object, dst metav1.Object) error {
+	// Remove metadata as it's not needed in the conversion annotation.
+	// Note: Directly modifying src to avoid additional memory allocations
+	// This is fine because MarshalDataUnsafeNoCopy is called at the end of ConvertFrom.
+	src.SetNamespace("")
+	src.SetName("")
+	src.SetGenerateName("")
+	src.SetUID("")
+	src.SetResourceVersion("")
+	src.SetGeneration(0)
+	src.SetSelfLink("")
+	src.SetCreationTimestamp(metav1.Time{})
+	src.SetDeletionTimestamp(nil)
+	src.SetDeletionGracePeriodSeconds(nil)
+	src.SetLabels(nil)
+	src.SetAnnotations(nil)
+	src.SetFinalizers(nil)
+	src.SetOwnerReferences(nil)
+	src.SetManagedFields(nil)
+
+	data, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+
+	// If omitzero is not set on the ObjectMeta field the above is not enough to avoid metadata entirely.
+	// So we also have to remove an empty metadata element if it exists.
+	data = bytes.Replace(data, []byte(`"metadata":{},`), []byte(``), 1)
+
 	annotations := dst.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
@@ -198,7 +241,21 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 
 				// First convert hub to spoke
 				dstCopy := input.Spoke.DeepCopyObject().(conversion.Convertible)
-				g.Expect(dstCopy.ConvertFrom(hubBefore)).To(gomega.Succeed())
+				// DeepCopy hubBefore because otherwise the mutations in MarshalDataUnsafeNoCopy would affect
+				// hubBefore and accordingly the comparison between hubBefore and hubAfter below.
+				g.Expect(dstCopy.ConvertFrom(hubBefore.DeepCopyObject().(conversion.Hub))).To(gomega.Succeed())
+
+				// Note: The check here is needed because not all runtime.Objects are metav1.Objects (e.g. CABPK ClusterConfiguration)
+				if _, ok := dstCopy.(metav1.Object); ok {
+					// Sometimes the apiserver sends us objects without a spec (likely in the context of managedField conversion)
+					// This test verifies that the ConvertTo code can handle this scenario (i.e. it doesn't return an error
+					// and it doesn't panic)
+					// Note: It's important that this test is run here, because dstCopy.ConvertTo below clears the restore annotation from dstCopy.
+					dstCopyNoSpec := input.Spoke.DeepCopyObject().(conversion.Convertible)
+					dstCopyNoSpec.(metav1.Object).SetLabels(maps.Clone(dstCopy.(metav1.Object).GetLabels()))
+					dstCopyNoSpec.(metav1.Object).SetAnnotations(maps.Clone(dstCopy.(metav1.Object).GetAnnotations()))
+					g.Expect(dstCopyNoSpec.ConvertTo(input.Hub.DeepCopyObject().(conversion.Hub))).To(gomega.Succeed())
+				}
 
 				// Convert spoke back to hub and check if the resulting hub is equal to the hub before the round trip
 				hubAfter := input.Hub.DeepCopyObject().(conversion.Hub)

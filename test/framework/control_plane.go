@@ -35,7 +35,7 @@ type WaitForControlPlaneToBeUpToDateInput struct {
 
 // WaitForControlPlaneToBeUpToDate will wait for a control plane to be fully up-to-date.
 func WaitForControlPlaneToBeUpToDate(ctx context.Context, input WaitForControlPlaneToBeUpToDateInput, intervals ...interface{}) {
-	By("Waiting for the control plane to be ready")
+	By("Waiting for the control plane to be up-to-date")
 	Eventually(func() (int32, error) {
 		controlplane := &controlplanev1.KubeadmControlPlane{}
 		key := client.ObjectKey{

@@ -75,8 +75,10 @@ const (
 
 	// ReconcilerRateLimiting is a feature gate that controls if reconcilers are rate-limited.
 	// Note: Currently the feature gate is rate-limiting to 1 request / 1 second.
+	// Note: If this feature gate is enabled the PriorityQueue feature gate must be enabled as well.
 	//
 	// alpha: v1.12
+	// beta: v1.13
 	ReconcilerRateLimiting featuregate.Feature = "ReconcilerRateLimiting"
 
 	// InPlaceUpdates is a feature gate for the in-place machine updates functionality.
@@ -101,7 +103,7 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	MachinePool:                    {Default: true, PreRelease: featuregate.Beta},
 	MachineSetPreflightChecks:      {Default: true, PreRelease: featuregate.Beta},
 	PriorityQueue:                  {Default: true, PreRelease: featuregate.Beta},
-	ReconcilerRateLimiting:         {Default: false, PreRelease: featuregate.Alpha},
+	ReconcilerRateLimiting:         {Default: true, PreRelease: featuregate.Beta},
 	ClusterTopology:                {Default: false, PreRelease: featuregate.Alpha},
 	KubeadmBootstrapFormatIgnition: {Default: false, PreRelease: featuregate.Alpha},
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},

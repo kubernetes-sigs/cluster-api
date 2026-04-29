@@ -796,6 +796,33 @@ type Partition struct {
 	// +optional
 	// +kubebuilder:validation:Enum=mbr;gpt
 	TableType *string `json:"tableType,omitempty"`
+
+	// diskLayout specifies an ordered list of partitions, where each item defines the
+	// percentage of disk space and optional partition type for that partition.
+	// The sum of all partition percentages must not be greater than 100.
+	// +optional
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	DiskLayout []PartitionSpec `json:"diskLayout,omitempty"`
+}
+
+// PartitionSpec defines the size and optional type for a partition.
+type PartitionSpec struct {
+	// percentage of disk that partition will take (1-100)
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	// +required
+	Percentage int32 `json:"percentage,omitempty"`
+
+	// partitionType is the partition type (optional).
+	// Supported values are Linux, LinuxSwap, LinuxRAID, LVM, Fat32, NTFS,
+	// and LinuxExtended. These are translated to cloud-init partition type codes.
+	// A full GPT partition GUID is also supported as a passthrough value.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=36
+	// +kubebuilder:validation:XValidation:rule="self.matches('^(Linux|LinuxSwap|LinuxRAID|LVM|Fat32|NTFS|LinuxExtended|[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12})$')",message="partitionType must be one of Linux, LinuxSwap, LinuxRAID, LVM, Fat32, NTFS, LinuxExtended or a full GPT partition GUID"
+	PartitionType string `json:"partitionType,omitempty"`
 }
 
 // Filesystem defines the file systems to be created.

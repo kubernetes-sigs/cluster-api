@@ -415,8 +415,11 @@ func TestAPI_corev1_Watch(t *testing.T) {
 
 	nodeBookmarkEvent := false
 	podBookmarkEvent := false
-	expectedEvents := []string{"ADDED/foo", "MODIFIED/foo", "DELETED/foo", "ADDED/bar", "MODIFIED/bar", "DELETED/bar"}
-	receivedEvents := []string{}
+	expectedEvents := map[string][]string{
+		"foo": {"ADDED/foo", "MODIFIED/foo", "DELETED/foo"},
+		"bar": {"ADDED/bar", "MODIFIED/bar", "DELETED/bar"},
+	}
+	receivedEvents := map[string][]string{}
 	done := make(chan bool)
 	go func() {
 		for {
@@ -430,7 +433,7 @@ func TestAPI_corev1_Watch(t *testing.T) {
 				if !ok {
 					return
 				}
-				receivedEvents = append(receivedEvents, fmt.Sprintf("%s/%s", event.Type, o.GetName()))
+				receivedEvents[o.GetName()] = append(receivedEvents[o.GetName()], fmt.Sprintf("%s/%s", event.Type, o.GetName()))
 			case event := <-podWatcher.ResultChan():
 				if event.Type == watch.Bookmark {
 					podBookmarkEvent = true
@@ -440,7 +443,7 @@ func TestAPI_corev1_Watch(t *testing.T) {
 				if !ok {
 					return
 				}
-				receivedEvents = append(receivedEvents, fmt.Sprintf("%s/%s", event.Type, o.GetName()))
+				receivedEvents[o.GetName()] = append(receivedEvents[o.GetName()], fmt.Sprintf("%s/%s", event.Type, o.GetName()))
 			case <-done:
 				nodeWatcher.Stop()
 				podWatcher.Stop()

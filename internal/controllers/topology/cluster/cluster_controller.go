@@ -54,13 +54,13 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -382,6 +382,14 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	// Setup watches for InfrastructureCluster and ControlPlane CRs when they exist.
 	if err := r.setupDynamicWatches(ctx, s); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error creating dynamic watch")
+	}
+
+	anyManagedFieldIssueMitigated, err := r.mitigateManagedFieldsIssue(ctx, s)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if anyManagedFieldIssueMitigated {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // Explicitly requeue as we are not watching all objects.
 	}
 
 	// Computes the desired state of the Cluster and store it in the request scope.

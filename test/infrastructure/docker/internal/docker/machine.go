@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -267,6 +268,16 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 		default:
 			return errors.Errorf("unable to create machine for role %s", role)
 		}
+
+		containerRuntime, err := container.RuntimeFrom(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to connect to container runtime")
+		}
+
+		if err := m.WaitForMultiUserTarget(ctx, containerRuntime); err != nil {
+			return errors.Wrap(err, "waiting for multi-user target after container creation")
+		}
+
 		// After creating a node we need to wait a small amount of time until crictl does not return an error.
 		// This fixes an issue where we try to kubeadm init too quickly after creating the container.
 		err = wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 4*time.Second, true, func(ctx context.Context) (bool, error) {
@@ -337,12 +348,33 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 	return nil
 }
 
+// Note: See https://github.com/kubernetes-sigs/kind/pull/2421 for more context.
+var waitUntilLogRegExp = regexp.MustCompile("Reached target .*Multi-User System.*")
+
+// WaitForMultiUserTarget checks if the multi-user target is reached to figure out if the container is ready for bootstrap exec.
+func (m *Machine) WaitForMultiUserTarget(ctx context.Context, containerRuntime container.Runtime) error {
+	if m.container == nil {
+		return errors.New("the container hosting this machine does not exist")
+	}
+
+	logs, err := containerRuntime.GetContainerLogs(ctx, m.container.Name)
+	if err != nil {
+		return err
+	}
+
+	if !waitUntilLogRegExp.MatchString(logs) {
+		return errors.New("multi-user target not reached yet")
+	}
+
+	return nil
+}
+
 // ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`.
 func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstrapv1.Format, version string, image string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if m.container == nil {
-		return errors.New("unable to set ExecBootstrap. the container hosting this machine does not exists")
+		return errors.New("unable to set ExecBootstrap. the container hosting this machine does not exist")
 	}
 
 	// Get the kindMapping for the target K8s version.
@@ -384,6 +416,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstr
 	var outErr bytes.Buffer
 	var outStd bytes.Buffer
 	for _, command := range commands {
+		log.Info("Running command", "instance", m.Name(), "command", command.Cmd)
 		cmd := m.container.Commander.Command(command.Cmd, command.Args...)
 		cmd.SetStderr(&outErr)
 		cmd.SetStdout(&outStd)

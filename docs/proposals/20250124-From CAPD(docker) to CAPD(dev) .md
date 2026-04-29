@@ -160,7 +160,7 @@ Please note that at the end of phase 1
 
 Phase 2 consist of the actual removal of `DockerCluster`, `DockerMachine` and `DockerMachinePool`; this phase will happen after maintainers 
 will complete the transition of all the E2E tests to `DevCluster`, `DevMachine` and `DevMachinePool`; considering we have upgrade tests using
-older releases of CAPD, completing this phase would likely require a few release cycles, targeting tentatively CAPI 1.13, Apr 2026.
+older releases of CAPD, completing this phase would likely require a few release cycles.
 
 ## Implementation History
 

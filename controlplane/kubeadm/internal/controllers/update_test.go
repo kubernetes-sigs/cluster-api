@@ -41,10 +41,10 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
 	"sigs.k8s.io/cluster-api/feature"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -96,15 +96,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{Nodes: 1},
-			},
-		},
-		managementClusterUncached: &fakeManagementCluster{
-			Management: &internal.Management{Client: env},
-			Workload: &fakeWorkloadCluster{
-				Status: internal.ClusterStatus{Nodes: 1},
-			},
+			Workload:   &fakeWorkloadCluster{},
 		},
 		ssaCache: ssa.NewCache("test-controller"),
 	}
@@ -173,7 +165,6 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	}, timeout).Should(Succeed())
 
 	// manually increase number of nodes, make control plane healthy again
-	r.managementCluster.(*fakeManagementCluster).Workload.Status.Nodes++
 	for i := range bothMachines.Items {
 		setMachineHealthy(&bothMachines.Items[i])
 	}
@@ -216,9 +207,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 
 	fmc := &fakeManagementCluster{
 		Machines: collections.Machines{},
-		Workload: &fakeWorkloadCluster{
-			Status: internal.ClusterStatus{Nodes: 3},
-		},
+		Workload: &fakeWorkloadCluster{},
 	}
 	objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 	for i := range 3 {
@@ -252,10 +241,9 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	fakeClient := newFakeClient(objs...)
 	fmc.Reader = fakeClient
 	r := &KubeadmControlPlaneReconciler{
-		Client:                    fakeClient,
-		SecretCachingClient:       fakeClient,
-		managementCluster:         fmc,
-		managementClusterUncached: fmc,
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		managementCluster:   fmc,
 	}
 
 	controlPlane := &internal.ControlPlane{

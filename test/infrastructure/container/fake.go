@@ -20,7 +20,7 @@ import (
 	"context"
 	"io"
 
-	dockersystem "github.com/docker/docker/api/types/system"
+	dockersystem "github.com/moby/moby/api/types/system"
 )
 
 var runContainerCallLog []RunContainerArgs
@@ -150,6 +150,10 @@ func (f *FakeRuntime) ResetKillContainerCallLogs() {
 // determine whether that is an issue or not.
 func (f *FakeRuntime) GetContainerIPs(_ context.Context, containerName string) (string, string, error) {
 	return containerName + "IPv4", containerName + "IPv6", nil
+}
+
+func (f *FakeRuntime) GetContainerLogs(_ context.Context, _ string) (string, error) {
+	return "", nil
 }
 
 // ContainerDebugInfo gets the container metadata and logs from the runtime (docker inspect, docker logs).

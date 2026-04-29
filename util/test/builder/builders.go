@@ -346,6 +346,7 @@ type ClusterClassBuilder struct {
 	infrastructureClusterTemplate             *unstructured.Unstructured
 	controlPlaneMetadata                      *clusterv1.ObjectMeta
 	controlPlaneReadinessGates                []clusterv1.MachineReadinessGate
+	controlPlaneTaints                        []clusterv1.MachineTaint
 	controlPlaneTemplate                      *unstructured.Unstructured
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
 	controlPlaneMHC                           clusterv1.ControlPlaneClassHealthCheck
@@ -401,6 +402,12 @@ func (c *ClusterClassBuilder) WithControlPlaneMetadata(labels, annotations map[s
 // WithControlPlaneReadinessGates adds the given readinessGates for use with the ControlPlane to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithControlPlaneReadinessGates(readinessGates []clusterv1.MachineReadinessGate) *ClusterClassBuilder {
 	c.controlPlaneReadinessGates = readinessGates
+	return c
+}
+
+// WithControlPlaneTaints adds the given taints for use with the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneTaints(taints []clusterv1.MachineTaint) *ClusterClassBuilder {
+	c.controlPlaneTaints = taints
 	return c
 }
 
@@ -524,6 +531,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	if c.controlPlaneReadinessGates != nil {
 		obj.Spec.ControlPlane.ReadinessGates = c.controlPlaneReadinessGates
 	}
+	if c.controlPlaneTaints != nil {
+		obj.Spec.ControlPlane.Taints = c.controlPlaneTaints
+	}
 	if c.controlPlaneTemplate != nil {
 		obj.Spec.ControlPlane.TemplateRef = objToClusterClassTemplateRef(c.controlPlaneTemplate)
 	}
@@ -572,6 +582,7 @@ type MachineDeploymentClassBuilder struct {
 	strategy                      clusterv1.MachineDeploymentClassRolloutStrategy
 	deletionOrder                 clusterv1.MachineSetDeletionOrder
 	naming                        *clusterv1.MachineDeploymentClassNamingSpec
+	taints                        []clusterv1.MachineTaint
 }
 
 // MachineDeploymentClass returns a MachineDeploymentClassBuilder with the given name and namespace.
@@ -665,6 +676,12 @@ func (m *MachineDeploymentClassBuilder) WithNaming(n *clusterv1.MachineDeploymen
 	return m
 }
 
+// WithTaints sets the Taints for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithTaints(taints []clusterv1.MachineTaint) *MachineDeploymentClassBuilder {
+	m.taints = taints
+	return m
+}
+
 // Build creates a full MachineDeploymentClass object with the variables passed to the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClass {
 	obj := &clusterv1.MachineDeploymentClass{
@@ -704,6 +721,7 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	if m.naming != nil {
 		obj.Naming = *m.naming
 	}
+	obj.Taints = m.taints
 	return obj
 }
 

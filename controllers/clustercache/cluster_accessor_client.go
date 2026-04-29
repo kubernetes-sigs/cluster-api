@@ -62,7 +62,7 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 	log.V(6).Info("Creating HTTP client and mapper")
 	httpClient, mapper, restClient, err := createHTTPClientAndMapper(ctx, ca.config.HealthProbe, restConfig)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating HTTP client and mapper")
+		return nil, errors.WithMessage(err, "error creating HTTP client and mapper")
 	}
 
 	log.V(6).Info("Creating uncached client")
@@ -85,7 +85,7 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 
 		inClusterConfig, err := ctrl.GetConfig()
 		if err != nil {
-			return nil, errors.Wrapf(err, "error getting in-cluster REST config")
+			return nil, errors.WithMessage(err, "error getting in-cluster REST config")
 		}
 
 		// Use CA and Host from in-cluster config.
@@ -96,13 +96,13 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 		log.V(6).Info(fmt.Sprintf("Creating HTTP client and mapper with updated REST config with host %q", restConfig.Host))
 		httpClient, mapper, restClient, err = createHTTPClientAndMapper(ctx, ca.config.HealthProbe, restConfig)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating HTTP client and mapper (using in-cluster config)")
+			return nil, errors.WithMessage(err, "error creating HTTP client and mapper (using in-cluster config)")
 		}
 
 		log.V(6).Info(fmt.Sprintf("Creating uncached client with updated REST config with host %q", restConfig.Host))
 		uncachedClient, err = createUncachedClient(ca.config.Scheme, restConfig, httpClient, mapper)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating uncached client (using in-cluster config)")
+			return nil, errors.WithMessage(err, "error creating uncached client (using in-cluster config)")
 		}
 	}
 
@@ -125,12 +125,12 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientConfig, c client.Reader, cluster client.ObjectKey) (*rest.Config, error) {
 	kubeConfig, err := kcfg.FromSecret(ctx, c, cluster)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating REST config: error getting kubeconfig secret")
+		return nil, errors.WithMessage(err, "error creating REST config: error getting kubeconfig secret")
 	}
 
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating REST config: error parsing kubeconfig")
+		return nil, errors.WithMessage(err, "error creating REST config: error parsing kubeconfig")
 	}
 
 	restConfig.UserAgent = clientConfig.UserAgent
@@ -160,7 +160,7 @@ func runningOnWorkloadCluster(ctx context.Context, controllerPodMetadata *metav1
 		}
 
 		// If we got another error, we return the error so that this will be retried later.
-		return false, errors.Wrapf(err, "error checking if we're running on workload cluster")
+		return false, errors.WithMessage(err, "error checking if we're running on workload cluster")
 	}
 
 	// If the uid is the same we found the controller pod on the workload cluster.
@@ -172,13 +172,13 @@ func createHTTPClientAndMapper(ctx context.Context, healthProbeConfig *clusterAc
 	// Create a http client for the cluster.
 	httpClient, err := rest.HTTPClientFor(config)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "error creating HTTP client")
+		return nil, nil, nil, errors.WithMessage(err, "error creating HTTP client")
 	}
 
 	// Create a dynamic REST mapper for the cluster.
 	mapper, err := apiutil.NewDynamicRESTMapper(config, httpClient)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "error creating dynamic REST mapper")
+		return nil, nil, nil, errors.WithMessage(err, "error creating dynamic REST mapper")
 	}
 
 	// Create a REST client for the cluster (this is later used for health checking as well).
@@ -187,18 +187,18 @@ func createHTTPClientAndMapper(ctx context.Context, healthProbeConfig *clusterAc
 	restClientConfig.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
 	restClient, err := rest.UnversionedRESTClientForConfigAndClient(restClientConfig, httpClient)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "error creating REST client")
+		return nil, nil, nil, errors.WithMessage(err, "error creating REST client")
 	}
 
 	// Note: This checks if the apiserver is up. We do this already here to produce a clearer error message if the cluster is unreachable.
 	if _, err := restClient.Get().AbsPath("/").Timeout(healthProbeConfig.Timeout).DoRaw(ctx); err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "cluster is not reachable")
+		return nil, nil, nil, errors.WithMessage(err, "cluster is not reachable")
 	}
 
 	// Verify if we can get a REST mapping from the workload cluster apiserver.
 	_, err = mapper.RESTMapping(corev1.SchemeGroupVersion.WithKind("Node").GroupKind(), corev1.SchemeGroupVersion.Version)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "error getting REST mapping")
+		return nil, nil, nil, errors.WithMessage(err, "error getting REST mapping")
 	}
 
 	return httpClient, mapper, restClient, nil
@@ -213,7 +213,7 @@ func createUncachedClient(scheme *runtime.Scheme, config *rest.Config, httpClien
 		HTTPClient: httpClient,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating uncached client")
+		return nil, errors.WithMessage(err, "error creating uncached client")
 	}
 
 	return newClientWithTimeout(uncachedClient, config.Timeout), nil
@@ -232,7 +232,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 	configWith11mTimeout.Timeout = 11 * time.Minute
 	httpClientWith11mTimeout, err := rest.HTTPClientFor(configWith11mTimeout)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating cache: error creating HTTP client")
+		return nil, nil, errors.WithMessage(err, "error creating cache: error creating HTTP client")
 	}
 
 	// Create the cache for the cluster.
@@ -245,7 +245,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 	}
 	remoteCache, err := cache.New(configWith11mTimeout, cacheOptions)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating cache")
+		return nil, nil, errors.WithMessage(err, "error creating cache")
 	}
 
 	// Use a context that is independent of the passed in context, so the cache doesn't get stopped
@@ -260,7 +260,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 
 	for _, index := range clusterAccessorConfig.Cache.Indexes {
 		if err := cache.IndexField(ctx, index.Object, index.Field, index.ExtractValue); err != nil {
-			return nil, nil, errors.Wrapf(err, "error adding index for field %q to cache", index.Field)
+			return nil, nil, errors.WithMessagef(err, "error adding index for field %q to cache", index.Field)
 		}
 	}
 
@@ -276,7 +276,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 		},
 	})
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating cached client")
+		return nil, nil, errors.WithMessage(err, "error creating cached client")
 	}
 
 	// Start the cache!

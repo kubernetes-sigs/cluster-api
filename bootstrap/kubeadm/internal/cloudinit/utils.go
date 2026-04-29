@@ -19,11 +19,14 @@ package cloudinit
 import (
 	"strings"
 	"text/template"
+
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 )
 
 var (
 	defaultTemplateFuncMap = template.FuncMap{
-		"Indent": templateYAMLIndent,
+		"Indent":                 templateYAMLIndent,
+		"CloudInitPartitionType": cloudInitPartitionType,
 	}
 )
 
@@ -31,4 +34,26 @@ func templateYAMLIndent(i int, input string) string {
 	split := strings.Split(input, "\n")
 	ident := "\n" + strings.Repeat(" ", i)
 	return strings.Repeat(" ", i) + strings.Join(split, ident)
+}
+
+func cloudInitPartitionType(partitionType string) string {
+	switch partitionType {
+	case bootstrapv1.PartitionTypeLinux:
+		return "83"
+	case bootstrapv1.PartitionTypeLinuxSwap:
+		return "82"
+	case bootstrapv1.PartitionTypeLinuxRAID:
+		return "fd"
+	case bootstrapv1.PartitionTypeLVM:
+		return "8e"
+	case bootstrapv1.PartitionTypeFat32:
+		return "0c"
+	case bootstrapv1.PartitionTypeNTFS:
+		return "07"
+	case bootstrapv1.PartitionTypeLinuxExtended:
+		return "85"
+	default:
+		// Preserve any raw cloud-init-compatible values to avoid breaking older input.
+		return partitionType
+	}
 }

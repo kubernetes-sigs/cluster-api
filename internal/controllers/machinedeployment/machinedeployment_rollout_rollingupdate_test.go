@@ -1905,7 +1905,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 						totMS := len(current.machineSets)
 						desiredNewMS = createMS(fmt.Sprintf("ms%d", totMS+1), deployment.Spec.Template.Spec.FailureDomain, 0)
 						current.machineSets = append(current.machineSets, desiredNewMS)
-						log.V(5).Info(fmt.Sprintf("Computing new MachineSet %s with %d replicas", desiredNewMS.Name, ptr.Deref(desiredNewMS.Spec.Replicas, 0)), "MachineSet", klog.KObj(desiredNewMS))
+						log.V(5).Info(fmt.Sprintf("Computing new MachineSet %s with %d replicas", klog.KObj(desiredNewMS), ptr.Deref(desiredNewMS.Spec.Replicas, 0)), "MachineSet", klog.KObj(desiredNewMS))
 					}
 					return desiredNewMS, nil
 				}

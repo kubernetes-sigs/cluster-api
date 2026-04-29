@@ -142,12 +142,18 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 								},
 								InitConfiguration: bootstrapv1.InitConfiguration{
 									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-										KubeletExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
+										KubeletExtraArgs: []bootstrapv1.Arg{
+											{Name: "v", Value: ptr.To("2")},
+											{Name: "node-labels", Value: ptr.To("kubernetesVersion=v1.24.0")},
+										},
 									},
 								},
 								JoinConfiguration: bootstrapv1.JoinConfiguration{
 									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-										KubeletExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
+										KubeletExtraArgs: []bootstrapv1.Arg{
+											{Name: "v", Value: ptr.To("2")},
+											{Name: "node-labels", Value: ptr.To("kubernetesVersion=v1.24.0")},
+										},
 									},
 								},
 							},
@@ -409,6 +415,9 @@ func TestHandler_GeneratePatches(t *testing.T) {
               "kubeletExtraArgs" : [ {
                 "name" : "v",
                 "value" : "2"
+              },{
+                "name" : "node-labels",
+                "value" : "kubernetesVersion=v1.23.0"
               } ]
             }
           },
@@ -417,6 +426,9 @@ func TestHandler_GeneratePatches(t *testing.T) {
               "kubeletExtraArgs" : [ {
                 "name" : "v",
                 "value" : "2"
+              },{
+                "name" : "node-labels",
+                "value" : "kubernetesVersion=v1.23.0"
               } ]
             }
           }

@@ -288,6 +288,7 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 			}
 
 			// Retry streaming the logs of the pods unless ctx.Done() or if the pod does not exist anymore.
+			streamed := false
 			err = wait.PollUntilContextCancel(eh.ctx, 2*time.Second, false, func(ctx context.Context) (done bool, err error) {
 				// Wait for pod to be in running state
 				actual, err := eh.input.ClientSet.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
@@ -298,6 +299,14 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 					}
 					// Only log the error to not cause the test to fail via GinkgoRecover
 					log.Logf("Error getting pod %s, container %s: %v", klog.KRef(pod.Namespace, pod.Name), container.Name, err)
+					return true, nil
+				}
+				// On retries, stop if the container has terminated (e.g.
+				// completed init container or pod terminated during upgrade).
+				// This also covers pods in Succeeded/Failed phase.
+				// Skip this check on the first attempt so we still capture
+				// historical logs from already-completed containers.
+				if streamed && containerHasTerminated(actual, container.Name) {
 					return true, nil
 				}
 				// Retry later if pod is currently not running
@@ -319,6 +328,7 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 					// Failing to stream logs should not cause the test to fail
 					log.Logf("Got error while streaming logs for pod %s, container %s: %v", klog.KRef(pod.Namespace, pod.Name), container.Name, err)
 				}
+				streamed = true
 				return false, nil
 			})
 			if err != nil {
@@ -326,6 +336,21 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 			}
 		}(pod, container)
 	}
+}
+
+// containerHasTerminated checks whether a specific container (regular or init)
+// has terminated in the given pod.
+func containerHasTerminated(pod *corev1.Pod, containerName string) bool {
+	// Check pod phase first — if the whole pod is done, all containers are done.
+	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+		return true
+	}
+	for _, cs := range append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...) {
+		if cs.Name == containerName {
+			return cs.State.Terminated != nil
+		}
+	}
+	return false
 }
 
 // logMetadata contains metadata about the logs.

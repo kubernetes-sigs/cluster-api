@@ -110,7 +110,7 @@ func MaxRevision(ctx context.Context, allMSs []*clusterv1.MachineSet) int64 {
 	for _, ms := range allMSs {
 		if v, err := Revision(ms); err != nil {
 			// Skip the machine sets when it failed to parse their revision information
-			log.Error(err, fmt.Sprintf("Couldn't parse revision for MachineSet %s, deployment controller will skip it when reconciling revisions", ms.Name))
+			log.Error(err, fmt.Sprintf("Couldn't parse revision for MachineSet %s, deployment controller will skip it when reconciling revisions", klog.KObj(ms)))
 		} else if v > maxVal {
 			maxVal = v
 		}
@@ -477,7 +477,7 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		} else {
 			oldMSs = append(oldMSs, ms)
 			// Override the EligibleForInPlaceUpdate decision if rollout after is expired.
-			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(&reconciliationTime) && !ms.CreationTimestamp.After(deployment.Spec.Rollout.After.Time) {
+			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(&reconciliationTime) && ms.CreationTimestamp.Before(ptr.To(deployment.Spec.Rollout.After)) {
 				upToDateResult.EligibleForInPlaceUpdate = false
 				upToDateResult.LogMessages = append(upToDateResult.LogMessages, "MachineDeployment spec.rolloutAfter expired")
 				// No need to set an additional condition message, it is not used anywhere.
@@ -517,7 +517,7 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 
 	// Pick the first matching MachineSet that has been created at RolloutAfter or later.
 	for _, ms := range newMSCandidates {
-		if newMS == nil && ms.CreationTimestamp.Sub(deployment.Spec.Rollout.After.Time) >= 0 {
+		if newMS == nil && !ms.CreationTimestamp.Before(ptr.To(deployment.Spec.Rollout.After)) {
 			newMS = ms
 			continue
 		}

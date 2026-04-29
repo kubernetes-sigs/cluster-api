@@ -226,15 +226,8 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 	}
 }
 
-func TestRemoveEtcdMemberForMachine(t *testing.T) {
-	machine := &clusterv1.Machine{
-		Status: clusterv1.MachineStatus{
-			NodeRef: clusterv1.MachineNodeReference{
-				Name: "cp1",
-			},
-		},
-	}
-	cp1 := &corev1.Node{
+func TestRemoveEtcdMember(t *testing.T) {
+	cp1Node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cp1",
 			Namespace: "cp1",
@@ -243,77 +236,57 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 			},
 		},
 	}
-	cp1DiffNS := cp1.DeepCopy()
-	cp1DiffNS.Namespace = "diff-ns"
-
-	cp2 := cp1.DeepCopy()
-	cp2.Name = "cp2"
-	cp2.Namespace = "cp2"
 
 	tests := []struct {
 		name                string
-		machine             *clusterv1.Machine
+		memberToDelete      string
 		etcdClientGenerator etcdClientFor
-		objs                []client.Object
 		expectErr           bool
 	}{
 		{
-			name:      "does nothing if the machine is nil",
-			machine:   nil,
-			expectErr: false,
-		},
-		{
-			name: "does nothing if the machine has no node",
-			machine: &clusterv1.Machine{
-				Status: clusterv1.MachineStatus{
-					// NodeRef is not set
-				},
-			},
-			expectErr: false,
-		},
-		{
-			name:      "returns an error if there are less than 2 control plane nodes",
-			machine:   machine,
-			objs:      []client.Object{cp1},
-			expectErr: true,
-		},
-		{
 			name:                "returns an error if it fails to create the etcd client",
-			machine:             machine,
-			objs:                []client.Object{cp1, cp2},
+			memberToDelete:      "cp1",
 			etcdClientGenerator: &fakeEtcdClientGenerator{forNodesErr: errors.New("no client")},
 			expectErr:           true,
 		},
 		{
-			name:    "returns an error if the client errors getting etcd members",
-			machine: machine,
-			objs:    []client.Object{cp1, cp2},
+			name:           "returns an error if the client errors getting etcd members",
+			memberToDelete: "cp1",
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
-						ErrorResponse: errors.New("cannot get etcd members"),
+						MemberListError: errors.New("cannot get etcd members"),
 					},
 				},
 			},
 			expectErr: true,
 		},
 		{
-			name:    "returns an error if the client errors removing the etcd member",
-			machine: machine,
-			objs:    []client.Object{cp1, cp2},
+			name:           "no op if the member already does not exist",
+			memberToDelete: "cp2",
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
-						ErrorResponse: errors.New("cannot remove etcd member"),
 						MemberListResponse: &clientv3.MemberListResponse{
 							Members: []*pb.Member{
 								{Name: "cp1", ID: uint64(1)},
-								{Name: "test-2", ID: uint64(2)},
-								{Name: "test-3", ID: uint64(3)},
 							},
 						},
-						AlarmResponse: &clientv3.AlarmResponse{
-							Alarms: []*pb.AlarmMember{},
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:           "returns an error if there is only one member",
+			memberToDelete: "cp1",
+			etcdClientGenerator: &fakeEtcdClientGenerator{
+				forNodesClient: &etcd.Client{
+					EtcdClient: &fake2.FakeEtcdClient{
+						MemberListResponse: &clientv3.MemberListResponse{
+							Members: []*pb.Member{
+								{Name: "cp1", ID: uint64(1)},
+							},
 						},
 					},
 				},
@@ -321,21 +294,34 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:    "removes the member from etcd",
-			machine: machine,
-			objs:    []client.Object{cp1, cp2},
+			name:           "returns an error if the client errors removing the etcd member",
+			memberToDelete: "cp1",
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						MemberListResponse: &clientv3.MemberListResponse{
 							Members: []*pb.Member{
 								{Name: "cp1", ID: uint64(1)},
-								{Name: "test-2", ID: uint64(2)},
-								{Name: "test-3", ID: uint64(3)},
+								{Name: "cp2", ID: uint64(2)},
 							},
 						},
-						AlarmResponse: &clientv3.AlarmResponse{
-							Alarms: []*pb.AlarmMember{},
+						MemberRemoveError: errors.New("cannot remove etcd members"),
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:           "removes the member from etcd",
+			memberToDelete: "cp1",
+			etcdClientGenerator: &fakeEtcdClientGenerator{
+				forNodesClient: &etcd.Client{
+					EtcdClient: &fake2.FakeEtcdClient{
+						MemberListResponse: &clientv3.MemberListResponse{
+							Members: []*pb.Member{
+								{Name: "cp1", ID: uint64(1)},
+								{Name: "cp2", ID: uint64(2)},
+							},
 						},
 					},
 				},
@@ -347,12 +333,13 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(cp1Node).Build()
 			w := &Workload{
 				Client:              fakeClient,
 				etcdClientGenerator: tt.etcdClientGenerator,
 			}
-			err := w.RemoveEtcdMemberForMachine(ctx, tt.machine)
+			// Note: no need to pass the list of nodes because fakeEtcdClientGenerator is used to simulate various combinations of node availability.
+			err := w.RemoveEtcdMember(ctx, tt.memberToDelete, nil)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -369,7 +356,6 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			machine             *clusterv1.Machine
 			leaderCandidate     *clusterv1.Machine
 			etcdClientGenerator etcdClientFor
-			k8sClient           client.Client
 			expectErr           bool
 		}{
 			{
@@ -399,17 +385,9 @@ func TestForwardEtcdLeadership(t *testing.T) {
 				expectErr: true,
 			},
 			{
-				name:            "returns an error if it can't retrieve the list of control plane nodes",
-				machine:         defaultMachine(),
-				leaderCandidate: defaultMachine(),
-				k8sClient:       &fakeClient{listErr: errors.New("failed to list nodes")},
-				expectErr:       true,
-			},
-			{
 				name:                "returns an error if it can't create an etcd client",
 				machine:             defaultMachine(),
 				leaderCandidate:     defaultMachine(),
-				k8sClient:           &fakeClient{},
 				etcdClientGenerator: &fakeEtcdClientGenerator{forLeaderErr: errors.New("no etcdClient")},
 				expectErr:           true,
 			},
@@ -417,11 +395,10 @@ func TestForwardEtcdLeadership(t *testing.T) {
 				name:            "returns error if it fails to get etcd members",
 				machine:         defaultMachine(),
 				leaderCandidate: defaultMachine(),
-				k8sClient:       &fakeClient{},
 				etcdClientGenerator: &fakeEtcdClientGenerator{
 					forLeaderClient: &etcd.Client{
 						EtcdClient: &fake2.FakeEtcdClient{
-							ErrorResponse: errors.New("cannot get etcd members"),
+							MemberListError: errors.New("cannot get etcd members"),
 						},
 					},
 				},
@@ -432,10 +409,10 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				w := &Workload{
-					Client:              tt.k8sClient,
 					etcdClientGenerator: tt.etcdClientGenerator,
 				}
-				err := w.ForwardEtcdLeadership(ctx, tt.machine, tt.leaderCandidate)
+				// Note: no need to pass the list of nodes because fakeEtcdClientGenerator is used to simulate various combinations of node availability.
+				err := w.ForwardEtcdLeadership(ctx, tt.machine, tt.leaderCandidate, nil)
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -470,7 +447,8 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			}},
 			etcdClientGenerator: etcdClientGenerator,
 		}
-		err := w.ForwardEtcdLeadership(ctx, defaultMachine(), defaultMachine())
+		// Note: no need to pass the list of nodes because fakeEtcdClientGenerator is used to simulate various combinations of node availability.
+		err := w.ForwardEtcdLeadership(ctx, defaultMachine(), defaultMachine(), nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(fakeEtcdClient.MovedLeader).To(BeEquivalentTo(0))
 	})
@@ -514,7 +492,6 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				fakeEtcdClient := &fake2.FakeEtcdClient{
-					ErrorResponse: tt.etcdMoveErr,
 					MemberListResponse: &clientv3.MemberListResponse{
 						Members: []*pb.Member{
 							{Name: currentLeader.Status.NodeRef.Name, ID: uint64(101)},
@@ -525,6 +502,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 					AlarmResponse: &clientv3.AlarmResponse{
 						Alarms: []*pb.AlarmMember{},
 					},
+					MoveLeaderError: tt.etcdMoveErr,
 				}
 
 				etcdClientGenerator := &fakeEtcdClientGenerator{
@@ -541,7 +519,8 @@ func TestForwardEtcdLeadership(t *testing.T) {
 						Items: []corev1.Node{nodeNamed("leader-node"), nodeNamed("other-node"), nodeNamed("candidate-node")},
 					}},
 				}
-				err := w.ForwardEtcdLeadership(ctx, currentLeader, tt.leaderCandidate)
+				// Note: no need to pass the list of nodes because fakeEtcdClientGenerator is used to simulate various combinations of node availability.
+				err := w.ForwardEtcdLeadership(ctx, currentLeader, tt.leaderCandidate, nil)
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -551,132 +530,6 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			})
 		}
 	})
-}
-
-func TestReconcileEtcdMembersAndControlPlaneNodes(t *testing.T) {
-	node1 := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ip-10-0-0-1.ec2.internal",
-			Namespace: "ns1",
-			Labels: map[string]string{
-				labelNodeRoleControlPlane: "",
-			},
-		},
-	}
-	node2 := node1.DeepCopy()
-	node2.Name = "ip-10-0-0-2.ec2.internal"
-	node3 := node1.DeepCopy()
-	node3.Name = "ip-10-0-0-3.ec2.internal"
-
-	fakeEtcdClient := &fake2.FakeEtcdClient{
-		MemberListResponse: &clientv3.MemberListResponse{
-			Members: []*pb.Member{
-				{Name: node1.Name, ID: uint64(1)},
-				{Name: node2.Name, ID: uint64(2)},
-				{Name: node3.Name, ID: uint64(3)},
-			},
-		},
-		AlarmResponse: &clientv3.AlarmResponse{
-			Alarms: []*pb.AlarmMember{},
-		},
-	}
-
-	tests := []struct {
-		name                string
-		objs                []client.Object
-		members             []*etcd.Member
-		nodes               []string
-		etcdClientGenerator etcdClientFor
-		expectErr           bool
-		assert              func(*WithT)
-	}{
-		{
-			// no op if nodes and members match
-			name: "no op if nodes and members match",
-			objs: []client.Object{node1.DeepCopy(), node2.DeepCopy(), node3.DeepCopy()},
-			members: []*etcd.Member{
-				{Name: node1.Name, ID: uint64(1)},
-				{Name: node2.Name, ID: uint64(2)},
-				{Name: node3.Name, ID: uint64(3)},
-			},
-			nodes: []string{node1.Name, node2.Name, node3.Name},
-			etcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClient: &etcd.Client{
-					EtcdClient: fakeEtcdClient,
-				},
-			},
-			expectErr: false,
-			assert: func(g *WithT) {
-				g.Expect(fakeEtcdClient.RemovedMember).To(Equal(uint64(0))) // no member removed
-			},
-		},
-		{
-			// the node to be removed is ip-10-0-0-3.ec2.internal since the
-			// other two have nodes
-			name: "successfully removes the etcd member without a node",
-			objs: []client.Object{node1.DeepCopy(), node2.DeepCopy()},
-			members: []*etcd.Member{
-				{Name: node1.Name, ID: uint64(1)},
-				{Name: node2.Name, ID: uint64(2)},
-				{Name: node3.Name, ID: uint64(3)},
-			},
-			nodes: []string{node1.Name, node2.Name},
-			etcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClient: &etcd.Client{
-					EtcdClient: fakeEtcdClient,
-				},
-			},
-			expectErr: false,
-			assert: func(g *WithT) {
-				g.Expect(fakeEtcdClient.RemovedMember).To(Equal(uint64(3)))
-			},
-		},
-		{
-			// only one node left, no removal should happen
-			name: "return error if there aren't enough control plane nodes",
-			objs: []client.Object{node1.DeepCopy()},
-			members: []*etcd.Member{
-				{Name: "ip-10-0-0-1.ec2.internal", ID: uint64(1)},
-				{Name: "ip-10-0-0-2.ec2.internal", ID: uint64(2)},
-			},
-			nodes: []string{node1.Name},
-			etcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClient: &etcd.Client{
-					EtcdClient: fakeEtcdClient,
-				},
-			},
-			expectErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			for _, o := range tt.objs {
-				g.Expect(env.CreateAndWait(ctx, o)).To(Succeed())
-				defer func(do client.Object) {
-					g.Expect(env.CleanupAndWait(ctx, do)).To(Succeed())
-				}(o)
-			}
-
-			w := &Workload{
-				Client:              env.Client,
-				etcdClientGenerator: tt.etcdClientGenerator,
-			}
-			ctx := context.TODO()
-			_, err := w.ReconcileEtcdMembersAndControlPlaneNodes(ctx, tt.members, tt.nodes)
-			if tt.expectErr {
-				g.Expect(err).To(HaveOccurred())
-				return
-			}
-			g.Expect(err).ToNot(HaveOccurred())
-
-			if tt.assert != nil {
-				tt.assert(g)
-			}
-		})
-	}
 }
 
 type fakeEtcdClientGenerator struct {

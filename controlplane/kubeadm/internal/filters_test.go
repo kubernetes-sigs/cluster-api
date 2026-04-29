@@ -1322,9 +1322,9 @@ func TestMatchesInfraMachine(t *testing.T) {
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
 				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     "KubeadmConfig",
+					Kind:     builder.TestInfrastructureMachineTemplateKind,
 					Name:     "test",
-					APIGroup: bootstrapv1.GroupVersion.Group,
+					APIGroup: builder.InfrastructureGroupVersion.Group,
 				},
 			},
 		}
@@ -1453,6 +1453,63 @@ func TestMatchesInfraMachine(t *testing.T) {
 			g.Expect(reason).To(BeEmpty())
 			g.Expect(match).To(BeTrue())
 		})
+	})
+
+	t.Run("does not fail when KCP is deleting and infra template is not found", func(t *testing.T) {
+		kcp := &controlplanev1.KubeadmControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:         "default",
+				DeletionTimestamp: ptr.To(metav1.Now()), // deleting.
+			},
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+					Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.InfrastructureGroupVersion.Group,
+							Kind:     builder.TestInfrastructureMachineTemplateKind,
+							Name:     "infra-machine-template1", // template missing.
+						},
+					},
+				},
+			},
+		}
+
+		m := &clusterv1.Machine{
+			Spec: clusterv1.MachineSpec{
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.InfrastructureGroupVersion.Group,
+					Kind:     builder.TestInfrastructureMachineKind,
+					Name:     "infra-config1",
+				},
+			},
+		}
+
+		// Note: it is required to have a valid infra config, otherwise the test won't hit the code path where KCP tries to read the infra template.
+		infraConfigs := map[string]*unstructured.Unstructured{
+			m.Name: {
+				Object: map[string]interface{}{
+					"apiVersion": builder.InfrastructureGroupVersion.String(),
+					"kind":       builder.TestInfrastructureMachineKind,
+					"metadata": map[string]interface{}{
+						"name":      "infra-config1",
+						"namespace": "default",
+						"annotations": map[string]interface{}{
+							clusterv1.TemplateClonedFromNameAnnotation:      "infra-machine-template1",
+							clusterv1.TemplateClonedFromGroupKindAnnotation: "TestInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io",
+						},
+					},
+				},
+			},
+		}
+		scheme := runtime.NewScheme()
+		_ = apiextensionsv1.AddToScheme(scheme)
+		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestInfrastructureMachineTemplateCRD).Build()
+
+		g := NewWithT(t)
+		reason, _, _, match, err := matchesInfraMachine(t.Context(), c, infraConfigs, kcp, &clusterv1.Cluster{}, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(reason).To(BeEmpty())
 	})
 }
 

@@ -456,6 +456,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "healthy-node"},
 			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition, Status: metav1.ConditionTrue},
 				{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
 				{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
 				{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
@@ -470,6 +471,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			// NodeRef is not set
 			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition, Status: metav1.ConditionUnknown},
 				{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionUnknown},
 				{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionUnknown},
 				{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionUnknown},
@@ -512,7 +514,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		"just-deleted (just deleted)",
 		"marked-for-remediation (marked for remediation)",
 		"not-up-to-date (not up-to-date)",
-		"without-node (status.nodeRef not set, APIServerPod health unknown, ControllerManagerPod health unknown, SchedulerPod health unknown, EtcdPod health unknown, EtcdMember not healthy)",
+		"without-node (status.nodeRef not set, kubeadm labels and taints unknown, APIServerPod health unknown, ControllerManagerPod health unknown, SchedulerPod health unknown, EtcdPod health unknown, EtcdMember not healthy)",
 	}, ", ")
 	g.Expect(got[1]).To(Equal(machines), cmp.Diff(got[1], machines))
 	g.Expect(got[2]).To(Equal("etcdMembers"))
@@ -524,7 +526,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		name          string
 		machine       *clusterv1.Machine
 		kubeadmConfig *bootstrapv1.KubeadmConfig
-		node          *corev1.Node
+		node          *Node
 		want          bool
 	}{
 		{
@@ -533,8 +535,8 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{},
-			node: &corev1.Node{
-				Spec: corev1.NodeSpec{
+			node: &Node{
+				Spec: NodeSpec{
 					Taints: []corev1.Taint{
 						{
 							Key:    labelNodeRoleControlPlane,
@@ -559,7 +561,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 				},
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{},
-			node:          &corev1.Node{},
+			node:          &Node{},
 			want:          true,
 		},
 		{
@@ -572,7 +574,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					// if join configuration is not defined, init configuration is used.
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: true,
 		},
 		{
@@ -587,7 +589,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: true,
 		},
 		{
@@ -609,7 +611,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: true,
 		},
 		{
@@ -632,7 +634,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: true,
 		},
 		{
@@ -649,7 +651,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: false,
 		},
 		{
@@ -667,7 +669,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 					},
 				},
 			},
-			node: &corev1.Node{},
+			node: &Node{},
 			want: false,
 		},
 	}

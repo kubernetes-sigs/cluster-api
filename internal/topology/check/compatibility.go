@@ -179,6 +179,14 @@ func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field
 	// Validate control plane changes desired a compatible way.
 	allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.TemplateRef, desired.Spec.ControlPlane.TemplateRef,
 		field.NewPath("spec", "controlPlane", "templateRef"))...)
+	if desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() && !current.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
+		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.MachineInfrastructure.TemplateRef, desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
+			field.NewPath("spec", "controlPlane", "machineInfrastructure", "templateRef"))...)
+	}
+	if !desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() && current.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
+		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.MachineInfrastructure.TemplateRef, desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
+			field.NewPath("spec", "controlPlane", "machineInfrastructure", "templateRef"))...)
+	}
 	if desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() && current.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
 		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.MachineInfrastructure.TemplateRef, desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
 			field.NewPath("spec", "controlPlane", "machineInfrastructure", "templateRef"))...)

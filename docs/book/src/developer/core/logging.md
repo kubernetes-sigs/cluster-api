@@ -119,8 +119,7 @@ logs, e.g.
 - If an API field name is used in log messages, the entire path MUST be used and field names MUST capitalized like in the 
   API (not as in the golang type). For example `Waiting for spec.providerID to be set`
 - If a log message is about a controlled or a referenced object, e.g. Machine controller performing an action on MachineSet,
-  the message MUST contain the Kind of the controlled/referenced object and its name, for example `Created MachineSet foo-bar`
-  - If the controlled/referenced object is in another namespace, use namespace/name instead of name
+  the message MUST contain the Kind of the controlled/referenced object and its namespace/name, for example `Created MachineSet default/foo-bar`
   - The controlled/referenced object MUST also be added as a key value pair (see guidelines above)
 
 ## Log Levels

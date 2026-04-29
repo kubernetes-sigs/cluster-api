@@ -502,6 +502,70 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				},
 			},
 		},
+		"valid DiskLayout percentages": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					DiskSetup: bootstrapv1.DiskSetup{
+						Partitions: []bootstrapv1.Partition{
+							{
+								Device: "test-device",
+								DiskLayout: []bootstrapv1.PartitionSpec{
+									{Percentage: 30},
+									{Percentage: 70},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"invalid DiskLayout percentages > 100": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					DiskSetup: bootstrapv1.DiskSetup{
+						Partitions: []bootstrapv1.Partition{
+							{
+								Device: "test-device",
+								DiskLayout: []bootstrapv1.PartitionSpec{
+									{Percentage: 60},
+									{Percentage: 50},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"valid DiskLayout percentages < 100": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					DiskSetup: bootstrapv1.DiskSetup{
+						Partitions: []bootstrapv1.Partition{
+							{
+								Device: "test-device",
+								DiskLayout: []bootstrapv1.PartitionSpec{
+									{Percentage: 30},
+									{Percentage: 20},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tt := range cases {

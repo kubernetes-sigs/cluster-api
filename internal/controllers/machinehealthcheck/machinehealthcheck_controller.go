@@ -19,6 +19,8 @@ package machinehealthcheck
 import (
 	"context"
 	"fmt"
+	"maps"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -39,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -48,11 +51,11 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -88,8 +91,9 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	controller controller.Controller
-	recorder   record.EventRecorder
+	controller        controller.Controller
+	recorder          record.EventRecorder
+	overrideRateLimit time.Duration
 
 	predicateLog *logr.Logger
 }
@@ -99,12 +103,18 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return errors.New("Client and ClusterCache must not be nil")
 	}
 
+	rateLimit := 15 * time.Second
+	if r.overrideRateLimit != time.Duration(0) {
+		rateLimit = r.overrideRateLimit
+	}
+
 	r.predicateLog = ptr.To(ctrl.LoggerFrom(ctx).WithValues("controller", "machinehealthcheck"))
 	c, err := capicontrollerutil.NewControllerManagedBy(mgr, *r.predicateLog).
 		For(&clusterv1.MachineHealthCheck{}).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.machineToMachineHealthCheck),
+			machineIsChangedPredicate(),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), *r.predicateLog, r.WatchFilterValue)).
@@ -116,6 +126,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			predicates.ResourceHasFilterLabel(mgr.GetScheme(), *r.predicateLog, r.WatchFilterValue),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("machinehealthcheck", r.clusterToMachineHealthCheck)).
+		// Intentionally increasing the rate limit interval for MHC, because during stress tests we observed
+		// that this reconciler gets invoked very frequently due to watches on Machines and workload cluster Nodes,
+		// but in most cases observed Machines are ok or remediation must be deferred until timeouts will expire.
+		WithRateLimitInterval(rateLimit).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -124,6 +138,38 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	return nil
+}
+
+func machineIsChangedPredicate() predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			mNew, ok := e.ObjectNew.(*clusterv1.Machine)
+			if !ok {
+				return false
+			}
+			mOld, ok := e.ObjectOld.(*clusterv1.Machine)
+			if !ok {
+				return false
+			}
+
+			// MHC only cares about changes on Machine conditions.
+			// It also uses Machine's NodeRef to fetch nodes, Machine's labels to select Machines to monitor,
+			// and also checks for paused, skip remediation, manual remediation annotations in Machine's annotations.
+			return mNew.Status.NodeRef.Name != mOld.Status.NodeRef.Name ||
+				!maps.Equal(mNew.Labels, mOld.Labels) ||
+				!maps.Equal(mNew.Annotations, mOld.Annotations) ||
+				!reflect.DeepEqual(mNew.Status.Conditions, mOld.Status.Conditions)
+		},
+		CreateFunc: func(_ event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(_ event.DeleteEvent) bool {
+			return true
+		},
+		GenericFunc: func(_ event.GenericEvent) bool {
+			return false
+		},
+	}
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -611,8 +657,38 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachineHealthCheck),
-		Predicates:   []predicate.TypedPredicate[client.Object]{predicates.TypedResourceIsChanged[client.Object](r.Client.Scheme(), *r.predicateLog)},
+		Predicates: []predicate.TypedPredicate[client.Object]{
+			predicates.TypedResourceIsChanged[client.Object](r.Client.Scheme(), *r.predicateLog),
+			nodeIsChangedPredicate(),
+		},
 	}))
+}
+
+func nodeIsChangedPredicate() predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			nNew, ok := e.ObjectNew.(*corev1.Node)
+			if !ok {
+				return false
+			}
+			nOld, ok := e.ObjectOld.(*corev1.Node)
+			if !ok {
+				return false
+			}
+
+			// MHC only cares about changes on Node conditions.
+			return !reflect.DeepEqual(nNew.Status.Conditions, nOld.Status.Conditions)
+		},
+		CreateFunc: func(_ event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(_ event.DeleteEvent) bool {
+			return true
+		},
+		GenericFunc: func(_ event.GenericEvent) bool {
+			return false
+		},
+	}
 }
 
 // getMachineFromNode retrieves the machine with a nodeRef to nodeName

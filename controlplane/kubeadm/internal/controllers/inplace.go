@@ -37,6 +37,12 @@ func (r *KubeadmControlPlaneReconciler) tryInPlaceUpdate(
 	}
 
 	// Run preflight checks to ensure that the control plane is stable before proceeding with in-place update operation.
+	//
+	// Important! preflight checks play an important role in ensuring that KCP performs "one operation at time", by forcing
+	// the system to wait for the previous operation to complete and the control plane to become stable before starting the next one.
+	//
+	// Note: before considering in-place updates, KCP first takes care of completing
+	// ongoing delete operations, completing in-place transitions, remediating unhealthy machines.
 	if resultForAllMachines := r.preflightChecks(ctx, controlPlane, false); !resultForAllMachines.IsZero() {
 		// If the control plane is not stable, check if the issues are only for machineToInPlaceUpdate.
 		if result := r.preflightChecks(ctx, controlPlane, false, machineToInPlaceUpdate); result.IsZero() {

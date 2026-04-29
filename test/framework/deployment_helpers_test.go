@@ -24,6 +24,132 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func Test_containerHasTerminated(t *testing.T) {
+	tests := []struct {
+		name          string
+		pod           *corev1.Pod
+		containerName string
+		want          bool
+	}{
+		{
+			name: "pod succeeded — all containers are terminated",
+			pod: &corev1.Pod{
+				Status: corev1.PodStatus{
+					Phase: corev1.PodSucceeded,
+				},
+			},
+			containerName: "any-container",
+			want:          true,
+		},
+		{
+			name: "pod failed — all containers are terminated",
+			pod: &corev1.Pod{
+				Status: corev1.PodStatus{
+					Phase: corev1.PodFailed,
+				},
+			},
+			containerName: "any-container",
+			want:          true,
+		},
+		{
+			name: "running pod with terminated init container",
+			pod: &corev1.Pod{
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					InitContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name:  "init-downloader",
+							State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: "Completed"}},
+						},
+					},
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name:  "main",
+							State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+						},
+					},
+				},
+			},
+			containerName: "init-downloader",
+			want:          true,
+		},
+		{
+			name: "running pod with terminated regular container",
+			pod: &corev1.Pod{
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name:  "sidecar",
+							State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: "Completed"}},
+						},
+						{
+							Name:  "main",
+							State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+						},
+					},
+				},
+			},
+			containerName: "sidecar",
+			want:          true,
+		},
+		{
+			name: "running pod — container still running",
+			pod: &corev1.Pod{
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name:  "main",
+							State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+						},
+					},
+				},
+			},
+			containerName: "main",
+			want:          false,
+		},
+		{
+			name: "running pod — container waiting",
+			pod: &corev1.Pod{
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name:  "main",
+							State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "CrashLoopBackOff"}},
+						},
+					},
+				},
+			},
+			containerName: "main",
+			want:          false,
+		},
+		{
+			name: "container not found in status",
+			pod: &corev1.Pod{
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name:  "other",
+							State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+						},
+					},
+				},
+			},
+			containerName: "missing",
+			want:          false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(containerHasTerminated(tt.pod, tt.containerName)).To(Equal(tt.want))
+		})
+	}
+}
+
 func Test_verifyMetrics(t *testing.T) {
 	tests := []struct {
 		name    string

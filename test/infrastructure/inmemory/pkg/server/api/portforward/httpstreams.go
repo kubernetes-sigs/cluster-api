@@ -18,14 +18,15 @@ package portforward
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/klog/v2"
@@ -283,39 +284,38 @@ func (p *httpStreamPair) printError(s string) {
 }
 
 // HTTPStreamTunnel create tunnels for two streams.
-func HTTPStreamTunnel(ctx context.Context, c1, c2 io.ReadWriter) error {
-	buf1 := make([]byte, 32*1024) // TODO: check if we can make smaller buffers
+func HTTPStreamTunnel(ctx context.Context, c1 io.ReadWriteCloser, c2 net.Conn) error {
+	// 32kb is default for io.Copy which seems like a good value for now.
+	buf1 := make([]byte, 32*1024)
 	buf2 := make([]byte, 32*1024)
+	errCh := make(chan error, 2)
 
-	errCh := make(chan error)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go func() {
+		<-ctx.Done()
+		_ = c1.Close()
+		_ = c2.Close()
+	}()
+
 	go func() {
 		_, err := io.CopyBuffer(c2, c1, buf1)
 		errCh <- err
 	}()
+
 	go func() {
 		_, err := io.CopyBuffer(c1, c2, buf2)
 		errCh <- err
 	}()
+
 	select {
-	case <-ctx.Done():
-		// Do nothing
-	case err1 := <-errCh:
-		select {
-		case <-ctx.Done():
-			if err1 != nil {
-				return err1
-			}
-			// Do nothing
-		case err2 := <-errCh:
-			if err1 != nil {
-				// TODO: Consider aggregating errors
-				return err1
-			}
-			return err2
-		}
-	}
-	if err := ctx.Err(); err != nil && !errors.Is(err, context.Canceled) {
+	case err := <-errCh:
 		return err
+	case <-ctx.Done():
+		if err := ctx.Err(); err != nil && !errors.Is(err, context.Canceled) {
+			return err
+		}
+		return nil
 	}
-	return nil
 }

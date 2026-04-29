@@ -24,7 +24,18 @@ disk_setup:{{ range .Partitions }}
     {{- if .TableType }}
     table_type: {{ .TableType }}
     {{- end }}
+    {{- if .DiskLayout }}
+    layout:
+    {{- range .DiskLayout }}
+      {{- if .PartitionType }}
+      - [{{ .Percentage }}, {{ CloudInitPartitionType .PartitionType }}]
+      {{- else }}
+      - {{ .Percentage }}
+      {{- end }}
+    {{- end }}
+    {{- else }}
     layout: {{ .Layout }}
+    {{- end }}
     {{- if .Overwrite }}
     overwrite: {{ .Overwrite }}
     {{- end -}}

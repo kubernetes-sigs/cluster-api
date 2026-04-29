@@ -182,6 +182,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	pflag.CommandLine.VisitAll(func(flag *pflag.Flag) {
+		klog.V(1).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
+	})
+
 	// Add the klog logger in the context.
 	// NOTE: it is not mandatory to use contextual logging in custom RuntimeExtension, but it is recommended
 	// because it allows to use a log stored in the context across the entire chain of calls (without

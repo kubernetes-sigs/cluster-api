@@ -1,0 +1,17 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+  namespace: default
+spec:
+  topology:
+    controlPlane:
+      taints:
+      - effect: PreferNoSchedule
+        key: pre-existing-on-initialization-taint
+        propagation: OnInitialization
+        value: on-initialization-value
+      - effect: PreferNoSchedule
+        key: pre-existing-always-taint
+        propagation: Always
+        value: always-value

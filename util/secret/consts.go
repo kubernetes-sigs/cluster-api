@@ -16,6 +16,8 @@ limitations under the License.
 
 package secret
 
+import "strings"
+
 const (
 	// KubeconfigDataName is the key used to store a Kubeconfig in the secret's data field.
 	KubeconfigDataName = "value"
@@ -54,3 +56,13 @@ var (
 	// allSecretPurposes defines a lists with all the secret suffix used by Cluster API.
 	allSecretPurposes = []Purpose{Kubeconfig, ClusterCA, EtcdCA, ServiceAccount, FrontProxyCA, APIServerEtcdClient}
 )
+
+// HasPurposeSuffix checks if the secretName has one of the purposes as suffix.
+func HasPurposeSuffix(secretName string) bool {
+	for _, p := range allSecretPurposes {
+		if strings.HasSuffix(secretName, "-"+string(p)) {
+			return true
+		}
+	}
+	return false
+}

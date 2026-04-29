@@ -34,23 +34,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 const (
@@ -61,18 +57,12 @@ const (
 	clusterConfigurationKey        = "ClusterConfiguration"
 )
 
-var (
-	// ErrControlPlaneMinNodes signals that a cluster doesn't meet the minimum required nodes
-	// to remove an etcd member.
-	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
-)
-
 // WorkloadCluster defines all behaviors necessary to upgrade kubernetes on a workload cluster
 //
 // TODO: Add a detailed description to each of these method definitions.
 type WorkloadCluster interface {
 	// Basic health and status checks.
-	ClusterStatus(ctx context.Context) (ClusterStatus, error)
+	HasKubeadmConfig(ctx context.Context) (bool, error)
 	UpdateStaticPodConditions(ctx context.Context, controlPlane *ControlPlane)
 	UpdateEtcdConditions(ctx context.Context, controlPlane *ControlPlane)
 	GetAPIServerCertificateExpiry(ctx context.Context, kubeadmConfig *bootstrapv1.KubeadmConfig, nodeName string) (*time.Time, error)
@@ -89,18 +79,15 @@ type WorkloadCluster interface {
 	UpdateEncryptionAlgorithm(encryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) func(*bootstrapv1.ClusterConfiguration)
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
-	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
-	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error
+	RemoveEtcdMember(ctx context.Context, name string, nodes []*Node) error
+	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*Node) error
 	AllowClusterAdminPermissions(ctx context.Context, version semver.Version) error
 	UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error
-
-	// State recovery tasks.
-	ReconcileEtcdMembersAndControlPlaneNodes(ctx context.Context, members []*etcd.Member, nodeNames []string) ([]string, error)
 }
 
 // Workload defines operations on workload clusters.
 type Workload struct {
-	Client              ctrlclient.Client
+	Client              client.Client
 	CoreDNSMigrator     coreDNSMigrator
 	etcdClientGenerator etcdClientFor
 	restConfig          *rest.Config
@@ -108,33 +95,13 @@ type Workload struct {
 
 var _ WorkloadCluster = &Workload{}
 
-func (w *Workload) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, error) {
-	controlPlaneNodes := &corev1.NodeList{}
-	controlPlaneNodeNames := sets.Set[string]{}
-
-	nodes := &corev1.NodeList{}
-	if err := w.Client.List(ctx, nodes, ctrlclient.MatchingLabels(map[string]string{
+func (w *Workload) getNodesWithControlPlaneLabel(ctx context.Context) ([]*Node, error) {
+	return ListTransformedNodes(ctx, w.Client, client.MatchingLabels(map[string]string{
 		labelNodeRoleControlPlane: "",
-	})); err != nil {
-		return nil, err
-	}
-
-	for i := range nodes.Items {
-		node := nodes.Items[i]
-
-		// Continue if we already added that node.
-		if controlPlaneNodeNames.Has(node.Name) {
-			continue
-		}
-
-		controlPlaneNodeNames.Insert(node.Name)
-		controlPlaneNodes.Items = append(controlPlaneNodes.Items, node)
-	}
-
-	return controlPlaneNodes, nil
+	}))
 }
 
-func (w *Workload) getConfigMap(ctx context.Context, configMap ctrlclient.ObjectKey) (*corev1.ConfigMap, error) {
+func (w *Workload) getConfigMap(ctx context.Context, configMap client.ObjectKey) (*corev1.ConfigMap, error) {
 	original := &corev1.ConfigMap{}
 	if err := w.Client.Get(ctx, configMap, original); err != nil {
 		return nil, errors.Wrapf(err, "error getting %s/%s configmap from target cluster", configMap.Namespace, configMap.Name)
@@ -207,7 +174,7 @@ func (w *Workload) UpdateEncryptionAlgorithm(encryptionAlgorithm bootstrapv1.Enc
 // kubeadm-config ConfigMap updated.
 func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		key := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
+		key := client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
 		configMap, err := w.getConfigMap(ctx, key)
 		if err != nil {
 			return errors.Wrap(err, "failed to get kubeadmConfigMap")
@@ -250,44 +217,17 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 	})
 }
 
-// ClusterStatus holds stats information about the cluster.
-type ClusterStatus struct {
-	// Nodes are a total count of nodes
-	Nodes int32
-	// ReadyNodes are the count of nodes that are reporting ready
-	ReadyNodes int32
-	// HasKubeadmConfig will be true if the kubeadm config map has been uploaded, false otherwise.
-	HasKubeadmConfig bool
-}
-
-// ClusterStatus returns the status of the cluster.
-func (w *Workload) ClusterStatus(ctx context.Context) (ClusterStatus, error) {
-	status := ClusterStatus{}
-
-	// count the control plane nodes
-	nodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return status, err
-	}
-
-	for _, node := range nodes.Items {
-		nodeCopy := node
-		status.Nodes++
-		if util.IsNodeReady(&nodeCopy) {
-			status.ReadyNodes++
-		}
-	}
-
+// HasKubeadmConfig returns if the cluster has the kubeadm-config ConfigMap.
+func (w *Workload) HasKubeadmConfig(ctx context.Context) (bool, error) {
 	// find the kubeadm conifg
-	key := ctrlclient.ObjectKey{
+	key := client.ObjectKey{
 		Name:      kubeadmConfigKey,
 		Namespace: metav1.NamespaceSystem,
 	}
-	err = w.Client.Get(ctx, key, &corev1.ConfigMap{})
+	err := w.Client.Get(ctx, key, &corev1.ConfigMap{})
 	// TODO: Consider if this should only return false if the error is IsNotFound.
 	// TODO: Consider adding a third state of 'unknown' when there is an error retrieving the config map.
-	status.HasKubeadmConfig = err == nil
-	return status, nil
+	return err == nil, nil
 }
 
 // GetAPIServerCertificateExpiry returns the certificate expiry of the apiserver on the given node.
@@ -333,7 +273,7 @@ func (w *Workload) GetAPIServerCertificateExpiry(ctx context.Context, kubeadmCon
 		}
 	}
 	if kubeAPIServerCert == nil {
-		return nil, errors.Wrapf(err, "unable to get certificate expiry for kube-apiserver on Node/%s: couldn't get peer certificate with cn=%q", nodeName, kubeadmAPIServerCertCommonName)
+		return nil, errors.Errorf("unable to get certificate expiry for kube-apiserver on Node/%s: couldn't get peer certificate with cn=%q", nodeName, kubeadmAPIServerCertCommonName)
 	}
 	return &kubeAPIServerCert.NotAfter, nil
 }
@@ -420,7 +360,7 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 
 	ds := &appsv1.DaemonSet{}
 
-	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {
+	if err := w.Client.Get(ctx, client.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {
 		if apierrors.IsNotFound(err) {
 			// if kube-proxy is missing, return without errors
 			return nil
@@ -448,12 +388,9 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 	}
 
 	if container.Image != newImageName {
-		helper, err := patch.NewHelper(ds, w.Client)
-		if err != nil {
-			return err
-		}
+		original := ds.DeepCopy()
 		patchKubeProxyImage(ds, newImageName)
-		return helper.Patch(ctx, ds)
+		return w.Client.Patch(ctx, ds, client.MergeFrom(original))
 	}
 	return nil
 }

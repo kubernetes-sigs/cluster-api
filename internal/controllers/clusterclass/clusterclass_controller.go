@@ -50,9 +50,9 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -464,16 +464,12 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 		return nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, r.Client)
-	if err != nil {
-		return err
-	}
-
+	original := obj.DeepCopyObject().(client.Object)
 	if err := controllerutil.SetOwnerReference(clusterClass, obj, r.Client.Scheme()); err != nil {
 		return errors.Wrapf(err, "failed to set ClusterClass owner reference for %s %s", obj.GetKind(), klog.KObj(obj))
 	}
 
-	return patchHelper.Patch(ctx, obj)
+	return r.Client.Patch(ctx, obj, client.MergeFrom(original))
 }
 
 func uniqueObjectRefKey(ref *corev1.ObjectReference) string {

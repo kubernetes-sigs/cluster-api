@@ -43,9 +43,9 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions(false),
 					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions(false),
 					framework.KubernetesReferenceAssertions,
 				)
 				// This check ensures that owner references are correctly updated to the correct apiVersion.
@@ -53,9 +53,9 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions(false),
 					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions(false),
 					framework.KubernetesReferenceAssertions,
 				)
 				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
@@ -98,9 +98,9 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions(true),
 					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions(true),
 					framework.KubernetesReferenceAssertions,
 				)
 				// This check ensures that owner references are correctly updated to the correct apiVersion.
@@ -108,9 +108,9 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions(true),
 					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions(true),
 					framework.KubernetesReferenceAssertions,
 				)
 				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.

@@ -3,6 +3,8 @@
 The `ClusterResourceSet` feature is introduced to provide a way to automatically apply a set of resources (such as CNI/CSI) defined by users to matching newly-created/existing clusters.
 `ClusterResourceSet` provides a basic solution for installing & managing resources, while for advanced use cases an addon provider must be used.
 
+`ClusterResourceSet` is namespace-scoped, all resources and clusters referenced in the `ClusterResourceSet` spec need to be in the same namespace as the ClusterResourceSet. 
+
 More details on `ClusterResourceSet` can be found at:
 [ClusterResourceSet CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200220-cluster-resource-set.md)
 

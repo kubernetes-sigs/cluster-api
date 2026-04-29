@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -31,38 +30,6 @@ import (
 type etcdClientFor interface {
 	forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error)
 	forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error)
-}
-
-// ReconcileEtcdMembersAndControlPlaneNodes iterates over all etcd members and finds members that do not have corresponding nodes.
-// If there are any such members, it deletes them from etcd and removes their nodes from the kubeadm configmap so that kubeadm does not run etcd health checks on them.
-func (w *Workload) ReconcileEtcdMembersAndControlPlaneNodes(ctx context.Context, members []*etcd.Member, nodeNames []string) ([]string, error) {
-	// Check if any member's node is missing from workload cluster
-	// If any, delete it with best effort
-	removedMembers := []string{}
-	errs := []error{}
-
-loopmembers:
-	for _, member := range members {
-		// If this member is just added, it has a empty name until the etcd pod starts. Ignore it.
-		if member.Name == "" {
-			continue
-		}
-
-		for _, nodeName := range nodeNames {
-			if member.Name == nodeName {
-				// We found the matching node, continue with the outer loop.
-				continue loopmembers
-			}
-		}
-
-		// If we're here, the node cannot be found.
-		removedMembers = append(removedMembers, member.Name)
-		if err := w.removeMemberForNode(ctx, member.Name); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return removedMembers, kerrors.NewAggregate(errs)
 }
 
 // UpdateEtcdLocalInKubeadmConfigMap sets etcd local configuration in the kubeadm config map.
@@ -83,28 +50,14 @@ func (w *Workload) UpdateEtcdExternalInKubeadmConfigMap(etcdExternal bootstrapv1
 	}
 }
 
-// RemoveEtcdMemberForMachine removes the etcd member from the target cluster's etcd cluster.
+// RemoveEtcdMember removes the etcd member from the target cluster's etcd cluster.
 // Removing the last remaining member of the cluster is not supported.
-func (w *Workload) RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error {
-	if machine == nil || !machine.Status.NodeRef.IsDefined() {
-		// Nothing to do, no node for Machine
-		return nil
-	}
-	return w.removeMemberForNode(ctx, machine.Status.NodeRef.Name)
-}
-
-func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
-	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return err
-	}
-	if len(controlPlaneNodes.Items) < 2 {
-		return ErrControlPlaneMinNodes
-	}
-
+// Note: It is a responsibility of the caller to check if this operation doesn't lead to quorum loss.
+func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*Node) error {
 	// Exclude node being removed from etcd client node list
+	// Note: this operation relies on the assumption that node name is equal to the name of the corresponding etcd member.
 	var remainingNodes []string
-	for _, n := range controlPlaneNodes.Items {
+	for _, n := range nodes {
 		if n.Name != name {
 			remainingNodes = append(remainingNodes, n.Name)
 		}
@@ -127,6 +80,11 @@ func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
 		return nil
 	}
 
+	// This is a safeguard preventing from removing the last member in an etcd-cluster.
+	if len(members) == 1 {
+		return errors.New("cannot remove the last etcd member in the cluster")
+	}
+
 	if err := etcdClient.RemoveMember(ctx, member.ID); err != nil {
 		return errors.Wrap(err, "failed to remove member from etcd")
 	}
@@ -135,7 +93,7 @@ func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
 }
 
 // ForwardEtcdLeadership forwards etcd leadership to the first follower.
-func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
+func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*Node) error {
 	if machine == nil || !machine.Status.NodeRef.IsDefined() {
 		return nil
 	}
@@ -146,12 +104,8 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 		return errors.New("leader candidate has no node reference")
 	}
 
-	nodes, err := w.getControlPlaneNodes(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to list control plane nodes")
-	}
-	nodeNames := make([]string, 0, len(nodes.Items))
-	for _, node := range nodes.Items {
+	nodeNames := make([]string, 0, len(nodes))
+	for _, node := range nodes {
 		nodeNames = append(nodeNames, node.Name)
 	}
 	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodeNames)

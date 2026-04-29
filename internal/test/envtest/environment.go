@@ -35,11 +35,13 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -60,9 +62,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/yaml"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -71,6 +75,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -118,6 +123,7 @@ func registerSchemes(s *runtime.Scheme) {
 	utilruntime.Must(bootstrapv1.AddToScheme(s))
 	utilruntime.Must(clusterv1.AddToScheme(s))
 	utilruntime.Must(controlplanev1.AddToScheme(s))
+	utilruntime.Must(controlplanev1beta1.AddToScheme(s))
 	utilruntime.Must(ipamv1.AddToScheme(s))
 	utilruntime.Must(runtimev1.AddToScheme(s))
 }
@@ -125,8 +131,8 @@ func registerSchemes(s *runtime.Scheme) {
 // RunInput is the input for Run.
 type RunInput struct {
 	M                           *testing.M
-	ManagerUncachedObjs         []client.Object
 	ManagerCacheOptions         cache.Options
+	ManagerClientOptions        client.Options
 	SetupIndexes                func(ctx context.Context, mgr ctrl.Manager)
 	SetupReconcilers            func(ctx context.Context, mgr ctrl.Manager)
 	SetupEnv                    func(e *Environment)
@@ -160,13 +166,14 @@ func Run(ctx context.Context, input RunInput) int {
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(rbacv1.AddToScheme(scheme))
+	utilruntime.Must(storagev1.AddToScheme(scheme))
 	// Register additionally passed schemes.
 	if input.AdditionalSchemeBuilder != nil {
 		utilruntime.Must(input.AdditionalSchemeBuilder.AddToScheme(scheme))
 	}
 
 	// Bootstrapping test environment
-	env := newEnvironment(scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerUncachedObjs...)
+	env := newEnvironment(ctx, scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerClientOptions)
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	env.cancelManager = cancel
@@ -251,7 +258,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, uncachedObjs ...client.Object) *Environment {
+func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, managerClientOptions client.Options) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
@@ -353,13 +360,8 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 		Metrics: metricsserver.Options{
 			BindAddress: "0",
 		},
-		Client: client.Options{
-			Cache: &client.CacheOptions{
-				DisableFor: uncachedObjs,
-				// Use the cache for all Unstructured get/list calls.
-				Unstructured: true,
-			},
-		},
+		Cache:  managerCacheOptions,
+		Client: managerClientOptions,
 		WebhookServer: webhook.NewServer(
 			webhook.Options{
 				Port:    env.WebhookInstallOptions.LocalServingPort,
@@ -367,7 +369,9 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 				Host:    host,
 			},
 		),
-		Cache: managerCacheOptions,
+		// Increase GracefulShutdownTimeout to 90s from the 30s default to tolerate if tests like
+		// TestClusterCacheConcurrency need more time because informers are stuck.
+		GracefulShutdownTimeout: ptr.To(90 * time.Second),
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)
@@ -377,6 +381,12 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
 	internalwebhooks.SetMinNodeStartupTimeoutSeconds(0)
+
+	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
+	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
+	}
+	controlplanev1beta1.SetAPIVersionGetter(apiVersionGetter)
 
 	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
@@ -467,6 +477,11 @@ func (e *Environment) start(ctx context.Context) {
 	go func() {
 		fmt.Println("Starting the test environment manager")
 		if err := e.Start(ctx); err != nil {
+			// Print all goroutines to enable debugging in case the manager timed out during shutdown
+			buf := make([]byte, 1<<20)
+			stackLen := goruntime.Stack(buf, true)
+			_, _ = os.Stdout.Write(buf[:stackLen])
+
 			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
 		}
 	}()
@@ -552,7 +567,8 @@ func (e *Environment) CleanupAndWait(ctx context.Context, objs ...client.Object)
 				}
 				return false, nil
 			})
-		errs = append(errs, errors.Wrapf(err, "key %s, %s is not being deleted from the testenv client cache", o.GetObjectKind().GroupVersionKind().String(), key))
+		oBytes, _ := yaml.Marshal(oCopy)
+		errs = append(errs, errors.Wrapf(err, "Object %s is not being deleted from the testenv client cache:\n%s", klog.KObj(o), oBytes))
 	}
 	return kerrors.NewAggregate(errs)
 }

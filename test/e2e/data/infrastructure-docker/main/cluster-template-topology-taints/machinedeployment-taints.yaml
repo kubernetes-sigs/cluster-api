@@ -1,0 +1,11 @@
+- op: add
+  path: /spec/topology/workers/machineDeployments/0/taints
+  value:
+    - effect: PreferNoSchedule
+      key: pre-existing-on-initialization-taint
+      propagation: OnInitialization
+      value: on-initialization-value
+    - effect: PreferNoSchedule
+      key: pre-existing-always-taint
+      propagation: Always
+      value: always-value

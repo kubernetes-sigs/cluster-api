@@ -147,11 +147,14 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: DockerMachinePoolTemplate is the Schema for the dockermachinepooltemplates
-          API.
+        description: |-
+          DockerMachinePoolTemplate is the Schema for the dockermachinepooltemplates API.
+
+          Deprecated: DockerMachinePoolTemplate is deprecated. Use DevMachinePoolTemplate instead.
         properties:
           apiVersion:
             description: |-

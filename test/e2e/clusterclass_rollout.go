@@ -171,6 +171,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Metadata.Annotations = map[string]string{
 					"Cluster.topology.controlPlane.newAnnotation": "Cluster.topology.controlPlane.newAnnotationValue",
 				}
+				topology.Rollout.After = metav1.NewTime(time.Now().Add(24 * time.Hour))
 				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
 				topology.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
 				topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
@@ -193,6 +194,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
 				topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
 				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                  //nolint:gosec
+				topology.Rollout.After = metav1.NewTime(time.Now().Add(24 * time.Hour))
 				topology.Rollout.Strategy = clusterv1.MachineDeploymentTopologyRolloutStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 					RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
@@ -226,6 +228,193 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			},
 			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
+
+		additionalControlPlaneNodeTaint := corev1.Taint{
+			Key:    "node-role.kubernetes.io/control-plane",
+			Value:  "",
+			Effect: "NoSchedule",
+		}
+
+		preExistingAlwaysTaint := clusterv1.MachineTaint{
+			Key:         "pre-existing-always-taint",
+			Value:       "always-value",
+			Effect:      corev1.TaintEffectPreferNoSchedule,
+			Propagation: clusterv1.MachineTaintPropagationAlways,
+		}
+
+		preExistingOnInitializationTaint := clusterv1.MachineTaint{
+			Key:         "pre-existing-on-initialization-taint",
+			Value:       "on-initialization-value",
+			Effect:      corev1.TaintEffectPreferNoSchedule,
+			Propagation: clusterv1.MachineTaintPropagationOnInitialization,
+		}
+		addingAlwaysTaint := clusterv1.MachineTaint{
+			Key:         "added-always-taint",
+			Value:       "added-always-value",
+			Effect:      corev1.TaintEffectPreferNoSchedule,
+			Propagation: clusterv1.MachineTaintPropagationAlways,
+		}
+
+		addingOnInitializationTaint := clusterv1.MachineTaint{
+			Key:         "added-on-initialization-taint",
+			Value:       "added-on-initialization-value",
+			Effect:      corev1.TaintEffectPreferNoSchedule,
+			Propagation: clusterv1.MachineTaintPropagationOnInitialization,
+		}
+
+		wantMachineTaints := []clusterv1.MachineTaint{
+			preExistingAlwaysTaint,
+			preExistingOnInitializationTaint,
+		}
+		wantNodeTaints := toCoreV1Taints(
+			preExistingAlwaysTaint,
+			preExistingOnInitializationTaint,
+		)
+
+		wlClient := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, clusterResources.Cluster.Namespace, clusterResources.Cluster.Name).GetClient()
+
+		Byf("Verify ControlPlane Machines and Nodes have the correct taints")
+		verifyControlPlaneMachineAndNodeTaints(ctx, verifyControlPlaneMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			Namespace:              clusterResources.Cluster.Namespace,
+			ControlPlaneReplicas:   clusterResources.ControlPlane.Spec.Replicas,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             append(wantNodeTaints, additionalControlPlaneNodeTaint),
+		})
+
+		Byf("Verify MachineDeployment Machines and Nodes have the correct taints")
+		verifyMachineDeploymentMachineAndNodeTaints(ctx, verifyMachineDeploymentMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			MachineDeployments:     clusterResources.MachineDeployments,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             wantNodeTaints,
+		})
+
+		Byf("Verify in-place propagation by adding new taints to the ControlPlane and MachineDeployment")
+		wantMachineTaints = []clusterv1.MachineTaint{
+			preExistingAlwaysTaint,
+			preExistingOnInitializationTaint,
+			addingAlwaysTaint,
+			addingOnInitializationTaint,
+		}
+		wantNodeTaints = toCoreV1Taints(
+			preExistingAlwaysTaint,
+			preExistingOnInitializationTaint,
+			addingAlwaysTaint,
+		)
+
+		patchHelper, err := patch.NewHelper(clusterResources.Cluster, input.BootstrapClusterProxy.GetClient())
+		Expect(err).ToNot(HaveOccurred())
+		clusterResources.Cluster.Spec.Topology.ControlPlane.Taints = wantMachineTaints
+		for i, md := range clusterResources.Cluster.Spec.Topology.Workers.MachineDeployments {
+			md.Taints = wantMachineTaints
+			clusterResources.Cluster.Spec.Topology.Workers.MachineDeployments[i] = md
+		}
+		Expect(patchHelper.Patch(ctx, clusterResources.Cluster)).To(Succeed())
+
+		verifyControlPlaneMachineAndNodeTaints(ctx, verifyControlPlaneMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			Namespace:              clusterResources.Cluster.Namespace,
+			ControlPlaneReplicas:   clusterResources.ControlPlane.Spec.Replicas,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             append(wantNodeTaints, additionalControlPlaneNodeTaint),
+		})
+
+		verifyMachineDeploymentMachineAndNodeTaints(ctx, verifyMachineDeploymentMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			MachineDeployments:     clusterResources.MachineDeployments,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             wantNodeTaints,
+		})
+
+		Byf("Verify in-place propagation when removing preExisting Always and OnInitialization taint from the nodes")
+		nodes := corev1.NodeList{}
+		Expect(wlClient.List(ctx, &nodes)).To(Succeed())
+		// Remove the initial taints from the nodes.
+		for _, node := range nodes.Items {
+			patchHelper, err := patch.NewHelper(&node, wlClient)
+			Expect(err).ToNot(HaveOccurred())
+			newTaints := []corev1.Taint{}
+			for _, taint := range node.Spec.Taints {
+				if taint.Key == preExistingAlwaysTaint.Key {
+					continue
+				}
+				if taint.Key == preExistingOnInitializationTaint.Key {
+					continue
+				}
+				newTaints = append(newTaints, taint)
+			}
+			node.Spec.Taints = newTaints
+			Expect(patchHelper.Patch(ctx, &node)).To(Succeed())
+		}
+
+		wantNodeTaints = toCoreV1Taints(
+			preExistingAlwaysTaint,
+			addingAlwaysTaint,
+		)
+
+		verifyControlPlaneMachineAndNodeTaints(ctx, verifyControlPlaneMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			Namespace:              clusterResources.Cluster.Namespace,
+			ControlPlaneReplicas:   clusterResources.ControlPlane.Spec.Replicas,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             append(wantNodeTaints, additionalControlPlaneNodeTaint),
+		})
+
+		verifyMachineDeploymentMachineAndNodeTaints(ctx, verifyMachineDeploymentMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			MachineDeployments:     clusterResources.MachineDeployments,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             wantNodeTaints,
+		})
+
+		Byf("Verify in-place propagation by removing taints from ControlPlane and the MachineDeployment")
+		wantMachineTaints = []clusterv1.MachineTaint{
+			preExistingOnInitializationTaint,
+			addingOnInitializationTaint,
+		}
+		wantNodeTaints = toCoreV1Taints()
+
+		patchHelper, err = patch.NewHelper(clusterResources.Cluster, input.BootstrapClusterProxy.GetClient())
+		Expect(err).ToNot(HaveOccurred())
+		clusterResources.Cluster.Spec.Topology.ControlPlane.Taints = wantMachineTaints
+		for i, md := range clusterResources.Cluster.Spec.Topology.Workers.MachineDeployments {
+			md.Taints = wantMachineTaints
+			clusterResources.Cluster.Spec.Topology.Workers.MachineDeployments[i] = md
+		}
+		Expect(patchHelper.Patch(ctx, clusterResources.Cluster)).To(Succeed())
+
+		verifyControlPlaneMachineAndNodeTaints(ctx, verifyControlPlaneMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			Namespace:              clusterResources.Cluster.Namespace,
+			ControlPlaneReplicas:   clusterResources.ControlPlane.Spec.Replicas,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             append(wantNodeTaints, additionalControlPlaneNodeTaint),
+		})
+
+		verifyMachineDeploymentMachineAndNodeTaints(ctx, verifyMachineDeploymentMachineAndNodeTaintsInput{
+			BootstrapClusterClient: input.BootstrapClusterProxy.GetClient(),
+			WorkloadClusterClient:  wlClient,
+			ClusterName:            clusterResources.Cluster.Name,
+			MachineDeployments:     clusterResources.MachineDeployments,
+			MachineTaints:          wantMachineTaints,
+			NodeTaints:             wantNodeTaints,
+		})
+
 		By("Verifying there are no unexpected rollouts through in-place rollout")
 		Consistently(func(g Gomega) {
 			machinesAfterUpgrade := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
@@ -276,24 +465,48 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 
 		By("Rolling out control plane and MachineDeployment (rollout.after)")
 		machinesBeforeUpgrade = getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
-		By("Setting rollout.after on control plane")
-		Eventually(func(g Gomega) {
-			kcp := clusterResources.ControlPlane
-			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
-			patchHelper, err := patch.NewHelper(kcp, input.BootstrapClusterProxy.GetClient())
-			g.Expect(err).ToNot(HaveOccurred())
-			kcp.Spec.Rollout.After = metav1.Time{Time: time.Now()}
-			g.Expect(patchHelper.Patch(ctx, kcp)).To(Succeed())
-		}, 10*time.Second, 1*time.Second).Should(Succeed())
-		By("Setting rollout.after on MachineDeployments")
-		for _, md := range clusterResources.MachineDeployments {
+		if !clusterResources.Cluster.Spec.Topology.IsDefined() {
+			By("Setting rollout.after on control plane")
 			Eventually(func(g Gomega) {
-				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(md), md)).To(Succeed())
-				patchHelper, err := patch.NewHelper(md, input.BootstrapClusterProxy.GetClient())
+				kcp := clusterResources.ControlPlane
+				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
+				patchHelper, err := patch.NewHelper(kcp, input.BootstrapClusterProxy.GetClient())
 				g.Expect(err).ToNot(HaveOccurred())
-				md.Spec.Rollout.After = metav1.Time{Time: time.Now()}
-				g.Expect(patchHelper.Patch(ctx, md)).To(Succeed())
+				kcp.Spec.Rollout.After = metav1.Time{Time: time.Now()}
+				g.Expect(patchHelper.Patch(ctx, kcp)).To(Succeed())
 			}, 10*time.Second, 1*time.Second).Should(Succeed())
+			By("Setting rollout.after on MachineDeployments")
+			for _, md := range clusterResources.MachineDeployments {
+				Eventually(func(g Gomega) {
+					g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(md), md)).To(Succeed())
+					patchHelper, err := patch.NewHelper(md, input.BootstrapClusterProxy.GetClient())
+					g.Expect(err).ToNot(HaveOccurred())
+					md.Spec.Rollout.After = metav1.Time{Time: time.Now()}
+					g.Expect(patchHelper.Patch(ctx, md)).To(Succeed())
+				}, 10*time.Second, 1*time.Second).Should(Succeed())
+			}
+		} else {
+			By("Setting rollout.after on control plane")
+			Eventually(func(g Gomega) {
+				cluster := clusterResources.Cluster
+				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), cluster)).To(Succeed())
+				patchHelper, err := patch.NewHelper(cluster, input.BootstrapClusterProxy.GetClient())
+				g.Expect(err).ToNot(HaveOccurred())
+				cluster.Spec.Topology.ControlPlane.Rollout.After = metav1.Time{Time: time.Now()}
+				g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
+			}, 10*time.Second, 1*time.Second).Should(Succeed())
+			By("Setting rollout.after on MachineDeployments")
+			for i, md := range clusterResources.Cluster.Spec.Topology.Workers.MachineDeployments {
+				Eventually(func(g Gomega) {
+					cluster := clusterResources.Cluster
+					g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), cluster)).To(Succeed())
+					patchHelper, err := patch.NewHelper(cluster, input.BootstrapClusterProxy.GetClient())
+					g.Expect(err).ToNot(HaveOccurred())
+					md.Rollout.After = metav1.Time{Time: time.Now()}
+					clusterResources.Cluster.Spec.Topology.Workers.MachineDeployments[i] = md
+					g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
+				}, 10*time.Second, 1*time.Second).Should(Succeed())
+			}
 		}
 		By("Verifying all Machines are replaced through rollout.after")
 		Eventually(func(g Gomega) {

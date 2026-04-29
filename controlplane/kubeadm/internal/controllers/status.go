@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -88,19 +89,37 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta1Status(ctx context.Context,
 		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedV1Beta1Condition)
 	}
 
-	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to create remote cluster client")
+	// count the control plane nodes
+	if controlPlane.NodeListError == nil {
+		readyNodes := int32(0)
+		for _, node := range controlPlane.Nodes {
+			for _, condition := range node.Status.Conditions {
+				if condition.Type == corev1.NodeReady {
+					if condition.Status == corev1.ConditionTrue {
+						readyNodes++
+					}
+					break
+				}
+			}
+		}
+		controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = readyNodes
+		controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas - readyNodes
 	}
-	status, err := workloadCluster.ClusterStatus(ctx)
-	if err != nil {
-		return err
-	}
-	controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = status.ReadyNodes
-	controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas - status.ReadyNodes
 
-	if status.HasKubeadmConfig {
-		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
+	if !v1beta1conditions.IsTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition) {
+		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to create remote cluster client")
+		}
+
+		hasKubeadmConfig, err := workloadCluster.HasKubeadmConfig(ctx)
+		if err != nil {
+			return err
+		}
+
+		if hasKubeadmConfig {
+			v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
+		}
 	}
 	return nil
 }
@@ -174,12 +193,12 @@ func setControlPlaneInitialized(ctx context.Context, controlPlane *internal.Cont
 		if err != nil {
 			return errors.Wrap(err, "failed to create remote cluster client")
 		}
-		status, err := workloadCluster.ClusterStatus(ctx)
+		hasKubeadmConfig, err := workloadCluster.HasKubeadmConfig(ctx)
 		if err != nil {
 			return err
 		}
 
-		if status.HasKubeadmConfig {
+		if hasKubeadmConfig {
 			controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 		}
 	}
@@ -852,7 +871,7 @@ func getPreflightMessages(cluster *clusterv1.Cluster, preflightChecks internal.P
 	additionalMessages := []string{}
 	if preflightChecks.TopologyVersionMismatch {
 		v := cluster.Spec.Topology.Version
-		if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok {
+		if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok && version != "" {
 			v = version
 		}
 		additionalMessages = append(additionalMessages, fmt.Sprintf("* waiting for a version upgrade to %s to be propagated", v))

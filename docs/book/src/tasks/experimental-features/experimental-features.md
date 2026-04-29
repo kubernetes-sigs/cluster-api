@@ -20,6 +20,7 @@ Currently Cluster API has the following experimental features:
     The feature gate was added to allow to opt-out in case unforeseen issues occur with `VolumeAttachments`.
 * `PriorityQueue` (env var: `EXP_PRIORITY_QUEUE`): Enables the usage of the controller-runtime PriorityQueue: https://github.com/kubernetes-sigs/controller-runtime/issues/2374
 * `ReconcilerRateLimiting` (env var: `EXP_RECONCILER_RATE_LIMITING`): Enables reconciler rate-limiting: https://github.com/kubernetes-sigs/cluster-api/issues/13005
+  * Note: starting from CAPI v1.12.4 `ReconcilerRateLimiting` also requires `PriorityQueue`
 * `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](./runtime-sdk/index.md)
 
 ## Enabling Experimental Features for Management Clusters Started with clusterctl

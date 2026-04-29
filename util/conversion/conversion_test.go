@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -36,9 +37,9 @@ var (
 )
 
 func TestMarshalData(t *testing.T) {
-	g := NewWithT(t)
+	t.Run("MarshalData should write source object to destination", func(*testing.T) {
+		g := NewWithT(t)
 
-	t.Run("should write source object to destination", func(*testing.T) {
 		version := "v1.16.4"
 		providerID := "aws://some-id"
 		src := &clusterv1.Machine{
@@ -71,7 +72,66 @@ func TestMarshalData(t *testing.T) {
 		g.Expect(dst.GetAnnotations()[DataAnnotation]).ToNot(ContainSubstring("label1"))
 	})
 
-	t.Run("should append the annotation", func(*testing.T) {
+	t.Run("MarshalDataUnsafeNoCopy should write source object to destination", func(t *testing.T) {
+		g := NewWithT(t)
+
+		version := "v1.16.4"
+		providerID := "aws://some-id"
+		src := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:                       "test-1",
+				GenerateName:               "test-",
+				Namespace:                  "default",
+				SelfLink:                   "test",
+				UID:                        "123456",
+				ResourceVersion:            "123",
+				Generation:                 15,
+				CreationTimestamp:          metav1.Now(),
+				DeletionTimestamp:          ptr.To(metav1.Now()),
+				DeletionGracePeriodSeconds: ptr.To[int64](10),
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: "test/v1beta1",
+					Kind:       "TestKind",
+					Name:       "name",
+					UID:        "1234567",
+				}},
+				Finalizers: []string{"finalizer"},
+				ManagedFields: []metav1.ManagedFieldsEntry{
+					{
+						Manager: "test-manager",
+					},
+				},
+				Labels: map[string]string{
+					"label1": "",
+				},
+				Annotations: map[string]string{
+					"annotation1": "",
+				},
+			},
+			Spec: clusterv1.MachineSpec{
+				ClusterName: "test-cluster",
+				Version:     version,
+				ProviderID:  providerID,
+			},
+		}
+
+		dst := &unstructured.Unstructured{}
+		dst.SetGroupVersionKind(oldMachineGVK)
+		dst.SetName("test-1")
+
+		g.Expect(MarshalDataUnsafeNoCopy(src, dst)).To(Succeed())
+
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).ToNot(BeEmpty())
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).To(ContainSubstring("test-cluster"))
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).To(ContainSubstring(version))
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).To(ContainSubstring(providerID))
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).ToNot(ContainSubstring("metadata"))
+		g.Expect(dst.GetAnnotations()[DataAnnotation]).ToNot(ContainSubstring("label1"))
+	})
+
+	t.Run("MarshalData should append the annotation", func(*testing.T) {
+		g := NewWithT(t)
+
 		src := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-1",
@@ -85,6 +145,25 @@ func TestMarshalData(t *testing.T) {
 		})
 
 		g.Expect(MarshalData(src, dst)).To(Succeed())
+		g.Expect(dst.GetAnnotations()).To(HaveLen(2))
+	})
+
+	t.Run("MarshalDataUnsafeNoCopy should append the annotation", func(*testing.T) {
+		g := NewWithT(t)
+
+		src := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-1",
+			},
+		}
+		dst := &unstructured.Unstructured{}
+		dst.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine"))
+		dst.SetName("test-1")
+		dst.SetAnnotations(map[string]string{
+			"annotation": "1",
+		})
+
+		g.Expect(MarshalDataUnsafeNoCopy(src, dst)).To(Succeed())
 		g.Expect(dst.GetAnnotations()).To(HaveLen(2))
 	})
 }

@@ -257,15 +257,24 @@ var (
 // OwnerReferences aren't as expected.
 // Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
 // That document should be updated if these references change.
-var KubeadmControlPlaneOwnerReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
-	kubeadmControlPlaneKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-		// The KubeadmControlPlane must be owned and controlled by a Cluster.
-		return HasExactOwners(owners, clusterController)
-	},
-	kubeadmControlPlaneTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-		// The KubeadmControlPlaneTemplate must be owned by a ClusterClass.
-		return HasExactOwners(owners, clusterClassOwner)
-	},
+// When topologyManaged is true, KubeadmControlPlane must be owned and controlled by a Cluster (controller: true).
+// When topologyManaged is false, KubeadmControlPlane is owned but not controlled by a Cluster (controller: false).
+func KubeadmControlPlaneOwnerReferenceAssertions(topologyManaged bool) map[string]func(types.NamespacedName, []metav1.OwnerReference) error {
+	kcpOwnerRef := clusterOwner
+	if topologyManaged {
+		kcpOwnerRef = clusterController
+	}
+	return map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
+		kubeadmControlPlaneKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
+			// The KubeadmControlPlane must be owned and controlled by a Cluster when topology is defined.
+			// Without topology, it's owned but not controlled by a Cluster.
+			return HasExactOwners(owners, kcpOwnerRef)
+		},
+		kubeadmControlPlaneTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
+			// The KubeadmControlPlaneTemplate must be owned by a ClusterClass.
+			return HasExactOwners(owners, clusterClassOwner)
+		},
+	}
 }
 
 // Owners and kinds for types in the Kubeadm Bootstrap package.
@@ -308,32 +317,41 @@ var (
 // OwnerReferences aren't as expected.
 // Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
 // That document should be updated if these references change.
-var DockerInfraOwnerReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
-	dockerMachineKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-		// The DockerMachine must be owned and controlled by a Machine or a DockerMachinePool.
-		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineController}, []metav1.OwnerReference{machineController, dockerMachinePoolController})
-	},
-	dockerMachineTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-		// Base DockerMachineTemplates referenced in a ClusterClass must be owned by the ClusterClass.
-		// DockerMachineTemplates created for specific Clusters in the Topology controller must be owned by a Cluster.
-		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterOwner}, []metav1.OwnerReference{clusterClassOwner})
-	},
-	dockerClusterKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-		// DockerCluster must be owned and controlled by a Cluster.
-		return HasExactOwners(owners, clusterController)
-	},
-	dockerClusterTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-		// DockerClusterTemplate must be owned by a ClusterClass.
-		return HasExactOwners(owners, clusterClassOwner)
-	},
-	dockerMachinePoolKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-		// DockerMachinePool must be owned and controlled by a MachinePool.
-		return HasExactOwners(owners, machinePoolController, clusterOwner)
-	},
-	dockerMachinePoolTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-		// DockerMachinePoolTemplate must be owned by a ClusterClass.
-		return HasExactOwners(owners, clusterClassOwner)
-	},
+// When topologyManaged is true, DockerCluster must be owned and controlled by a Cluster (controller: true).
+// When topologyManaged is false, DockerCluster is owned but not controlled by a Cluster (controller: false).
+func DockerInfraOwnerReferenceAssertions(topologyManaged bool) map[string]func(types.NamespacedName, []metav1.OwnerReference) error {
+	dockerClusterOwnerRef := clusterOwner
+	if topologyManaged {
+		dockerClusterOwnerRef = clusterController
+	}
+	return map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
+		dockerMachineKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
+			// The DockerMachine must be owned and controlled by a Machine or a DockerMachinePool.
+			return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineController}, []metav1.OwnerReference{machineController, dockerMachinePoolController})
+		},
+		dockerMachineTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
+			// Base DockerMachineTemplates referenced in a ClusterClass must be owned by the ClusterClass.
+			// DockerMachineTemplates created for specific Clusters in the Topology controller must be owned by a Cluster.
+			return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterOwner}, []metav1.OwnerReference{clusterClassOwner})
+		},
+		dockerClusterKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
+			// DockerCluster must be owned and controlled by a Cluster when topology is defined.
+			// Without topology, it's owned but not controlled by a Cluster.
+			return HasExactOwners(owners, dockerClusterOwnerRef)
+		},
+		dockerClusterTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
+			// DockerClusterTemplate must be owned by a ClusterClass.
+			return HasExactOwners(owners, clusterClassOwner)
+		},
+		dockerMachinePoolKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
+			// DockerMachinePool must be owned and controlled by a MachinePool.
+			return HasExactOwners(owners, machinePoolController, clusterOwner)
+		},
+		dockerMachinePoolTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
+			// DockerMachinePoolTemplate must be owned by a ClusterClass.
+			return HasExactOwners(owners, clusterClassOwner)
+		},
+	}
 }
 
 func HasExactOwners(gotOwners []metav1.OwnerReference, wantOwners ...metav1.OwnerReference) error {

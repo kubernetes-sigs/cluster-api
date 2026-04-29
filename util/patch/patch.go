@@ -17,8 +17,10 @@ limitations under the License.
 package patch
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -26,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -70,26 +73,9 @@ func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 		return nil, errors.New("failed to create patch helper: object is nil")
 	}
 
-	// Get the GroupVersionKind of the object,
-	// used to validate against later on.
-	gvk, err := apiutil.GVKForObject(obj, crClient.Scheme())
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create patch helper for object %s", klog.KObj(obj))
-	}
-
-	// Identify location of the condition fields according to the canonical place defined by the proposal for
-	// improving status in Cluster API conditions.
-	metav1ConditionsFieldPath, clusterv1ConditionsFieldPath, err := identifyConditionsFieldsPath(obj)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to identify condition fields for object %s", klog.KObj(obj))
-	}
-
 	return &Helper{
-		client:                       crClient,
-		gvk:                          gvk,
-		beforeObject:                 obj.DeepCopyObject().(client.Object),
-		metav1ConditionsFieldPath:    metav1ConditionsFieldPath,
-		clusterv1ConditionsFieldPath: clusterv1ConditionsFieldPath,
+		client:       crClient,
+		beforeObject: obj.DeepCopyObject().(client.Object),
 	}, nil
 }
 
@@ -100,13 +86,31 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 		return errors.Errorf("failed to patch %s %s: modified object is nil", h.gvk.Kind, klog.KObj(h.beforeObject))
 	}
 
+	if reflect.DeepEqual(obj, h.beforeObject) {
+		return nil
+	}
+
+	// Get the GroupVersionKind of the object,
+	// used to validate against later on.
+	beforeGvk, err := apiutil.GVKForObject(h.beforeObject, h.client.Scheme())
+	if err != nil {
+		return errors.Wrapf(err, "failed to create patch helper for object %s", klog.KObj(obj))
+	}
+
 	// Get the GroupVersionKind of the object that we want to patch.
-	gvk, err := apiutil.GVKForObject(obj, h.client.Scheme())
+	h.gvk, err = apiutil.GVKForObject(obj, h.client.Scheme())
 	if err != nil {
 		return errors.Wrapf(err, "failed to patch %s %s", h.gvk.Kind, klog.KObj(h.beforeObject))
 	}
-	if gvk != h.gvk {
-		return errors.Errorf("failed to patch %s %s: unmatched GroupVersionKind, expected %q got %q", h.gvk.Kind, klog.KObj(h.beforeObject), h.gvk, gvk)
+	if h.gvk != beforeGvk {
+		return errors.Errorf("failed to patch %s %s: unmatched GroupVersionKind, expected %q got %q", h.gvk.Kind, klog.KObj(h.beforeObject), h.gvk, beforeGvk)
+	}
+
+	// Identify location of the condition fields according to the canonical place defined by the proposal for
+	// improving status in Cluster API conditions.
+	h.metav1ConditionsFieldPath, h.clusterv1ConditionsFieldPath, err = identifyConditionsFieldsPath(obj)
+	if err != nil {
+		return errors.Wrapf(err, "failed to identify condition fields for object %s", klog.KObj(obj))
 	}
 
 	// Calculate the options.
@@ -132,15 +136,15 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	}
 
 	// Convert the before object to unstructured.
-	h.before, err = toUnstructured(h.beforeObject, gvk)
+	h.before, err = toUnstructured(h.beforeObject, h.gvk)
 	if err != nil {
 		return errors.Wrapf(err, "failed to patch %s %s: failed to convert before object to Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
 	}
 
 	// Convert the after object to unstructured.
-	h.after, err = toUnstructured(obj, gvk)
+	h.after, err = toUnstructured(obj, h.gvk)
 	if err != nil {
-		return errors.Wrapf(err, "failed to patch %s %s: failed to convert after object to Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
+		return errors.Wrapf(err, "failed to patch %s %s: failed to convert after object to Unstructured", h.gvk.Kind, klog.KObj(obj))
 	}
 
 	// Include .status.observedGeneration if IncludeStatusObservedGeneration is set.
@@ -199,7 +203,17 @@ func (h *Helper) patch(ctx context.Context, obj client.Object) error {
 	if err != nil {
 		return err
 	}
-	return h.client.Patch(ctx, afterObject, client.MergeFrom(beforeObject))
+
+	// Check for empty patches as a safeguard to avoid continuously sending empty patches to the apiserver.
+	data, err := client.MergeFrom(beforeObject).Data(afterObject)
+	if err != nil {
+		return err
+	}
+	if bytes.Equal(data, []byte("{}")) {
+		return nil
+	}
+
+	return h.client.Patch(ctx, afterObject, client.RawPatch(types.MergePatchType, data))
 }
 
 // patchStatus issues a patch if the status has changed.
@@ -211,7 +225,22 @@ func (h *Helper) patchStatus(ctx context.Context, obj client.Object) error {
 	if err != nil {
 		return err
 	}
-	return h.client.Status().Patch(ctx, afterObject, client.MergeFrom(beforeObject))
+
+	// Check for empty patches as a safeguard to avoid continuously sending empty patches to the apiserver.
+	// Additionally, there is a known case that if there are only changes for status.conditions
+	// patchStatus is accidentally executed as well because of limitations of calculateChanges.
+	data, err := client.MergeFrom(beforeObject).Data(afterObject)
+	if err != nil {
+		return err
+	}
+	if bytes.Equal(data, []byte("{}")) ||
+		// The following two cases occur if conditions are written for the first time on an object.
+		bytes.Equal(data, []byte(`{"status":{"v1beta2":{}}}`)) ||
+		bytes.Equal(data, []byte(`{"status":{"deprecated":{"v1beta1":{}}}}`)) {
+		return nil
+	}
+
+	return h.client.Status().Patch(ctx, afterObject, client.RawPatch(types.MergePatchType, data))
 }
 
 // patchStatusConditions issues a patch if there are any changes to the conditions slice under

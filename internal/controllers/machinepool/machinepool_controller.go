@@ -43,11 +43,11 @@ import (
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -257,10 +257,15 @@ func (r *Reconciler) reconcileSetOwnerAndLabels(_ context.Context, s *scope) (ct
 
 // reconcileDelete delete machinePool related resources.
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result, error) {
-	if ok, err := r.reconcileDeleteExternal(ctx, s.machinePool); !ok || err != nil {
-		// Return early and don't remove the finalizer if we got an error or
-		// the external reconciliation deletion isn't ready.
+	ok, err := r.reconcileDeleteExternal(ctx, s.machinePool)
+	if err != nil {
+		// Return early and don't remove the finalizer if we got an error.
 		return ctrl.Result{}, fmt.Errorf("failed deleting external references: %s", err)
+	}
+
+	if !ok {
+		// Return early and don't remove the finalizer if we still have external references to delete.
+		return ctrl.Result{}, nil
 	}
 
 	// check nodes delete timeout passed.

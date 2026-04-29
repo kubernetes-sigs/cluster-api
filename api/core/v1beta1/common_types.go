@@ -358,3 +358,59 @@ func (metadata *ObjectMeta) Validate(parent *field.Path) field.ErrorList {
 	)...)
 	return allErrs
 }
+
+// MachineTaint defines a taint equivalent to corev1.Taint, but additionally having a propagation field.
+type MachineTaint struct {
+	// Note: we do not use CEL for validating the key as qualified name, because it would be too expensive for Cluster and ClusterClass objects.
+
+	// key is the taint key to be applied to a node.
+	// Must be a valid qualified name of maximum size 63 characters
+	// with an optional subdomain prefix of maximum size 253 characters,
+	// separated by a `/`.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=317
+	// +kubebuilder:validation:Pattern=^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+	Key string `json:"key,omitempty"`
+
+	// value is the taint value corresponding to the taint key.
+	// It must be a valid label value of maximum size 63 characters.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+	Value string `json:"value,omitempty"`
+
+	// effect is the effect for the taint. Valid values are NoSchedule, PreferNoSchedule and NoExecute.
+	// +required
+	// +kubebuilder:validation:Enum=NoSchedule;PreferNoSchedule;NoExecute
+	Effect corev1.TaintEffect `json:"effect,omitempty"`
+
+	// propagation defines how this taint should be propagated to nodes.
+	// Valid values are 'Always' and 'OnInitialization'.
+	// Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+	// OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+	// +required
+	Propagation MachineTaintPropagation `json:"propagation,omitempty"`
+}
+
+// MachineTaintPropagation defines when a taint should be propagated to nodes.
+// +kubebuilder:validation:Enum=Always;OnInitialization
+type MachineTaintPropagation string
+
+const (
+	// MachineTaintPropagationAlways means the taint should be continuously reconciled and kept on the node.
+	// - If an Always taint is added to the Machine, the taint will be added to the node.
+	// - If an Always taint is removed from the Machine, the taint will be removed from the node.
+	// - If an OnInitialization taint is changed to Always, the Machine controller will ensure the taint is set on the node.
+	// - If an Always taint is removed from the node, it will be re-added during reconciliation.
+	MachineTaintPropagationAlways MachineTaintPropagation = "Always"
+
+	// MachineTaintPropagationOnInitialization means the taint should be set once during initialization and then
+	// left alone.
+	// - If an OnInitialization taint is added to the Machine, the taint will only be added to the node on initialization.
+	// - If an OnInitialization taint is removed from the Machine nothing will be changed on the node.
+	// - If an Always taint is changed to OnInitialization, the taint will only be added to the node on initialization.
+	// - If an OnInitialization taint is removed from the node, it will not be re-added during reconciliation.
+	MachineTaintPropagationOnInitialization MachineTaintPropagation = "OnInitialization"
+)

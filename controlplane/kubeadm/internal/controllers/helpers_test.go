@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -28,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -457,7 +459,9 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 
 	controlPlane, err := internal.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, collections.FromMachines(&m))
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(r.syncMachines(ctx, controlPlane)).To(Succeed())
+	stopReconcile, err := r.syncMachines(ctx, controlPlane)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(stopReconcile).To(BeFalse())
 
 	// Verify managedFields again.
 	infraObj, err = external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), m.Spec.InfrastructureRef, m.Namespace)
@@ -528,6 +532,52 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 			}
 		}
 }}`,
+	}})))
+
+	// Purge managedFields from objects.
+	jsonPatch := []map[string]interface{}{
+		{
+			"op":    "replace",
+			"path":  "/metadata/managedFields",
+			"value": []metav1.ManagedFieldsEntry{{}},
+		},
+	}
+	patch, err := json.Marshal(jsonPatch)
+	g.Expect(err).ToNot(HaveOccurred())
+	for _, object := range []client.Object{&m, infraObj, kubeadmConfig} {
+		g.Expect(env.Client.Patch(ctx, object, client.RawPatch(types.JSONPatchType, patch))).To(Succeed())
+		g.Expect(object.GetManagedFields()).To(BeEmpty())
+	}
+
+	// syncMachines to run mitigation code.
+	controlPlane.Machines[m.Name] = &m
+	controlPlane.InfraResources[infraObj.GetName()] = infraObj
+	controlPlane.KubeadmConfigs[kubeadmConfig.Name] = kubeadmConfig
+	stopReconcile, err = r.syncMachines(ctx, controlPlane)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(stopReconcile).To(BeTrue())
+
+	// verify mitigation worked
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(&m), &m)).To(Succeed())
+	g.Expect(cleanupTime(m.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Manager:    kcpManagerName, // matches manager of next Apply.
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1:   `{"f:metadata":{"f:name":{}}}`,
+	}})))
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(infraObj), infraObj)).To(Succeed())
+	g.Expect(cleanupTime(infraObj.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		APIVersion: infraObj.GetAPIVersion(),
+		Manager:    kcpMetadataManagerName, // matches manager of next Apply.
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1:   `{"f:metadata":{"f:name":{}}}`,
+	}})))
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(kubeadmConfig), kubeadmConfig)).To(Succeed())
+	g.Expect(cleanupTime(kubeadmConfig.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		APIVersion: bootstrapv1.GroupVersion.String(),
+		Manager:    kcpMetadataManagerName, // matches manager of next Apply.
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1:   `{"f:metadata":{"f:name":{}}}`,
 	}})))
 }
 

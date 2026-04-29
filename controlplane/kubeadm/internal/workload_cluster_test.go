@@ -81,10 +81,10 @@ func TestGetControlPlaneNodes(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			nodes, err := w.getControlPlaneNodes(ctx)
+			nodes, err := w.getNodesWithControlPlaneLabel(ctx)
 			g.Expect(err).ToNot(HaveOccurred())
 			var actualNodes []string
-			for _, n := range nodes.Items {
+			for _, n := range nodes {
 				actualNodes = append(actualNodes, n.Name)
 			}
 			g.Expect(actualNodes).To(Equal(tt.expectedNodes))
@@ -804,35 +804,7 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 	}
 }
 
-func TestClusterStatus(t *testing.T) {
-	node1 := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node1",
-			Labels: map[string]string{
-				labelNodeRoleControlPlane: "",
-			},
-		},
-		Status: corev1.NodeStatus{
-			Conditions: []corev1.NodeCondition{{
-				Type:   corev1.NodeReady,
-				Status: corev1.ConditionTrue,
-			}},
-		},
-	}
-	node2 := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node2",
-			Labels: map[string]string{
-				labelNodeRoleControlPlane: "",
-			},
-		},
-		Status: corev1.NodeStatus{
-			Conditions: []corev1.NodeCondition{{
-				Type:   corev1.NodeReady,
-				Status: corev1.ConditionFalse,
-			}},
-		},
-	}
+func TestHasKubeadmConfig(t *testing.T) {
 	kconf := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kubeadmConfigKey,
@@ -840,22 +812,22 @@ func TestClusterStatus(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		name          string
-		objs          []client.Object
-		expectErr     bool
-		expectHasConf bool
+		name                   string
+		objs                   []client.Object
+		expectErr              bool
+		expectHasKubeadmConfig bool
 	}{
 		{
-			name:          "returns cluster status",
-			objs:          []client.Object{node1, node2},
-			expectErr:     false,
-			expectHasConf: false,
+			name:                   "Does not have kubeadm config",
+			objs:                   []client.Object{},
+			expectErr:              false,
+			expectHasKubeadmConfig: false,
 		},
 		{
-			name:          "returns cluster status with kubeadm config",
-			objs:          []client.Object{node1, node2, kconf},
-			expectErr:     false,
-			expectHasConf: true,
+			name:                   "Has a kubeadm config",
+			objs:                   []client.Object{kconf},
+			expectErr:              false,
+			expectHasKubeadmConfig: true,
 		},
 	}
 
@@ -866,19 +838,13 @@ func TestClusterStatus(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			status, err := w.ClusterStatus(ctx)
+			got, err := w.HasKubeadmConfig(ctx)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(status.Nodes).To(BeEquivalentTo(2))
-			g.Expect(status.ReadyNodes).To(BeEquivalentTo(1))
-			if tt.expectHasConf {
-				g.Expect(status.HasKubeadmConfig).To(BeTrue())
-				return
-			}
-			g.Expect(status.HasKubeadmConfig).To(BeFalse())
+			g.Expect(got).To(Equal(tt.expectHasKubeadmConfig))
 		})
 	}
 }

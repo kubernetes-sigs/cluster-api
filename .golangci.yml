@@ -169,7 +169,7 @@ linters:
           alias: topologynames
         - pkg: sigs.k8s.io/cluster-api/internal/util/client
           alias: "clientutil"
-        - pkg: sigs.k8s.io/cluster-api/internal/util/controller
+        - pkg: sigs.k8s.io/cluster-api/util/controller
           alias: "capicontrollerutil"
         # CAPD
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1
@@ -246,6 +246,10 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
+        # Docker resources are marked as deprecated.
+      - linters:
+          - staticcheck
+        text: 'SA1019: .*Docker.* is deprecated: .* Use Dev.* instead\.'
       - linters:
           - staticcheck
         text: 'SA1019: clusterv1\.(Condition|Conditions|ConditionSeverity|ConditionType) is deprecated'

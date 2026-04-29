@@ -111,6 +111,8 @@ providers = {
             "../../go.mod",
             "../../go.sum",
             "../container",
+            "../inmemory",
+            "../kind",
             "api",
             "controllers",
             "docker",
@@ -172,7 +174,7 @@ def load_provider_tilt_files():
 
 tilt_helper_dockerfile_header = """
 # Tilt image
-FROM golang:1.25.7 as tilt-helper
+FROM golang:1.25.9 as tilt-helper
 # Install delve. Note this should be kept in step with the Go release minor version.
 RUN go install github.com/go-delve/delve/cmd/dlv@v1.25
 # Support live reloading with Tilt
@@ -183,7 +185,7 @@ RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com
 """
 
 tilt_dockerfile_header = """
-FROM golang:1.25.7 as tilt
+FROM golang:1.25.9 as tilt
 WORKDIR /
 COPY --from=tilt-helper /process.txt .
 COPY --from=tilt-helper /start.sh .
@@ -570,7 +572,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
         icon_name = "note_add",
         text = "Apply `" + clusterclass_name + "` ClusterClass",
         inputs = [
-            text_input("NAMESPACE", default = substitutions.get("NAMESPACE")),
+            text_input("NAMESPACE", label = "NAMESPACE", default = substitutions.get("NAMESPACE")),
         ],
     )
 
@@ -582,7 +584,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
         icon_name = "delete_forever",
         text = "Delete `" + clusterclass_name + "` ClusterClass",
         inputs = [
-            text_input("NAMESPACE", default = substitutions.get("NAMESPACE")),
+            text_input("NAMESPACE", label = "NAMESPACE", default = substitutions.get("NAMESPACE")),
         ],
     )
 
@@ -607,10 +609,10 @@ def deploy_cluster_template(template_name, label, filename, substitutions):
         icon_name = "add_box",
         text = "Create `" + template_name + "` cluster",
         inputs = [
-            text_input("NAMESPACE", default = substitutions.get("NAMESPACE")),
-            text_input("KUBERNETES_VERSION", default = substitutions.get("KUBERNETES_VERSION")),
-            text_input("CONTROL_PLANE_MACHINE_COUNT", default = substitutions.get("CONTROL_PLANE_MACHINE_COUNT")),
-            text_input("WORKER_MACHINE_COUNT", default = substitutions.get("WORKER_MACHINE_COUNT")),
+            text_input("NAMESPACE", label = "NAMESPACE", default = substitutions.get("NAMESPACE")),
+            text_input("KUBERNETES_VERSION", label = "KUBERNETES_VERSION", default = substitutions.get("KUBERNETES_VERSION")),
+            text_input("CONTROL_PLANE_MACHINE_COUNT", label = "CONTROL_PLANE_MACHINE_COUNT", default = substitutions.get("CONTROL_PLANE_MACHINE_COUNT")),
+            text_input("WORKER_MACHINE_COUNT", label = "WORKER_MACHINE_COUNT", default = substitutions.get("WORKER_MACHINE_COUNT")),
         ],
     )
 
@@ -622,7 +624,7 @@ def deploy_cluster_template(template_name, label, filename, substitutions):
         icon_name = "delete_forever",
         text = "Delete `" + template_name + "` clusters",
         inputs = [
-            text_input("NAMESPACE", default = substitutions.get("NAMESPACE")),
+            text_input("NAMESPACE", label = "NAMESPACE", default = substitutions.get("NAMESPACE")),
         ],
     )
 

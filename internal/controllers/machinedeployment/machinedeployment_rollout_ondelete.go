@@ -112,7 +112,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 		if scaleDownCount > 0 {
 			newScaleIntent := max(ptr.Deref(oldMS.Spec.Replicas, 0)-scaleDownCount, 0)
 			p.addNotef(oldMS, "scale down to align to existing Machines")
-			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newScaleIntent, scaleDownCount), "MachineSet", klog.KObj(oldMS))
+			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleIntent, scaleDownCount), "MachineSet", klog.KObj(oldMS))
 			p.scaleIntents[oldMS.Name] = newScaleIntent
 
 			totalScaleDownCount -= scaleDownCount
@@ -140,7 +140,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 		if scaleDownCount > 0 {
 			newScaleIntent := max(ptr.Deref(oldMS.Spec.Replicas, 0)-scaleDownCount, 0)
 			p.addNotef(oldMS, "scale down to align MachineSet spec.replicas to MachineDeployment spec.replicas")
-			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newScaleIntent, scaleDownCount), "MachineSet", klog.KObj(oldMS))
+			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleIntent, scaleDownCount), "MachineSet", klog.KObj(oldMS))
 			p.scaleIntents[oldMS.Name] = newScaleIntent
 
 			totalScaleDownCount -= scaleDownCount

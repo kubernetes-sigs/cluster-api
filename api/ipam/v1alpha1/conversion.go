@@ -113,10 +113,7 @@ func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	// Preserve Hub data on down-conversion except for metadata
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-	return nil
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func Convert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, out *ipamv1.IPAddressSpec, s apimachineryconversion.Scope) error {

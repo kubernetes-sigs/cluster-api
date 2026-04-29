@@ -44,6 +44,9 @@ const (
 type UpToDateResult struct {
 	LogMessages              []string
 	ConditionMessages        []string
+	// CertificateExpiryRollout is true if the machine is marked for rollout because its certificates are about to expire
+	// (i.e. rollout.before applies).
+	CertificateExpiryRollout bool
 	EligibleForInPlaceUpdate bool
 	DesiredMachine           *clusterv1.Machine
 	CurrentInfraMachine      *unstructured.Unstructured
@@ -82,6 +85,7 @@ func UpToDate(
 
 	// Machines whose certificates are about to expire.
 	if collections.ShouldRolloutBefore(reconciliationTime, kcp.Spec.Rollout.Before)(machine) {
+		res.CertificateExpiryRollout = true
 		res.LogMessages = append(res.LogMessages, CertificateExpiryRolloutLogMessage)
 		res.ConditionMessages = append(res.ConditionMessages, "Certificates will expire soon")
 		res.EligibleForInPlaceUpdate = false

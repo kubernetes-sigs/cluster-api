@@ -544,12 +544,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 				continue
 			}
 
-			// Check if the rollout is due to certificate expiry
-			isCertExpiryRollout := slices.ContainsFunc(upToDateResult.LogMessages, func(msg string) bool {
-				return strings.Contains(msg, internal.CertificateExpiryRolloutLogMessage)
-			})
-
-			if isCertExpiryRollout {
+			if upToDateResult.CertificateExpiryRollout {
 				// Event on Machine (the victim) - tells the machine why it's being rolled out
 				r.recorder.Eventf(
 					machine,

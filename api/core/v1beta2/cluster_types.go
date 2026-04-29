@@ -518,6 +518,10 @@ type ClusterSpec struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
+
+	// kubeconfig specifies the parameters for the kubeconfig secret.
+	// +optional
+	Kubeconfig *KubeconfigSpec `json:"kubeconfig,omitempty"`
 }
 
 // ConditionPolarity defines the polarity for a metav1.Condition.
@@ -584,6 +588,13 @@ type Topology struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	Variables []ClusterVariable `json:"variables,omitempty"`
+}
+
+// KubeconfigSpec specifies the parameters for the kubeconfig secret.
+type KubeconfigSpec struct {
+	// metadata is the metadata applied to the kubeconfig secret.
+	// +optional
+	Metadata ObjectMeta `json:"metadata,omitempty"`
 }
 
 // IsDefined returns true if the Topology is defined.

@@ -862,7 +862,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 	capiKubeadmConfigSecretNoOwner := kubeconfig.GenerateSecretWithOwner(
 		client.ObjectKey{Name: "test1", Namespace: metav1.NamespaceDefault},
 		[]byte{},
-		metav1.OwnerReference{})
+		metav1.OwnerReference{},
+		nil)
 	capiKubeadmConfigSecretNoOwner.OwnerReferences = []metav1.OwnerReference{}
 
 	// A KubeadmConfig secret created by CAPI controllers with a non-KCP owner reference.
@@ -873,7 +874,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 	userProvidedKubeadmConfigSecretNoOwner := kubeconfig.GenerateSecretWithOwner(
 		client.ObjectKey{Name: "test1", Namespace: metav1.NamespaceDefault},
 		[]byte{},
-		metav1.OwnerReference{})
+		metav1.OwnerReference{},
+		nil)
 	userProvidedKubeadmConfigSecretNoOwner.Type = corev1.SecretTypeOpaque
 
 	// A user provided KubeadmConfig with a non-KCP owner reference.

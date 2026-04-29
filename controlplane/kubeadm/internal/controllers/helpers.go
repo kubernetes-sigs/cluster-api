@@ -57,12 +57,17 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	configSecret, err := secret.GetFromNamespacedName(ctx, r.SecretCachingClient, clusterName, secret.Kubeconfig)
 	switch {
 	case apierrors.IsNotFound(err):
+		var metadata *clusterv1.ObjectMeta
+		if controlPlane.Cluster.Spec.Kubeconfig != nil {
+			metadata = &controlPlane.Cluster.Spec.Kubeconfig.Metadata
+		}
 		createErr := kubeconfig.CreateSecretWithOwner(
 			ctx,
 			r.SecretCachingClient,
 			clusterName,
 			endpoint.String(),
 			controllerOwnerRef,
+			metadata,
 			kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm()),
 		)
 		if errors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {

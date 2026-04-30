@@ -29,7 +29,7 @@ spec:
       jsonPath: .spec.poolRef.kind
       name: Pool Kind
       type: string
-    - description: Time duration since creation of IPAdress
+    - description: Time duration since creation of IPAddress
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -131,7 +131,7 @@ spec:
       jsonPath: .spec.poolRef.kind
       name: Pool Kind
       type: string
-    - description: Time duration since creation of IPAdress
+    - description: Time duration since creation of IPAddress
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -234,7 +234,7 @@ spec:
       jsonPath: .spec.poolRef.kind
       name: Pool Kind
       type: string
-    - description: Time duration since creation of IPAdress
+    - description: Time duration since creation of IPAddress
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date

@@ -106,7 +106,7 @@ type MachinePoolSpec struct {
 
 // MachinePoolStatus defines the observed state of MachinePool.
 type MachinePoolStatus struct {
-	// nodeRefs will point to the corresponding Nodes if it they exist.
+	// nodeRefs will point to the corresponding Nodes if they exist.
 	// +optional
 	// +kubebuilder:validation:MaxItems=10000
 	NodeRefs []corev1.ObjectReference `json:"nodeRefs,omitempty"`

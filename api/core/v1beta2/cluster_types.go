@@ -1129,7 +1129,7 @@ type MachineDeploymentTopologyHealthCheckRemediationTriggerIf struct {
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentTopologyMachineDeletionSpec struct {
 	// order defines the order in which Machines are deleted when downscaling.
-	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// Defaults to "Random". Valid values are "Random", "Newest", "Oldest"
 	// +optional
 	Order MachineSetDeletionOrder `json:"order,omitempty"`
 

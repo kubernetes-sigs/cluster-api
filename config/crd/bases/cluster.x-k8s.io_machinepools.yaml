@@ -504,8 +504,8 @@ spec:
                   provider.
                 type: boolean
               nodeRefs:
-                description: nodeRefs will point to the corresponding Nodes if it
-                  they exist.
+                description: nodeRefs will point to the corresponding Nodes if they
+                  exist.
                 items:
                   description: ObjectReference contains enough information to let
                     you inspect or modify the referred object.
@@ -1309,8 +1309,8 @@ spec:
                     type: boolean
                 type: object
               nodeRefs:
-                description: nodeRefs will point to the corresponding Nodes if it
-                  they exist.
+                description: nodeRefs will point to the corresponding Nodes if they
+                  exist.
                 items:
                   description: ObjectReference contains enough information to let
                     you inspect or modify the referred object.

@@ -377,7 +377,7 @@ type MachineRollingUpdateDeployment struct {
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 
 	// deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
-	// Valid values are "Random, "Newest", "Oldest"
+	// Valid values are "Random", "Newest", "Oldest"
 	// When no value is supplied, the default DeletePolicy of MachineSet is used
 	// +kubebuilder:validation:Enum=Random;Newest;Oldest
 	// +optional

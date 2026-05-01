@@ -3006,7 +3006,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `nodeRefs` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectreference-v1-core) array_ | nodeRefs will point to the corresponding Nodes if it they exist. |  | MaxItems: 10000 <br />Optional: \{\} <br /> |
+| `nodeRefs` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectreference-v1-core) array_ | nodeRefs will point to the corresponding Nodes if they exist. |  | MaxItems: 10000 <br />Optional: \{\} <br /> |
 | `replicas` _integer_ | replicas is the most recently observed number of replicas. |  | Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready". |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool. |  | Optional: \{\} <br /> |
@@ -3177,7 +3177,7 @@ _Appears in:_
 | `clusterName` _string_ | clusterName is the name of the Cluster this object belongs to. |  | MaxLength: 63 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `replicas` _integer_ | replicas is the number of desired replicas.<br />This is a pointer to distinguish between explicit zero and unspecified.<br />Defaults to:<br />* if the Kubernetes autoscaler min size and max size annotations are set:<br />  - if it's a new MachineSet, use min size<br />  - if the replicas field of the old MachineSet is < min size, use min size<br />  - if the replicas field of the old MachineSet is > max size, use max size<br />  - if the replicas field of the old MachineSet is in the (min size, max size) range, keep the value from the oldMS<br />* otherwise use 1<br />Note: Defaulting will be run whenever the replicas field is not set:<br />* A new MachineSet is created with replicas not set.<br />* On an existing MachineSet the replicas field was first set and is now unset.<br />Those cases are especially relevant for the following Kubernetes autoscaler use cases:<br />* A new MachineSet is created and replicas should be managed by the autoscaler<br />* An existing MachineSet which initially wasn't controlled by the autoscaler<br />  should be later controlled by the autoscaler |  | Optional: \{\} <br /> |
 | `minReadySeconds` _integer_ | minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.<br />Defaults to 0 (machine will be considered available as soon as the Node is ready) |  | Optional: \{\} <br /> |
-| `deletePolicy` _string_ | deletePolicy defines the policy used to identify nodes to delete when downscaling.<br />Defaults to "Random".  Valid values are "Random, "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
+| `deletePolicy` _string_ | deletePolicy defines the policy used to identify nodes to delete when downscaling.<br />Defaults to "Random". Valid values are "Random", "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
 | `selector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#labelselector-v1-meta)_ | selector is a label query over machines that should match the replica count.<br />Label keys and values that must match in order to be controlled by this MachineSet.<br />It must match the machine template's labels.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors |  | Required: \{\} <br /> |
 | `template` _[MachineTemplateSpec](#machinetemplatespec)_ | template is the object that describes the machine that will be created if<br />insufficient replicas are detected.<br />Object references to custom resources are treated as templates. |  | Optional: \{\} <br /> |
 | `machineNamingStrategy` _[MachineNamingStrategy](#machinenamingstrategy)_ | machineNamingStrategy allows changing the naming pattern used when creating Machines.<br />Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines. |  | Optional: \{\} <br /> |
@@ -4509,7 +4509,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `name` _string_ | name is the unique name of the ExtensionHandler. |  | MaxLength: 512 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `requestHook` _[GroupVersionHook](#groupversionhook)_ | requestHook defines the versioned runtime hook which this ExtensionHandler serves. |  | Required: \{\} <br /> |
-| `timeoutSeconds` _integer_ | timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.<br />Defaults to 10 is not set. |  | Optional: \{\} <br /> |
+| `timeoutSeconds` _integer_ | timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.<br />Defaults to 10 seconds if not set. |  | Optional: \{\} <br /> |
 | `failurePolicy` _[FailurePolicy](#failurepolicy)_ | failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.<br />Defaults to Fail if not set. |  | Enum: [Ignore Fail] <br />Optional: \{\} <br /> |
 
 

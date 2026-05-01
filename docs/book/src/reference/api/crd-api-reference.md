@@ -2883,7 +2883,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random".  Valid values are "Random, "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
+| `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random". Valid values are "Random", "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Minimum: 0 <br />Optional: \{\} <br /> |
@@ -2974,7 +2974,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random".  Valid values are "Random, "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
+| `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random". Valid values are "Random", "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentDeprecatedStatus
@@ -3271,7 +3271,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random".  Valid values are "Random, "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
+| `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random". Valid values are "Random", "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds. |  | Minimum: 0 <br />Optional: \{\} <br /> |
@@ -3985,7 +3985,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a MachinePool's current state.<br />Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,<br />ScalingUp, ScalingDown, Remediating, Deleting, Paused. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `initialization` _[MachinePoolInitializationStatus](#machinepoolinitializationstatus)_ | initialization provides observations of the MachinePool initialization process.<br />NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
-| `nodeRefs` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectreference-v1-core) array_ | nodeRefs will point to the corresponding Nodes if it they exist. |  | MaxItems: 10000 <br />Optional: \{\} <br /> |
+| `nodeRefs` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectreference-v1-core) array_ | nodeRefs will point to the corresponding Nodes if they exist. |  | MaxItems: 10000 <br />Optional: \{\} <br /> |
 | `replicas` _integer_ | replicas is the most recently observed number of replicas. |  | Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
@@ -4157,7 +4157,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random".  Valid values are "Random, "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
+| `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random". Valid values are "Random", "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
 
 
 #### MachineSetDeprecatedStatus

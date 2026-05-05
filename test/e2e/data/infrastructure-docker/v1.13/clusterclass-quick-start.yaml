@@ -16,7 +16,7 @@ spec:
     machineInfrastructure:
       templateRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-        kind: DockerMachineTemplate
+        kind: DevMachineTemplate
         name: quick-start-control-plane
     healthCheck:
       checks:
@@ -31,7 +31,7 @@ spec:
   infrastructure:
     templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-      kind: DockerClusterTemplate
+      kind: DevClusterTemplate
       name: quick-start-cluster
   workers:
     machineDeployments:
@@ -49,7 +49,7 @@ spec:
       infrastructure:
         templateRef:
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-          kind: DockerMachineTemplate
+          kind: DevMachineTemplate
           name: quick-start-default-worker-machinetemplate
       # We are intentionally not setting the 'unhealthyNodeConditions and unhealthyMachineConditions' here to test that those fields are optional.
     machinePools:
@@ -67,7 +67,7 @@ spec:
       infrastructure:
         templateRef:
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-          kind: DockerMachinePoolTemplate
+          kind: DevMachinePoolTemplate
           name: quick-start-default-worker-machinepooltemplate
   variables:
   - name: lbImageRepository
@@ -167,7 +167,7 @@ spec:
     definitions:
     - selector:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-        kind: DockerClusterTemplate
+        kind: DevClusterTemplate
         matchResources:
           infrastructureCluster: true
       jsonPatches:
@@ -208,11 +208,11 @@ spec:
           template: |
             imageTag: {{ .coreDNSImageTag }}
   - name: customImage
-    description: "Sets the container image that is used for running dockerMachines for the controlPlane and default-worker machineDeployments."
+    description: "Sets the container image that is used for running devMachines for the controlPlane and default-worker machineDeployments."
     definitions:
       - selector:
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-          kind: DockerMachineTemplate
+          kind: DevMachineTemplate
           matchResources:
             machineDeploymentClass:
               names:
@@ -225,7 +225,7 @@ spec:
                 kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
       - selector:
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-          kind: DockerMachineTemplate
+          kind: DevMachineTemplate
           matchResources:
             controlPlane: true
         jsonPatches:
@@ -236,7 +236,7 @@ spec:
                 kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
       - selector:
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-          kind: DockerMachinePoolTemplate
+          kind: DevMachinePoolTemplate
           matchResources:
             machinePoolClass:
               names:
@@ -249,13 +249,13 @@ spec:
                 kindest/node:{{ .builtin.machinePool.version | replace "+" "_" }}
   - name: preloadImages
     description: |
-      Sets the container images to preload to the node that is used for running dockerMachines.
+      Sets the container images to preload to the node that is used for running devMachines.
       This is especially required for self-hosted e2e tests to ensure the required controller images to be available
       and reduce load to public registries.
     definitions:
     - selector:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-        kind: DockerMachineTemplate
+        kind: DevMachineTemplate
         matchResources:
           controlPlane: true
           machineDeploymentClass:
@@ -268,13 +268,13 @@ spec:
           variable: preLoadImages
   - name: preloadImagesMP
     description: |
-      Sets the container images to preload to the node that is used for running dockerMachines.
+      Sets the container images to preload to the node that is used for running devMachines.
       This is especially required for self-hosted e2e tests to ensure the required controller images to be available
       and reduce load to public registries.
     definitions:
       - selector:
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-          kind: DockerMachinePoolTemplate
+          kind: DevMachinePoolTemplate
           matchResources:
             machinePoolClass:
               names:
@@ -515,7 +515,7 @@ spec:
                   value: "{{ .kubeletLogLevel }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerClusterTemplate
+kind: DevClusterTemplate
 metadata:
   name: quick-start-cluster
   labels:
@@ -593,7 +593,7 @@ spec:
                 value: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerMachineTemplate
+kind: DevMachineTemplate
 metadata:
   name: quick-start-control-plane
   labels:
@@ -614,7 +614,7 @@ spec:
       preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerMachineTemplate
+kind: DevMachineTemplate
 metadata:
   name: quick-start-default-worker-machinetemplate
   labels:
@@ -635,7 +635,7 @@ spec:
       preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerMachinePoolTemplate
+kind: DevMachinePoolTemplate
 metadata:
   name: quick-start-default-worker-machinepooltemplate
   labels:

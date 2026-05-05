@@ -1,7 +1,7 @@
 ---
-# DockerCluster object referenced by the Cluster object
+# DevCluster object referenced by the Cluster object
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerCluster
+kind: DevCluster
 metadata:
   name: '${CLUSTER_NAME}'
 ---
@@ -15,6 +15,8 @@ metadata:
   labels:
     cni: "${CLUSTER_NAME}-crs-0"
 spec:
+  backend:
+    docker: {}
   clusterNetwork:
     services:
       cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
@@ -23,12 +25,12 @@ spec:
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   infrastructureRef:
     apiGroup: infrastructure.cluster.x-k8s.io
-    kind: DockerCluster
+    kind: DevCluster
     name: '${CLUSTER_NAME}'
 ---
-# DockerMachine referenced by the Machine cp0
+# DevMachine referenced by the Machine cp0
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerMachine
+kind: DevMachine
 metadata:
   name: "${CLUSTER_NAME}-control-plane-0"
   labels:
@@ -43,6 +45,8 @@ metadata:
   labels:
     cluster.x-k8s.io/control-plane: ''
 spec:
+  backend:
+    docker: {}
   clusterConfiguration:
     apiServer:
       certSANs:
@@ -71,4 +75,4 @@ spec:
   infrastructureRef:
     name: "${ CLUSTER_NAME }-control-plane-0"
     apiGroup: infrastructure.cluster.x-k8s.io
-    kind: DockerMachine
+    kind: DevMachine

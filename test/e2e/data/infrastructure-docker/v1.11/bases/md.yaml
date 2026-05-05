@@ -1,15 +1,17 @@
 ---
-# DockerMachineTemplate referenced by the MachineDeployment and with
+# DevMachineTemplate referenced by the MachineDeployment and with
 # - extraMounts for the docker sock, thus allowing self-hosting test
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerMachineTemplate
+kind: DevMachineTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-0"
 spec:
   template:
     spec:
-      extraMounts:
-        - containerPath: "/var/run/docker.sock"
+      backend:
+        docker:
+          extraMounts:
+            - containerPath: "/var/run/docker.sock"
           hostPath: "/var/run/docker.sock"
       # The DOCKER_PRELOAD_IMAGES variable gets set in self-hosted E2E tests to the list of images of the E2E configuration.
       preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
@@ -42,5 +44,5 @@ spec:
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
         apiGroup: infrastructure.cluster.x-k8s.io
-        kind: DockerMachineTemplate
+        kind: DevMachineTemplate
       failureDomain: fd4

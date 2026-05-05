@@ -67,11 +67,11 @@ var ExpFinalizersAssertion = map[string]func(types.NamespacedName) []string{
 	machinePoolKind:        func(_ types.NamespacedName) []string { return []string{clusterv1.MachinePoolFinalizer} },
 }
 
-// DockerInfraFinalizersAssertion maps docker infrastructure resource types to their expected finalizers.
-var DockerInfraFinalizersAssertion = map[string]func(types.NamespacedName) []string{
-	dockerMachineKind:     func(_ types.NamespacedName) []string { return []string{infrav1.MachineFinalizer} },
-	dockerClusterKind:     func(_ types.NamespacedName) []string { return []string{infrav1.ClusterFinalizer} },
-	dockerMachinePoolKind: func(_ types.NamespacedName) []string { return []string{infrav1.MachinePoolFinalizer} },
+// DevInfraFinalizersAssertion maps dev infrastructure resource types to their expected finalizers.
+var DevInfraFinalizersAssertion = map[string]func(types.NamespacedName) []string{
+	devMachineKind:     func(_ types.NamespacedName) []string { return []string{infrav1.MachineFinalizer} },
+	devClusterKind:     func(_ types.NamespacedName) []string { return []string{infrav1.ClusterFinalizer} },
+	devMachinePoolKind: func(_ types.NamespacedName) []string { return []string{infrav1.MachinePoolFinalizer} },
 }
 
 // KubeadmControlPlaneFinalizersAssertion maps Kubeadm resource types to their expected finalizers.

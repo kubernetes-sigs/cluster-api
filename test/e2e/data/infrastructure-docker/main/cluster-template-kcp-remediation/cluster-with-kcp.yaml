@@ -1,7 +1,7 @@
 ---
-# DockerCluster object referenced by the Cluster object
+# DevCluster object referenced by the Cluster object
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerCluster
+kind: DevCluster
 metadata:
   name: '${CLUSTER_NAME}'
 ---
@@ -15,6 +15,8 @@ metadata:
   labels:
     cni: "${CLUSTER_NAME}-crs-0"
 spec:
+  backend:
+    docker: {}
   clusterNetwork:
     services:
       cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
@@ -23,19 +25,21 @@ spec:
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   infrastructureRef:
     apiGroup: infrastructure.cluster.x-k8s.io
-    kind: DockerCluster
+    kind: DevCluster
     name: '${CLUSTER_NAME}'
   controlPlaneRef:
     kind: KubeadmControlPlane
     apiGroup: controlplane.cluster.x-k8s.io
     name: "${CLUSTER_NAME}-control-plane"
 ---
-# DockerMachineTemplate object referenced by the KubeadmControlPlane object
+# DevMachineTemplate object referenced by the KubeadmControlPlane object
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerMachineTemplate
+kind: DevMachineTemplate
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
+  backend:
+    docker: {}
   template:
     spec:
       preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
@@ -50,7 +54,7 @@ spec:
   machineTemplate:
     spec:
       infrastructureRef:
-        kind: DockerMachineTemplate
+        kind: DevMachineTemplate
         apiGroup: infrastructure.cluster.x-k8s.io
         name: "${CLUSTER_NAME}-control-plane"
   kubeadmConfigSpec:

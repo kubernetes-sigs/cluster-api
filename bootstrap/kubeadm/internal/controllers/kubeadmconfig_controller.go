@@ -568,25 +568,14 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config)
+	files, err := r.resolveFiles(ctx, scope.Config, "v"+parsedVersion.String())
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to read content from secrets for spec.files",
-		})
-		return ctrl.Result{}, err
-	}
-	files, err = renderTemplates(files, templateData("v"+parsedVersion.String()))
-	if err != nil {
-		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
-		conditions.Set(scope.Config, metav1.Condition{
-			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
-			Status:  metav1.ConditionFalse,
-			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to render template in spec.files",
+			Message: fmt.Sprintf("Failed to prepare spec.files: %v", err),
 		})
 		return ctrl.Result{}, err
 	}
@@ -751,14 +740,26 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config)
+	// For template rendering on the worker join path, use the control plane version exclusively.
+	// If the CP version is not available, .controlPlane.version renders as the empty string;
+	// authors of contentFormat "template" files are responsible for handling that case in their scripts.
+	cpVersionForTemplate := controlPlaneVersion
+	if cpVersionForTemplate != "" {
+		cpParsed, err := semver.ParseTolerant(cpVersionForTemplate)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to parse control plane version %q for template data", cpVersionForTemplate)
+		}
+		cpVersionForTemplate = "v" + cpParsed.String()
+	}
+
+	files, err := r.resolveFiles(ctx, scope.Config, cpVersionForTemplate)
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to read content from secrets for spec.files",
+			Message: fmt.Sprintf("Failed to prepare spec.files: %v", err),
 		})
 		return ctrl.Result{}, err
 	}
@@ -788,29 +789,6 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 			return ctrl.Result{}, err
 		}
 		files = append(files, *kubeconfig)
-	}
-
-	// For template rendering on the worker join path, use the control plane version exclusively.
-	// If the CP version is not available and files use contentFormat "template", this will error
-	// because .controlPlane.version will be empty — operators should not use templates without a CP ref.
-	cpVersionForTemplate := controlPlaneVersion
-	if cpVersionForTemplate != "" {
-		cpParsed, err := semver.ParseTolerant(cpVersionForTemplate)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to parse control plane version %q for template data", cpVersionForTemplate)
-		}
-		cpVersionForTemplate = "v" + cpParsed.String()
-	}
-	files, err = renderTemplates(files, templateData(cpVersionForTemplate))
-	if err != nil {
-		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
-		conditions.Set(scope.Config, metav1.Condition{
-			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
-			Status:  metav1.ConditionFalse,
-			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to render template in spec.files",
-		})
-		return ctrl.Result{}, err
 	}
 
 	nodeInput := &cloudinit.NodeInput{
@@ -960,14 +938,14 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config)
+	files, err := r.resolveFiles(ctx, scope.Config, "v"+parsedVersion.String())
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to read content from secrets for spec.files",
+			Message: fmt.Sprintf("Failed to prepare spec.files: %v", err),
 		})
 		return ctrl.Result{}, err
 	}
@@ -997,18 +975,6 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 			return ctrl.Result{}, err
 		}
 		files = append(files, *kubeconfig)
-	}
-
-	files, err = renderTemplates(files, templateData("v"+parsedVersion.String()))
-	if err != nil {
-		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
-		conditions.Set(scope.Config, metav1.Condition{
-			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
-			Status:  metav1.ConditionFalse,
-			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to render template in spec.files",
-		})
-		return ctrl.Result{}, err
 	}
 
 	controlPlaneJoinInput := &cloudinit.ControlPlaneJoinInput{
@@ -1064,8 +1030,14 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 }
 
 // resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references
-// along the way.
-func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig) ([]bootstrapv1.File, error) {
+// and rendering template content using the provided control plane version.
+//
+// controlPlaneVersion is interpolated into entries with contentFormat "template" via
+// {{ .controlPlane.version }}. It MAY be the empty string on the worker join path when
+// the cluster has no control plane reference or the referenced object does not expose
+// spec.version; in that case template entries render with an empty version, and authors
+// of template files are responsible for handling that case in their scripts.
+func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig, controlPlaneVersion string) ([]bootstrapv1.File, error) {
 	collected := make([]bootstrapv1.File, 0, len(cfg.Spec.Files))
 
 	for i := range cfg.Spec.Files {
@@ -1081,7 +1053,11 @@ func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstr
 		collected = append(collected, in)
 	}
 
-	return collected, nil
+	rendered, err := renderTemplates(collected, templateData(controlPlaneVersion))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to render template")
+	}
+	return rendered, nil
 }
 
 // resolveSecretFileContent returns file content fetched from a referenced secret object.

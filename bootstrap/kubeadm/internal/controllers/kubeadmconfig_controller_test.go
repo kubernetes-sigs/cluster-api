@@ -2309,7 +2309,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 				}
 			}
 
-			files, err := k.resolveFiles(ctx, tc.cfg)
+			files, err := k.resolveFiles(ctx, tc.cfg, "")
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(files).To(BeComparableTo(tc.expect))
 			for _, file := range tc.cfg.Spec.Files {

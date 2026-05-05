@@ -58,6 +58,22 @@ func TestRenderTemplates(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 	})
 
+	t.Run("template renders empty string when controlPlane.version is empty", func(t *testing.T) {
+		// On the worker join path the control plane version may be unavailable
+		// (no control plane ref or referenced object does not expose spec.version).
+		// In that case .controlPlane.version interpolates to "" rather than failing,
+		// and template authors are responsible for handling the empty case in their scripts.
+		g := NewWithT(t)
+		emptyData := templateData("")
+		in := []bootstrapv1.File{
+			{Path: "/e", ContentFormat: bootstrapv1.FileContentFormatTemplate, Content: "v={{ .controlPlane.version }}"},
+		}
+		out, err := renderTemplates(in, emptyData)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(out[0].Content).To(Equal("v="))
+		g.Expect(out[0].ContentFormat).To(BeEmpty())
+	})
+
 	t.Run("template execution errors on missing field", func(t *testing.T) {
 		g := NewWithT(t)
 		in := []bootstrapv1.File{

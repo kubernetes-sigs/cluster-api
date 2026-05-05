@@ -642,7 +642,6 @@ const (
 	// FileContentFormatRaw means content is used verbatim.
 	FileContentFormatRaw FileContentFormat = "raw"
 	// FileContentFormatTemplate means content is rendered as a Go text/template.
-	// Available template variables are documented by the kubeadm bootstrap provider.
 	FileContentFormatTemplate FileContentFormat = "template"
 )
 

@@ -328,7 +328,8 @@ spec:
       preKubeadmCommands:
       - |
         command -v curl >/dev/null 2>&1 || (apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*)
-      - 'sh /run/cluster-api/fetch-kubeadm.sh 2>&1 | tee /var/log/fetch-kubeadm.log'
+      # Redirect rather than pipe to tee so the script's non-zero exit propagates and fails bootstrap.
+      - 'sh /run/cluster-api/fetch-kubeadm.sh > /var/log/fetch-kubeadm.log 2>&1'
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:

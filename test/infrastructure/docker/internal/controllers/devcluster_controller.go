@@ -19,7 +19,6 @@ package controllers
 
 import (
 	"context"
-	"sync"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -58,9 +57,6 @@ type DevClusterReconciler struct {
 	ContainerRuntime container.Runtime
 	InMemoryManager  inmemoryruntime.Manager
 	APIServerMux     *inmemoryserver.WorkloadClustersMux
-
-	hotRestartDone bool
-	hotRestartLock sync.RWMutex
 }
 
 // SetupWithManager will add watches for this controller.
@@ -88,6 +84,7 @@ func (r *DevClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devclusters/status;devclusters/finalizers,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;update;patch
 
 func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -150,13 +147,6 @@ func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	backendReconciler := r.backendReconcilerFactory(ctx, devCluster)
 
-	// If the selected backend has to perform specific tasks when restarting, do it!
-	if restarter, ok := backendReconciler.(backends.DevClusterBackendHotRestarter); ok {
-		if err := r.reconcileHotRestart(ctx, restarter); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
 	// Always attempt to Patch the DevCluster object and status after each reconciliation.
 	defer func() {
 		if err := backendReconciler.PatchDevCluster(ctx, patchHelper, devCluster); err != nil {
@@ -185,30 +175,4 @@ func (r *DevClusterReconciler) backendReconcilerFactory(_ context.Context, devCl
 		Client:           r.Client,
 		ContainerRuntime: r.ContainerRuntime,
 	}
-}
-
-func (r *DevClusterReconciler) reconcileHotRestart(ctx context.Context, restarter backends.DevClusterBackendHotRestarter) error {
-	r.hotRestartLock.RLock()
-	if r.hotRestartDone {
-		// Return if the hot restart was already done.
-		r.hotRestartLock.RUnlock()
-		return nil
-	}
-	r.hotRestartLock.RUnlock()
-
-	r.hotRestartLock.Lock()
-	defer r.hotRestartLock.Unlock()
-
-	// Check again if another go routine did the hot restart before we got the write lock.
-	if r.hotRestartDone {
-		return nil
-	}
-
-	if err := restarter.HotRestart(ctx); err != nil {
-		return err
-	}
-
-	r.hotRestartDone = true
-
-	return nil
 }

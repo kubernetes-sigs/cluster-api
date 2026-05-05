@@ -371,6 +371,7 @@ See [Cluster API release support](#cluster-api-release-support) and [Kubernetes 
 | Kubernetes v1.33 | ✓                         | ✓                 | ✓                 |
 | Kubernetes v1.34 | ✓ >= v1.11.1              | ✓                 | ✓                 |
 | Kubernetes v1.35 |                           | ✓ >= v1.12.1      | ✓                 |
+| Kubernetes v1.36 |                           | ✓ >= v1.12.8      | ✓ >= v1.13.1      |
 
 See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
 
@@ -400,17 +401,10 @@ defined for the Cluster API [Core provider](#core-provider-cluster-api-controlle
 When creating new machines, the Kubeadm Bootstrap provider generates kubeadm init/join configuration files
 using the [kubeadm API](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/control-plane-flags/) version recommended for the target Kubernetes version.
 
-|                  | kubeadm API Version                                                                |
-|------------------|------------------------------------------------------------------------------------|
-| Kubernetes v1.27 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
-| Kubernetes v1.28 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
-| Kubernetes v1.29 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
-| Kubernetes v1.30 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
-| Kubernetes v1.31 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
-| Kubernetes v1.32 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
-| Kubernetes v1.33 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
-| Kubernetes v1.34 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
-| Kubernetes v1.35 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
+|                           | kubeadm API Version                                                                |
+|---------------------------|------------------------------------------------------------------------------------|
+| Kubernetes >= v1.31       | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
+| Kubernetes v1.22 .. v1.30 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
 
 ### Kubeadm Control Plane provider (`kubeadm-control-plane-controller`)
 

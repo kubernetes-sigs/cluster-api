@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -96,9 +97,12 @@ func (r *KubeadmControlPlaneReconciler) canExtensionsUpdateMachine(ctx context.C
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create the CanUpdateMachine request.
-	req, err := createRequest(ctx, r.Client, machine, machineUpToDateResult)
+	cannotUpdateMachineReason, req, err := createRequest(ctx, r.Client, machine, machineUpToDateResult)
 	if err != nil {
 		return false, nil, errors.Wrapf(err, "failed to generate CanUpdateMachine request")
+	}
+	if cannotUpdateMachineReason != "" {
+		return false, []string{cannotUpdateMachineReason}, nil
 	}
 
 	var reasons []string
@@ -129,7 +133,7 @@ func (r *KubeadmControlPlaneReconciler) canExtensionsUpdateMachine(ctx context.C
 	return false, reasons, nil
 }
 
-func createRequest(ctx context.Context, c client.Client, currentMachine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (*runtimehooksv1.CanUpdateMachineRequest, error) {
+func createRequest(ctx context.Context, c client.Client, currentMachine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (string, *runtimehooksv1.CanUpdateMachineRequest, error) {
 	// DeepCopy objects to avoid mutations.
 	currentMachineForDiff := currentMachine.DeepCopy()
 	currentKubeadmConfigForDiff := machineUpToDateResult.CurrentKubeadmConfig.DeepCopy()
@@ -154,16 +158,30 @@ func createRequest(ctx context.Context, c client.Client, currentMachine *cluster
 	// Note: desiredMachineForDiff needs a dry-run because otherwise we have unintended diffs, e.g. dataSecretName,
 	//       providerID and nodeDeletionTimeout don't exist on the newly computed desired Machine.
 	if err := ssa.Patch(ctx, c, kcpManagerName, desiredMachineForDiff, ssa.WithDryRun{}); err != nil {
-		return nil, errors.Wrap(err, "server side apply dry-run failed for desired Machine")
+		// Note: While we check for specific errors for InfraMachine below we don't do the same here for Machine
+		// as we don't expect validating webhook errors for the Machine. If these errors actually occur
+		// we consider this a bug that should be fixed.
+		return "", nil, errors.Wrap(err, "server side apply dry-run failed for desired Machine")
 	}
 	// InfraMachine
 	// Note: Both currentInfraMachineForDiff and desiredInfraMachineForDiff need a dry-run to ensure changes
 	//       in defaulting logic and fields added by other controllers don't lead to an unintended diff.
 	if err := ssa.Patch(ctx, c, kcpManagerName, currentInfraMachineForDiff, ssa.WithDryRun{}); err != nil {
-		return nil, errors.Wrap(err, "server side apply dry-run failed for current InfraMachine")
+		// Note: If ssa.Patch fails because a validating webhook returns an error we cannot in-place update the InfraMachine
+		// as we would also later not be able to apply the InfraMachine object when triggering the in-place update.
+		// We expect that this only happens for desiredInfraMachineForDiff below but added it here as well as a safeguard.
+		if apierrors.IsInvalid(err) || apierrors.IsForbidden(err) {
+			return fmt.Sprintf("server side apply dry-run for current InfraMachine failed: %s", err), nil, nil
+		}
+		return "", nil, errors.Wrap(err, "server side apply dry-run failed for current InfraMachine")
 	}
 	if err := ssa.Patch(ctx, c, kcpManagerName, desiredInfraMachineForDiff, ssa.WithDryRun{}); err != nil {
-		return nil, errors.Wrap(err, "server side apply dry-run failed for desired InfraMachine")
+		// Note: If ssa.Patch fails because a validating webhook returns an error we cannot in-place update the InfraMachine
+		// as we would also later not be able to apply the InfraMachine object when triggering the in-place update.
+		if apierrors.IsInvalid(err) || apierrors.IsForbidden(err) {
+			return fmt.Sprintf("server side apply dry-run for desired InfraMachine failed: %s", err), nil, nil
+		}
+		return "", nil, errors.Wrap(err, "server side apply dry-run failed for desired InfraMachine")
 	}
 	// KubeadmConfig
 	// Note: Both currentKubeadmConfigForDiff and desiredKubeadmConfigForDiff don't need a dry-run as
@@ -184,22 +202,22 @@ func createRequest(ctx context.Context, c client.Client, currentMachine *cluster
 	var err error
 	req.Current.BootstrapConfig, err = patch.ConvertToRawExtension(cleanupKubeadmConfig(currentKubeadmConfigForDiff))
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	req.Desired.BootstrapConfig, err = patch.ConvertToRawExtension(cleanupKubeadmConfig(desiredKubeadmConfigForDiff))
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	req.Current.InfrastructureMachine, err = patch.ConvertToRawExtension(cleanupUnstructured(currentInfraMachineForDiff))
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	req.Desired.InfrastructureMachine, err = patch.ConvertToRawExtension(cleanupUnstructured(desiredInfraMachineForDiff))
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
-	return req, nil
+	return "", req, nil
 }
 
 func cleanupMachine(machine *clusterv1.Machine) *clusterv1.Machine {

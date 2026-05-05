@@ -352,7 +352,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 			DebugPort: inmemoryserver.DefaultDebugPort + 10,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
-		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
+		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String(), 0)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		r := MachineBackendReconciler{
@@ -438,7 +438,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 			DebugPort: inmemoryserver.DefaultDebugPort + 20,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
-		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
+		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String(), 0)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		r := MachineBackendReconciler{
@@ -582,7 +582,7 @@ func TestReconcileNormalApiServer(t *testing.T) {
 			DebugPort: inmemoryserver.DefaultDebugPort + 11,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
-		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
+		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String(), 0)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		r := MachineBackendReconciler{

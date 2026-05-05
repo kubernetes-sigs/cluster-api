@@ -520,6 +520,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
+	if err := (&infrawebhooks.DockerMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerMachine")
+		os.Exit(1)
+	}
+
 	if err := (&infrawebhooks.DockerMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerMachineTemplate")
 		os.Exit(1)

@@ -63,8 +63,8 @@ func NewDebugHandler(manager inmemoryruntime.Manager, log logr.Logger, infoProvi
 	// Discovery endpoints
 	ws.Route(ws.GET("/").To(debugServer.ping))
 	ws.Route(ws.GET("/listeners").To(debugServer.listenersList))
-	ws.Route(ws.GET("/clusters/{namespace}/{name}").To(debugServer.getCluster))
-	ws.Route(ws.POST("/clusters/{namespace}/{name}/listener").To(debugServer.startOrStopListener))
+	ws.Route(ws.GET("/namespaces/{namespace}/clusters/{name}").To(debugServer.getCluster))
+	ws.Route(ws.POST("/namespaces/{namespace}/clusters/{name}/listener").To(debugServer.startOrStopListener))
 
 	debugServer.container.Add(ws)
 

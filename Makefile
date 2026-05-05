@@ -574,14 +574,9 @@ generate-crd-docs: $(CRD_REF_DOCS) ## Generate CRD API reference documentation u
 	printf '%s\n\n' '> This page documents **deprecated** API packages. For current types, see [CRD API Reference (v1beta2)](crd-api-reference.md).' | cat - $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md > $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md.tmp && mv $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md.tmp $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.10 v1.11 v1.12 main) ## Generate cluster templates for all versions
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.11 v1.12 v1.13 main) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
-
-.PHONY: generate-e2e-templates-v1.10
-generate-e2e-templates-v1.10: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.10/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.10/cluster-template.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.10/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.10/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-v1.11
 generate-e2e-templates-v1.11: $(KUSTOMIZE)
@@ -592,6 +587,11 @@ generate-e2e-templates-v1.11: $(KUSTOMIZE)
 generate-e2e-templates-v1.12: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.12/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.12/cluster-template.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.12/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.12/cluster-template-topology.yaml
+
+.PHONY: generate-e2e-templates-v1.13
+generate-e2e-templates-v1.13: $(KUSTOMIZE)
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.13/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.13/cluster-template.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.13/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.13/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-main
 generate-e2e-templates-main: $(KUSTOMIZE)

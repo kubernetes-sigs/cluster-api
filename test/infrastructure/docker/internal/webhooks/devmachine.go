@@ -19,6 +19,8 @@ package webhooks
 import (
 	"context"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -55,8 +57,18 @@ func (webhook *DevMachine) ValidateCreate(_ context.Context, _ *infrav1.DevMachi
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DevMachine) ValidateUpdate(_ context.Context, _, _ *infrav1.DevMachine) (admission.Warnings, error) {
-	return nil, nil
+func (webhook *DevMachine) ValidateUpdate(_ context.Context, oldObj, newObj *infrav1.DevMachine) (admission.Warnings, error) {
+	var allErrs field.ErrorList
+
+	if oldObj.Spec.Backend.Docker != nil && newObj.Spec.Backend.Docker != nil &&
+		oldObj.Spec.Backend.Docker.CustomImage != newObj.Spec.Backend.Docker.CustomImage {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "backend", "docker", "customImage"), "cannot be modified"))
+	}
+
+	if len(allErrs) == 0 {
+		return nil, nil
+	}
+	return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DevMachine").GroupKind(), newObj.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.

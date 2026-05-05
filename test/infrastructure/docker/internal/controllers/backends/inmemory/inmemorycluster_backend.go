@@ -19,11 +19,16 @@ package inmemory
 
 import (
 	"context"
+	"fmt"
+	"net"
+	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,6 +40,7 @@ import (
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 // ClusterBackendReconciler reconciles a InMemoryCluster backend.
@@ -44,30 +50,10 @@ type ClusterBackendReconciler struct {
 	APIServerMux    *inmemoryserver.WorkloadClustersMux
 }
 
-// HotRestart tries to setup the APIServerMux according to an existing sets of InMemoryCluster.
-// NOTE: This is done at best effort in order to make iterative development workflow easier.
-func (r *ClusterBackendReconciler) HotRestart(ctx context.Context) error {
-	inMemoryClusterList := &infrav1.DevClusterList{}
-	if err := r.List(ctx, inMemoryClusterList); err != nil {
-		return err
-	}
-
-	listeners := []inmemoryserver.HotRestartListener{}
-	for _, cluster := range inMemoryClusterList.Items {
-		if cluster.Spec.Backend.InMemory != nil {
-			listeners = append(listeners, inmemoryserver.HotRestartListener{
-				Cluster: klog.KRef(cluster.Namespace, cluster.Name).String(),
-				Name:    cluster.Annotations[infrav1.ListenerAnnotationName],
-				Host:    cluster.Spec.ControlPlaneEndpoint.Host,
-				Port:    cluster.Spec.ControlPlaneEndpoint.Port,
-			})
-		}
-	}
-	return r.APIServerMux.HotRestart(listeners)
-}
-
 // ReconcileNormal handle in memory backend for DevCluster not yet deleted.
 func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.DevCluster) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	if inMemoryCluster.Spec.Backend.InMemory == nil {
 		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
 	}
@@ -110,9 +96,53 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		}
 	}
 
+	// Detect and handle when the host changed, e.g. after a CAPD restart.
+	if ptr.Deref(inMemoryCluster.Status.Initialization.Provisioned, false) {
+		if inMemoryCluster.Spec.ControlPlaneEndpoint.Host != r.APIServerMux.Host() {
+			// The host is changed, fix it up in the kubeconfig
+			// Note: Check if the kubeconfig secret has the wrong controlPlaneEndpoint, if yes, fix it up
+			kubeconfigSecret := &corev1.Secret{}
+			if err := r.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Name + "-kubeconfig"}, kubeconfigSecret); err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to get kubeconfig Secret for Cluster")
+			}
+			data, ok := kubeconfigSecret.Data[secret.KubeconfigDataName]
+			if !ok {
+				return ctrl.Result{}, errors.Errorf("missing key %q in kubeconfig Secret for Cluster", secret.KubeconfigDataName)
+			}
+			config, err := clientcmd.Load(data)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
+			}
+			kubeconfigCluster, ok := config.Clusters[cluster.Name]
+			if !ok {
+				return ctrl.Result{}, errors.Errorf("missing clusters map entry in kubeconfig Secret for Cluster")
+			}
+			desiredServer := fmt.Sprintf("https://%s", net.JoinHostPort(r.APIServerMux.Host(), strconv.Itoa(int(inMemoryCluster.Spec.ControlPlaneEndpoint.Port))))
+			if kubeconfigCluster.Server != desiredServer {
+				original := kubeconfigSecret.DeepCopy()
+				kubeconfigCluster.Server = desiredServer
+				kubeconfigBytes, err := clientcmd.Write(*config)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+				kubeconfigSecret.Data[secret.KubeconfigDataName] = kubeconfigBytes
+				if err := r.Client.Patch(ctx, kubeconfigSecret, client.MergeFrom(original)); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+
+			log.Info(fmt.Sprintf("InMemoryCluster controlPlane endpoint host updated from %s to %s", inMemoryCluster.Spec.ControlPlaneEndpoint.Host, r.APIServerMux.Host()))
+
+			// surface the new host
+			inMemoryCluster.Spec.ControlPlaneEndpoint.Host = r.APIServerMux.Host()
+
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+	}
+
 	// Initialize a listener for the workload cluster; if the listener has been already initialized
 	// the operation is a no-op.
-	listener, err := r.APIServerMux.InitWorkloadClusterListener(listenerName)
+	listener, err := r.APIServerMux.InitWorkloadClusterListener(listenerName, inMemoryCluster.Spec.ControlPlaneEndpoint.Port)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init the listener for the workload cluster")
 	}
@@ -124,6 +154,7 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	if inMemoryCluster.Spec.ControlPlaneEndpoint.Host == "" {
 		inMemoryCluster.Spec.ControlPlaneEndpoint.Host = listener.Host()
 		inMemoryCluster.Spec.ControlPlaneEndpoint.Port = listener.Port()
+		log.Info(fmt.Sprintf("InMemoryCluster assigned controlPlane endpoint %s:%d", inMemoryCluster.Spec.ControlPlaneEndpoint.Host, inMemoryCluster.Spec.ControlPlaneEndpoint.Port))
 	}
 
 	// Mark the InMemoryCluster ready

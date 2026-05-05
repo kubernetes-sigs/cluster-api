@@ -30,6 +30,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
@@ -160,7 +161,30 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		//  the downside of it is that InMemoryMachines status will change by "big steps" vs incrementally.
 		res = util.LowestNonZeroResult(res, phaseResult)
 	}
-	return res, kerrors.NewAggregate(errs)
+	if len(errs) > 0 {
+		return res, kerrors.NewAggregate(errs)
+	}
+
+	if (util.IsControlPlaneMachine(machine) && conditions.IsTrue(inMemoryMachine, infrav1.DevMachineInMemoryAPIServerProvisionedCondition)) ||
+		(!util.IsControlPlaneMachine(machine) && conditions.IsTrue(inMemoryMachine, infrav1.DevMachineInMemoryNodeProvisionedCondition)) {
+		if hasBootstrappedAnnotation(machine) {
+			return res, nil
+		}
+
+		machineObj := &unstructured.Unstructured{}
+		machineObj.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine"))
+		machineObj.SetNamespace(machine.Namespace)
+		machineObj.SetName(machine.Name)
+		original := machineObj.DeepCopy()
+		machineObj.SetAnnotations(map[string]string{
+			MachineBootstrappedAnnotationName: "",
+		})
+		if err := r.Client.Patch(ctx, machineObj, client.MergeFrom(original)); err != nil {
+			return res, err
+		}
+	}
+
+	return res, nil
 }
 
 func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (_ ctrl.Result, retErr error) {
@@ -215,7 +239,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 
 	start := cloudMachine.CreationTimestamp
 	now := time.Now()
-	if now.Before(start.Add(provisioningDuration)) {
+	if !hasBootstrappedAnnotation(machine) && now.Before(start.Add(provisioningDuration)) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.VMWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryVMProvisionedCondition,
@@ -280,7 +304,7 @@ func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, clus
 
 	start := conditions.Get(inMemoryMachine, infrav1.DevMachineInMemoryVMProvisionedCondition).LastTransitionTime
 	now := time.Now()
-	if now.Before(start.Add(provisioningDuration)) {
+	if !hasBootstrappedAnnotation(machine) && now.Before(start.Add(provisioningDuration)) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.NodeProvisionedCondition, infrav1.NodeWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryNodeProvisionedCondition,
@@ -426,7 +450,7 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 
 	start := conditions.Get(inMemoryMachine, infrav1.DevMachineInMemoryNodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
-	if now.Before(start.Add(provisioningDuration)) {
+	if !hasBootstrappedAnnotation(machine) && now.Before(start.Add(provisioningDuration)) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.EtcdProvisionedCondition, infrav1.EtcdWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryEtcdProvisionedCondition,
@@ -667,7 +691,7 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 
 	start := conditions.Get(inMemoryMachine, infrav1.DevMachineInMemoryNodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
-	if now.Before(start.Add(provisioningDuration)) {
+	if !hasBootstrappedAnnotation(machine) && now.Before(start.Add(provisioningDuration)) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.APIServerProvisionedCondition, infrav1.APIServerWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryAPIServerProvisionedCondition,
@@ -1282,4 +1306,14 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 			infrav1.DevMachineInMemoryAPIServerProvisionedCondition,
 		}},
 	)
+}
+
+const (
+	// MachineBootstrappedAnnotationName is added to the Machine once the machine is entirely bootstrapped.
+	MachineBootstrappedAnnotationName = "machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped"
+)
+
+func hasBootstrappedAnnotation(machine *clusterv1.Machine) bool {
+	_, ok := machine.Annotations[MachineBootstrappedAnnotationName]
+	return ok
 }

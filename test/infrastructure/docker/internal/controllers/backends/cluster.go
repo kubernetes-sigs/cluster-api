@@ -32,8 +32,3 @@ type DevClusterBackendReconciler interface {
 	ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, devCluster *infrav1.DevCluster) (ctrl.Result, error)
 	PatchDevCluster(ctx context.Context, patchHelper *patch.Helper, devCluster *infrav1.DevCluster) error
 }
-
-// DevClusterBackendHotRestarter defines restart behaviour for a DevCluster backend.
-type DevClusterBackendHotRestarter interface {
-	HotRestart(ctx context.Context) error
-}

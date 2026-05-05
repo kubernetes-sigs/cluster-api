@@ -38,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryapi "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/api"
 	inmemoryetcd "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/etcd"
@@ -169,6 +168,11 @@ func NewWorkloadClustersMux(manager inmemoryruntime.Manager, host string, opts .
 	return m, nil
 }
 
+// Host return the host address for the WorkloadClustersMux.
+func (m *WorkloadClustersMux) Host() string {
+	return m.host
+}
+
 // mixedHandler returns an handler that can serve either API server calls or etcd calls.
 func (m *WorkloadClustersMux) mixedHandler() http.Handler {
 	// Prepare a function that can identify which workloadCluster/resourceGroup a
@@ -256,81 +260,9 @@ func (m *WorkloadClustersMux) getCertificate(info *tls.ClientHelloInfo) (*tls.Ce
 	return wcl.apiServerServingCertificate, nil
 }
 
-// HotRestartListener defines listeners for HotRestart.
-type HotRestartListener struct {
-	Cluster string
-	Name    string
-	Host    string
-	Port    int32
-}
-
-// HotRestart tries to set up the mux according to an existing set of InMemoryClusters.
-// NOTE: This is done at best effort in order to make iterative development workflows easier.
-func (m *WorkloadClustersMux) HotRestart(listeners []HotRestartListener) error {
-	if len(listeners) == 0 {
-		return nil
-	}
-
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	if len(m.workloadClusterListeners) > 0 {
-		return errors.New("WorkloadClustersMux cannot be hot restarted when there are already initialized listeners")
-	}
-
-	ports := sets.Set[int32]{}
-	maxPort := m.minPort - 1
-	for _, l := range listeners {
-		if l.Host == "" {
-			continue
-		}
-
-		if l.Host != m.host {
-			return errors.Errorf("unable to restart the WorkloadClustersMux, the host address is changed from %s to %s", l.Host, m.host)
-		}
-
-		if ports.Has(l.Port) {
-			return errors.Errorf("unable to restart the WorkloadClustersMux, there are two or more clusters using port %d", l.Port)
-		}
-
-		if l.Name == "" {
-			return errors.Errorf("unable to restart the WorkloadClustersMux, cluster %s doesn't have the %s annotation", l.Cluster, infrav1.ListenerAnnotationName)
-		}
-
-		m.initWorkloadClusterListenerWithPortLocked(l.Name, l.Port)
-
-		if maxPort < l.Port {
-			maxPort = l.Port
-		}
-	}
-
-	m.portIndex = maxPort + 1
-	return nil
-}
-
 // InitWorkloadClusterListener initialize a WorkloadClusterListener by reserving a port for it.
 // Note: The listener will be started when the first API server will be added.
-func (m *WorkloadClustersMux) InitWorkloadClusterListener(wclName string) (*WorkloadClusterListener, error) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	if wcl, ok := m.workloadClusterListeners[wclName]; ok {
-		return wcl, nil
-	}
-
-	port, err := m.getFreePortLocked()
-	if err != nil {
-		return nil, err
-	}
-
-	wcl := m.initWorkloadClusterListenerWithPortLocked(wclName, port)
-
-	return wcl, nil
-}
-
-// InitWorkloadClusterListenerWithPort initialize a WorkloadClusterListener by reserving a port for it.
-// Note: The listener will be started when the first API server will be added.
-func (m *WorkloadClustersMux) InitWorkloadClusterListenerWithPort(wclName string, port int32) (*WorkloadClusterListener, error) {
+func (m *WorkloadClustersMux) InitWorkloadClusterListener(wclName string, port int32) (*WorkloadClusterListener, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -348,14 +280,6 @@ func (m *WorkloadClustersMux) InitWorkloadClusterListenerWithPort(wclName string
 		m.portIndex = max(m.portIndex, port+1)
 	}
 
-	wcl := m.initWorkloadClusterListenerWithPortLocked(wclName, port)
-
-	return wcl, nil
-}
-
-// initWorkloadClusterListenerWithPortLocked initializes a workload cluster listener.
-// Note: m.lock must be locked before calling this method.
-func (m *WorkloadClustersMux) initWorkloadClusterListenerWithPortLocked(wclName string, port int32) *WorkloadClusterListener {
 	wcl := &WorkloadClusterListener{
 		scheme:                  m.manager.GetScheme(),
 		host:                    m.host,
@@ -371,7 +295,8 @@ func (m *WorkloadClustersMux) initWorkloadClusterListenerWithPortLocked(wclName 
 	m.workloadClusterNameByPort[fmt.Sprintf("%d", wcl.Port())] = wclName
 
 	m.log.Info("Workload cluster listener created", "listenerName", wclName, "address", wcl.Address())
-	return wcl
+
+	return wcl, nil
 }
 
 // RegisterResourceGroup registers the resource group that host in memory resources for a WorkloadClusterListener.
@@ -414,7 +339,7 @@ func (m *WorkloadClustersMux) WorkloadClusterByResourceGroup(resouceGroup string
 			return wclName, nil
 		}
 	}
-	return "", errors.Errorf("resouceGroup with name %s not yet registered to a workloadClusterListener", resouceGroup)
+	return "", errors.Errorf("resourceGroup with name %s not yet registered to a workloadClusterListener", resouceGroup)
 }
 
 // AddAPIServer mimics adding an API server instance behind the WorkloadClusterListener.
@@ -707,7 +632,7 @@ func (m *WorkloadClustersMux) ListListeners() map[string]string {
 	for k, l := range m.workloadClusterListeners {
 		ret[k] = l.Address()
 		if l.listener == nil {
-			ret[k] += " (not active)"
+			ret[k] += " (stopped)"
 		}
 	}
 	return ret

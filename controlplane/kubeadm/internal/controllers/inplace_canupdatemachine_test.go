@@ -22,9 +22,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -692,6 +695,66 @@ func Test_createRequest(t *testing.T) {
 	unstructured.RemoveNestedField(desiredInfraMachineCleanedUp.Object, "status") // cleanupUnstructured drops status.
 	desiredInfraMachineWithFieldsSetByMachineControllerCleanedUp := desiredInfraMachineCleanedUp.DeepCopy()
 	g.Expect(unstructured.SetNestedField(desiredInfraMachineWithFieldsSetByMachineControllerCleanedUp.Object, "hello world from the infra machine controller", "spec", "bar")).To(Succeed())
+	desiredInfraMachineInvalid := desiredInfraMachine.DeepCopy()
+	g.Expect(unstructured.SetNestedField(desiredInfraMachineInvalid.Object, "invalid", "spec", "foo")).To(Succeed())
+	// Deploy ValidatingAdmissionPolicy to make desiredInfraMachineInvalid invalid.
+	p := &admissionregistrationv1.ValidatingAdmissionPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "in-place-create-request",
+		},
+		Spec: admissionregistrationv1.ValidatingAdmissionPolicySpec{
+			MatchConstraints: &admissionregistrationv1.MatchResources{
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{
+							Key:      "kubernetes.io/metadata.name",
+							Operator: metav1.LabelSelectorOpIn,
+							Values:   []string{ns.Name},
+						},
+					},
+				},
+				ResourceRules: []admissionregistrationv1.NamedRuleWithOperations{
+					{
+						RuleWithOperations: admissionregistrationv1.RuleWithOperations{
+							Operations: []admissionregistrationv1.OperationType{admissionregistrationv1.OperationAll},
+							Rule: admissionregistrationv1.Rule{
+								APIGroups:   []string{builder.InfrastructureGroupVersion.Group},
+								APIVersions: []string{"*"},
+								Resources:   []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			Validations: []admissionregistrationv1.Validation{
+				{
+					Expression: "!has(object.spec) || !has(object.spec.foo) || object.spec.foo != 'invalid'",
+					Message:    "Field spec.foo must not be set to 'invalid'",
+				},
+			},
+		},
+	}
+	g.Expect(env.Create(t.Context(), p)).To(Succeed())
+	t.Cleanup(func() {
+		g.Expect(env.DeleteAndWait(context.Background(), p)).To(Succeed())
+	})
+	b := &admissionregistrationv1.ValidatingAdmissionPolicyBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "in-place-create-request",
+		},
+		Spec: admissionregistrationv1.ValidatingAdmissionPolicyBindingSpec{
+			PolicyName:        p.Name,
+			ValidationActions: []admissionregistrationv1.ValidationAction{admissionregistrationv1.Deny},
+		},
+	}
+	g.Expect(env.Create(t.Context(), b)).To(Succeed())
+	t.Cleanup(func() {
+		g.Expect(env.DeleteAndWait(context.Background(), b)).To(Succeed())
+	})
+	// Wait until ValidatingAdmissionPolicy is active.
+	g.Eventually(func(g Gomega) {
+		g.Expect(apierrors.IsInvalid(ssa.Patch(ctx, env.Client, kcpManagerName, desiredInfraMachineInvalid.DeepCopy(), ssa.WithDryRun{}))).To(BeTrue())
+	}).WithTimeout(5 * time.Second).Should(Succeed())
 
 	tests := []struct {
 		name                          string
@@ -704,6 +767,7 @@ func Test_createRequest(t *testing.T) {
 		modifyMachineAfterCreate      func(ctx context.Context, c client.Client, machine *clusterv1.Machine) error
 		modifyInfraMachineAfterCreate func(ctx context.Context, c client.Client, infraMachine *unstructured.Unstructured) error
 		modifyUpToDateResult          func(result *internal.UpToDateResult)
+		wantCannotUpdateMachineReason string
 		wantReq                       *runtimehooksv1.CanUpdateMachineRequest
 		wantError                     bool
 		wantErrorMessage              string
@@ -820,6 +884,19 @@ func Test_createRequest(t *testing.T) {
 			},
 		},
 		{
+			name:                 "Should return cannotUpdateMachineReason if desiredInfraMachine is invalid",
+			currentMachine:       currentMachine,
+			currentInfraMachine:  currentInfraMachine,
+			currentKubeadmConfig: currentKubeadmConfig,
+			desiredMachine:       desiredMachine,
+			desiredInfraMachine:  desiredInfraMachineInvalid,
+			desiredKubeadmConfig: desiredKubeadmConfig,
+			wantCannotUpdateMachineReason: "server side apply dry-run for desired InfraMachine failed: " +
+				"failed to apply TestInfrastructureMachine: testinfrastructuremachines.infrastructure.cluster.x-k8s.io \"machine-to-in-place-update\" is forbidden: " +
+				"ValidatingAdmissionPolicy 'in-place-create-request' with binding 'in-place-create-request' denied request: " +
+				"Field spec.foo must not be set to 'invalid'",
+		},
+		{
 			name:                 "Should prepare all objects for diff: currentKubeadmConfig & desiredKubeadmConfig are prepared for diff",
 			currentMachine:       currentMachine,
 			currentInfraMachine:  currentInfraMachine,
@@ -889,13 +966,14 @@ func Test_createRequest(t *testing.T) {
 				tt.modifyUpToDateResult(&upToDateResult)
 			}
 
-			req, err := createRequest(ctx, env.Client, currentMachineForPatch, upToDateResult)
+			cannotUpdateMachineReason, req, err := createRequest(ctx, env.Client, currentMachineForPatch, upToDateResult)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
+			g.Expect(cannotUpdateMachineReason).To(BeComparableTo(tt.wantCannotUpdateMachineReason))
 			g.Expect(req).To(BeComparableTo(tt.wantReq))
 		})
 	}

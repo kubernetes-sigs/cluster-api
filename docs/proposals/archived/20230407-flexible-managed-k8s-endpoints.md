@@ -51,6 +51,8 @@ see-also:
 
 # Flexible Managed Kubernetes Endpoints
 
+**Note**: This proposal has not been implemented and should be carefully re-evaluated if it is still up-to-date before implementation.
+
 ## Glossary
 
 Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).

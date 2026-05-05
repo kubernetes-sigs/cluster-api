@@ -592,6 +592,9 @@ func computeDesiredDevMachine(name string, cluster *clusterv1.Cluster, machinePo
 	if existingDevMachine != nil {
 		devMachine.SetUID(existingDevMachine.UID)
 		devMachine.SetOwnerReferences(existingDevMachine.OwnerReferences)
+		devMachine.Spec.Backend.Docker.CustomImage = existingDevMachine.Spec.Backend.Docker.CustomImage
+		devMachine.Spec.Backend.Docker.PreLoadImages = existingDevMachine.Spec.Backend.Docker.PreLoadImages
+		devMachine.Spec.Backend.Docker.ExtraMounts = existingDevMachine.Spec.Backend.Docker.ExtraMounts
 	}
 
 	// Note: Since the MachinePool controller has not created its owner Machine yet, we want to set the DevMachinePool as the owner so it's not orphaned.

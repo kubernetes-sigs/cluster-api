@@ -101,7 +101,7 @@ func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachines/status;devmachines/finalizers,verbs=get;list;watch;patch;update
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;machinesets;machines,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch;patch;
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
 // Reconcile handles DevMachine events.

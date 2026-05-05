@@ -270,6 +270,9 @@ func computeDesiredDockerMachine(name string, cluster *clusterv1.Cluster, machin
 	if existingDockerMachine != nil {
 		dockerMachine.SetUID(existingDockerMachine.UID)
 		dockerMachine.SetOwnerReferences(existingDockerMachine.OwnerReferences)
+		dockerMachine.Spec.CustomImage = existingDockerMachine.Spec.CustomImage
+		dockerMachine.Spec.PreLoadImages = existingDockerMachine.Spec.PreLoadImages
+		dockerMachine.Spec.ExtraMounts = existingDockerMachine.Spec.ExtraMounts
 	}
 
 	// Note: Since the MachinePool controller has not created its owner Machine yet, we want to set the DockerMachinePool as the owner so it's not orphaned.

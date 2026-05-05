@@ -44,6 +44,9 @@ export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export SKIP_RESOURCE_CLEANUP=${SKIP_RESOURCE_CLEANUP:-"false"}
 export USE_EXISTING_CLUSTER=false
 
+# TODO: Remove this as soon as a kind image for v1.36.0 is available
+export BUILD_NODE_IMAGE_TAG="v1.36.0"
+
 # Prepare kindest/node images for all the required Kubernetes version; this implies
 # 1. Kubernetes version labels (e.g. latest) to the corresponding version numbers.
 # 2. Pre-pulling the corresponding kindest/node image if available; if not, building the image locally.

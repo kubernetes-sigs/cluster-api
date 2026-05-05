@@ -58,6 +58,7 @@
         - [generate yaml](clusterctl/commands/generate-yaml.md)
         - [get kubeconfig](clusterctl/commands/get-kubeconfig.md)
         - [describe cluster](clusterctl/commands/describe-cluster.md)
+        - [convert](clusterctl/commands/convert.md)
         - [move](./clusterctl/commands/move.md)
         - [upgrade](clusterctl/commands/upgrade.md)
         - [delete](clusterctl/commands/delete.md)

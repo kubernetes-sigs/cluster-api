@@ -29,10 +29,10 @@ The following table shows the preliminary dates for the `v1.14` release cycle.
 After CAPI v1.14.0, the .1 release will follow up to add support for Kubernetes 1.37.0 when it becomes available. After .1, we expect to do monthly patch releases (more details will be provided in the v1.15 release schedule).
 
 ## Release team
- 
-| **Role**                                         | **Lead (GitHub / Slack ID)** | **Team member(s) (GitHub / Slack ID)** |
-|--------------------------------------------------|------------------------------|----------------------------------------|
-| Release Lead                                     | TBD                          | TBD                                    |
-| Communications/Docs/Release Notes Manager        | TBD                          | TBD                                    |
-| CI Signal/Bug Triage/Automation Manager          | TBD                          | TBD                                    |
-| Emeritus Advisor                                 | TBD                          | TBD                                    |
+
+| **Role**                                  | **Lead** (**GitHub / Slack ID**)                                                                 | **Team member(s) (GitHub / Slack ID)** |
+|-------------------------------------------|--------------------------------------------------------------------------------------------------|----------------------------------------|
+| Release Lead                              | Arshadd Banoo ([@arshadd-b](https://github.com/arshadd-b) / `@arshadda`)                 | Aman Shrivastava ([@aman4433](https://github.com/aman4433) / `@AmanShrivastava`) <br> Prajyot Parab ([@prajyot-parab](https://github.com/prajyot-parab) / `@Prajyot Parab`) <br> |
+| Communications/Docs/Release Notes Manager | Ira Pandey ([@irapandey](https://github.com/irapandey) / `@irapandey`)               | Agustina Barbetta ([@aibarbetta](https://github.com/aibarbetta) / `@aibarbetta`) <br> Chandan Kumar ([@chandankumar4](https://github.com/chandankumar4) / `@chandankr`) <br> Vishal Anarase ([@vishalanarase](https://github.com/vishalanarase) / `@Vishal Anarase`) <br> Omar Nasser ([@onasser1](https://github.com/onasser1) / `@Omar Nasser`) <br> |
+| CI Signal/Bug Triage/Automation Manager   | Peppi-Lotta ([@Peppi-Lotta](https://github.com/Peppi-Lotta) / `@Peppi-Lotta`)                   | Daniel Giszpenc ([@Daniel-Giszpenc](https://github.com/Daniel-Giszpenc) / `@Daniel`) <br> Manali Latkar ([@manalilatkar](https://github.com/manalilatkar) / `@Manali Latkar`) <br> Sathvik S ([@sats-23](https://github.com/sats-23) / `@sats`) <br> Shwetha Poojary ([@shwetha-s-poojary](https://github.com/shwetha-s-poojary) / `@Shwetha`) <br> Yuedong Wu ([@lunarwhite](https://github.com/lunarwhite) / `@lunarwhite`) <br> |
+| Emeritus Advisor                          | Matt Boersma ([@mboersma](https://github.com/mboersma) / `@mboersma`)                             |                                        |

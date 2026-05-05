@@ -95,7 +95,7 @@ func TestMux(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	defer func() { _ = wcmux.Shutdown(ctx) }()
 
-	listener, err := wcmux.InitWorkloadClusterListener(wcl)
+	listener, err := wcmux.InitWorkloadClusterListener(wcl, 0)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(listener.Host()).To(Equal(host))
 	g.Expect(listener.Port()).ToNot(BeZero())
@@ -276,7 +276,7 @@ func TestAPI_PortForward(t *testing.T) {
 
 	// InfraCluster controller >> when "creating the load balancer"
 	wcl1 := "workload-cluster1-controlPlaneEndpoint"
-	listener, err := wcmux.InitWorkloadClusterListener(wcl1)
+	listener, err := wcmux.InitWorkloadClusterListener(wcl1, 0)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(listener.Host()).To(Equal(host))
 	g.Expect(listener.Port()).ToNot(BeZero())
@@ -665,7 +665,7 @@ func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadCluster
 	// InfraCluster controller >> when "creating the load balancer"
 	wcl1 := "workload-cluster1-controlPlaneEndpoint"
 
-	listener, err := wcmux.InitWorkloadClusterListener(wcl1)
+	listener, err := wcmux.InitWorkloadClusterListener(wcl1, 0)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(listener.Host()).To(Equal(host))
 	g.Expect(listener.Port()).ToNot(BeZero())

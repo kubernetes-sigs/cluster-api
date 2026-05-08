@@ -135,10 +135,7 @@ func KubeadmJoinOldNodesSpec(ctx context.Context, inputGetter func() KubeadmJoin
 		// Scale-out uses a worker template still at upgradeFrom while the control plane is already at
 		// upgradeTo. KubeadmVersionSkew and ControlPlaneVersionSkew would block that; other preflights
 		// (e.g. KubernetesVersionSkew, ControlPlaneIsStable) should still run.
-		skippedMachineSetPreflights := strings.Join([]string{
-			string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew),
-			string(clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew),
-		}, ",")
+		skippedMachineSetPreflights := string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew) + "," + string(clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew)
 
 		mdTopology := cluster.Spec.Topology.Workers.MachineDeployments[0]
 		if mdTopology.Metadata.Annotations == nil {

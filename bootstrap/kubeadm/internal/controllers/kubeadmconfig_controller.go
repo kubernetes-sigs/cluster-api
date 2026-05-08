@@ -568,7 +568,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config, "v"+parsedVersion.String())
+	files, err := r.resolveFiles(ctx, scope.Config, scope.Cluster)
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
@@ -690,8 +690,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 
 	// Use the control plane (cluster) version for worker join so that e.g. a 1.34 node uses kubeadm 1.35
 	// when the control plane is at 1.35. Fall back to the joining machine's version only when the cluster has
-	// no control plane ref or the referenced object does not expose spec.version (see getControlPlaneVersionForJoin).
-	controlPlaneVersion, err := r.getControlPlaneVersionForJoin(ctx, scope)
+	// no control plane ref or the referenced object does not expose spec.version (see getControlPlaneVersion).
+	controlPlaneVersion, err := r.getControlPlaneVersion(ctx, scope.Cluster)
 	if err != nil {
 		scope.Error(err, "Failed to resolve control plane Kubernetes version for worker join")
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
@@ -703,8 +703,10 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		})
 		return ctrl.Result{}, err
 	}
-	// Use the control plane version when available; fall back to the Machine's version
-	// when the cluster has no control plane ref or the referenced object does not expose a version.
+	// kubernetesVersion is what we use to select the kubeadm JoinConfiguration API version (the YAML schema).
+	// Prefer the control plane version when available; fall back to the Machine's version when the cluster has
+	// no control plane ref or the referenced object does not expose spec.version. This preserves pre-existing
+	// behavior for clusters whose CP kind does not implement the spec.version contract.
 	kubernetesVersion := controlPlaneVersion
 	if kubernetesVersion == "" {
 		kubernetesVersion = scope.ConfigOwner.KubernetesVersion()
@@ -740,19 +742,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	// For template rendering on the worker join path, use the control plane version exclusively.
-	// If the CP version is not available, .controlPlane.version renders as the empty string;
-	// authors of contentFormat "template" files are responsible for handling that case in their scripts.
-	cpVersionForTemplate := controlPlaneVersion
-	if cpVersionForTemplate != "" {
-		cpParsed, err := semver.ParseTolerant(cpVersionForTemplate)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to parse control plane version %q for template data", cpVersionForTemplate)
-		}
-		cpVersionForTemplate = "v" + cpParsed.String()
-	}
-
-	files, err := r.resolveFiles(ctx, scope.Config, cpVersionForTemplate)
+	files, err := r.resolveFiles(ctx, scope.Config, scope.Cluster)
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
@@ -842,16 +832,19 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	return ctrl.Result{RequeueAfter: r.tokenCheckRefreshOrRotationInterval()}, nil
 }
 
-// getControlPlaneVersionForJoin returns the control plane (cluster) version from the cluster's ControlPlaneRef,
+// getControlPlaneVersion returns the control plane version from the cluster's ControlPlaneRef,
 // e.g. KubeadmControlPlane.spec.version. Returns ("", nil) if the cluster has no ControlPlaneRef or the referenced
-// control plane does not expose spec.version (ErrFieldNotFound or unset); callers should fall back to the machine's
-// Kubernetes version only in those cases. Returns an error if the control plane object cannot be fetched or if
-// the version field cannot be read for any other reason.
-func (r *KubeadmConfigReconciler) getControlPlaneVersionForJoin(ctx context.Context, scope *Scope) (string, error) {
-	if !scope.Cluster.Spec.ControlPlaneRef.IsDefined() {
+// control plane does not expose spec.version (ErrFieldNotFound or unset). Returns an error if the control plane
+// object cannot be fetched or if the version field cannot be read for any other reason.
+//
+// This is the single source for the "controlPlane.version" template variable rendered into spec.files entries
+// with contentFormat "template", and is also used by the worker join path as a preferred source for the kubeadm
+// JoinConfiguration version (with a fallback to the joining Machine's version when this returns empty).
+func (r *KubeadmConfigReconciler) getControlPlaneVersion(ctx context.Context, cluster *clusterv1.Cluster) (string, error) {
+	if cluster == nil || !cluster.Spec.ControlPlaneRef.IsDefined() {
 		return "", nil
 	}
-	controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, scope.Cluster.Spec.ControlPlaneRef, scope.Cluster.Namespace)
+	controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get control plane for join version")
 	}
@@ -938,7 +931,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config, "v"+parsedVersion.String())
+	files, err := r.resolveFiles(ctx, scope.Config, scope.Cluster)
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
@@ -1029,17 +1022,28 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	return ctrl.Result{RequeueAfter: r.tokenCheckRefreshOrRotationInterval()}, nil
 }
 
-// resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references
-// and rendering template content using the provided control plane version.
+// resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references and rendering
+// template content. The control plane version used by templates is read from the cluster's ControlPlaneRef
+// via getControlPlaneVersion, so callers do not need to compute it: there is one place where the
+// "controlPlane.version" template variable is sourced.
 //
-// controlPlaneVersion is interpolated into entries with contentFormat "template" via
-// {{ .controlPlane.version }}. It MAY be the empty string on the worker join path when
-// the cluster has no control plane reference or the referenced object does not expose
-// spec.version; in that case template entries render with an empty version, and authors
-// of template files are responsible for handling that case in their scripts.
-func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig, controlPlaneVersion string) ([]bootstrapv1.File, error) {
-	collected := make([]bootstrapv1.File, 0, len(cfg.Spec.Files))
+// .controlPlane.version MAY render as the empty string when the cluster has no control plane reference
+// or the referenced object does not expose spec.version; authors of contentFormat "template" files are
+// responsible for handling that case in their scripts.
+func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) ([]bootstrapv1.File, error) {
+	cpVersion, err := r.getControlPlaneVersion(ctx, cluster)
+	if err != nil {
+		return nil, err
+	}
+	if cpVersion != "" {
+		parsed, perr := semver.ParseTolerant(cpVersion)
+		if perr != nil {
+			return nil, errors.Wrapf(perr, "failed to parse control plane version %q for template data", cpVersion)
+		}
+		cpVersion = "v" + parsed.String()
+	}
 
+	collected := make([]bootstrapv1.File, 0, len(cfg.Spec.Files))
 	for i := range cfg.Spec.Files {
 		in := cfg.Spec.Files[i]
 		if in.ContentFrom.IsDefined() {
@@ -1053,7 +1057,7 @@ func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstr
 		collected = append(collected, in)
 	}
 
-	rendered, err := renderTemplates(collected, templateData(controlPlaneVersion))
+	rendered, err := renderTemplates(collected, templateData(cpVersion))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to render template")
 	}

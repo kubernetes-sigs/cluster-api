@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 )
 
-
 // Format specifies the output format of the bootstrap data
 // +kubebuilder:validation:Enum=cloud-config;ignition
 type Format string
@@ -47,7 +46,7 @@ var (
 	kubeadmBootstrapFormatIgnitionFeatureDisabledMsg = "can be set only if the KubeadmBootstrapFormatIgnition feature gate is enabled"
 	missingSecretNameMsg                             = "secret file source must specify non-empty secret name"
 	missingSecretKeyMsg                              = "secret file source must specify non-empty secret key"
-	pathConflictMsg = "path property must be unique among all files"
+	pathConflictMsg                                  = "path property must be unique among all files"
 )
 
 // KubeadmConfigSpec defines the desired state of KubeadmConfig.

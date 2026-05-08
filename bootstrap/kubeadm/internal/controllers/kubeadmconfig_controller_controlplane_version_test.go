@@ -20,7 +20,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,21 +30,14 @@ import (
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
-func TestKubeadmConfigReconciler_getControlPlaneVersionForJoin(t *testing.T) {
+func TestKubeadmConfigReconciler_getControlPlaneVersion(t *testing.T) {
 	ctx := context.Background()
-
-	buildScope := func(cluster *clusterv1.Cluster) *Scope {
-		return &Scope{
-			Logger:  logr.Discard(),
-			Cluster: cluster,
-		}
-	}
 
 	t.Run("returns empty when ControlPlaneRef is not defined", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := builder.Cluster(metav1.NamespaceDefault, "c").Build()
 		r := &KubeadmConfigReconciler{Client: fake.NewClientBuilder().Build()}
-		v, err := r.getControlPlaneVersionForJoin(ctx, buildScope(cluster))
+		v, err := r.getControlPlaneVersion(ctx, cluster)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(v).To(BeEmpty())
 	})
@@ -67,7 +59,7 @@ func TestKubeadmConfigReconciler_getControlPlaneVersionForJoin(t *testing.T) {
 
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cp, cluster).Build()
 		r := &KubeadmConfigReconciler{Client: c}
-		v, err := r.getControlPlaneVersionForJoin(ctx, buildScope(cluster))
+		v, err := r.getControlPlaneVersion(ctx, cluster)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(v).To(Equal("v1.30.0"))
 	})
@@ -88,7 +80,7 @@ func TestKubeadmConfigReconciler_getControlPlaneVersionForJoin(t *testing.T) {
 
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cluster).Build()
 		r := &KubeadmConfigReconciler{Client: c}
-		_, err := r.getControlPlaneVersionForJoin(ctx, buildScope(cluster))
+		_, err := r.getControlPlaneVersion(ctx, cluster)
 		g.Expect(err).To(HaveOccurred())
 	})
 
@@ -109,7 +101,7 @@ func TestKubeadmConfigReconciler_getControlPlaneVersionForJoin(t *testing.T) {
 
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cp, cluster).Build()
 		r := &KubeadmConfigReconciler{Client: c}
-		v, err := r.getControlPlaneVersionForJoin(ctx, buildScope(cluster))
+		v, err := r.getControlPlaneVersion(ctx, cluster)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(v).To(BeEmpty())
 	})

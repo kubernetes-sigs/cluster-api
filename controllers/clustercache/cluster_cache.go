@@ -452,12 +452,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 	if err := cc.client.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Info("Cluster has been deleted, disconnecting")
-			accessor := cc.getClusterAccessor(clusterKey)
-			if accessor != nil {
-				accessor.Disconnect(ctx)
-			}
-			cc.deleteClusterAccessor(clusterKey)
-			cc.cleanupClusterSourcesForCluster(clusterKey)
+			cc.cleanupForCluster(ctx, clusterKey)
 			return ctrl.Result{}, nil
 		}
 
@@ -469,12 +464,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 	// Apply cluster filter if set
 	if cc.clusterFilter != nil && !cc.clusterFilter(cluster) {
 		log.V(6).Info("Cluster filtered out by ClusterFilter, not connecting")
-		accessor := cc.getClusterAccessor(clusterKey)
-		if accessor != nil {
-			accessor.Disconnect(ctx)
-		}
-		cc.deleteClusterAccessor(clusterKey)
-		cc.cleanupClusterSourcesForCluster(clusterKey)
+		cc.cleanupForCluster(ctx, clusterKey)
 		return ctrl.Result{}, nil
 	}
 
@@ -636,6 +626,24 @@ func (cc *clusterCache) cleanupClusterSourcesForCluster(cluster client.ObjectKey
 	for _, cs := range cc.clusterSources {
 		delete(cs.lastEventSentTimeByCluster, cluster)
 	}
+}
+
+func (cc *clusterCache) cleanupMetricsForCluster(cluster client.ObjectKey) {
+	healthCheck.DeleteLabelValues(cluster.Name, cluster.Namespace)
+	connectionUp.DeleteLabelValues(cluster.Name, cluster.Namespace)
+	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "success")
+	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "error")
+}
+
+func (cc *clusterCache) cleanupForCluster(ctx context.Context, cluster client.ObjectKey) {
+	accessor := cc.getClusterAccessor(cluster)
+	if accessor != nil {
+		accessor.Disconnect(ctx)
+	}
+	cc.deleteClusterAccessor(cluster)
+	cc.cleanupClusterSourcesForCluster(cluster)
+	cc.cleanupMetricsForCluster(cluster)
+
 }
 
 func (cc *clusterCache) GetClusterSource(controllerName string, mapFunc func(ctx context.Context, cluster client.Object) []ctrl.Request, opts ...GetClusterSourceOption) source.Source {

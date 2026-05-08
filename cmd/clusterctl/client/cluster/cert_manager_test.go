@@ -109,7 +109,7 @@ func Test_getManifestObjs(t *testing.T) {
 			name: "successfully gets the cert-manager components for a custom release",
 			fields: fields{
 				configClient: func() config.Client {
-					configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "", "").WithCertManager("", "v1.0.0", "")))
+					configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "", "").WithCertManager("", "v1.0.0", "", "")))
 					g.Expect(err).ToNot(HaveOccurred())
 					return configClient
 				}(),
@@ -184,12 +184,12 @@ func Test_GetTimeout(t *testing.T) {
 		},
 		{
 			name:   "a custom value of timeout is set",
-			config: newFakeConfig().WithCertManager("", "", "5m"),
+			config: newFakeConfig().WithCertManager("", "", "5m", ""),
 			want:   5 * time.Minute,
 		},
 		{
 			name:   "invalid custom value of timeout is set",
-			config: newFakeConfig().WithCertManager("", "", "foo"),
+			config: newFakeConfig().WithCertManager("", "", "foo", ""),
 			want:   10 * time.Minute,
 		},
 	}
@@ -204,6 +204,140 @@ func Test_GetTimeout(t *testing.T) {
 			g.Expect(tm).To(Equal(tt.want))
 		})
 	}
+}
+
+func Test_GetPreinstallTimeout(t *testing.T) {
+	pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
+		return nil
+	}
+
+	tests := []struct {
+		name   string
+		config *fakeConfigClient
+		want   time.Duration
+	}{
+		{
+			name:   "no custom value set for PreinstallTimeout",
+			config: newFakeConfig(),
+			want:   config.CertManagerDefaultPreinstallTimeout,
+		},
+		{
+			name:   "a custom value of PreinstallTimeout is set",
+			config: newFakeConfig().WithCertManager("", "", "", "5m"),
+			want:   5 * time.Minute,
+		},
+		{
+			name:   "invalid custom value of PreinstallTimeout is set",
+			config: newFakeConfig().WithCertManager("", "", "", "foo"),
+			want:   config.CertManagerDefaultPreinstallTimeout,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cm := newCertManagerClient(tt.config, nil, nil, pollImmediateWaiter)
+
+			tm := cm.getPreinstallTimeout()
+
+			g.Expect(tm).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_waitForAPIReady(t *testing.T) {
+	tests := []struct {
+		name           string
+		timeout        time.Duration
+		proxy          Proxy
+		conditionCalls int // number of times the condition is invoked before giving up; <0 means waiter is not called (timeout=0 path)
+		wantErr        bool
+	}{
+		{
+			name:           "timeout=0: fails immediately when createObj fails, no retry",
+			timeout:        0,
+			proxy:          &errorProxy{FakeProxy: test.NewFakeProxy(), newClientErr: fmt.Errorf("fake client error")},
+			conditionCalls: -1,
+			wantErr:        true,
+		},
+		{
+			name:           "timeout=0: createObj succeeds, returns without error",
+			timeout:        0,
+			proxy:          test.NewFakeProxy(),
+			conditionCalls: -1,
+			wantErr:        false,
+		},
+		{
+			name:           "timeout>0: retries on createObj failure and eventually times out",
+			timeout:        5 * time.Minute,
+			proxy:          &errorProxy{FakeProxy: test.NewFakeProxy(), newClientErr: fmt.Errorf("fake client error")},
+			conditionCalls: 3,
+			wantErr:        true,
+		},
+		{
+			name:           "timeout>0: createObj succeeds, returns without error",
+			timeout:        5 * time.Minute,
+			proxy:          test.NewFakeProxy(),
+			conditionCalls: 1,
+			wantErr:        false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ctx := context.Background()
+
+			var capturedInterval, capturedTimeout time.Duration
+			waiterCalled := false
+
+			cm := &certManagerClient{
+				configClient: newFakeConfig(),
+				proxy:        tt.proxy,
+				pollImmediateWaiter: func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error {
+					waiterCalled = true
+					capturedInterval = interval
+					capturedTimeout = timeout
+
+					for i := 0; i < tt.conditionCalls; i++ {
+						ok, err := condition(ctx)
+						if err != nil {
+							return err
+						}
+						if ok {
+							return nil
+						}
+					}
+					return wait.ErrorInterrupted(fmt.Errorf("timed out waiting for condition"))
+				},
+			}
+
+			err := cm.waitForAPIReady(ctx, tt.timeout)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			if tt.conditionCalls >= 0 {
+				g.Expect(waiterCalled).To(BeTrue(), "expected poll waiter to be invoked for retry path")
+				g.Expect(capturedInterval).To(Equal(waitCertManagerInterval))
+				g.Expect(capturedTimeout).To(Equal(tt.timeout))
+			} else {
+				g.Expect(waiterCalled).To(BeFalse(), "expected direct createObj path for timeout=0, not poll waiter")
+			}
+		})
+	}
+}
+
+// errorProxy embeds FakeProxy and overrides NewClient to return a fixed error.
+type errorProxy struct {
+	*test.FakeProxy
+	newClientErr error
+}
+
+func (p *errorProxy) NewClient(_ context.Context) (client.Client, error) {
+	return nil, p.newClientErr
 }
 
 func Test_shouldUpgrade(t *testing.T) {
@@ -442,7 +576,7 @@ func Test_shouldUpgrade(t *testing.T) {
 			g := NewWithT(t)
 
 			proxy := test.NewFakeProxy()
-			fakeConfigClient := newFakeConfig().WithCertManager("", tt.configVersion, "")
+			fakeConfigClient := newFakeConfig().WithCertManager("", tt.configVersion, "", "")
 			pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 				return nil
 			}
@@ -851,7 +985,7 @@ func (f *fakeConfigClient) WithProvider(provider config.Provider) *fakeConfigCli
 	return f
 }
 
-func (f *fakeConfigClient) WithCertManager(url, version, timeout string) *fakeConfigClient {
-	f.fakeReader.WithCertManager(url, version, timeout)
+func (f *fakeConfigClient) WithCertManager(url, version, timeout, preinstallTimeout string) *fakeConfigClient {
+	f.fakeReader.WithCertManager(url, version, timeout, preinstallTimeout)
 	return f
 }

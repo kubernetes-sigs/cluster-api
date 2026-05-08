@@ -153,7 +153,8 @@ func (cm *certManagerClient) EnsureInstalled(ctx context.Context) error {
 	log := logf.Log
 
 	// Checking if a version of cert manager supporting cert-manager-test-resources.yaml is already installed and properly working.
-	if err := cm.waitForAPIReady(ctx, false); err == nil {
+	// If PreInstallTimeout is configured, retry the readiness check for that duration, otherwise do a one-shot check.
+	if err := cm.waitForAPIReady(ctx, cm.getPreinstallTimeout()); err == nil {
 		log.Info("Skipping installing cert-manager as it is already installed")
 		return nil
 	}
@@ -193,7 +194,7 @@ func (cm *certManagerClient) install(ctx context.Context, version string, objs [
 	}
 
 	// Wait for the cert-manager API to be ready to accept requests
-	return cm.waitForAPIReady(ctx, true)
+	return cm.waitForAPIReady(ctx, cm.getWaitTimeout())
 }
 
 // PlanUpgrade returns a CertManagerUpgradePlan with information regarding
@@ -387,16 +388,31 @@ func (cm *certManagerClient) shouldUpgrade(desiredVersion string, objs, installO
 }
 
 func (cm *certManagerClient) getWaitTimeout() time.Duration {
-	log := logf.Log
-
 	certManagerConfig, err := cm.configClient.CertManager().Get()
 	if err != nil {
 		return config.CertManagerDefaultTimeout
 	}
-	timeoutDuration, err := time.ParseDuration(certManagerConfig.Timeout())
+	return getCertManagerTimeout(certManagerConfig.Timeout(), "timeout", config.CertManagerDefaultTimeout)
+}
+
+func (cm *certManagerClient) getPreinstallTimeout() time.Duration {
+	certManagerConfig, err := cm.configClient.CertManager().Get()
 	if err != nil {
-		log.Info("Invalid value set for cert-manager configuration", "timeout", certManagerConfig.Timeout())
-		return config.CertManagerDefaultTimeout
+		return config.CertManagerDefaultPreinstallTimeout
+	}
+	return getCertManagerTimeout(certManagerConfig.PreinstallTimeout(), "preinstallTimeout", config.CertManagerDefaultPreinstallTimeout)
+}
+
+// getCertManagerTimeout parses a duration string from cert-manager configuration.
+// If the value is empty or cannot be parsed, it returns the provided default.
+func getCertManagerTimeout(value, label string, defaultValue time.Duration) time.Duration {
+	if value == "" {
+		return defaultValue
+	}
+	timeoutDuration, err := time.ParseDuration(value)
+	if err != nil {
+		logf.Log.Info("Invalid value set for cert-manager configuration", label, value)
+		return defaultValue
 	}
 	return timeoutDuration
 }
@@ -531,39 +547,36 @@ func (cm *certManagerClient) deleteObj(ctx context.Context, obj unstructured.Uns
 // Issuer and Certificate).
 // This ensures that the Kubernetes apiserver is ready to serve resources within the
 // cert-manager API group.
-// If retry is true, the createObj call will be retried if it fails. Otherwise, the
-// 'create' operations will only be attempted once.
-func (cm *certManagerClient) waitForAPIReady(ctx context.Context, retry bool) error {
-	log := logf.Log
-	// Waits for the cert-manager to be available.
-	if retry {
-		log.Info("Waiting for cert-manager to be available...")
-	}
-
+// If timeout is 0, the createObj call will only be attempted once.
+// If timeout is greater than 0, the createObj call will be retried until the timeout.
+func (cm *certManagerClient) waitForAPIReady(ctx context.Context, timeout time.Duration) error {
 	testObjs, err := getTestResourcesManifestObjs()
 	if err != nil {
 		return err
 	}
 
-	for i := range testObjs {
-		o := testObjs[i]
+	if timeout > 0 {
+		logf.Log.Info("Checking if cert-manager is available...")
+		for i := range testObjs {
+			o := testObjs[i]
 
-		// Create the Kubernetes object.
-		// This is wrapped with a retry as the cert-manager API may not be available
-		// yet, so we need to keep retrying until it is.
-		if err := cm.pollImmediateWaiter(ctx, waitCertManagerInterval, cm.getWaitTimeout(), func(ctx context.Context) (bool, error) {
-			if err := cm.createObj(ctx, o); err != nil {
-				// If retrying is disabled, return the error here.
-				if !retry {
-					return false, err
+			if err := cm.pollImmediateWaiter(ctx, waitCertManagerInterval, timeout, func(ctx context.Context) (bool, error) {
+				if err := cm.createObj(ctx, o); err != nil {
+					return false, nil
 				}
-				return false, nil
+				return true, nil
+			}); err != nil {
+				return err
 			}
-			return true, nil
-		}); err != nil {
-			return err
+		}
+	} else {
+		for i := range testObjs {
+			if err := cm.createObj(ctx, testObjs[i]); err != nil {
+				return err
+			}
 		}
 	}
+
 	deleteCertManagerBackoff := newWriteBackoff()
 	for i := range testObjs {
 		obj := testObjs[i]

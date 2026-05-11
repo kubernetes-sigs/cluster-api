@@ -92,7 +92,7 @@ type WorkloadCluster interface {
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
 	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error
-	AllowClusterAdminPermissions(ctx context.Context, version semver.Version) error
+	EnsureKubeadmPermissions(ctx context.Context, version semver.Version) error
 	UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error
 
 	// State recovery tasks.

@@ -1,0 +1,21 @@
+---
+# MachineHealthCheck for the orphan-learner reproduction.
+# - Targets control-plane Machines bearing the mhc-test=fail label so the test can
+#   opt a specific Machine into remediation deterministically.
+# - nodeStartupTimeoutSeconds is also set so that a Machine which never registers
+#   a Node will be flagged as a backstop, even without the explicit label.
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineHealthCheck
+metadata:
+  name: "${CLUSTER_NAME}-mhc-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/control-plane: ""
+      mhc-test: "fail"
+  checks:
+    nodeStartupTimeoutSeconds: 120
+  remediation:
+    triggerIf:
+      unhealthyLessThanOrEqualTo: 100%

@@ -185,6 +185,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-adoption.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-machine-pool.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-pre-drain.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-orphan-learner.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades-runtimesdk.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-scale-in.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ipv6.yaml"
@@ -219,8 +220,8 @@ variables:
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.36.0"
-  KUBERNETES_VERSION: "v1.36.0"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.35.1"
+  KUBERNETES_VERSION: "v1.35.1"
   KUBERNETES_VERSION_CHAINED_UPGRADE_FROM: "v1.32.11" # Should always be KUBERNETES_VERSION_UPGRADE_TO - 4 minor
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.35.0"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.36.0"
@@ -276,6 +277,10 @@ intervals:
   kcp-remediation/wait-machines: ["5m", "10s"]
   kcp-remediation/check-machines-stable: ["30s", "5s"]
   kcp-remediation/wait-machine-provisioned: ["5m", "10s"]
+  orphan-learner/wait-machines: ["5m", "10s"]
+  orphan-learner/wait-etcd-learner: ["3m", "5s"]
+  orphan-learner/wait-machine-deleted: ["5m", "10s"]
+  orphan-learner/check-orphan-stable: ["60s", "10s"]
   #  Giving a bit more time during scale tests, we analyze independently if everything works quickly enough.
   scale/wait-cluster: ["10m", "10s"]
   scale/wait-control-plane: ["20m", "10s"]

@@ -96,7 +96,11 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload:   &fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{
+				Workload: &internal.Workload{
+					Client: env,
+				},
+			},
 		},
 		ssaCache: ssa.NewCache("test-controller"),
 	}
@@ -240,6 +244,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	}
 	fakeClient := newFakeClient(objs...)
 	fmc.Reader = fakeClient
+	fmc.Workload.Workload = &internal.Workload{Client: fakeClient}
 	r := &KubeadmControlPlaneReconciler{
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,

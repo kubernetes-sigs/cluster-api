@@ -1,0 +1,2 @@
+# GO-2026-4918: This should not be an issue as KCP only uses the affected code to communicate with the kube-apiserver.
+GO-2026-4918

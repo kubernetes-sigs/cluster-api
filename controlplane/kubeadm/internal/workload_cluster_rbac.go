@@ -34,6 +34,15 @@ const (
 	// admin credentials and the name of the ClusterRoleBinding that binds the same Group to the "cluster-admin"
 	// built-in ClusterRole.
 	ClusterAdminsGroupAndClusterRoleBinding = "kubeadm:cluster-admins"
+
+	// KubeletAPIAdminClusterRoleBindingName is the name of the ClusterRoleBinding for the apiserver kubelet client.
+	KubeletAPIAdminClusterRoleBindingName = "kubeadm:apiserver-kubelet-client"
+
+	// KubeletAPIAdminClusterRoleName is the name of the built-in ClusterRole for kubelet API access.
+	KubeletAPIAdminClusterRoleName = "system:kubelet-api-admin"
+
+	// APIServerKubeletClientCertCommonName defines kubelet client certificate common name (CN).
+	APIServerKubeletClientCertCommonName = "kube-apiserver-kubelet-client"
 )
 
 // EnsureResource creates a resoutce if the target resource doesn't exist. If the resource exists already, this function will ignore the resource instead.
@@ -54,13 +63,22 @@ func (w *Workload) EnsureResource(ctx context.Context, obj client.Object) error 
 	return nil
 }
 
-// AllowClusterAdminPermissions creates ClusterRoleBinding rules to use the kubeadm:cluster-admins Cluster Role created in Kubeadm v1.29.
-func (w *Workload) AllowClusterAdminPermissions(ctx context.Context, targetVersion semver.Version) error {
-	// Do nothing for Kubernetes < 1.29.
-	if version.Compare(targetVersion, semver.Version{Major: 1, Minor: 29, Patch: 0}, version.WithoutPreReleases()) < 0 {
+// EnsureKubeadmPermissions creates ClusterRoleBinding and ClusterRoles introduced by new versions of kubeadm.
+func (w *Workload) EnsureKubeadmPermissions(ctx context.Context, targetVersion semver.Version) error {
+	// Note: this code mimics the changes that kubeadm upgrade is doing.
+	// Cluster API must run the corresponding code when the user are upgrading to the minor where kubeadm introduced the change,
+	// including also patch releases. This is why the upper bound is the minor where a change was introduced plus one.
+	// Also, Cluster API applies new cluster roles when upgrading to releases older than when the changes
+	// have been introduced to kubeadm, so upgrade will keep working also in case the changes are backported to older versions.
+	if version.Compare(targetVersion, semver.Version{Major: 1, Minor: 38, Patch: 0}, version.WithoutPreReleases()) >= 0 {
 		return nil
 	}
-	return w.EnsureResource(ctx, &rbacv1.ClusterRoleBinding{
+
+	// Kubeadm added this role with K8s 1.29 when introducing
+	// a cleaner split between kubeadm:cluster-admins and system:masters.
+	// Rif https://github.com/kubernetes/kubernetes/pull/121305
+	// This change can be dropped when the min supported Kubernetes version in Cluster API >= 1.30.
+	err := w.EnsureResource(ctx, &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ClusterAdminsGroupAndClusterRoleBinding,
 		},
@@ -75,6 +93,29 @@ func (w *Workload) AllowClusterAdminPermissions(ctx context.Context, targetVersi
 				Name: ClusterAdminsGroupAndClusterRoleBinding,
 			},
 		},
-	},
-	)
+	})
+	if err != nil {
+		return err
+	}
+
+	// Kubeadm introduced this role with K8s 1.37 when reducing
+	// the scope of the credential provided to the API server for accessing kubelet.
+	// Rif https://github.com/kubernetes/kubernetes/pull/138957.
+	// This change can be dropped when the min supported Kubernetes version in Cluster API >=1.38.
+	return w.EnsureResource(ctx, &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: KubeletAPIAdminClusterRoleBindingName,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     KubeletAPIAdminClusterRoleName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind: rbacv1.UserKind,
+				Name: APIServerKubeletClientCertCommonName,
+			},
+		},
+	})
 }

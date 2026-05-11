@@ -87,6 +87,9 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 			Management: &internal.Management{Client: env},
 			Workload: &fakeWorkloadCluster{
 				Status: internal.ClusterStatus{Nodes: 1},
+				Workload: &internal.Workload{
+					Client: env,
+				},
 			},
 		},
 		managementClusterUncached: &fakeManagementCluster{
@@ -228,6 +231,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	}
 	fakeClient := newFakeClient(objs...)
 	fmc.Reader = fakeClient
+	fmc.Workload.Workload = &internal.Workload{Client: fakeClient}
 	r := &KubeadmControlPlaneReconciler{
 		Client:                    fakeClient,
 		SecretCachingClient:       fakeClient,

@@ -280,7 +280,7 @@ intervals:
   orphan-learner/wait-machines: ["5m", "10s"]
   orphan-learner/wait-etcd-learner: ["3m", "5s"]
   orphan-learner/wait-machine-deleted: ["5m", "10s"]
-  orphan-learner/check-orphan-stable: ["60s", "10s"]
+  orphan-learner/check-orphan-stable: ["5m", "15s"]
   #  Giving a bit more time during scale tests, we analyze independently if everything works quickly enough.
   scale/wait-cluster: ["10m", "10s"]
   scale/wait-control-plane: ["20m", "10s"]

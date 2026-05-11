@@ -1,0 +1,200 @@
+diff --git a/README.md b/README.md
+index 0af935a..8db6157 100644
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,23 @@
+ # Go Vulnerability Management
+ 
++This is a fork of the govulncheck tool which adds the ability to exclude specific
++vulnerebalities.
++
++It is configured through the `.govuln_exclude` file by default which takes the following format
++```
++# Some comment about why the vulnerability is excluded
++GO-2026-4880
++```
++The file should contain the ID of 1 excluded vulnerability per line.
++Only lines starting with `GO-` are considered vulnerability identifiers.
++Any other lines will be discarded.
++
++If the file is missing or parsing otherwise fails, an empty excluded list will be used.
++
++This should make the tool a drop-in replacement for govulncheck.
++
++
++## Original README
+ [![Go Reference](https://pkg.go.dev/badge/golang.org/x/vuln.svg)](https://pkg.go.dev/golang.org/x/vuln)
+ 
+ Go's support for vulnerability management includes tooling for analyzing your
+diff --git a/internal/govulncheck/govulncheck.go b/internal/govulncheck/govulncheck.go
+index 377a378..aca9f41 100644
+--- a/internal/govulncheck/govulncheck.go
++++ b/internal/govulncheck/govulncheck.go
+@@ -84,6 +84,10 @@ type Config struct {
+ 	// what to do with it. Valid values are source, binary, query,
+ 	// and extract.
+ 	ScanMode ScanMode `json:"scan_mode,omitempty"`
++
++	// ExcludedVulnerabilites contains a set of go vuln identifiers that will be
++	// ignored if they are present in the output
++	ExcludedVulnerabilites map[string]struct{} `json:"excluded_vulnerabilities,omitempty"`
+ }
+ 
+ // SBOM contains minimal information about the artifacts govulncheck is scanning.
+diff --git a/internal/govulncheck/jsonhandler.go b/internal/govulncheck/jsonhandler.go
+index b1586e0..51c2f02 100644
+--- a/internal/govulncheck/jsonhandler.go
++++ b/internal/govulncheck/jsonhandler.go
+@@ -13,6 +13,7 @@ import (
+ )
+ 
+ type jsonHandler struct {
++	cfg *Config
+ 	enc *json.Encoder
+ }
+ 
+@@ -25,6 +26,7 @@ func NewJSONHandler(w io.Writer) Handler {
+ 
+ // Config writes config block in JSON to the underlying writer.
+ func (h *jsonHandler) Config(config *Config) error {
++	h.cfg = config
+ 	return h.enc.Encode(Message{Config: config})
+ }
+ 
+@@ -45,5 +47,9 @@ func (h *jsonHandler) OSV(entry *osv.Entry) error {
+ 
+ // Finding writes a finding in JSON to the underlying writer.
+ func (h *jsonHandler) Finding(finding *Finding) error {
++	// Return early if the finding is excluded
++	if _, ok := h.cfg.ExcludedVulnerabilites[finding.OSV]; ok {
++		return nil
++	}
+ 	return h.enc.Encode(Message{Finding: finding})
+ }
+diff --git a/internal/openvex/handler.go b/internal/openvex/handler.go
+index a2d3282..5a5e80b 100644
+--- a/internal/openvex/handler.go
++++ b/internal/openvex/handler.go
+@@ -109,6 +109,10 @@ func moreSpecific(f1, f2 *govulncheck.Finding) int {
+ }
+ 
+ func (h *handler) Finding(f *govulncheck.Finding) error {
++	// Return early if the finding is ignored
++	if _, ok := h.cfg.ExcludedVulnerabilites[f.OSV]; ok {
++		return nil
++	}
+ 	fs := h.findings[f.OSV]
+ 	if len(fs) == 0 {
+ 		fs = []*govulncheck.Finding{f}
+diff --git a/internal/sarif/handler.go b/internal/sarif/handler.go
+index d9e585b..b2d0dcd 100644
+--- a/internal/sarif/handler.go
++++ b/internal/sarif/handler.go
+@@ -87,6 +87,10 @@ func moreSpecific(f1, f2 *govulncheck.Finding) int {
+ }
+ 
+ func (h *handler) Finding(f *govulncheck.Finding) error {
++	// Return early if the OSV is excluded
++	if _, ok := h.cfg.ExcludedVulnerabilites[f.OSV]; ok {
++		return nil
++	}
+ 	fs := h.findings[f.OSV]
+ 	if len(fs) == 0 {
+ 		fs = []*govulncheck.Finding{f}
+diff --git a/internal/scan/flags.go b/internal/scan/flags.go
+index e67c0a1..5c1871f 100644
+--- a/internal/scan/flags.go
++++ b/internal/scan/flags.go
+@@ -27,6 +27,7 @@ type config struct {
+ 	format   FormatFlag
+ 	version  bool
+ 	env      []string
++	exclude  string
+ }
+ 
+ func parseFlags(cfg *config, stderr io.Writer, args []string) error {
+@@ -46,6 +47,7 @@ func parseFlags(cfg *config, stderr io.Writer, args []string) error {
+ 	flags.Var(&cfg.format, "format", "specify format output\nThe supported values are 'text', 'json', 'sarif', and 'openvex' (default 'text')")
+ 	flags.BoolVar(&version, "version", false, "print the version information")
+ 	flags.Var(&scanFlag, "scan", "set the scanning level desired, one of 'module', 'package', or 'symbol' (default 'symbol')")
++	flags.StringVar(&cfg.exclude, "exclude", ".govuln_exclude", "path to a file containing vulnerabilities to exclude (default '.govuln_exclude')")
+ 
+ 	// We don't want to print the whole usage message on each flags
+ 	// error, so we set to a no-op and do the printing ourselves.
+diff --git a/internal/scan/run.go b/internal/scan/run.go
+index 5f6a641..1ae1e0e 100644
+--- a/internal/scan/run.go
++++ b/internal/scan/run.go
+@@ -5,9 +5,11 @@
+ package scan
+ 
+ import (
++	"bufio"
+ 	"context"
+ 	"fmt"
+ 	"io"
++	"os"
+ 	"os/exec"
+ 	"path"
+ 	"path/filepath"
+@@ -104,6 +106,30 @@ func prepareConfig(ctx context.Context, cfg *config, client *client.Client) {
+ 	if mod, err := client.LastModifiedTime(ctx); err == nil {
+ 		cfg.DBLastModified = &mod
+ 	}
++
++	cfg.ExcludedVulnerabilites = excludedVulns(cfg.exclude)
++}
++
++// excludedVulns loads a list of vulnerability IDs to ignore from the given filepath
++// If the file is not present, or cannot be parsed, an empty set will be returned
++func excludedVulns(file string) map[string]struct{} {
++	output := make(map[string]struct{})
++	fd, err := os.Open(file)
++	if err != nil {
++		return output
++	}
++	scanner := bufio.NewScanner(fd)
++	for scanner.Scan() {
++		line := scanner.Text()
++		line = strings.TrimSpace(line)
++		if strings.HasPrefix(line, "GO-") {
++			output[line] = struct{}{}
++		}
++	}
++	if scanner.Err() != nil {
++		return make(map[string]struct{})
++	}
++	return output
+ }
+ 
+ // scannerVersion reconstructs the current version of
+diff --git a/internal/scan/text.go b/internal/scan/text.go
+index ab49bdd..6eb6270 100644
+--- a/internal/scan/text.go
++++ b/internal/scan/text.go
+@@ -40,6 +40,7 @@ type TextHandler struct {
+ 	findings  []*findingSummary
+ 	scanLevel govulncheck.ScanLevel
+ 	scanMode  govulncheck.ScanMode
++	excluded  map[string]struct{}
+ 
+ 	err error
+ 
+@@ -91,6 +92,7 @@ func (h *TextHandler) Flush() error {
+ func (h *TextHandler) Config(config *govulncheck.Config) error {
+ 	h.scanLevel = config.ScanLevel
+ 	h.scanMode = config.ScanMode
++	h.excluded = config.ExcludedVulnerabilites
+ 
+ 	if !h.showVersion {
+ 		return nil
+@@ -182,6 +184,9 @@ func (h *TextHandler) OSV(entry *osv.Entry) error {
+ 
+ // Finding gathers vulnerability findings to be written.
+ func (h *TextHandler) Finding(finding *govulncheck.Finding) error {
++	if _, ok := h.excluded[finding.OSV]; ok {
++		return nil
++	}
+ 	if err := validateFindings(finding); err != nil {
+ 		return err
+ 	}

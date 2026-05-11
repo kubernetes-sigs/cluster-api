@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -35,10 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -133,8 +130,8 @@ func KCPOrphanLearnerSpec(ctx context.Context, inputGetter func() KCPOrphanLearn
 		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
 		installNodeCreateBlockPolicy(ctx, workloadProxy.GetClient())
 
-		By("Resolving a direct REST config to the first control-plane apiserver (bypasses the workload-cluster HAProxy LB so the orphan-stable assertion does not flake when the LB churns during remediation)")
-		directCfg := resolveDirectAPIServerConfig(ctx, workloadProxy.GetRESTConfig(), firstCPNodeName)
+		firstCPContainer := machineContainerName(clusterResources.Cluster.Name, firstMachine.Name)
+		log.Logf("Will query etcd via `docker exec %s` -- this bypasses the workload-cluster apiserver entirely, so it keeps working when the orphan etcd member wedges the workload-cluster apiserver / LB.", firstCPContainer)
 
 		By("Scaling KubeadmControlPlane to 3 replicas so a second Machine attempts to join (KCP forbids even replica counts with stacked etcd; KCP serialises scale-up so only the second Machine is provisioned while the second one is stuck as a learner)")
 		scaleKCP(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name, 3)
@@ -143,44 +140,50 @@ func KCPOrphanLearnerSpec(ctx context.Context, inputGetter func() KCPOrphanLearn
 		secondMachine := waitForOrphanLearnerSecondMachine(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name, firstMachine.Name, input.E2EConfig.GetIntervals(specName, "wait-machines"))
 		log.Logf("Second control-plane Machine %s observed without a NodeRef (Node creation is blocked)", secondMachine.Name)
 
-		By("Waiting for the second etcd member to appear in MemberList with IsLearner=true")
-		learnerMemberID, learnerMemberName := waitForOrphanLearnerEtcdMember(ctx, directCfg, firstCPNodeName, input.E2EConfig.GetIntervals(specName, "wait-etcd-learner"))
-		log.Logf("Second control-plane Machine produced etcd learner ID=%x name=%q", learnerMemberID, learnerMemberName)
-		logEtcdMembers(ctx, directCfg, firstCPNodeName, "after learner observed")
-		logKCPEtcdCondition(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name, "after learner observed")
+		By("Waiting for the second etcd member to appear in MemberList (learner or already-promoted voter)")
+		learnerMemberID, learnerMemberName := waitForOrphanLearnerEtcdMember(ctx, firstCPContainer, firstCPNodeName, input.E2EConfig.GetIntervals(specName, "wait-etcd-learner"))
+		log.Logf("Second control-plane Machine produced etcd member ID=%x name=%q", learnerMemberID, learnerMemberName)
+		logEtcdMembers(ctx, firstCPContainer, "after second member observed")
+		logKCPEtcdCondition(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name, "after second member observed")
 
 		By("Labelling the second Machine with mhc-test:fail to opt it into MHC remediation")
 		labelMachineForOrphanLearnerRemediation(ctx, input.BootstrapClusterProxy.GetClient(), secondMachine)
-		logEtcdMembers(ctx, directCfg, firstCPNodeName, "after labelling for remediation")
+		logEtcdMembers(ctx, firstCPContainer, "after labelling for remediation")
 
 		By(fmt.Sprintf("Waiting for the second Machine %s to be deleted by KCP remediation", secondMachine.Name))
 		waitForMachineDeletion(ctx, input.BootstrapClusterProxy.GetClient(), secondMachine, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted"))
 
 		By("Pausing the Cluster so KCP does not create a replacement Machine that would add another learner during the orphan-stable assertion")
 		pauseClusterForOrphanLearner(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name)
-		logEtcdMembers(ctx, directCfg, firstCPNodeName, "immediately after Machine deletion + pause")
+		logEtcdMembers(ctx, firstCPContainer, "immediately after Machine deletion + pause")
 		logKCPEtcdCondition(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name, "immediately after Machine deletion + pause")
 
-		By("Asserting KCP's EtcdClusterHealthy condition returns to True after Machine deletion (fails until the upstream fix lands)")
-		// We poll KCP's own condition rather than running etcdctl ourselves: the orphan member
-		// wedges the workload-cluster etcd / apiserver exec channel intermittently, but the
-		// management-cluster API stays reliable. With the bug present, KCP reports either:
-		//   * EtcdClusterHealthy=False with message "Etcd member <X> does not have a corresponding Machine"
-		//   * EtcdClusterHealthy=Unknown with message "Failed to connect to etcd: ... context deadline exceeded"
-		// Both are user-visible symptoms of orphan-learner. The fixed behaviour is EtcdClusterHealthy=True
-		// within the orphan-stable interval after Machine deletion.
-		// We also log the etcd MemberList best-effort each iteration so the trace carries direct
-		// evidence when the workload apiserver happens to be reachable.
+		By("Asserting the orphan etcd member is removed from the first CP's MemberList after Machine deletion (fails until the upstream fix lands)")
+		// We query etcdctl directly inside the first CP's etcd container via `docker exec` so the
+		// check does not depend on the workload-cluster apiserver, the LB, or kubelet exec. We also
+		// log KCP's EtcdClusterHealthy condition each iteration so the trace carries CAPI's own
+		// view (which is what a user would see in `clusterctl describe`).
 		Eventually(func(g Gomega) {
-			logEtcdMembers(ctx, directCfg, firstCPNodeName, "during orphan-stable check")
-			status, reason, message, err := kcpEtcdClusterHealthy(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name)
-			g.Expect(err).NotTo(HaveOccurred(), "failed to read KCP EtcdClusterHealthy condition (will retry)")
-			log.Logf("KCP EtcdClusterHealthy during orphan-stable check: status=%s reason=%s message=%q", status, reason, message)
-			g.Expect(status).To(Equal("True"),
-				"KCP EtcdClusterHealthy is %s (reason=%s) after Machine %s was deleted: %s — this is the orphan-learner leak (#13667) (orphan etcd member ID=%x name=%q for the deleted Machine persists in the workload-cluster etcd)",
-				status, reason, secondMachine.Name, message, learnerMemberID, learnerMemberName)
+			status, reason, message, kerr := kcpEtcdClusterHealthy(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name)
+			if kerr == nil {
+				log.Logf("KCP EtcdClusterHealthy during orphan-stable check: status=%s reason=%s message=%q", status, reason, message)
+			} else {
+				log.Logf("KCP EtcdClusterHealthy during orphan-stable check: read error (will retry): %v", kerr)
+			}
+
+			members, err := listEtcdMembers(ctx, firstCPContainer)
+			g.Expect(err).NotTo(HaveOccurred(), "etcdctl member list via docker exec failed (will retry)")
+			log.Logf("etcd MemberList during orphan-stable check: %s", formatEtcdMembers(members))
+
+			ids := make([]uint64, 0, len(members))
+			for _, m := range members {
+				ids = append(ids, m.ID)
+			}
+			g.Expect(ids).NotTo(ContainElement(learnerMemberID),
+				"orphan etcd member ID=%x name=%q persists in MemberList %s after Machine %s was deleted -- this is the orphan-learner leak (#13667). KCP EtcdClusterHealthy=%s reason=%s message=%q",
+				learnerMemberID, learnerMemberName, formatEtcdMembers(members), secondMachine.Name, status, reason, message)
 		}, input.E2EConfig.GetIntervals(specName, "check-orphan-stable")...).Should(Succeed(),
-			"Expected KCP EtcdClusterHealthy to return to True once Machine %s was deleted (orphan etcd member ID=%x leaked).", secondMachine.Name, learnerMemberID)
+			"Expected orphan etcd member ID=%x to be removed from the first CP's MemberList once Machine %s was deleted.", learnerMemberID, secondMachine.Name)
 	})
 
 	AfterEach(func() {
@@ -311,45 +314,6 @@ var kcpGVK = schema.GroupVersionKind{
 	Kind:    "KubeadmControlPlane",
 }
 
-// resolveDirectAPIServerConfig builds a rest.Config that talks straight to the named control-plane
-// node's kube-apiserver, bypassing the workload-cluster HAProxy LB. The LB churns during scale and
-// remediation (briefly routing to dying or starting CPs), which causes the etcdctl exec channel to
-// EOF intermittently. The first CP node is healthy throughout this spec, so addressing it directly
-// makes etcd queries deterministic.
-//
-// We read the Node's InternalIP through the LB while it is still healthy (early in the spec), then
-// rewrite the rest.Config Host. TLS is set to InsecureSkipVerify because the apiserver cert SAN may
-// not include the per-Node IP literally; identity is not part of what this spec is testing.
-func resolveDirectAPIServerConfig(ctx context.Context, lbCfg *rest.Config, cpNodeName string) *rest.Config {
-	clientset, err := kubernetes.NewForConfig(lbCfg)
-	Expect(err).NotTo(HaveOccurred(), "build clientset for direct apiserver resolution")
-
-	var ip string
-	Eventually(func(g Gomega) {
-		node, getErr := clientset.CoreV1().Nodes().Get(ctx, cpNodeName, metav1.GetOptions{})
-		g.Expect(getErr).NotTo(HaveOccurred())
-		for _, addr := range node.Status.Addresses {
-			if addr.Type == corev1.NodeInternalIP && addr.Address != "" {
-				ip = addr.Address
-				return
-			}
-		}
-		g.Expect(ip).NotTo(BeEmpty(), "Node %s has no InternalIP yet", cpNodeName)
-	}, 60*time.Second, 5*time.Second).Should(Succeed(), "failed to resolve InternalIP for Node %s", cpNodeName)
-
-	direct := rest.CopyConfig(lbCfg)
-	direct.Host = fmt.Sprintf("https://%s:6443", ip)
-	// Disable server CA verification because the apiserver cert SAN may not include the per-Node IP,
-	// but preserve client cert/key/token from lbCfg so authentication still works. rest.Config's
-	// Insecure flag is mutually exclusive with CAData/CAFile so clear those too.
-	direct.TLSClientConfig.Insecure = true
-	direct.TLSClientConfig.CAData = nil
-	direct.TLSClientConfig.CAFile = ""
-	direct.TLSClientConfig.ServerName = ""
-	log.Logf("Direct apiserver REST config pinned to Node %s at %s", cpNodeName, direct.Host)
-	return direct
-}
-
 // pauseClusterForOrphanLearner sets the cluster.x-k8s.io/paused annotation on the Cluster so
 // neither KCP nor MHC reconciles further while the orphan-stable assertion runs. Without this,
 // KCP would observe replicas=3 with one healthy Machine and immediately create a replacement,
@@ -364,12 +328,11 @@ func pauseClusterForOrphanLearner(ctx context.Context, c client.Client, namespac
 	log.Logf("Paused Cluster %s/%s (set %s=true)", namespace, clusterName, clusterv1.PausedAnnotation)
 }
 
-// logEtcdMembers fetches the etcd MemberList via etcdctl on the first CP node and logs the
-// result with a caller-supplied label. Errors are logged but not asserted — this is purely a
-// diagnostic so the trace contains evidence even when later assertions fail on transient
-// exec/connectivity issues.
-func logEtcdMembers(ctx context.Context, restCfg *rest.Config, cpNodeName, when string) {
-	members, err := listEtcdMembers(ctx, restCfg, cpNodeName)
+// logEtcdMembers fetches the etcd MemberList via `docker exec` on the first CP container and logs
+// the result with a caller-supplied label. Errors are logged but not asserted — this is purely a
+// diagnostic so the trace contains evidence even when later assertions fail on transient issues.
+func logEtcdMembers(ctx context.Context, nodeContainerName, when string) {
+	members, err := listEtcdMembers(ctx, nodeContainerName)
 	if err != nil {
 		log.Logf("etcd MemberList %s: failed to list (%v)", when, err)
 		return
@@ -512,48 +475,52 @@ type etcdMemberList struct {
 	Members []etcdMember `json:"members"`
 }
 
-// listEtcdMembers exec-s into the etcd static pod on the named control-plane Node and runs
-// `etcdctl member list -w json`. The first CP node is always a healthy voter at the points
-// the test calls this helper.
-func listEtcdMembers(ctx context.Context, restCfg *rest.Config, cpNodeName string) ([]etcdMember, error) {
-	clientset, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return nil, fmt.Errorf("build clientset: %w", err)
-	}
-	podName := fmt.Sprintf("etcd-%s", cpNodeName)
-	cmd := []string{
-		"etcdctl",
-		"--endpoints=https://127.0.0.1:2379",
-		"--cacert=/etc/kubernetes/pki/etcd/ca.crt",
-		"--cert=/etc/kubernetes/pki/etcd/server.crt",
-		"--key=/etc/kubernetes/pki/etcd/server.key",
-		"member", "list", "-w", "json",
-	}
-	req := clientset.CoreV1().RESTClient().
-		Post().
-		Resource("pods").
-		Namespace(metav1.NamespaceSystem).
-		Name(podName).
-		SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: "etcd",
-			Command:   cmd,
-			Stdout:    true,
-			Stderr:    true,
-		}, scheme.ParameterCodec)
-	exec, err := remotecommand.NewSPDYExecutor(restCfg, "POST", req.URL())
-	if err != nil {
-		return nil, fmt.Errorf("build SPDY executor: %w", err)
-	}
+// listEtcdMembers runs `etcdctl member list -w json` inside the etcd container on the first
+// control-plane node by `docker exec`-ing into the CAPD node container and using crictl to find
+// and exec into the etcd container. This bypasses the workload-cluster apiserver entirely, so it
+// keeps working even when:
+//   - the HAProxy LB is churning during remediation,
+//   - the workload apiserver is wedged because the orphan etcd member has confused etcd, or
+//   - the kubelet on the only remaining CP node has not yet accepted exec requests after restart.
+//
+// Caller must pass the CAPD docker container name. For KCP-managed Machines whose name begins with
+// the cluster name (which is the standard case in this spec) the container name equals the Machine
+// name; see CAPD's docker.MachineContainerName.
+func listEtcdMembers(ctx context.Context, nodeContainerName string) ([]etcdMember, error) {
+	const script = `set -eu
+ETCD_ID=$(crictl ps -q --label io.kubernetes.container.name=etcd | head -n1)
+if [ -z "$ETCD_ID" ]; then
+  echo "no running etcd container found via crictl on $(hostname)" >&2
+  exit 1
+fi
+crictl exec "$ETCD_ID" \
+  etcdctl \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  member list -w json`
+	cmd := exec.CommandContext(ctx, "docker", "exec", nodeContainerName, "sh", "-c", script)
 	var stdout, stderr bytes.Buffer
-	if err := exec.StreamWithContext(ctx, remotecommand.StreamOptions{Stdout: &stdout, Stderr: &stderr}); err != nil {
-		return nil, fmt.Errorf("etcdctl member list failed: %w (stderr=%s)", err, stderr.String())
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("docker exec etcdctl on container %q failed: %w (stderr=%s)", nodeContainerName, err, strings.TrimSpace(stderr.String()))
 	}
 	var out etcdMemberList
 	if err := json.Unmarshal(stdout.Bytes(), &out); err != nil {
-		return nil, fmt.Errorf("parse etcdctl JSON output (stdout=%q): %w", stdout.String(), err)
+		return nil, fmt.Errorf("parse etcdctl JSON output (stdout=%q stderr=%q): %w", stdout.String(), strings.TrimSpace(stderr.String()), err)
 	}
 	return out.Members, nil
+}
+
+// machineContainerName replicates CAPD's docker.MachineContainerName naming so we don't have to
+// import the CAPD module from the e2e package.
+func machineContainerName(clusterName, machineName string) string {
+	if strings.HasPrefix(machineName, clusterName) {
+		return machineName
+	}
+	return fmt.Sprintf("%s-%s", clusterName, machineName)
 }
 
 // waitForOrphanLearnerEtcdMember polls etcdctl until it observes a second etcd member (i.e. any
@@ -563,16 +530,16 @@ func listEtcdMembers(ctx context.Context, restCfg *rest.Config, cpNodeName strin
 // member whose corresponding Machine has no Node is itself a KCP bug worth flagging, but it is
 // not what this spec asserts. Returns the second member's ID and name (or empty name if still
 // a learner).
-func waitForOrphanLearnerEtcdMember(ctx context.Context, restCfg *rest.Config, firstCPNodeName string, intervals []interface{}) (uint64, string) {
+func waitForOrphanLearnerEtcdMember(ctx context.Context, nodeContainerName, firstCPNodeName string, intervals []interface{}) (uint64, string) {
 	var (
 		secondID   uint64
 		secondName string
 	)
 	Eventually(func(g Gomega) {
-		members, err := listEtcdMembers(ctx, restCfg, firstCPNodeName)
+		members, err := listEtcdMembers(ctx, nodeContainerName)
 		g.Expect(err).NotTo(HaveOccurred(), "failed to list etcd members")
 		for _, m := range members {
-			// Skip the first CP voter we already know about.
+			// Skip the first CP voter we already know about (its etcd member name matches the Node name).
 			if m.Name == firstCPNodeName {
 				continue
 			}

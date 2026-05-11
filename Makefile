@@ -177,9 +177,10 @@ GOLANGCI_LINT_KAL_VER := $(shell cat ./hack/tools/.custom-gcl.yaml | grep versio
 GOLANGCI_LINT_KAL := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_KAL_BIN))
 
 GOVULNCHECK_BIN := govulncheck
-GOVULNCHECK_VER := v1.1.4
-GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
-GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
+GOVULNCHECK_VER := v1.3.0
+GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN))
+GOVULNCHECK_DIR := hack/tools/govulncheck
+GOVULNCHECK_TMP_DIR ?= $(GOVULNCHECK_DIR)/govulncheck.tmp
 
 CRANE_BIN := crane
 CRANE_VER := v0.20.7
@@ -1505,14 +1506,37 @@ $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 $(GOLANGCI_LINT_KAL): $(GOLANGCI_LINT) # Build golangci-lint-kal from custom configuration.
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) custom
 
-$(GOVULNCHECK): # Build govulncheck.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
-
 $(CRANE): # Build crane.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CRANE_PKG) $(CRANE_BIN) $(CRANE_VER)
 
 $(IMPORT_BOSS): # Build import-boss
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(IMPORT_BOSS_PKG) $(IMPORT_BOSS_BIN) $(IMPORT_BOSS_VER)
+
+## --------------------------------------
+## govulncheck
+## --------------------------------------
+
+$(GOVULNCHECK): # Build govulncheck.
+	@if [ -z "${GOVULNCHECK_VER}" ]; then echo "GOVULNCHECK_VER is not set"; exit 1; fi
+	@if [ -d "$(GOVULNCHECK_TMP_DIR)" ]; then \
+		echo "$(GOVULNCHECK_TMP_DIR) exists, skipping clone"; \
+	else \
+		git clone "https://github.com/golang/vuln.git" "$(GOVULNCHECK_TMP_DIR)"; \
+		cd "$(GOVULNCHECK_TMP_DIR)"; \
+		git checkout "$(GOVULNCHECK_VER)"; \
+		git apply "$(ROOT_DIR)/$(GOVULNCHECK_DIR)/govulncheck.patch"; \
+	fi
+	@cd "$(ROOT_DIR)/$(GOVULNCHECK_TMP_DIR)"; \
+	if [ "$$(git describe --tag 2> /dev/null)" != "$(GOVULNCHECK_VER)" ]; then \
+		echo "ERROR: checked out version $$(git describe --tag 2> /dev/null) does not match expected version $(GOVULNCHECK_VER)"; \
+		exit 1; \
+	fi
+	go build -C $(GOVULNCHECK_TMP_DIR) -o $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN) ./cmd/govulncheck
+
+.PHONY: clean-govulncheck
+clean-govulncheck:
+	rm -fr "$(GOVULNCHECK_TMP_DIR)"
+
 
 ## --------------------------------------
 ## triage-party

@@ -140,11 +140,24 @@ func KCPOrphanLearnerSpec(ctx context.Context, inputGetter func() KCPOrphanLearn
 		secondMachine := waitForOrphanLearnerSecondMachine(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name, firstMachine.Name, input.E2EConfig.GetIntervals(specName, "wait-machines"))
 		log.Logf("Second control-plane Machine %s observed without a NodeRef (Node creation is blocked)", secondMachine.Name)
 
-		By("Waiting for the second etcd member to appear in MemberList (learner or already-promoted voter)")
-		learnerMemberID, learnerMemberName := waitForOrphanLearnerEtcdMember(ctx, firstCPContainer, firstCPNodeName, input.E2EConfig.GetIntervals(specName, "wait-etcd-learner"))
-		log.Logf("Second control-plane Machine produced etcd member ID=%x name=%q", learnerMemberID, learnerMemberName)
-		logEtcdMembers(ctx, firstCPContainer, "after second member observed")
+		secondCPContainer := machineContainerName(clusterResources.Cluster.Name, secondMachine.Name)
+
+		By(fmt.Sprintf("Waiting for the second etcd member to appear in MemberList and atomically pausing %s on first sight so kubeadm-join cannot promote the learner", secondCPContainer))
+		// We MUST catch the new member while it is still IsLearner=true. If kubeadm-join's
+		// MemberPromote retry loop wins this race, the second member becomes a voter, and once
+		// the test deletes the corresponding Machine the workload-cluster etcd drops from 2
+		// voters to 1 (orphan, container removed) -> quorum lost -> later etcdctl calls hang
+		// and the orphan-stable assertion cannot read MemberList. Pausing the second CP container with
+		// `docker pause` freezes its pid namespace, including the in-flight kubeadm-join and
+		// the local etcd static pod, so the learner stays a learner. Learners don't count
+		// toward quorum, so the first CP's etcd stays healthy through Machine deletion.
+		learnerMemberID, learnerMemberName := waitForOrphanLearnerEtcdMemberAndPause(ctx, firstCPContainer, secondCPContainer, firstCPNodeName, input.E2EConfig.GetIntervals(specName, "wait-etcd-learner"))
+		log.Logf("Second control-plane Machine produced etcd member ID=%x name=%q (container %s paused)", learnerMemberID, learnerMemberName, secondCPContainer)
+		logEtcdMembers(ctx, firstCPContainer, "after second member observed and second CP container paused")
 		logKCPEtcdCondition(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name, "after second member observed")
+
+		By("Verifying the second etcd member is still IsLearner=true after pause (otherwise kubeadm won the promotion race and the orphan-stable assertion will lose quorum)")
+		assertSecondMemberStillLearner(ctx, firstCPContainer, secondCPContainer, learnerMemberID)
 
 		By("Labelling the second Machine with mhc-test:fail to opt it into MHC remediation")
 		labelMachineForOrphanLearnerRemediation(ctx, input.BootstrapClusterProxy.GetClient(), secondMachine)
@@ -523,33 +536,103 @@ func machineContainerName(clusterName, machineName string) string {
 	return fmt.Sprintf("%s-%s", clusterName, machineName)
 }
 
-// waitForOrphanLearnerEtcdMember polls etcdctl until it observes a second etcd member (i.e. any
-// member whose name is not the first CP's Node name). It accepts both learner and voter states
-// because KCP may have already promoted the new member by the time the first poll runs -- the
-// orphan-after-remediation behaviour we're testing is the same either way. The promotion of a
-// member whose corresponding Machine has no Node is itself a KCP bug worth flagging, but it is
-// not what this spec asserts. Returns the second member's ID and name (or empty name if still
-// a learner).
-func waitForOrphanLearnerEtcdMember(ctx context.Context, nodeContainerName, firstCPNodeName string, intervals []interface{}) (uint64, string) {
+// waitForOrphanLearnerEtcdMemberAndPause polls etcdctl on the first CP container until it
+// observes a second etcd member (i.e. any member whose name is not the first CP's Node name).
+// On first sight, it atomically pauses the second CP's CAPD docker container via `docker pause`
+// so that the kubeadm-join process running inside cannot complete its MemberPromote retry loop.
+//
+// Pausing freezes the entire pid namespace of the container (kubeadm-join, kubelet, the local
+// etcd static-pod container, every subprocess) via the cgroup freezer. Any in-flight gRPC call
+// from kubeadm to the first CP's etcd is stopped wherever it happens to be, and the local etcd
+// can no longer advance its raftAppliedIndex, so even if kubeadm did issue a fresh MemberPromote
+// the server-side IsLearnerReady check would refuse it. As a result the second member stays
+// IsLearner=true, which is what the spec relies on: learners don't count toward quorum, so
+// deleting the corresponding Machine (and `docker rm -f`-ing the paused container) does not
+// drop the workload-cluster etcd below quorum.
+//
+// The pauseDone latch ensures we only issue `docker pause` once even if Eventually retries.
+// Returns the second member's ID and name; IsLearner=true is asserted separately by
+// assertSecondMemberStillLearner after this call returns, against a post-pause MemberList read.
+func waitForOrphanLearnerEtcdMemberAndPause(ctx context.Context, firstCPContainer, secondCPContainer, firstCPNodeName string, intervals []interface{}) (uint64, string) {
 	var (
 		secondID   uint64
 		secondName string
+		pauseDone  bool
 	)
 	Eventually(func(g Gomega) {
-		members, err := listEtcdMembers(ctx, nodeContainerName)
+		members, err := listEtcdMembers(ctx, firstCPContainer)
 		g.Expect(err).NotTo(HaveOccurred(), "failed to list etcd members")
 		for _, m := range members {
 			// Skip the first CP voter we already know about (its etcd member name matches the Node name).
 			if m.Name == firstCPNodeName {
 				continue
 			}
-			secondID = m.ID
-			secondName = m.Name
 			log.Logf("Observed second etcd member: ID=%x name=%q isLearner=%v peerURLs=%v",
 				m.ID, m.Name, m.IsLearner, m.PeerURLs)
+			if !pauseDone {
+				// Issue `docker pause` immediately, before doing anything else, to minimise
+				// the window in which kubeadm-join could promote the learner.
+				if err := dockerPause(ctx, secondCPContainer); err != nil {
+					g.Expect(err).NotTo(HaveOccurred(), "docker pause %s failed (will retry)", secondCPContainer)
+					return
+				}
+				pauseDone = true
+				log.Logf("Paused %s on first sight of second etcd member", secondCPContainer)
+			}
+			secondID = m.ID
+			secondName = m.Name
 			return
 		}
 		g.Expect(secondID).NotTo(BeZero(), "no second etcd member observed yet; members=%s", formatEtcdMembers(members))
 	}, intervals...).Should(Succeed())
 	return secondID, secondName
+}
+
+// assertSecondMemberStillLearner re-reads the first CP's etcd MemberList after the second CP
+// container has been paused and asserts the second member is still present and still
+// IsLearner=true. A voter result means kubeadm-join's MemberPromote call landed on the etcd
+// leader before `docker pause` froze the join, and the orphan-stable assertion will not be able
+// to read MemberList after the second Machine is deleted (quorum loss).
+//
+// We re-fetch instead of trusting the IsLearner field captured during the polling loop because
+// there is a small window between the poll returning and the pause being issued during which
+// the leader could have processed a MemberPromote RPC.
+func assertSecondMemberStillLearner(ctx context.Context, firstCPContainer, secondCPContainer string, memberID uint64) {
+	members, err := listEtcdMembers(ctx, firstCPContainer)
+	Expect(err).NotTo(HaveOccurred(), "failed to re-list etcd members after pausing %s", secondCPContainer)
+	var (
+		found     bool
+		isLearner bool
+	)
+	for _, m := range members {
+		if m.ID == memberID {
+			found = true
+			isLearner = m.IsLearner
+			break
+		}
+	}
+	Expect(found).To(BeTrue(),
+		"second etcd member ID=%x disappeared between detection and post-pause re-read; members=%s",
+		memberID, formatEtcdMembers(members))
+	Expect(isLearner).To(BeTrue(),
+		"second etcd member ID=%x was already promoted to voter by the time `docker pause %s` completed -- "+
+			"kubeadm-join won the promotion race. The orphan member will still leak the member, but deleting the Machine "+
+			"will drop the workload-cluster etcd below quorum and the orphan-stable assertion will fail to "+
+			"read MemberList. Reduce orphan-learner/wait-etcd-learner polling interval. members=%s",
+		memberID, secondCPContainer, formatEtcdMembers(members))
+}
+
+// dockerPause runs `docker pause <container>`. Pausing uses the cgroup freezer and is atomic
+// from the perspective of processes inside the container: every process is SIGSTOP-equivalent
+// frozen in a single kernel transition. `docker rm -f` on a paused container automatically
+// unfreezes and SIGKILLs, so the CAPD-driven Machine deletion still works.
+func dockerPause(ctx context.Context, containerName string) error {
+	cmd := exec.CommandContext(ctx, "docker", "pause", containerName)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("docker pause %s: %w (stdout=%q stderr=%q)", containerName, err, strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()))
+	}
+	return nil
 }

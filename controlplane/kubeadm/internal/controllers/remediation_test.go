@@ -2839,6 +2839,51 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse(),
 			"Voter remediation must block while any learner is in-flight (targetLearnerMembers > 0 guard) — wait for promotion before changing voter set.")
 	})
+
+	t.Run("Concurrent remediation: a 3-CP cluster with one peer Machine already condemned for removal cannot admit a second voter removal", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Scenario: KCP previously admitted m1's removal; MHC has now flagged m2.
+		// targetEtcdClusterHealthy must see {m1,m2,m3} \ {m1,m2} = {m3} as the post-state and
+		// refuse the second admission (1 voter < quorum 2 of the original 3-voter cluster).
+		// Without the condemned-peer accounting the function sees {m1,m2,m3} \ {m2} = {m1,m3}
+		// = 2 voters ≥ quorum 2, admits the second remediation, and both Machines proceed
+		// through their pre-terminate hooks dropping the cluster to {m3} alone.
+		m1 := getMachine(metav1.NamespaceDefault, "m1-already-condemned", withCondemned())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-mhc-unhealthy", withMachineHealthCheckFailed())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines:    collections.FromMachines(m1, m2, m3),
+			EtcdMembers: etcdMembers(collections.FromMachines(m1, m2, m3)),
+		}
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m2.Status.NodeRef.Name})
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse(),
+			"Concurrent remediation must be rejected when another CP Machine is already condemned and its removal would jointly breach quorum.")
+	})
+
+	t.Run("Concurrent remediation: a 5-CP cluster with one peer condemned still admits a second voter removal (3 voters ≥ quorum 3 of 5)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// 5-Machine CP cluster, m1 condemned, m2 newly flagged. Post-state {m3,m4,m5} = 3 voters,
+		// quorum of 5 is 3. Admission is the right call: a 5-cluster can absorb two concurrent
+		// remediations without breaching quorum.
+		m1 := getMachine(metav1.NamespaceDefault, "m1-condemned", withCondemned())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-mhc-unhealthy", withMachineHealthCheckFailed())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-healthy", withHealthyEtcdMember())
+		m4 := getMachine(metav1.NamespaceDefault, "m4-healthy", withHealthyEtcdMember())
+		m5 := getMachine(metav1.NamespaceDefault, "m5-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines:    collections.FromMachines(m1, m2, m3, m4, m5),
+			EtcdMembers: etcdMembers(collections.FromMachines(m1, m2, m3, m4, m5)),
+		}
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m2.Status.NodeRef.Name})
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue(),
+			"5-CP cluster with one peer condemned must still admit a second voter removal because the post-state {3 voters} meets quorum (3).")
+	})
 }
 
 func TestTargetK8sControlPlaneHealthy(t *testing.T) {
@@ -3040,6 +3085,24 @@ func withRemediateForAnnotation(remediatedFor string) machineOption {
 func withWaitBeforeDeleteFinalizer() machineOption {
 	return func(machine *clusterv1.Machine) {
 		machine.Finalizers = []string{"wait-before-delete"}
+	}
+}
+
+// withCondemned marks a Machine as KCP-committed-for-removal: DeletionTimestamp set and the
+// pre-terminate-hook cleanup annotation present. Used by targetEtcdClusterHealthy /
+// condemnedPeerMemberIDs tests for the concurrent-remediation accounting fix.
+func withCondemned() machineOption {
+	return func(machine *clusterv1.Machine) {
+		now := metav1.Now()
+		machine.DeletionTimestamp = &now
+		if machine.Annotations == nil {
+			machine.Annotations = map[string]string{}
+		}
+		machine.Annotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
+		// Finalizer required by Kubernetes for a DeletionTimestamp to persist on a fake-client
+		// Machine; the test fixtures bypass that, but real code paths assume the finalizer is
+		// present once KCP has claimed the Machine.
+		machine.Finalizers = append(machine.Finalizers, "kubeadm.controlplane.cluster.x-k8s.io/finalizer")
 	}
 }
 

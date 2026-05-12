@@ -927,6 +927,59 @@ func step4OtherMachineCollision(controlPlane *internal.ControlPlane, deletingMac
 	return false, ""
 }
 
+// condemnedPeerMembers returns the set of etcd members that belong to CP Machines OTHER than
+// the target which KCP has already committed to deleting via the pre-terminate hook flow —
+// i.e. Machines with DeletionTimestamp != nil that still carry the KCP cleanup annotation.
+// Those Machines' etcd members will be removed by their hooks as soon as those reconciles
+// fire; treating them as already-gone in the quorum gate prevents two sequential remediations
+// from both being admitted on the same live MemberList and jointly dropping the cluster below
+// quorum.
+//
+// The correlation is name-based: Machine.Status.NodeRef.Name == etcd.Member.Name. Empty-Name
+// "Joining" members on condemned peer Machines are not propagated here — they're resolved by
+// tryGetEtcdMemberName's later steps in their own reconciles, and the in-flight RemoveMember
+// commit-time recheck (see RemoveEtcdMember / RemoveEtcdMemberByID) catches the post-state
+// if the empty-Name peer's status changes between admission and commit. The condemned set is
+// the common-case backstop; the recheck is the safety net.
+//
+// The set is keyed by *etcd.Member pointer identity, not member ID — real production members
+// always have distinct IDs, but test fixtures sometimes use ID=0 for several members, and
+// pointer identity matches whichever fixture shape is in use because the same slice elements
+// are iterated by the caller.
+//
+// target may be nil (the addEtcdMember=true scale-up path); in that case all condemned-peer
+// members are returned.
+func condemnedPeerMembers(controlPlane *internal.ControlPlane, target *etcd.Member) map[*etcd.Member]struct{} {
+	condemned := map[*etcd.Member]struct{}{}
+	for _, m := range controlPlane.Machines {
+		if m.DeletionTimestamp.IsZero() {
+			continue
+		}
+		if _, hasHook := m.Annotations[controlplanev1.PreTerminateHookCleanupAnnotation]; !hasHook {
+			continue
+		}
+		if !m.Status.NodeRef.IsDefined() {
+			continue
+		}
+		for _, em := range controlPlane.EtcdMembers {
+			if em.Name != m.Status.NodeRef.Name {
+				continue
+			}
+			if target != nil {
+				if target.ID != 0 && em.ID == target.ID {
+					break
+				}
+				if target.Name != "" && em.Name == target.Name {
+					break
+				}
+			}
+			condemned[em] = struct{}{}
+			break
+		}
+	}
+	return condemned
+}
+
 // step5StartupGrace is the minimum age a Machine must reach before step 5 (strict 1↔1
 // pairing) will fire. It defends against step 5 misidentifying a freshly-created Machine
 // whose Node simply hasn't published yet as a stuck orphan. The value mirrors MachineHealthCheck's
@@ -1167,9 +1220,43 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 		return false
 	}
 
+	// Compute the set of etcd members KCP has already committed to removing via the
+	// pre-terminate hook flow for *other* CP Machines (DeletionTimestamp set + KCP cleanup
+	// annotation still present). Treating those members as already-gone in the gate makes the
+	// quorum decision pessimistic enough to never grant a concurrent remediation that would
+	// breach quorum once the in-flight removals all complete. Without this accounting, two
+	// sequential reconciles each evaluating against the same live MemberList can both admit
+	// removals that are individually safe but jointly drop the cluster below quorum.
+	// Determine whether we're in a concurrent-remediation regime (≥1 non-deleting CP Machine
+	// other than the target survives) or a wind-down regime (everyone is leaving). Condemned-
+	// peer accounting and the pre-state quorum bar apply only to the former; the latter
+	// preserves the existing per-call behaviour and relies on RemoveEtcdMember's
+	// "cannot remove last member" check as the safeguard.
+	survivingPeer := false
+	for _, m := range controlPlane.Machines {
+		if m.DeletionTimestamp.IsZero() && (etcdMemberToBeDeleted == nil || m.Status.NodeRef.Name != etcdMemberToBeDeleted.Name) {
+			survivingPeer = true
+			break
+		}
+	}
+	var condemnedPeers map[*etcd.Member]struct{}
+	if survivingPeer {
+		condemnedPeers = condemnedPeerMembers(controlPlane, etcdMemberToBeDeleted)
+	}
+	var condemnedNames []string
+
 	for _, etcdMember := range controlPlane.EtcdMembers {
 		// Skip the etcd member to be deleted because it won't be part of the target etcd cluster.
 		if isTarget(etcdMember) {
+			continue
+		}
+		// Skip etcd members corresponding to other CP Machines that KCP has already committed
+		// to removing — they will be gone by the time this admission's removal commits, so the
+		// post-state must subtract them too. They are NOT counted toward target voting members
+		// (they're leaving) and NOT counted as unhealthy (they're not staying). Recorded
+		// separately for logging.
+		if _, isCondemned := condemnedPeers[etcdMember]; isCondemned {
+			condemnedNames = append(condemnedNames, etcdMember.Name)
 			continue
 		}
 
@@ -1234,8 +1321,29 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 		healthyMembers = append(healthyMembers, fmt.Sprintf("%s (%s)", etcdMember.Name, machine.Name))
 	}
 
-	// See https://etcd.io/docs/v3.3/faq/#what-is-failure-tolerance for fault tolerance formula explanation.
+	// Quorum bar: by default quorum is computed against the post-state voting count (the
+	// existing behaviour — a 3→2 voter shrink keeps quorum at 2, a 5→4 shrink keeps it at 3, so
+	// the formulas agree). When peer Machines are condemned AND at least one peer Machine is
+	// NOT deleting (i.e. the cluster is doing concurrent remediation, not a wind-down), the
+	// quorum bar is raised to the PRE-state voting count so the joint transition is evaluated
+	// against the cluster's original fault tolerance rather than the degraded post-state's
+	// own quorum. Without this distinction, a 3-CP cluster removing two voters concurrently
+	// would see post-state quorum = 1 (trivially met by 1 healthy voter) and admit; the
+	// original cluster's quorum was 2, so the joint operation drops fault tolerance to zero.
+	// The "any peer is not deleting" carve-out preserves the wind-down path where every
+	// Machine is in deletion (legitimate cluster teardown) — the per-call `RemoveEtcdMember`
+	// "cannot remove last member" check is the safeguard there. See risk 1 in #13680's Caveats.
+	preStateVotingMembers := 0
+	for _, m := range controlPlane.EtcdMembers {
+		if m.Name == "" || m.IsLearner {
+			continue
+		}
+		preStateVotingMembers++
+	}
 	targetQuorum := (targetVotingMembers / 2.0) + 1
+	if len(condemnedPeers) > 0 && preStateVotingMembers > 0 {
+		targetQuorum = (preStateVotingMembers / 2) + 1
+	}
 	canSafelyTransitionToTargetState := targetVotingMembers-len(unhealthyMembers) >= targetQuorum
 
 	// Force the result to false in case there are learner etcd members; KCP should wait for those members being promoted
@@ -1254,6 +1362,7 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 	log.Info(fmt.Sprintf("etcd cluster considering %s", strings.Join(operations, ",")),
 		"healthyMembers", healthyMembers,
 		"unhealthyMembers", unhealthyMembers,
+		"condemnedPeerMembers", condemnedNames,
 		"totalMembers", targetTotalMembers,
 		"totalLearnerMembers", targetLearnerMembers,
 		"totalVotingMembers", targetVotingMembers,

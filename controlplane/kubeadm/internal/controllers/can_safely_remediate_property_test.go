@@ -31,10 +31,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"pgregory.net/rapid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"pgregory.net/rapid"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -65,7 +64,7 @@ func genCanSafelyRemediateFixture() *rapid.Generator[canSafelyRemediateFixture] 
 		nMachines := rapid.IntRange(1, 5).Draw(t, "machineCount")
 		machines := make([]*clusterv1.Machine, 0, nMachines)
 		members := make([]*etcd.Member, 0, nMachines)
-		for i := 0; i < nMachines; i++ {
+		for i := range nMachines {
 			name := fmt.Sprintf("m-%d", i)
 			nodeName := fmt.Sprintf("node-%d", i)
 			m := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: name}}

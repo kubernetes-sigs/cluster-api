@@ -818,7 +818,7 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 		sortedMachineNames = append(sortedMachineNames, name)
 	}
 	sort.Strings(sortedMachineNames)
-	addrPairedMember := make(map[uint64]string, len(candidates))   // member.ID → Machine.Name
+	addrPairedMember := make(map[uint64]string, len(candidates)) // member.ID → Machine.Name
 	addrPairedMachine := make(map[string]uint64, len(controlPlane.Machines))
 	for _, m := range candidates {
 		memHosts := peerURLHosts(m)

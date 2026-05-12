@@ -2631,7 +2631,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 	// `targetLearnerMembers > 0` guard at remediation.go:796 must continue to block
 	// remediation of a voter while a non-stuck learner is in-flight, and must NOT block
 	// removal of a learner that is itself the remediation target (the canonical orphan-learner
-	// orphan-learner case relies on the `continue` skip at remediation.go:733 to drop
+	// case relies on the `continue` skip at remediation.go:733 to drop
 	// the learner from the target count when it is the one being removed).
 	t.Run("orphan-learner regression: can safely remove an orphan learner — its IsLearner state does not block its own removal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -2658,10 +2658,10 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
 		controlPlane.EtcdMembers = []*etcd.Member{
-			{ID: 1, Name: m1.Status.NodeRef.Name},                   // target voter
-			{ID: 2, Name: m2.Status.NodeRef.Name},                   // healthy voter
-			{ID: 3, Name: m3.Status.NodeRef.Name},                   // healthy voter
-			{ID: 4, Name: "in-flight-learner", IsLearner: true},     // non-stuck learner from a recent scale-up
+			{ID: 1, Name: m1.Status.NodeRef.Name},               // target voter
+			{ID: 2, Name: m2.Status.NodeRef.Name},               // healthy voter
+			{ID: 3, Name: m3.Status.NodeRef.Name},               // healthy voter
+			{ID: 4, Name: "in-flight-learner", IsLearner: true}, // non-stuck learner from a recent scale-up
 		}
 		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse(),

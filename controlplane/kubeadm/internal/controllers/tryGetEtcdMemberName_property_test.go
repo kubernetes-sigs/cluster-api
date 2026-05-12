@@ -29,10 +29,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"pgregory.net/rapid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"pgregory.net/rapid"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -76,7 +75,7 @@ func runChain(t *rapid.T, cp propControlPlane) (*etcd.Member, []*etcd.Member) {
 	return r.tryGetEtcdMemberName(t.Context(), controlPlane, cp.machines[0])
 }
 
-// ---------------- Property tests ---------------------------------------------
+// ---------------- Property tests ---------------------------------------------.
 
 // P3 Determinism: tryGetEtcdMemberName is a pure function — repeated calls on the same input
 // return equal results.
@@ -87,7 +86,8 @@ func TestProperty_Determinism(t *testing.T) {
 		n1 := nameOf(m1)
 		m2, c2 := runChain(t, cp)
 		n2 := nameOf(m2)
-		_ = m1; _ = m2
+		_ = m1
+		_ = m2
 		if n1 != n2 {
 			t.Fatalf("name not deterministic: %q vs %q", n1, n2)
 		}

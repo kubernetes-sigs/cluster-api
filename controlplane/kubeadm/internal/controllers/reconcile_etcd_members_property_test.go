@@ -36,11 +36,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"pgregory.net/rapid"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	ctrl "sigs.k8s.io/controller-runtime"
-
-	"pgregory.net/rapid"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -50,7 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-// ---------------- reconcileEtcdMembers state machine ----------------
+// ---------------- reconcileEtcdMembers state machine ----------------.
 
 // reconcileEtcdModel is the in-memory state the state machine mutates.
 type reconcileEtcdModel struct {
@@ -68,7 +67,7 @@ func newReconcileEtcdModel() *reconcileEtcdModel {
 	machines := map[string]*clusterv1.Machine{}
 	members := []*etcd.Member{}
 	nodes := map[string]bool{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		nodeName := "node-" + strconv.Itoa(i)
 		m := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{Name: "m-" + strconv.Itoa(i)},
@@ -244,18 +243,18 @@ func TestProperty_ReconcileEtcdMembersStateMachine(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		s := newReconcileEtcdModel()
 		t.Repeat(map[string]func(*rapid.T){
-			"AddOrphanMember":          func(t *rapid.T) { s.addOrphanMember(t) },
-			"AddEmptyNameMember":       func(t *rapid.T) { s.addEmptyNameMember() },
-			"RemoveMember":             func(t *rapid.T) { s.removeRandomMember(t) },
-			"AddProvisioningMachine":   func(t *rapid.T) { s.addProvisioningMachine() },
-			"ClearMachineNodeRef":      func(t *rapid.T) { s.clearMachineNodeRef(t) },
-			"RunReconcileEtcdMembers":  func(t *rapid.T) { s.runReconcileEtcdMembers(t) },
-			"":                         func(t *rapid.T) { s.checkInvariants(t) },
+			"AddOrphanMember":         func(t *rapid.T) { s.addOrphanMember(t) },
+			"AddEmptyNameMember":      func(_ *rapid.T) { s.addEmptyNameMember() },
+			"RemoveMember":            func(t *rapid.T) { s.removeRandomMember(t) },
+			"AddProvisioningMachine":  func(_ *rapid.T) { s.addProvisioningMachine() },
+			"ClearMachineNodeRef":     func(t *rapid.T) { s.clearMachineNodeRef(t) },
+			"RunReconcileEtcdMembers": func(t *rapid.T) { s.runReconcileEtcdMembers(t) },
+			"":                        func(t *rapid.T) { s.checkInvariants(t) },
 		})
 	})
 }
 
-// ---------------- scaleDownControlPlane ordering ----------------
+// ---------------- scaleDownControlPlane ordering ----------------.
 
 // scaleDownObservations records side effects of one scaleDownControlPlane invocation.
 type scaleDownObservations struct {
@@ -269,7 +268,7 @@ type scaleDownObservations struct {
 // post-preflight ordering (ForwardEtcdLeadership → Client.Delete) is what the properties assert.
 func runScaleDownObserved(t *rapid.T, etcdManaged bool, blockPreflight bool) scaleDownObservations {
 	machines := []*clusterv1.Machine{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		m := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       "m-" + strconv.Itoa(i),

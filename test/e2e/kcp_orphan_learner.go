@@ -211,7 +211,7 @@ func KCPOrphanLearnerSpec(ctx context.Context, inputGetter func() KCPOrphanLearn
 	})
 }
 
-// --- helpers ---------------------------------------------------------------
+// --- helpers ---------------------------------------------------------------.
 
 type createOrphanLearnerWorkloadClusterInput struct {
 	E2EConfig              *clusterctl.E2EConfig
@@ -392,7 +392,7 @@ func kcpEtcdClusterHealthy(ctx context.Context, c client.Client, namespace, clus
 		return "", "", "", fmt.Errorf("get Cluster %s/%s: %w", namespace, clusterName, err)
 	}
 	if cluster.Spec.ControlPlaneRef.Name == "" {
-		return "", "", "", fmt.Errorf("Cluster %s/%s has no controlPlaneRef", namespace, clusterName)
+		return "", "", "", fmt.Errorf("cluster %s/%s has no controlPlaneRef", namespace, clusterName)
 	}
 	kcp := &unstructured.Unstructured{}
 	kcp.SetGroupVersionKind(kcpGVK)
@@ -543,6 +543,7 @@ crictl exec "$ETCD_ID" \
   --cert=/etc/kubernetes/pki/etcd/server.crt \
   --key=/etc/kubernetes/pki/etcd/server.key \
   member list -w json`
+	// #nosec G204 -- e2e helper: nodeContainerName comes from CAPD-managed container names, not untrusted input.
 	cmd := exec.CommandContext(ctx, "docker", "exec", nodeContainerName, "sh", "-c", script)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -657,6 +658,7 @@ func assertSecondMemberStillLearner(ctx context.Context, firstCPContainer, secon
 // frozen in a single kernel transition. `docker rm -f` on a paused container automatically
 // unfreezes and SIGKILLs, so the CAPD-driven Machine deletion still works.
 func dockerPause(ctx context.Context, containerName string) error {
+	// #nosec G204 -- e2e helper: containerName comes from CAPD-managed container names, not untrusted input.
 	cmd := exec.CommandContext(ctx, "docker", "pause", containerName)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

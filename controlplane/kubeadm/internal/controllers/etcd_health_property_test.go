@@ -27,7 +27,6 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"pgregory.net/rapid"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -39,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-// ---------------- Helpers for these properties --------------------------------
+// ---------------- Helpers for these properties --------------------------------.
 
 // genEtcdHealthCP generates a control plane geared for the etcd-health predicate: 1-5
 // Machines (all with NodeRef), 0-5 etcd members where each member's IsLearner and per-Machine
@@ -50,7 +49,7 @@ func genEtcdHealthCP() *rapid.Generator[propControlPlane] {
 		nMachines := rapid.IntRange(1, 5).Draw(t, "machineCount")
 		machines := make([]*clusterv1.Machine, 0, nMachines)
 		members := make([]*etcd.Member, 0, nMachines)
-		for i := 0; i < nMachines; i++ {
+		for i := range nMachines {
 			name := fmt.Sprintf("m-%d", i)
 			nodeName := fmt.Sprintf("node-%d", i)
 			m := &clusterv1.Machine{
@@ -164,7 +163,7 @@ func expectedEtcdHealthy(cp propControlPlane, addEtcdMember bool, etcdMemberToBe
 	return ok
 }
 
-// ---------------- targetEtcdClusterHealthy properties ----------------
+// ---------------- targetEtcdClusterHealthy properties ----------------.
 
 func TestProperty_TargetEtcdHealthy_QuorumFormulaConsistent(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
@@ -223,7 +222,7 @@ func TestProperty_TargetEtcdHealthy_RemovingLastVoterRefused(t *testing.T) {
 			Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason,
 		})
 		members := []*etcd.Member{voter}
-		for i := 0; i < nLearners; i++ {
+		for i := range nLearners {
 			members = append(members, &etcd.Member{
 				ID:        uint64(i + 2),
 				Name:      fmt.Sprintf("node-learner-%d", i),
@@ -355,7 +354,7 @@ func TestProperty_TargetEtcdHealthy_Determinism(t *testing.T) {
 	})
 }
 
-// ---------------- targetKubernetesControlPlaneComponentsHealthy properties ----------------
+// ---------------- targetKubernetesControlPlaneComponentsHealthy properties ----------------.
 
 // genCPHealthMachine produces a Machine with controllable health for the four CP-component
 // conditions. allHealthy=true sets all four True; otherwise at least one is False.
@@ -390,7 +389,7 @@ func genCPHealthControlPlane() *rapid.Generator[propControlPlane] {
 	return rapid.Custom(func(t *rapid.T) propControlPlane {
 		nMachines := rapid.IntRange(1, 5).Draw(t, "machineCount")
 		machines := make([]*clusterv1.Machine, 0, nMachines)
-		for i := 0; i < nMachines; i++ {
+		for i := range nMachines {
 			machines = append(machines, genCPHealthMachine(fmt.Sprintf("m-%d", i)).Draw(t, "machine"))
 		}
 		return propControlPlane{machines: machines}

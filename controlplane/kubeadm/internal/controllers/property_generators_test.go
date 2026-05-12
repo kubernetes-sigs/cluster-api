@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"pgregory.net/rapid"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -84,7 +83,7 @@ func genMember(id uint64) *rapid.Generator[*etcd.Member] {
 		).Draw(t, "memberName")
 		peerCount := rapid.IntRange(0, 2).Draw(t, "peerURLCount")
 		peers := make([]string, 0, peerCount)
-		for i := 0; i < peerCount; i++ {
+		for range peerCount {
 			peers = append(peers, genPeerURL().Draw(t, "peerURL"))
 		}
 		return &etcd.Member{
@@ -105,7 +104,7 @@ func genAddresses() *rapid.Generator[[]clusterv1.MachineAddress] {
 			clusterv1.MachineInternalIP, clusterv1.MachineExternalIP,
 			clusterv1.MachineHostName, clusterv1.MachineInternalDNS, clusterv1.MachineExternalDNS,
 		}
-		for i := 0; i < n; i++ {
+		for range n {
 			h := rapid.OneOf(rapid.SampledFrom(propIPv4Pool), rapid.SampledFrom(propIPv6Pool)).Draw(t, "addr")
 			out = append(out, clusterv1.MachineAddress{
 				Type:    rapid.SampledFrom(types).Draw(t, "addrType"),
@@ -159,20 +158,20 @@ func genControlPlane() *rapid.Generator[propControlPlane] {
 	return rapid.Custom(func(t *rapid.T) propControlPlane {
 		nMachines := rapid.IntRange(1, 5).Draw(t, "machineCount")
 		machines := make([]*clusterv1.Machine, 0, nMachines)
-		for i := 0; i < nMachines; i++ {
+		for i := range nMachines {
 			machines = append(machines, genMachine("m-"+propNodePool[i]).Draw(t, "machine"))
 		}
 		machines[0].ObjectMeta.Name = "m-deleting"
 
 		nMembers := rapid.IntRange(0, 5).Draw(t, "memberCount")
 		etcdMembers := make([]*etcd.Member, 0, nMembers)
-		for i := 0; i < nMembers; i++ {
+		for i := range nMembers {
 			etcdMembers = append(etcdMembers, genMember(uint64(i+1)).Draw(t, "member"))
 		}
 
 		nNodes := rapid.IntRange(0, 5).Draw(t, "nodeCount")
 		nodes := make([]*internal.Node, 0, nNodes)
-		for i := 0; i < nNodes; i++ {
+		for range nNodes {
 			nodes = append(nodes, &internal.Node{
 				ObjectMeta: internal.ObjectMeta{
 					Name: rapid.SampledFrom(propNodePool).Draw(t, "cpNodeName"),
@@ -183,7 +182,7 @@ func genControlPlane() *rapid.Generator[propControlPlane] {
 	})
 }
 
-// ---------------- Utility helpers used by property assertions ----------------
+// ---------------- Utility helpers used by property assertions ----------------.
 
 func memberIDs(ms []*etcd.Member) []uint64 {
 	out := make([]uint64, 0, len(ms))

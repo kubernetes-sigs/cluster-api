@@ -36,10 +36,9 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"pgregory.net/rapid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"pgregory.net/rapid"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -114,7 +113,7 @@ func markEtcdMemberHealthy(m *clusterv1.Machine) {
 	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
 }
 
-// ---------------- Actions ----------------------------------------------------
+// ---------------- Actions ----------------------------------------------------.
 
 // addOrphanMember adds a new etcd learner member with a name not currently in the Nodes set,
 // modelling a kubeadm-join that ran MemberAdd(learner=true) but never produced a Node — the
@@ -261,7 +260,7 @@ func (s *preterminateModel) runHook(t *rapid.T) {
 	}
 }
 
-// ---------------- Invariants -------------------------------------------------
+// ---------------- Invariants -------------------------------------------------.
 
 // checkInvariants is run after every state machine action via the special "" key in
 // rapid.T.Repeat. It asserts the no-silent-leak / quorum-respected properties.
@@ -289,7 +288,7 @@ func (s *preterminateModel) checkInvariants(t *rapid.T) {
 	}
 }
 
-// ---------------- Driver -----------------------------------------------------
+// ---------------- Driver -----------------------------------------------------.
 
 // TestProperty_PreTerminateHookStateMachine runs the state machine. Each rapid example draws a
 // sequence of actions and verifies the invariants after each.
@@ -297,12 +296,12 @@ func TestProperty_PreTerminateHookStateMachine(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		s := newPreterminateModel(t)
 		t.Repeat(map[string]func(*rapid.T){
-			"AddOrphanMember": func(t *rapid.T) { s.addOrphanMember() },
-			"RemoveMember":    func(t *rapid.T) { s.removeRandomMember(t) },
-			"SetIDAnnotation": func(t *rapid.T) { s.setIDAnnotation(t) },
-			"ClearAnnotations": func(t *rapid.T) { s.clearAnnotations() },
-			"RunHook":         func(t *rapid.T) { s.runHook(t) },
-			"":                func(t *rapid.T) { s.checkInvariants(t) },
+			"AddOrphanMember":  func(_ *rapid.T) { s.addOrphanMember() },
+			"RemoveMember":     func(t *rapid.T) { s.removeRandomMember(t) },
+			"SetIDAnnotation":  func(t *rapid.T) { s.setIDAnnotation(t) },
+			"ClearAnnotations": func(_ *rapid.T) { s.clearAnnotations() },
+			"RunHook":          func(t *rapid.T) { s.runHook(t) },
+			"":                 func(t *rapid.T) { s.checkInvariants(t) },
 		})
 	})
 }
@@ -353,4 +352,3 @@ func candidateIDs(in []*etcd.Member) []uint64 {
 	}
 	return out
 }
-

@@ -26,7 +26,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-
 	"pgregory.net/rapid"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -36,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
-// ---------------- canUpdateMachine -----------------------------------------
+// ---------------- canUpdateMachine -----------------------------------------.
 
 // Most canUpdateMachine paths require a real RuntimeClient + extension wiring; the table-
 // driven Test_canUpdateMachine in inplace_canupdatemachine_test.go covers those. The two
@@ -121,7 +120,7 @@ func TestProperty_CanUpdateMachine_ExtensionsAccept_True(t *testing.T) {
 	})
 }
 
-// ---------------- selectMachineForInPlaceUpdateOrScaleDown -----------------
+// ---------------- selectMachineForInPlaceUpdateOrScaleDown -----------------.
 
 // genSelectableCP generates a control plane with random failure-domain assignments and a
 // random subset of outdated Machines. Three failure domains are always declared in
@@ -140,7 +139,7 @@ func genSelectableCP() *rapid.Generator[struct {
 		nMachines := rapid.IntRange(1, 5).Draw(t, "nMachines")
 		fds := []string{"fd-0", "fd-1", "fd-2"}
 		machines := []*clusterv1.Machine{}
-		for i := 0; i < nMachines; i++ {
+		for i := range nMachines {
 			fd := fds[rapid.IntRange(0, len(fds)-1).Draw(t, "fdIdx")]
 			m := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -190,6 +189,7 @@ func TestProperty_SelectMachine_OutputInInputSet(t *testing.T) {
 			// May legitimately be nil if no eligible Machine — but with our generator we
 			// always have ≥1 Machine in cp.Machines, so the default branch picks it up.
 			t.Fatalf("nil output for non-empty Machines set; cp.Machines=%v", in.cp.Machines.Names())
+			return
 		}
 		// out must be in cp.Machines (the function never returns a Machine not in the snapshot).
 		if _, ok := in.cp.Machines[out.Name]; !ok {
@@ -230,10 +230,6 @@ func TestProperty_SelectMachine_SelectedFDIsTopRanked(t *testing.T) {
 		allCounts := map[string]int{}
 		for _, m := range in.cp.Machines {
 			allCounts[m.Spec.FailureDomain]++
-		}
-		type fdScore struct {
-			fd                  string
-			priority, allCount  int
 		}
 		topPriority := 0
 		for _, c := range priorityCounts {

@@ -30,7 +30,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"pgregory.net/rapid"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -40,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-// ---------------- Generators ---------------------------------------------------
+// ---------------- Generators ---------------------------------------------------.
 
 // genCompareCP draws a random ControlPlane shaped for compareMachinesAndMembers:
 //   - 0..5 Machines, each either has a NodeRef (matched name from the bounded pool) or doesn't.
@@ -56,7 +55,7 @@ func genCompareCP() *rapid.Generator[*ControlPlane] {
 		nodePool := []string{"node-a", "node-b", "node-c", "node-d", "node-e"}
 		nMachines := rapid.IntRange(0, 5).Draw(t, "nMachines")
 		machines := []*clusterv1.Machine{}
-		for i := 0; i < nMachines; i++ {
+		for i := range nMachines {
 			m := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("m-%d", i)}}
 			if rapid.Bool().Draw(t, fmt.Sprintf("m%d-hasNodeRef", i)) {
 				m.Status.NodeRef.Name = rapid.SampledFrom(nodePool).Draw(t, fmt.Sprintf("m%d-nodeRef", i))
@@ -65,7 +64,7 @@ func genCompareCP() *rapid.Generator[*ControlPlane] {
 		}
 		nMembers := rapid.IntRange(0, 5).Draw(t, "nMembers")
 		members := []*etcd.Member{}
-		for i := 0; i < nMembers; i++ {
+		for i := range nMembers {
 			name := rapid.OneOf(
 				rapid.SampledFrom(nodePool),
 				rapid.Just(""),
@@ -75,7 +74,7 @@ func genCompareCP() *rapid.Generator[*ControlPlane] {
 		// Some Node entries (with controllable age) so the 2-minute grace path is reachable.
 		nNodes := rapid.IntRange(0, 5).Draw(t, "nNodes")
 		nodes := []*Node{}
-		for i := 0; i < nNodes; i++ {
+		for i := range nNodes {
 			young := rapid.Bool().Draw(t, fmt.Sprintf("n%d-young", i))
 			var ts metav1.Time
 			if young {
@@ -110,7 +109,7 @@ func hasMachineWithNode(cp *ControlPlane) bool {
 	return false
 }
 
-// ---------------- Properties ---------------------------------------------------
+// ---------------- Properties ---------------------------------------------------.
 
 func TestProperty_CompareMachinesAndMembers_BijectionAccepted(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
@@ -121,7 +120,7 @@ func TestProperty_CompareMachinesAndMembers_BijectionAccepted(t *testing.T) {
 		machines := []*clusterv1.Machine{}
 		members := []*etcd.Member{}
 		nodes := []*Node{}
-		for i := 0; i < n; i++ {
+		for i := range n {
 			nodeName := fmt.Sprintf("node-%d", i)
 			machines = append(machines, &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("m-%d", i)},

@@ -241,6 +241,7 @@ func TestRemoveEtcdMember(t *testing.T) {
 		name                string
 		memberToDelete      string
 		etcdClientGenerator etcdClientFor
+		expectation         EtcdRemovalExpectation
 		expectErr           bool
 	}{
 		{
@@ -328,6 +329,70 @@ func TestRemoveEtcdMember(t *testing.T) {
 			},
 			expectErr: false,
 		},
+		{
+			// Risk 1 from #13680's Caveats: another reconcile completed a removal between
+			// admission (5 voters) and commit (4 voters). The CAS check trips and the RPC is
+			// not issued; the caller must re-evaluate the quorum gate on the next reconcile.
+			name:           "aborts when admission voter count exceeds live voter count (concurrent removal landed)",
+			memberToDelete: "cp1",
+			etcdClientGenerator: &fakeEtcdClientGenerator{
+				forNodesClient: &etcd.Client{
+					EtcdClient: &fake2.FakeEtcdClient{
+						MemberListResponse: &clientv3.MemberListResponse{
+							Members: []*pb.Member{
+								{Name: "cp1", ID: uint64(1)},
+								{Name: "cp2", ID: uint64(2)},
+								{Name: "cp3", ID: uint64(3)},
+								{Name: "cp4", ID: uint64(4)},
+							},
+						},
+					},
+				},
+			},
+			expectation: EtcdRemovalExpectation{AdmissionVoterCount: 5},
+			expectErr:   true,
+		},
+		{
+			// Risk 4 from #13680's Caveats: the target was a learner at admission (quorum-free
+			// removal) but has since been promoted to voter. The voter removal needs a fresh
+			// quorum evaluation by the caller — abort here.
+			name:           "aborts when target was learner at admission but is now voter (promotion mid-flight)",
+			memberToDelete: "learner-becomes-voter",
+			etcdClientGenerator: &fakeEtcdClientGenerator{
+				forNodesClient: &etcd.Client{
+					EtcdClient: &fake2.FakeEtcdClient{
+						MemberListResponse: &clientv3.MemberListResponse{
+							Members: []*pb.Member{
+								{Name: "cp1", ID: uint64(1)},
+								{Name: "learner-becomes-voter", ID: uint64(2)},
+							},
+						},
+					},
+				},
+			},
+			expectation: EtcdRemovalExpectation{TargetWasLearner: true, AdmissionVoterCount: 1},
+			expectErr:   true,
+		},
+		{
+			// Sanity case: the admission state still holds; removal proceeds.
+			name:           "removes the member when admission expectations still hold",
+			memberToDelete: "cp1",
+			etcdClientGenerator: &fakeEtcdClientGenerator{
+				forNodesClient: &etcd.Client{
+					EtcdClient: &fake2.FakeEtcdClient{
+						MemberListResponse: &clientv3.MemberListResponse{
+							Members: []*pb.Member{
+								{Name: "cp1", ID: uint64(1)},
+								{Name: "cp2", ID: uint64(2)},
+								{Name: "cp3", ID: uint64(3)},
+							},
+						},
+					},
+				},
+			},
+			expectation: EtcdRemovalExpectation{AdmissionVoterCount: 3},
+			expectErr:   false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -339,7 +404,7 @@ func TestRemoveEtcdMember(t *testing.T) {
 				etcdClientGenerator: tt.etcdClientGenerator,
 			}
 			// Note: no need to pass the list of nodes because fakeEtcdClientGenerator is used to simulate various combinations of node availability.
-			err := w.RemoveEtcdMember(ctx, tt.memberToDelete, nil)
+			err := w.RemoveEtcdMember(ctx, tt.memberToDelete, nil, tt.expectation)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return

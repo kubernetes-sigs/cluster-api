@@ -1313,7 +1313,21 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 			break
 		}
 
-		if err := workloadCluster.RemoveEtcdMember(ctx, member.Name, controlPlane.Nodes); err != nil {
+		// Safety-net removal of an orphan etcd member that has no corresponding Machine. The
+		// gate above (targetEtcdClusterHealthy) was just evaluated against the same fresh
+		// MemberList, so the admission voter count we pass here is derived from it. Empty-Name
+		// members and learners don't count toward voters.
+		liveVoters := 0
+		for _, m := range controlPlane.EtcdMembers {
+			if m.Name != "" && !m.IsLearner {
+				liveVoters++
+			}
+		}
+		expect := internal.EtcdRemovalExpectation{
+			AdmissionVoterCount: liveVoters,
+			TargetWasLearner:    member.IsLearner,
+		}
+		if err := workloadCluster.RemoveEtcdMember(ctx, member.Name, controlPlane.Nodes, expect); err != nil {
 			allErrors = append(allErrors, err)
 			continue
 		}
@@ -1508,12 +1522,27 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	// Dispatch by Name when the leader has published it; by ID otherwise (etcd v3 returns
 	// Name="" from MemberAdd until the new peer joins raft and announces itself — the orphan-
 	// learner orphan-learner race window).
+	//
+	// Build EtcdRemovalExpectation from the admission-time view (controlPlane.EtcdMembers and
+	// the target's IsLearner flag). The commit-time recheck inside Workload aborts if the
+	// live MemberList disagrees — concurrent removal in another reconcile, or a learner that
+	// promoted to voter between admission and commit. See risks 1 and 4 in #13680's Caveats.
+	liveVoters := 0
+	for _, m := range controlPlane.EtcdMembers {
+		if m.Name != "" && !m.IsLearner {
+			liveVoters++
+		}
+	}
+	expect := internal.EtcdRemovalExpectation{
+		AdmissionVoterCount: liveVoters,
+		TargetWasLearner:    etcdMemberToBeDeleted.IsLearner,
+	}
 	if etcdMemberToBeDeleted.Name != "" {
-		if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted.Name, controlPlane.Nodes); err != nil {
+		if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted.Name, controlPlane.Nodes, expect); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member %s for deleting Machine %s", etcdMemberToBeDeleted.Name, klog.KObj(deletingMachine))
 		}
 	} else {
-		if err := workloadCluster.RemoveEtcdMemberByID(ctx, etcdMemberToBeDeleted.ID, controlPlane.Nodes); err != nil {
+		if err := workloadCluster.RemoveEtcdMemberByID(ctx, etcdMemberToBeDeleted.ID, controlPlane.Nodes, expect); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member id=%x for deleting Machine %s", etcdMemberToBeDeleted.ID, klog.KObj(deletingMachine))
 		}
 	}

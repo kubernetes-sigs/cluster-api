@@ -112,13 +112,13 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 	return nil
 }
 
-func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, name string, _ []*internal.Node) error {
+func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, name string, _ []*internal.Node, _ internal.EtcdRemovalExpectation) error {
 	f.removeEtcdMemberCalled++
 	f.removeEtcdMemberArgs = append(f.removeEtcdMemberArgs, name)
 	return nil
 }
 
-func (f *fakeWorkloadCluster) RemoveEtcdMemberByID(_ context.Context, id uint64, _ []*internal.Node) error {
+func (f *fakeWorkloadCluster) RemoveEtcdMemberByID(_ context.Context, id uint64, _ []*internal.Node, _ internal.EtcdRemovalExpectation) error {
 	f.removeEtcdMemberCalled++
 	f.removeEtcdMemberByIDArgs = append(f.removeEtcdMemberByIDArgs, id)
 	return nil

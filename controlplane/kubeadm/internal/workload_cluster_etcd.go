@@ -50,10 +50,28 @@ func (w *Workload) UpdateEtcdExternalInKubeadmConfigMap(etcdExternal bootstrapv1
 	}
 }
 
+// EtcdRemovalExpectation pins admission-time assumptions about the etcd cluster state so
+// RemoveEtcdMember / RemoveEtcdMemberByID can abort if the live state has diverged between
+// admission and commit. The zero value disables the check, preserving the legacy behaviour
+// for code paths that don't yet thread admission state through (e.g. the orphan-removal
+// safety net in reconcileEtcdMembers).
+//
+// AdmissionVoterCount is the voter count the caller observed at admission; a drop at commit
+// time means another removal landed concurrently and the caller's quorum gate may no longer
+// hold. TargetWasLearner records whether the caller's gate considered the target a learner
+// (learner removals are free w.r.t. quorum); if the target has since been promoted to voter,
+// the removal would breach assumptions and is aborted.
+//
+// See risks 1 and 4 in #13680's Caveats.
+type EtcdRemovalExpectation struct {
+	AdmissionVoterCount int
+	TargetWasLearner    bool
+}
+
 // RemoveEtcdMember removes the etcd member from the target cluster's etcd cluster.
 // Removing the last remaining member of the cluster is not supported.
 // Note: It is a responsibility of the caller to check if this operation doesn't lead to quorum loss.
-func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*Node) error {
+func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*Node, expect EtcdRemovalExpectation) error {
 	// Exclude node being removed from etcd client node list
 	// Note: this operation relies on the assumption that node name is equal to the name of the corresponding etcd member.
 	var remainingNodes []string
@@ -85,6 +103,10 @@ func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*N
 		return errors.New("cannot remove the last etcd member in the cluster")
 	}
 
+	if err := checkRemovalExpectation(members, member, expect); err != nil {
+		return err
+	}
+
 	if err := etcdClient.RemoveMember(ctx, member.ID); err != nil {
 		return errors.Wrap(err, "failed to remove member from etcd")
 	}
@@ -103,7 +125,7 @@ func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*N
 // member's Name is empty we cannot identify a corresponding Node anyway, and the typical orphan-learner
 // scenario (Node never registered) means there is no Node to exclude. The caller is responsible
 // for ensuring the operation does not lead to quorum loss.
-func (w *Workload) RemoveEtcdMemberByID(ctx context.Context, id uint64, nodes []*Node) error {
+func (w *Workload) RemoveEtcdMemberByID(ctx context.Context, id uint64, nodes []*Node, expect EtcdRemovalExpectation) error {
 	nodeNames := make([]string, 0, len(nodes))
 	for _, n := range nodes {
 		nodeNames = append(nodeNames, n.Name)
@@ -118,22 +140,68 @@ func (w *Workload) RemoveEtcdMemberByID(ctx context.Context, id uint64, nodes []
 	if err != nil {
 		return errors.Wrap(err, "failed to list etcd members using etcd client")
 	}
-	found := false
+	var target *etcd.Member
 	for _, m := range members {
 		if m.ID == id {
-			found = true
+			target = m
 			break
 		}
 	}
-	if !found {
+	if target == nil {
 		// The member is already gone — return successfully (idempotent).
 		return nil
 	}
 	if len(members) == 1 {
 		return errors.New("cannot remove the last etcd member in the cluster")
 	}
+
+	if err := checkRemovalExpectation(members, target, expect); err != nil {
+		return err
+	}
+
 	if err := etcdClient.RemoveMember(ctx, id); err != nil {
 		return errors.Wrapf(err, "failed to remove member %x from etcd", id)
+	}
+	return nil
+}
+
+// checkRemovalExpectation enforces the EtcdRemovalExpectation against the fresh MemberList
+// fetched immediately before the RemoveMember RPC. The check is opt-in (zero expectation =
+// no check) so callers like reconcileEtcdMembers' orphan-removal safety net — which removes
+// members without going through the admission gate — keep their existing semantics.
+//
+// Two conditions trigger an abort, each mapping to a specific concurrent-state race:
+//
+//  1. Live voter count < AdmissionVoterCount: another remediation landed between admission
+//     and commit (concurrent removal by another reconcile or by an external etcdctl user).
+//     The caller's quorum gate was evaluated against a now-stale voter count; the in-flight
+//     removal must be re-validated by the caller in the next reconcile.
+//
+//  2. TargetWasLearner but the live target is now a voter: the learner was promoted to voter
+//     between admission and commit. Learner removals are quorum-free; voter removals are
+//     not. The caller's gate didn't evaluate the quorum impact and must do so on the next
+//     reconcile with the updated state.
+//
+// See risks 1 and 4 in #13680's Caveats.
+func checkRemovalExpectation(members []*etcd.Member, target *etcd.Member, expect EtcdRemovalExpectation) error {
+	if expect == (EtcdRemovalExpectation{}) {
+		return nil
+	}
+	if expect.AdmissionVoterCount > 0 {
+		liveVoters := 0
+		for _, m := range members {
+			if !m.IsLearner {
+				liveVoters++
+			}
+		}
+		if liveVoters < expect.AdmissionVoterCount {
+			return errors.Errorf("aborting removal of member %s (id=%x): live voter count %d is below admission-time count %d; another removal landed concurrently, re-evaluate the quorum gate on the next reconcile",
+				target.Name, target.ID, liveVoters, expect.AdmissionVoterCount)
+		}
+	}
+	if expect.TargetWasLearner && !target.IsLearner {
+		return errors.Errorf("aborting removal of member %s (id=%x): target was a learner at admission but is now a voter; the admission gate did not evaluate quorum impact for a voter removal, re-evaluate on the next reconcile",
+			target.Name, target.ID)
 	}
 	return nil
 }

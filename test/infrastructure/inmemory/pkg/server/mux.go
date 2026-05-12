@@ -31,8 +31,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -209,15 +207,13 @@ func (m *WorkloadClustersMux) mixedHandler() http.Handler {
 
 	// Creates the mixed handler combining the two above depending on
 	// the type of request being processed
-	mixedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.ProtoMajor == 2 && strings.HasPrefix(r.Header.Get("content-type"), "application/grpc") {
 			etcdHandler.ServeHTTP(w, r)
 			return
 		}
 		apiHandler.ServeHTTP(w, r)
 	})
-
-	return h2c.NewHandler(mixedHandler, &http2.Server{})
 }
 
 // getCertificate selects certificates for a specific cluster depending on the request being processed

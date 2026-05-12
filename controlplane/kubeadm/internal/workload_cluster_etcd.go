@@ -92,6 +92,52 @@ func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*N
 	return nil
 }
 
+// RemoveEtcdMemberByID removes an etcd member identified by its uint64 member ID. This is the
+// counterpart to RemoveEtcdMember(name) for the case where the etcd member's Name field is
+// empty in the leader's MemberList — which is standard etcd v3 behaviour between
+// `MemberAdd(peerURLs)` returning and the new peer joining raft and publishing its name. The
+// pre-terminate hook needs to remove such orphan members before CAPD's docker rm -f drops the
+// container, so an ID-based path is required.
+//
+// Unlike RemoveEtcdMember(name) we do not exclude any node from the etcd client list — when the
+// member's Name is empty we cannot identify a corresponding Node anyway, and the typical orphan-learner
+// scenario (Node never registered) means there is no Node to exclude. The caller is responsible
+// for ensuring the operation does not lead to quorum loss.
+func (w *Workload) RemoveEtcdMemberByID(ctx context.Context, id uint64, nodes []*Node) error {
+	nodeNames := make([]string, 0, len(nodes))
+	for _, n := range nodes {
+		nodeNames = append(nodeNames, n.Name)
+	}
+	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, nodeNames)
+	if err != nil {
+		return errors.Wrap(err, "failed to create etcd client")
+	}
+	defer etcdClient.Close()
+
+	members, err := etcdClient.Members(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to list etcd members using etcd client")
+	}
+	found := false
+	for _, m := range members {
+		if m.ID == id {
+			found = true
+			break
+		}
+	}
+	if !found {
+		// The member is already gone — return successfully (idempotent).
+		return nil
+	}
+	if len(members) == 1 {
+		return errors.New("cannot remove the last etcd member in the cluster")
+	}
+	if err := etcdClient.RemoveMember(ctx, id); err != nil {
+		return errors.Wrapf(err, "failed to remove member %x from etcd", id)
+	}
+	return nil
+}
+
 // ForwardEtcdLeadership forwards etcd leadership to the first follower.
 func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*Node) error {
 	if machine == nil || !machine.Status.NodeRef.IsDefined() {

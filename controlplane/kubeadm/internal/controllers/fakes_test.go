@@ -83,6 +83,9 @@ type fakeWorkloadCluster struct {
 	// removeEtcdMemberArgs captures the `name` argument of each RemoveEtcdMember call in
 	// order, so state-machine property tests can correlate the call with the resolved member.
 	removeEtcdMemberArgs []string
+	// removeEtcdMemberByIDArgs captures the `id` argument of each RemoveEtcdMemberByID call.
+	// Used by the orphan-learner empty-Name path tests.
+	removeEtcdMemberByIDArgs []uint64
 }
 
 func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine, _ []*internal.Node) error {
@@ -112,6 +115,12 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, name string, _ []*internal.Node) error {
 	f.removeEtcdMemberCalled++
 	f.removeEtcdMemberArgs = append(f.removeEtcdMemberArgs, name)
+	return nil
+}
+
+func (f *fakeWorkloadCluster) RemoveEtcdMemberByID(_ context.Context, id uint64, _ []*internal.Node) error {
+	f.removeEtcdMemberCalled++
+	f.removeEtcdMemberByIDArgs = append(f.removeEtcdMemberByIDArgs, id)
 	return nil
 }
 

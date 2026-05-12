@@ -80,6 +80,7 @@ type WorkloadCluster interface {
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMember(ctx context.Context, name string, nodes []*Node) error
+	RemoveEtcdMemberByID(ctx context.Context, id uint64, nodes []*Node) error
 	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*Node) error
 	AllowClusterAdminPermissions(ctx context.Context, version semver.Version) error
 	UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error

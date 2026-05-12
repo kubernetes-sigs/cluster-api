@@ -231,7 +231,13 @@ func (s *preterminateModel) runHook(t *rapid.T) {
 
 	// Capture (resolved name, candidates) by calling the chain directly — the hook does this
 	// internally but doesn't expose the result. The chain is pure so calling it twice is safe.
-	s.lastResolvedName, s.lastCandidates = r.tryGetEtcdMemberName(t.Context(), cp, dm)
+	resolvedMember, candidates := r.tryGetEtcdMemberName(t.Context(), cp, dm)
+	if resolvedMember != nil {
+		s.lastResolvedName = resolvedMember.Name
+	} else {
+		s.lastResolvedName = ""
+	}
+	s.lastCandidates = candidates
 
 	_, err := r.reconcilePreTerminateHook(t.Context(), cp)
 	if err != nil {

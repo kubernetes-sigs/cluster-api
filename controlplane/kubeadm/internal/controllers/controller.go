@@ -1307,10 +1307,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		//
 		// In this case, the Target cluster will have the same list of machines as the current clusters
 		// but we are going to remove the etcd members without a corresponding Node/Machine (no etcd member are going to be added).
-		etcdMemberToBeDeleted := member.Name
 		addEtcdMember := false
-		if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
-			allErrors = append(allErrors, errors.Errorf("etcd member %s does not have a corresponding Machine, it must be removed from the cluster but this operation can lead to quorum loss. Please check the etcd status", etcdMemberToBeDeleted))
+		if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, member) {
+			allErrors = append(allErrors, errors.Errorf("etcd member %s does not have a corresponding Machine, it must be removed from the cluster but this operation can lead to quorum loss. Please check the etcd status", member.Name))
 			break
 		}
 
@@ -1443,7 +1442,7 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	//     replacement Machine gets a NodeRef).
 	//   * no orphan candidates     → the Machine simply never produced an etcd member; the
 	//     condition is cleared with reason NoOrphanCandidates and the hook proceeds.
-	if etcdMemberToBeDeleted == "" {
+	if etcdMemberToBeDeleted == nil {
 		if len(orphanCandidates) > 0 {
 			setEtcdMemberOrphanCorrelationFailedCondition(deletingMachine, orphanCandidates)
 			memberRefs := make([]string, 0, len(orphanCandidates))
@@ -1489,8 +1488,18 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	// Note: Removing the etcd member will lead to the etcd and the kube-apiserver Pod on the Machine shutting down.
 	// If ControlPlaneKubeletLocalMode is used, the kubelet is communicating with the local apiserver and thus now
 	// won't be able to see any updates to e.g. Pods anymore.
-	if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted, controlPlane.Nodes); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
+	//
+	// Dispatch by Name when the leader has published it; by ID otherwise (etcd v3 returns
+	// Name="" from MemberAdd until the new peer joins raft and announces itself — the orphan-
+	// learner orphan-learner race window).
+	if etcdMemberToBeDeleted.Name != "" {
+		if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted.Name, controlPlane.Nodes); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member %s for deleting Machine %s", etcdMemberToBeDeleted.Name, klog.KObj(deletingMachine))
+		}
+	} else {
+		if err := workloadCluster.RemoveEtcdMemberByID(ctx, etcdMemberToBeDeleted.ID, controlPlane.Nodes); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member id=%x for deleting Machine %s", etcdMemberToBeDeleted.ID, klog.KObj(deletingMachine))
+		}
 	}
 
 	if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {

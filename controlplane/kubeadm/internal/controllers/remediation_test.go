@@ -2047,8 +2047,12 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 				ClusterCache: clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
 			}
 
-			name, candidates := r.tryGetEtcdMemberName(ctx, controlPlane, tt.machine)
-			g.Expect(name).To(Equal(tt.wantEtcdMemberName), "etcd member name mismatch")
+			member, candidates := r.tryGetEtcdMemberName(ctx, controlPlane, tt.machine)
+			gotName := ""
+			if member != nil {
+				gotName = member.Name
+			}
+			g.Expect(gotName).To(Equal(tt.wantEtcdMemberName), "etcd member name mismatch")
 
 			gotIDs := make([]uint64, 0, len(candidates))
 			for _, m := range candidates {
@@ -2083,7 +2087,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can safely remove a member from a CP with two Machines without additional etcd member failures", func(t *testing.T) {
@@ -2097,7 +2101,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely remove a member from a CP with two Machines when the etcd member being remediated is missing", func(t *testing.T) {
@@ -2111,7 +2115,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m2)) // m1 missing
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can't safely remove a member from a CP with two Machines with one additional etcd member failure", func(t *testing.T) {
@@ -2125,7 +2129,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can safely remove a member from a CP with three Machines without additional etcd member failures", func(t *testing.T) {
@@ -2140,7 +2144,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely remove a member from a CP with three Machines when the etcd member being remediated is missing", func(t *testing.T) {
@@ -2162,7 +2166,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = members
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can't safely remove a member from a CP with three Machines with one additional etcd member failure", func(t *testing.T) {
@@ -2177,7 +2181,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can safely remove a member from a CP with three Machines when another etcd member is missing", func(t *testing.T) {
@@ -2192,7 +2196,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3)) // m2 missing -> target etcd cluster size 1, 0 unhealthy (OK)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely remove a member from a CP with three Machines when the etcd member being remediated is missing and another etcd member is missing", func(t *testing.T) {
@@ -2207,7 +2211,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m3)) // m1, m2 missing -> target etcd cluster size 1, 0 unhealthy (OK)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely remove a member from a CP with five Machines with less than 2 additional etcd member failures", func(t *testing.T) {
@@ -2224,7 +2228,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely remove a member from a CP with five Machines with missing members but quorum", func(t *testing.T) {
@@ -2241,7 +2245,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3, m4, m5)) // m2 missing -> target etcd cluster size 3, 1 unhealthy (OK)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can't safely remove a member from a CP with five Machines with 2 additional etcd member failures", func(t *testing.T) {
@@ -2258,7 +2262,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can safely remove a member from a CP with seven Machines with less than 3 additional etcd member failures", func(t *testing.T) {
@@ -2277,7 +2281,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely remove a member from a CP with seven Machines with missing members but quorum", func(t *testing.T) {
@@ -2296,7 +2300,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3, m4, m5, m6, m7)) // m2 missing -> target etcd cluster size 5, 2 unhealthy (OK)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can't safely remove a member from a CP with seven Machines with 3 additional etcd member failures", func(t *testing.T) {
@@ -2319,7 +2323,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 
@@ -2331,7 +2335,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely add a member to a CP with one Machine", func(t *testing.T) {
@@ -2344,7 +2348,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can't safely add a member to a CP with one Machine with unhealthy etcd member", func(t *testing.T) {
@@ -2357,7 +2361,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can safely add a member to a CP with two Machine", func(t *testing.T) {
@@ -2371,7 +2375,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely add a member to a CP with two Machine when one member is missing", func(t *testing.T) {
@@ -2385,7 +2389,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1)) // m2 missing -> target etcd cluster size 2, 0 unhealthy/best case (OK)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can't safely add a member to a CP with two Machine with one additional etcd member failure", func(t *testing.T) {
@@ -2399,7 +2403,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can safely add a member to a CP with three Machine", func(t *testing.T) {
@@ -2414,7 +2418,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely add a member to a CP with three Machine with one member is missing", func(t *testing.T) {
@@ -2429,7 +2433,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3)) // m2 missing -> target etcd cluster size 3, 1 unhealthy/worst case (OK)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can't safely add a member to a CP with three Machine with one additional etcd member failure", func(t *testing.T) {
@@ -2444,7 +2448,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can safely add a member to a CP with four Machine", func(t *testing.T) {
@@ -2460,7 +2464,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely add a member to a CP with four Machine with one member is missing", func(t *testing.T) {
@@ -2476,7 +2480,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(collections.FromMachines(m1, m3, m4)) // m2 missing -> target etcd cluster size 4, 1 unhealthy/worst case (OK)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can safely add a member to a CP with four Machine with one additional etcd member failure", func(t *testing.T) {
@@ -2492,7 +2496,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can't safely add a member to a CP with four Machine with two additional etcd member failure", func(t *testing.T) {
@@ -2508,7 +2512,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can safely add a member to a CP with five Machine", func(t *testing.T) {
@@ -2525,7 +2529,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 	t.Run("Can't safely add a member to a CP with five Machine with two additional etcd member failure", func(t *testing.T) {
@@ -2542,7 +2546,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 
@@ -2557,7 +2561,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 		controlPlane.EtcdMembers[0].IsLearner = true
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, "")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, true, nil)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can't safely remove a member from a CP with a learner etcd member", func(t *testing.T) {
@@ -2576,7 +2580,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 			}
 		}
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	t.Run("Can't safely remove a member from a CP with an etcd member starting up", func(t *testing.T) {
@@ -2595,7 +2599,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 			}
 		}
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 
@@ -2620,7 +2624,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 			},
 		}
 
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 	// Regression coverage for the caveat in kubernetes-sigs/cluster-api#13667: the
@@ -2641,7 +2645,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 			// Orphan learner (no Machine, IsLearner=true) — this is the remediation target.
 			{ID: 2, Name: "orphan-learner-node", IsLearner: true},
 		}
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, "orphan-learner-node")
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: "orphan-learner-node"})
 		g.Expect(canSafelyTransitionToTargetState).To(BeTrue(),
 			"Removing an orphan learner should be safe — the post-removal cluster has 1 healthy voter and 0 learners, which meets the quorum=1 threshold.")
 	})
@@ -2659,7 +2663,7 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 			{ID: 3, Name: m3.Status.NodeRef.Name},                   // healthy voter
 			{ID: 4, Name: "in-flight-learner", IsLearner: true},     // non-stuck learner from a recent scale-up
 		}
-		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, &etcd.Member{Name: m1.Status.NodeRef.Name})
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse(),
 			"Voter remediation must block while any learner is in-flight (targetLearnerMembers > 0 guard) — wait for promotion before changing voter set.")
 	})

@@ -34,6 +34,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/feature"
 	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -349,7 +350,7 @@ func (r *KubeadmControlPlaneReconciler) checkHealthinessWhileRemediationInProgre
 	kubernetesControlPlaneToBeDeleted := ""
 	// - one etcd member is going to be added, no etcd member are going to be deleted.
 	addEtcdMember := true
-	etcdMemberToBeDeleted := ""
+	var etcdMemberToBeDeleted *etcd.Member
 
 	// Check id the target Kubernetes control plane will have at least one set of operational Kubernetes control plane components.
 	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {

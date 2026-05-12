@@ -628,7 +628,7 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemediateMachine(ctx context.Co
 	// orphan etcd members the operator-facing condition is set so the situation is visible.
 	// Note: reconcile reconcilePreTerminateHook performs a stricter check and blocks the deletion when orphan
 	// candidates exist, giving the operator a chance to disambiguate via the override annotation.
-	if etcdMemberToBeDeleted == "" {
+	if etcdMemberToBeDeleted == nil {
 		if len(orphanCandidates) > 0 {
 			setEtcdMemberOrphanCorrelationFailedCondition(machineToBeRemediated, orphanCandidates)
 		} else {
@@ -646,37 +646,53 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemediateMachine(ctx context.Co
 	return r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted)
 }
 
-// tryGetEtcdMemberName attempts to correlate a control-plane Machine to its etcd member name
-// via a monotonic fallback chain. First match wins. See sigs.k8s.io/cluster-api#13667 for the
+// tryGetEtcdMemberName attempts to correlate a control-plane Machine to its etcd member via
+// a monotonic fallback chain. First match wins. See sigs.k8s.io/cluster-api#13667 for the
 // motivating scenario (kubeadm-join's MemberAdd(learner=true) succeeded, the Node never
 // registered, MHC remediated, the pre-terminate hook had no way to identify the orphan etcd
 // member to call RemoveEtcdMember against, and the member leaked).
 //
 // Order:
 //  1. EtcdMemberIDAnnotation / EtcdMemberNameAnnotation on the Machine (operator escape hatch;
-//     ID wins over Name when both are set, and the ID is resolved against the current
-//     MemberList to recover the Name).
-//  2. Status.NodeRef.Name.
-//  3. Spec.ProviderID (or InfraMachine.Spec.ProviderID) → workload-cluster Node lookup.
+//     ID wins over Name when both are set).
+//  2. Status.NodeRef.Name (matched against an etcd member by Name).
+//  3. Spec.ProviderID (or InfraMachine.Spec.ProviderID) → workload-cluster Node lookup, then
+//     match by Name.
 //  4. Peer-URL host ↔ Machine.Status.Addresses (or InfraMachine.Status.Addresses) intersection
 //     against the orphan candidate set. Succeeds only when exactly one orphan candidate
-//     matches.
+//     matches. Empty-Name members ARE included — etcd v3's MemberAdd returns with empty Name
+//     on the leader until the new peer joins raft and publishes its name, so the canonical
+//     orphan-learner race window has Name="".
 //  5. Strict 1↔1 in-flight pairing: if exactly one CP Machine has no NodeRef and no peer-URL
 //     match, and exactly one orphan etcd member has no peer-URL match against any Machine,
 //     pair them. Only fires for the unique unmatched Machine.
-//  6. Surface: returns ("", orphanCandidates) with the full list of etcd members that have no
+//  6. Surface: returns (nil, orphanCandidates) with the full list of etcd members that have no
 //     corresponding Node, so the caller can set EtcdMemberOrphanCorrelationFailed and either
 //     block (pre-terminate hook) or proceed-with-warning (canSafelyRemediateMachine).
 //
 // Return contract:
-//   - (name, nil)        — a step (1-5) resolved a name. The caller should clear the
-//     EtcdMemberOrphanCorrelationFailed condition with reason Resolved.
-//   - ("", candidates)   — no step resolved AND there is at least one orphan etcd member.
+//   - (member, nil)     — a step (1-5) resolved a member. Caller should clear the
+//     EtcdMemberOrphanCorrelationFailed condition with reason Resolved. `member.Name` may be
+//     empty (e.g. the orphan-learner race window) — caller dispatches to
+//     RemoveEtcdMember(name)/RemoveEtcdMemberByID(id) based on which is non-zero.
+//   - (nil, candidates) — no step resolved AND there is at least one orphan etcd member.
 //     The caller should set the condition to True/CorrelationFailed.
-//   - ("", nil)          — no step resolved AND no orphan members exist. The Machine simply
+//   - (nil, nil)        — no step resolved AND no orphan members exist. The Machine simply
 //     never produced an etcd member; pre-terminate proceeds without RemoveEtcdMember.
-func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context, controlPlane *internal.ControlPlane, deletingMachine *clusterv1.Machine) (string, []*etcd.Member) {
+func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context, controlPlane *internal.ControlPlane, deletingMachine *clusterv1.Machine) (*etcd.Member, []*etcd.Member) {
 	log := ctrl.LoggerFrom(ctx)
+
+	// findByName looks up an etcd member by Name in cp.EtcdMembers; returns a synthetic member
+	// (Name set, ID 0) if no match — preserves the "RemoveEtcdMember(name) is a no-op when the
+	// member is gone" behaviour for the name-based steps below.
+	findByName := func(name string) *etcd.Member {
+		for _, m := range controlPlane.EtcdMembers {
+			if m.Name == name {
+				return m
+			}
+		}
+		return &etcd.Member{Name: name}
+	}
 
 	// Step 1: operator override annotation. ID precedence over Name when both are set.
 	ann := deletingMachine.GetAnnotations()
@@ -685,31 +701,17 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 		// octal forms, which together cover what an operator might copy out of
 		// `etcdctl member list` or the EtcdMembersAndMachinesAreMatching log message.
 		if id, err := strconv.ParseUint(idStr, 0, 64); err == nil {
-			found := false
 			for _, m := range controlPlane.EtcdMembers {
 				if m.ID != id {
 					continue
 				}
-				found = true
-				if m.Name == "" {
-					// The annotation correctly identifies a member, but the member's Name field
-					// hasn't yet been published by the local etcd container. We can't use an
-					// empty Name with the downstream RemoveEtcdMember(name) API, so fall through
-					// rather than mask the orphan as resolved.
-					log.Info("EtcdMemberIDAnnotation resolved to a member that has not yet published a Name; continuing fallback so the orphan-candidate signal is preserved",
-						"annotation", controlplanev1.EtcdMemberIDAnnotation,
-						"memberID", fmt.Sprintf("%x", m.ID))
-					break
-				}
 				log.Info("Resolved etcd member via operator override annotation",
 					"annotation", controlplanev1.EtcdMemberIDAnnotation,
 					"memberID", fmt.Sprintf("%x", m.ID), "memberName", m.Name)
-				return m.Name, nil
+				return m, nil
 			}
-			if !found {
-				log.Info("EtcdMemberIDAnnotation does not resolve to any current etcd member; continuing fallback",
-					"annotation", controlplanev1.EtcdMemberIDAnnotation, "value", idStr)
-			}
+			log.Info("EtcdMemberIDAnnotation does not resolve to any current etcd member; continuing fallback",
+				"annotation", controlplanev1.EtcdMemberIDAnnotation, "value", idStr)
 		} else {
 			log.Info("EtcdMemberIDAnnotation is not a valid uint64; ignoring",
 				"annotation", controlplanev1.EtcdMemberIDAnnotation, "value", idStr, "err", err.Error())
@@ -718,12 +720,12 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 	if name, ok := ann[controlplanev1.EtcdMemberNameAnnotation]; ok && name != "" {
 		log.Info("Resolved etcd member via operator override annotation",
 			"annotation", controlplanev1.EtcdMemberNameAnnotation, "memberName", name)
-		return name, nil
+		return findByName(name), nil
 	}
 
 	// Step 2: NodeRef.
 	if deletingMachine.Status.NodeRef.Name != "" {
-		return deletingMachine.Status.NodeRef.Name, nil
+		return findByName(deletingMachine.Status.NodeRef.Name), nil
 	}
 
 	// Step 3: ProviderID → Node lookup.
@@ -748,31 +750,34 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 		}
 	}
 	if node != "" {
-		return node, nil
+		return findByName(node), nil
 	}
 
-	// Build the orphan candidate set: etcd members with a non-empty Name not matching any
-	// current Node name. Empty-Name members are excluded (transient state: the member entry
-	// exists in MemberList but the local etcd container hasn't published its name yet) — they
-	// would not survive a Name-based RemoveEtcdMember call anyway, so there is nothing actionable
-	// to surface to the operator.
+	// Build the orphan candidate set: etcd members not matching any current Node name. Empty-
+	// Name members are INCLUDED — `MemberAdd(peerURLs)` returns from the leader with Name=""
+	// in etcd v3, and the Name is only populated once the new peer joins raft and publishes
+	// it. The pre-terminate hook needs to be able to act on those (via ID) before CAPD's
+	// docker rm -f drops the container, so empty-Name members go through the same peer-URL /
+	// strict-pairing flow as named ones.
 	knownNodes := make(map[string]bool, len(controlPlane.Nodes))
 	for _, n := range controlPlane.Nodes {
 		knownNodes[n.Name] = true
 	}
 	var candidates []*etcd.Member
 	for _, m := range controlPlane.EtcdMembers {
-		if m.Name == "" {
-			continue
-		}
-		if knownNodes[m.Name] {
+		if m.Name != "" && knownNodes[m.Name] {
 			continue
 		}
 		candidates = append(candidates, m)
 	}
 	if len(candidates) == 0 {
-		return "", nil
+		return nil, nil
 	}
+	// Sort candidates by ID so the step-5 "first match wins" rule below depends only on input
+	// content, not on the order the workload-cluster etcd happened to return members in. Two
+	// reconciles that observe the same MemberList must produce the same correlation; sorting
+	// here is the smallest change that guarantees that.
+	sort.Slice(candidates, func(i, j int) bool { return candidates[i].ID < candidates[j].ID })
 
 	// Step 4: peer-URL host ↔ Machine address match. Look for exactly one orphan candidate
 	// whose peer-URL host set intersects the deleting Machine's address set. Many orphan
@@ -789,7 +794,7 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 		if len(matches) == 1 {
 			log.Info("Resolved etcd member via peer-URL/address match",
 				"memberID", fmt.Sprintf("%x", matches[0].ID), "memberName", matches[0].Name)
-			return matches[0].Name, nil
+			return matches[0], nil
 		}
 	}
 
@@ -802,6 +807,17 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 	// Why this is bounded: the heuristic must not pair when there's any other plausible
 	// owner. With > 1 unmatched Machine OR > 1 unmatched member, there's room for misassignment
 	// and we'd rather block (step 6) than guess wrong.
+	//
+	// Iterate Machines in name-sorted order so the address-pairing's "first match wins" rule
+	// is deterministic on input shape — controlPlane.Machines is a map, and Go map iteration
+	// is randomized per range, so without sorting we could pair the same member to different
+	// Machines on consecutive reconciles when ≥2 unmatched Machines share an address with the
+	// member. That would surface as flapping resolutions in production.
+	sortedMachineNames := make([]string, 0, len(controlPlane.Machines))
+	for name := range controlPlane.Machines {
+		sortedMachineNames = append(sortedMachineNames, name)
+	}
+	sort.Strings(sortedMachineNames)
 	addrPairedMember := make(map[uint64]string, len(candidates))   // member.ID → Machine.Name
 	addrPairedMachine := make(map[string]uint64, len(controlPlane.Machines))
 	for _, m := range candidates {
@@ -809,7 +825,8 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 		if len(memHosts) == 0 {
 			continue
 		}
-		for _, mach := range controlPlane.Machines {
+		for _, name := range sortedMachineNames {
+			mach := controlPlane.Machines[name]
 			if mach.Status.NodeRef.IsDefined() {
 				continue
 			}
@@ -824,7 +841,8 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 		}
 	}
 	unmatchedMachines := make([]string, 0)
-	for _, mach := range controlPlane.Machines {
+	for _, name := range sortedMachineNames {
+		mach := controlPlane.Machines[name]
 		if mach.Status.NodeRef.IsDefined() {
 			continue
 		}
@@ -843,7 +861,7 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 	if len(unmatchedMachines) == 1 && unmatchedMachines[0] == deletingMachine.Name && len(unmatchedMembers) == 1 {
 		log.Info("Resolved etcd member via strict 1↔1 in-flight pairing",
 			"memberID", fmt.Sprintf("%x", unmatchedMembers[0].ID), "memberName", unmatchedMembers[0].Name)
-		return unmatchedMembers[0].Name, nil
+		return unmatchedMembers[0], nil
 	}
 
 	// Step 6: no resolution. Return all orphan candidates so the caller's condition message
@@ -851,7 +869,7 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 	// `unmatchedMembers` (the post-step-5 set) because tentative peer-URL pairings to other
 	// Machines may themselves be wrong — the operator needs to see every member with no
 	// corresponding Node to make an informed choice.
-	return "", candidates
+	return nil, candidates
 }
 
 // peerURLHosts parses an etcd member's PeerURLs and returns the hostnames. Malformed URLs and
@@ -991,7 +1009,9 @@ func clearEtcdMemberOrphanCorrelationCondition(m *clusterv1.Machine, reason stri
 //
 // Note: This check is performed on the actual list of members, so it account also for cases where
 // there is a mis-alignment between number of Machines, corresponding Nodes and etcd members.
-func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Context, controlPlane *internal.ControlPlane, addEtcdMember bool, etcdMemberToBeDeleted string) bool {
+// targetEtcdClusterHealthy takes the resolved etcd member to be deleted as a *etcd.Member so
+// it can skip the target by ID (the empty-Name orphan case). Pass nil for "no target".
+func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Context, controlPlane *internal.ControlPlane, addEtcdMember bool, etcdMemberToBeDeleted *etcd.Member) bool {
 	log := ctrl.LoggerFrom(ctx)
 
 	currentTotalMembers := len(controlPlane.EtcdMembers)
@@ -1022,17 +1042,33 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 		}
 	}
 
+	// isTarget compares by ID when the target's ID is non-zero (real members fetched from
+	// MemberList always have a non-zero ID), falling back to Name match for synthetic targets
+	// produced by name-based steps (1-3) when no matching MemberList entry exists yet.
+	isTarget := func(m *etcd.Member) bool {
+		if etcdMemberToBeDeleted == nil {
+			return false
+		}
+		if etcdMemberToBeDeleted.ID != 0 && m.ID == etcdMemberToBeDeleted.ID {
+			return true
+		}
+		if etcdMemberToBeDeleted.Name != "" && m.Name == etcdMemberToBeDeleted.Name {
+			return true
+		}
+		return false
+	}
+
 	for _, etcdMember := range controlPlane.EtcdMembers {
+		// Skip the etcd member to be deleted because it won't be part of the target etcd cluster.
+		if isTarget(etcdMember) {
+			continue
+		}
+
 		// Consider members without a name as a learner (they are still starting up).
 		if etcdMember.Name == "" {
 			targetTotalMembers++
 			targetLearnerMembers++
 			unhealthyMembers = append(unhealthyMembers, "1 member starting (worst case)")
-			continue
-		}
-
-		// Skip the etcd member to be deleted because it won't be part of the target etcd cluster.
-		if etcdMemberToBeDeleted == etcdMember.Name {
 			continue
 		}
 
@@ -1100,8 +1136,8 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 	}
 
 	operations := []string{}
-	if etcdMemberToBeDeleted != "" {
-		operations = append(operations, fmt.Sprintf("removal of etcdMember %s", etcdMemberToBeDeleted))
+	if etcdMemberToBeDeleted != nil {
+		operations = append(operations, fmt.Sprintf("removal of etcdMember %s (id=%x)", etcdMemberToBeDeleted.Name, etcdMemberToBeDeleted.ID))
 	}
 	if addEtcdMember {
 		operations = append(operations, "addition of 1 etcdMember")

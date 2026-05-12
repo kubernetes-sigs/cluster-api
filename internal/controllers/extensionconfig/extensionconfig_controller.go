@@ -105,7 +105,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		))
 	}
 
-	if err := b.Complete(r); err != nil {
+	if err := b.Complete(ctx, r); err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 

@@ -1310,8 +1310,8 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				fakeClient,
 				clustercache.NewFakeEmptyClusterCache(),
 				fakeRuntimeClient,
-				cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
-				cache.New[desiredstate.GenerateUpgradePlanCacheEntry](10*time.Minute),
+				cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+				cache.New[desiredstate.GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute),
 			)
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -1319,7 +1319,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Client:                fakeClient,
 				APIReader:             fakeClient,
 				RuntimeClient:         fakeRuntimeClient,
-				hookCache:             cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+				hookCache:             cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
 				desiredStateGenerator: desiredStateGenerator,
 			}
 

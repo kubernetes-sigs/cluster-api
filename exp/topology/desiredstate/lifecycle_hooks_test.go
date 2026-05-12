@@ -1295,7 +1295,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			r := &generator{
 				Client:        fakeClient,
 				RuntimeClient: runtimeClient,
-				hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+				hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
 			}
 			version, err := r.computeControlPlaneVersion(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())

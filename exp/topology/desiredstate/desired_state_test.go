@@ -1713,7 +1713,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			r := &generator{
 				Client:        fakeClient,
 				RuntimeClient: runtimeClient,
-				hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+				hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
 			}
 			version, err := r.computeControlPlaneVersion(ctx, s)
 			if tt.wantErr {
@@ -4031,8 +4031,8 @@ func TestGenerate(t *testing.T) {
 			fakeClient,
 			clusterCache,
 			fakeRuntimeClient,
-			cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
-			cache.New[GenerateUpgradePlanCacheEntry](10*time.Minute),
+			cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+			cache.New[GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute),
 		)
 		g.Expect(err).ToNot(HaveOccurred())
 

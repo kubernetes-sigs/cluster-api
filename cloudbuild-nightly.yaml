@@ -5,7 +5,7 @@ options:
   substitution_option: ALLOW_LOOSE
   machineType: 'E2_HIGHCPU_8'
 steps:
-  - name: 'gcr.io/k8s-staging-test-infra/gcb-docker-gcloud@sha256:8d6a3a5b895e6776dbe9115b75db1412fbe57299b8db329d45cb54680e462b0b' # v20251211-4c812d4cd8
+  - name: 'gcr.io/k8s-staging-test-infra/gcb-docker-gcloud@sha256:ff388e0dc16351e96f8464e2e185b74a7578a5ccb7a112cf3393468e59e6e2d2' # v20260205-38cfa9523f
     entrypoint: make
     env:
     - DOCKER_CLI_EXPERIMENTAL=enabled

@@ -26,10 +26,11 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/httpstream"
+	oldhttpstream "k8s.io/apimachinery/pkg/util/httpstream" //nolint:staticcheck // Keep using this package for now as it's not straightforward to migrate this to k8s.io/streaming/pkg/httpstream. For now for the fallback decision we check for errors of the old and new package to be safe. Eventually we stop using this package when we only support SPDYOverWebsocket.
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
+	"k8s.io/streaming/pkg/httpstream"
 )
 
 const defaultTimeout = 10 * time.Second
@@ -116,7 +117,8 @@ func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Co
 		return nil, errors.Wrap(err, "error creating websocket tunneling dialer")
 	}
 	dialer = portforward.NewFallbackDialer(tunnelingDialer, dialer, func(err error) bool {
-		return httpstream.IsUpgradeFailure(err) || httpstream.IsHTTPSProxyError(err)
+		return oldhttpstream.IsUpgradeFailure(err) || oldhttpstream.IsHTTPSProxyError(err) ||
+			httpstream.IsUpgradeFailure(err) || httpstream.IsHTTPSProxyError(err)
 	})
 
 	// Create a new connection from the dialer.

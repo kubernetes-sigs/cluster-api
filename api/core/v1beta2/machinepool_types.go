@@ -116,7 +116,7 @@ type MachinePoolStatus struct {
 	// +optional
 	Initialization MachinePoolInitializationStatus `json:"initialization,omitempty,omitzero"`
 
-	// nodeRefs will point to the corresponding Nodes if it they exist.
+	// nodeRefs will point to the corresponding Nodes if they exist.
 	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10000

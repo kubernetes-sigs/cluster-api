@@ -130,7 +130,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		// that this reconciler gets invoked very frequently due to watches on Machines and workload cluster Nodes,
 		// but in most cases observed Machines are ok or remediation must be deferred until timeouts will expire.
 		WithRateLimitInterval(rateLimit).
-		Build(r)
+		Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

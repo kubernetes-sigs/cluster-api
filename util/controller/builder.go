@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"errors"
 	"math"
 	"strings"
@@ -153,13 +154,13 @@ type Controller interface {
 }
 
 // Complete builds the Application Controller.
-func (blder *Builder) Complete(r reconcile.TypedReconciler[reconcile.Request]) error {
-	_, err := blder.Build(r)
+func (blder *Builder) Complete(ctx context.Context, r reconcile.TypedReconciler[reconcile.Request]) error {
+	_, err := blder.Build(ctx, r)
 	return err
 }
 
 // Build builds the Application Controller and returns the Controller it created.
-func (blder *Builder) Build(r reconcile.TypedReconciler[reconcile.Request]) (Controller, error) {
+func (blder *Builder) Build(ctx context.Context, r reconcile.TypedReconciler[reconcile.Request]) (Controller, error) {
 	if feature.Gates.Enabled(feature.ReconcilerRateLimiting) && !feature.Gates.Enabled(feature.PriorityQueue) {
 		return nil, errors.New("if feature gate ReconcilerRateLimiting is enabled, feature gate PriorityQueue must be enabled as well")
 	}
@@ -232,7 +233,7 @@ func (blder *Builder) Build(r reconcile.TypedReconciler[reconcile.Request]) (Con
 	blder.builder.WithOptions(blder.options)
 
 	// Create reconcileCache.
-	reconcileCache := cache.New[reconcileCacheEntry](cache.DefaultTTL)
+	reconcileCache := cache.New[reconcileCacheEntry](ctx, cache.DefaultTTL)
 
 	c, err := blder.builder.Build(&reconcilerWrapper{
 		name:              controllerName,

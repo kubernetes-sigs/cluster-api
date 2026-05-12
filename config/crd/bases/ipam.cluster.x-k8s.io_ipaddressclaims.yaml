@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.20.0
+    controller-gen.kubebuilder.io/version: v0.21.0
   name: ipaddressclaims.ipam.cluster.x-k8s.io
 spec:
   group: ipam.cluster.x-k8s.io
@@ -25,7 +25,7 @@ spec:
       jsonPath: .spec.poolRef.kind
       name: Pool Kind
       type: string
-    - description: Time duration since creation of IPAdressClaim
+    - description: Time duration since creation of IPAddressClaim
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -163,7 +163,7 @@ spec:
       jsonPath: .spec.poolRef.kind
       name: Pool Kind
       type: string
-    - description: Time duration since creation of IPAdressClaim
+    - description: Time duration since creation of IPAddressClaim
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -376,7 +376,7 @@ spec:
       jsonPath: .spec.poolRef.kind
       name: Pool Kind
       type: string
-    - description: Time duration since creation of IPAdressClaim
+    - description: Time duration since creation of IPAddressClaim
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date

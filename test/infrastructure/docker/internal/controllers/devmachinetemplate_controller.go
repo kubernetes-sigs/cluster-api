@@ -97,7 +97,7 @@ func (r *DevMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 		For(&infrav1.DevMachineTemplate{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		Complete(r)
+		Complete(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

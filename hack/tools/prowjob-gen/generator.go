@@ -25,6 +25,7 @@ import (
 	"reflect"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
@@ -180,6 +181,7 @@ func (g *generator) templateFunctions() template.FuncMap {
 	funcs["list"] = list
 	funcs["has"] = has
 	funcs["trim"] = strings.TrimSpace
+	funcs["cronBucket"] = cronBucket
 	return funcs
 }
 
@@ -234,4 +236,34 @@ func mustHas(needle interface{}, haystack interface{}) (bool, error) {
 	default:
 		return false, fmt.Errorf("cannot find has on type %s", tp)
 	}
+}
+
+type bucket struct {
+	time  time.Duration
+	items int
+}
+
+var buckets map[string]bucket
+
+func cronBucket(bucketName string, startHour, bucketSize, bucketIntervalMinutes int) string {
+	if buckets == nil {
+		buckets = map[string]bucket{}
+	}
+
+	b, ok := buckets[bucketName]
+	if !ok {
+		b = bucket{
+			time:  time.Minute * 60 * time.Duration(startHour),
+			items: 0,
+		}
+	}
+
+	b.items++
+	if b.items > bucketSize {
+		b.items = 1
+		b.time += time.Minute * time.Duration(bucketIntervalMinutes)
+	}
+	buckets[bucketName] = b
+
+	return fmt.Sprintf("%d %d * * *", int(b.time.Minutes())%60, int(b.time.Hours())%24)
 }

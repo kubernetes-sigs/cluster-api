@@ -138,7 +138,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		Build(r)
+		Build(ctx, r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -150,7 +150,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Scheme:          mgr.GetScheme(),
 		PredicateLogger: &predicateLog,
 	}
-	r.hookCache = cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)
+	r.hookCache = cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)
 	r.desiredStateGenerator, err = desiredstate.NewGenerator(
 		r.Client,
 		r.ClusterCache,
@@ -158,7 +158,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		r.hookCache,
 		// Note: We are using 10m so that we are able to relatively quickly pick up changes to the
 		// upgrade plan from the extension if necessary.
-		cache.New[desiredstate.GenerateUpgradePlanCacheEntry](10*time.Minute),
+		cache.New[desiredstate.GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed creating desired state generator")

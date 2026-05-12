@@ -28,7 +28,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/httpstream"
+	"k8s.io/apimachinery/pkg/util/httpstream" //nolint:staticcheck // Keep using this package for now as it's not straightforward to migrate this to k8s.io/streaming/pkg/httpstream. Eventually we stop using this package when we only support SPDYOverWebsocket.
 	"k8s.io/klog/v2"
 )
 

@@ -57,7 +57,7 @@ type GenericBootstrapConfigTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(
+	objectTypes = append(objectTypes,
 		&GenericBootstrapConfig{}, &GenericBootstrapConfigList{},
 		&GenericBootstrapConfigTemplate{}, &GenericBootstrapConfigTemplateList{},
 	)

@@ -1,7 +1,7 @@
 version: "2"
 run:
   timeout: 10m
-  go: "1.25"
+  go: "1.26"
   build-tags:
     - tools
     - e2e
@@ -52,6 +52,8 @@ linters:
   disable:
     # TODO: It will be dropped when the Go version migration is done.
     - usetesting
+    # TODO: It will be dropped when the prealloc findings are fixed.
+    - prealloc
   settings:
     forbidigo:
       forbid:
@@ -410,6 +412,57 @@ linters:
           - revive
         path: test/infrastructure/inmemory/pkg/server/api/.*\.go$
         text: 'var-naming: avoid meaningless package names'
+        # TODO: It will be dropped when the staticcheck QF1012 findings are fixed.
+      - linters:
+          - staticcheck
+        text: 'QF1012: Use fmt\.Fprintf'
+        # TODO: It will be dropped when reflect.Ptr is replaced with reflect.Pointer.
+      - linters:
+          - govet
+        text: 'inline: Constant reflect\.Ptr should be inlined'
+        # TODO: It will be dropped when the malformed json tags are fixed.
+      - linters:
+          - staticcheck
+        text: "SA5008: malformed `json` tag"
+        # TODO: It will be dropped when the gosec G304 findings are fixed.
+      - linters:
+          - gosec
+        path: test/framework/kubetest/setup\.go
+        text: 'G304:'
+        # TODO: It will be dropped when the gosec G122 findings are fixed.
+      - linters:
+          - gosec
+        path: test/framework/suite_helpers\.go
+        text: 'G122:'
+        # TODO: It will be dropped when the gosec G204 findings are fixed.
+      - linters:
+          - gosec
+        path: (hack/tools/internal/tilt-prepare/main\.go|hack/tools/release/notes/github\.go)
+        text: 'G204:'
+        # TODO: It will be dropped when the unused nolint directives are cleaned up.
+      - linters:
+          - nolintlint
+        text: 'directive .* is unused'
+        # TODO: It will be dropped when the gosec G101 findings are fixed.
+      - linters:
+          - gosec
+        path: _test\.go
+        text: 'G101:'
+        # TODO: It will be dropped when the gosec G703 findings are fixed.
+      - linters:
+          - gosec
+        path: (cmd/clusterctl/client/cluster/template\.go|internal/test/envtest/environment\.go|test/framework/clusterctl/repository\.go)
+        text: 'G703:'
+        # TODO: It will be dropped when the gosec G705 findings are fixed.
+      - linters:
+          - gosec
+        path: cmd/clusterctl/client/repository/repository_github_test\.go
+        text: 'G705:'
+        # TODO: It will be dropped when the gosec G706 findings are fixed.
+      - linters:
+          - gosec
+        path: hack/tools/mdbook/
+        text: 'G706:'
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

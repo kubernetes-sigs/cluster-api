@@ -117,7 +117,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	c, err := b.
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		Build(r)
+		Build(ctx, r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

@@ -74,8 +74,8 @@ type Options struct {
 }
 
 // New returns a new Client.
-func New(options Options) (runtimeclient.Client, *certwatcher.CertWatcher, error) {
-	httpClientCache := cache.New[httpClientEntry](24 * time.Hour)
+func New(ctx context.Context, options Options) (runtimeclient.Client, *certwatcher.CertWatcher, error) {
+	httpClientCache := cache.New[httpClientEntry](ctx, 24*time.Hour)
 
 	var certWatcher *certwatcher.CertWatcher
 	if options.CertFile != "" && options.KeyFile != "" {

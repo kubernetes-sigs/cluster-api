@@ -1506,7 +1506,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Operation:  metav1.ManagedFieldsOperationUpdate,
 			APIVersion: clusterv1.GroupVersion.String(),
 			// No need to verify details (a bit non-deterministic, as it depends on Machine controller reconciles).
-			FieldsV1:    string(statusManagedFields[0].FieldsV1.Raw),
+			FieldsV1:    string(statusManagedFields[0].FieldsV1.GetRawBytes()),
 			Subresource: "status",
 		}})))
 	}, timeout).Should(Succeed())
@@ -1651,7 +1651,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Operation:  metav1.ManagedFieldsOperationUpdate,
 			APIVersion: clusterv1.GroupVersion.String(),
 			// No need to verify details (a bit non-deterministic, as it depends on Machine controller reconciles).
-			FieldsV1:    string(statusManagedFields[0].FieldsV1.Raw),
+			FieldsV1:    string(statusManagedFields[0].FieldsV1.GetRawBytes()),
 			Subresource: "status",
 		}})))
 	}, timeout).Should(Succeed())

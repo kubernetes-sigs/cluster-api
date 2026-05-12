@@ -63,6 +63,10 @@ When executing a template, the following functions are available as addition to 
 - `TrimSuffix`: [strings.TrimSuffix](https://pkg.go.dev/strings#TrimSuffix)
 - `ReplaceAll`: [strings.ReplaceAll](https://pkg.go.dev/strings#ReplaceAll)
 - `last`: `func(any) any`: returns the last element of an array or slice.
+- `cronBucket`: `func cronBucket(bucketName string, startHour, bucketSize, bucketIntervalMinutes int) string`: 
+   returns a cron schedule that starts at the given hour; the same cron schedule will be used for following jobs
+   (each call to the func is considered a new job) until the bucketSize; after that, the cron schedule is 
+   increased by bucketIntervalMinutes and the process repeat.
 
 When executing a template, the following variables are available:
 

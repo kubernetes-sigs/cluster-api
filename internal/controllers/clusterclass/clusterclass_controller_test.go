@@ -1178,7 +1178,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 
 			r := &Reconciler{
 				RuntimeClient:          fakeRuntimeClient,
-				discoverVariablesCache: cache.New[runtimeclient.CallExtensionCacheEntry](cache.DefaultTTL),
+				discoverVariablesCache: cache.New[runtimeclient.CallExtensionCacheEntry](ctx, cache.DefaultTTL),
 			}
 
 			// Pin the compatibility version used in variable CEL validation to 1.29, so we don't have to continuously refactor

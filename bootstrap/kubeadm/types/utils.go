@@ -20,11 +20,11 @@ package types
 import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
@@ -124,10 +124,7 @@ func marshalForVersion(obj conversion.Hub, version semver.Version, kubeadmObjVer
 		additionalDataSetter.SetAdditionalData(*data)
 	}
 
-	codecs, err := getCodecsFor(kubeadmAPIGroupVersion, targetKubeadmObj)
-	if err != nil {
-		return "", err
-	}
+	codecs := getCodecsFor(kubeadmAPIGroupVersion, targetKubeadmObj)
 
 	yaml, err := toYaml(targetKubeadmObj, kubeadmAPIGroupVersion, codecs)
 	if err != nil {
@@ -136,14 +133,11 @@ func marshalForVersion(obj conversion.Hub, version semver.Version, kubeadmObjVer
 	return string(yaml), nil
 }
 
-func getCodecsFor(gv schema.GroupVersion, obj runtime.Object) (serializer.CodecFactory, error) {
-	sb := &scheme.Builder{GroupVersion: gv}
-	sb.Register(obj)
-	kubeadmScheme, err := sb.Build()
-	if err != nil {
-		return serializer.CodecFactory{}, errors.Wrapf(err, "failed to build scheme for kubeadm types conversions")
-	}
-	return serializer.NewCodecFactory(kubeadmScheme), nil
+func getCodecsFor(gv schema.GroupVersion, obj runtime.Object) serializer.CodecFactory {
+	kubeadmScheme := runtime.NewScheme()
+	kubeadmScheme.AddKnownTypes(gv, obj)
+	metav1.AddToGroupVersion(kubeadmScheme, gv)
+	return serializer.NewCodecFactory(kubeadmScheme)
 }
 
 func toYaml(obj runtime.Object, gv runtime.GroupVersioner, codecs serializer.CodecFactory) ([]byte, error) {
@@ -193,12 +187,9 @@ func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersi
 		// Tries conversion from yaml to the corresponding kubeadmObj
 		kubeadmObj := obj.DeepCopyObject()
 		gvk := kubeadmObj.GetObjectKind().GroupVersionKind()
-		codecs, err := getCodecsFor(gv, kubeadmObj)
-		if err != nil {
-			return errors.Wrapf(err, "failed to build scheme for kubeadm types conversions")
-		}
+		codecs := getCodecsFor(gv, kubeadmObj)
 
-		_, _, err = codecs.UniversalDeserializer().Decode([]byte(yaml), &gvk, kubeadmObj)
+		_, _, err := codecs.UniversalDeserializer().Decode([]byte(yaml), &gvk, kubeadmObj)
 		if err == nil {
 			// If conversion worked, then converts the kubeadmObj (spoke) back to the Cluster API type (hub).
 			if err := kubeadmObj.(conversion.Convertible).ConvertTo(capiObj); err != nil {

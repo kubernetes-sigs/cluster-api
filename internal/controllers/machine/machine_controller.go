@@ -170,12 +170,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(mdToMachines),
 		).
-		Build(r)
+		Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.hookCache = cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)
+	r.hookCache = cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
 	r.externalTracker = external.ObjectTracker{

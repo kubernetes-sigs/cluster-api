@@ -74,7 +74,7 @@ func (r *DevClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("DevCluster"), mgr.GetClient(), &infrav1.DevCluster{})),
 			predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
-		).Complete(r)
+		).Complete(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

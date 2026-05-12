@@ -82,13 +82,13 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 				managedField.Operation == metav1.ManagedFieldsOperationApply &&
 				managedField.Subresource == "" {
 				// If fieldManager does not own labels and annotations there's nothing to do.
-				if !bytes.Contains(managedField.FieldsV1.Raw, []byte("f:metadata")) {
+				if !bytes.Contains(managedField.FieldsV1.GetRawBytes(), []byte("f:metadata")) {
 					return nil
 				}
 
 				// Unmarshal the managed fields into a map[string]interface{}
 				fieldsV1 := map[string]interface{}{}
-				if err := json.Unmarshal(managedField.FieldsV1.Raw, &fieldsV1); err != nil {
+				if err := json.Unmarshal(managedField.FieldsV1.GetRawBytes(), &fieldsV1); err != nil {
 					return errors.Wrap(err, "failed to unmarshal managed fields")
 				}
 
@@ -110,7 +110,7 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal managed fields")
 				}
-				managedField.FieldsV1.Raw = fieldsV1Raw
+				managedField.FieldsV1.SetRawBytes(fieldsV1Raw)
 
 				managedFields = append(managedFields, managedField)
 			} else {
@@ -208,13 +208,13 @@ func needsMigration(object client.Object, fieldManager string) (bool, error) {
 			managedField.Operation == metav1.ManagedFieldsOperationApply &&
 			managedField.Subresource == "" {
 			// If fieldManager does not own the cluster-name label migration is not needed
-			if !bytes.Contains(managedField.FieldsV1.Raw, []byte("f:cluster.x-k8s.io/cluster-name")) {
+			if !bytes.Contains(managedField.FieldsV1.GetRawBytes(), []byte("f:cluster.x-k8s.io/cluster-name")) {
 				return false, nil
 			}
 
 			// Unmarshal the managed fields into a map[string]interface{}
 			fieldsV1 := map[string]interface{}{}
-			if err := json.Unmarshal(managedField.FieldsV1.Raw, &fieldsV1); err != nil {
+			if err := json.Unmarshal(managedField.FieldsV1.GetRawBytes(), &fieldsV1); err != nil {
 				return false, errors.Wrap(err, "failed to determine if migration is needed: failed to unmarshal managed fields")
 			}
 

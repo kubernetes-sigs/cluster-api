@@ -199,7 +199,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
 			//nolint:staticcheck // This usage will be removed when adding v1beta2 status and implementing the Paused condition.
 			predicates.ClusterUnpausedAndInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
-		).Build(r)
+		).Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

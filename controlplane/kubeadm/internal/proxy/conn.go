@@ -21,6 +21,7 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	//nolint:staticcheck // Keep using this package for now, see comment in dial.go
 	"k8s.io/apimachinery/pkg/util/httpstream"
 )
 

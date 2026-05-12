@@ -46,7 +46,6 @@ const (
 func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
-	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(bootstrapv1.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for ClusterConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{

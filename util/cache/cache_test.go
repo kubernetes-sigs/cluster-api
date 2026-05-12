@@ -31,7 +31,7 @@ import (
 func TestCache(t *testing.T) {
 	g := NewWithT(t)
 
-	c := New[HookEntry](DefaultTTL)
+	c := New[HookEntry](t.Context(), DefaultTTL)
 
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{

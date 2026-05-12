@@ -40,7 +40,7 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 	tests := []struct {
 		name    string
 		commits []githubCommitNode
-		want    map[string]struct{}
+		want    map[string]bool
 	}{
 		{
 			name: "merge commit",
@@ -51,8 +51,8 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 					},
 				},
 			},
-			want: map[string]struct{}{
-				"9072": {},
+			want: map[string]bool{
+				"9072": false,
 			},
 		},
 		{
@@ -64,8 +64,8 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 					},
 				},
 			},
-			want: map[string]struct{}{
-				"9263": {},
+			want: map[string]bool{
+				"9263": false,
 			},
 		},
 	}

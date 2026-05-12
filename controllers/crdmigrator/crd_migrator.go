@@ -112,7 +112,7 @@ type ByObjectConfig struct {
 }
 
 func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, controllerOptions controller.Options) error {
-	if err := r.setup(mgr.GetScheme()); err != nil {
+	if err := r.setup(ctx, mgr.GetScheme()); err != nil {
 		return err
 	}
 
@@ -137,7 +137,7 @@ func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, co
 		).
 		Named("crdmigrator").
 		WithOptions(controllerOptions).
-		Complete(r)
+		Complete(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -145,7 +145,7 @@ func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, co
 	return nil
 }
 
-func (r *CRDMigrator) setup(scheme *runtime.Scheme) error {
+func (r *CRDMigrator) setup(ctx context.Context, scheme *runtime.Scheme) error {
 	if r.Client == nil || r.APIReader == nil || len(r.Config) == 0 {
 		return errors.New("Client and APIReader must not be nil and Config must not be empty")
 	}
@@ -172,7 +172,7 @@ func (r *CRDMigrator) setup(scheme *runtime.Scheme) error {
 		r.configByCRDName[contract.CalculateCRDName(gvk.Group, gvk.Kind)] = cfg
 	}
 
-	r.storageVersionMigrationCache = cache.New[objectEntry](1 * time.Hour)
+	r.storageVersionMigrationCache = cache.New[objectEntry](ctx, 1*time.Hour)
 	return nil
 }
 

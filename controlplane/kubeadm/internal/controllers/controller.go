@@ -149,7 +149,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmcontrolplane", r.ClusterToKubeadmControlPlane,
 			clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod))).
-		Build(r)
+		Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -166,7 +166,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 			EtcdDialTimeout:     r.EtcdDialTimeout,
 			EtcdCallTimeout:     r.EtcdCallTimeout,
 			EtcdLogger:          r.EtcdLogger,
-			ClientCertCache:     cache.New[internal.ClientCertEntry](24 * time.Hour),
+			ClientCertCache:     cache.New[internal.ClientCertEntry](ctx, 24*time.Hour),
 		}
 	}
 

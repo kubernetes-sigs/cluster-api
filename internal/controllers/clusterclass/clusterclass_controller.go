@@ -94,13 +94,13 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.extensionConfigToClusterClass),
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		Complete(r)
+		Complete(ctx, r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.discoverVariablesCache = cache.New[runtimeclient.CallExtensionCacheEntry](cache.DefaultTTL)
+	r.discoverVariablesCache = cache.New[runtimeclient.CallExtensionCacheEntry](ctx, cache.DefaultTTL)
 	return nil
 }
 

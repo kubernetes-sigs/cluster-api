@@ -23,8 +23,8 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.25.9
-GO_DIRECTIVE_VERSION ?= 1.25.0
+GO_VERSION ?= 1.26.3
+GO_DIRECTIVE_VERSION ?= 1.26.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Ensure correct toolchain is used
@@ -44,7 +44,7 @@ export GO111MODULE=on
 #
 # Kubebuilder.
 #
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.35.0
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.36.0
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?= 60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?= 60s
 
@@ -115,12 +115,12 @@ KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
 KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v5
 
-SETUP_ENVTEST_VER := release-0.23
+SETUP_ENVTEST_VER := v0.24.0
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.20.0
+CONTROLLER_GEN_VER := v0.21.0
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -130,7 +130,7 @@ GOTESTSUM_BIN := gotestsum
 GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
 GOTESTSUM_PKG := gotest.tools/gotestsum
 
-CONVERSION_GEN_VER := v0.35.0
+CONVERSION_GEN_VER := v0.36.0
 CONVERSION_GEN_BIN := conversion-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.
@@ -177,9 +177,10 @@ GOLANGCI_LINT_KAL_VER := $(shell cat ./hack/tools/.custom-gcl.yaml | grep versio
 GOLANGCI_LINT_KAL := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_KAL_BIN))
 
 GOVULNCHECK_BIN := govulncheck
-GOVULNCHECK_VER := v1.1.4
-GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
-GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
+GOVULNCHECK_VER := v1.3.0
+GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN))
+GOVULNCHECK_DIR := hack/tools/govulncheck
+GOVULNCHECK_TMP_DIR ?= $(GOVULNCHECK_DIR)/govulncheck.tmp
 
 CRANE_BIN := crane
 CRANE_VER := v0.20.7
@@ -1506,14 +1507,37 @@ $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 $(GOLANGCI_LINT_KAL): $(GOLANGCI_LINT) # Build golangci-lint-kal from custom configuration.
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) custom
 
-$(GOVULNCHECK): # Build govulncheck.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
-
 $(CRANE): # Build crane.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CRANE_PKG) $(CRANE_BIN) $(CRANE_VER)
 
 $(IMPORT_BOSS): # Build import-boss
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(IMPORT_BOSS_PKG) $(IMPORT_BOSS_BIN) $(IMPORT_BOSS_VER)
+
+## --------------------------------------
+## govulncheck
+## --------------------------------------
+
+$(GOVULNCHECK): # Build govulncheck.
+	@if [ -z "${GOVULNCHECK_VER}" ]; then echo "GOVULNCHECK_VER is not set"; exit 1; fi
+	@if [ -d "$(GOVULNCHECK_TMP_DIR)" ]; then \
+		echo "$(GOVULNCHECK_TMP_DIR) exists, skipping clone"; \
+	else \
+		git clone "https://github.com/golang/vuln.git" "$(GOVULNCHECK_TMP_DIR)"; \
+		cd "$(GOVULNCHECK_TMP_DIR)"; \
+		git checkout "$(GOVULNCHECK_VER)"; \
+		git apply "$(ROOT_DIR)/$(GOVULNCHECK_DIR)/govulncheck.patch"; \
+	fi
+	@cd "$(ROOT_DIR)/$(GOVULNCHECK_TMP_DIR)"; \
+	if [ "$$(git describe --tag 2> /dev/null)" != "$(GOVULNCHECK_VER)" ]; then \
+		echo "ERROR: checked out version $$(git describe --tag 2> /dev/null) does not match expected version $(GOVULNCHECK_VER)"; \
+		exit 1; \
+	fi
+	go build -C $(GOVULNCHECK_TMP_DIR) -o $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN) ./cmd/govulncheck
+
+.PHONY: clean-govulncheck
+clean-govulncheck:
+	rm -fr "$(GOVULNCHECK_TMP_DIR)"
+
 
 ## --------------------------------------
 ## triage-party

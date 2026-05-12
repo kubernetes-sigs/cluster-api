@@ -34,15 +34,17 @@ type githubFromToPRLister struct {
 	fromRef, toRef ref
 	// branch is optional. It helps optimize the PR query by restricting
 	// the results to PRs merged in the selected branch and in main
-	branch string
+	branch               string
+	skipConsistencyCheck bool
 }
 
-func newGithubFromToPRLister(repo string, fromRef, toRef ref, branch string) *githubFromToPRLister {
+func newGithubFromToPRLister(repo string, fromRef, toRef ref, branch string, skipConsistencyCheck bool) *githubFromToPRLister {
 	return &githubFromToPRLister{
-		client:  &githubClient{repo: repo},
-		fromRef: fromRef,
-		toRef:   toRef,
-		branch:  branch,
+		client:               &githubClient{repo: repo},
+		fromRef:              fromRef,
+		toRef:                toRef,
+		branch:               branch,
+		skipConsistencyCheck: skipConsistencyCheck,
 	}
 }
 
@@ -119,6 +121,8 @@ func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, error) {
 		if _, ok := selectedPRNumbers[fmt.Sprintf("%d", p.Number)]; !ok {
 			continue
 		}
+		selectedPRNumbers[fmt.Sprintf("%d", p.Number)] = true
+
 		labels := make([]string, 0, len(p.Labels))
 		for _, l := range p.Labels {
 			labels = append(labels, l.Name)
@@ -131,9 +135,17 @@ func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, error) {
 		})
 	}
 
+	// Report consistency problems
+	for sp, found := range selectedPRNumbers {
+		if found {
+			continue
+		}
+		log.Printf("PR number %s identified from commits, not found in the PR list", sp)
+	}
+
 	log.Printf("%d PRs match the commits from the git diff", len(prs))
 
-	if len(prs) != len(selectedPRNumbers) {
+	if len(prs) != len(selectedPRNumbers) && !l.skipConsistencyCheck {
 		return nil, errors.Errorf("expected %d PRs from commit list but only found %d", len(selectedPRNumbers), len(prs))
 	}
 
@@ -145,18 +157,18 @@ var (
 	tideSquashedCommitMessage = regexp.MustCompile(`(?m)^.+\(#(?P<number>\d+)\)$`)
 )
 
-func buildSetOfPRNumbers(commits []githubCommitNode) map[string]struct{} {
-	prNumbers := make(map[string]struct{})
+func buildSetOfPRNumbers(commits []githubCommitNode) map[string]bool {
+	prNumbers := make(map[string]bool)
 	for _, commit := range commits {
 		match := mergeCommitMessage.FindStringSubmatch(commit.Commit.Message)
 		if len(match) == 2 {
-			prNumbers[match[1]] = struct{}{}
+			prNumbers[match[1]] = false
 			continue
 		}
 
 		match = tideSquashedCommitMessage.FindStringSubmatch(commit.Commit.Message)
 		if len(match) == 2 {
-			prNumbers[match[1]] = struct{}{}
+			prNumbers[match[1]] = false
 		}
 	}
 

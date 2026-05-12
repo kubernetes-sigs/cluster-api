@@ -3251,7 +3251,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSp
 				Properties: map[string]spec.Schema{
 					"order": {
 						SchemaProps: spec.SchemaProps{
-							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
+							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\". Valid values are \"Random\", \"Newest\", \"Oldest\"",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3391,7 +3391,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentDeletionSpec(ref commo
 				Properties: map[string]spec.Schema{
 					"order": {
 						SchemaProps: spec.SchemaProps{
-							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
+							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\". Valid values are \"Random\", \"Newest\", \"Oldest\"",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -4050,7 +4050,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineDeletio
 				Properties: map[string]spec.Schema{
 					"order": {
 						SchemaProps: spec.SchemaProps{
-							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
+							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\". Valid values are \"Random\", \"Newest\", \"Oldest\"",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -5560,7 +5560,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceC
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeRefs will point to the corresponding Nodes if it they exist.",
+							Description: "nodeRefs will point to the corresponding Nodes if they exist.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -5959,7 +5959,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSetDeletionSpec(ref common.Refer
 				Properties: map[string]spec.Schema{
 					"order": {
 						SchemaProps: spec.SchemaProps{
-							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
+							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\". Valid values are \"Random\", \"Newest\", \"Oldest\"",
 							Type:        []string{"string"},
 							Format:      "",
 						},

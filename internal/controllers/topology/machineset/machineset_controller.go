@@ -88,7 +88,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
 			predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
 		).
-		Complete(r)
+		Complete(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

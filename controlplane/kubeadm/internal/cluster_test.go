@@ -226,7 +226,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 				Client:              env.GetClient(),
 				SecretCachingClient: secretCachingClient,
 				ClusterCache:        clusterCache,
-				ClientCertCache:     cache.New[ClientCertEntry](24 * time.Hour),
+				ClientCertCache:     cache.New[ClientCertEntry](ctx, 24*time.Hour),
 			}
 
 			// Ensure the ClusterCache reconciled at least once (and if possible created a clusterAccessor).

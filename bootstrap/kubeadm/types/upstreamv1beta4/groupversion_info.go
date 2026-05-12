@@ -17,19 +17,15 @@ limitations under the License.
 package upstreamv1beta4
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
 var (
 	// GroupVersion is group version used to register these objects.
 	GroupVersion = schema.GroupVersion{Group: "kubeadm.k8s.io", Version: "v1beta4"}
 
-	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
-	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
-
-	// AddToScheme adds the types in this group-version to the given scheme.
-	AddToScheme = SchemeBuilder.AddToScheme
-
-	localSchemeBuilder = &SchemeBuilder.SchemeBuilder
+	// localSchemeBuilder is used for type conversions.
+	// Note: This is only needed for zz_generated.conversion.go, otherwise this package does not need a scheme.
+	localSchemeBuilder = runtime.NewSchemeBuilder()
 )

@@ -21,7 +21,7 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/httpstream"
+	"k8s.io/apimachinery/pkg/util/httpstream" //nolint:staticcheck // Keep using this package for now as it's not straightforward to migrate this to k8s.io/streaming/pkg/httpstream. Eventually we stop using this package when we only support SPDYOverWebsocket.
 )
 
 // Conn is a Kubernetes API server proxied type of net/conn.

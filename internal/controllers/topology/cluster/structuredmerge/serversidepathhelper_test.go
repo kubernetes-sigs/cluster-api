@@ -623,7 +623,7 @@ func getTopologyManagedFields(original client.Object) map[string]interface{} {
 			m.Manager == TopologyManagerName &&
 			m.APIVersion == original.GetObjectKind().GroupVersionKind().GroupVersion().String() {
 			// NOTE: API server ensures this is a valid json.
-			err := json.Unmarshal(m.FieldsV1.Raw, &r)
+			err := json.Unmarshal(m.FieldsV1.GetRawBytes(), &r)
 			if err != nil {
 				continue
 			}

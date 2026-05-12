@@ -255,7 +255,7 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 
 		// Unmarshal the managed fields into a map[string]interface{}
 		fieldsV1 := map[string]interface{}{}
-		if err := json.Unmarshal(managedField.FieldsV1.Raw, &fieldsV1); err != nil {
+		if err := json.Unmarshal(managedField.FieldsV1.GetRawBytes(), &fieldsV1); err != nil {
 			return errors.Wrap(err, "failed to unmarshal managed fields")
 		}
 
@@ -273,7 +273,7 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to marshal managed fields")
 		}
-		managedField.FieldsV1.Raw = fieldsV1Raw
+		managedField.FieldsV1.SetRawBytes(fieldsV1Raw)
 
 		newManagedFields = append(newManagedFields, managedField)
 	}

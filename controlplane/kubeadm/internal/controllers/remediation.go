@@ -783,6 +783,13 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 	// whose peer-URL host set intersects the deleting Machine's address set. Many orphan
 	// candidates matching the same Machine would be a sign of address re-use (e.g. multiple
 	// Machines provisioned with overlapping CIDRs) and is treated as ambiguous — fall through.
+	//
+	// The len(matches) == 1 guard catches "deleting Machine matches multiple candidates" but
+	// does NOT catch the symmetric collision: another Machine in the cluster sharing an
+	// address with the matched member's peer URLs (DHCP race, IPAM bug, CAPV reverse-IP
+	// reuse, manual address pinning). In that case the deleting Machine's address overlap
+	// is real but the member it points to is not necessarily owned by the deleting Machine.
+	// Treat that overlap as ambiguous and fall through to step 5.
 	deletingHosts := machineHostStrings(deletingMachine, controlPlane.InfraResources[deletingMachine.Name])
 	if len(deletingHosts) > 0 {
 		var matches []*etcd.Member
@@ -792,9 +799,18 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 			}
 		}
 		if len(matches) == 1 {
-			log.Info("Resolved etcd member via peer-URL/address match",
-				"memberID", fmt.Sprintf("%x", matches[0].ID), "memberName", matches[0].Name)
-			return matches[0], nil
+			matchedHosts := peerURLHosts(matches[0])
+			ambiguous, collidingMachine := step4OtherMachineCollision(controlPlane, deletingMachine, matchedHosts)
+			if ambiguous {
+				log.Info("step 4 (peer-URL/address match) skipped: matched member's peer URLs also overlap another Machine's addresses; falling through to step 5",
+					"memberID", fmt.Sprintf("%x", matches[0].ID),
+					"memberName", matches[0].Name,
+					"collidingMachine", collidingMachine)
+			} else {
+				log.Info("Resolved etcd member via peer-URL/address match",
+					"memberID", fmt.Sprintf("%x", matches[0].ID), "memberName", matches[0].Name)
+				return matches[0], nil
+			}
 		}
 	}
 
@@ -886,6 +902,29 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 	// Machines may themselves be wrong — the operator needs to see every member with no
 	// corresponding Node to make an informed choice.
 	return nil, candidates
+}
+
+// step4OtherMachineCollision returns true (and the colliding Machine's name) when any
+// Machine other than the deletingMachine has Status.Addresses overlapping with the matched
+// member's peer URL hosts. Used by step 4 to detect "the address match is real but another
+// Machine could equally claim it" — typically caused by DHCP races, IPAM bugs, or manual
+// address pinning. The function inspects every other CP Machine (including those with
+// NodeRefs) because the collision is a symptom of address re-use, not specifically of
+// orphan-vs-orphan ambiguity.
+func step4OtherMachineCollision(controlPlane *internal.ControlPlane, deletingMachine *clusterv1.Machine, matchedMemberHosts []string) (bool, string) {
+	if len(matchedMemberHosts) == 0 {
+		return false, ""
+	}
+	for name, m := range controlPlane.Machines {
+		if name == deletingMachine.Name {
+			continue
+		}
+		otherHosts := machineHostStrings(m, controlPlane.InfraResources[name])
+		if hostsIntersect(matchedMemberHosts, otherHosts) {
+			return true, name
+		}
+	}
+	return false, ""
 }
 
 // step5StartupGrace is the minimum age a Machine must reach before step 5 (strict 1↔1

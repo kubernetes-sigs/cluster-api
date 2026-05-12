@@ -1923,6 +1923,32 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 			wantEtcdMemberName: "node-orphan",
 		},
 		{
+			// Risk 3 from #13680's Caveats: address collision between the matched member's
+			// peer URLs and another Machine's addresses (DHCP race / IPAM bug / reverse-IP
+			// reuse / manual address pinning) must not let step 4 commit to a speculative
+			// pairing. The collision means the matched member could plausibly be owned by
+			// the other Machine, so step 4 yields and step 5 (or 6) gets a chance.
+			name:    "Step 4 ambiguity: matched member's peer URL also overlaps another Machine's address ⇒ fall through",
+			machine: markStep5Admissible(machineWithAddresses("m-deleting", "10.0.0.5")),
+			otherMachines: []*clusterv1.Machine{
+				// m-other has the same address — would collide on the same member.
+				machineWithAddresses("m-other", "10.0.0.5"),
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "m-healthy"},
+					Status:     clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node-healthy"}},
+				},
+			},
+			etcdMembers: []*etcd.Member{
+				{ID: 1, Name: "node-healthy", PeerURLs: []string{"https://10.0.0.1:2380"}},
+				{ID: 2, Name: "node-orphan", PeerURLs: []string{"https://10.0.0.5:2380"}},
+			},
+			cpNodes: []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-healthy"}}},
+			// Step 4 should bail. Step 5 should also bail (two unmatched Machines: m-deleting
+			// and m-other). Land at step 6 surfacing the candidates.
+			wantEtcdMemberName:     "",
+			wantOrphanCandidateIDs: []uint64{2},
+		},
+		{
 			name:    "Step 4: peer-URL falls back to InfraMachine.Status.Addresses when Machine.Status.Addresses empty",
 			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
 			infraMachine: &unstructured.Unstructured{

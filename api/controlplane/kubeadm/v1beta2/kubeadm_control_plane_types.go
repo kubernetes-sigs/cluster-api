@@ -65,6 +65,23 @@ const (
 	// ensure it runs last (thus ensuring that kubelet is still working while other pre-terminate hooks run).
 	PreTerminateHookCleanupAnnotation = clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/kcp-cleanup"
 
+	// EtcdMemberNameAnnotation is an operator-set escape hatch that pins a control-plane Machine to a specific
+	// etcd member name. KCP normally derives the etcd member name from Status.NodeRef.Name (or via a
+	// Spec.ProviderID → Node lookup). When neither path resolves — typically because the Node never registered —
+	// setting this annotation tells KCP which etcd member belongs to the Machine so the pre-terminate hook can
+	// call RemoveEtcdMember instead of leaking the member.
+	//
+	// If both EtcdMemberIDAnnotation and EtcdMemberNameAnnotation are set, EtcdMemberIDAnnotation wins.
+	EtcdMemberNameAnnotation = "controlplane.cluster.x-k8s.io/etcd-member-name"
+
+	// EtcdMemberIDAnnotation is an operator-set escape hatch that pins a control-plane Machine to a specific
+	// etcd member by member ID (decimal or 0x-prefixed hex uint64; mirrors `etcdctl member list -w json` output).
+	// KCP resolves the ID against the current etcd MemberList to recover the member's name. This is the most
+	// precise form because etcd member names can be empty during early member lifecycle but IDs are stable from
+	// MemberAdd return; prefer it over EtcdMemberNameAnnotation when both could be supplied. If both are set,
+	// EtcdMemberIDAnnotation takes precedence.
+	EtcdMemberIDAnnotation = "controlplane.cluster.x-k8s.io/etcd-member-id"
+
 	// DefaultMinHealthyPeriodSeconds defines the default minimum period before we consider a remediation on a
 	// machine unrelated from the previous remediation.
 	DefaultMinHealthyPeriodSeconds = int32(60 * 60)
@@ -413,6 +430,35 @@ const (
 	// KubeadmControlPlaneMachineEtcdMemberDeletingReason surfaces when the machine hosting an etcd member
 	// is being deleted.
 	KubeadmControlPlaneMachineEtcdMemberDeletingReason = "Deleting"
+)
+
+// EtcdMemberOrphanCorrelationFailed condition and corresponding reasons for KubeadmControlPlane controlled machines.
+// This condition is set on a Machine during pre-terminate-hook / remediation when KCP cannot correlate the Machine
+// to a specific etcd member name via the monotonic fallback chain (annotation → NodeRef → ProviderID → peer URL ↔
+// address → strict 1↔1 in-flight pairing) while the etcd cluster still has at least one member without a
+// corresponding Machine. The condition surfaces the orphan candidate list so an operator can resolve the
+// ambiguity by setting EtcdMemberIDAnnotation or EtcdMemberNameAnnotation on the Machine.
+const (
+	// KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationFailedCondition surfaces the status of KCP's attempt
+	// to correlate a control-plane Machine to its etcd member when the Node never registered. While this
+	// condition is True the pre-terminate hook will block the Machine deletion (RequeueAfter) rather than silently
+	// leaking the orphan member.
+	KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationFailedCondition = "EtcdMemberOrphanCorrelationFailed"
+
+	// KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationFailedReason surfaces when none of the fallback-chain
+	// steps could resolve an etcd member for the Machine but at least one orphan candidate exists.
+	KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationFailedReason = "CorrelationFailed"
+
+	// KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationResolvedReason surfaces when a previously-failed
+	// correlation has succeeded (typically because the operator set EtcdMemberIDAnnotation, the Node finally
+	// registered, or the orphan member has been cleaned up).
+	KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationResolvedReason = "Resolved"
+
+	// KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationNoCandidatesReason surfaces when correlation could
+	// not produce a member name but the etcd cluster has no orphan candidates either — meaning the Machine
+	// never produced an etcd member (e.g. deleted very early in bootstrap) and the pre-terminate hook can
+	// safely proceed.
+	KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationNoCandidatesReason = "NoOrphanCandidates"
 )
 
 // NodeKubeadmLabelsAndTaintsSet condition and corresponding reasons that will be used for KubeadmControlPlane controlled machines in v1Beta2 API version.

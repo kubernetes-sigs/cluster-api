@@ -1742,15 +1742,113 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 		},
 	}
 
+	// machineWithAddresses returns a Machine carrying the given Status.Addresses as InternalIP
+	// entries. Used to seed the peer-URL ↔ address match cases.
+	machineWithAddresses := func(name string, addrs ...string) *clusterv1.Machine {
+		m := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+		}
+		for _, a := range addrs {
+			m.Status.Addresses = append(m.Status.Addresses, clusterv1.MachineAddress{
+				Type:    clusterv1.MachineInternalIP,
+				Address: a,
+			})
+		}
+		return m
+	}
+
 	tests := []struct {
-		name               string
-		machine            *clusterv1.Machine
-		infraMachine       *unstructured.Unstructured
-		node               *corev1.Node
-		wantEtcdMemberName string
+		name                   string
+		machine                *clusterv1.Machine
+		infraMachine           *unstructured.Unstructured
+		node                   *corev1.Node // workload-cluster Node for ProviderID lookup (fake remote client).
+		otherMachines          []*clusterv1.Machine
+		etcdMembers            []*etcd.Member
+		cpNodes                []*internal.Node // KCP's view of workload-cluster Nodes; used to compute orphan candidates.
+		wantEtcdMemberName     string
+		wantOrphanCandidateIDs []uint64
 	}{
+		// ---- Step 1: operator override annotations -------------------------------------
 		{
-			name: "Return status.NodeRef.Name if set",
+			name: "Step 1: EtcdMemberIDAnnotation resolves to a member's Name",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						controlplanev1.EtcdMemberIDAnnotation: "0x2a",
+					},
+				},
+			},
+			etcdMembers: []*etcd.Member{
+				{ID: 42, Name: "via-annotation"},
+				{ID: 7, Name: "other"},
+			},
+			wantEtcdMemberName: "via-annotation",
+		},
+		{
+			name: "Step 1: EtcdMemberIDAnnotation accepts decimal form",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						controlplanev1.EtcdMemberIDAnnotation: "42",
+					},
+				},
+			},
+			etcdMembers:        []*etcd.Member{{ID: 42, Name: "decimal-match"}},
+			wantEtcdMemberName: "decimal-match",
+		},
+		{
+			name: "Step 1: EtcdMemberIDAnnotation wins over EtcdMemberNameAnnotation",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						controlplanev1.EtcdMemberIDAnnotation:   "42",
+						controlplanev1.EtcdMemberNameAnnotation: "name-loses",
+					},
+				},
+			},
+			etcdMembers:        []*etcd.Member{{ID: 42, Name: "id-wins"}},
+			wantEtcdMemberName: "id-wins",
+		},
+		{
+			name: "Step 1: EtcdMemberNameAnnotation returned verbatim when ID annotation absent",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						controlplanev1.EtcdMemberNameAnnotation: "operator-pinned",
+					},
+				},
+			},
+			etcdMembers:        []*etcd.Member{{ID: 1, Name: "operator-pinned"}},
+			wantEtcdMemberName: "operator-pinned",
+		},
+		{
+			name: "Step 1: EtcdMemberIDAnnotation that does not resolve falls through to NodeRef",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{controlplanev1.EtcdMemberIDAnnotation: "0xdead"},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: clusterv1.MachineNodeReference{Name: "fallback-node"},
+				},
+			},
+			etcdMembers:        []*etcd.Member{{ID: 7, Name: "not-the-annotation-id"}},
+			wantEtcdMemberName: "fallback-node",
+		},
+		{
+			name: "Step 1: malformed EtcdMemberIDAnnotation is ignored, NodeRef wins",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{controlplanev1.EtcdMemberIDAnnotation: "not-a-number"},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: clusterv1.MachineNodeReference{Name: "node-from-noderef"},
+				},
+			},
+			wantEtcdMemberName: "node-from-noderef",
+		},
+		// ---- Step 2: NodeRef (regression) ----------------------------------------------
+		{
+			name: "Step 2: Return status.NodeRef.Name if set",
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -1760,8 +1858,9 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 			},
 			wantEtcdMemberName: "foo-node",
 		},
+		// ---- Step 3: ProviderID → Node lookup (regression) -----------------------------
 		{
-			name: "Lookup node name when ProviderID is set, but node ref not",
+			name: "Step 3: Lookup node name when ProviderID is set, but node ref not",
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					ProviderID: "foo-node-provider-id",
@@ -1778,7 +1877,7 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 			wantEtcdMemberName: "foo-node",
 		},
 		{
-			name:    "Lookup node name when ProviderID from infra machine when not set in the machine",
+			name:    "Step 3: Lookup node name when ProviderID from infra machine when not set in the machine",
 			machine: &clusterv1.Machine{},
 			infraMachine: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -1797,8 +1896,108 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 			},
 			wantEtcdMemberName: "foo-node",
 		},
+		// ---- Step 4: peer-URL host ↔ Machine address match -----------------------------
 		{
-			name: "Provider ID set on the machine but node cannot be found",
+			name:    "Step 4: peer-URL matches a single orphan candidate by Machine.Status.Addresses",
+			machine: machineWithAddresses("m1", "10.0.0.5"),
+			etcdMembers: []*etcd.Member{
+				{ID: 1, Name: "node-first", PeerURLs: []string{"https://10.0.0.1:2380"}},
+				{ID: 2, Name: "node-orphan", PeerURLs: []string{"https://10.0.0.5:2380"}},
+			},
+			cpNodes:            []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-first"}}},
+			wantEtcdMemberName: "node-orphan",
+		},
+		{
+			name:    "Step 4: peer-URL falls back to InfraMachine.Status.Addresses when Machine.Status.Addresses empty",
+			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+			infraMachine: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"status": map[string]interface{}{
+						"addresses": []interface{}{
+							map[string]interface{}{"type": "InternalIP", "address": "10.0.0.5"},
+						},
+					},
+				},
+			},
+			etcdMembers: []*etcd.Member{
+				{ID: 1, Name: "node-first", PeerURLs: []string{"https://10.0.0.1:2380"}},
+				{ID: 2, Name: "node-orphan", PeerURLs: []string{"https://10.0.0.5:2380"}},
+			},
+			cpNodes:            []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-first"}}},
+			wantEtcdMemberName: "node-orphan",
+		},
+		{
+			name:    "Step 4: multiple orphan candidates match the same Machine address ⇒ ambiguous, fall through to step 6",
+			machine: machineWithAddresses("m1", "10.0.0.5"),
+			etcdMembers: []*etcd.Member{
+				{ID: 1, Name: "node-first", PeerURLs: []string{"https://10.0.0.1:2380"}},
+				{ID: 2, Name: "node-orphan-A", PeerURLs: []string{"https://10.0.0.5:2380"}},
+				{ID: 3, Name: "node-orphan-B", PeerURLs: []string{"https://10.0.0.5:2380"}},
+			},
+			cpNodes:                []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-first"}}},
+			wantEtcdMemberName:     "",
+			wantOrphanCandidateIDs: []uint64{2, 3},
+		},
+		// ---- Step 5: strict 1↔1 in-flight pairing --------------------------------------
+		{
+			name:    "Step 5: exactly one unmatched Machine and one unmatched member ⇒ pair",
+			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m-deleting"}},
+			otherMachines: []*clusterv1.Machine{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "m-healthy"},
+					Status:     clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node-healthy"}},
+				},
+			},
+			etcdMembers: []*etcd.Member{
+				{ID: 1, Name: "node-healthy"},
+				{ID: 2, Name: "node-lonely-orphan"},
+			},
+			cpNodes:            []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-healthy"}}},
+			wantEtcdMemberName: "node-lonely-orphan",
+		},
+		{
+			name:    "Step 5: two unmatched Machines ⇒ ambiguous, fall through to step 6",
+			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m-deleting"}},
+			otherMachines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m-other-unmatched"}},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "m-healthy"},
+					Status:     clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node-healthy"}},
+				},
+			},
+			etcdMembers: []*etcd.Member{
+				{ID: 1, Name: "node-healthy"},
+				{ID: 2, Name: "node-orphan"},
+			},
+			cpNodes:                []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-healthy"}}},
+			wantEtcdMemberName:     "",
+			wantOrphanCandidateIDs: []uint64{2},
+		},
+		// ---- Step 6: no resolution, orphans surfaced -----------------------------------
+		{
+			name:    "Step 6: orphan exists but cannot be correlated ⇒ ('', candidates)",
+			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+			otherMachines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}}, // also no NodeRef → too many unmatched Machines for step 5
+			},
+			etcdMembers: []*etcd.Member{
+				{ID: 1, Name: "node-first"},
+				{ID: 2, Name: "node-orphan"},
+			},
+			cpNodes:                []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-first"}}},
+			wantEtcdMemberName:     "",
+			wantOrphanCandidateIDs: []uint64{2},
+		},
+		{
+			name:               "Step 6: no orphan candidates ⇒ ('', nil)",
+			machine:            &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+			etcdMembers:        []*etcd.Member{{ID: 1, Name: "node-healthy"}},
+			cpNodes:            []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-healthy"}}},
+			wantEtcdMemberName: "",
+		},
+		// ---- Regressions from the original test suite ----------------------------------
+		{
+			name: "Regression: Provider ID set on the machine but node cannot be found ⇒ no orphans, empty name",
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					ProviderID: "foo-node-provider-id",
@@ -1807,7 +2006,7 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 			wantEtcdMemberName: "",
 		},
 		{
-			name:    "Provider ID set on the infra machine but node cannot be found",
+			name:    "Regression: Provider ID set on the infra machine but node cannot be found ⇒ no orphans, empty name",
 			machine: &clusterv1.Machine{},
 			infraMachine: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -1824,31 +2023,51 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
 			g := NewWithT(t)
+
+			machines := []*clusterv1.Machine{tt.machine}
+			machines = append(machines, tt.otherMachines...)
+			infraResources := map[string]*unstructured.Unstructured{tt.machine.Name: tt.infraMachine}
+
 			controlPlane := &internal.ControlPlane{
-				Cluster: testCluster,
-				InfraResources: map[string]*unstructured.Unstructured{
-					tt.machine.Name: tt.infraMachine,
-				},
-				Machines: collections.FromMachines(tt.machine),
+				Cluster:        testCluster,
+				InfraResources: infraResources,
+				Machines:       collections.FromMachines(machines...),
+				EtcdMembers:    tt.etcdMembers,
+				Nodes:          tt.cpNodes,
 			}
 
 			remoteClient := fake.NewClientBuilder().
 				WithIndex(&corev1.Node{}, index.MachineProviderIDField, index.NodeByProviderID).
 				Build()
-
 			if tt.node != nil {
-				err := remoteClient.Create(ctx, tt.node)
-				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(remoteClient.Create(ctx, tt.node)).To(Succeed())
 			}
 
 			r := &KubeadmControlPlaneReconciler{
 				ClusterCache: clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
 			}
 
-			node := r.tryGetEtcdMemberName(ctx, controlPlane, tt.machine)
-			g.Expect(node).To(Equal(tt.wantEtcdMemberName))
+			name, candidates := r.tryGetEtcdMemberName(ctx, controlPlane, tt.machine)
+			g.Expect(name).To(Equal(tt.wantEtcdMemberName), "etcd member name mismatch")
+
+			gotIDs := make([]uint64, 0, len(candidates))
+			for _, m := range candidates {
+				gotIDs = append(gotIDs, m.ID)
+			}
+			g.Expect(gotIDs).To(ConsistOf(asInterfaceSlice(tt.wantOrphanCandidateIDs)...),
+				"orphan candidate IDs mismatch")
 		})
 	}
+}
+
+// asInterfaceSlice converts []uint64 to []interface{} so it can be unpacked as Gomega
+// matcher arguments via the `...` spread operator.
+func asInterfaceSlice(in []uint64) []interface{} {
+	out := make([]interface{}, 0, len(in))
+	for _, v := range in {
+		out = append(out, v)
+	}
+	return out
 }
 
 func TestTargetEtcdClusterHealthy(t *testing.T) {
@@ -2403,6 +2622,46 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 
 		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+	// Regression coverage for the caveat in kubernetes-sigs/cluster-api#13667: the
+	// `targetLearnerMembers > 0` guard at remediation.go:796 must continue to block
+	// remediation of a voter while a non-stuck learner is in-flight, and must NOT block
+	// removal of a learner that is itself the remediation target (the canonical orphan-learner
+	// orphan-learner case relies on the `continue` skip at remediation.go:733 to drop
+	// the learner from the target count when it is the one being removed).
+	t.Run("orphan-learner regression: can safely remove an orphan learner — its IsLearner state does not block its own removal", func(t *testing.T) {
+		g := NewWithT(t)
+		m1 := getMachine(metav1.NamespaceDefault, "m1-cp-voter", withHealthyEtcdMember())
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1),
+		}
+		controlPlane.EtcdMembers = []*etcd.Member{
+			// Healthy voter that will remain after the orphan learner is removed.
+			{ID: 1, Name: m1.Status.NodeRef.Name, IsLearner: false},
+			// Orphan learner (no Machine, IsLearner=true) — this is the remediation target.
+			{ID: 2, Name: "orphan-learner-node", IsLearner: true},
+		}
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, "orphan-learner-node")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue(),
+			"Removing an orphan learner should be safe — the post-removal cluster has 1 healthy voter and 0 learners, which meets the quorum=1 threshold.")
+	})
+	t.Run("orphan-learner regression: cannot safely remediate a voter while a non-stuck learner is in-flight", func(t *testing.T) {
+		g := NewWithT(t)
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
+		m3 := getMachine(metav1.NamespaceDefault, "m3-etcd-healthy", withHealthyEtcdMember())
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2, m3),
+		}
+		controlPlane.EtcdMembers = []*etcd.Member{
+			{ID: 1, Name: m1.Status.NodeRef.Name},                   // target voter
+			{ID: 2, Name: m2.Status.NodeRef.Name},                   // healthy voter
+			{ID: 3, Name: m3.Status.NodeRef.Name},                   // healthy voter
+			{ID: 4, Name: "in-flight-learner", IsLearner: true},     // non-stuck learner from a recent scale-up
+		}
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeFalse(),
+			"Voter remediation must block while any learner is in-flight (targetLearnerMembers > 0 guard) — wait for promotion before changing voter set.")
 	})
 }
 

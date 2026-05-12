@@ -80,6 +80,9 @@ type fakeWorkloadCluster struct {
 
 	forwardEtcdLeadershipCalled int
 	removeEtcdMemberCalled      int
+	// removeEtcdMemberArgs captures the `name` argument of each RemoveEtcdMember call in
+	// order, so state-machine property tests can correlate the call with the resolved member.
+	removeEtcdMemberArgs []string
 }
 
 func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine, _ []*internal.Node) error {
@@ -106,8 +109,9 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 	return nil
 }
 
-func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ string, _ []*internal.Node) error {
+func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, name string, _ []*internal.Node) error {
 	f.removeEtcdMemberCalled++
+	f.removeEtcdMemberArgs = append(f.removeEtcdMemberArgs, name)
 	return nil
 }
 

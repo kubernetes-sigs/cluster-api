@@ -1430,19 +1430,39 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	// Target list of machines will have current machines -1 machine (the deletingMachine).
 	// As a consequence:
 	// - etcd member on the deletingMachine is going to be deleted, no etcd member are going to be added.
-	etcdMemberToBeDeleted := r.tryGetEtcdMemberName(ctx, controlPlane, deletingMachine)
+	etcdMemberToBeDeleted, orphanCandidates := r.tryGetEtcdMemberName(ctx, controlPlane, deletingMachine)
 	addEtcdMember := false
 
-	// If it was not possible to get the etcd member, no other checks can be performed. Continue with deletion.
-	// Note: reconcileEtcMembers acts a safeguard if an etcdMember is added/reported after this point.
+	// If it was not possible to get the etcd member, behaviour depends on whether the etcd cluster
+	// has at least one orphan member (member with no corresponding Node):
+	//   * orphan candidates exist  → surface EtcdMemberOrphanCorrelationFailed and BLOCK the
+	//     hook (RequeueAfter). Removing the cleanup annotation here would silently leak the
+	//     orphan member (#13667 / orphan-learner). The operator can unblock by setting
+	//     EtcdMemberIDAnnotation or EtcdMemberNameAnnotation on the Machine; the orphan can
+	//     also clear on its own once reconcileEtcdMembers' safety net runs (e.g. after a
+	//     replacement Machine gets a NodeRef).
+	//   * no orphan candidates     → the Machine simply never produced an etcd member; the
+	//     condition is cleared with reason NoOrphanCandidates and the hook proceeds.
 	if etcdMemberToBeDeleted == "" {
+		if len(orphanCandidates) > 0 {
+			setEtcdMemberOrphanCorrelationFailedCondition(deletingMachine, orphanCandidates)
+			memberRefs := make([]string, 0, len(orphanCandidates))
+			for _, m := range orphanCandidates {
+				memberRefs = append(memberRefs, fmt.Sprintf("%x/%s", m.ID, m.Name))
+			}
+			log.Info("Cannot complete pre-terminate hook: cannot correlate Machine to an etcd member; pre-terminate hook is blocked until correlation succeeds or an override annotation is set on the Machine",
+				"orphanCandidates", memberRefs,
+				"resolveWith", controlplanev1.EtcdMemberIDAnnotation+" or "+controlplanev1.EtcdMemberNameAnnotation)
+			return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+		}
+		clearEtcdMemberOrphanCorrelationCondition(deletingMachine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationNoCandidatesReason)
 		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
 			return ctrl.Result{}, err
 		}
-
 		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
+	clearEtcdMemberOrphanCorrelationCondition(deletingMachine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationResolvedReason)
 
 	if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
 		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s, the operation can lead to etcd quorum loss. Please check the etcd status", klog.KObj(deletingMachine)))

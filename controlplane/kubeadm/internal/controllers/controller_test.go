@@ -3523,6 +3523,11 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 		wantForwardEtcdLeadershipCalled int
 		wantRemoveEtcdMemberCalled      int
 		wantMachineAnnotations          map[string]map[string]string
+		// skipDefaultEtcdMembers disables the helper-driven `etcdMembers(tt.controlPlane.Machines)`
+		// assignment in the test loop. Cases that need a non-derived MemberList (e.g. to model an
+		// orphan member that doesn't correspond to any Machine) set this true and supply
+		// controlPlane.EtcdMembers themselves.
+		skipDefaultEtcdMembers bool
 	}{
 		{
 			name: "Do nothing if there are no deleting Machines",
@@ -3817,7 +3822,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 			},
 		},
 		{
-			name: "Skip forward etcd leadership, skip remove member and remove pre-terminate hook if > 1 CP Machines without a node",
+			name: "Skip forward etcd leadership and remove pre-terminate hook when the deleting Machine has no NodeRef and no orphan etcd member exists",
 			controlPlane: &internal.ControlPlane{
 				Cluster: cluster,
 				KCP: &controlplanev1.KubeadmControlPlane{
@@ -3834,6 +3839,10 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 						return m
 					}(),
 				},
+				// The lone etcd member ("machine-node") matches a known Node ⇒ no orphan candidates ⇒
+				// reconcilePreTerminateHook proceeds with the no-op path (removes the cleanup annotation
+				// because there is no etcd member to remove for this Machine).
+				Nodes: []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "machine-node"}}},
 			},
 			wantForwardEtcdLeadershipCalled: 0, // skipped
 			wantRemoveEtcdMemberCalled:      0, // skipped
@@ -3842,6 +3851,56 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				machine.Name: machine.Annotations, // unchanged
 				deletingMachineWithKCPPreTerminateHook.Name: nil, // pre-terminate hook has been removed
 			},
+		},
+		{
+			// kubernetes-sigs/cluster-api#13667 regression: when the deleting Machine has no
+			// NodeRef AND the etcd cluster has at least one member without a corresponding Node, the
+			// pre-terminate hook used to silently remove its cleanup annotation, leaving the orphan
+			// learner in etcd. The fix blocks deletion (keeps the cleanup annotation) so the operator
+			// can disambiguate via EtcdMemberIDAnnotation / EtcdMemberNameAnnotation, or so a later
+			// reconcileEtcdMembers pass can clean up.
+			name: "Block pre-terminate hook when deleting Machine has no NodeRef and an orphan etcd member exists",
+			controlPlane: &internal.ControlPlane{
+				Cluster: cluster,
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					machine.Name: machine,
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						m.Status.NodeRef.Name = ""
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
+						return m
+					}(),
+					// Second non-deleting Machine without a NodeRef — defeats the strict 1↔1 step-5
+					// pairing so the hook falls through to step 6.
+					"second-provisioning-cp": &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{Name: "second-provisioning-cp"},
+					},
+				},
+				Nodes: []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "machine-node"}}},
+				// Two members: one healthy ("machine-node" matches a Node), one orphan
+				// ("orphan-learner" doesn't match any Node and isn't claimable by step 4/5).
+				EtcdMembers: []*etcd.Member{
+					{ID: 1, Name: "machine-node"},
+					{ID: 2, Name: "orphan-learner", IsLearner: true},
+				},
+			},
+			wantForwardEtcdLeadershipCalled: 0, // skipped — hook blocked before this point
+			wantRemoveEtcdMemberCalled:      0, // skipped — would have been the leak
+			wantResult:                      ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantMachineAnnotations: map[string]map[string]string{
+				machine.Name: machine.Annotations,
+				// Cleanup annotation retained — the hook BLOCKS rather than silently proceeding.
+				deletingMachineWithKCPPreTerminateHook.Name: deletingMachineWithKCPPreTerminateHook.Annotations,
+				"second-provisioning-cp":                    nil,
+			},
+			// Bypass the standard etcdMembers(...) fixture in the test loop — this case supplies its
+			// own EtcdMembers above to exercise the orphan-candidate detection path.
+			skipDefaultEtcdMembers: true,
 		},
 	}
 
@@ -3864,7 +3923,9 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				Workload: &workloadCluster,
 			})
 
-			tt.controlPlane.EtcdMembers = etcdMembers(tt.controlPlane.Machines)
+			if !tt.skipDefaultEtcdMembers {
+				tt.controlPlane.EtcdMembers = etcdMembers(tt.controlPlane.Machines)
+			}
 
 			res, err := r.reconcilePreTerminateHook(ctx, tt.controlPlane)
 			if tt.wantErr != "" {

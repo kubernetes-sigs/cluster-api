@@ -3902,6 +3902,56 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 			// own EtcdMembers above to exercise the orphan-candidate detection path.
 			skipDefaultEtcdMembers: true,
 		},
+		{
+			// Risk 5 from #13680's Caveats: an operator may legitimately need to unblock a wedged
+			// pre-terminate hook when the orphan members are known to be safe to leave (e.g. the
+			// operator has already removed them via etcdctl). Setting
+			// EtcdMemberOrphanAcknowledgedAnnotation on the deleting Machine force-proceeds the
+			// hook: the cleanup annotation is removed, the orphan members stay in the etcd
+			// cluster MemberList, and the condition reason flips to CorrelationFailedAcknowledged.
+			name: "Pre-terminate hook proceeds when EtcdMemberOrphanAcknowledgedAnnotation is set on the deleting Machine",
+			controlPlane: &internal.ControlPlane{
+				Cluster: cluster,
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					machine.Name: machine,
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						m.Status.NodeRef.Name = ""
+						if m.Annotations == nil {
+							m.Annotations = map[string]string{}
+						}
+						m.Annotations[controlplanev1.EtcdMemberOrphanAcknowledgedAnnotation] = ""
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
+						return m
+					}(),
+					"second-provisioning-cp": &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{Name: "second-provisioning-cp"},
+					},
+				},
+				Nodes: []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "machine-node"}}},
+				EtcdMembers: []*etcd.Member{
+					{ID: 1, Name: "machine-node"},
+					{ID: 2, Name: "orphan-learner", IsLearner: true},
+				},
+			},
+			wantForwardEtcdLeadershipCalled: 0, // skipped — orphan members are left in etcd
+			wantRemoveEtcdMemberCalled:      0, // skipped — KCP does not remove the orphan in this path
+			wantResult:                      ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantMachineAnnotations: map[string]map[string]string{
+				machine.Name: machine.Annotations,
+				// Cleanup annotation removed (force-proceeded), force-proceed annotation retained.
+				deletingMachineWithKCPPreTerminateHook.Name: {
+					controlplanev1.EtcdMemberOrphanAcknowledgedAnnotation: "",
+				},
+				"second-provisioning-cp": nil,
+			},
+			skipDefaultEtcdMembers: true,
+		},
 	}
 
 	for _, tt := range tests {

@@ -1444,14 +1444,30 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	//     condition is cleared with reason NoOrphanCandidates and the hook proceeds.
 	if etcdMemberToBeDeleted == nil {
 		if len(orphanCandidates) > 0 {
-			setEtcdMemberOrphanCorrelationFailedCondition(deletingMachine, orphanCandidates)
 			memberRefs := make([]string, 0, len(orphanCandidates))
 			for _, m := range orphanCandidates {
 				memberRefs = append(memberRefs, fmt.Sprintf("%x/%s", m.ID, m.Name))
 			}
+			// EtcdMemberOrphanAcknowledgedAnnotation lets the operator force-proceed the hook
+			// when correlation has failed but they have confirmed (out of band) that the orphan
+			// etcd members are safe to leave or have been cleaned up via etcdctl. The orphans
+			// are NOT removed by KCP in this path — the deletion just proceeds, and the orphan
+			// candidates remain in the etcd cluster's MemberList. The condition stays True with
+			// reason CorrelationFailedAcknowledged so the unresolved state remains visible.
+			if _, acknowledged := deletingMachine.Annotations[controlplanev1.EtcdMemberOrphanAcknowledgedAnnotation]; acknowledged {
+				setEtcdMemberOrphanCorrelationAcknowledgedCondition(deletingMachine, orphanCandidates)
+				log.Info("Force-proceeding pre-terminate hook despite unresolved orphan etcd members (operator set EtcdMemberOrphanAcknowledgedAnnotation). Orphan members are not removed by KCP and must be cleaned up manually.",
+					"orphanCandidates", memberRefs,
+					"annotation", controlplanev1.EtcdMemberOrphanAcknowledgedAnnotation)
+				if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+			}
+			setEtcdMemberOrphanCorrelationFailedCondition(deletingMachine, orphanCandidates)
 			log.Info("Cannot complete pre-terminate hook: cannot correlate Machine to an etcd member; pre-terminate hook is blocked until correlation succeeds or an override annotation is set on the Machine",
 				"orphanCandidates", memberRefs,
-				"resolveWith", controlplanev1.EtcdMemberIDAnnotation+" or "+controlplanev1.EtcdMemberNameAnnotation)
+				"resolveWith", controlplanev1.EtcdMemberIDAnnotation+" or "+controlplanev1.EtcdMemberNameAnnotation+" (to remove the member), or "+controlplanev1.EtcdMemberOrphanAcknowledgedAnnotation+" (to proceed without removing it)")
 			return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 		}
 		clearEtcdMemberOrphanCorrelationCondition(deletingMachine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationNoCandidatesReason)

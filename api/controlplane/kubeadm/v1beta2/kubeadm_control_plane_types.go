@@ -82,6 +82,17 @@ const (
 	// EtcdMemberIDAnnotation takes precedence.
 	EtcdMemberIDAnnotation = "controlplane.cluster.x-k8s.io/etcd-member-id"
 
+	// EtcdMemberOrphanAcknowledgedAnnotation is an operator-set force-proceed signal for the pre-terminate
+	// hook. When KCP cannot correlate the deleting Machine to an etcd member and orphan candidates exist,
+	// the hook normally blocks indefinitely (RequeueAfter, cleanup annotation retained) so an operator can
+	// resolve the ambiguity via EtcdMemberIDAnnotation or EtcdMemberNameAnnotation. Setting this annotation
+	// on the deleting Machine tells KCP to proceed with the deletion without removing any etcd member: the
+	// orphan candidates are left in the etcd cluster for manual cleanup, and the Machine is unblocked. Use
+	// only when the orphan members are known to be safe to leave (e.g. the operator has already removed
+	// them via etcdctl, or the cluster is being torn down anyway). The value of the annotation is ignored;
+	// presence is sufficient.
+	EtcdMemberOrphanAcknowledgedAnnotation = "controlplane.cluster.x-k8s.io/etcd-member-orphan-acknowledged"
+
 	// DefaultMinHealthyPeriodSeconds defines the default minimum period before we consider a remediation on a
 	// machine unrelated from the previous remediation.
 	DefaultMinHealthyPeriodSeconds = int32(60 * 60)
@@ -459,6 +470,13 @@ const (
 	// never produced an etcd member (e.g. deleted very early in bootstrap) and the pre-terminate hook can
 	// safely proceed.
 	KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationNoCandidatesReason = "NoOrphanCandidates"
+
+	// KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationAcknowledgedReason surfaces when correlation failed
+	// but the operator has set EtcdMemberOrphanAcknowledgedAnnotation on the Machine, force-proceeding the
+	// pre-terminate hook. The orphan etcd members listed in the condition message remain in the etcd cluster
+	// and must be cleaned up manually (etcdctl member remove). The condition stays True so dashboards and
+	// audit trails still surface the unresolved state.
+	KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationAcknowledgedReason = "CorrelationFailedAcknowledged"
 )
 
 // NodeKubeadmLabelsAndTaintsSet condition and corresponding reasons that will be used for KubeadmControlPlane controlled machines in v1Beta2 API version.

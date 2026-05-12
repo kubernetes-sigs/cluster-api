@@ -1079,6 +1079,23 @@ func clearEtcdMemberOrphanCorrelationCondition(m *clusterv1.Machine, reason stri
 	})
 }
 
+// setEtcdMemberOrphanCorrelationAcknowledgedCondition flags that the operator has
+// EtcdMemberOrphanAcknowledgedAnnotation set on the Machine, so the pre-terminate hook
+// proceeded despite an unresolved orphan. The condition remains True so dashboards still
+// surface the unresolved state — but with a distinct reason indicating the hook unblocked.
+func setEtcdMemberOrphanCorrelationAcknowledgedCondition(m *clusterv1.Machine, candidates []*etcd.Member) {
+	conditions.Set(m, metav1.Condition{
+		Type:   controlplanev1.KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationFailedCondition,
+		Status: metav1.ConditionTrue,
+		Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberOrphanCorrelationAcknowledgedReason,
+		Message: fmt.Sprintf(
+			"Operator force-proceeded the pre-terminate hook via %s. Orphan etcd member candidates left for manual cleanup: %s.",
+			controlplanev1.EtcdMemberOrphanAcknowledgedAnnotation,
+			formatMemberCandidates(candidates),
+		),
+	})
+}
+
 // targetEtcdClusterHealthy assess if it is possible to transition to the target state of the etcd cluster
 // without loosing etcd quorum.
 //

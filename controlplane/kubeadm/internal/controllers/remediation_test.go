@@ -1742,6 +1742,21 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 		},
 	}
 
+	// markStep5Admissible mutates the Machine so it satisfies step5Admissible: the
+	// MachineHealthCheckSucceeded condition is False and the Machine's CreationTimestamp is
+	// older than step5StartupGrace. Apply to fixtures whose intent is to exercise step 5;
+	// fixtures that intentionally pre-date MHC labelling or sit inside the startup grace
+	// should not call this helper.
+	markStep5Admissible := func(m *clusterv1.Machine) *clusterv1.Machine {
+		m.CreationTimestamp = metav1.NewTime(time.Now().Add(-2 * step5StartupGrace))
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+			Reason: "Test",
+		})
+		return m
+	}
+
 	// machineWithAddresses returns a Machine carrying the given Status.Addresses as InternalIP
 	// entries. Used to seed the peer-URL ↔ address match cases.
 	machineWithAddresses := func(name string, addrs ...string) *clusterv1.Machine {
@@ -1941,7 +1956,7 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 		// ---- Step 5: strict 1↔1 in-flight pairing --------------------------------------
 		{
 			name:    "Step 5: exactly one unmatched Machine and one unmatched member ⇒ pair",
-			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m-deleting"}},
+			machine: markStep5Admissible(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m-deleting"}}),
 			otherMachines: []*clusterv1.Machine{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "m-healthy"},
@@ -1957,7 +1972,7 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 		},
 		{
 			name:    "Step 5: two unmatched Machines ⇒ ambiguous, fall through to step 6",
-			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m-deleting"}},
+			machine: markStep5Admissible(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m-deleting"}}),
 			otherMachines: []*clusterv1.Machine{
 				{ObjectMeta: metav1.ObjectMeta{Name: "m-other-unmatched"}},
 				{
@@ -1968,6 +1983,65 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 			etcdMembers: []*etcd.Member{
 				{ID: 1, Name: "node-healthy"},
 				{ID: 2, Name: "node-orphan"},
+			},
+			cpNodes:                []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-healthy"}}},
+			wantEtcdMemberName:     "",
+			wantOrphanCandidateIDs: []uint64{2},
+		},
+		{
+			// Risk 2 from #13680's Caveats: a freshly-created Machine that has not been
+			// MHC-flagged unhealthy must not have its in-flight etcd learner removed by step 5,
+			// even when the structural 1↔1 pairing matches. Falling through to step 6 surfaces
+			// the orphan to the operator without speculatively killing the learner.
+			name: "Step 5 admissibility gate: Machine has no MHC condition ⇒ step 5 skipped, candidates surfaced",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "m-fresh-provisioning",
+					CreationTimestamp: metav1.NewTime(time.Now().Add(-2 * step5StartupGrace)),
+				},
+			},
+			otherMachines: []*clusterv1.Machine{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "m-healthy"},
+					Status:     clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node-healthy"}},
+				},
+			},
+			etcdMembers: []*etcd.Member{
+				{ID: 1, Name: "node-healthy"},
+				{ID: 2, Name: "node-lonely-orphan"},
+			},
+			cpNodes:                []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-healthy"}}},
+			wantEtcdMemberName:     "",
+			wantOrphanCandidateIDs: []uint64{2},
+		},
+		{
+			// Risk 2 from #13680's Caveats: even if MHC has flagged the Machine, step 5 must
+			// not fire until the Machine has lived past the startup grace — the kubelet may
+			// still publish, the chain may resolve at step 3 on the next reconcile.
+			name: "Step 5 admissibility gate: Machine flagged but still inside startup grace ⇒ step 5 skipped",
+			machine: func() *clusterv1.Machine {
+				m := &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "m-young-and-flagged",
+						CreationTimestamp: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
+					},
+				}
+				conditions.Set(m, metav1.Condition{
+					Type:   clusterv1.MachineHealthCheckSucceededCondition,
+					Status: metav1.ConditionFalse,
+					Reason: "Test",
+				})
+				return m
+			}(),
+			otherMachines: []*clusterv1.Machine{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "m-healthy"},
+					Status:     clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node-healthy"}},
+				},
+			},
+			etcdMembers: []*etcd.Member{
+				{ID: 1, Name: "node-healthy"},
+				{ID: 2, Name: "node-lonely-orphan"},
 			},
 			cpNodes:                []*internal.Node{{ObjectMeta: internal.ObjectMeta{Name: "node-healthy"}}},
 			wantEtcdMemberName:     "",
@@ -2060,6 +2134,78 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 			}
 			g.Expect(gotIDs).To(ConsistOf(asInterfaceSlice(tt.wantOrphanCandidateIDs)...),
 				"orphan candidate IDs mismatch")
+		})
+	}
+}
+
+// TestStep5Admissible covers the gate that protects step 5 from firing on a Machine that
+// hasn't been MHC-flagged or hasn't yet exceeded the startup grace. The gate is the production
+// fix for risk 2 in #13680's Caveats — step 5's strict 1↔1 pairing must not preempt a normal
+// scale-up's in-flight learner.
+func TestStep5Admissible(t *testing.T) {
+	now := time.Date(2026, 5, 12, 12, 0, 0, 0, time.UTC)
+	oldEnough := metav1.NewTime(now.Add(-2 * step5StartupGrace))
+	tooYoung := metav1.NewTime(now.Add(-1 * time.Minute))
+
+	withMHCFalse := func(m *clusterv1.Machine) *clusterv1.Machine {
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+			Reason: "Test",
+		})
+		return m
+	}
+	withMHCTrue := func(m *clusterv1.Machine) *clusterv1.Machine {
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionTrue,
+			Reason: "Test",
+		})
+		return m
+	}
+
+	tests := []struct {
+		name    string
+		machine *clusterv1.Machine
+		want    bool
+	}{
+		{name: "nil machine", machine: nil, want: false},
+		{name: "no creation timestamp", machine: withMHCFalse(&clusterv1.Machine{}), want: false},
+		{
+			name:    "MHC condition absent",
+			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: oldEnough}},
+			want:    false,
+		},
+		{
+			name:    "MHC condition True (healthy)",
+			machine: withMHCTrue(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: oldEnough}}),
+			want:    false,
+		},
+		{
+			name:    "MHC False but inside startup grace",
+			machine: withMHCFalse(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: tooYoung}}),
+			want:    false,
+		},
+		{
+			name:    "MHC False and past startup grace",
+			machine: withMHCFalse(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: oldEnough}}),
+			want:    true,
+		},
+		{
+			name: "MHC False exactly at startup grace boundary",
+			machine: withMHCFalse(&clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(now.Add(-step5StartupGrace))},
+			}),
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := step5Admissible(tt.machine, now)
+			if got != tt.want {
+				t.Errorf("step5Admissible() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }

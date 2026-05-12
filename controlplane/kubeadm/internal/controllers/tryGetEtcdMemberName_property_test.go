@@ -25,6 +25,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // Shared generators (propControlPlane, genMember, genMachine, etc.) live in
@@ -345,11 +347,22 @@ func TestProperty_StrictPairingSoundness(t *testing.T) {
 			t.Skip()
 		}
 		// Strip all addresses so address-pairing is empty and step 5's relative-unmatched count
-		// equals the absolute count.
+		// equals the absolute count. Also mark the deletingMachine as step5-admissible so the
+		// new MHC + startup-grace gate doesn't preempt step 5 — the property is about step 5's
+		// pairing soundness when it fires, not the gate's correctness (that lives in
+		// TestStep5Admissible).
 		stripped := make([]*clusterv1.Machine, 0, len(cp.machines))
-		for _, m := range cp.machines {
+		for i, m := range cp.machines {
 			c := m.DeepCopy()
 			c.Status.Addresses = nil
+			if i == 0 {
+				c.CreationTimestamp = metav1.NewTime(time.Now().Add(-2 * step5StartupGrace))
+				conditions.Set(c, metav1.Condition{
+					Type:   clusterv1.MachineHealthCheckSucceededCondition,
+					Status: metav1.ConditionFalse,
+					Reason: "Test",
+				})
+			}
 			stripped = append(stripped, c)
 		}
 		cp.machines = stripped

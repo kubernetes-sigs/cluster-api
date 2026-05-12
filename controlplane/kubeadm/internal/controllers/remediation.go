@@ -804,6 +804,22 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 	// (orphan candidate members). Step 5 succeeds only if BOTH sides have exactly one
 	// unmatched element and the unique unmatched Machine is the deletingMachine.
 	//
+	// Admissibility gate: step 5 is the only heuristic that pairs a Machine to a member by
+	// process of elimination rather than by direct evidence. A fresh scale-up where the new
+	// Machine hasn't yet got a NodeRef looks structurally identical to a stuck orphan: one
+	// Machine without NodeRef, one Joining etcd member. To prevent step 5 firing on legitimate
+	// in-flight provisioning, require independent evidence that the deletingMachine is
+	// genuinely stuck — MachineHealthCheckSucceeded=False (MHC has declared it unhealthy) AND
+	// the Machine has lived past the startup grace period (otherwise the kubelet may simply not
+	// have published yet). Fall through to step 6 (surface candidates) when the gate fails so
+	// the operator gets the full picture.
+	if !step5Admissible(deletingMachine, time.Now()) {
+		log.Info("step 5 (strict 1↔1 pairing) skipped: deletingMachine has not been MHC-flagged or has not exceeded the startup grace; falling through to step 6 so the operator can decide",
+			"machineAge", time.Since(deletingMachine.CreationTimestamp.Time).Round(time.Second),
+			"machineHealthCheckSucceeded", conditions.Get(deletingMachine, clusterv1.MachineHealthCheckSucceededCondition))
+		return nil, candidates
+	}
+
 	// Why this is bounded: the heuristic must not pair when there's any other plausible
 	// owner. With > 1 unmatched Machine OR > 1 unmatched member, there's room for misassignment
 	// and we'd rather block (step 6) than guess wrong.
@@ -870,6 +886,43 @@ func (r *KubeadmControlPlaneReconciler) tryGetEtcdMemberName(ctx context.Context
 	// Machines may themselves be wrong — the operator needs to see every member with no
 	// corresponding Node to make an informed choice.
 	return nil, candidates
+}
+
+// step5StartupGrace is the minimum age a Machine must reach before step 5 (strict 1↔1
+// pairing) will fire. It defends against step 5 misidentifying a freshly-created Machine
+// whose Node simply hasn't published yet as a stuck orphan. The value mirrors MachineHealthCheck's
+// default NodeStartupTimeoutSeconds (10 minutes) — by the time that elapses, MHC has had
+// the opportunity to make an independent call on whether the Machine is stuck, and either
+// the kubelet has reported (NodeRef is set, step 3 resolves) or MHC has flagged the Machine
+// via the MachineHealthCheckSucceeded condition.
+const step5StartupGrace = 10 * time.Minute
+
+// step5Admissible returns true when step 5 of tryGetEtcdMemberName is safe to fire on the
+// given Machine. Step 5 pairs by elimination, so the gate exists to prevent it firing on a
+// Machine that is legitimately still in the provisioning window (Joining etcd member,
+// kubelet not yet reported). The two checks together encode "the Machine has had enough time
+// to publish AND another controller has independently judged it stuck":
+//
+//  1. MachineHealthCheckSucceededCondition is False — MHC has declared the Machine
+//     unhealthy. KCP-driven scale-down / rolling update generally leaves this condition True
+//     (or unset), so step 5 will skip those — fine, those Machines have NodeRefs anyway.
+//  2. The Machine has lived past step5StartupGrace — covers the case where MHC's
+//     NodeStartupTimeoutSeconds is shorter than ours, or where the condition is being set
+//     prematurely by something else.
+//
+// Both must hold. The function is a pure predicate over the Machine and a clock — easy to
+// property-test, no I/O.
+func step5Admissible(m *clusterv1.Machine, now time.Time) bool {
+	if m == nil {
+		return false
+	}
+	if !conditions.IsFalse(m, clusterv1.MachineHealthCheckSucceededCondition) {
+		return false
+	}
+	if m.CreationTimestamp.IsZero() {
+		return false
+	}
+	return now.Sub(m.CreationTimestamp.Time) >= step5StartupGrace
 }
 
 // peerURLHosts parses an etcd member's PeerURLs and returns the hostnames. Malformed URLs and

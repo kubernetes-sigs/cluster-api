@@ -200,6 +200,13 @@ func KCPOrphanLearnerSpec(ctx context.Context, inputGetter func() KCPOrphanLearn
 	})
 
 	AfterEach(func() {
+		// Best-effort: unpause the Cluster so cleanup can proceed. The orphan-stable
+		// assertion pauses the Cluster to keep KCP from creating a replacement Machine
+		// during the assertion window; without unpausing, framework.DumpSpecResourcesAndCleanup
+		// times out waiting for the Cluster to be deleted because KCP doesn't reconcile.
+		if clusterResources != nil && clusterResources.Cluster != nil {
+			unpauseClusterForOrphanLearner(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterResources.Cluster.Name)
+		}
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }
@@ -339,6 +346,29 @@ func pauseClusterForOrphanLearner(ctx context.Context, c client.Client, namespac
 		return c.Patch(ctx, cluster, client.RawPatch(types.MergePatchType, patch))
 	}, 30*time.Second, 2*time.Second).Should(Succeed(), "failed to pause Cluster %s/%s", namespace, clusterName)
 	log.Logf("Paused Cluster %s/%s (set %s=true)", namespace, clusterName, clusterv1.PausedAnnotation)
+}
+
+// unpauseClusterForOrphanLearner removes the cluster.x-k8s.io/paused annotation from the
+// Cluster so cleanup can proceed (KCP needs to reconcile to delete the Cluster's Machines).
+// Best-effort — invoked from AfterEach and silently swallows errors because the Cluster may
+// already be gone or the test may have failed before pauseClusterForOrphanLearner ran.
+func unpauseClusterForOrphanLearner(ctx context.Context, c client.Client, namespace, clusterName string) {
+	cluster := &clusterv1.Cluster{}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: clusterName}, cluster); err != nil {
+		if !apierrors.IsNotFound(err) {
+			log.Logf("Cleanup: could not read Cluster %s/%s for unpause: %v", namespace, clusterName, err)
+		}
+		return
+	}
+	if cluster.Annotations == nil || cluster.Annotations[clusterv1.PausedAnnotation] == "" {
+		return
+	}
+	patch := []byte(fmt.Sprintf(`{"metadata":{"annotations":{%q:null}}}`, clusterv1.PausedAnnotation))
+	if err := c.Patch(ctx, cluster, client.RawPatch(types.MergePatchType, patch)); err != nil {
+		log.Logf("Cleanup: failed to unpause Cluster %s/%s (test cleanup may stall): %v", namespace, clusterName, err)
+		return
+	}
+	log.Logf("Cleanup: unpaused Cluster %s/%s", namespace, clusterName)
 }
 
 // logEtcdMembers fetches the etcd MemberList via `docker exec` on the first CP container and logs

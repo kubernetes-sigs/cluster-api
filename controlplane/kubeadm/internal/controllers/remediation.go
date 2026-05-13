@@ -721,16 +721,16 @@ func (r *KubeadmControlPlaneReconciler) targetEtcdClusterHealthy(ctx context.Con
 	}
 
 	for _, etcdMember := range controlPlane.EtcdMembers {
-		// Skip the etcd member to be deleted because it won't be part of the target etcd cluster.
-		if etcdMemberToBeDeleted == etcdMember.Name {
-			continue
-		}
-
 		// Consider members without a name as a learner (they are still starting up).
 		if etcdMember.Name == "" {
 			targetTotalMembers++
 			targetLearnerMembers++
 			unhealthyMembers = append(unhealthyMembers, "1 member starting (worst case)")
+			continue
+		}
+
+		// Skip the etcd member to be deleted because it won't be part of the target etcd cluster.
+		if etcdMemberToBeDeleted == etcdMember.Name {
 			continue
 		}
 

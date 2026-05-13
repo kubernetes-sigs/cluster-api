@@ -1296,10 +1296,10 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 	}
 	sort.Strings(unexpectedMembersMsg)
 
-	// If there are no unexpected members, but there is a machine not yet reporting the node name,
+	// If there are unexpected members, but there is a machine not yet reporting the node name,
 	// there is chance that the unexpected member is the one hosted on the provisioning machine, so wait.
 	if len(provisioningMachines) > 0 {
-		log.Info(fmt.Sprintf("Etcd members %s without a corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")))
+		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")))
 		return ctrl.Result{}, nil
 	}
 
@@ -1323,8 +1323,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 	if etcdMemberToBeDeletedMsg == "" {
 		etcdMemberToBeDeletedMsg = "(Name not yet assigned)"
 	}
-	log.Info(fmt.Sprintf("Etcd members %s without a corresponding Machines, removing member %s", strings.Join(unexpectedMembersMsg, ", "), etcdMemberToBeDeleted))
+	log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, removing member %s", strings.Join(unexpectedMembersMsg, ", "), etcdMemberToBeDeleted))
 
+	// Note: if the etcd member to be deleted doesn't have a name yet, we know it is not started yet/still a learner,
+	// and we also know it won't be promoted because there is no underlying machine where kubeadm is running.
+	// Accordingly, skipping checking targetEtcdClusterHealthy (which will fail with learner nodes).
 	if etcdMemberToBeDeleted != "" {
 		addEtcdMember := false
 		if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
@@ -1336,7 +1339,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member %s. Please check the etcd status", etcdMemberToBeDeletedMsg)
 	}
 
-	log.Info("Etcd member without a corresponding Machines removed from the cluster", "member", etcdMemberToBeDeletedMsg)
+	log.Info("Etcd member without a corresponding Machine removed from the cluster", "member", etcdMemberToBeDeletedMsg)
 
 	// Force a new reconcile after removing an etcd member.
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil

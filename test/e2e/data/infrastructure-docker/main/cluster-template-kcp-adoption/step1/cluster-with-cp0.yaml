@@ -15,8 +15,6 @@ metadata:
   labels:
     cni: "${CLUSTER_NAME}-crs-0"
 spec:
-  backend:
-    docker: {}
   clusterNetwork:
     services:
       cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
@@ -35,7 +33,9 @@ metadata:
   name: "${CLUSTER_NAME}-control-plane-0"
   labels:
     cluster.x-k8s.io/control-plane: ''
-spec: {}
+spec:
+  backend:
+    docker: {}
 ---
 # KubeadmConfig referenced by the Machine cp0
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
@@ -45,8 +45,6 @@ metadata:
   labels:
     cluster.x-k8s.io/control-plane: ''
 spec:
-  backend:
-    docker: {}
   clusterConfiguration:
     apiServer:
       certSANs:

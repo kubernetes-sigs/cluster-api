@@ -35,9 +35,8 @@ metadata:
 spec:
   backend:
     docker:
-      template:
-        # The DOCKER_PRELOAD_IMAGES variable gets set in self-hosted E2E tests to the list of images of the E2E configuration.
-        preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
+      # The DOCKER_PRELOAD_IMAGES variable gets set in self-hosted E2E tests to the list of images of the E2E configuration.
+      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 # KubeadmConfigTemplate referenced by the MachinePool
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2

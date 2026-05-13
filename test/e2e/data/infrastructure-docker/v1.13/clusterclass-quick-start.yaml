@@ -530,23 +530,25 @@ spec:
       annotations:
         InfrastructureClusterTemplate.template.annotation: "InfrastructureClusterTemplate.template.annotationValue"
     spec:
-      failureDomains:
-        - name: fd1
-          controlPlane: true
-        - name: fd2
-          controlPlane: true
-        - name: fd3
-          controlPlane: true
-        - name: fd4
-          controlPlane: false
-        - name: fd5
-          controlPlane: false
-        - name: fd6
-          controlPlane: false
-        - name: fd7
-          controlPlane: false
-        - name: fd8
-          controlPlane: false
+      backend:
+        docker:
+          failureDomains:
+            - name: fd1
+              controlPlane: true
+            - name: fd2
+              controlPlane: true
+            - name: fd3
+              controlPlane: true
+            - name: fd4
+              controlPlane: false
+            - name: fd5
+              controlPlane: false
+            - name: fd6
+              controlPlane: false
+            - name: fd7
+              controlPlane: false
+            - name: fd8
+              controlPlane: false
 ---
 kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta2
@@ -608,10 +610,12 @@ spec:
       annotations:
         InfraMachineTemplate.controlPlane.template.annotation: "InfraMachineTemplate.controlPlane.template.annotationValue"
     spec:
-      extraMounts:
-      - containerPath: "/var/run/docker.sock"
-        hostPath: "/var/run/docker.sock"
-      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
+      backend:
+        docker:
+          extraMounts:
+          - containerPath: "/var/run/docker.sock"
+            hostPath: "/var/run/docker.sock"
+          preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevMachineTemplate
@@ -629,10 +633,12 @@ spec:
       annotations:
         InfraMachineTemplate.machineDeployment.template.annotation: "InfraMachineTemplate.machineDeployment.template.annotationValue"
     spec:
-      extraMounts:
-      - containerPath: "/var/run/docker.sock"
-        hostPath: "/var/run/docker.sock"
-      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
+      backend:
+        docker:
+          extraMounts:
+          - containerPath: "/var/run/docker.sock"
+            hostPath: "/var/run/docker.sock"
+          preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevMachinePoolTemplate
@@ -650,11 +656,12 @@ spec:
       annotations:
         InfraMachinePoolTemplate.machinePool.template.annotation: "InfraMachinePoolTemplate.machinePool.template.annotationValue"
     spec:
-      template:
-        extraMounts:
-        - containerPath: "/var/run/docker.sock"
-          hostPath: "/var/run/docker.sock"
-        preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
+      backend:
+        docker:
+          extraMounts:
+          - containerPath: "/var/run/docker.sock"
+            hostPath: "/var/run/docker.sock"
+          preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate

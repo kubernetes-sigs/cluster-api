@@ -69,24 +69,24 @@ spec:
   template:
     spec:
       backend:
-        docker: {}
-      failureDomains:
-        - name: fd1
-          controlPlane: true
-        - name: fd2
-          controlPlane: true
-        - name: fd3
-          controlPlane: true
-        - name: fd4
-          controlPlane: false
-        - name: fd5
-          controlPlane: false
-        - name: fd6
-          controlPlane: false
-        - name: fd7
-          controlPlane: false
-        - name: fd8
-          controlPlane: false
+        docker:
+          failureDomains:
+            - name: fd1
+              controlPlane: true
+            - name: fd2
+              controlPlane: true
+            - name: fd3
+              controlPlane: true
+            - name: fd4
+              controlPlane: false
+            - name: fd5
+              controlPlane: false
+            - name: fd6
+              controlPlane: false
+            - name: fd7
+              controlPlane: false
+            - name: fd8
+              controlPlane: false
 ---
 kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta2
@@ -143,7 +143,6 @@ spec:
     spec:
       backend:
         docker:
-          template:
             extraMounts:
             - containerPath: "/var/run/docker.sock"
               hostPath: "/var/run/docker.sock"

@@ -324,7 +324,7 @@ func DevInfraOwnerReferenceAssertions(topologyManaged bool) map[string]func(type
 	if topologyManaged {
 		clusterOwnerRef = clusterController
 	}
-	
+
 	return map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
 		devMachineKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			// The DevMachine must be owned and controlled by a Machine or a DevMachinePool.

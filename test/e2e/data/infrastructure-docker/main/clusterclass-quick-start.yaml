@@ -243,7 +243,7 @@ spec:
                 - default-worker
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/backend/docker/template/customImage"
+            path: "/spec/template/spec/backend/docker/customImage"
             valueFrom:
               template: |
                 kindest/node:{{ .builtin.machinePool.version | replace "+" "_" }}
@@ -281,7 +281,7 @@ spec:
                 - default-worker
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/backend/docker/template/preLoadImages"
+            path: "/spec/template/spec/backend/docker/preLoadImages"
             valueFrom:
               variable: preLoadImages
   - name: kubeadmControlPlaneMaxSurge
@@ -531,24 +531,24 @@ spec:
         InfrastructureClusterTemplate.template.annotation: "InfrastructureClusterTemplate.template.annotationValue"
     spec:
       backend:
-        docker: {}
-      failureDomains:
-        - name: fd1
-          controlPlane: true
-        - name: fd2
-          controlPlane: true
-        - name: fd3
-          controlPlane: true
-        - name: fd4
-          controlPlane: false
-        - name: fd5
-          controlPlane: false
-        - name: fd6
-          controlPlane: false
-        - name: fd7
-          controlPlane: false
-        - name: fd8
-          controlPlane: false
+        docker:
+          failureDomains:
+            - name: fd1
+              controlPlane: true
+            - name: fd2
+              controlPlane: true
+            - name: fd3
+              controlPlane: true
+            - name: fd4
+              controlPlane: false
+            - name: fd5
+              controlPlane: false
+            - name: fd6
+              controlPlane: false
+            - name: fd7
+              controlPlane: false
+            - name: fd8
+              controlPlane: false
 ---
 kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta2
@@ -658,7 +658,6 @@ spec:
     spec:
       backend:
         docker:
-          template:
             extraMounts:
             - containerPath: "/var/run/docker.sock"
               hostPath: "/var/run/docker.sock"

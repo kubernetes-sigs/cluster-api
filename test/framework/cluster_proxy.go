@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	"sigs.k8s.io/cluster-api/util/yaml"
@@ -641,8 +642,22 @@ func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, na
 		return cl.Get(ctx, key, cluster)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
 
-	return cluster.Spec.InfrastructureRef.IsDefined() &&
-		cluster.Spec.InfrastructureRef.Kind == "DevCluster"
+	if !cluster.Spec.InfrastructureRef.IsDefined() || cluster.Spec.InfrastructureRef.Kind != "DevCluster" {
+		return false
+	}
+
+	// Get the DevCluster to check if it's using docker backend
+	devCluster, err := external.GetObjectFromContractVersionedRef(ctx, cl, cluster.Spec.InfrastructureRef, namespace)
+	if err != nil {
+		return false
+	}
+
+	// Check if the DevCluster has a docker backend
+	backend, found, err := unstructured.NestedMap(devCluster.Object, "spec", "backend", "docker")
+	if err != nil || !found {
+		return false
+	}
+	return backend != nil
 }
 
 func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.Config) {

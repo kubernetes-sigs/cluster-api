@@ -15,8 +15,6 @@ metadata:
   labels:
     cni: "${CLUSTER_NAME}-crs-0"
 spec:
-  backend:
-    docker: {}
   clusterNetwork:
     services:
       cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
@@ -38,11 +36,11 @@ kind: DevMachineTemplate
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
-  backend:
-    docker: {}
   template:
     spec:
-      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
+      backend:
+        docker:
+          preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 # KubeadmControlPlane referenced by the Cluster
 kind: KubeadmControlPlane

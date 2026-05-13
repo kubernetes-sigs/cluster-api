@@ -643,7 +643,6 @@ func (cc *clusterCache) cleanupForCluster(ctx context.Context, cluster client.Ob
 	cc.deleteClusterAccessor(cluster)
 	cc.cleanupClusterSourcesForCluster(cluster)
 	cc.cleanupMetricsForCluster(cluster)
-
 }
 
 func (cc *clusterCache) GetClusterSource(controllerName string, mapFunc func(ctx context.Context, cluster client.Object) []ctrl.Request, opts ...GetClusterSourceOption) source.Source {

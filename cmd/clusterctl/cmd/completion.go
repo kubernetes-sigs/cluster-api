@@ -90,6 +90,14 @@ var (
 		Short:   "Output shell completion code for the specified shell (bash, zsh or fish)",
 		Long:    templates.LongDesc(completionLong),
 		Example: completionExample,
+		PostRun: func(cmd *cobra.Command, _ []string) {
+			// Disable PersistentPostRun on the parent command to skip the update check to avoid blocking shell startup.
+			// Setting this to a no-op function makes it work in case the command is registered at a deeper level, as long as
+			// EnableTraverseRunHooks remains false.
+			cmd.Parent().PersistentPostRunE = func(_ *cobra.Command, _ []string) error {
+				return nil
+			}
+		},
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return errors.New("please specify a shell")

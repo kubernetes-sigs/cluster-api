@@ -70,7 +70,39 @@ Node drain can be broken down into the following phases:
 
 Per default all Pods are drained at the same time. But with `MachineDrainRules` it's also possible to define a drain order
 for Pods with behavior `Drain` (Pods with `WaitCompleted` have a hard-coded order of 0). The Machine controller will drain
-Pods in batches based on their order (from highest to lowest order).
+Pods in batches based on their order, **lowest order first**. Pods that don't match any rule have a default order of 0, so a
+rule with a negative order will drain its pods before unmatched pods, and a rule with a positive order will drain its pods after.
+
+**Example:** To drain pods in a specific namespace first and Rook Ceph OSDs last:
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDrainRule
+metadata:
+  name: drain-managed-namespaces-first
+spec:
+  pods:
+  - selector:
+      matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: In
+        values: ["my-app-namespace"]
+  drain:
+    behavior: Drain
+    order: -100  # Negative order: drain before default (0)
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDrainRule
+metadata:
+  name: drain-rook-ceph-osd-last
+spec:
+  pods:
+  - selector:
+      matchLabels:
+        app: rook-ceph-osd
+  drain:
+    behavior: Drain
+    order: 100  # Positive order: drain after default (0)
+```
 
 For more details about `MachineDrainRules`, please see the corresponding [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240930-machine-drain-rules.md).
 

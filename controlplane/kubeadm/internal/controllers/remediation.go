@@ -618,8 +618,8 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemediateMachine(ctx context.Co
 	etcdMemberToBeDeleted := r.tryGetEtcdMemberName(ctx, controlPlane, machineToBeRemediated)
 	addEtcdMember := false
 
-	// If it was not possible to get the etcd member, no other checks can be performed.
-	// it is not possible to determine if etcd will never show up due to the issue on the machine being remediated,
+	// If it was not possible to get the name of the etcd member hosted on this machine, no other checks can be performed.
+	// NOTE: it is not possible to determine if an etcd member for this machine will never show up due to the issue on the machine being remediated,
 	// or if it will show up later. In this case KCP continue with remediation, which is considered as user intent
 	// (no matter if expressed as MHC configuration or via the manual remediation annotation).
 	// Note: reconcile reconcilePreTerminateHook will try to perform this check again.

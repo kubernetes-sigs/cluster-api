@@ -3372,6 +3372,73 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 			wantRemoveEtcdMemberCalled: 1,
 		},
 		{
+			name: "Remove additional etcd members without name when the target etcd cluster is healthy",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.Machines{
+					m1.Name: func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+				},
+			},
+			additionalEtcdMembers: []*etcd.Member{
+				{Name: ""},
+			},
+			wantResult:                 ctrl.Result{RequeueAfter: 1 * time.Second},
+			wantRemoveEtcdMemberCalled: 1,
+		},
+		{
+			name: "Remove additional etcd members without name when the target etcd cluster is healthy - 3CP",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.Machines{
+					m1.Name: func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+					"m2": func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						m.Name = "m2"
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+					"m3": func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						m.Name = "m3"
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+				},
+			},
+			additionalEtcdMembers: []*etcd.Member{
+				{Name: ""},
+			},
+			wantResult:                 ctrl.Result{RequeueAfter: 1 * time.Second},
+			wantRemoveEtcdMemberCalled: 1,
+		},
+		{
+			name: "Do not remove additional etcd members without name when there are provisioning machines",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.Machines{
+					m1.Name: func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						m.Status.NodeRef.Name = ""
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+				},
+			},
+			additionalEtcdMembers: []*etcd.Member{
+				{Name: ""},
+			},
+			wantResult:                 ctrl.Result{},
+			wantRemoveEtcdMemberCalled: 0,
+		},
+		{
 			name: "Do not remove additional etcd members when the target etcd cluster is not healthy",
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},

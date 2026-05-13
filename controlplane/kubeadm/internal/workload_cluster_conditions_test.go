@@ -593,6 +593,92 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			expectedEtcdMembers:                       []string{"n1", "n2"},
 			expectedEtcdMembersAndMachinesAreMatching: true,
 		},
+		{
+			name: "etcd members without a name when there are no provisioning machines should be reported",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withNodeRef("n1")),
+				fakeMachine("m2", withNodeRef("n2")),
+			},
+			nodes: []*Node{
+				fakeNode("n1"),
+				fakeNode("n2"),
+			},
+			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
+				forNodesClientFunc: func(nodeNames []string) (*etcd.Client, error) {
+					var errs []error
+					for _, n := range nodeNames {
+						switch n {
+						case "n1":
+							return &etcd.Client{
+								EtcdClient: &fake2.FakeEtcdClient{
+									EtcdEndpoints: []string{},
+									MemberListResponse: &clientv3.MemberListResponse{
+										Header: &pb.ResponseHeader{
+											ClusterId: uint64(1),
+										},
+										Members: []*pb.Member{
+											{Name: "n1", ID: uint64(1)},
+											{Name: "n2", ID: uint64(2)},
+											{Name: "", ID: uint64(3)},
+										},
+									},
+									AlarmResponse: &clientv3.AlarmResponse{
+										Alarms: []*pb.AlarmMember{},
+									},
+								},
+							}, nil
+						case "n2":
+							return &etcd.Client{
+								EtcdClient: &fake2.FakeEtcdClient{
+									EtcdEndpoints: []string{},
+									MemberListResponse: &clientv3.MemberListResponse{
+										Header: &pb.ResponseHeader{
+											ClusterId: uint64(1),
+										},
+										Members: []*pb.Member{
+											{Name: "n1", ID: uint64(1)},
+											{Name: "n2", ID: uint64(2)},
+											{Name: "", ID: uint64(3)},
+										},
+									},
+									AlarmResponse: &clientv3.AlarmResponse{
+										Alarms: []*pb.AlarmMember{},
+									},
+								},
+							}, nil
+						default:
+							errs = append(errs, errors.New("no client for this node"))
+						}
+					}
+					return nil, errors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
+				},
+			},
+			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Etcd member 3 (Name not yet assigned) does not have a corresponding Machine"),
+			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
+				"m1": {
+					*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition),
+				},
+				"m2": {
+					*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition),
+				},
+			},
+			expectedKCPCondition: &metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterNotHealthyReason,
+				Message: "* Etcd member 3 (Name not yet assigned) does not have a corresponding Machine",
+			},
+			expectedMachineConditions: map[string][]metav1.Condition{
+				"m1": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason, Message: ""},
+				},
+				"m2": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason, Message: ""},
+				},
+			},
+			expectedEtcdMembers:                       []string{"n1", "n2", ""},
+			expectedEtcdMembersAndMachinesAreMatching: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2023,6 +2109,25 @@ func TestCompareMachinesAndMembers(t *testing.T) {
 			},
 			expectMembersAndMachinesAreMatching: true,
 			expectKCPErrors:                     nil,
+		},
+		{
+			name: "true if there is a machine without a member but at least a machine is still provisioning (node without a name)",
+			controlPlane: &ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.FromMachines(
+					fakeMachine("m1", withNodeRef("m1")),
+					fakeMachine("m2", withNodeRef("m2")),
+					fakeMachine("m3"), // m3 is still provisioning
+				),
+				EtcdMembers: []*etcd.Member{
+					{Name: "m1"},
+					{Name: "m2"},
+					{Name: ""},
+				},
+				Nodes: nil,
+			},
+			expectMembersAndMachinesAreMatching: true,
+			expectKCPErrors:                     []string{"Etcd member 0 (Name not yet assigned) does not have a corresponding Machine"}, // Surface an error, this situation should exist only for a brief time.
 		},
 		{
 			name: "true if there is a machine without a member but at least a machine is still provisioning",

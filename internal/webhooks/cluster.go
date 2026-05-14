@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
+	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -278,6 +279,8 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	allErrs = append(allErrs, validateTopologyRollout(newCluster.Spec.Topology, fldPath)...)
 
 	allErrs = append(allErrs, validateTopologyTaints(newCluster.Spec.Topology, fldPath)...)
+
+	allErrs = append(allErrs, validateTopologyMachineNaming(newCluster.Spec.Topology, fldPath)...)
 
 	// upgrade concurrency should be a numeric value.
 	if concurrency, ok := newCluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation]; ok {
@@ -655,6 +658,49 @@ func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) fi
 	for _, mp := range topology.Workers.MachinePools {
 		fldPath := fldPath.Child("workers", "machinePools").Key(mp.Name).Child("taints")
 		allErrs = append(allErrs, taints.ValidateMachineTaints(mp.Taints, fldPath)...)
+	}
+
+	return allErrs
+}
+
+func validateTopologyMachineNaming(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for _, md := range topology.Workers.MachineDeployments {
+		if md.MachineNaming.Template == "" {
+			continue
+		}
+		templateFldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("machineNaming", "template")
+
+		// Validate that template contains {{ .random }}
+		if !strings.Contains(md.MachineNaming.Template, "{{ .random }}") {
+			allErrs = append(allErrs,
+				field.Invalid(
+					templateFldPath,
+					md.MachineNaming.Template,
+					"invalid template, {{ .random }} is missing",
+				))
+		}
+
+		// Validate that template can generate valid names
+		name, err := topologynames.MachineSetMachineNameGenerator(md.MachineNaming.Template, "cluster", "machineset").GenerateName()
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					templateFldPath,
+					md.MachineNaming.Template,
+					fmt.Sprintf("invalid MachineDeployment machineNaming template: %v", err),
+				))
+		} else {
+			for _, err := range validation.IsDNS1123Subdomain(name) {
+				allErrs = append(allErrs,
+					field.Invalid(
+						templateFldPath,
+						md.MachineNaming.Template,
+						fmt.Sprintf("invalid template, generated names would not be valid Kubernetes object names: %v", err),
+					))
+			}
+		}
 	}
 
 	return allErrs

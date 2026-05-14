@@ -663,6 +663,89 @@ func TestMachineDeploymentVersionValidation(t *testing.T) {
 	}
 }
 
+func TestMachineDeploymentEnforcedLabelValidation(t *testing.T) {
+	const mdName = "test-md"
+	const clusterName = "test-cluster"
+
+	tests := []struct {
+		name           string
+		selectorLabels map[string]string
+		templateLabels map[string]string
+		expectErr      bool
+	}{
+		{
+			name:           "no enforced labels set is allowed",
+			selectorLabels: map[string]string{"app": "foo"},
+			templateLabels: map[string]string{"app": "foo"},
+			expectErr:      false,
+		},
+		{
+			name: "MachineDeploymentNameLabel matching metadata.name is allowed",
+			selectorLabels: map[string]string{
+				clusterv1.MachineDeploymentNameLabel: mdName,
+				clusterv1.ClusterNameLabel:           clusterName,
+			},
+			templateLabels: map[string]string{
+				clusterv1.MachineDeploymentNameLabel: mdName,
+				clusterv1.ClusterNameLabel:           clusterName,
+			},
+			expectErr: false,
+		},
+		{
+			name: "MachineDeploymentNameLabel mismatched in selector is rejected",
+			selectorLabels: map[string]string{
+				clusterv1.MachineDeploymentNameLabel: "other-name",
+				clusterv1.ClusterNameLabel:           clusterName,
+			},
+			templateLabels: map[string]string{
+				clusterv1.MachineDeploymentNameLabel: "other-name",
+				clusterv1.ClusterNameLabel:           clusterName,
+			},
+			expectErr: true,
+		},
+		{
+			name: "ClusterNameLabel mismatched in template labels is rejected",
+			selectorLabels: map[string]string{
+				clusterv1.MachineDeploymentNameLabel: mdName,
+				clusterv1.ClusterNameLabel:           clusterName,
+			},
+			templateLabels: map[string]string{
+				clusterv1.MachineDeploymentNameLabel: mdName,
+				clusterv1.ClusterNameLabel:           "other-cluster",
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			md := &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{Name: mdName},
+				Spec: clusterv1.MachineDeploymentSpec{
+					ClusterName: clusterName,
+					Selector:    metav1.LabelSelector{MatchLabels: tt.selectorLabels},
+					Template: clusterv1.MachineTemplateSpec{
+						ObjectMeta: clusterv1.ObjectMeta{Labels: tt.templateLabels},
+						Spec: clusterv1.MachineSpec{
+							ClusterName: clusterName,
+							Bootstrap:   clusterv1.Bootstrap{DataSecretName: ptr.To("data-secret")},
+						},
+					},
+				},
+			}
+
+			warnings, err := (&MachineDeployment{}).ValidateCreate(ctx, md)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(warnings).To(BeEmpty())
+		})
+	}
+}
+
 func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 	tests := []struct {
 		name           string

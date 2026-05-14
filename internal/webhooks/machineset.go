@@ -168,6 +168,32 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 		)
 	}
 
+	// Validate that labels that the MachineSet controller will overwrite on owned Machines
+	// cannot be set to a different value via spec.selector.matchLabels or spec.template.metadata.labels.
+	// If they could, the selector would never match the labels the controller writes, causing
+	// the controller to create Machines indefinitely (see https://github.com/kubernetes-sigs/cluster-api/issues/12156).
+	enforcedNameLabel := format.MustFormatValue(newMS.Name)
+	if v, ok := newMS.Spec.Selector.MatchLabels[clusterv1.MachineSetNameLabel]; ok && v != enforcedNameLabel {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				specPath.Child("selector", "matchLabels").Key(clusterv1.MachineSetNameLabel),
+				v,
+				fmt.Sprintf("must be %q (the MachineSet controller overwrites this label on owned Machines based on metadata.name)", enforcedNameLabel),
+			),
+		)
+	}
+	if v, ok := newMS.Spec.Template.Labels[clusterv1.MachineSetNameLabel]; ok && v != enforcedNameLabel {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				specPath.Child("template", "metadata", "labels").Key(clusterv1.MachineSetNameLabel),
+				v,
+				fmt.Sprintf("must be %q (the MachineSet controller overwrites this label on owned Machines based on metadata.name)", enforcedNameLabel),
+			),
+		)
+	}
+
 	if feature.Gates.Enabled(feature.MachineSetPreflightChecks) {
 		if err := validateSkippedMachineSetPreflightChecks(newMS); err != nil {
 			allErrs = append(allErrs, err)

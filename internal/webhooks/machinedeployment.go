@@ -192,6 +192,37 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		)
 	}
 
+	// Validate that labels that the MachineDeployment controller will overwrite on owned MachineSets
+	// cannot be set to a different value via spec.selector.matchLabels or spec.template.metadata.labels.
+	// If they could, the selector would never match the labels the controller writes, causing
+	// the controller to create MachineSets indefinitely (see https://github.com/kubernetes-sigs/cluster-api/issues/12156).
+	enforcedLabels := map[string]string{
+		clusterv1.MachineDeploymentNameLabel: newMD.Name,
+		clusterv1.ClusterNameLabel:           newMD.Spec.ClusterName,
+	}
+	for labelKey, want := range enforcedLabels {
+		if v, ok := newMD.Spec.Selector.MatchLabels[labelKey]; ok && v != want {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					specPath.Child("selector", "matchLabels").Key(labelKey),
+					v,
+					fmt.Sprintf("must be %q (the MachineDeployment controller overwrites this label on owned MachineSets)", want),
+				),
+			)
+		}
+		if v, ok := newMD.Spec.Template.Labels[labelKey]; ok && v != want {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					specPath.Child("template", "metadata", "labels").Key(labelKey),
+					v,
+					fmt.Sprintf("must be %q (the MachineDeployment controller overwrites this label on owned MachineSets)", want),
+				),
+			)
+		}
+	}
+
 	// MachineSet preflight checks that should be skipped could also be set as annotation on the MachineDeployment
 	// since MachineDeployment annotations are synced to the MachineSet.
 	if feature.Gates.Enabled(feature.MachineSetPreflightChecks) {

@@ -371,6 +371,69 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 	}
 }
 
+func TestMachineSetEnforcedNameLabelValidation(t *testing.T) {
+	const msName = "test-ms"
+	enforced := "test-ms"
+
+	tests := []struct {
+		name           string
+		selectorLabels map[string]string
+		templateLabels map[string]string
+		expectErr      bool
+	}{
+		{
+			name:           "no MachineSetNameLabel set is allowed",
+			selectorLabels: map[string]string{"app": "foo"},
+			templateLabels: map[string]string{"app": "foo"},
+			expectErr:      false,
+		},
+		{
+			name:           "MachineSetNameLabel matching metadata.name is allowed",
+			selectorLabels: map[string]string{clusterv1.MachineSetNameLabel: enforced},
+			templateLabels: map[string]string{clusterv1.MachineSetNameLabel: enforced},
+			expectErr:      false,
+		},
+		{
+			name:           "MachineSetNameLabel mismatched in selector is rejected",
+			selectorLabels: map[string]string{clusterv1.MachineSetNameLabel: "other-name"},
+			templateLabels: map[string]string{clusterv1.MachineSetNameLabel: "other-name"},
+			expectErr:      true,
+		},
+		{
+			name:           "MachineSetNameLabel mismatched in template labels is rejected",
+			selectorLabels: map[string]string{clusterv1.MachineSetNameLabel: enforced},
+			templateLabels: map[string]string{clusterv1.MachineSetNameLabel: "other-name"},
+			expectErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ms := &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{Name: msName},
+				Spec: clusterv1.MachineSetSpec{
+					Selector: metav1.LabelSelector{MatchLabels: tt.selectorLabels},
+					Template: clusterv1.MachineTemplateSpec{
+						ObjectMeta: clusterv1.ObjectMeta{Labels: tt.templateLabels},
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data-secret")},
+						},
+					},
+				},
+			}
+
+			warnings, err := (&MachineSet{}).ValidateCreate(ctx, ms)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(warnings).To(BeEmpty())
+		})
+	}
+}
+
 func TestMachineSetClusterNameImmutable(t *testing.T) {
 	tests := []struct {
 		name           string

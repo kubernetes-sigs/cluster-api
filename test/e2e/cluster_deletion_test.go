@@ -66,13 +66,13 @@ var _ = Describe("When performing cluster deletion with ClusterClass [ClusterCla
 					},
 				},
 				{
-					// The DockerCluster should be deleted in this phase.
+					// The DevCluster should be deleted in this phase.
 					ObjectFilter: func(objectReference corev1.ObjectReference, _ []metav1.OwnerReference) bool {
-						return objectReference.Kind == "DockerCluster"
+						return objectReference.Kind == "DevCluster"
 					},
-					// Of the above, the DockerCluster should be considered to be blocking.
+					// Of the above, the DevCluster should be considered to be blocking.
 					BlockingObjectFilter: func(objectReference corev1.ObjectReference, _ []metav1.OwnerReference) bool {
-						return objectReference.Kind == "DockerCluster"
+						return objectReference.Kind == "DevCluster"
 					},
 				},
 			},

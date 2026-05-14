@@ -48,23 +48,6 @@ spec:
           kind: DevMachineTemplate
           name: quick-start-default-worker-machinetemplate
       # We are intentionally not setting the 'unhealthyNodeConditions' here to test that the field is optional.
-    machinePools:
-      - class: default-worker
-        metadata:
-          labels:
-            ClusterClass.machinePool.label: "ClusterClass.machinePool.labelValue"
-          annotations:
-            ClusterClass.machinePool.annotation: "ClusterClass.machinePool.annotationValue"
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: quick-start-mp-default-worker-bootstraptemplate
-        infrastructure:
-          templateRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-            kind: DockerMachinePoolTemplate
-            name: quick-start-default-worker-machinepooltemplate
   variables:
   - name: lbImageRepository
     required: true
@@ -215,7 +198,7 @@ spec:
                 - default-worker
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/customImage"
+            path: "/spec/template/spec/backend/docker/customImage"
             valueFrom:
               template: |
                 kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
@@ -226,13 +209,13 @@ spec:
             controlPlane: true
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/customImage"
+            path: "/spec/template/spec/backend/docker/customImage"
             valueFrom:
               template: |
                 kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
   - name: preloadImages
     description: |
-      Sets the container images to preload to the node that is used for running devMachines.
+      Sets the container images to preload to the node that is used for running dockerMachines.
       This is especially required for self-hosted e2e tests to ensure the required controller images to be available
       and reduce load to public registries.
     definitions:
@@ -246,7 +229,7 @@ spec:
             - default-worker
       jsonPatches:
       - op: add
-        path: "/spec/template/spec/preLoadImages"
+        path: "/spec/template/spec/backend/docker/preLoadImages"
         valueFrom:
           variable: preLoadImages
   - name: kubeadmControlPlaneMaxSurge
@@ -309,19 +292,6 @@ spec:
           kind: KubeadmConfigTemplate
           matchResources:
             machineDeploymentClass:
-              names:
-                - '*-worker'
-        jsonPatches:
-          - op: add
-            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
-            value:
-              name: "cloud-provider"
-              value: "external"
-      - selector:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-          kind: KubeadmConfigTemplate
-          matchResources:
-            machinePoolClass:
               names:
                 - '*-worker'
         jsonPatches:
@@ -464,20 +434,6 @@ spec:
               template: |
                 name: v
                 value: "{{ .kubeletLogLevel }}"
-      - selector:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-          kind: KubeadmConfigTemplate
-          matchResources:
-            machinePoolClass:
-              names:
-                - '*-worker'
-        jsonPatches:
-          - op: add
-            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
-            valueFrom:
-              template: |
-                  name: v
-                  value: "{{ .kubeletLogLevel }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevClusterTemplate
@@ -605,28 +561,6 @@ spec:
             hostPath: "/var/run/docker.sock"
           preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerMachinePoolTemplate
-metadata:
-  name: quick-start-default-worker-machinepooltemplate
-  labels:
-    InfraMachinePoolTemplate.machinePool.label: "InfraMachinePoolTemplate.machinePool.labelValue"
-  annotations:
-    InfraMachinePoolTemplate.machinePool.annotation: "InfraMachinePoolTemplate.machinePool.annotationValue"
-spec:
-  template:
-    metadata:
-      labels:
-        InfraMachinePoolTemplate.machinePool.template.label: "InfraMachinePoolTemplate.machinePool.template.labelValue"
-      annotations:
-        InfraMachinePoolTemplate.machinePool.template.annotation: "InfraMachinePoolTemplate.machinePool.template.annotationValue"
-    spec:
-      template:
-        extraMounts:
-          - containerPath: "/var/run/docker.sock"
-            hostPath: "/var/run/docker.sock"
-        preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
----
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
@@ -642,28 +576,6 @@ spec:
         BootstrapConfigTemplate.machineDeployment.template.label: "BootstrapConfigTemplate.machineDeployment.template.labelValue"
       annotations:
         BootstrapConfigTemplate.machineDeployment.template.annotation: "BootstrapConfigTemplate.machineDeployment.template.annotationValue"
-    spec:
-      joinConfiguration:
-        nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
-          kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider to work
-            - name: eviction-hard
-              value: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
----
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-kind: KubeadmConfigTemplate
-metadata:
-  name: quick-start-mp-default-worker-bootstraptemplate
-  labels:
-    BootstrapConfigTemplate.machinePool.label: "BootstrapConfigTemplate.machinePool.labelValue"
-  annotations:
-    BootstrapConfigTemplate.machinePool.annotation: "BootstrapConfigTemplate.machinePool.annotationValue"
-spec:
-  template:
-    metadata:
-      labels:
-        BootstrapConfigTemplate.machinePool.template.label: "BootstrapConfigTemplate.machinePool.template.labelValue"
-      annotations:
-        BootstrapConfigTemplate.machinePool.template.annotation: "BootstrapConfigTemplate.machinePool.template.annotationValue"
     spec:
       joinConfiguration:
         nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.

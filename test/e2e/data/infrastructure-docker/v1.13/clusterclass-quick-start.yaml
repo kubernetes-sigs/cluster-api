@@ -172,7 +172,7 @@ spec:
           infrastructureCluster: true
       jsonPatches:
       - op: add
-        path: "/spec/template/spec/loadBalancer"
+        path: "/spec/template/spec/backend/docker/loadBalancer"
         valueFrom:
           template: |
             imageRepository: {{ .lbImageRepository }}
@@ -219,7 +219,7 @@ spec:
                 - default-worker
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/customImage"
+            path: "/spec/template/spec/backend/docker/customImage"
             valueFrom:
               template: |
                 kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
@@ -230,7 +230,7 @@ spec:
             controlPlane: true
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/customImage"
+            path: "/spec/template/spec/backend/docker/customImage"
             valueFrom:
               template: |
                 kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
@@ -243,7 +243,7 @@ spec:
                 - default-worker
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/template/customImage"
+            path: "/spec/template/spec/backend/docker/customImage"
             valueFrom:
               template: |
                 kindest/node:{{ .builtin.machinePool.version | replace "+" "_" }}
@@ -263,7 +263,7 @@ spec:
             - default-worker
       jsonPatches:
       - op: add
-        path: "/spec/template/spec/preLoadImages"
+        path: "/spec/template/spec/backend/docker/preLoadImages"
         valueFrom:
           variable: preLoadImages
   - name: preloadImagesMP
@@ -281,7 +281,7 @@ spec:
                 - default-worker
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/template/preLoadImages"
+            path: "/spec/template/spec/backend/docker/preLoadImages"
             valueFrom:
               variable: preLoadImages
   - name: kubeadmControlPlaneMaxSurge

@@ -39,21 +39,6 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DevMachineTemplate
             name: quick-start-default-worker-machinetemplate
-    machinePools:
-    - class: default-worker
-      namingStrategy:
-        template: "{{ .cluster.name }}-mp-{{ .machinePool.topologyName }}-{{ .random }}"
-      template:
-        bootstrap:
-          ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-            kind: KubeadmConfigTemplate
-            name: quick-start-default-worker-bootstraptemplate
-        infrastructure:
-          ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: DockerMachinePoolTemplate
-            name: quick-start-default-worker-machinepooltemplate
   patches:
   - name: test-patch
     external:
@@ -135,19 +120,6 @@ spec:
           - containerPath: "/var/run/docker.sock"
             hostPath: "/var/run/docker.sock"
           preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: DockerMachinePoolTemplate
-metadata:
-  name: quick-start-default-worker-machinepooltemplate
-spec:
-  template:
-    spec:
-      template:
-        extraMounts:
-          - containerPath: "/var/run/docker.sock"
-            hostPath: "/var/run/docker.sock"
-        preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

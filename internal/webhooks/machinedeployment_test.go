@@ -671,13 +671,12 @@ func TestMachineDeploymentEnforcedLabelValidation(t *testing.T) {
 		name           string
 		selectorLabels map[string]string
 		templateLabels map[string]string
-		expectErr      bool
+		wantErrSubstr  string
 	}{
 		{
 			name:           "no enforced labels set is allowed",
 			selectorLabels: map[string]string{"app": "foo"},
 			templateLabels: map[string]string{"app": "foo"},
-			expectErr:      false,
 		},
 		{
 			name: "MachineDeploymentNameLabel matching metadata.name is allowed",
@@ -689,7 +688,6 @@ func TestMachineDeploymentEnforcedLabelValidation(t *testing.T) {
 				clusterv1.MachineDeploymentNameLabel: mdName,
 				clusterv1.ClusterNameLabel:           clusterName,
 			},
-			expectErr: false,
 		},
 		{
 			name: "MachineDeploymentNameLabel mismatched in selector is rejected",
@@ -701,7 +699,7 @@ func TestMachineDeploymentEnforcedLabelValidation(t *testing.T) {
 				clusterv1.MachineDeploymentNameLabel: "other-name",
 				clusterv1.ClusterNameLabel:           clusterName,
 			},
-			expectErr: true,
+			wantErrSubstr: `must be "test-md" to match metadata.name`,
 		},
 		{
 			name: "ClusterNameLabel mismatched in template labels is rejected",
@@ -713,7 +711,7 @@ func TestMachineDeploymentEnforcedLabelValidation(t *testing.T) {
 				clusterv1.MachineDeploymentNameLabel: mdName,
 				clusterv1.ClusterNameLabel:           "other-cluster",
 			},
-			expectErr: true,
+			wantErrSubstr: `must be "test-cluster" to match spec.clusterName`,
 		},
 	}
 
@@ -736,8 +734,8 @@ func TestMachineDeploymentEnforcedLabelValidation(t *testing.T) {
 			}
 
 			warnings, err := (&MachineDeployment{}).ValidateCreate(ctx, md)
-			if tt.expectErr {
-				g.Expect(err).To(HaveOccurred())
+			if tt.wantErrSubstr != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tt.wantErrSubstr)))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}

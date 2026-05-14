@@ -179,7 +179,7 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 			field.Invalid(
 				specPath.Child("selector", "matchLabels").Key(clusterv1.MachineSetNameLabel),
 				v,
-				fmt.Sprintf("must be %q (the MachineSet controller overwrites this label on owned Machines based on metadata.name)", enforcedNameLabel),
+				fmt.Sprintf("must be %q to match metadata.name", enforcedNameLabel),
 			),
 		)
 	}
@@ -189,7 +189,7 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 			field.Invalid(
 				specPath.Child("template", "metadata", "labels").Key(clusterv1.MachineSetNameLabel),
 				v,
-				fmt.Sprintf("must be %q (the MachineSet controller overwrites this label on owned Machines based on metadata.name)", enforcedNameLabel),
+				fmt.Sprintf("must be %q to match metadata.name", enforcedNameLabel),
 			),
 		)
 	}

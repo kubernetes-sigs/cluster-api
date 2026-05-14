@@ -379,31 +379,29 @@ func TestMachineSetEnforcedNameLabelValidation(t *testing.T) {
 		name           string
 		selectorLabels map[string]string
 		templateLabels map[string]string
-		expectErr      bool
+		wantErrSubstr  string
 	}{
 		{
 			name:           "no MachineSetNameLabel set is allowed",
 			selectorLabels: map[string]string{"app": "foo"},
 			templateLabels: map[string]string{"app": "foo"},
-			expectErr:      false,
 		},
 		{
 			name:           "MachineSetNameLabel matching metadata.name is allowed",
 			selectorLabels: map[string]string{clusterv1.MachineSetNameLabel: enforced},
 			templateLabels: map[string]string{clusterv1.MachineSetNameLabel: enforced},
-			expectErr:      false,
 		},
 		{
 			name:           "MachineSetNameLabel mismatched in selector is rejected",
 			selectorLabels: map[string]string{clusterv1.MachineSetNameLabel: "other-name"},
 			templateLabels: map[string]string{clusterv1.MachineSetNameLabel: "other-name"},
-			expectErr:      true,
+			wantErrSubstr:  `must be "test-ms" to match metadata.name`,
 		},
 		{
 			name:           "MachineSetNameLabel mismatched in template labels is rejected",
 			selectorLabels: map[string]string{clusterv1.MachineSetNameLabel: enforced},
 			templateLabels: map[string]string{clusterv1.MachineSetNameLabel: "other-name"},
-			expectErr:      true,
+			wantErrSubstr:  `must be "test-ms" to match metadata.name`,
 		},
 	}
 
@@ -424,8 +422,8 @@ func TestMachineSetEnforcedNameLabelValidation(t *testing.T) {
 			}
 
 			warnings, err := (&MachineSet{}).ValidateCreate(ctx, ms)
-			if tt.expectErr {
-				g.Expect(err).To(HaveOccurred())
+			if tt.wantErrSubstr != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tt.wantErrSubstr)))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}

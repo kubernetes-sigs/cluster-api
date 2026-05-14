@@ -200,14 +200,19 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		clusterv1.MachineDeploymentNameLabel: newMD.Name,
 		clusterv1.ClusterNameLabel:           newMD.Spec.ClusterName,
 	}
+	enforcedLabelDesc := map[string]string{
+		clusterv1.MachineDeploymentNameLabel: "metadata.name",
+		clusterv1.ClusterNameLabel:           "spec.clusterName",
+	}
 	for labelKey, want := range enforcedLabels {
+		desc := enforcedLabelDesc[labelKey]
 		if v, ok := newMD.Spec.Selector.MatchLabels[labelKey]; ok && v != want {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
 					specPath.Child("selector", "matchLabels").Key(labelKey),
 					v,
-					fmt.Sprintf("must be %q (the MachineDeployment controller overwrites this label on owned MachineSets)", want),
+					fmt.Sprintf("must be %q to match %s", want, desc),
 				),
 			)
 		}
@@ -217,7 +222,7 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 				field.Invalid(
 					specPath.Child("template", "metadata", "labels").Key(labelKey),
 					v,
-					fmt.Sprintf("must be %q (the MachineDeployment controller overwrites this label on owned MachineSets)", want),
+					fmt.Sprintf("must be %q to match %s", want, desc),
 				),
 			)
 		}

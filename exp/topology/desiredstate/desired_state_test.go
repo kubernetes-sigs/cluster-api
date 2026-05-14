@@ -2092,6 +2092,74 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
+		g.Expect(actualMd.Spec.MachineNaming).To(Equal(clusterv1.MachineNamingSpec{}))
+	})
+
+	t.Run("Uses ClusterClass machineNaming when topology override is not set", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClassWithMachineNaming := fakeClass.DeepCopy()
+		clusterClassWithMachineNaming.Spec.Workers.MachineDeployments[0].MachineNaming = clusterv1.MachineNamingSpec{
+			Template: "{{ .machineSet.name }}-{{ .random }}",
+		}
+
+		s := scope.New(cluster)
+		s.Blueprint = &scope.ClusterBlueprint{
+			Topology:     blueprint.Topology,
+			ClusterClass: clusterClassWithMachineNaming,
+			MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
+				"linux-worker": blueprint.MachineDeployments["linux-worker"],
+			},
+		}
+
+		mdTopology := clusterv1.MachineDeploymentTopology{
+			Class:    "linux-worker",
+			Name:     "big-pool-of-machines",
+			Replicas: &replicas,
+		}
+
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, s, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(actual.Object.Spec.MachineNaming).To(Equal(clusterv1.MachineNamingSpec{
+			Template: "{{ .machineSet.name }}-{{ .random }}",
+		}))
+	})
+
+	t.Run("Uses topology machineNaming override over ClusterClass default", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClassWithMachineNaming := fakeClass.DeepCopy()
+		clusterClassWithMachineNaming.Spec.Workers.MachineDeployments[0].MachineNaming = clusterv1.MachineNamingSpec{
+			Template: "{{ .machineSet.name }}-class-{{ .random }}",
+		}
+
+		s := scope.New(cluster)
+		s.Blueprint = &scope.ClusterBlueprint{
+			Topology:     blueprint.Topology,
+			ClusterClass: clusterClassWithMachineNaming,
+			MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
+				"linux-worker": blueprint.MachineDeployments["linux-worker"],
+			},
+		}
+
+		mdTopology := clusterv1.MachineDeploymentTopology{
+			Class:    "linux-worker",
+			Name:     "big-pool-of-machines",
+			Replicas: &replicas,
+			MachineNaming: clusterv1.MachineNamingSpec{
+				Template: "{{ .machineSet.name }}-topology-{{ .random }}",
+			},
+		}
+
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, s, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(actual.Object.Spec.MachineNaming).To(Equal(clusterv1.MachineNamingSpec{
+			Template: "{{ .machineSet.name }}-topology-{{ .random }}",
+		}))
 	})
 
 	t.Run("Skips setting readinessGates if not set in Cluster and ClusterClass", func(t *testing.T) {

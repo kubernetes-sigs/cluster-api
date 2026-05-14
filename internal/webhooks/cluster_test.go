@@ -2021,6 +2021,57 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 		},
 		{
+			name:      "should pass when topology machineDeployment machineNaming is valid",
+			expectErr: false,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(clusterv1.MachineDeploymentTopology{
+						Class: "aa",
+						Name:  "workers1",
+						MachineNaming: clusterv1.MachineNamingSpec{
+							Template: "{{ .machineSet.name }}-{{ .random }}",
+						},
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should return error when topology machineDeployment machineNaming misses random",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(clusterv1.MachineDeploymentTopology{
+						Class: "aa",
+						Name:  "workers1",
+						MachineNaming: clusterv1.MachineNamingSpec{
+							Template: "{{ .machineSet.name }}",
+						},
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should return error when topology machineDeployment machineNaming generates invalid DNS1123 name",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(clusterv1.MachineDeploymentTopology{
+						Class: "aa",
+						Name:  "workers1",
+						MachineNaming: clusterv1.MachineNamingSpec{
+							Template: "{{ .machineSet.name }}-{{ .random }}-",
+						},
+					}).
+					Build()).
+				Build(),
+		},
+		{
 			name:      "should update",
 			expectErr: false,
 			old: builder.Cluster("fooboo", "cluster1").

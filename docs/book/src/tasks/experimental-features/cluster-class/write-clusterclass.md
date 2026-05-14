@@ -412,6 +412,69 @@ spec:
         template: "{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}"
 ```
 
+In addition to naming the MachineDeployment object itself, you can customize how Machines created by the MachineDeployment are named via `machineNaming`.
+
+The machine naming strategy for Machines within a MachineDeployment supports the following properties:
+
+- `template`: Custom template which is used when generating the name of Machines created from MachineSets belonging to the MachineDeployment.
+
+The following variables can be referenced in templates:
+
+- `.machineSet.name`: The name of the owning MachineSet.
+- `.random`: A random alphanumeric string, without vowels, of length 5.
+
+The `{{ .random }}` variable is required to ensure generated Machine names remain unique.
+
+If `spec.workers.machineDeployments[].machineNaming` is set in a ClusterClass, it acts as the default for all topology-managed MachineDeployments using that class.
+A specific Cluster can override it per MachineDeployment via `spec.topology.workers.machineDeployments[].machineNaming`.
+
+Example ClusterClass default:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  workers:
+    machineDeployments:
+    - class: default-worker
+      template:
+        spec:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+              kind: KubeadmConfigTemplate
+              name: default-worker-bootstrap
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+              kind: DockerMachineTemplate
+              name: default-worker-machinetemplate
+      machineNaming:
+        template: "{{ .machineSet.name }}-{{ .random }}"
+```
+
+Example Cluster override:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: my-cluster
+spec:
+  topology:
+    classRef:
+      name: docker-clusterclass-v0.1.0
+    version: v1.31.0
+    workers:
+      machineDeployments:
+      - class: default-worker
+        name: md-0
+        machineNaming:
+          template: "my-worker-{{ .random }}"
+```
+
 ### Defining a custom naming strategy for MachinePool objects
 
 The naming strategy for MachinePools supports the following properties:

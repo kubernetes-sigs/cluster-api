@@ -351,6 +351,11 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 			Template: deref(in.NamingStrategy.Template, ""),
 		}
 	}
+	if in.MachineNaming != nil {
+		out.MachineNaming = clusterv1.MachineNamingSpec{
+			Template: ptr.Deref(in.MachineNaming.Template, ""),
+		}
+	}
 	return nil
 }
 
@@ -434,6 +439,11 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 			Template: new(in.Naming.Template),
 		}
 	}
+	if in.MachineNaming.Template != "" {
+		out.MachineNaming = &MachineDeploymentClassMachineNamingStrategy{
+			Template: ptr.To(in.MachineNaming.Template),
+		}
+	}
 	return nil
 }
 
@@ -486,6 +496,11 @@ func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopol
 			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, &out.HealthCheck.Remediation.TemplateRef, s); err != nil {
 				return err
 			}
+		}
+	}
+	if in.MachineNaming != nil {
+		out.MachineNaming = clusterv1.MachineNamingSpec{
+			Template: ptr.Deref(in.MachineNaming.Template, ""),
 		}
 	}
 	return nil
@@ -562,6 +577,11 @@ func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopol
 			if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(&in.HealthCheck.Remediation.TemplateRef, out.MachineHealthCheck.RemediationTemplate, s); err != nil {
 				return err
 			}
+		}
+	}
+	if in.MachineNaming.Template != "" {
+		out.MachineNaming = &MachineDeploymentTopologyMachineNamingStrategy{
+			Template: ptr.To(in.MachineNaming.Template),
 		}
 	}
 	return nil

@@ -1470,6 +1470,26 @@ spec:
                               pattern: ^\[[0-9]+-[0-9]+\]$
                               type: string
                           type: object
+                        machineNaming:
+                          description: |-
+                            machineNaming allows changing the naming pattern used when creating Machines within the MachineDeployment.
+                            If not defined, Machines will use the default naming pattern: `{{ .machineSet.name }}-{{ .random }}`.
+                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+                          properties:
+                            template:
+                              description: |-
+                                template defines the template to use for generating the names of Machine objects.
+                                If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`.
+                                If the generated name string exceeds 63 characters, it will be trimmed to 58 characters
+                                and concatenated with a random suffix of length 5.
+                                The templating mechanism provides the following arguments:
+                                * `.cluster.name`: The name of the cluster object.
+                                * `.machineSet.name`: The name of the MachineSet object.
+                                * `.random`: A random alphanumeric string, without vowels, of length 5 (required).
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          type: object
                         minReadySeconds:
                           description: |-
                             minReadySeconds is the minimum number of seconds for which a newly created machine should
@@ -4400,6 +4420,35 @@ spec:
                               type: object
                           required:
                           - templateRef
+                          type: object
+                        machineNaming:
+                          description: |-
+                            machineNaming allows changing the naming pattern used when creating Machines within the MachineDeployment.
+                            If not defined, Machines will use the default naming pattern: `{{ .machineSet.name }}-{{ .random }}`.
+                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+                          minProperties: 1
+                          properties:
+                            template:
+                              description: |-
+                                template defines the template to use for generating the names of the
+                                Machine objects.
+                                If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`.
+                                If the generated name string exceeds 63 characters, it will be trimmed to
+                                58 characters and will
+                                get concatenated with a random suffix of length 5.
+                                Length of the template string must not exceed 256 characters.
+                                The template allows the following variables `.cluster.name`,
+                                `.machineSet.name` and `.random`.
+                                The variable `.cluster.name` retrieves the name of the cluster object
+                                that owns the Machines being created.
+                                The variable `.machineSet.name` retrieves the name of the MachineSet
+                                object that owns the Machines being created.
+                                The variable `.random` is substituted with random alphanumeric string,
+                                without vowels, of length 5. This variable is required part of the
+                                template. If not provided, validation will fail.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
                           type: object
                         metadata:
                           description: |-

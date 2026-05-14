@@ -1573,6 +1573,7 @@ func (in *MachineDeploymentClass) DeepCopyInto(out *MachineDeploymentClass) {
 	out.Infrastructure = in.Infrastructure
 	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
 	out.Naming = in.Naming
+	out.MachineNaming = in.MachineNaming
 	in.Deletion.DeepCopyInto(&out.Deletion)
 	if in.Taints != nil {
 		in, out := &in.Taints, &out.Taints
@@ -2062,6 +2063,7 @@ func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology
 		**out = **in
 	}
 	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
+	out.MachineNaming = in.MachineNaming
 	in.Deletion.DeepCopyInto(&out.Deletion)
 	if in.Taints != nil {
 		in, out := &in.Taints, &out.Taints

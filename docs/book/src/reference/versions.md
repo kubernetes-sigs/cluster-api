@@ -364,15 +364,14 @@ See [Cluster API release support](#cluster-api-release-support) and [Kubernetes 
 
 |                  | v1.12, _Maintenance Mode_ | v1.13             | v1.14             |
 |------------------|---------------------------|-------------------|-------------------|
-| Kubernetes v1.28 | ✓ (only workload)         |                   |                   |
-| Kubernetes v1.29 | ✓ (only workload)         | ✓ (only workload) |                   |
-| Kubernetes v1.30 | ✓                         | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.31 | ✓                         | ✓                 | ✓ (only workload) |
-| Kubernetes v1.32 | ✓                         | ✓                 | ✓                 |
+| Kubernetes v1.29 | ✓ (only workload)         |                   |                   |
+| Kubernetes v1.30 | ✓ (only workload)         | ✓ (only workload) |                   |
+| Kubernetes v1.31 | ✓                         | ✓ (only workload) | ✓ (only workload) |
+| Kubernetes v1.32 | ✓                         | ✓                 | ✓ (only workload) |
 | Kubernetes v1.33 | ✓                         | ✓                 | ✓                 |
-| Kubernetes v1.34 | ✓ >= v1.11.1              | ✓                 | ✓                 |
-| Kubernetes v1.35 |                           | ✓ >= v1.12.1      | ✓                 |
-| Kubernetes v1.36 |                           | ✓ >= v1.12.8      | ✓ >= v1.13.1      |
+| Kubernetes v1.34 | ✓                         | ✓                 | ✓                 |
+| Kubernetes v1.35 | ✓ >= v1.12.1              | ✓                 | ✓                 |
+| Kubernetes v1.36 | ✓ >= v1.12.8              | ✓ >= v1.13.1      | ✓                 |
 
 See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
 

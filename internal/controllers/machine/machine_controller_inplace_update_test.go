@@ -42,53 +42,43 @@ import (
 
 func TestReconcileInPlaceUpdate(t *testing.T) {
 	tests := []struct {
-		name            string
-		featureEnabled  bool
-		setup           func(*testing.T) (*Reconciler, *scope)
-		wantResult      ctrl.Result
-		wantErr         bool
-		wantErrContains string
-		wantReason      string
-		wantMessage     string
-		verify          func(*testing.T, *WithT, context.Context, *Reconciler, *scope)
+		name                  string
+		featureEnabled        bool
+		machine               *clusterv1.Machine
+		infraMachine          *unstructured.Unstructured
+		bootstrapConfig       *unstructured.Unstructured
+		updateMachineResponse *runtimehooksv1.UpdateMachineResponse
+		wantResult            ctrl.Result
+		wantErr               bool
+		wantErrContains       string
+		wantReason            string
+		wantMessage           string
+		verify                func(*testing.T, *WithT, context.Context, *Reconciler, *scope)
 	}{
 		{
 			name:           "feature gate disabled returns immediately",
 			featureEnabled: false,
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
-				return &Reconciler{}, &scope{machine: newTestMachine()}
-			},
-			wantResult: ctrl.Result{},
+			machine:        newTestMachine(),
+			wantResult:     ctrl.Result{},
 		},
 		{
 			name:           "cleans up orphaned hook and annotations",
 			featureEnabled: true,
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
-
-				scheme := runtime.NewScheme()
-				if err := clusterv1.AddToScheme(scheme); err != nil {
-					t.Fatalf("failed to add clusterv1 to scheme: %v", err)
-				}
-
+			machine: func() *clusterv1.Machine {
 				machine := newTestMachine()
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
-
+				return machine
+			}(),
+			infraMachine: func() *unstructured.Unstructured {
 				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-
+				return infra
+			}(),
+			bootstrapConfig: func() *unstructured.Unstructured {
 				bootstrap := newTestUnstructured("GenericBootstrapConfig", "bootstrap.cluster.x-k8s.io/v1beta2", "bootstrap")
 				bootstrap.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-
-				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine, infra, bootstrap).Build()
-
-				return &Reconciler{Client: client, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{
-					machine:         machine,
-					infraMachine:    infra,
-					bootstrapConfig: bootstrap,
-				}
-			},
+				return bootstrap
+			}(),
 			wantResult: ctrl.Result{},
 			verify: func(t *testing.T, g *WithT, ctx context.Context, r *Reconciler, s *scope) {
 				t.Helper()
@@ -113,27 +103,25 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 		{
 			name:           "waits for pending hook to be marked",
 			featureEnabled: true,
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
+			machine: func() *clusterv1.Machine {
 				machine := newTestMachine()
 				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
-				return &Reconciler{}, &scope{machine: machine}
-			},
+				return machine
+			}(),
 			wantResult: ctrl.Result{},
 		},
 		{
 			name:           "fails when infra machine is missing",
 			featureEnabled: true,
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
+			machine: func() *clusterv1.Machine {
 				machine := newTestMachine()
 				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
-				return &Reconciler{}, &scope{machine: machine}
-			},
+				return machine
+			}(),
 			wantResult:      ctrl.Result{},
 			wantErr:         true,
 			wantErrContains: "InfraMachine not found",
@@ -143,61 +131,28 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 		{
 			name:           "requeues while UpdateMachine hook is in progress",
 			featureEnabled: true,
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
-
-				catalog := runtimecatalog.New()
-				if err := runtimehooksv1.AddToCatalog(catalog); err != nil {
-					t.Fatalf("failed to add hooks to catalog: %v", err)
-				}
-				updateGVH, err := catalog.GroupVersionHook(runtimehooksv1.UpdateMachine)
-				if err != nil {
-					t.Fatalf("failed to look up UpdateMachine hook: %v", err)
-				}
-
-				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-					WithCatalog(catalog).
-					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
-						updateGVH: {"test-extension"},
-					}).
-					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-						updateGVH: &runtimehooksv1.UpdateMachineResponse{
-							CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-								CommonResponse: runtimehooksv1.CommonResponse{
-									Status:  runtimehooksv1.ResponseStatusSuccess,
-									Message: "processing",
-								},
-								RetryAfterSeconds: 30,
-							},
-						},
-					}).
-					Build()
-
-				scheme := runtime.NewScheme()
-				if err := clusterv1.AddToScheme(scheme); err != nil {
-					t.Fatalf("failed to add clusterv1 to scheme: %v", err)
-				}
-
+			machine: func() *clusterv1.Machine {
 				machine := newTestMachine()
 				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
-
+				return machine
+			}(),
+			infraMachine: func() *unstructured.Unstructured {
 				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-
-				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine, infra).Build()
-
-				return &Reconciler{
-						Client:        client,
-						RuntimeClient: runtimeClient,
-						hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
-					}, &scope{
-						machine:      machine,
-						infraMachine: infra,
-					}
+				return infra
+			}(),
+			updateMachineResponse: &runtimehooksv1.UpdateMachineResponse{
+				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status:  runtimehooksv1.ResponseStatusSuccess,
+						Message: "processing",
+					},
+					RetryAfterSeconds: 30,
+				},
 			},
 			wantResult:  ctrl.Result{RequeueAfter: 30 * time.Second},
 			wantReason:  clusterv1.MachineInPlaceUpdatingReason,
@@ -206,65 +161,33 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 		{
 			name:           "completes successfully and cleans annotations",
 			featureEnabled: true,
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
-
-				catalog := runtimecatalog.New()
-				if err := runtimehooksv1.AddToCatalog(catalog); err != nil {
-					t.Fatalf("failed to add hooks to catalog: %v", err)
-				}
-				updateGVH, err := catalog.GroupVersionHook(runtimehooksv1.UpdateMachine)
-				if err != nil {
-					t.Fatalf("failed to look up UpdateMachine hook: %v", err)
-				}
-
-				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-					WithCatalog(catalog).
-					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
-						updateGVH: {"test-extension"},
-					}).
-					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-						updateGVH: &runtimehooksv1.UpdateMachineResponse{
-							CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-								CommonResponse: runtimehooksv1.CommonResponse{
-									Status:  runtimehooksv1.ResponseStatusSuccess,
-									Message: "done",
-								},
-								RetryAfterSeconds: 0,
-							},
-						},
-					}).
-					Build()
-
-				scheme := runtime.NewScheme()
-				if err := clusterv1.AddToScheme(scheme); err != nil {
-					t.Fatalf("failed to add clusterv1 to scheme: %v", err)
-				}
-
+			machine: func() *clusterv1.Machine {
 				machine := newTestMachine()
 				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
-
+				return machine
+			}(),
+			infraMachine: func() *unstructured.Unstructured {
 				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-
+				return infra
+			}(),
+			bootstrapConfig: func() *unstructured.Unstructured {
 				bootstrap := newTestUnstructured("GenericBootstrapConfig", "bootstrap.cluster.x-k8s.io/v1beta2", "bootstrap")
 				bootstrap.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-
-				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine, infra, bootstrap).Build()
-
-				return &Reconciler{
-						Client:        client,
-						RuntimeClient: runtimeClient,
-						hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
-					}, &scope{
-						machine:         machine,
-						infraMachine:    infra,
-						bootstrapConfig: bootstrap,
-					}
+				return bootstrap
+			}(),
+			updateMachineResponse: &runtimehooksv1.UpdateMachineResponse{
+				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status:  runtimehooksv1.ResponseStatusSuccess,
+						Message: "done",
+					},
+					RetryAfterSeconds: 0,
+				},
 			},
 			wantResult: ctrl.Result{},
 			verify: func(t *testing.T, g *WithT, ctx context.Context, r *Reconciler, s *scope) {
@@ -295,10 +218,49 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			g := NewWithT(t)
 			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, tt.featureEnabled)
 
-			r, scope := tt.setup(t)
-			ctx := context.Background()
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			var objects []ctrlclient.Object
+			if tt.machine != nil {
+				objects = append(objects, tt.machine)
+			}
+			if tt.infraMachine != nil {
+				objects = append(objects, tt.infraMachine)
+			}
+			if tt.bootstrapConfig != nil {
+				objects = append(objects, tt.bootstrapConfig)
+			}
 
-			result, err := r.reconcileInPlaceUpdate(ctx, scope)
+			var runtimeClient *fakeruntimeclient.RuntimeClient
+			if tt.updateMachineResponse != nil {
+				catalog := runtimecatalog.New()
+				g.Expect(runtimehooksv1.AddToCatalog(catalog)).To(Succeed())
+				updateGVH, err := catalog.GroupVersionHook(runtimehooksv1.UpdateMachine)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				runtimeClient = fakeruntimeclient.NewRuntimeClientBuilder().
+					WithCatalog(catalog).
+					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
+						updateGVH: {"test-extension"},
+					}).
+					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+						updateGVH: tt.updateMachineResponse,
+					}).
+					Build()
+			}
+
+			r := &Reconciler{
+				Client:        fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build(),
+				RuntimeClient: runtimeClient,
+				hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+			}
+			s := &scope{
+				machine:         tt.machine,
+				infraMachine:    tt.infraMachine,
+				bootstrapConfig: tt.bootstrapConfig,
+			}
+
+			result, err := r.reconcileInPlaceUpdate(t.Context(), s)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -310,21 +272,11 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			}
 
 			g.Expect(result).To(Equal(tt.wantResult))
-
-			if tt.wantReason != "" {
-				g.Expect(scope.updatingReason).To(Equal(tt.wantReason))
-			} else {
-				g.Expect(scope.updatingReason).To(BeEmpty())
-			}
-
-			if tt.wantMessage != "" {
-				g.Expect(scope.updatingMessage).To(Equal(tt.wantMessage))
-			} else {
-				g.Expect(scope.updatingMessage).To(BeEmpty())
-			}
+			g.Expect(s.updatingReason).To(Equal(tt.wantReason))
+			g.Expect(s.updatingMessage).To(Equal(tt.wantMessage))
 
 			if tt.verify != nil {
-				tt.verify(t, g, ctx, r, scope)
+				tt.verify(t, g, ctx, r, s)
 			}
 		})
 	}
@@ -341,86 +293,59 @@ func TestCallUpdateMachineHook(t *testing.T) {
 	}
 
 	tests := []struct {
-		name               string
-		setup              func(*testing.T) (*Reconciler, *scope)
-		wantResult         ctrl.Result
-		wantMessage        string
-		wantErr            bool
-		wantErrSubstrings  []string
-		wantHookCacheEntry *cache.HookEntry
+		name                      string
+		getAllExtensionResponses  map[runtimecatalog.GroupVersionHook][]string
+		callAllExtensionResponses map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject
+		wantResult                ctrl.Result
+		wantMessage               string
+		wantErr                   bool
+		wantErrSubstrings         []string
+		wantHookCacheEntry        *cache.HookEntry
 	}{
 		{
-			name: "fails if no extensions registered",
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
-				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-					WithCatalog(catalog).
-					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{}).
-					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
-			},
-			wantErr:           true,
-			wantErrSubstrings: []string{"no extensions registered for UpdateMachine hook"},
+			name:                     "fails if no extensions registered",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{},
+			wantErr:                  true,
+			wantErrSubstrings:        []string{"no extensions registered for UpdateMachine hook"},
 		},
 		{
 			name: "fails if multiple extensions registered",
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
-				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-					WithCatalog(catalog).
-					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
-						updateGVH: {"ext-a", "ext-b"},
-					}).
-					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext-a", "ext-b"},
 			},
 			wantErr:           true,
 			wantErrSubstrings: []string{"found multiple UpdateMachine hooks (ext-a,ext-b): only one hook is supported"},
 		},
 		{
 			name: "fails when hook invocation returns error",
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
-				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-					WithCatalog(catalog).
-					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
-						updateGVH: {"ext"},
-					}).
-					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-						updateGVH: &runtimehooksv1.UpdateMachineResponse{
-							CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-								CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusFailure},
-							},
-						},
-					}).
-					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callAllExtensionResponses: map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+				updateGVH: &runtimehooksv1.UpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusFailure},
+					},
+				},
 			},
 			wantErr:           true,
 			wantErrSubstrings: []string{"runtime hook", "UpdateMachine", "failed"},
 		},
 		{
 			name: "returns requeue when hook succeeds with retry",
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
-				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-					WithCatalog(catalog).
-					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
-						updateGVH: {"ext"},
-					}).
-					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-						updateGVH: &runtimehooksv1.UpdateMachineResponse{
-							CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-								CommonResponse: runtimehooksv1.CommonResponse{
-									Status:  runtimehooksv1.ResponseStatusSuccess,
-									Message: "processing",
-								},
-								RetryAfterSeconds: 45,
-							},
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callAllExtensionResponses: map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+				updateGVH: &runtimehooksv1.UpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						CommonResponse: runtimehooksv1.CommonResponse{
+							Status:  runtimehooksv1.ResponseStatusSuccess,
+							Message: "processing",
 						},
-					}).
-					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+						RetryAfterSeconds: 45,
+					},
+				},
 			},
 			wantResult:  ctrl.Result{RequeueAfter: 45 * time.Second},
 			wantMessage: "processing",
@@ -429,25 +354,18 @@ func TestCallUpdateMachineHook(t *testing.T) {
 		},
 		{
 			name: "returns message when hook succeeds",
-			setup: func(t *testing.T) (*Reconciler, *scope) {
-				t.Helper()
-				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-					WithCatalog(catalog).
-					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
-						updateGVH: {"ext"},
-					}).
-					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-						updateGVH: &runtimehooksv1.UpdateMachineResponse{
-							CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-								CommonResponse: runtimehooksv1.CommonResponse{
-									Status:  runtimehooksv1.ResponseStatusSuccess,
-									Message: "done",
-								},
-							},
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callAllExtensionResponses: map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+				updateGVH: &runtimehooksv1.UpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						CommonResponse: runtimehooksv1.CommonResponse{
+							Status:  runtimehooksv1.ResponseStatusSuccess,
+							Message: "done",
 						},
-					}).
-					Build()
-				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+					},
+				},
 			},
 			wantResult:  ctrl.Result{},
 			wantMessage: "done",
@@ -457,8 +375,23 @@ func TestCallUpdateMachineHook(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			r, scope := tt.setup(t)
-			result, message, err := r.callUpdateMachineHook(context.Background(), scope)
+
+			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCatalog(catalog).
+				WithGetAllExtensionResponses(tt.getAllExtensionResponses).
+				WithCallAllExtensionResponses(tt.callAllExtensionResponses).
+				Build()
+
+			r := &Reconciler{
+				RuntimeClient: runtimeClient,
+				hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+			}
+			scope := &scope{
+				machine:      newTestMachine(),
+				infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra"),
+			}
+
+			result, message, err := r.callUpdateMachineHook(t.Context(), scope)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -496,60 +429,43 @@ func TestCallUpdateMachineHook(t *testing.T) {
 
 func TestRemoveInPlaceUpdateAnnotation(t *testing.T) {
 	tests := []struct {
-		name   string
-		setup  func(*testing.T) (*Reconciler, ctrlclient.Client, *clusterv1.Machine)
-		verify func(*WithT, context.Context, ctrlclient.Client, *clusterv1.Machine)
+		name        string
+		annotations map[string]string
 	}{
 		{
 			name: "removes annotation when present",
-			setup: func(t *testing.T) (*Reconciler, ctrlclient.Client, *clusterv1.Machine) {
-				t.Helper()
-				scheme := runtime.NewScheme()
-				if err := clusterv1.AddToScheme(scheme); err != nil {
-					t.Fatalf("failed to add clusterv1 to scheme: %v", err)
-				}
-
-				machine := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine", Namespace: "default", Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""}}}
-				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine).Build()
-				return &Reconciler{Client: client}, client, machine
-			},
-			verify: func(g *WithT, ctx context.Context, c ctrlclient.Client, machine *clusterv1.Machine) {
-				updated := &clusterv1.Machine{}
-				g.Expect(c.Get(ctx, ctrlclient.ObjectKeyFromObject(machine), updated)).To(Succeed())
-				g.Expect(updated.Annotations).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+			annotations: map[string]string{
+				clusterv1.UpdateInProgressAnnotation: "",
 			},
 		},
 		{
-			name: "no-op when annotation missing",
-			setup: func(t *testing.T) (*Reconciler, ctrlclient.Client, *clusterv1.Machine) {
-				t.Helper()
-				scheme := runtime.NewScheme()
-				if err := clusterv1.AddToScheme(scheme); err != nil {
-					t.Fatalf("failed to add clusterv1 to scheme: %v", err)
-				}
-
-				machine := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine", Namespace: "default"}}
-				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine).Build()
-				return &Reconciler{Client: client}, client, machine
-			},
-			verify: func(g *WithT, ctx context.Context, c ctrlclient.Client, machine *clusterv1.Machine) {
-				updated := &clusterv1.Machine{}
-				g.Expect(c.Get(ctx, ctrlclient.ObjectKeyFromObject(machine), updated)).To(Succeed())
-				g.Expect(updated.Annotations).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
-			},
+			name:        "no-op when annotation missing",
+			annotations: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			r, client, machine := tt.setup(t)
-			ctx := context.Background()
-			g.Expect(r.removeInPlaceUpdateAnnotation(ctx, machine)).To(Succeed())
 
-			if tt.verify != nil {
-				tt.verify(g, ctx, client, machine)
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+			machine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "machine",
+					Namespace:   "default",
+					Annotations: tt.annotations,
+				},
 			}
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine).Build()
+
+			r := &Reconciler{Client: client}
+
+			g.Expect(r.removeInPlaceUpdateAnnotation(t.Context(), machine)).To(Succeed())
+
+			g.Expect(client.Get(ctx, ctrlclient.ObjectKeyFromObject(machine), machine)).To(Succeed())
+			g.Expect(machine.Annotations).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
 		})
 	}
 }

@@ -272,9 +272,6 @@ func parseUpgradeItemWithNamespace(ref string, providerType clusterctlv1.Provide
 			},
 			ProviderName: name,
 			Type:         string(providerType),
-			// The value for the following fields will be retrieved while
-			// creating the custom upgrade plan.
-			WatchedNamespace: "",
 		},
 		NextVersion: version,
 	}, nil
@@ -303,9 +300,6 @@ func parseUpgradeItemWithoutNamespace(ctx context.Context, clusterClient cluster
 			},
 			ProviderName: name,
 			Type:         string(providerType),
-			// The value for the following fields will be retrieved while
-			// creating the custom upgrade plan.
-			WatchedNamespace: "",
 		},
 		NextVersion: version,
 	}, nil

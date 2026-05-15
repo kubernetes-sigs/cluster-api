@@ -65,18 +65,15 @@ You'll need to [install `kubebuilder`][kubebuilder].
 
 ### Envsubst
 
-You'll need [`envsubst`][envsubst] or similar to handle clusterctl var replacement. Note: drone/envsubst releases v1.0.2 and earlier do not have the binary packaged under cmd/envsubst. It is available in Go pseudo-version `v1.0.3-0.20200709231038-aa43e1c1a629`
+You'll need [`envsubst`][envsubst] to handle variable substitution in manifests. 
 
-We provide a make target to generate the `envsubst` binary if desired. See the [provider contract][provider-contract] for more details about how clusterctl uses variables.
+The GNU `gettext` version of `envsubst` does not support default values, so you must use the `drone/envsubst` version.
 
 ```bash
-make envsubst
+go install github.com/drone/envsubst/v2/cmd/envsubst@latest
 ```
 
-The generated binary can be found at ./hack/tools/bin/envsubst
-
 [envsubst]: https://github.com/drone/envsubst
-[provider-contract]: providers/contracts/clusterctl.md
 
 ### Cert-Manager
 
@@ -115,10 +112,10 @@ make docker-build
 make docker-push
 
 # Apply the manifests
-kustomize build config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build bootstrap/kubeadm/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build controlplane/kubeadm/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build test/infrastructure/docker/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
+kustomize build config/default | ~/go/bin/envsubst | kubectl apply -f -
+kustomize build bootstrap/kubeadm/config/default | ~/go/bin/envsubst | kubectl apply -f -
+kustomize build controlplane/kubeadm/config/default | ~/go/bin/envsubst | kubectl apply -f -
+kustomize build test/infrastructure/docker/config/default | ~/go/bin/envsubst | kubectl apply -f -
 ```
 
 ## Testing

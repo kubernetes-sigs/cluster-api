@@ -353,7 +353,7 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 	}
 	if in.MachineNaming != nil {
 		out.MachineNaming = clusterv1.MachineNamingSpec{
-			Template: ptr.Deref(in.MachineNaming.Template, ""),
+			Template: deref(in.MachineNaming.Template, ""),
 		}
 	}
 	return nil
@@ -440,8 +440,9 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 		}
 	}
 	if in.MachineNaming.Template != "" {
+		t := in.MachineNaming.Template
 		out.MachineNaming = &MachineDeploymentClassMachineNamingStrategy{
-			Template: ptr.To(in.MachineNaming.Template),
+			Template: &t,
 		}
 	}
 	return nil
@@ -500,7 +501,7 @@ func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopol
 	}
 	if in.MachineNaming != nil {
 		out.MachineNaming = clusterv1.MachineNamingSpec{
-			Template: ptr.Deref(in.MachineNaming.Template, ""),
+			Template: deref(in.MachineNaming.Template, ""),
 		}
 	}
 	return nil
@@ -580,8 +581,9 @@ func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopol
 		}
 	}
 	if in.MachineNaming.Template != "" {
+		t := in.MachineNaming.Template
 		out.MachineNaming = &MachineDeploymentTopologyMachineNamingStrategy{
-			Template: ptr.To(in.MachineNaming.Template),
+			Template: &t,
 		}
 	}
 	return nil

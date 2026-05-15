@@ -2327,6 +2327,7 @@ _Appears in:_
 | `machineHealthCheck` _[MachineHealthCheckClass](#machinehealthcheckclass)_ | machineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass. |  | Optional: \{\} <br /> |
 | `failureDomain` _string_ | failureDomain is the failure domain the machines will be created in.<br />Must match a key in the FailureDomains map stored on the cluster object.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `namingStrategy` _[MachineDeploymentClassNamingStrategy](#machinedeploymentclassnamingstrategy)_ | namingStrategy allows changing the naming pattern used when creating the MachineDeployment. |  | Optional: \{\} <br /> |
+| `machineNaming` _[MachineDeploymentClassMachineNamingStrategy](#machinedeploymentclassmachinenamingstrategy)_ | machineNaming allows changing the naming pattern used when creating Machines within the MachineDeployment.<br />If not defined, Machines will use the default naming pattern: `\{\{ .machineSet.name \}\}-\{\{ .random \}\}`.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Optional: \{\} <br /> |
 | `nodeDrainTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Optional: \{\} <br /> |
 | `nodeDeletionTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Optional: \{\} <br /> |
@@ -2334,6 +2335,22 @@ _Appears in:_
 | `minReadySeconds` _integer_ | minReadySeconds is the minimum number of seconds for which a newly created machine should<br />be ready.<br />Defaults to 0 (machine will be considered available as soon as it<br />is ready)<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Optional: \{\} <br /> |
 | `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition.<br />This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready<br />computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.<br />NOTE: This field is considered only for computing v1beta2 conditions.<br />NOTE: If a Cluster defines a custom list of readinessGates for a MachineDeployment using this MachineDeploymentClass,<br />such list overrides readinessGates defined in this field. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `strategy` _[MachineDeploymentStrategy](#machinedeploymentstrategy)_ | strategy is the deployment strategy to use to replace existing machines with<br />new ones.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Optional: \{\} <br /> |
+
+
+#### MachineDeploymentClassMachineNamingStrategy
+
+
+
+MachineDeploymentClassMachineNamingStrategy defines the naming strategy for machines within a machine deployment.
+
+
+
+_Appears in:_
+- [MachineDeploymentClass](#machinedeploymentclass)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `template` _string_ | template defines the template to use for generating the names of Machine objects.<br />If not defined, it will fallback to `\{\{ .machineSet.name \}\}-\{\{ .random \}\}`.<br />If the generated name string exceeds 63 characters, it will be trimmed to 58 characters<br />and concatenated with a random suffix of length 5.<br />The templating mechanism provides the following arguments:<br />* `.cluster.name`: The name of the cluster object.<br />* `.machineSet.name`: The name of the MachineSet object.<br />* `.random`: A random alphanumeric string, without vowels, of length 5 (required). |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentClassNamingStrategy
@@ -2507,7 +2524,24 @@ _Appears in:_
 | `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition.<br />This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready<br />computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.<br />If this field is not defined, readinessGates from the corresponding MachineDeploymentClass will be used, if any.<br />NOTE: This field is considered only for computing v1beta2 conditions. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `rollout` _[MachineDeploymentTopologyRolloutSpec](#machinedeploymenttopologyrolloutspec)_ | rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.<br />It allows you to define the strategy used during rolling replacements. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `strategy` _[MachineDeploymentStrategy](#machinedeploymentstrategy)_ | strategy is the deployment strategy to use to replace existing machines with<br />new ones. |  | Optional: \{\} <br /> |
+| `machineNaming` _[MachineDeploymentTopologyMachineNamingStrategy](#machinedeploymenttopologymachinenamingstrategy)_ | machineNaming allows changing the naming pattern used when creating Machines within this MachineDeployment.<br />If not defined, the value from the MachineDeploymentClass will be used.<br />If neither is defined, Machines will use the default naming pattern. |  | Optional: \{\} <br /> |
 | `variables` _[MachineDeploymentVariables](#machinedeploymentvariables)_ | variables can be used to customize the MachineDeployment through patches. |  | Optional: \{\} <br /> |
+
+
+#### MachineDeploymentTopologyMachineNamingStrategy
+
+
+
+MachineDeploymentTopologyMachineNamingStrategy defines the naming strategy for machines within a machine deployment topology.
+
+
+
+_Appears in:_
+- [MachineDeploymentTopology](#machinedeploymenttopology)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `template` _string_ | template defines the template to use for generating the names of Machine objects.<br />If not defined, it will fallback to the template defined in MachineDeploymentClass.<br />The templating mechanism provides the same arguments as MachineDeploymentClassMachineNamingStrategy. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentTopologyRolloutSpec

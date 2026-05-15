@@ -588,6 +588,11 @@ func (in *MachineDeploymentClassBuilder) DeepCopyInto(out *MachineDeploymentClas
 		*out = new(v1beta2.MachineDeploymentClassNamingSpec)
 		**out = **in
 	}
+	if in.machineNaming != nil {
+		in, out := &in.machineNaming, &out.machineNaming
+		*out = new(v1beta2.MachineNamingSpec)
+		**out = **in
+	}
 	if in.taints != nil {
 		in, out := &in.taints, &out.taints
 		*out = make([]v1beta2.MachineTaint, len(*in))

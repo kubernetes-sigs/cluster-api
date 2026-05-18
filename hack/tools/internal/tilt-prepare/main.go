@@ -146,7 +146,7 @@ type tiltProviderConfig struct {
 }
 
 func init() {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel") //nolint:noctx
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel") //nolint:noctx // init() does not have a context.
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -567,7 +567,7 @@ func preLoadImageTask(image string) taskFunction {
 		// set command to use capi cluster name
 		namecmd := fmt.Sprintf("--name=%s", name)
 
-		cmd := exec.CommandContext(ctx, //nolint:gosec
+		cmd := exec.CommandContext(ctx,
 			"kind",
 			"load",
 			"docker-image",

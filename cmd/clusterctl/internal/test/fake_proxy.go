@@ -96,7 +96,7 @@ func (f *FakeProxy) CheckClusterAvailable(_ context.Context) error {
 
 // ListResources returns all the resources known by the FakeProxy.
 func (f *FakeProxy) ListResources(_ context.Context, labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
-	var ret []unstructured.Unstructured //nolint:prealloc
+	var ret []unstructured.Unstructured
 	for _, o := range f.objs {
 		u := unstructured.Unstructured{}
 		err := FakeScheme.Convert(o, &u, nil)

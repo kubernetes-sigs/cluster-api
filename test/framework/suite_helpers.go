@@ -62,7 +62,7 @@ func ResolveArtifactsDirectory(input string) string {
 		return dir
 	}
 
-	findRootCmd := exec.Command("git", "rev-parse", "--show-toplevel") //nolint:noctx // We don't care about command injection here.
+	findRootCmd := exec.Command("git", "rev-parse", "--show-toplevel") //nolint:noctx // No context available in this function.
 	out, err := findRootCmd.Output()
 	if err != nil {
 		return "_artifacts"

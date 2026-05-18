@@ -416,10 +416,6 @@ linters:
       - linters:
           - staticcheck
         text: 'QF1012: Use fmt\.Fprintf'
-        # TODO: It will be dropped when reflect.Ptr is replaced with reflect.Pointer.
-      - linters:
-          - govet
-        text: 'inline: Constant reflect\.Ptr should be inlined'
         # TODO: It will be dropped when the malformed json tags are fixed.
       - linters:
           - staticcheck

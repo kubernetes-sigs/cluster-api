@@ -215,10 +215,10 @@ func (s *Server) validateHandler(handler ExtensionHandler) error {
 	handlerResponseType := handlerFuncType.In(2)
 
 	// Validate handler request and response are pointers.
-	if handlerRequestType.Kind() != reflect.Ptr {
+	if handlerRequestType.Kind() != reflect.Pointer {
 		return errors.Errorf("HandlerFunc request type must be a pointer")
 	}
-	if handlerResponseType.Kind() != reflect.Ptr {
+	if handlerResponseType.Kind() != reflect.Pointer {
 		return errors.Errorf("HandlerFunc response type must be a pointer")
 	}
 

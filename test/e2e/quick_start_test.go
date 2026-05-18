@@ -43,7 +43,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions(false),
+					framework.DevInfraOwnerReferenceAssertions(false),
 					framework.KubeadmBootstrapOwnerReferenceAssertions,
 					framework.KubeadmControlPlaneOwnerReferenceAssertions(false),
 					framework.KubernetesReferenceAssertions,
@@ -53,7 +53,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions(false),
+					framework.DevInfraOwnerReferenceAssertions(false),
 					framework.KubeadmBootstrapOwnerReferenceAssertions,
 					framework.KubeadmControlPlaneOwnerReferenceAssertions(false),
 					framework.KubernetesReferenceAssertions,
@@ -64,7 +64,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 					framework.CoreFinalizersAssertionWithLegacyClusters,
 					framework.KubeadmControlPlaneFinalizersAssertion,
 					framework.ExpFinalizersAssertion,
-					framework.DockerInfraFinalizersAssertion,
+					framework.DevInfraFinalizersAssertion,
 				)
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
@@ -98,7 +98,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions(true),
+					framework.DevInfraOwnerReferenceAssertions(true),
 					framework.KubeadmBootstrapOwnerReferenceAssertions,
 					framework.KubeadmControlPlaneOwnerReferenceAssertions(true),
 					framework.KubernetesReferenceAssertions,
@@ -108,7 +108,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions(true),
+					framework.DevInfraOwnerReferenceAssertions(true),
 					framework.KubeadmBootstrapOwnerReferenceAssertions,
 					framework.KubeadmControlPlaneOwnerReferenceAssertions(true),
 					framework.KubernetesReferenceAssertions,
@@ -119,7 +119,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 					framework.CoreFinalizersAssertionWithClassyClusters,
 					framework.KubeadmControlPlaneFinalizersAssertion,
 					framework.ExpFinalizersAssertion,
-					framework.DockerInfraFinalizersAssertion,
+					framework.DevInfraFinalizersAssertion,
 				)
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.

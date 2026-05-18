@@ -58,7 +58,7 @@ type AutoscalerSpecInput struct {
 	InfrastructureProvider *string
 	// InfrastructureMachineTemplateKind should be the plural form of the InfraMachineTemplate kind.
 	// It should be specified in lower case.
-	// Example: dockermachinetemplates.
+	// Example: devmachinetemplates.
 	InfrastructureMachineTemplateKind     string
 	InfrastructureMachinePoolTemplateKind string
 	InfrastructureMachinePoolKind         string

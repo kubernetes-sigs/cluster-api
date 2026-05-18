@@ -320,13 +320,13 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 			}, managementClusterResources)
 
-			// If the cluster is a DockerCluster, we should load controller images into the nodes.
-			// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
+			// If the cluster is a DevCluster with Docker backend, we should load controller images into the nodes.
+			// Nb. this can be achieved also by changing the DevMachine spec, but for the time being we are using
 			// this approach because this allows to have a single source of truth for images, the e2e config
 			// Nb. the images for official version of the providers will be pulled from internet, but the latest images must be
 			// built locally and loaded into kind
 			cluster := managementClusterResources.Cluster
-			if cluster.Spec.InfrastructureRef.Kind == "DockerCluster" {
+			if cluster.Spec.InfrastructureRef.Kind == "DevCluster" {
 				Expect(bootstrap.LoadImagesToKindCluster(ctx, bootstrap.LoadImagesToKindClusterInput{
 					Name:   cluster.Name,
 					Images: input.E2EConfig.Images,

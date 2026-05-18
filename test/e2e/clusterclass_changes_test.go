@@ -48,7 +48,7 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", Label("Clus
 			// InfrastructureMachineTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
 			// The test verifies that these fields are rolled out to the MachineDeployments.
 			ModifyMachineDeploymentInfrastructureMachineTemplateFields: map[string]interface{}{
-				"spec.template.spec.extraMounts": []interface{}{
+				"spec.template.spec.backend.docker.extraMounts": []interface{}{
 					map[string]interface{}{
 						"containerPath": "/var/run/docker.sock",
 						"hostPath":      "/var/run/docker.sock",
@@ -71,7 +71,7 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", Label("Clus
 			// InfrastructureMachinePoolTemplate of all MachinePoolClasses of the ClusterClass after the initial Cluster creation.
 			// The test verifies that these fields are rolled out to the MachinePools.
 			ModifyMachinePoolInfrastructureMachinePoolTemplateFields: map[string]interface{}{
-				"spec.template.spec.template.extraMounts": []interface{}{
+				"spec.template.spec.backend.docker.extraMounts": []interface{}{
 					map[string]interface{}{
 						"containerPath": "/var/run/docker.sock",
 						"hostPath":      "/var/run/docker.sock",

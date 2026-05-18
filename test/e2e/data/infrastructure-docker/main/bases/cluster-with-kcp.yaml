@@ -1,27 +1,29 @@
 ---
-# DockerCluster object referenced by the Cluster object
+# DevCluster object referenced by the Cluster object
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerCluster
+kind: DevCluster
 metadata:
   name: '${CLUSTER_NAME}'
 spec:
-  failureDomains:
-    - name: fd1
-      controlPlane: true
-    - name: fd2
-      controlPlane: true
-    - name: fd3
-      controlPlane: true
-    - name: fd4
-      controlPlane: false
-    - name: fd5
-      controlPlane: false
-    - name: fd6
-      controlPlane: false
-    - name: fd7
-      controlPlane: false
-    - name: fd8
-      controlPlane: false
+  backend:
+    docker:
+      failureDomains:
+        - name: fd1
+          controlPlane: true
+        - name: fd2
+          controlPlane: true
+        - name: fd3
+          controlPlane: true
+        - name: fd4
+          controlPlane: false
+        - name: fd5
+          controlPlane: false
+        - name: fd6
+          controlPlane: false
+        - name: fd7
+          controlPlane: false
+        - name: fd8
+          controlPlane: false
 ---
 # Cluster object with
 # - Reference to the KubeadmControlPlane object
@@ -41,26 +43,28 @@ spec:
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   infrastructureRef:
     apiGroup: infrastructure.cluster.x-k8s.io
-    kind: DockerCluster
+    kind: DevCluster
     name: '${CLUSTER_NAME}'
   controlPlaneRef:
     kind: KubeadmControlPlane
     apiGroup: controlplane.cluster.x-k8s.io
     name: "${CLUSTER_NAME}-control-plane"
 ---
-# DockerMachineTemplate object referenced by the KubeadmControlPlane object
+# DevMachineTemplate object referenced by the KubeadmControlPlane object
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerMachineTemplate
+kind: DevMachineTemplate
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
   template:
     spec:
-      extraMounts:
-        - containerPath: "/var/run/docker.sock"
-          hostPath: "/var/run/docker.sock"
-      # The DOCKER_PRELOAD_IMAGES variable gets set in self-hosted E2E tests to the list of images of the E2E configuration.
-      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
+      backend:
+        docker:
+          extraMounts:
+            - containerPath: "/var/run/docker.sock"
+              hostPath: "/var/run/docker.sock"
+          # The DOCKER_PRELOAD_IMAGES variable gets set in self-hosted E2E tests to the list of images of the E2E configuration.
+          preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 # KubeadmControlPlane referenced by the Cluster object with
 # - the label kcp-adoption.step2, because it should be created in the second step of the kcp-adoption test.
@@ -75,7 +79,7 @@ spec:
   machineTemplate:
     spec:
       infrastructureRef:
-        kind: DockerMachineTemplate
+        kind: DevMachineTemplate
         apiGroup: infrastructure.cluster.x-k8s.io
         name: "${CLUSTER_NAME}-control-plane"
   kubeadmConfigSpec:

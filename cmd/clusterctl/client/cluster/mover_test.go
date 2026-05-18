@@ -406,7 +406,7 @@ var moveTests = []struct {
 		name: "Two clusters",
 		fields: moveTestsFields{
 			objs: func() []client.Object {
-				objs := []client.Object{}
+				objs := make([]client.Object, 0, 8)
 				objs = append(objs, test.NewFakeCluster("ns1", "foo").Objs()...)
 				objs = append(objs, test.NewFakeCluster("ns1", "bar").Objs()...)
 				return objs
@@ -434,9 +434,8 @@ var moveTests = []struct {
 			objs: func() []client.Object {
 				sharedInfrastructureTemplate := test.NewFakeInfrastructureTemplate("shared")
 
-				objs := []client.Object{
-					sharedInfrastructureTemplate,
-				}
+				objs := make([]client.Object, 0, 3)
+				objs = append(objs, sharedInfrastructureTemplate)
 
 				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").
 					WithMachineSets(
@@ -501,7 +500,7 @@ var moveTests = []struct {
 		name: "A ClusterResourceSet applied to a cluster",
 		fields: moveTestsFields{
 			objs: func() []client.Object {
-				objs := []client.Object{}
+				objs := make([]client.Object, 0, 16)
 				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 
 				objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
@@ -738,7 +737,7 @@ var backupRestoreTests = []struct {
 		name: "Many namespace cluster",
 		fields: moveTestsFields{
 			objs: func() []client.Object {
-				objs := []client.Object{}
+				objs := make([]client.Object, 0, 8)
 				objs = append(objs, test.NewFakeCluster("ns1", "foo").Objs()...)
 				objs = append(objs, test.NewFakeCluster("ns2", "bar").Objs()...)
 				return objs
@@ -957,27 +956,35 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 }
 
 func Test_objectMover_toDirectory(t *testing.T) {
-	tests := []struct {
+	tests := make([]struct {
+		name    string
+		fields  moveTestsFields
+		files   map[string]string
+		wantErr bool
+	}, 0, 2+len(backupRestoreTests))
+	tests = append(tests, struct {
 		name    string
 		fields  moveTestsFields
 		files   map[string]string
 		wantErr bool
 	}{
-		{
-			name: "Cluster is paused",
-			fields: moveTestsFields{
-				objs: test.NewFakeCluster("ns1", "foo").WithPaused().Objs(),
-			},
-			wantErr: true,
+		name: "Cluster is paused",
+		fields: moveTestsFields{
+			objs: test.NewFakeCluster("ns1", "foo").WithPaused().Objs(),
 		},
-		{
-			name: "ClusterClass is paused",
-			fields: moveTestsFields{
-				objs: test.NewFakeClusterClass("ns1", "foo").WithPaused().Objs(),
-			},
-			wantErr: true,
+		wantErr: true,
+	}, struct {
+		name    string
+		fields  moveTestsFields
+		files   map[string]string
+		wantErr bool
+	}{
+		name: "ClusterClass is paused",
+		fields: moveTestsFields{
+			objs: test.NewFakeClusterClass("ns1", "foo").WithPaused().Objs(),
 		},
-	}
+		wantErr: true,
+	})
 	tests = append(tests, backupRestoreTests...)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

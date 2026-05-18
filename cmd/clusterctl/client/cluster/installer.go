@@ -363,7 +363,7 @@ func simulateInstall(providerList *clusterctlv1.ProviderList, components reposit
 	existingInstances := providerList.FilterByProviderNameAndType(provider.ProviderName, provider.GetProviderType())
 	if len(existingInstances) > 0 {
 		namespaces := func() string {
-			var namespaces []string
+			namespaces := make([]string, 0, len(existingInstances))
 			for _, provider := range existingInstances {
 				namespaces = append(namespaces, provider.Namespace)
 			}

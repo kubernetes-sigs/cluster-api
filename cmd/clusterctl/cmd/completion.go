@@ -119,7 +119,7 @@ var (
 
 // GetSupportedShells returns a list of supported shells.
 func GetSupportedShells() []string {
-	shells := []string{}
+	shells := make([]string, 0, len(completionShells))
 	for s := range completionShells {
 		shells = append(shells, s)
 	}

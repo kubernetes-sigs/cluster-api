@@ -482,7 +482,7 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 }
 
 func toSemanticVersions(versions []string) []version.Version {
-	semanticVersions := []version.Version{}
+	semanticVersions := make([]version.Version, 0, len(versions))
 	for _, v := range versions {
 		semanticVersions = append(semanticVersions, *version.MustParseSemantic(v))
 	}

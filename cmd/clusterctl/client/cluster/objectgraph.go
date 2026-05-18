@@ -655,7 +655,7 @@ func (o *objectGraph) getSecrets() []*node {
 
 // getNodes returns the list of nodes existing in the object graph.
 func (o *objectGraph) getNodes() []*node {
-	nodes := []*node{}
+	nodes := make([]*node, 0, len(o.uidToNode))
 	for _, node := range o.uidToNode {
 		nodes = append(nodes, node)
 	}

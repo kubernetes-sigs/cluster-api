@@ -452,7 +452,7 @@ func Test_shouldUpgrade(t *testing.T) {
 			// just append an empty unstructured object at the end to make them different.
 			installObjs := tt.args.objs
 			if tt.hasDiffInstallObjs {
-				installObjs = make([]unstructured.Unstructured, len(tt.args.objs))
+				installObjs = make([]unstructured.Unstructured, len(tt.args.objs), len(tt.args.objs)+1)
 				copy(installObjs, tt.args.objs)
 				installObjs = append(installObjs, unstructured.Unstructured{})
 			}

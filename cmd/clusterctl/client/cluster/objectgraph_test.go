@@ -566,7 +566,7 @@ var objectGraphsTests = []struct {
 		name: "Two clusters",
 		args: objectGraphTestArgs{
 			objs: func() []client.Object {
-				objs := []client.Object{}
+				objs := make([]client.Object, 0, 8)
 				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 				objs = append(objs, test.NewFakeCluster("ns1", "cluster2").Objs()...)
 				return objs
@@ -1027,9 +1027,8 @@ var objectGraphsTests = []struct {
 			objs: func() []client.Object {
 				sharedInfrastructureTemplate := test.NewFakeInfrastructureTemplate("shared")
 
-				objs := []client.Object{
-					sharedInfrastructureTemplate,
-				}
+				objs := make([]client.Object, 0, 16)
+				objs = append(objs, sharedInfrastructureTemplate)
 
 				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").
 					WithMachineSets(
@@ -1170,7 +1169,7 @@ var objectGraphsTests = []struct {
 		name: "A ClusterResourceSet applied to a cluster",
 		args: objectGraphTestArgs{
 			objs: func() []client.Object {
-				objs := []client.Object{}
+				objs := make([]client.Object, 0, 16)
 				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 
 				objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
@@ -1232,7 +1231,7 @@ var objectGraphsTests = []struct {
 		name: "A ClusterResourceSet applied to two clusters",
 		args: objectGraphTestArgs{
 			objs: func() []client.Object {
-				objs := []client.Object{}
+				objs := make([]client.Object, 0, 16)
 				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 				objs = append(objs, test.NewFakeCluster("ns1", "cluster2").Objs()...)
 
@@ -1566,7 +1565,7 @@ var objectGraphsTests = []struct {
 		name: "Two ClusterClasses",
 		args: objectGraphTestArgs{
 			objs: func() []client.Object {
-				objs := []client.Object{}
+				objs := make([]client.Object, 0, 16)
 				objs = append(objs, test.NewFakeClusterClass("ns1", "clusterclass1").Objs()...)
 				objs = append(objs, test.NewFakeClusterClass("ns1", "clusterclass2").Objs()...)
 				return objs
@@ -1609,7 +1608,7 @@ var objectGraphsTests = []struct {
 		name: "Two ClusterClasses with shared templates",
 		args: objectGraphTestArgs{
 			objs: func() []client.Object {
-				objs := []client.Object{}
+				objs := make([]client.Object, 0, 16)
 
 				infraMachineTemplate1 := builder.InfrastructureMachineTemplate("ns1", "infamachinetemplate1").Build()
 				bootstrapTemplate1 := builder.BootstrapTemplate("ns1", "bootstraptemplate1").Build()
@@ -1827,7 +1826,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			args: args{
 				namespace: "", // read all the namespaces
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").Objs()...)
 					return objs
@@ -1881,7 +1880,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			args: args{
 				namespace: "ns1", // read only from ns1
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").Objs()...)
 					return objs
@@ -1916,7 +1915,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			args: args{
 				namespace: "ns1", // read only from ns1
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeClusterClass("ns1", "class1").Objs()...)
 					objs = append(objs, test.NewFakeClusterClass("ns1", "class2").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
@@ -1988,7 +1987,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			args: args{
 				namespace: "ns1", // read only from ns1
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeClusterClass("ns1", "class1").Objs()...)
 					objs = append(objs, test.NewFakeClusterClass("ns2", "class2").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
@@ -2042,7 +2041,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			args: args{
 				namespace: "ns1", // read only from ns1
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeClusterClass("ns1", "class1").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
@@ -2098,7 +2097,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			args: args{
 				namespace: "ns2", // read only from ns2
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeClusterClass("ns1", "class1").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
@@ -2398,7 +2397,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			name: "Object not owned by a cluster should be ignored",
 			fields: fields{
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeCluster("ns1", "foo").Objs()...)
 					objs = append(objs, test.NewFakeInfrastructureTemplate("orphan")) // orphan object, not owned by  any cluster
 					return objs
@@ -2417,7 +2416,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			name: "Two clusters",
 			fields: fields{
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeCluster("ns1", "foo").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns1", "bar").Objs()...)
 					return objs
@@ -2444,9 +2443,8 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				objs: func() []client.Object {
 					sharedInfrastructureTemplate := test.NewFakeInfrastructureTemplate("shared")
 
-					objs := []client.Object{
-						sharedInfrastructureTemplate,
-					}
+					objs := make([]client.Object, 0, 16)
+					objs = append(objs, sharedInfrastructureTemplate)
 
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").
 						WithMachineSets(
@@ -2502,7 +2500,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			name: "A ClusterResourceSet applied to a cluster",
 			fields: fields{
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 
 					objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
@@ -2528,7 +2526,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			name: "A ClusterResourceSet applied to two clusters",
 			fields: fields{
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster2").Objs()...)
 
@@ -2613,7 +2611,7 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 			name: "A ClusterResourceSet applied to a cluster",
 			fields: fields{
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 
 					objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
@@ -2638,7 +2636,7 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 			name: "A ClusterResourceSet applied to two clusters",
 			fields: fields{
 				objs: func() []client.Object {
-					objs := []client.Object{}
+					objs := make([]client.Object, 0, 16)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
 					objs = append(objs, test.NewFakeCluster("ns1", "cluster2").Objs()...)
 

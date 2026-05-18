@@ -52,8 +52,6 @@ linters:
   disable:
     # TODO: It will be dropped when the Go version migration is done.
     - usetesting
-    # TODO: It will be dropped when the prealloc findings are fixed.
-    - prealloc
   settings:
     forbidigo:
       forbid:

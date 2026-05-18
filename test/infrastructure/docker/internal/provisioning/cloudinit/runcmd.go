@@ -29,7 +29,7 @@ import (
 
 // runCmd defines parameters of a shell command that is equivalent to an action found in the cloud init rundcmd module.
 type runCmd struct {
-	Cmds []provisioning.Cmd `json:"runcmd,"`
+	Cmds []provisioning.Cmd `json:"runcmd"`
 }
 
 func newRunCmdAction() action {

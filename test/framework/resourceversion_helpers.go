@@ -89,7 +89,7 @@ func printObjectDiff(previousObjects, newObjects map[string]client.Object) func(
 			for objID := range createdObjects {
 				obj := newObjects[objID]
 				resourceYAML, _ := yaml.Marshal(obj)
-				output.WriteString(fmt.Sprintf("\nNew object %s:\n%s\n", objID, resourceYAML))
+				fmt.Fprintf(&output, "\nNew object %s:\n%s\n", objID, resourceYAML)
 			}
 		}
 		if len(deletedObjects) > 0 {
@@ -97,7 +97,7 @@ func printObjectDiff(previousObjects, newObjects map[string]client.Object) func(
 			for objID := range deletedObjects {
 				obj := previousObjects[objID]
 				resourceYAML, _ := yaml.Marshal(obj)
-				output.WriteString(fmt.Sprintf("\nDeleted object %s:\n%s\n", objID, resourceYAML))
+				fmt.Fprintf(&output, "\nDeleted object %s:\n%s\n", objID, resourceYAML)
 			}
 		}
 
@@ -113,7 +113,7 @@ func printObjectDiff(previousObjects, newObjects map[string]client.Object) func(
 
 				previousResourceYAML, _ := yaml.Marshal(previousObj)
 				newResourceYAML, _ := yaml.Marshal(newObj)
-				output.WriteString(fmt.Sprintf("\nObject with changed resourceVersion %s:\n%s\n", objID, cmp.Diff(string(previousResourceYAML), string(newResourceYAML))))
+				fmt.Fprintf(&output, "\nObject with changed resourceVersion %s:\n%s\n", objID, cmp.Diff(string(previousResourceYAML), string(newResourceYAML)))
 			}
 		}
 

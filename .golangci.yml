@@ -412,14 +412,6 @@ linters:
           - revive
         path: test/infrastructure/inmemory/pkg/server/api/.*\.go$
         text: 'var-naming: avoid meaningless package names'
-        # TODO: It will be dropped when the staticcheck QF1012 findings are fixed.
-      - linters:
-          - staticcheck
-        text: 'QF1012: Use fmt\.Fprintf'
-        # TODO: It will be dropped when the malformed json tags are fixed.
-      - linters:
-          - staticcheck
-        text: "SA5008: malformed `json` tag"
         # TODO: It will be dropped when the gosec G304 findings are fixed.
       - linters:
           - gosec

@@ -92,14 +92,6 @@ spec:
                                   bootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
                                   The default value is 3m.
                                 type: string
-                              bootstrapped:
-                                description: |-
-                                  bootstrapped is true when the kubeadm bootstrapping has been run
-                                  against this machine
-
-                                  Deprecated: This field will be removed in the next apiVersion.
-                                  When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
-                                type: boolean
                               customImage:
                                 description: |-
                                   customImage allows customizing the container image that is used for
@@ -327,14 +319,6 @@ spec:
                                   bootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
                                   The default value is 5m.
                                 type: string
-                              bootstrapped:
-                                description: |-
-                                  bootstrapped is true when the kubeadm bootstrapping has been run
-                                  against this machine
-
-                                  Deprecated: This field will be removed in the next apiVersion.
-                                  When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
-                                type: boolean
                               customImage:
                                 description: |-
                                   customImage allows customizing the container image that is used for

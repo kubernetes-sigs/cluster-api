@@ -1590,7 +1590,6 @@ func autoConvert_v1beta1_DockerMachineBackendSpec_To_v1beta2_DockerMachineBacken
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
 	out.ExtraMounts = *(*[]v1beta2.Mount)(unsafe.Pointer(&in.ExtraMounts))
-	out.Bootstrapped = in.Bootstrapped
 	out.BootstrapTimeout = (*v1.Duration)(unsafe.Pointer(in.BootstrapTimeout))
 	return nil
 }
@@ -1604,7 +1603,6 @@ func autoConvert_v1beta2_DockerMachineBackendSpec_To_v1beta1_DockerMachineBacken
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
 	out.ExtraMounts = *(*[]Mount)(unsafe.Pointer(&in.ExtraMounts))
-	out.Bootstrapped = in.Bootstrapped
 	out.BootstrapTimeout = (*v1.Duration)(unsafe.Pointer(in.BootstrapTimeout))
 	return nil
 }
@@ -1987,7 +1985,6 @@ func autoConvert_v1beta1_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in *Dock
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
 	out.ExtraMounts = *(*[]v1beta2.Mount)(unsafe.Pointer(&in.ExtraMounts))
-	out.Bootstrapped = in.Bootstrapped
 	out.BootstrapTimeout = (*v1.Duration)(unsafe.Pointer(in.BootstrapTimeout))
 	return nil
 }
@@ -2004,7 +2001,6 @@ func autoConvert_v1beta2_DockerMachineSpec_To_v1beta1_DockerMachineSpec(in *v1be
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
 	out.ExtraMounts = *(*[]Mount)(unsafe.Pointer(&in.ExtraMounts))
-	out.Bootstrapped = in.Bootstrapped
 	out.BootstrapTimeout = (*v1.Duration)(unsafe.Pointer(in.BootstrapTimeout))
 	return nil
 }

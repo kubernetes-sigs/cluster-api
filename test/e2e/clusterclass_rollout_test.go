@@ -42,16 +42,8 @@ var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", Label("Clu
 })
 
 func filterMetadataBeforeValidation(object ctrlclient.Object) clusterv1.ObjectMeta {
-	if object.GetObjectKind().GroupVersionKind() == infrav1.GroupVersion.WithKind("DockerMachine") {
-		// CAPDdev adds an extra labeldockermachine.infrastructure.cluster.x-k8s.io/weight on DevMachine, we need to filter it out to pass the
-		// clusterclass rollout test
-		annotations := object.GetAnnotations()
-		delete(annotations, infrav1.LoadbalancerWeightAnnotation)
-		object.SetAnnotations(annotations)
-		return clusterv1.ObjectMeta{Labels: object.GetLabels(), Annotations: object.GetAnnotations()}
-	}
 	if object.GetObjectKind().GroupVersionKind() == infrav1.GroupVersion.WithKind("DevMachine") {
-		// CAPDdev adds an extra labeldockermachine.infrastructure.cluster.x-k8s.io/weight on DevMachine, we need to filter it out to pass the
+		// CAPDdev adds an extra label devmachine.infrastructure.cluster.x-k8s.io/weight on DevMachine, we need to filter it out to pass the
 		// clusterclass rollout test
 		annotations := object.GetAnnotations()
 		delete(annotations, infrav1.LoadbalancerWeightAnnotation)

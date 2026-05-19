@@ -278,14 +278,6 @@ type DockerMachineBackendSpec struct {
 	// +optional
 	ExtraMounts []Mount `json:"extraMounts,omitempty"`
 
-	// bootstrapped is true when the kubeadm bootstrapping has been run
-	// against this machine
-	//
-	// Deprecated: This field will be removed in the next apiVersion.
-	// When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
-	// +optional
-	Bootstrapped bool `json:"bootstrapped,omitempty"`
-
 	// bootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
 	// The default value is 3m.
 	// +optional

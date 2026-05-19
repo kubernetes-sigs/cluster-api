@@ -183,18 +183,21 @@ func (m *TaskManager) GetStatus(dockerMachine client.Object, id string) *TaskSta
 	return new(snapshot)
 }
 
+// ResetStatus the status of a task for a dockerMachine.
+func (m *TaskManager) ResetStatus(dockerMachine client.Object, id string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	delete(m.tasks, taskUID(dockerMachine, id))
+}
+
 // Cancel cancels all the tasks for a dockerMachine.
 func (m *TaskManager) Cancel(dockerMachine client.Object) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	for id, state := range m.tasks {
 		if state.DockerMachineKey != client.ObjectKeyFromObject(dockerMachine) {
-			continue
-		}
-
-		if state.Completed || state.Err != nil {
-			delete(m.tasks, id)
 			continue
 		}
 

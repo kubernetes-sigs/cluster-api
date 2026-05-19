@@ -263,19 +263,23 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 		default:
 			return errors.Errorf("unable to create machine for role %s", role)
 		}
+	}
+	return nil
+}
 
-		// After creating a node we need to wait a small amount of time until crictl does not return an error.
-		// This fixes an issue where we try to kubeadm init too quickly after creating the container.
-		err = wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 4*time.Second, true, func(ctx context.Context) (bool, error) {
-			ps := m.Command("crictl", "ps")
-			return ps.Run(ctx) == nil, nil
-		})
-		if err != nil {
-			log.Info("Failed running command", "command", "crictl ps")
-			m.LogContainerDebugInfo(ctx)
-			return errors.Wrap(err, "failed to run crictl ps")
-		}
-		return nil
+// WaitForCrictlPs wait a small amount of time until crictl does not return an error.
+// Note: This was an initial try to avoid issues that might happen when we try to kubeadm init too quickly after creating the container.
+// We now have a better solution that also checks for cgroups ready.
+func (m *Machine) WaitForCrictlPs(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	err := wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 4*time.Second, true, func(ctx context.Context) (bool, error) {
+		ps := m.Command("crictl", "ps")
+		return ps.Run(ctx) == nil, nil
+	})
+	if err != nil {
+		log.Info("Failed running command", "command", "crictl ps")
+		m.LogContainerDebugInfo(ctx)
+		return errors.Wrap(err, "failed to run crictl ps")
 	}
 	return nil
 }
@@ -322,7 +326,9 @@ func (m *Machine) PreloadLoadImage(ctx context.Context, image string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to open image %q from %q", image, imageTarPath)
 	}
-	defer f.Close() //nolint:gocritic // No resource leak.
+	defer func() {
+		_ = f.Close()
+	}()
 
 	ps := m.Command("ctr", "--namespace=k8s.io", "images", "import", "-")
 	ps.SetStdin(f)
@@ -350,7 +356,7 @@ func (m *Machine) WaitForMultiUserTarget(ctx context.Context, containerRuntime c
 		return errors.New("multi-user target not reached yet")
 	}
 
-	return nil
+	return m.WaitForCrictlPs(ctx)
 }
 
 // GetBootstrapCommands return bootstrap commands for a Machine, this is generally `kubeadm <init|join>` plus additional commands.

@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -97,32 +98,32 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// Reconcile the docker container for this machine.
-	if result, err := r.reconcileContainer(ctx, cluster, machine, dataSecretName, dockerMachine, externalMachine); !result.IsZero() || err != nil {
+	if result, err := r.reconcileContainer(ctx, cluster, machine, dataSecretName, dockerMachine, externalMachine); err != nil || !result.IsZero() {
 		return result, err
 	}
 
 	// If this is a control plane machine, reconcile the load balancer configuration for this machine.
 	if util.IsControlPlaneMachine(machine) {
-		if result, err := r.reconcileLoadBalancer(ctx, cluster, dockerCluster, machine, dockerMachine, externalLoadBalancer); !result.IsZero() || err != nil {
+		if result, err := r.reconcileLoadBalancer(ctx, cluster, dockerCluster, machine, dockerMachine, externalLoadBalancer); err != nil || !result.IsZero() {
 			return result, err
 		}
 	}
 
 	// Reconcile CGroups in the docker container for this machine are started, which is a requirement for completing machine provisioning.
 	// Note: the operation is executed asynchronously so we don't block the reconcile loop.
-	if result, err := r.reconcileCGroups(ctx, dockerMachine, externalMachine); !result.IsZero() || err != nil {
+	if result, err := r.reconcileCGroups(ctx, dockerMachine, externalMachine); err != nil || !result.IsZero() {
 		return result, err
 	}
 
 	// Reconcile preloaded images into docker container for this machine.
 	// Note: the operation is executed asynchronously so we don't block the reconcile loop.
-	if result, err := r.reconcilePreLoadedImages(ctx, dockerMachine, externalMachine); !result.IsZero() || err != nil {
+	if result, err := r.reconcilePreLoadedImages(ctx, dockerMachine, externalMachine); err != nil || !result.IsZero() {
 		return result, err
 	}
 
 	// If provisioning of docker container for this machine is completed, surface it.
 	if conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerContainerProvisionedCondition) &&
-		conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupReadyCondition) &&
+		conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupsReadyCondition) &&
 		conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerPreLoadedImagesReadyCondition) {
 		dockerMachine.Spec.ProviderID = externalMachine.ProviderID()
 		dockerMachine.Status.Initialization.Provisioned = ptr.To(true)
@@ -132,12 +133,12 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Note: In order to mimic the behavior of a real infrastructure provider, following tasks are not considering
 	// when determining if provisioning of docker container for this machine is completed.
 
-	// Since there is no cloud init / ignition that runs inside the container on startup,
+	// Since there is no boostrap script that runs inside the container on startup,
 	// it is required to implement an alternative way for running the code that transforms the docker container into
 	// a Kubernetes node (e.g. kubeadm init or kubeadm join).
 	// The following function solves this problem by parsing the bootstrap data secret and extracting from it
 	// a sequence of "docker exec" commands that will be executed asynchronously so we don't block the reconcile loop.
-	if result, err := r.reconcileCloudInitOrIgnitionBootstrap(ctx, machine, dataSecretName, version, dockerMachine, externalMachine); !result.IsZero() || err != nil {
+	if result, err := r.reconcileBootstrap(ctx, machine, dataSecretName, version, dockerMachine, externalMachine); err != nil || !result.IsZero() {
 		return result, err
 	}
 
@@ -145,7 +146,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// it is required to implement an alternative way for performing the tasks that this component usually takes care of.
 	// The following function solves this problem taking care of setting spec.providerID and managing the uninitialized
 	// taint on the Kubernetes node that is hosted on the docker container.
-	if result, err := r.reconcileNode(ctx, cluster, dockerMachine, externalMachine); !result.IsZero() || err != nil {
+	if result, err := r.reconcileNode(ctx, cluster, dockerMachine, externalMachine); err != nil || !result.IsZero() {
 		return result, err
 	}
 	return ctrl.Result{}, nil
@@ -154,13 +155,13 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 func (r *MachineBackendReconciler) reconcileContainer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, dataSecretName *string, dockerMachine *infrav1.DevMachine, externalMachine *docker.Machine) (ctrl.Result, error) { //nolint:unparam
 	log := ctrl.LoggerFrom(ctx)
 
-	// if the machine has been already provisioned, but the container does not exist anymore, surface it
+	// if the machine has been already provisioned, but the container not running anymore, surface it
 	if dockerMachine.Spec.ProviderID != "" && !externalMachine.IsRunning() {
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:    infrav1.DevMachineDockerContainerProvisionedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.DevMachineDockerContainerNotProvisionedReason,
-			Message: fmt.Sprintf("Container %s does not exist anymore", externalMachine.ContainerName()),
+			Message: fmt.Sprintf("Container %s is not running anymore", externalMachine.ContainerName()),
 		})
 		return ctrl.Result{}, nil
 	}
@@ -204,7 +205,7 @@ func (r *MachineBackendReconciler) reconcileContainer(ctx context.Context, clust
 	}
 
 	// Handle best effort failures in creating the container.
-	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerContainerProvisionedCondition) && externalMachine.Exists() && !externalMachine.IsRunning() {
+	if externalMachine.Exists() && !externalMachine.IsRunning() {
 		// This deletes the machine and results in re-creating it below.
 		if err := externalMachine.Delete(ctx); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Failed to delete not running DockerMachine")
@@ -229,7 +230,7 @@ func (r *MachineBackendReconciler) reconcileContainer(ctx context.Context, clust
 			Type:    infrav1.DevMachineDockerContainerProvisionedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.DevMachineDockerContainerNotProvisionedReason,
-			Message: fmt.Sprintf("Crating container %s", externalMachine.ContainerName()),
+			Message: fmt.Sprintf("Creating container %s", externalMachine.ContainerName()),
 		})
 		return ctrl.Result{}, nil
 	}
@@ -255,19 +256,14 @@ func (r *MachineBackendReconciler) reconcileContainer(ctx context.Context, clust
 func (r *MachineBackendReconciler) reconcileLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster, machine *clusterv1.Machine, dockerMachine *infrav1.DevMachine, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) { //nolint:unparam
 	// if container is not ready yet, wait
 	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerContainerProvisionedCondition) {
-		conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerCGroupReadyCondition,
-			Status: metav1.ConditionFalse,
-			Reason: infrav1.DevMachineDockerCGroupReadyWaitingForContainerReason,
-		})
 		return ctrl.Result{}, nil
 	}
 
 	// Update the load balancer configuration for the docker container.
 	// Note: the annotation is used to track when configuration is updated:
 	// - not set or empty -> the docker container is not yet configured as a load balancer backend
-	// - dockermachine.infrastructure.cluster.x-k8s.io/weight: 100 -> the docker container is configured as load balancer backend
-	// - dockermachine.infrastructure.cluster.x-k8s.io/weight: 0 -> the docker container is configured as load balancer backend, but stopped to receive traffic (machine deleting)
+	// - devmachine.infrastructure.cluster.x-k8s.io/weight: 100 -> the docker container is configured as load balancer backend
+	// - devmachine.infrastructure.cluster.x-k8s.io/weight: 0 -> the docker container is configured as load balancer backend, but stopped to receive traffic (machine deleting)
 	// Note: reconcileLoadBalancerConfiguration does not use the annotation, it looks at machine list.
 	if dockerMachine.Annotations[infrav1.LoadbalancerWeightAnnotation] == "" {
 		if err := r.reconcileLoadBalancerConfiguration(ctx, cluster, dockerCluster, externalLoadBalancer); err != nil {
@@ -280,6 +276,8 @@ func (r *MachineBackendReconciler) reconcileLoadBalancer(ctx context.Context, cl
 	}
 
 	// if the corresponding machine is deleted but the docker machine not yet, update load balancer configuration to divert all traffic from the docker container.
+	// Note: The condition below express "the dockerMachine is going to be deleted", and we want to make this change (divert traffic) as soon as possible,
+	// without waiting for the actual dockerMachine deletion that only happens at the end of the delete sequence, after drain, detach volumes, deletion hooks etc.
 	if !machine.DeletionTimestamp.IsZero() && dockerMachine.DeletionTimestamp.IsZero() {
 		if dockerMachine.Annotations[infrav1.LoadbalancerWeightAnnotation] == "100" {
 			if err := r.reconcileLoadBalancerConfiguration(ctx, cluster, dockerCluster, externalLoadBalancer); err != nil {
@@ -298,7 +296,7 @@ func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerM
 	const WaitCGroupsTask = "WaitCGroups"
 
 	// no-op if already completed.
-	if conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupReadyCondition) {
+	if conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupsReadyCondition) {
 		return ctrl.Result{}, nil
 	}
 
@@ -306,9 +304,9 @@ func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerM
 	// Note: this prevents to re-run the operation after clusterctl move / backup-restore.
 	if dockerMachine.Spec.ProviderID != "" {
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerCGroupReadyCondition,
+			Type:   infrav1.DevMachineDockerCGroupsReadyCondition,
 			Status: metav1.ConditionTrue,
-			Reason: infrav1.DevMachineDockerCGroupReadyReason,
+			Reason: infrav1.DevMachineDockerCGroupsReadyReason,
 		})
 		return ctrl.Result{}, nil
 	}
@@ -316,9 +314,9 @@ func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerM
 	// if container is not ready yet, wait
 	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerContainerProvisionedCondition) {
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerCGroupReadyCondition,
+			Type:   infrav1.DevMachineDockerCGroupsReadyCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.DevMachineDockerCGroupReadyWaitingForContainerReason,
+			Reason: infrav1.DevMachineDockerCGroupsReadyWaitingForContainerReason,
 		})
 		return ctrl.Result{}, nil
 	}
@@ -327,11 +325,11 @@ func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerM
 	taskState := r.TaskManager.GetStatus(dockerMachine, WaitCGroupsTask)
 	switch {
 	case taskState == nil:
-		// WaitCGroupsTask not it performed, start it.
+		// WaitCGroupsTask not yet performed, start it.
 		var err error
 		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, WaitCGroupsTask, []Operation{
 			{
-				Description: "Waiting for CGroup ready",
+				Description: "Waiting for cgroups ready",
 				F: func(ctx context.Context) error {
 					log := ctrl.LoggerFrom(ctx)
 					log.Info("Checking if the container performed the multi-user systemd target")
@@ -341,42 +339,43 @@ func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerM
 		}, 30*time.Second)
 		if err != nil {
 			conditions.Set(dockerMachine, metav1.Condition{
-				Type:    infrav1.DevMachineDockerCGroupReadyCondition,
+				Type:    infrav1.DevMachineDockerCGroupsReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.DevMachineDockerCGroupReadyInternalErrorReason,
+				Reason:  infrav1.DevMachineDockerCGroupsReadyInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			})
 			return ctrl.Result{}, err
 		}
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:    infrav1.DevMachineDockerCGroupReadyCondition,
+			Type:    infrav1.DevMachineDockerCGroupsReadyCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.DevMachineDockerCGroupNotReadyReason,
+			Reason:  infrav1.DevMachineDockerCGroupsNotReadyReason,
 			Message: taskState.String(),
 		})
 	case !taskState.Completed && taskState.Err == nil:
 		// WaitCGroupsTask in progress, report state.
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:    infrav1.DevMachineDockerCGroupReadyCondition,
+			Type:    infrav1.DevMachineDockerCGroupsReadyCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.DevMachineDockerCGroupNotReadyReason,
+			Reason:  infrav1.DevMachineDockerCGroupsNotReadyReason,
 			Message: taskState.String(),
 		})
 	case taskState.Err != nil:
 		// WaitCGroupsTask failed, retry.
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:    infrav1.DevMachineDockerCGroupReadyCondition,
+			Type:    infrav1.DevMachineDockerCGroupsReadyCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.DevMachineDockerCGroupNotReadyReason,
+			Reason:  infrav1.DevMachineDockerCGroupsNotReadyReason,
 			Message: taskState.String(),
 		})
+		r.TaskManager.ResetStatus(dockerMachine, WaitCGroupsTask)
 		r.DeferNextReconcileForObject(dockerMachine, time.Now().Add(5*time.Second))
 	case taskState.Completed:
 		// WaitCGroupsTask completed, report state.
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerCGroupReadyCondition,
+			Type:   infrav1.DevMachineDockerCGroupsReadyCondition,
 			Status: metav1.ConditionTrue,
-			Reason: infrav1.DevMachineDockerCGroupReadyReason,
+			Reason: infrav1.DevMachineDockerCGroupsReadyReason,
 		})
 	}
 	return ctrl.Result{}, nil
@@ -412,11 +411,11 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 	}
 
 	// if CGroups are not ready yet, wait
-	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupReadyCondition) {
+	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupsReadyCondition) {
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.DevMachineDockerPreLoadedImagesReadyWaitingForCGroupReason,
+			Reason: infrav1.DevMachineDockerPreLoadedImagesReadyWaitingForCGroupsReason,
 		})
 		return ctrl.Result{}, nil
 	}
@@ -447,7 +446,7 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 			})
 		}
 		var err error
-		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, PreLoadImagesTask, operations, 2*time.Minute)
+		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, PreLoadImagesTask, operations, 5*time.Minute)
 		if err != nil {
 			conditions.Set(dockerMachine, metav1.Condition{
 				Type:    infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
@@ -479,6 +478,7 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 			Reason:  infrav1.DevMachineDockerPreLoadedImagesNotReadyReason,
 			Message: taskState.String(),
 		})
+		r.TaskManager.ResetStatus(dockerMachine, PreLoadImagesTask)
 		r.DeferNextReconcileForObject(dockerMachine, time.Now().Add(5*time.Second))
 	case taskState.Completed:
 		// PreLoadImagesTask completed, report state.
@@ -491,12 +491,12 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx context.Context, machine *clusterv1.Machine, dataSecretName *string, version string, dockerMachine *infrav1.DevMachine, externalMachine *docker.Machine) (ctrl.Result, error) { //nolint:unparam
+func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machine *clusterv1.Machine, dataSecretName *string, version string, dockerMachine *infrav1.DevMachine, externalMachine *docker.Machine) (ctrl.Result, error) { //nolint:unparam
 	const CloudInitOrIgnitionTask = "CloudInitOrIgnition"
 
 	// no-op if already completed or failed.
-	if conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition) ||
-		conditions.GetReason(dockerMachine, infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition) == infrav1.DevMachineDockerCloudInitOrIgnitionFailedReason {
+	if conditions.IsTrue(dockerMachine, infrav1.DevMachineBootstrapCompletedCondition) ||
+		conditions.GetReason(dockerMachine, infrav1.DevMachineBootstrapCompletedCondition) == infrav1.DevMachineDockerBootstrapFailedReason {
 		return ctrl.Result{}, nil
 	}
 
@@ -505,9 +505,9 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 	// even if this mechanism does not work if node ref is not set, but this limitation is considered acceptable for CAPdev.
 	if machine.Status.NodeRef.Name != "" {
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			Type:   infrav1.DevMachineBootstrapCompletedCondition,
 			Status: metav1.ConditionTrue,
-			Reason: infrav1.DevMachineDockerCloudInitOrIgnitionCompletedReason,
+			Reason: infrav1.DevMachineDockerBootstrapCompletedReason,
 		})
 		return ctrl.Result{}, nil
 	}
@@ -515,19 +515,19 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 	// if container is not ready yet, wait
 	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerContainerProvisionedCondition) {
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			Type:   infrav1.DevMachineBootstrapCompletedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.DevMachineDockerCloudInitOrIgnitionCompletedWaitingForContainerReason,
+			Reason: infrav1.DevMachineDockerBootstrapCompletedWaitingForContainerReason,
 		})
 		return ctrl.Result{}, nil
 	}
 
 	// if CGroups are not ready yet, wait
-	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupReadyCondition) {
+	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupsReadyCondition) {
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			Type:   infrav1.DevMachineBootstrapCompletedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.DevMachineDockerCloudInitOrIgnitionCompletedWaitingForCGroupReason,
+			Reason: infrav1.DevMachineDockerBootstrapCompletedWaitingForCGroupsReason,
 		})
 		return ctrl.Result{}, nil
 	}
@@ -535,9 +535,9 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 	// if preloaded images are not ready yet, wait
 	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerPreLoadedImagesReadyCondition) {
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			Type:   infrav1.DevMachineBootstrapCompletedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.DevMachineDockerCloudInitOrIgnitionCompletedWaitingForPreloadedImagesReason,
+			Reason: infrav1.DevMachineDockerBootstrapCompletedWaitingForPreloadedImagesReason,
 		})
 		return ctrl.Result{}, nil
 	}
@@ -552,9 +552,9 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 		bootstrapData, format, err := r.getBootstrapData(ctx, dockerMachine.Namespace, *dataSecretName)
 		if err != nil {
 			conditions.Set(dockerMachine, metav1.Condition{
-				Type:    infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+				Type:    infrav1.DevMachineBootstrapCompletedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.DevMachineDockerCloudInitOrIgnitionCompletedInternalErrorReason,
+				Reason:  infrav1.DevMachineDockerBootstrapCompletedInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			})
 			return ctrl.Result{}, err
@@ -564,9 +564,9 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 		commands, err := externalMachine.GetBootstrapCommands(ctx, bootstrapData, format, version, dockerMachine.Spec.Backend.Docker.CustomImage)
 		if err != nil {
 			conditions.Set(dockerMachine, metav1.Condition{
-				Type:    infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+				Type:    infrav1.DevMachineBootstrapCompletedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.DevMachineDockerCloudInitOrIgnitionCompletedInternalErrorReason,
+				Reason:  infrav1.DevMachineDockerBootstrapCompletedInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			})
 			return ctrl.Result{}, err
@@ -577,10 +577,10 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 		for _, command := range commands {
 			commandMsg := strings.Join(append([]string{command.Cmd}, command.Args...), " ")
 			operations = append(operations, Operation{
-				Description: fmt.Sprintf("Running cloud-init/ignition command [ %s ]", commandMsg),
+				Description: fmt.Sprintf("Running boostrap command [ %s ]", commandMsg),
 				F: func(ctx context.Context) error {
 					log := ctrl.LoggerFrom(ctx)
-					log.Info("Running cloud-init/ignition command", "command", commandMsg)
+					log.Info("Running boostrap command", "command", commandMsg)
 
 					var outErr bytes.Buffer
 					var outStd bytes.Buffer
@@ -594,7 +594,7 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 					if err := cmd.Run(ctx); err != nil {
 						stdout := outStd.String()
 						stderr := outErr.String()
-						log.Info("Failed running cloud-init/ignition command", "command", commandMsg, "error", err.Error(), "stdout", stdout, "stderr", stderr, "bootstrap data", bootstrapData)
+						log.Info("Failed running boostrap command", "command", commandMsg, "error", err.Error(), "stdout", stdout, "stderr", stderr, "bootstrap data", bootstrapData)
 						externalMachine.LogContainerDebugInfo(ctx)
 						return &cmdError{
 							Err:    errors.WithStack(err),
@@ -614,15 +614,15 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, CloudInitOrIgnitionTask, operations, timeout)
 		if err != nil {
 			conditions.Set(dockerMachine, metav1.Condition{
-				Type:    infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+				Type:    infrav1.DevMachineBootstrapCompletedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.DevMachineDockerCloudInitOrIgnitionCompletedInternalErrorReason,
+				Reason:  infrav1.DevMachineDockerBootstrapCompletedInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			})
 			return ctrl.Result{}, err
 		}
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:    infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			Type:    infrav1.DevMachineBootstrapCompletedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.DevMachineDockerPreLoadedImagesNotReadyReason,
 			Message: taskState.String(),
@@ -631,20 +631,20 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 		// CloudInitOrIgnitionTask in progress, report state.
 		// Note: It is not possible to re-run kubeadm init/join, also we would like to triage issue in this case.
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:    infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			Type:    infrav1.DevMachineBootstrapCompletedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.DevMachineDockerPreLoadedImagesNotReadyReason,
 			Message: taskState.String(),
 		})
 	case taskState.Err != nil:
 		// CloudInitOrIgnitionTask failed.
-		// Note: when cloud-init or ignition fails on a Machine, there is no retry.
+		// Note: when bootstrap fails on a Machine, there is no retry.
 		cmdErr := &cmdError{}
 		if errors.As(taskState.Err, &cmdErr) {
 			conditions.Set(dockerMachine, metav1.Condition{
-				Type:   infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+				Type:   infrav1.DevMachineBootstrapCompletedCondition,
 				Status: metav1.ConditionFalse,
-				Reason: infrav1.DevMachineDockerCloudInitOrIgnitionFailedReason,
+				Reason: infrav1.DevMachineDockerBootstrapFailedReason,
 				Message: fmt.Sprintf("%s\n", taskState.CurrentOperationDescription) +
 					fmt.Sprintf("ERROR: %s\n", cmdErr.Err.Error()) +
 					fmt.Sprintf("STDOUT: %s\n", indentIfMultiline(cmdErr.Stdout, 10)) +
@@ -653,17 +653,17 @@ func (r *MachineBackendReconciler) reconcileCloudInitOrIgnitionBootstrap(ctx con
 			return ctrl.Result{}, nil
 		}
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:    infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			Type:    infrav1.DevMachineBootstrapCompletedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.DevMachineDockerCloudInitOrIgnitionNotCompletedReason,
+			Reason:  infrav1.DevMachineDockerBootstrapNotCompletedReason,
 			Message: taskState.String(),
 		})
 	case taskState.Completed:
 		// CloudInitOrIgnitionTask completed, report state.
 		conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			Type:   infrav1.DevMachineBootstrapCompletedCondition,
 			Status: metav1.ConditionTrue,
-			Reason: infrav1.DevMachineDockerCloudInitOrIgnitionCompletedReason,
+			Reason: infrav1.DevMachineDockerBootstrapCompletedReason,
 		})
 	}
 	return ctrl.Result{}, nil
@@ -673,7 +673,7 @@ func (r *MachineBackendReconciler) reconcileNode(ctx context.Context, cluster *c
 	cloudProviderTaint := corev1.Taint{Key: "node.cloudprovider.kubernetes.io/uninitialized", Effect: corev1.TaintEffectNoSchedule}
 
 	nodeName := externalMachine.ContainerName()
-	log := ctrl.LoggerFrom(ctx).WithValues("Node", nodeName)
+	log := ctrl.LoggerFrom(ctx).WithValues("Node", klog.KRef("", nodeName))
 
 	// If container is not yet provisioned, wait.
 	if !conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerContainerProvisionedCondition) {
@@ -710,7 +710,7 @@ func (r *MachineBackendReconciler) reconcileNode(ctx context.Context, cluster *c
 
 	patchHelper, err := patch.NewHelper(node, remoteClient)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to create patch helper for the node object")
+		return ctrl.Result{}, err
 	}
 
 	// Set the providerID on the node.
@@ -752,7 +752,7 @@ func (r *MachineBackendReconciler) reconcileNode(ctx context.Context, cluster *c
 	}
 
 	if err := patchHelper.Patch(ctx, node); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to patch node")
+		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
 }
@@ -857,12 +857,12 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 	)
 	if err := conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyCondition,
 		conditions.ForConditionTypes{
-			infrav1.DevMachineDockerCGroupReadyCondition,
+			infrav1.DevMachineDockerCGroupsReadyCondition,
 			infrav1.DevMachineDockerContainerProvisionedCondition,
 			infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
-			// Note: on real infrastructure providers usually it is not possible to have visibility in the cloud-init / ignition process
+			// Note: on real infrastructure providers usually it is not possible to have visibility in the bootstrap process
 			// but for docker machine it is, and so we surface this info to help in triaging issue.
-			infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			infrav1.DevMachineBootstrapCompletedCondition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		conditions.CustomMergeStrategy{
@@ -891,10 +891,10 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
 			infrav1.DevMachineReadyCondition,
-			infrav1.DevMachineDockerCGroupReadyCondition,
+			infrav1.DevMachineDockerCGroupsReadyCondition,
 			infrav1.DevMachineDockerContainerProvisionedCondition,
 			infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
-			infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			infrav1.DevMachineBootstrapCompletedCondition,
 		}},
 	)
 }

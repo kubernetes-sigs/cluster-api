@@ -271,12 +271,12 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 	)
 	if err := conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyCondition,
 		conditions.ForConditionTypes{
-			infrav1.DevMachineDockerCGroupReadyCondition,
+			infrav1.DevMachineDockerCGroupsReadyCondition,
 			infrav1.DevMachineDockerContainerProvisionedCondition,
 			infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
 			// Note: on real infrastructure providers usually it is not possible to have visibility in the cloud-init / ignition process
 			// but for docker machine it is, and so we surface this info to help in triaging issue.
-			infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			infrav1.DevMachineBootstrapCompletedCondition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		conditions.CustomMergeStrategy{
@@ -305,10 +305,10 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
 			infrav1.DevMachineReadyCondition,
-			infrav1.DevMachineDockerCGroupReadyCondition,
+			infrav1.DevMachineDockerCGroupsReadyCondition,
 			infrav1.DevMachineDockerContainerProvisionedCondition,
 			infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
-			infrav1.DevMachineDockerCloudInitOrIgnitionCompletedCondition,
+			infrav1.DevMachineBootstrapCompletedCondition,
 		}},
 	)
 }
@@ -333,7 +333,6 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 					CustomImage:      dockerMachine.Spec.CustomImage,
 					PreLoadImages:    dockerMachine.Spec.PreLoadImages,
 					ExtraMounts:      dockerMachine.Spec.ExtraMounts,
-					Bootstrapped:     dockerMachine.Spec.Bootstrapped,
 					BootstrapTimeout: dockerMachine.Spec.BootstrapTimeout,
 				},
 			},
@@ -366,7 +365,6 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 	dockerMachine.Spec.CustomImage = devMachine.Spec.Backend.Docker.CustomImage
 	dockerMachine.Spec.PreLoadImages = devMachine.Spec.Backend.Docker.PreLoadImages
 	dockerMachine.Spec.ExtraMounts = devMachine.Spec.Backend.Docker.ExtraMounts
-	dockerMachine.Spec.Bootstrapped = devMachine.Spec.Backend.Docker.Bootstrapped
 	dockerMachine.Spec.BootstrapTimeout = devMachine.Spec.Backend.Docker.BootstrapTimeout
 	dockerMachine.Status.Initialization = infrav1.DockerMachineInitializationStatus{
 		Provisioned: devMachine.Status.Initialization.Provisioned,

@@ -68,14 +68,6 @@ spec:
                   BootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
                   The default value is 3m.
                 type: string
-              bootstrapped:
-                description: |-
-                  Bootstrapped is true when the kubeadm bootstrapping has been run
-                  against this machine
-
-                  Deprecated: This field will be removed in the next apiVersion.
-                  When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
-                type: boolean
               customImage:
                 description: |-
                   CustomImage allows customizing the container image that is used for
@@ -348,14 +340,6 @@ spec:
                   BootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
                   The default value is 5m.
                 type: string
-              bootstrapped:
-                description: |-
-                  Bootstrapped is true when the kubeadm bootstrapping has been run
-                  against this machine
-
-                  Deprecated: This field will be removed in the next apiVersion.
-                  When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
-                type: boolean
               customImage:
                 description: |-
                   CustomImage allows customizing the container image that is used for
@@ -431,8 +415,8 @@ spec:
               conditions:
                 description: |-
                   conditions represents the observations of a DockerMachine's current state.
-                  Known condition types are Ready, ContainerProvisioned, CGroupReady, PreLoadedImagesReady,
-                  CloudInitOrIgnitionCompleted and Paused when using the docker backend.
+                  Known condition types are Ready, ContainerProvisioned, CGroupsReady, PreLoadedImagesReady,
+                  BootstrapCompleted and Paused.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.

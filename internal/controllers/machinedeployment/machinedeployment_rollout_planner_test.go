@@ -934,12 +934,12 @@ func (r rolloutScope) machines() []*clusterv1.Machine {
 // summary provides an overview of MachineDeployment, MachineSets and Machines in the scope.
 func (r rolloutScope) summary() string {
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("  %s\n", r.machineDeploymentSummary()))
+	fmt.Fprintf(&sb, "  %s\n", r.machineDeploymentSummary())
 
 	// sort machineSets to ensure consistent output.
 	sortMachineSetsByName(r.machineSets)
 	for _, ms := range r.machineSets {
-		sb.WriteString(fmt.Sprintf("  %s\n", r.machineSetSummary(ms)))
+		fmt.Fprintf(&sb, "  %s\n", r.machineSetSummary(ms))
 	}
 	return sb.String()
 }
@@ -1132,7 +1132,7 @@ func newFileLogger(t *testing.T, name, fileName string) *fileLogger {
 	t.Helper()
 
 	l := &fileLogger{t: t, testCaseStringBuilder: strings.Builder{}}
-	l.testCaseStringBuilder.WriteString(fmt.Sprintf("## %s\n\n", name))
+	fmt.Fprintf(&l.testCaseStringBuilder, "## %s\n\n", name)
 	l.testCase = name
 	l.fileName = fileName
 	return l

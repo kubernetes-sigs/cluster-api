@@ -51,16 +51,16 @@ conntrack:
 
 // writeFilesAction defines a list of files that should be written to a node.
 type writeFilesAction struct {
-	Files []files `json:"write_files,"`
+	Files []files `json:"write_files"`
 }
 
 type files struct {
-	Path        string `json:"path,"`
+	Path        string `json:"path"`
 	Encoding    string `json:"encoding,omitempty"`
 	Owner       string `json:"owner,omitempty"`
 	Permissions string `json:"permissions,omitempty"`
-	Content     string `json:"content,"`
-	Append      bool   `json:"append,"`
+	Content     string `json:"content"`
+	Append      bool   `json:"append"`
 }
 
 func newWriteFilesAction() action {

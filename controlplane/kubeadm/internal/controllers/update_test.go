@@ -217,7 +217,8 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 		Machines: collections.Machines{},
 		Workload: &fakeWorkloadCluster{},
 	}
-	objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
+	objs := make([]client.Object, 0, 10)
+	objs = append(objs, builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy())
 	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m := &clusterv1.Machine{

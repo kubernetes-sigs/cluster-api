@@ -2829,11 +2829,11 @@ func checkErrors(t *testing.T, wantErrs []validationMatch, gotErrs field.ErrorLi
 	}
 
 	if foundMismatch {
-		var wantErrsStr []string
+		wantErrsStr := make([]string, 0, len(wantErrs))
 		for i := range wantErrs {
 			wantErrsStr = append(wantErrsStr, fmt.Sprintf("type: %s\ntext: %s\npath: %s", string(wantErrs[i].Type), wantErrs[i].containsString, wantErrs[i].Field))
 		}
-		var gotErrsStr []string
+		gotErrsStr := make([]string, 0, len(gotErrs))
 		for i := range gotErrs {
 			gotErrsStr = append(gotErrsStr, fmt.Sprintf("type: %s\ntext: %s\npath: %s", string(gotErrs[i].Type), gotErrs[i].Error(), gotErrs[i].Field))
 		}

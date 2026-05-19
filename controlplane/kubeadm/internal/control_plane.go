@@ -490,7 +490,7 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 	}
 	sort.Strings(machines)
 
-	etcdMembers := []string{}
+	etcdMembers := make([]string, 0, len(c.EtcdMembers))
 	for _, m := range c.EtcdMembers {
 		etcdMembers = append(etcdMembers, m.Name)
 	}

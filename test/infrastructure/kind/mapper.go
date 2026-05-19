@@ -686,7 +686,7 @@ func GetKubernetesVersions() []string {
 		versionMap[m.KubernetesVersion.String()] = m.KubernetesVersion
 	}
 
-	semVersions := []semver.Version{}
+	semVersions := make([]semver.Version, 0, len(versionMap))
 	for _, v := range versionMap {
 		semVersions = append(semVersions, v)
 	}

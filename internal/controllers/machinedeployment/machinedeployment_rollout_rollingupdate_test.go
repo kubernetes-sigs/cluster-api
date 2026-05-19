@@ -2012,7 +2012,7 @@ func maxSurgeToleration() func(log *fileLogger, _ int, _ *rolloutScope, _, _ int
 }
 
 func getTaskListRollingUpdate(current *rolloutScope) []string {
-	taskList := make([]string, 0)
+	taskList := make([]string, 0, 1+len(current.machineSets)+1)
 	taskList = append(taskList, "md")
 	for _, ms := range current.machineSets {
 		taskList = append(taskList, ms.Name)

@@ -389,10 +389,11 @@ func ApplyCustomClusterTemplateAndWait(ctx context.Context, input ApplyCustomClu
 	}
 
 	log.Logf("Applying the cluster template yaml of cluster %s", klog.KRef(input.Namespace, input.ClusterName))
-	createOpts := []framework.CreateOption{
+	createOpts := make([]framework.CreateOption, 0, 1+len(input.CreateOpts))
+	createOpts = append(createOpts,
 		// Set default polling. Can be overridden by users.
 		framework.CreateWithPolling(1*time.Minute, 250*time.Millisecond),
-	}
+	)
 	createOpts = append(createOpts, input.CreateOpts...)
 	Expect(input.ClusterProxy.Create(ctx, input.CustomTemplateYAML, createOpts...)).To(Succeed(), "Failed to apply the cluster template")
 

@@ -1116,7 +1116,7 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 			// Note: the code computing the message for KCP's RolloutOut condition is making assumptions on the format/content of this message.
 			message := ""
 			if machineUpToDateResult, ok := machinesUpToDateResults[machine.Name]; ok && len(machineUpToDateResult.ConditionMessages) > 0 {
-				var reasons []string
+				reasons := make([]string, 0, len(machineUpToDateResult.ConditionMessages))
 				for _, conditionMessage := range machineUpToDateResult.ConditionMessages {
 					reasons = append(reasons, fmt.Sprintf("* %s", conditionMessage))
 				}

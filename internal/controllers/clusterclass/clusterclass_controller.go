@@ -208,10 +208,11 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 	clusterClass := s.clusterClass
 
 	// Collect all the reference from the ClusterClass to templates.
-	refs := []clusterv1.ClusterClassTemplateReference{
+	refs := make([]clusterv1.ClusterClassTemplateReference, 0, 3+2*len(clusterClass.Spec.Workers.MachineDeployments)+2*len(clusterClass.Spec.Workers.MachinePools))
+	refs = append(refs,
 		clusterClass.Spec.Infrastructure.TemplateRef,
 		clusterClass.Spec.ControlPlane.TemplateRef,
-	}
+	)
 	refs = append(refs, clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef)
 	for _, mdClass := range clusterClass.Spec.Workers.MachineDeployments {
 		refs = append(refs, mdClass.Bootstrap.TemplateRef, mdClass.Infrastructure.TemplateRef)

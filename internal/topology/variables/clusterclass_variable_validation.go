@@ -54,7 +54,7 @@ const (
 
 // ValidateClusterClassVariables validates clusterClassVariable.
 func ValidateClusterClassVariables(ctx context.Context, oldClusterClassVariables, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 
 	allErrs = append(allErrs, validateClusterClassVariableNamesUnique(clusterClassVariables, fldPath)...)
 
@@ -103,7 +103,7 @@ func validateClusterClassVariableNamesUnique(clusterClassVariables []clusterv1.C
 
 // validateClusterClassVariable validates a ClusterClassVariable.
 func validateClusterClassVariable(ctx context.Context, oldVariable, variable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
+	allErrs := field.ErrorList{} //nolint:prealloc // Not all paths append
 
 	// Validate variable name.
 	allErrs = append(allErrs, validateClusterClassVariableName(variable.Name, fldPath.Child("name"))...)

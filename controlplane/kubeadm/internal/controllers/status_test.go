@@ -2218,7 +2218,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	g.Expect(err).ToNot(HaveOccurred())
 
 	machines := map[string]*clusterv1.Machine{}
-	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	objs := make([]client.Object, 0, 8)
+	objs = append(objs, cluster.DeepCopy(), kcp.DeepCopy())
 	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
@@ -2285,9 +2286,10 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap()}
+	objs := make([]client.Object, 0, 9)
+	objs = append(objs, cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap())
 	machines := map[string]*clusterv1.Machine{}
-	nodes := []*internal.Node{}
+	nodes := make([]*internal.Node, 0, 3)
 	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, true)
@@ -2359,8 +2361,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 	machines := map[string]*clusterv1.Machine{}
-	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
-	nodes := []*internal.Node{}
+	objs := make([]client.Object, 0, 13)
+	objs = append(objs, cluster.DeepCopy(), kcp.DeepCopy())
+	nodes := make([]*internal.Node, 0, 5)
 	for i := range 4 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
@@ -2434,7 +2437,8 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 	machines := map[string]*clusterv1.Machine{}
-	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	objs := make([]client.Object, 0, 8)
+	objs = append(objs, cluster.DeepCopy(), kcp.DeepCopy())
 	// Create the desired number of machines
 	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)

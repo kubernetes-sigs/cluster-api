@@ -37,7 +37,7 @@ type matchConditions struct {
 }
 
 func (m matchConditions) Match(actual interface{}) (success bool, err error) {
-	elems := []interface{}{}
+	elems := make([]interface{}, 0, len(m.expected))
 	for _, condition := range m.expected {
 		elems = append(elems, MatchCondition(condition))
 	}

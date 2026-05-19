@@ -733,14 +733,15 @@ func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1
 func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	log := ctrl.LoggerFrom(ctx)
 
-	forConditionTypes := conditions.ForConditionTypes{
+	forConditionTypes := make(conditions.ForConditionTypes, 0, 6+len(machine.Spec.ReadinessGates))
+	forConditionTypes = append(forConditionTypes,
 		clusterv1.MachineDeletingCondition,
 		clusterv1.MachineUpdatingCondition,
 		clusterv1.MachineBootstrapConfigReadyCondition,
 		clusterv1.MachineInfrastructureReadyCondition,
 		clusterv1.MachineNodeHealthyCondition,
 		clusterv1.MachineHealthCheckSucceededCondition,
-	}
+	)
 	negativePolarityConditionTypes := []string{clusterv1.MachineDeletingCondition, clusterv1.MachineUpdatingCondition}
 	for _, g := range machine.Spec.ReadinessGates {
 		forConditionTypes = append(forConditionTypes, g.ConditionType)

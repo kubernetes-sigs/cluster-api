@@ -1152,14 +1152,15 @@ func (c clusterConditionCustomMergeStrategy) Merge(operation conditions.MergeOpe
 func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
 	log := ctrl.LoggerFrom(ctx)
 
-	forConditionTypes := conditions.ForConditionTypes{
+	forConditionTypes := make(conditions.ForConditionTypes, 0, 6+len(cluster.Spec.AvailabilityGates))
+	forConditionTypes = append(forConditionTypes,
 		clusterv1.ClusterDeletingCondition,
 		clusterv1.ClusterRemoteConnectionProbeCondition,
 		clusterv1.ClusterInfrastructureReadyCondition,
 		clusterv1.ClusterControlPlaneAvailableCondition,
 		clusterv1.ClusterWorkersAvailableCondition,
 		clusterv1.ClusterTopologyReconciledCondition,
-	}
+	)
 	negativePolarityConditionTypes := []string{clusterv1.ClusterDeletingCondition}
 	availabilityGates := cluster.Spec.AvailabilityGates
 	if availabilityGates == nil && clusterClass != nil {

@@ -130,12 +130,13 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 	//
 	// Verify managedField mitigation (purge managedFields and verify they are re-added)
 	//
-	objects := []client.Object{
+	objects := make([]client.Object, 0, 4+3*len(s.Current.MachineDeployments)+3*len(s.Current.MachinePools))
+	objects = append(objects,
 		s.Current.Cluster,
 		s.Current.InfrastructureCluster,
 		s.Current.ControlPlane.Object,
 		s.Current.ControlPlane.InfrastructureMachineTemplate,
-	}
+	)
 	for _, md := range s.Current.MachineDeployments {
 		objects = append(objects, md.Object, // TODO: MHC omitted for now as this test does not use MHC
 			md.InfrastructureMachineTemplate, md.BootstrapTemplate)

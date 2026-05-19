@@ -632,7 +632,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 }
 
 func validateTopologyRollout(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 
 	for _, md := range topology.Workers.MachineDeployments {
 		fldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("rollout")
@@ -643,7 +643,7 @@ func validateTopologyRollout(topology clusterv1.Topology, fldPath *field.Path) f
 }
 
 func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 
 	allErrs = append(allErrs, taints.ValidateMachineTaints(topology.ControlPlane.Taints, fldPath.Child("controlPlane", "taints"))...)
 
@@ -1011,7 +1011,7 @@ func clusterClassIsReconciled(clusterClass *clusterv1.ClusterClass) bool {
 }
 
 func validateTopologyMetadata(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 	allErrs = append(allErrs, topology.ControlPlane.Metadata.Validate(fldPath.Child("controlPlane", "metadata"))...)
 	for _, md := range topology.Workers.MachineDeployments {
 		allErrs = append(allErrs, md.Metadata.Validate(

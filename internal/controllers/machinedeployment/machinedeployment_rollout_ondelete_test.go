@@ -722,7 +722,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 }
 
 func getTaskListOnDelete(current *rolloutScope) []string {
-	taskList := make([]string, 0)
+	taskList := make([]string, 0, 1+len(current.machineSets)+2+len(current.machines()))
 	taskList = append(taskList, "md")
 	for _, ms := range current.machineSets {
 		taskList = append(taskList, ms.Name)

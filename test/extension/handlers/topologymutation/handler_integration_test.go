@@ -200,11 +200,12 @@ func createClusterClassFakeClientAndManager(blueprint *scope.ClusterBlueprint) (
 		blueprint.ClusterClass,
 	}
 
-	unstructuredObjs := []*unstructured.Unstructured{
+	unstructuredObjs := make([]*unstructured.Unstructured, 0, 3+2*len(blueprint.MachineDeployments)+2*len(blueprint.MachinePools))
+	unstructuredObjs = append(unstructuredObjs,
 		blueprint.InfrastructureClusterTemplate,
 		blueprint.ControlPlane.Template,
 		blueprint.ControlPlane.InfrastructureMachineTemplate,
-	}
+	)
 	for _, md := range blueprint.MachineDeployments {
 		unstructuredObjs = append(unstructuredObjs, md.InfrastructureMachineTemplate, md.BootstrapTemplate)
 	}

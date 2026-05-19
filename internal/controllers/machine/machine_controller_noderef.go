@@ -264,7 +264,7 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	// append well known names
 	annotationsFromPreviousReconcile = append(annotationsFromPreviousReconcile, CommonNodeAnnotations...)
 
-	annotationsFromCurrentReconcile := []string{}
+	annotationsFromCurrentReconcile := make([]string, 0, len(newAnnotations))
 	for k, v := range newAnnotations {
 		if cur, ok := newNode.Annotations[k]; !ok || cur != v {
 			newNode.Annotations[k] = v
@@ -297,7 +297,7 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	if len(labelsFromPreviousReconcile) == 1 && labelsFromPreviousReconcile[0] == "" {
 		labelsFromPreviousReconcile = []string{}
 	}
-	labelsFromCurrentReconcile := []string{}
+	labelsFromCurrentReconcile := make([]string, 0, len(newLabels))
 	for k, v := range newLabels {
 		if cur, ok := newNode.Labels[k]; !ok || cur != v {
 			newNode.Labels[k] = v

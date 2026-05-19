@@ -635,7 +635,7 @@ func machineSetControllerMutatorCreateMachines(log *fileLogger, ms *clusterv1.Ma
 	// Note: In the code below, new machines are created with a predictable name, so it is easier to write test case and validate rollout sequences.
 	// e.g. if the cluster is initialized with m1, m2, m3, new machines will be m4, m5, m6
 
-	machinesAdded := []string{}
+	machinesAdded := make([]string, 0, machinesToAdd)
 	for range machinesToAdd {
 		machineName := fmt.Sprintf("m%d", scope.GetNextMachineUID())
 		scope.machineSetMachines[ms.Name] = append(scope.machineSetMachines[ms.Name],
@@ -823,7 +823,7 @@ func initCurrentRolloutScope(currentMachineNames []string, mdOptions ...machineD
 	// Create current Machines, with
 	// - spec at stable state (rollout is not yet propagated to machines)
 	var totMachines int32
-	currentMachines := []*clusterv1.Machine{}
+	currentMachines := make([]*clusterv1.Machine, 0, len(currentMachineNames))
 	for _, machineSetMachineName := range currentMachineNames {
 		totMachines++
 		currentMachines = append(currentMachines, createM(machineSetMachineName, ms.Name, ms.Spec.Template.Spec.FailureDomain))
@@ -884,7 +884,7 @@ func computeDesiredRolloutScope(current *rolloutScope, desiredMachineNames []str
 
 	// Add a desired machines to desired state, with
 	// - the new spec from the MD (steady state)
-	desiredMachines := []*clusterv1.Machine{}
+	desiredMachines := make([]*clusterv1.Machine, 0, len(desiredMachineNames))
 	for _, machineSetMachineName := range desiredMachineNames {
 		totMachines++
 		desiredMachines = append(desiredMachines, createM(machineSetMachineName, newMS.Name, newMS.Spec.Template.Spec.FailureDomain))
@@ -969,7 +969,7 @@ func (r rolloutScope) machineSetSummary(ms *clusterv1.MachineSet) string {
 
 // machinesSummary provides an overview of Machines controller by a MachineSet in the scope.
 func (r rolloutScope) machinesSummary(ms *clusterv1.MachineSet) string {
-	machineNames := []string{}
+	machineNames := make([]string, 0, len(r.machineSetMachines[ms.Name]))
 	acknowledgedMoveMachines := sets.Set[string]{}
 	if replicaNames, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && replicaNames != "" {
 		acknowledgedMoveMachines.Insert(strings.Split(replicaNames, ",")...)
@@ -1226,7 +1226,7 @@ func sortMachineSetMachinesByDeletionPriorityAndName(machines []*clusterv1.Machi
 
 // default task order ensure the controllers are run in a consistent and predictable way: md, ms1, ms2 and so on.
 func defaultTaskOrder(taskCount int) []int {
-	taskOrder := []int{}
+	taskOrder := make([]int, 0, taskCount)
 	for t := range taskCount {
 		taskOrder = append(taskOrder, t)
 	}

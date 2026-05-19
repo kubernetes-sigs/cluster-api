@@ -267,7 +267,7 @@ func TestMergeRespectPriority(t *testing.T) {
 func conditionsWithSource(obj Setter, conditions ...*clusterv1.Condition) []localizedCondition {
 	obj.SetV1Beta1Conditions(conditionList(conditions...))
 
-	ret := []localizedCondition{}
+	ret := make([]localizedCondition, 0, len(conditions))
 	for i := range conditions {
 		polarity := PositivePolarity
 		if conditions[i] != nil && negativePolarityConditions.Has(string(conditions[i].Type)) {

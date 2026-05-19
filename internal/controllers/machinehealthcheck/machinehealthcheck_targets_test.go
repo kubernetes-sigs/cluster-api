@@ -211,7 +211,7 @@ func TestHealthCheckTargets(t *testing.T) {
 
 	// Ensure the control plane was initialized earlier to prevent it interfering with
 	// NodeStartupTimeoutSeconds testing.
-	conds := []metav1.Condition{}
+	conds := make([]metav1.Condition, 0, len(cluster.GetConditions()))
 	for _, condition := range cluster.GetConditions() {
 		condition.LastTransitionTime = metav1.NewTime(condition.LastTransitionTime.Add(-1 * time.Hour))
 		conds = append(conds, condition)
@@ -594,7 +594,7 @@ func TestHealthCheckTargets(t *testing.T) {
 			// Round durations down to nearest second account for minute differences
 			// in timing when running tests
 			roundDurations := func(in []time.Duration) []time.Duration {
-				out := []time.Duration{}
+				out := make([]time.Duration, 0, len(in))
 				for _, d := range in {
 					out = append(out, d.Truncate(time.Second))
 				}
@@ -603,7 +603,7 @@ func TestHealthCheckTargets(t *testing.T) {
 
 			// Remove the last transition time of the given conditions. Used for comparison with expected conditions.
 			removeLastTransitionTimes := func(in clusterv1.Conditions) clusterv1.Conditions {
-				out := clusterv1.Conditions{}
+				out := make(clusterv1.Conditions, 0, len(in))
 				for _, c := range in {
 					withoutTime := c.DeepCopy()
 					withoutTime.LastTransitionTime = metav1.Time{}
@@ -613,7 +613,7 @@ func TestHealthCheckTargets(t *testing.T) {
 			}
 
 			removeLastTransitionTimesV1Beta2 := func(in []metav1.Condition) []metav1.Condition {
-				out := []metav1.Condition{}
+				out := make([]metav1.Condition, 0, len(in))
 				for _, c := range in {
 					withoutTime := c.DeepCopy()
 					withoutTime.LastTransitionTime = metav1.Time{}

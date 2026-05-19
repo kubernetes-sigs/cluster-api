@@ -985,7 +985,6 @@ func getClusterResourcesForUpgrade(ctx context.Context, c client.Client, namespa
 	err = c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: cluster.Spec.ControlPlaneRef.Name}, controlPlane)
 	Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("error getting ControlPlane for Cluster %s: %s,", klog.KObj(cluster), err))
 
-	mds := make([]*clusterv1.MachineDeployment, 0, len(machineDeployments.Items))
 	machineDeployments := &clusterv1.MachineDeploymentList{}
 	err = c.List(ctx, machineDeployments,
 		client.MatchingLabels{
@@ -995,6 +994,7 @@ func getClusterResourcesForUpgrade(ctx context.Context, c client.Client, namespa
 		client.InNamespace(cluster.Namespace),
 	)
 	Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("error getting MachineDeployments for Cluster %s: %s", klog.KObj(cluster), err))
+	mds := make([]*clusterv1.MachineDeployment, 0, len(machineDeployments.Items))
 	for _, md := range machineDeployments.Items {
 		mds = append(mds, md.DeepCopy())
 	}

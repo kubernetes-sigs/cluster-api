@@ -212,8 +212,8 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 	refs = append(refs,
 		clusterClass.Spec.Infrastructure.TemplateRef,
 		clusterClass.Spec.ControlPlane.TemplateRef,
+		clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
 	)
-	refs = append(refs, clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef)
 	for _, mdClass := range clusterClass.Spec.Workers.MachineDeployments {
 		refs = append(refs, mdClass.Bootstrap.TemplateRef, mdClass.Infrastructure.TemplateRef)
 	}

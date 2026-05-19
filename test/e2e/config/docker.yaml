@@ -147,7 +147,6 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.11/metadata.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.11/cluster-template.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.11/cluster-template-topology.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.11/clusterclass-quick-start.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
@@ -159,7 +158,6 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.12/metadata.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.12/cluster-template.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.12/cluster-template-topology.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.12/clusterclass-quick-start.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.13}"
@@ -171,7 +169,6 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.13/metadata.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.13/cluster-template.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.13/cluster-template-topology.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.13/clusterclass-quick-start.yaml"
   - name: v1.14.99 # next; use manifest from source files

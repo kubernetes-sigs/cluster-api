@@ -581,17 +581,14 @@ DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
 
 .PHONY: generate-e2e-templates-v1.11
 generate-e2e-templates-v1.11: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.11/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.11/cluster-template.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.11/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.11/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-v1.12
 generate-e2e-templates-v1.12: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.12/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.12/cluster-template.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.12/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.12/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-v1.13
 generate-e2e-templates-v1.13: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.13/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.13/cluster-template.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.13/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.13/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-main

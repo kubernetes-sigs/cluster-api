@@ -177,7 +177,7 @@ func (c githubClient) listMergedPRs(after, before time.Time, baseBranches ...str
 }
 
 func (c githubClient) runGHAPICommand(url string, response any) error {
-	cmd := exec.Command("gh", "api", url) //nolint:noctx
+	cmd := exec.Command("gh", "api", url) //nolint:noctx // No context available in this function.
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {

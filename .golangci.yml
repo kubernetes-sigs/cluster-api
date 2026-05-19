@@ -435,10 +435,6 @@ linters:
           - gosec
         path: (hack/tools/internal/tilt-prepare/main\.go|hack/tools/release/notes/github\.go)
         text: 'G204:'
-        # TODO: It will be dropped when the unused nolint directives are cleaned up.
-      - linters:
-          - nolintlint
-        text: 'directive .* is unused'
         # TODO: It will be dropped when the gosec G101 findings are fixed.
       - linters:
           - gosec

@@ -108,13 +108,13 @@ func TestGetManagerOptions(t *testing.T) {
 
 			tlsOpts, metricsOptions, err := GetManagerOptions(tt.managerOptions)
 
-			tlsConfig := &tls.Config{} //nolint:gosec // it's fine to not set a TLS min version here.
+			tlsConfig := &tls.Config{}
 			for _, opt := range tlsOpts {
 				opt(tlsConfig)
 			}
 			var metricsOptionsTLSConfig *tls.Config
 			if metricsOptions != nil && metricsOptions.TLSOpts != nil {
-				metricsOptionsTLSConfig = &tls.Config{} //nolint:gosec // it's fine to not set a TLS min version here.
+				metricsOptionsTLSConfig = &tls.Config{}
 				for _, opt := range metricsOptions.TLSOpts {
 					opt(metricsOptionsTLSConfig)
 				}

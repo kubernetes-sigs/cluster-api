@@ -1121,7 +1121,6 @@ release-binary: $(RELEASE_DIR)
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		-e GOCACHE=/go/build-cache/ \
 		--user $$(id -u):$$(id -g) \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-v "$$(go env GOMODCACHE):/go/pkg/mod$(DOCKER_VOL_OPTS)" \

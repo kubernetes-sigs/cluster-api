@@ -76,11 +76,6 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, dockerMachine, infrav1.MachineFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	// AddOwners adds the owners of DockerMachine as k/v pairs to the logger.
 	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
 	ctx, log, err := clog.AddOwners(ctx, r.Client, dockerMachine)
@@ -95,6 +90,8 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 	if machine == nil {
 		// Note: If ownerRef was not set, there is nothing to delete. Remove finalizer so deletion can succeed.
+		// Note: This should not be necessary anymore as we nowadays only set the finalizer after the ownerRef
+		// is set, but keeping this as a safeguard.
 		if !dockerMachine.DeletionTimestamp.IsZero() {
 			if controllerutil.ContainsFinalizer(dockerMachine, infrav1.MachineFinalizer) {
 				dockerMachineWithoutFinalizer := dockerMachine.DeepCopy()
@@ -140,6 +137,13 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	log = log.WithValues("DockerCluster", klog.KObj(dockerCluster))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Only add finalizer after the Machine has an ownerRef to avoid unnecessary retries
+	// because of conflicts in core CAPI ssa.RemoveManagedFieldsForLabelsAndAnnotations.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, dockerMachine, infrav1.MachineFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
 
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(dockerMachine, r)

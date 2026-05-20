@@ -125,6 +125,13 @@ func (c *ControlPlaneContract) RolloutAfter() *Time {
 	}
 }
 
+// RolloutMaxSurge provides access to the spec.rollout.strategy.rollingUpdate.maxSurge field.
+func (c *ControlPlaneContract) RolloutMaxSurge() *IntOrString {
+	return &IntOrString{
+		path: Path{"spec", "rollout", "strategy", "rollingUpdate", "maxSurge"},
+	}
+}
+
 // Replicas provide access to replicas field in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.

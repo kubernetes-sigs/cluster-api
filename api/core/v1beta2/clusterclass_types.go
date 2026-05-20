@@ -235,6 +235,45 @@ type ControlPlaneClass struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
+
+	// rollout allows you to configure the behaviour of rolling updates to the ControlPlane Machines.
+	// It allows you to define the strategy used during rolling replacements.
+	// NOTE: This value can be overridden while defining a Cluster.Topology.
+	// +optional
+	Rollout ControlPlaneClassRolloutSpec `json:"rollout,omitempty,omitzero"`
+}
+
+// ControlPlaneClassRolloutSpec defines the rollout behavior for the control plane.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneClassRolloutSpec struct {
+	// strategy specifies how to roll out control plane Machines.
+	// +optional
+	Strategy ControlPlaneClassRolloutStrategy `json:"strategy,omitempty,omitzero"`
+}
+
+// ControlPlaneClassRolloutStrategy describes how to replace existing control plane machines
+// with new ones.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneClassRolloutStrategy struct {
+	// rollingUpdate is the rolling update config params. Present only if
+	// type = RollingUpdate.
+	// +optional
+	RollingUpdate ControlPlaneClassRolloutStrategyRollingUpdate `json:"rollingUpdate,omitempty,omitzero"`
+}
+
+// ControlPlaneClassRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update
+// for the control plane.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneClassRolloutStrategyRollingUpdate struct {
+	// maxSurge is the maximum number of control planes that can be scheduled above or under the
+	// desired number of control planes.
+	// Value can be an absolute number 1 or 0.
+	// Defaults to 1.
+	// Example: when this is set to 1, the control plane can be scaled
+	// up immediately when the rolling update starts.
+	// NOTE: This value can be overridden while defining a Cluster.Topology.
+	// +optional
+	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
 // ControlPlaneClassHealthCheck defines a MachineHealthCheck for control plane machines.

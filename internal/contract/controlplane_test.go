@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -60,6 +61,32 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		gotToUnstructured := ptr.Deref(got, metav1.Time{}).ToUnstructured()
 		g.Expect(gotToUnstructured).To(Equal(now.ToUnstructured()))
+	})
+	t.Run("Manages spec.rollout.strategy.rollingUpdate.maxSurge", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(ControlPlane().RolloutMaxSurge().Path()).To(Equal(
+			Path{"spec", "rollout", "strategy", "rollingUpdate", "maxSurge"}))
+
+		maxSurge := intstr.FromInt32(1)
+		err := ControlPlane().RolloutMaxSurge().Set(obj, maxSurge)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, found, err := unstructured.NestedInt64(obj.UnstructuredContent(),
+			"spec", "rollout", "strategy", "rollingUpdate", "maxSurge")
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(found).To(BeTrue())
+		g.Expect(got).To(Equal(int64(1)))
+
+		maxSurgeZero := intstr.FromInt32(0)
+		err = ControlPlane().RolloutMaxSurge().Set(obj, maxSurgeZero)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		gotZero, found, err := unstructured.NestedInt64(obj.UnstructuredContent(),
+			"spec", "rollout", "strategy", "rollingUpdate", "maxSurge")
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(found).To(BeTrue())
+		g.Expect(gotZero).To(Equal(int64(0)))
 	})
 	t.Run("Manages status.version", func(t *testing.T) {
 		g := NewWithT(t)

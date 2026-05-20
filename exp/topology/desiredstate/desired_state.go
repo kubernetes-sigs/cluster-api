@@ -440,6 +440,18 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 		}
 	}
 
+	// If maxSurge is defined, set the corresponding field.
+	// Topology-level value takes precedence over ClusterClass-level default.
+	maxSurge := s.Blueprint.ClusterClass.Spec.ControlPlane.Rollout.Strategy.RollingUpdate.MaxSurge
+	if s.Blueprint.Topology.ControlPlane.Rollout.Strategy.RollingUpdate.MaxSurge != nil {
+		maxSurge = s.Blueprint.Topology.ControlPlane.Rollout.Strategy.RollingUpdate.MaxSurge
+	}
+	if maxSurge != nil {
+		if err := contract.ControlPlane().RolloutMaxSurge().Set(controlPlane, *maxSurge); err != nil {
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().RolloutMaxSurge().Path())
+		}
+	}
+
 	// If it is required to manage the readinessGates for the control plane, set the corresponding field.
 	// NOTE: If readinessGates value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
 	// does not implement support for this field and the ControlPlane object is generated without readinessGates.

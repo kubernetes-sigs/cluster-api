@@ -383,6 +383,7 @@ func TestComputeControlPlane(t *testing.T) {
 	clusterClassTaints := []clusterv1.MachineTaint{
 		{Key: "foo", Effect: corev1.TaintEffectPreferNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
 	}
+	clusterClassMaxSurge := intstr.FromInt32(0)
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneMetadata(labels, annotations).
 		WithControlPlaneReadinessGates(clusterClassReadinessGates).
@@ -392,6 +393,7 @@ func TestComputeControlPlane(t *testing.T) {
 		WithControlPlaneNodeVolumeDetachTimeout(&clusterClassDuration).
 		WithControlPlaneNodeDeletionTimeout(&clusterClassDuration).
 		Build()
+	clusterClass.Spec.ControlPlane.Rollout.Strategy.RollingUpdate.MaxSurge = &clusterClassMaxSurge
 	// TODO: Replace with object builder.
 	// current cluster objects
 	version := "v1.21.2"
@@ -401,6 +403,7 @@ func TestComputeControlPlane(t *testing.T) {
 	nodeVolumeDetachTimeout := topologyDuration
 	nodeDeletionTimeout := topologyDuration
 	rolloutAfter := metav1.Now().Rfc3339Copy()
+	topologyMaxSurge := intstr.FromInt32(1)
 	readinessGates := []clusterv1.MachineReadinessGate{
 		{ConditionType: "foo"},
 		{ConditionType: "bar"},
@@ -427,6 +430,11 @@ func TestComputeControlPlane(t *testing.T) {
 					Replicas:       &replicas,
 					Rollout: clusterv1.ControlPlaneTopologyRolloutSpec{
 						After: rolloutAfter,
+						Strategy: clusterv1.ControlPlaneTopologyRolloutStrategy{
+							RollingUpdate: clusterv1.ControlPlaneTopologyRolloutStrategyRollingUpdate{
+								MaxSurge: &topologyMaxSurge,
+							},
+						},
 					},
 					Deletion: clusterv1.ControlPlaneTopologyMachineDeletionSpec{
 						NodeDrainTimeoutSeconds:        &nodeDrainTimeout,
@@ -504,6 +512,7 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
 		assertNestedField(g, obj, rolloutAfter.ToUnstructured(), contract.ControlPlane().RolloutAfter().Path()...)
+		assertNestedField(g, obj, int64(1), contract.ControlPlane().RolloutMaxSurge().Path()...)
 		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
@@ -545,6 +554,7 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
 		assertNestedField(g, obj, rolloutAfter.ToUnstructured(), contract.ControlPlane().RolloutAfter().Path()...)
+		assertNestedField(g, obj, int64(1), contract.ControlPlane().RolloutMaxSurge().Path()...)
 		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path()...)
 		assertNestedField(g, obj, expectedTaints, contract.ControlPlane().MachineTemplate().Taints().Path()...)
 		assertNestedField(g, obj, int64(topologyDuration), contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path()...)
@@ -599,6 +609,7 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, (time.Duration(clusterClassDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(clusterClassDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(clusterClassDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
+		assertNestedField(g, obj, int64(0), contract.ControlPlane().RolloutMaxSurge().Path()...)
 	})
 	t.Run("Generates the ControlPlane from the template using ClusterClass defaults (v1beta2 contract)", func(t *testing.T) {
 		g := NewWithT(t)
@@ -645,6 +656,27 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, int64(clusterClassDuration), contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(clusterClassDuration), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(clusterClassDuration), contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Path()...)
+		assertNestedField(g, obj, int64(0), contract.ControlPlane().RolloutMaxSurge().Path()...)
+	})
+	t.Run("topology maxSurge overrides ClusterClass maxSurge", func(t *testing.T) {
+		g := NewWithT(t)
+
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     cluster.Spec.Topology,
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template: controlPlaneTemplate,
+			},
+		}
+
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		obj, err := (&generator{Client: clientWithV1Beta2ContractCRD}).computeControlPlane(ctx, scope, nil)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+
+		assertNestedField(g, obj, int64(1), contract.ControlPlane().RolloutMaxSurge().Path()...)
 	})
 	t.Run("Skips setting replicas if required", func(t *testing.T) {
 		g := NewWithT(t)

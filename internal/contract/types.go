@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // ErrFieldNotFound is returned when a field is not found in the object.
@@ -261,6 +262,31 @@ func (i *Time) Get(obj *unstructured.Unstructured) (*metav1.Time, error) {
 // Set sets the metav1.Time value in the path.
 func (i *Time) Set(obj *unstructured.Unstructured, value metav1.Time) error {
 	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value.ToUnstructured(), i.path...); err != nil {
+		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(i.path, "."), obj.GroupVersionKind())
+	}
+	return nil
+}
+
+// IntOrString represents an accessor to an intstr.IntOrString path value.
+type IntOrString struct {
+	path Path
+}
+
+// Path returns the path to the intstr.IntOrString value.
+func (i *IntOrString) Path() Path {
+	return i.path
+}
+
+// Set sets the intstr.IntOrString value in the path.
+// Integer values are stored as int64; string values are stored as string.
+func (i *IntOrString) Set(obj *unstructured.Unstructured, value intstr.IntOrString) error {
+	var v interface{}
+	if value.Type == intstr.Int {
+		v = int64(value.IntVal)
+	} else {
+		v = value.StrVal
+	}
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), v, i.path...); err != nil {
 		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(i.path, "."), obj.GroupVersionKind())
 	}
 	return nil

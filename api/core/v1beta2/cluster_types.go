@@ -693,6 +693,35 @@ type ControlPlaneTopologyRolloutSpec struct {
 	// use "2023-03-09T09:00:00Z".
 	// +optional
 	After metav1.Time `json:"after,omitempty,omitzero"`
+
+	// strategy specifies how to roll out control plane Machines.
+	// If not set, the strategy from the ClusterClass will be used, if any.
+	// +optional
+	Strategy ControlPlaneTopologyRolloutStrategy `json:"strategy,omitempty,omitzero"`
+}
+
+// ControlPlaneTopologyRolloutStrategy describes how to replace existing control plane machines
+// with new ones.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneTopologyRolloutStrategy struct {
+	// rollingUpdate is the rolling update config params. Present only if
+	// type = RollingUpdate.
+	// +optional
+	RollingUpdate ControlPlaneTopologyRolloutStrategyRollingUpdate `json:"rollingUpdate,omitempty,omitzero"`
+}
+
+// ControlPlaneTopologyRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update
+// for the control plane.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneTopologyRolloutStrategyRollingUpdate struct {
+	// maxSurge is the maximum number of control planes that can be scheduled above or under the
+	// desired number of control planes.
+	// Value can be an absolute number 1 or 0.
+	// Defaults to 1.
+	// Example: when this is set to 1, the control plane can be scaled
+	// up immediately when the rolling update starts.
+	// +optional
+	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
 // ControlPlaneTopologyHealthCheck defines a MachineHealthCheck for control plane machines.

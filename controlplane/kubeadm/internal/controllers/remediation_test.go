@@ -2380,29 +2380,64 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 
-	t.Run("Can't safely remove a member from a CP with an etcd member without a machine but with alarms", func(t *testing.T) {
+	t.Run("Consider alarms from members not being removed when computing target etcd cluster status", func(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
 
 		controlPlane := &internal.ControlPlane{
-			Machines: collections.FromMachines(m1),
+			Machines: collections.FromMachines(m1, m2),
 		}
 		controlPlane.EtcdMembers = []*etcd.Member{
 			{
 				ID:   1,
-				Name: "member-without-machine",
+				Name: m1.Status.NodeRef.Name,
+			},
+			{
+				ID:   2,
+				Name: "foo",
 			},
 		}
 		controlPlane.EtcdMembersAlarms = []etcd.MemberAlarm{
 			{
-				MemberID: 1,
+				MemberID: 2,
 				Type:     etcd.AlarmNoSpace,
 			},
 		}
 
 		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
+	})
+
+	t.Run("Ignore alarms from external members being removed when computing target etcd cluster status", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed(), withHealthyEtcdMember())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = []*etcd.Member{
+			{
+				ID:   1,
+				Name: m1.Status.NodeRef.Name,
+			},
+			{
+				ID:   2,
+				Name: "bar",
+			},
+		}
+		controlPlane.EtcdMembersAlarms = []etcd.MemberAlarm{
+			{
+				MemberID: 2,
+				Type:     etcd.AlarmCorrupt,
+			},
+		}
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, "bar")
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
 	})
 }
 

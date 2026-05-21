@@ -29,6 +29,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -59,6 +60,8 @@ func TestReconcile(t *testing.T) {
 
 		rateLimitInterval := 1 * time.Second
 
+		consistencyStore := &fakeConsistencyStore{}
+
 		var reconcileCounter atomic.Int64
 		r := &reconcilerWrapper{
 			name:           "cluster",
@@ -69,6 +72,7 @@ func TestReconcile(t *testing.T) {
 			}),
 			rateLimitInterval: rateLimitInterval,
 			queueRateLimiter:  newTypedItemExponentialFailureRateLimiter[reconcile.Request](rateLimitInterval, 5*time.Millisecond, 1000*time.Second),
+			consistencyStore:  consistencyStore,
 		}
 		c := controllerWrapper{
 			reconcileCache: reconcileCache,
@@ -129,6 +133,39 @@ func TestReconcile(t *testing.T) {
 		g.Expect(counterMetricValue(reconcileTotal.WithLabelValues(r.name, labelSuccess))).To(Equal(1))
 
 		time.Sleep(1 * time.Second)
+
+		// Simulate a stale cache
+		consistencyStore.errs = []consistencyError{
+			{
+				GroupResource: schema.GroupResource{
+					Group:    clusterv1.GroupVersion.Group,
+					Resource: "machinedeployments",
+				},
+				ReadRV:  "10",
+				WroteRV: "11",
+			},
+			{
+				GroupResource: schema.GroupResource{
+					Group:    clusterv1.GroupVersion.Group,
+					Resource: "cluster",
+				},
+				ReadRV:  "10",
+				WroteRV: "15",
+			},
+		}
+
+		// Reconcile should requeue because of the stale cache
+		res, err = r.Reconcile(t.Context(), req)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.RequeueAfter).To(Equal(requeueDurationStaleCache))
+		// Metrics should only show a skipped reconcile
+		g.Expect(reconcileCounter.Load()).To(Equal(int64(1)))
+		g.Expect(counterMetricValue(reconcileTotal.WithLabelValues(r.name, labelSuccess))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "machinedeployments"))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "cluster"))).To(Equal(1))
+
+		// Simulate an up-to-date cache
+		consistencyStore.errs = nil
 
 		// Reconcile will reconcile and defer next reconcile by 1s.
 		res, err = r.Reconcile(t.Context(), req)
@@ -238,6 +275,10 @@ func TestReconcile(t *testing.T) {
 		g.Expect(reconcileCounter.Load()).To(Equal(int64(8)))
 		g.Expect(counterMetricValue(reconcileTotal.WithLabelValues(r.name, labelSuccess))).To(Equal(4))
 		g.Expect(r.queueRateLimiter.NumRequeues(req)).To(Equal(0))
+
+		// No additional reconciles should have been skipped because of a stale cache.
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "machinedeployments"))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "cluster"))).To(Equal(1))
 
 		ctrlCancel()
 	})
@@ -400,4 +441,21 @@ func TestShouldRequeue(t *testing.T) {
 			g.Expect(gotRequeueAfter).To(Equal(tt.wantRequeueAfter))
 		})
 	}
+}
+
+type fakeConsistencyStore struct {
+	errs []consistencyError
+}
+
+var _ consistencyStore = &fakeConsistencyStore{}
+
+func (cs *fakeConsistencyStore) WroteAt(_ types.NamespacedName, _ types.UID, _ schema.GroupResource, _ string) {
+}
+
+func (cs *fakeConsistencyStore) ReadAt(_ schema.GroupResource, _ string) {}
+
+func (cs *fakeConsistencyStore) Clear(_ types.NamespacedName, _ types.UID) {}
+
+func (cs *fakeConsistencyStore) EnsureReady(_ types.NamespacedName) []consistencyError {
+	return cs.errs
 }

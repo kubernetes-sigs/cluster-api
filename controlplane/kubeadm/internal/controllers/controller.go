@@ -1318,7 +1318,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		return ctrl.Result{}, errors.Wrap(err, "cannot get remote client to workload cluster")
 	}
 
-	etcdMemberToBeDeleted := unexpectedMembers.UnsortedList()[0]
+	sortedUnexpectedMembers := unexpectedMembers.UnsortedList()
+	sort.Strings(sortedUnexpectedMembers)
+	etcdMemberToBeDeleted := sortedUnexpectedMembers[0]
 	etcdMemberToBeDeletedMsg := etcdMemberToBeDeleted
 	if etcdMemberToBeDeletedMsg == "" {
 		etcdMemberToBeDeletedMsg = "(Name not yet assigned)"

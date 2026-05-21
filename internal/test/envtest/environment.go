@@ -131,7 +131,7 @@ func registerSchemes(s *runtime.Scheme) {
 // RunInput is the input for Run.
 type RunInput struct {
 	M                           *testing.M
-	ManagerCacheOptions         cache.Options
+	SetupManagerCacheOptions    func(scheme *runtime.Scheme) cache.Options
 	ManagerClientOptions        client.Options
 	SetupIndexes                func(ctx context.Context, mgr ctrl.Manager)
 	SetupReconcilers            func(ctx context.Context, mgr ctrl.Manager)
@@ -173,7 +173,11 @@ func Run(ctx context.Context, input RunInput) int {
 	}
 
 	// Bootstrapping test environment
-	env := newEnvironment(ctx, scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerClientOptions)
+	var cacheOptions cache.Options
+	if input.SetupManagerCacheOptions != nil {
+		cacheOptions = input.SetupManagerCacheOptions(scheme)
+	}
+	env := newEnvironment(ctx, scheme, input.AdditionalCRDDirectoryPaths, cacheOptions, input.ManagerClientOptions)
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	env.cancelManager = cancel

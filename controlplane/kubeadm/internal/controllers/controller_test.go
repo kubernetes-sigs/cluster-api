@@ -3458,7 +3458,33 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 			wantErr:                    true,
 		},
 		{
-			name: "Consider alarms from external members when computing target etcd cluster status",
+			name: "Consider alarms from members not being removed when computing target etcd cluster status",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.Machines{
+					m1.Name: func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+				},
+				EtcdMembersAlarms: []etcd.MemberAlarm{
+					{
+						MemberID: 1,
+						Type:     etcd.AlarmNoSpace,
+					},
+				},
+			},
+			additionalEtcdMembers: []*etcd.Member{
+				{Name: "foo", ID: 1},
+				{Name: "bar", ID: 2},
+			},
+			wantResult:                 ctrl.Result{},
+			wantRemoveEtcdMemberCalled: 0,
+			wantErr:                    true,
+		},
+		{
+			name: "Ignore alarms from external members being removed when computing target etcd cluster status",
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},
 				Machines: collections.Machines{
@@ -3471,7 +3497,7 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 				EtcdMembersAlarms: []etcd.MemberAlarm{
 					{
 						MemberID: 2,
-						Type:     etcd.AlarmNoSpace,
+						Type:     etcd.AlarmCorrupt,
 					},
 				},
 			},
@@ -3479,9 +3505,9 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 				{Name: "foo", ID: 1},
 				{Name: "bar", ID: 2},
 			},
-			wantResult:                 ctrl.Result{},
-			wantRemoveEtcdMemberCalled: 0,
-			wantErr:                    true,
+			wantResult:                 ctrl.Result{RequeueAfter: 1 * time.Second},
+			wantRemoveEtcdMemberCalled: 1,
+			wantErr:                    false,
 		},
 	}
 

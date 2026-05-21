@@ -32,7 +32,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
-	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
@@ -326,7 +325,6 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(cleanableMSes))
 
-	machineSetsDeleted := []*clusterv1.MachineSet{}
 	for i := range cleanableMSCount {
 		ms := cleanableMSes[i]
 		if ms.Spec.Replicas == nil {
@@ -338,18 +336,24 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 			continue
 		}
 
-		if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
-			// Return error instead of aggregating and continuing DELETEs on the theory
-			// that we may be overloading the api server.
-			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedDelete", "Failed to delete MachineSet %q: %v", ms.Name, err)
-			return errors.Wrapf(err, "failed to delete MachineSet %s (cleanup of old MachineSets)", klog.KObj(ms))
+		if deletedMS, err := r.msClientWithDeleteResponse.Delete(ctx, ms); err != nil {
+			if !apierrors.IsNotFound(err) {
+				// Return error instead of aggregating and continuing DELETEs on the theory
+				// that we may be overloading the api server.
+				r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedDelete", "Failed to delete MachineSet %q: %v", ms.Name, err)
+				return errors.Wrapf(err, "failed to delete MachineSet %s (cleanup of old MachineSets)", klog.KObj(ms))
+			}
+		} else if deletedMS != nil {
+			// If the deletion was successful and the MachineSet had a finalizer when deletion was triggered
+			// deletedMS will contain the MachineSet object after deletion with the resourceVersion set.
+			// If that is the case, defer the next reconcile until the cache observed the MachineSet deletion.
+			r.controller.DeferNextReconcileUntilCacheUpToDate(deployment, msGR, deletedMS)
 		}
-		machineSetsDeleted = append(machineSetsDeleted, ms)
 
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 		log.Info(fmt.Sprintf("MachineSet %s deleting (cleanup of old MachineSets)", klog.KObj(ms)), "MachineSet", klog.KObj(ms))
 		r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted MachineSet %q", ms.Name)
 	}
 
-	return clientutil.WaitForObjectsToBeDeletedFromTheCache(ctx, r.Client, "MachineSet deletion (cleanup of old MachineSet)", machineSetsDeleted...)
+	return nil
 }

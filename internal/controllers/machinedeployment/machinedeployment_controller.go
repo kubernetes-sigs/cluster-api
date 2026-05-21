@@ -90,7 +90,8 @@ type Reconciler struct {
 	recorder   record.EventRecorder
 	ssaCache   ssa.Cache
 
-	canUpdateMachineSetCache cache.Cache[CanUpdateMachineSetCacheEntry]
+	canUpdateMachineSetCache   cache.Cache[CanUpdateMachineSetCacheEntry]
+	msClientWithDeleteResponse capicontrollerutil.ClientWithDeleteResponse
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -130,6 +131,11 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
+	r.msClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.MachineSet{}, msGR,
+		mgr.GetScheme(), mgr.GetConfig(), mgr.GetHTTPClient())
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
 	r.canUpdateMachineSetCache = cache.New[CanUpdateMachineSetCacheEntry](ctx, cache.HookCacheDefaultTTL)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")

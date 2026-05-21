@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -41,7 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
-	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -58,6 +58,11 @@ import (
 var (
 	// machineDeploymentKind contains the schema.GroupVersionKind for the MachineDeployment type.
 	machineDeploymentKind = clusterv1.GroupVersion.WithKind("MachineDeployment")
+
+	msGR = schema.GroupResource{
+		Group:    clusterv1.GroupVersion.Group,
+		Resource: "machinesets",
+	}
 )
 
 // machineDeploymentManagerName is the manager name used for Server-Side-Apply (SSA) operations
@@ -81,8 +86,9 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	recorder record.EventRecorder
-	ssaCache ssa.Cache
+	controller capicontrollerutil.Controller
+	recorder   record.EventRecorder
+	ssaCache   ssa.Cache
 
 	canUpdateMachineSetCache cache.Cache[CanUpdateMachineSetCacheEntry]
 }
@@ -101,7 +107,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return err
 	}
 
-	err = capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
+	c, err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&clusterv1.MachineDeployment{}).
 		Owns(&clusterv1.MachineSet{}).
 		// Watches enqueues MachineDeployment for corresponding MachineSet resources, if no managed controller reference (owner) exists.
@@ -111,17 +117,21 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithConsistencyStore(map[schema.GroupResource]client.Object{
+			msGR: &clusterv1.MachineSet{},
+		}).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
 			predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-		).Complete(ctx, r)
+		).Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.canUpdateMachineSetCache = cache.New[CanUpdateMachineSetCacheEntry](ctx, cache.HookCacheDefaultTTL)
+	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")
 	r.ssaCache = ssa.NewCache("machinedeployment")
 	return nil
@@ -136,6 +146,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
+			r.controller.ClearConsistencyStore(req.NamespacedName, "")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -377,6 +388,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 				r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(ms), err)
 				return errors.Wrapf(err, "failed to create MachineSet %s", klog.KObj(ms))
 			}
+			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, msGR, ms)
 			if len(p.oldMSs) > 0 {
 				log.Info(fmt.Sprintf("MachineSets need rollout: %s", strings.Join(machineSetNames(p.oldMSs), ", ")), "reason", p.createReason)
 			}
@@ -385,13 +397,6 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", klog.KObj(ms), diff.DesiredReplicas))
 			}
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), diff.DesiredReplicas)
-
-			// Keep trying to get the MachineSet. This will force the cache to update and prevent any future reconciliation of
-			// the MachineDeployment to reconcile with an outdated list of MachineSets which could lead to unwanted creation of
-			// a duplicate MachineSet.
-			if err := clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "MachineSet creation", ms); err != nil {
-				return err
-			}
 
 			continue
 		}
@@ -421,6 +426,11 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			return errors.Wrapf(err, "failed to update MachineSet %s", klog.KObj(ms))
 		}
 
+		// Defer next reconcile only if ResourceVersion has changed.
+		if diff.OriginalMS.ResourceVersion != ms.ResourceVersion {
+			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, msGR, ms)
+		}
+
 		if diff.DesiredReplicas < diff.OriginalReplicas {
 			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, klog.KObj(ms), diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas))
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
@@ -431,13 +441,6 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		}
 		if diff.DesiredReplicas == diff.OriginalReplicas && diff.OtherChanges != "" {
 			log.Info(fmt.Sprintf("Updated %s MachineSet %s", diff.Type, klog.KObj(ms)))
-		}
-
-		// Only wait for cache if the object was changed.
-		if diff.OriginalMS.ResourceVersion != ms.ResourceVersion {
-			if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachineSet update", ms); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -469,6 +472,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 
 	// If all the descendant machinesets are deleted, then remove the machinedeployment's finalizer.
 	if len(s.machineSets) == 0 {
+		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(s.machineDeployment), s.machineDeployment.UID)
 		controllerutil.RemoveFinalizer(s.machineDeployment, clusterv1.MachineDeploymentFinalizer)
 		return nil
 	}

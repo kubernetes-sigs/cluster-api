@@ -84,6 +84,10 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	if !reflect.DeepEqual(initialization, clusterv1.ClusterInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}
+
+	if ok {
+		dst.Spec.Topology.ControlPlane.Rollout.Strategy = restored.Spec.Topology.ControlPlane.Rollout.Strategy
+	}
 	return nil
 }
 
@@ -248,6 +252,9 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Variables[i] = variable
 	}
 
+	if ok {
+		dst.Spec.ControlPlane.Rollout = restored.Spec.ControlPlane.Rollout
+	}
 	return nil
 }
 
@@ -857,6 +864,10 @@ func Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in *cl
 		}
 	}
 	return nil
+}
+
+func Convert_v1beta2_ControlPlaneTopologyRolloutSpec_To_v1beta1_ControlPlaneTopologyRolloutSpec(in *clusterv1.ControlPlaneTopologyRolloutSpec, out *ControlPlaneTopologyRolloutSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_ControlPlaneTopologyRolloutSpec_To_v1beta1_ControlPlaneTopologyRolloutSpec(in, out, s)
 }
 
 func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in *MachineDeploymentClass, out *clusterv1.MachineDeploymentClass, s apimachineryconversion.Scope) error {

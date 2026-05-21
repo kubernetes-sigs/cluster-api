@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -34,11 +35,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 // ManagerCacheOptions provides cache.Options for the manager.
-func ManagerCacheOptions(watchNamespace string, syncPeriod time.Duration) cache.Options {
+func ManagerCacheOptions(scheme *runtime.Scheme, controllerName string, watchNamespace string, syncPeriod time.Duration) cache.Options {
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
 		watchNamespaces = map[string]cache.Config{
@@ -70,6 +72,7 @@ func ManagerCacheOptions(watchNamespace string, syncPeriod time.Duration) cache.
 				},
 			},
 		},
+		NewInformer: capicontrollerutil.NewInformerFunc(scheme, controllerName),
 	}
 }
 

@@ -412,41 +412,11 @@ linters:
           - revive
         path: test/infrastructure/inmemory/pkg/server/api/.*\.go$
         text: 'var-naming: avoid meaningless package names'
-        # TODO: It will be dropped when the gosec G304 findings are fixed.
-      - linters:
-          - gosec
-        path: test/framework/kubetest/setup\.go
-        text: 'G304:'
-        # TODO: It will be dropped when the gosec G122 findings are fixed.
-      - linters:
-          - gosec
-        path: test/framework/suite_helpers\.go
-        text: 'G122:'
-        # TODO: It will be dropped when the gosec G204 findings are fixed.
-      - linters:
-          - gosec
-        path: (hack/tools/internal/tilt-prepare/main\.go|hack/tools/release/notes/github\.go)
-        text: 'G204:'
-        # TODO: It will be dropped when the gosec G101 findings are fixed.
+        # Exclude G101 findings in test files: test fixtures legitimately contain fake credentials.
       - linters:
           - gosec
         path: _test\.go
         text: 'G101:'
-        # TODO: It will be dropped when the gosec G703 findings are fixed.
-      - linters:
-          - gosec
-        path: (cmd/clusterctl/client/cluster/template\.go|internal/test/envtest/environment\.go|test/framework/clusterctl/repository\.go)
-        text: 'G703:'
-        # TODO: It will be dropped when the gosec G705 findings are fixed.
-      - linters:
-          - gosec
-        path: cmd/clusterctl/client/repository/repository_github_test\.go
-        text: 'G705:'
-        # TODO: It will be dropped when the gosec G706 findings are fixed.
-      - linters:
-          - gosec
-        path: hack/tools/mdbook/
-        text: 'G706:'
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

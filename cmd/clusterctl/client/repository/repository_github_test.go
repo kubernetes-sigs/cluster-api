@@ -1084,7 +1084,7 @@ func Test_gitHubRepository_releaseNotFound(t *testing.T) {
 					goproxytest.HTTPTestMethod(t, r, "GET")
 					parts := strings.Split(r.RequestURI, "/")
 					version := parts[len(parts)-1]
-					fmt.Fprintf(w, "{\"id\":13, \"tag_name\": %q, \"assets\": [{\"id\": 1, \"name\": \"metadata.yaml\"}] }", version)
+					fmt.Fprintf(w, "{\"id\":13, \"tag_name\": %q, \"assets\": [{\"id\": 1, \"name\": \"metadata.yaml\"}] }", version) //nolint:gosec // G705: version comes from the test request URI, not user input.
 				})
 			}
 

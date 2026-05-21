@@ -567,7 +567,7 @@ func preLoadImageTask(image string) taskFunction {
 		// set command to use capi cluster name
 		namecmd := fmt.Sprintf("--name=%s", name)
 
-		cmd := exec.CommandContext(ctx,
+		cmd := exec.CommandContext(ctx, //nolint:gosec // G204: namecmd and image are trusted internal values, not user input.
 			"kind",
 			"load",
 			"docker-image",

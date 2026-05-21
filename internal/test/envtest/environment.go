@@ -193,7 +193,7 @@ func Run(ctx context.Context, input RunInput) int {
 		config := kubeconfig.FromEnvTestConfig(env.Config, &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		})
-		if err := os.WriteFile(kubeconfigPath, config, 0o600); err != nil {
+		if err := os.WriteFile(kubeconfigPath, config, 0o600); err != nil { //nolint:gosec // G703: kubeconfigPath is constructed internally.
 			panic(errors.Wrapf(err, "failed to write the test env kubeconfig"))
 		}
 	}
@@ -317,7 +317,7 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 		auditLogsDir := filepath.Join(os.Getenv("ARTIFACTS"), relativePathPackageCallerDir)
 		auditLogsFilePath := filepath.Join(auditLogsDir, "apiserver-audit-logs")
 
-		if err = os.MkdirAll(auditLogsDir, 0750); err != nil {
+		if err = os.MkdirAll(auditLogsDir, 0750); err != nil { //nolint:gosec // G703: auditLogsDir is constructed from ARTIFACTS env var.
 			klog.Fatalf("failed to create audit logs dir: %+v", err)
 		}
 
@@ -466,7 +466,7 @@ rules:
       - group: "runtime.cluster.x-k8s.io"
 `)
 
-	if err := os.WriteFile(policyFile, policyYAML, 0600); err != nil {
+	if err := os.WriteFile(policyFile, policyYAML, 0600); err != nil { //nolint:gosec // G703: policyFile is constructed internally.
 		return "", err
 	}
 	return policyFile, nil

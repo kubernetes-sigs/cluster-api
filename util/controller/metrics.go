@@ -53,6 +53,13 @@ var (
 		NativeHistogramMaxBucketNumber:  100,
 		NativeHistogramMinResetDuration: 1 * time.Hour,
 	}, []string{"controller"})
+
+	// reconcileStaleCacheSkipsTotal is a prometheus metric that keeps track of how often
+	// reconcile was skipped because the cache was stale.
+	reconcileStaleCacheSkipsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "capi_reconcile_stale_cache_skips_total",
+		Help: "Total number of reconciles skipped due to a stale watch cache.",
+	}, []string{"controller", "cached_resource"})
 )
 
 const (
@@ -63,5 +70,5 @@ const (
 )
 
 func init() {
-	metrics.Registry.MustRegister(reconcileTotal, reconcileTime)
+	metrics.Registry.MustRegister(reconcileTotal, reconcileTime, reconcileStaleCacheSkipsTotal)
 }

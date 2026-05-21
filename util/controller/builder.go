@@ -18,17 +18,20 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"math"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	kcache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -51,13 +54,14 @@ const (
 
 // Builder is a wrapper around controller-runtime's builder.Builder.
 type Builder struct {
-	builder           *builder.Builder
-	mgr               manager.Manager
-	predicateLog      logr.Logger
-	options           controller.TypedOptions[reconcile.Request]
-	forObject         client.Object
-	controllerName    string
-	rateLimitInterval time.Duration
+	builder                   *builder.Builder
+	mgr                       manager.Manager
+	predicateLog              logr.Logger
+	options                   controller.TypedOptions[reconcile.Request]
+	forObject                 client.Object
+	controllerName            string
+	rateLimitInterval         time.Duration
+	consistencyStoreResources map[schema.GroupResource]client.Object
 }
 
 // NewControllerManagedBy returns a new controller builder that will be started by the provided Manager.
@@ -136,6 +140,13 @@ func (blder *Builder) WithEventFilter(p predicate.Predicate) *Builder {
 	return blder
 }
 
+// WithConsistencyStore configures a consistency store for the controller. The passed in resources
+// are the ones for which DeferNextReconcileUntilCacheUpToDate can be called.
+func (blder *Builder) WithConsistencyStore(resources map[schema.GroupResource]client.Object) *Builder {
+	blder.consistencyStoreResources = resources
+	return blder
+}
+
 // Named sets the name of the controller to the given name. The name shows up
 // in metrics, among other things, and thus should be a prometheus compatible name
 // (underscores and alphanumeric characters only).
@@ -151,6 +162,8 @@ type Controller interface {
 	controller.Controller
 	DeferNextReconcile(req reconcile.Request, reconcileAfter time.Time)
 	DeferNextReconcileForObject(obj metav1.Object, reconcileAfter time.Time)
+	DeferNextReconcileUntilCacheUpToDate(reconciledObject metav1.Object, writtenObjectGroupResource schema.GroupResource, writtenObject metav1.Object)
+	ClearConsistencyStore(reconciledObject client.ObjectKey, reconciledObjectUID types.UID)
 }
 
 // Complete builds the Application Controller.
@@ -235,12 +248,38 @@ func (blder *Builder) Build(ctx context.Context, r reconcile.TypedReconciler[rec
 	// Create reconcileCache.
 	reconcileCache := cache.New[reconcileCacheEntry](ctx, cache.DefaultTTL)
 
+	// Create consistencyStore if configured.
+	var consistencyStore consistencyStore
+	if len(blder.consistencyStoreResources) > 0 {
+		stores := make(map[schema.GroupResource]lastSyncRVGetter, len(blder.consistencyStoreResources))
+
+		for resGR, resObj := range blder.consistencyStoreResources {
+			// Note: This creates the informer, but it doesn't start it (and accordingly also doesn't wait for cache sync).
+			informer, err := blder.mgr.GetCache().GetInformer(ctx, resObj, ctrlcache.BlockUntilSynced(false))
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to create %s informer", resGR.Resource)
+			}
+			sharedIndexInformer, ok := informer.(kcache.SharedIndexInformer)
+			if !ok {
+				// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
+				return nil, errors.Errorf("failed to cast %s informer to SharedIndexInformer", resGR.Resource)
+			}
+			stores[resGR] = sharedIndexInformer.GetStore()
+
+			// Initialize metrics to align to what controller-runtime is doing for its metrics.
+			reconcileStaleCacheSkipsTotal.WithLabelValues(controllerName, resGR.Resource).Add(0)
+		}
+
+		consistencyStore = newConsistencyStore(stores)
+	}
+
 	c, err := blder.builder.Build(&reconcilerWrapper{
 		name:              controllerName,
 		reconciler:        r,
 		reconcileCache:    reconcileCache,
 		rateLimitInterval: rateLimitInterval,
 		queueRateLimiter:  queueRateLimiter,
+		consistencyStore:  consistencyStore,
 	})
 	if err != nil {
 		return nil, err
@@ -255,8 +294,9 @@ func (blder *Builder) Build(ctx context.Context, r reconcile.TypedReconciler[rec
 	reconcileTotal.WithLabelValues(controllerName, labelSuccess).Add(0)
 
 	return &controllerWrapper{
-		TypedController: c,
-		reconcileCache:  reconcileCache,
+		TypedController:  c,
+		reconcileCache:   reconcileCache,
+		consistencyStore: consistencyStore,
 	}, nil
 }
 

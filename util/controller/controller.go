@@ -19,11 +19,16 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -31,12 +36,17 @@ import (
 	"sigs.k8s.io/cluster-api/util/cache"
 )
 
+const requeueDurationStaleCache = 100 * time.Millisecond
+
+var atMostEvery10Seconds = newAtMostEvery(10 * time.Second)
+
 type reconcilerWrapper struct {
 	name              string
 	reconcileCache    cache.Cache[reconcileCacheEntry]
 	reconciler        reconcile.Reconciler
 	rateLimitInterval time.Duration
 	queueRateLimiter  *typedItemExponentialFailureRateLimiter[reconcile.Request]
+	consistencyStore  consistencyStore
 }
 
 func (r *reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
@@ -50,6 +60,26 @@ func (r *reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request
 	if cacheEntry, ok := r.reconcileCache.Has(reconcileCacheEntry{Request: req}.Key()); ok {
 		if requeueAfter, requeue := cacheEntry.ShouldRequeue(reconcileStartTime); requeue {
 			return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		}
+	}
+
+	if r.consistencyStore != nil {
+		if consistencyErrs := r.consistencyStore.EnsureReady(req.NamespacedName); len(consistencyErrs) > 0 {
+			log := ctrl.LoggerFrom(ctx)
+			atMostEvery10Seconds.Do(func() {
+				log.V(2).Info("Cache stale, reconciles are requeued until the cache is up-to-date")
+			})
+			for _, consistencyErr := range consistencyErrs {
+				reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, consistencyErr.GroupResource.Resource).Inc()
+			}
+			if log.V(5).Enabled() {
+				var staleCaches []string
+				for _, consistencyErr := range consistencyErrs {
+					staleCaches = append(staleCaches, fmt.Sprintf("%s, writtenRV: %s, observedRV: %s", consistencyErr.GroupResource.Resource, consistencyErr.WroteRV, consistencyErr.ReadRV))
+				}
+				log.V(5).Info(fmt.Sprintf("Cache stale, requeueing after %s (%s)", requeueDurationStaleCache, strings.Join(staleCaches, ", ")))
+			}
+			return ctrl.Result{RequeueAfter: requeueDurationStaleCache}, nil
 		}
 	}
 
@@ -103,7 +133,8 @@ func (r *reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request
 
 type controllerWrapper struct {
 	controller.TypedController[reconcile.Request]
-	reconcileCache cache.Cache[reconcileCacheEntry]
+	reconcileCache   cache.Cache[reconcileCacheEntry]
+	consistencyStore consistencyStore
 }
 
 func (c *controllerWrapper) DeferNextReconcile(req reconcile.Request, reconcileAfter time.Time) {
@@ -146,4 +177,50 @@ func (r reconcileCacheEntry) ShouldRequeue(now time.Time) (requeueAfter time.Dur
 	}
 
 	return time.Duration(0), false
+}
+
+func (c *controllerWrapper) DeferNextReconcileUntilCacheUpToDate(reconciledObject metav1.Object, writtenObjectGroupResource schema.GroupResource, writtenObject metav1.Object) {
+	// Note: We are using GroupResource here because we want to avoid making bigger changes to the vendored consistencyStore util.
+	// We could calculate GroupResource from a client.Object but we would have to handle error cases.
+	c.consistencyStore.WroteAt(client.ObjectKey{Namespace: reconciledObject.GetNamespace(), Name: reconciledObject.GetName()},
+		reconciledObject.GetUID(), writtenObjectGroupResource, writtenObject.GetResourceVersion())
+}
+
+func (c *controllerWrapper) ClearConsistencyStore(reconciledObject client.ObjectKey, reconciledObjectUID types.UID) {
+	c.consistencyStore.Clear(reconciledObject, reconciledObjectUID)
+}
+
+// atMostEvery will never run the method more than once every specified duration.
+type atMostEvery struct {
+	delay    time.Duration
+	lastCall time.Time
+	mutex    sync.Mutex
+}
+
+// newAtMostEvery creates a new atMostEvery, that will run the method at most every given duration.
+func newAtMostEvery(delay time.Duration) *atMostEvery {
+	return &atMostEvery{
+		delay: delay,
+	}
+}
+
+// updateLastCall returns true if the lastCall time has been updated, false if it was too early.
+func (s *atMostEvery) updateLastCall() bool {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if time.Since(s.lastCall) < s.delay {
+		return false
+	}
+	s.lastCall = time.Now()
+	return true
+}
+
+// Do will run the method if enough time has passed, and return true.
+// Otherwise, it does nothing and returns false.
+func (s *atMostEvery) Do(fn func()) bool {
+	if !s.updateLastCall() {
+		return false
+	}
+	fn()
+	return true
 }

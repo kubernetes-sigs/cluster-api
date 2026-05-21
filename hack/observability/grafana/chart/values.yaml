@@ -56,7 +56,7 @@ datasources:
     - name: Tempo
       type: tempo
       uid: tempo
-      url: http://tempo:3100
+      url: http://tempo:3200
       editable: true
       jsonData:
         tracesToLogs:

@@ -3188,6 +3188,40 @@ spec:
                     x-kubernetes-list-map-keys:
                     - conditionType
                     x-kubernetes-list-type: map
+                  rollout:
+                    description: |-
+                      rollout allows you to configure the behaviour of rolling updates to the ControlPlane Machines.
+                      It allows you to define the strategy used during rolling replacements.
+                      NOTE: This value can be overridden while defining a Cluster.Topology.
+                    minProperties: 1
+                    properties:
+                      strategy:
+                        description: strategy specifies how to roll out control plane
+                          Machines.
+                        minProperties: 1
+                        properties:
+                          rollingUpdate:
+                            description: |-
+                              rollingUpdate is the rolling update config params. Present only if
+                              type = RollingUpdate.
+                            minProperties: 1
+                            properties:
+                              maxSurge:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  maxSurge is the maximum number of control planes that can be scheduled above or under the
+                                  desired number of control planes.
+                                  Value can be an absolute number 1 or 0.
+                                  Defaults to 1.
+                                  Example: when this is set to 1, the control plane can be scaled
+                                  up immediately when the rolling update starts.
+                                  NOTE: This value can be overridden while defining a Cluster.Topology.
+                                x-kubernetes-int-or-string: true
+                            type: object
+                        type: object
+                    type: object
                   taints:
                     description: |-
                       taints are the node taints that Cluster API will manage.

@@ -66,6 +66,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec":                     schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate":           schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec":                              schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassRolloutSpec":                             schema_cluster_api_api_core_v1beta2_ControlPlaneClassRolloutSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassRolloutStrategy":                         schema_cluster_api_api_core_v1beta2_ControlPlaneClassRolloutStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassRolloutStrategyRollingUpdate":            schema_cluster_api_api_core_v1beta2_ControlPlaneClassRolloutStrategyRollingUpdate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology":                                     schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheck":                          schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheck(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheckChecks":                    schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckChecks(ref),
@@ -73,6 +76,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheckRemediationTriggerIf":      schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckRemediationTriggerIf(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineDeletionSpec":                  schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutSpec":                          schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyRolloutSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutStrategy":                      schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyRolloutStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutStrategyRollingUpdate":         schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyRolloutStrategyRollingUpdate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables":                                    schema_cluster_api_api_core_v1beta2_ControlPlaneVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ExternalPatchDefinition":                                  schema_cluster_api_api_core_v1beta2_ExternalPatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain":                                            schema_cluster_api_api_core_v1beta2_FailureDomain(ref),
@@ -1642,12 +1647,19 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 							},
 						},
 					},
+					"rollout": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rollout allows you to configure the behaviour of rolling updates to the ControlPlane Machines. It allows you to define the strategy used during rolling replacements. NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassRolloutSpec"),
+						},
+					},
 				},
 				Required: []string{"templateRef"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -1871,6 +1883,71 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingSpec(ref common.
 				},
 			},
 		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ControlPlaneClassRolloutSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneClassRolloutSpec defines the rollout behavior for the control plane.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"strategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "strategy specifies how to roll out control plane Machines.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassRolloutStrategy"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassRolloutStrategy"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ControlPlaneClassRolloutStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneClassRolloutStrategy describes how to replace existing control plane machines with new ones.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"rollingUpdate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rollingUpdate is the rolling update config params. Present only if type = RollingUpdate.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassRolloutStrategyRollingUpdate"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassRolloutStrategyRollingUpdate"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ControlPlaneClassRolloutStrategyRollingUpdate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneClassRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update for the control plane.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"maxSurge": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control planes. Value can be an absolute number 1 or 0. Defaults to 1. Example: when this is set to 1, the control plane can be scaled up immediately when the rolling update starts. NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 	}
 }
 
@@ -2176,11 +2253,61 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyRolloutSpec(ref com
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
+					"strategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "strategy specifies how to roll out control plane Machines. If not set, the strategy from the ClusterClass will be used, if any.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutStrategy"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutStrategy"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyRolloutStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneTopologyRolloutStrategy describes how to replace existing control plane machines with new ones.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"rollingUpdate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rollingUpdate is the rolling update config params. Present only if type = RollingUpdate.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutStrategyRollingUpdate"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyRolloutStrategyRollingUpdate"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyRolloutStrategyRollingUpdate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneTopologyRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update for the control plane.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"maxSurge": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control planes. Value can be an absolute number 1 or 0. Defaults to 1. Example: when this is set to 1, the control plane can be scaled up immediately when the rolling update starts.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 	}
 }
 

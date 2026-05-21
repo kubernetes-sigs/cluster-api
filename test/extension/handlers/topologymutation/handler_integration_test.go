@@ -150,10 +150,10 @@ func TestHandler(t *testing.T) {
 	desiredState, err := desiredStateGenerator.Generate(ctx, s)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	dockerClusterImageRepository, found, err := unstructured.NestedString(desiredState.InfrastructureCluster.Object, "spec", "loadBalancer", "imageRepository")
+	devClusterImageRepository, found, err := unstructured.NestedString(desiredState.InfrastructureCluster.Object, "spec", "backend", "docker", "loadBalancer", "imageRepository")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(found).To(BeTrue())
-	g.Expect(dockerClusterImageRepository).To(Equal(clusterVariableImageRepository))
+	g.Expect(devClusterImageRepository).To(Equal(clusterVariableImageRepository))
 }
 
 func getCluster() *clusterv1.Cluster {

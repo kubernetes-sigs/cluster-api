@@ -96,10 +96,10 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 		log := ctrl.LoggerFrom(ctx)
 
 		switch obj.(type) {
-		case *infrav1beta1.DockerClusterTemplate, *infrav1.DockerClusterTemplate:
-			if err := patchDockerClusterTemplate(ctx, obj, variables); err != nil {
-				log.Error(err, "Error patching DockerClusterTemplate")
-				return errors.Wrap(err, "error patching DockerClusterTemplate")
+		case *infrav1.DevClusterTemplate:
+			if err := patchDevClusterTemplate(ctx, obj, variables); err != nil {
+				log.Error(err, "Error patching DevClusterTemplate")
+				return errors.Wrap(err, "error patching DevClusterTemplate")
 			}
 		case *controlplanev1beta1.KubeadmControlPlaneTemplate, *controlplanev1.KubeadmControlPlaneTemplate:
 			err := patchKubeadmControlPlaneTemplate(ctx, obj, variables)
@@ -117,47 +117,44 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 				log.Error(err, "Error patching KubeadmConfigTemplate")
 				return errors.Wrapf(err, "error patching KubeadmConfigTemplate")
 			}
-		case *infrav1beta1.DockerMachineTemplate, *infrav1.DockerMachineTemplate:
-			// NOTE: DockerMachineTemplate could be linked to the ControlPlane or one or more of the existing MachineDeployment class;
-			// the patchDockerMachineTemplate func shows how to implement different patches for DockerMachineTemplate
-			// linked to ControlPlane or for DockerMachineTemplate linked to MachineDeployment classes; another option
+		case *infrav1.DevMachineTemplate:
+			// NOTE: DevMachineTemplate could be linked to the ControlPlane or one or more of the existing MachineDeployment class;
+			// the patchDevMachineTemplate func shows how to implement different patches for DevMachineTemplate
+			// linked to ControlPlane or for DevMachineTemplate linked to MachineDeployment classes; another option
 			// is to check the holderRef value and call this func or more specialized func conditionally.
-			if err := patchDockerMachineTemplate(ctx, obj, variables); err != nil {
-				log.Error(err, "Error patching DockerMachineTemplate")
-				return errors.Wrap(err, "error patching DockerMachineTemplate")
+			if err := patchDevMachineTemplate(ctx, obj, variables); err != nil {
+				log.Error(err, "Error patching DevMachineTemplate")
+				return errors.Wrap(err, "error patching DevMachineTemplate")
 			}
-		case *infrav1beta1.DockerMachinePoolTemplate, *infrav1.DockerMachinePoolTemplate:
-			if err := patchDockerMachinePoolTemplate(ctx, obj, variables); err != nil {
-				log.Error(err, "Error patching DockerMachinePoolTemplate")
-				return errors.Wrap(err, "error patching DockerMachinePoolTemplate")
+		case *infrav1.DevMachinePoolTemplate:
+			if err := patchDevMachinePoolTemplate(ctx, obj, variables); err != nil {
+				log.Error(err, "Error patching DevMachinePoolTemplate")
+				return errors.Wrap(err, "error patching DevMachinePoolTemplate")
 			}
 		}
 		return nil
 	}, topologymutation.FailForUnknownTypes{})
 }
 
-// patchDockerClusterTemplate patches the DockerClusterTemplate.
+// patchDevClusterTemplate patches the DevClusterTemplate.
 // It sets the LoadBalancer.ImageRepository if the imageRepository variable is provided.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchDockerClusterTemplate(_ context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDevClusterTemplate(_ context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	imageRepo, err := topologymutation.GetStringVariable(templateVariables, "imageRepository")
 	if err != nil {
 		if topologymutation.IsNotFoundError(err) {
 			return nil
 		}
-		return errors.Wrap(err, "could not set DockerClusterTemplate loadBalancer imageRepository")
+		return errors.Wrap(err, "could not set DevClusterTemplate loadBalancer imageRepository")
 	}
 
-	dockerClusterTemplateV1Beta1, ok := obj.(*infrav1beta1.DockerClusterTemplate)
-	if ok {
-		dockerClusterTemplateV1Beta1.Spec.Template.Spec.LoadBalancer.ImageRepository = imageRepo
-		return nil
+	devClusterTemplate, ok := obj.(*infrav1.DevClusterTemplate)
+	if !ok {
+		return errors.New("object is not a DevClusterTemplate")
 	}
 
-	dockerClusterTemplate, ok := obj.(*infrav1.DockerClusterTemplate)
-	if ok {
-		dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.ImageRepository = imageRepo
-		return nil
+	if devClusterTemplate.Spec.Template.Spec.Backend.Docker != nil {
+		devClusterTemplate.Spec.Template.Spec.Backend.Docker.LoadBalancer.ImageRepository = imageRepo
 	}
 
 	return nil
@@ -352,21 +349,26 @@ func convertToKubeadmConfigFiles(files []fileVariable) []bootstrapv1.File {
 	return kubeadmConfigFiles
 }
 
-// patchDockerMachineTemplate patches the DockerMachineTemplate.
+// patchDevMachineTemplate patches the DevMachineTemplate.
 // It sets the CustomImage to an image for the version in use by the controlPlane or by the MachineDeployment
-// the DockerMachineTemplate belongs to.
+// the DevMachineTemplate belongs to.
 // NOTE: this patch is not required anymore after the introduction of the kind mapper in kind, however we keep it
 // as example of version aware patches.
-func patchDockerMachineTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDevMachineTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// If the DockerMachineTemplate belongs to the ControlPlane, set the images using the ControlPlane version.
+	devMachineTemplate, ok := obj.(*infrav1.DevMachineTemplate)
+	if !ok {
+		return errors.New("object is not a DevMachineTemplate")
+	}
+
+	// If the DevMachineTemplate belongs to the ControlPlane, set the images using the ControlPlane version.
 	// NOTE: ControlPlane version might be different than Cluster.version or MachineDeployment's versions;
 	// the builtin variables provides the right version to use.
 	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to the ControlPlane.
 	cpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set customImage to control plane dockerMachineTemplate")
+		return errors.Wrap(err, "could not set customImage to control plane devMachineTemplate")
 	}
 
 	// if found
@@ -379,31 +381,25 @@ func patchDockerMachineTemplate(ctx context.Context, obj runtime.Object, templat
 
 		log.Info(fmt.Sprintf("Setting control plane custom image to %q", kindMapping.Image))
 
-		dockerMachineTemplateV1Beta1, ok := obj.(*infrav1beta1.DockerMachineTemplate)
-		if ok {
-			dockerMachineTemplateV1Beta1.Spec.Template.Spec.CustomImage = kindMapping.Image
+		if devMachineTemplate.Spec.Template.Spec.Backend.Docker != nil {
+			devMachineTemplate.Spec.Template.Spec.Backend.Docker.CustomImage = kindMapping.Image
 		}
-
-		dockerMachineTemplate, ok := obj.(*infrav1.DockerMachineTemplate)
-		if ok {
-			dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
-		}
-		// return early if we have successfully patched a control plane dockerMachineTemplate
+		// return early if we have successfully patched a control plane devMachineTemplate
 		return nil
 	}
 
-	// If the DockerMachineTemplate belongs to a MachineDeployment, set the images the MachineDeployment version.
+	// If the DevMachineTemplate belongs to a MachineDeployment, set the images the MachineDeployment version.
 	// NOTE: MachineDeployment version might be different from Cluster.version or other MachineDeployment's versions;
 	// the builtin variables provides the right version to use.
 	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to MachineDeployments.
 	mdVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.version")
 	if err != nil {
 		if topologymutation.IsNotFoundError(err) {
-			// If the DockerMachineTemplate didn't have variables for either a control plane or a machineDeployment return an error.
+			// If the DevMachineTemplate didn't have variables for either a control plane or a machineDeployment return an error.
 			// NOTE: this should never happen because it is enforced by the patch engine.
-			return errors.New("no version variables found for DockerMachineTemplate patch")
+			return errors.New("no version variables found for DevMachineTemplate patch")
 		}
-		return errors.Wrap(err, "could not set customImage to MachineDeployment DockerMachineTemplate")
+		return errors.Wrap(err, "could not set customImage to MachineDeployment DevMachineTemplate")
 	}
 
 	semVer, err := semver.ParseTolerant(mdVersion)
@@ -414,37 +410,36 @@ func patchDockerMachineTemplate(ctx context.Context, obj runtime.Object, templat
 
 	log.Info(fmt.Sprintf("Setting MachineDeployment customImage to %q", kindMapping.Image))
 
-	dockerMachineTemplateV1Beta1, ok := obj.(*infrav1beta1.DockerMachineTemplate)
-	if ok {
-		dockerMachineTemplateV1Beta1.Spec.Template.Spec.CustomImage = kindMapping.Image
-	}
-
-	dockerMachineTemplate, ok := obj.(*infrav1.DockerMachineTemplate)
-	if ok {
-		dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
+	if devMachineTemplate.Spec.Template.Spec.Backend.Docker != nil {
+		devMachineTemplate.Spec.Template.Spec.Backend.Docker.CustomImage = kindMapping.Image
 	}
 	return nil
 }
 
-// patchDockerMachinePoolTemplate patches the DockerMachinePoolTemplate.
+// patchDevMachinePoolTemplate patches the DevMachinePoolTemplate.
 // It sets the CustomImage to an image for the version in use by the MachinePool.
 // NOTE: this patch is not required anymore after the introduction of the kind mapper in kind, however we keep it
 // as example of version aware patches.
-func patchDockerMachinePoolTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDevMachinePoolTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// If the DockerMachinePoolTemplate belongs to a MachinePool, set the images the MachinePool version.
+	devMachinePoolTemplate, ok := obj.(*infrav1.DevMachinePoolTemplate)
+	if !ok {
+		return errors.New("object is not a DevMachinePoolTemplate")
+	}
+
+	// If the DevMachinePoolTemplate belongs to a MachinePool, set the images the MachinePool version.
 	// NOTE: MachinePool version might be different from Cluster.version or other MachinePool's versions;
 	// the builtin variables provides the right version to use.
 	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to MachinePools.
 	mpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.version")
 	if err != nil {
-		// If the DockerMachinePoolTemplate didn't have variables for a machinePool return an error.
+		// If the DevMachinePoolTemplate didn't have variables for a machinePool return an error.
 		// NOTE: this should never happen because it is enforced by the patch engine.
 		if topologymutation.IsNotFoundError(err) {
-			return errors.New("no version variables found for DockerMachinePoolTemplate patch")
+			return errors.New("no version variables found for DevMachinePoolTemplate patch")
 		}
-		return errors.Wrap(err, "could not set customImage to MachinePool DockerMachinePoolTemplate")
+		return errors.Wrap(err, "could not set customImage to MachinePool DevMachinePoolTemplate")
 	}
 
 	semVer, err := semver.ParseTolerant(mpVersion)
@@ -455,14 +450,8 @@ func patchDockerMachinePoolTemplate(ctx context.Context, obj runtime.Object, tem
 
 	log.Info(fmt.Sprintf("Setting MachinePool customImage to %q", kindMapping.Image))
 
-	dockerMachinePoolTemplateV1Beta1, ok := obj.(*infrav1beta1.DockerMachinePoolTemplate)
-	if ok {
-		dockerMachinePoolTemplateV1Beta1.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
-	}
-
-	dockerMachinePoolTemplate, ok := obj.(*infrav1.DockerMachinePoolTemplate)
-	if ok {
-		dockerMachinePoolTemplate.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
+	if devMachinePoolTemplate.Spec.Template.Spec.Backend.Docker != nil {
+		devMachinePoolTemplate.Spec.Template.Spec.Backend.Docker.CustomImage = kindMapping.Image
 	}
 
 	return nil
@@ -533,20 +522,20 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 					Example: &apiextensionsv1.JSON{Raw: []byte(`"kindest"`)},
 					XMetadata: clusterv1.VariableSchemaMetadata{
 						Labels: map[string]string{
-							"objects": "DockerCluster",
+							"objects": "DevCluster",
 						},
 						Annotations: map[string]string{
-							"description": "Gets set at DockerCluster.Spec.Template.Spec.LoadBalancer.ImageRepository",
+							"description": "Gets set at DevCluster.Spec.Template.Spec.Backend.Docker.LoadBalancer.ImageRepository",
 						},
 					},
 				},
 			},
 			DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 				Labels: map[string]string{
-					"objects": "DockerCluster",
+					"objects": "DevCluster",
 				},
 				Annotations: map[string]string{
-					"description": "Gets set at DockerCluster.Spec.Template.Spec.LoadBalancer.ImageRepository",
+					"description": "Gets set at DevCluster.Spec.Template.Spec.Backend.Docker.LoadBalancer.ImageRepository",
 				},
 			},
 		},

@@ -402,6 +402,23 @@ func (m *Machine) GetBootstrapCommands(_ context.Context, data string, format bo
 	return commands, nil
 }
 
+// CheckForSentinelFile checks if bootstrap was successful by checking for existence of the sentinel file.
+func (m *Machine) CheckForSentinelFile(ctx context.Context) (bool, error) {
+	if m.container == nil {
+		return false, errors.New("unable to set CheckForBootstrapSuccess. the container hosting this machine does not exists")
+	}
+
+	var outErr bytes.Buffer
+	var outStd bytes.Buffer
+	cmd := m.container.Commander.Command("/bin/sh", "-c", "test -f /run/cluster-api/bootstrap-success.complete && echo \"true\" || echo \"false\"")
+	cmd.SetStderr(&outErr)
+	cmd.SetStdout(&outStd)
+	if err := cmd.Run(ctx); err != nil {
+		return false, errors.Wrap(err, "failed to run bootstrap check")
+	}
+	return outStd.String() == "true", nil
+}
+
 // Delete deletes a docker container hosting a Kubernetes node.
 func (m *Machine) Delete(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)

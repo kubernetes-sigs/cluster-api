@@ -176,7 +176,7 @@ func (a *writeFilesAction) Commands() ([]provisioning.Cmd, error) {
 
 		// Make the directory so cat + redirection will work
 		directory := filepath.Dir(path)
-		commands = append(commands, provisioning.Cmd{Cmd: "mkdir", Args: []string{"-p", directory}})
+		commands = append(commands, provisioning.Cmd{Cmd: "mkdir", Args: []string{"-p", directory}, Retry: 5})
 
 		redirects := ">"
 		if f.Append {
@@ -184,16 +184,16 @@ func (a *writeFilesAction) Commands() ([]provisioning.Cmd, error) {
 		}
 
 		// generate a command that will create a file with the expected contents.
-		commands = append(commands, provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)}, Stdin: content})
+		commands = append(commands, provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)}, Stdin: content, Retry: 5})
 
 		// if permissions are different than default ownership, add a command to modify the permissions.
 		if permissions != "0644" {
-			commands = append(commands, provisioning.Cmd{Cmd: "chmod", Args: []string{permissions, path}})
+			commands = append(commands, provisioning.Cmd{Cmd: "chmod", Args: []string{permissions, path}, Retry: 5})
 		}
 
 		// if ownership is different than default ownership, add a command to modify file ownerhsip.
 		if owner != "root:root" {
-			commands = append(commands, provisioning.Cmd{Cmd: "chown", Args: []string{owner, path}})
+			commands = append(commands, provisioning.Cmd{Cmd: "chown", Args: []string{owner, path}, Retry: 5})
 		}
 	}
 	return commands, nil

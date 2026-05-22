@@ -110,37 +110,37 @@ write_files:
 
 	expectedCmds := []provisioning.Cmd{
 		// ca
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.crt /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/ca.crt"}},
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.key /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/ca.key"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.crt /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/ca.crt"}, Retry: 5},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.key /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/ca.key"}, Retry: 5},
 		// etcd/ca
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki/etcd"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/etcd/ca.crt /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/etcd/ca.crt"}},
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki/etcd"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/etcd/ca.key /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/etcd/ca.key"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki/etcd"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/etcd/ca.crt /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/etcd/ca.crt"}, Retry: 5},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki/etcd"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/etcd/ca.key /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/etcd/ca.key"}, Retry: 5},
 		// front-proxy-ca
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/front-proxy-ca.crt /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/front-proxy-ca.crt"}},
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/front-proxy-ca.key /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/front-proxy-ca.key"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/front-proxy-ca.crt /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/front-proxy-ca.crt"}, Retry: 5},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/front-proxy-ca.key /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/front-proxy-ca.key"}, Retry: 5},
 		// sa
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/sa.pub /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/sa.pub"}},
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/sa.key /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/sa.key"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/sa.pub /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/sa.pub"}, Retry: 5},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/sa.key /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/sa.key"}, Retry: 5},
 		// /run/kubeadm/kubeadm.yaml
-		{Cmd: "mkdir", Args: []string{"-p", "/run/kubeadm"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /run/kubeadm/kubeadm.yaml /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0640", "/run/kubeadm/kubeadm.yaml"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/run/kubeadm"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /run/kubeadm/kubeadm.yaml /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0640", "/run/kubeadm/kubeadm.yaml"}, Retry: 5},
 	}
 
 	commands, err := RawCloudInitToProvisioningCommands(cloudData, kind.Mapping{KubernetesVersion: semver.MustParse("1.23.0")})
@@ -152,5 +152,6 @@ write_files:
 		expected := expectedCmds[i]
 		g.Expect(cmd.Cmd).To(Equal(expected.Cmd))
 		g.Expect(cmd.Args).To(ConsistOf(expected.Args))
+		g.Expect(cmd.Retry).To(BeEquivalentTo(expected.Retry))
 	}
 }

@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -142,9 +143,16 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 	g := NewWithT(t)
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:   env.GetClient(),
-		recorder: record.NewFakeRecorder(32),
+		Client:     env.GetClient(),
+		controller: capicontrollerutil.NewFakeController(),
+		recorder:   record.NewFakeRecorder(32),
 	}
+
+	var err error
+	r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+		env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+	g.Expect(err).ToNot(HaveOccurred())
+
 	ns, err := env.CreateNamespace(ctx, "ns1")
 	g.Expect(err).ToNot(HaveOccurred())
 	defer func() {
@@ -444,9 +452,15 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -500,9 +514,15 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -830,9 +850,15 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -880,9 +906,15 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		// First reconcile, remediate machine m1 for the first time
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -967,9 +999,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -1019,9 +1056,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -1071,9 +1113,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -1124,9 +1171,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -1177,9 +1229,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -1275,9 +1332,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		// First reconcile, remediate machine m1 for the first time
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -1378,9 +1440,13 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -1487,9 +1553,13 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
@@ -1599,9 +1669,13 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
 		}
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)

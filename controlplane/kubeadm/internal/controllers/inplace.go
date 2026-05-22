@@ -69,5 +69,5 @@ func (r *KubeadmControlPlaneReconciler) tryInPlaceUpdate(
 		return true, ctrl.Result{}, nil
 	}
 
-	return false, ctrl.Result{}, r.triggerInPlaceUpdate(ctx, machineToInPlaceUpdate, machineUpToDateResult)
+	return false, ctrl.Result{}, r.triggerInPlaceUpdate(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
 }

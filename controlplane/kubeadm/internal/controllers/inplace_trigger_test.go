@@ -29,10 +29,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -279,11 +281,21 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 			}
 
 			r := KubeadmControlPlaneReconciler{
-				Client:   env.Client,
-				recorder: record.NewFakeRecorder(32),
+				Client:     env.Client,
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   record.NewFakeRecorder(32),
 			}
 
-			err := r.triggerInPlaceUpdate(ctx, currentMachineForPatch, upToDateResult)
+			controlPlane := &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "kcp-test",
+						Namespace: "default",
+					},
+				},
+			}
+
+			err := r.triggerInPlaceUpdate(ctx, controlPlane, currentMachineForPatch, upToDateResult)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))

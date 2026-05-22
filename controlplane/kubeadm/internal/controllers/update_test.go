@@ -104,6 +104,10 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 		},
 		ssaCache: ssa.NewCache("test-controller"),
 	}
+	var err error
+	r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+		env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+	g.Expect(err).ToNot(HaveOccurred())
 	controlPlane := &internal.ControlPlane{
 		KCP:      kcp,
 		Cluster:  cluster,
@@ -246,9 +250,10 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	fmc.Reader = fakeClient
 	fmc.Workload.Workload = &internal.Workload{Client: fakeClient}
 	r := &KubeadmControlPlaneReconciler{
-		Client:              fakeClient,
-		SecretCachingClient: fakeClient,
-		managementCluster:   fmc,
+		Client:                          fakeClient,
+		SecretCachingClient:             fakeClient,
+		machineClientWithDeleteResponse: capicontrollerutil.NewClientWithDeleteResponseFromClient(fakeClient),
+		managementCluster:               fmc,
 	}
 
 	controlPlane := &internal.ControlPlane{

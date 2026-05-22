@@ -31,11 +31,10 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/internal/hooks"
-	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
 
-func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) error {
+func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *internal.ControlPlane, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) error {
 	if r.overrideTriggerInPlaceUpdate != nil {
 		return r.overrideTriggerInPlaceUpdate(ctx, machine, machineUpToDateResult)
 	}
@@ -60,9 +59,7 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 
 		// Wait until the cache observed the Machine with UpdateInProgressAnnotation to ensure subsequent reconciles
 		// will observe it as well and accordingly don't trigger another in-place update concurrently.
-		if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, fmt.Sprintf("setting the %s annotation", clusterv1.UpdateInProgressAnnotation), machine); err != nil {
-			return err
-		}
+		r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, machineGR, machine.ResourceVersion)
 	}
 
 	// TODO: If this func fails below we are going to reconcile again and call triggerInPlaceUpdate again. If KCP
@@ -133,13 +130,12 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 	if err := hooks.MarkAsPending(ctx, r.Client, desiredMachine, true, runtimehooksv1.UpdateMachine); err != nil {
 		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
+	r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, machineGR, desiredMachine.ResourceVersion)
 
 	log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", klog.KObj(machine)))
 	r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 
-	// Wait until the cache observed the Machine with PendingHooksAnnotation to ensure subsequent reconciles
-	// will observe it as well and won't repeatedly call triggerInPlaceUpdate.
-	return clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "marking the UpdateMachine hook as pending", desiredMachine)
+	return nil
 }
 
 func (r *KubeadmControlPlaneReconciler) removeInitConfiguration(ctx context.Context, desiredKubeadmConfig *bootstrapv1.KubeadmConfig) error {

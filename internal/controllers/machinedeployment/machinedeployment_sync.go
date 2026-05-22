@@ -347,7 +347,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 			// If the deletion was successful and the MachineSet had a finalizer when deletion was triggered
 			// deletedMS will contain the MachineSet object after deletion with the resourceVersion set.
 			// If that is the case, defer the next reconcile until the cache observed the MachineSet deletion.
-			r.controller.DeferNextReconcileUntilCacheUpToDate(deployment, msGR, deletedMS)
+			r.controller.DeferNextReconcileUntilCacheUpToDate(deployment, msGR, deletedMS.GetResourceVersion())
 		}
 
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.

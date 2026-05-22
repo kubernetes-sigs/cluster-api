@@ -179,11 +179,11 @@ func (r reconcileCacheEntry) ShouldRequeue(now time.Time) (requeueAfter time.Dur
 	return time.Duration(0), false
 }
 
-func (c *controllerWrapper) DeferNextReconcileUntilCacheUpToDate(reconciledObject metav1.Object, writtenObjectGroupResource schema.GroupResource, writtenObject metav1.Object) {
+func (c *controllerWrapper) DeferNextReconcileUntilCacheUpToDate(reconciledObject metav1.Object, writtenObjectGroupResource schema.GroupResource, writtenObjectResourceVersion string) {
 	// Note: We are using GroupResource here because we want to avoid making bigger changes to the vendored consistencyStore util.
 	// We could calculate GroupResource from a client.Object but we would have to handle error cases.
 	c.consistencyStore.WroteAt(client.ObjectKey{Namespace: reconciledObject.GetNamespace(), Name: reconciledObject.GetName()},
-		reconciledObject.GetUID(), writtenObjectGroupResource, writtenObject.GetResourceVersion())
+		reconciledObject.GetUID(), writtenObjectGroupResource, writtenObjectResourceVersion)
 }
 
 func (c *controllerWrapper) ClearConsistencyStore(reconciledObject client.ObjectKey, reconciledObjectUID types.UID) {

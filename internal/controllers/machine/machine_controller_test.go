@@ -1345,7 +1345,7 @@ func (f fakeController) DeferNextReconcile(_ reconcile.Request, _ time.Time) {}
 
 func (f fakeController) DeferNextReconcileForObject(_ metav1.Object, _ time.Time) {}
 
-func (f fakeController) DeferNextReconcileUntilCacheUpToDate(_ metav1.Object, _ schema.GroupResource, _ metav1.Object) {
+func (f fakeController) DeferNextReconcileUntilCacheUpToDate(_ metav1.Object, _ schema.GroupResource, _ string) {
 }
 
 func (f fakeController) ClearConsistencyStore(_ client.ObjectKey, _ types.UID) {}

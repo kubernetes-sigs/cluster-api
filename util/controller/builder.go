@@ -162,7 +162,7 @@ type Controller interface {
 	controller.Controller
 	DeferNextReconcile(req reconcile.Request, reconcileAfter time.Time)
 	DeferNextReconcileForObject(obj metav1.Object, reconcileAfter time.Time)
-	DeferNextReconcileUntilCacheUpToDate(reconciledObject metav1.Object, writtenObjectGroupResource schema.GroupResource, writtenObject metav1.Object)
+	DeferNextReconcileUntilCacheUpToDate(reconciledObject metav1.Object, writtenObjectGroupResource schema.GroupResource, writtenObjectResourceVersion string)
 	ClearConsistencyStore(reconciledObject client.ObjectKey, reconciledObjectUID types.UID)
 }
 

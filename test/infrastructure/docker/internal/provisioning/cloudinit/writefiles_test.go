@@ -44,10 +44,10 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedCmds: []provisioning.Cmd{
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat > baz /dev/stdin"}, Stdin: "qux"},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar", Retry: 5},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > baz /dev/stdin"}, Stdin: "qux", Retry: 5},
 			},
 		},
 		{
@@ -58,9 +58,9 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedCmds: []provisioning.Cmd{
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
-				{Cmd: "chown", Args: []string{"baz:baz", "foo"}},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar", Retry: 5},
+				{Cmd: "chown", Args: []string{"baz:baz", "foo"}, Retry: 5},
 			},
 		},
 		{
@@ -71,9 +71,9 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedCmds: []provisioning.Cmd{
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
-				{Cmd: "chmod", Args: []string{"755", "foo"}},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar", Retry: 5},
+				{Cmd: "chmod", Args: []string{"755", "foo"}, Retry: 5},
 			},
 		},
 		{
@@ -84,8 +84,8 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedCmds: []provisioning.Cmd{
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat >> foo /dev/stdin"}, Stdin: "bar"},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat >> foo /dev/stdin"}, Stdin: "bar", Retry: 5},
 			},
 		},
 	}

@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -597,36 +598,7 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 		// Execute boostrap commands asynchronously.
 		operations := make([]Operation, 0, len(commands))
 		for _, command := range commands {
-			commandMsg := strings.Join(append([]string{command.Cmd}, command.Args...), " ")
-			operations = append(operations, Operation{
-				Description: fmt.Sprintf("Running boostrap command [ %s ]", commandMsg),
-				F: func(ctx context.Context) error {
-					log := ctrl.LoggerFrom(ctx)
-					log.Info("Running boostrap command", "command", commandMsg)
-
-					var outErr bytes.Buffer
-					var outStd bytes.Buffer
-
-					cmd := externalMachine.Command(command.Cmd, command.Args...)
-					cmd.SetStderr(&outErr)
-					cmd.SetStdout(&outStd)
-					if command.Stdin != "" {
-						cmd.SetStdin(strings.NewReader(command.Stdin))
-					}
-					if err := cmd.Run(ctx); err != nil {
-						stdout := outStd.String()
-						stderr := outErr.String()
-						log.Info("Failed running boostrap command", "command", commandMsg, "error", err.Error(), "stdout", stdout, "stderr", stderr, "bootstrap data", bootstrapData)
-						externalMachine.LogContainerDebugInfo(ctx)
-						return &cmdError{
-							Err:    errors.WithStack(err),
-							Stdout: stdout,
-							Stderr: stderr,
-						}
-					}
-					return nil
-				},
-			})
+			operations = append(operations, boostrapCommandOperation(externalMachine, command))
 		}
 
 		timeout := 5 * time.Minute
@@ -689,6 +661,49 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 		})
 	}
 	return ctrl.Result{}, nil
+}
+
+func boostrapCommandOperation(externalMachine *docker.Machine, command provisioning.Cmd) Operation {
+	commandMsg := strings.Join(append([]string{command.Cmd}, command.Args...), " ")
+	return Operation{
+		Description: fmt.Sprintf("Running boostrap command [ %s ]", commandMsg),
+		F: func(ctx context.Context) error {
+			log := ctrl.LoggerFrom(ctx)
+
+			log.Info("Running boostrap command", "command", commandMsg)
+			retry := 0
+			for {
+				var outErr bytes.Buffer
+				var outStd bytes.Buffer
+
+				cmd := externalMachine.Command(command.Cmd, command.Args...)
+				cmd.SetStderr(&outErr)
+				cmd.SetStdout(&outStd)
+				if command.Stdin != "" {
+					cmd.SetStdin(strings.NewReader(command.Stdin))
+				}
+				if err := cmd.Run(ctx); err != nil {
+					stdout := outStd.String()
+					stderr := outErr.String()
+					log.Info("Failed running boostrap command", "command", commandMsg, "error", err.Error(), "stdout", stdout, "stderr", stderr)
+					if retry < command.Retry {
+						time.Sleep(5 * time.Second)
+						retry++
+						log.Info("Running boostrap command", "command", commandMsg, "retry", fmt.Sprintf("%d/%d", retry, command.Retry))
+						continue
+					}
+					externalMachine.LogContainerDebugInfo(ctx)
+					return &cmdError{
+						Err:    errors.WithStack(err),
+						Stdout: stdout,
+						Stderr: stderr,
+					}
+				}
+				break
+			}
+			return nil
+		},
+	}
 }
 
 func (r *MachineBackendReconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Cluster, dockerMachine *infrav1.DevMachine, externalMachine *docker.Machine) (ctrl.Result, error) {

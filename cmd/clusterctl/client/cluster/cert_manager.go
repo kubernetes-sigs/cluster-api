@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	_ "embed"
+	"strconv"
 	"time"
 
 	"github.com/blang/semver/v4"
@@ -156,16 +157,12 @@ func (cm *certManagerClient) EnsureInstalled(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	retryInWait := true
-	waitForCertManagerDuration, err := time.ParseDuration(config.WaitForCertManagerDuration())
+	waitForCertManager, err := strconv.ParseBool(config.WaitForCertManager())
 	if err != nil {
 		return err
 	}
-	if waitForCertManagerDuration < 1 {
-		retryInWait = false
-	}
 	// Checking if a version of cert manager supporting cert-manager-test-resources.yaml is already installed and properly working.
-	if err := cm.waitForAPIReady(ctx, retryInWait); err == nil {
+	if err := cm.waitForAPIReady(ctx, waitForCertManager); err == nil {
 		log.Info("Skipping installing cert-manager as it is already installed")
 		return nil
 	}

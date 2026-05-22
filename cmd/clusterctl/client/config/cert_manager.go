@@ -32,15 +32,15 @@ type CertManager interface {
 
 	// WaitForCertManagerDuration returns the duration to
 	// wait before creating cert-manager resources.
-	WaitForCertManagerDuration() string
+	WaitForCertManager() string
 }
 
 // certManager implements CertManager.
 type certManager struct {
-	url                        string
-	version                    string
-	timeout                    string
-	waitForCertManagerDuration string
+	url                string
+	version            string
+	timeout            string
+	waitForCertManager string
 }
 
 // ensure certManager implements CertManager.
@@ -58,16 +58,16 @@ func (p *certManager) Timeout() string {
 	return p.timeout
 }
 
-func (p *certManager) WaitForCertManagerDuration() string {
-	return p.waitForCertManagerDuration
+func (p *certManager) WaitForCertManager() string {
+	return p.waitForCertManager
 }
 
 // NewCertManager creates a new CertManager with the given configuration.
-func NewCertManager(url, version, timeout, waitForCertManagerDuration string) CertManager {
+func NewCertManager(url, version, timeout, waitForCertManager string) CertManager {
 	return &certManager{
-		url:                        url,
-		version:                    version,
-		timeout:                    timeout,
-		waitForCertManagerDuration: waitForCertManagerDuration,
+		url:                url,
+		version:            version,
+		timeout:            timeout,
+		waitForCertManager: waitForCertManager,
 	}
 }

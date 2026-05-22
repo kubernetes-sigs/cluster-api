@@ -169,8 +169,6 @@ linters:
           alias: ""
         - pkg: sigs.k8s.io/cluster-api/internal/topology/names
           alias: topologynames
-        - pkg: sigs.k8s.io/cluster-api/internal/util/client
-          alias: "clientutil"
         - pkg: sigs.k8s.io/cluster-api/util/controller
           alias: "capicontrollerutil"
         # CAPD

@@ -66,6 +66,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -309,6 +310,7 @@ func TestReconcileNoKCP(t *testing.T) {
 	r := &KubeadmControlPlaneReconciler{
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
+		controller:          capicontrollerutil.NewFakeController(),
 		recorder:            record.NewFakeRecorder(32),
 	}
 
@@ -1346,6 +1348,7 @@ kubernetesVersion: metav1.16.1
 		Client:              env,
 		APIReader:           env,
 		SecretCachingClient: secretCachingClient,
+		controller:          capicontrollerutil.NewFakeController(),
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
@@ -1584,6 +1587,7 @@ kubernetesVersion: metav1.16.1`,
 		Client:              env,
 		APIReader:           env,
 		SecretCachingClient: secretCachingClient,
+		controller:          capicontrollerutil.NewFakeController(),
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
@@ -4320,8 +4324,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 				Management: &internal.Management{Client: fakeClient},
 				Workload:   &fakeWorkloadCluster{},
 			},
-
-			recorder: record.NewFakeRecorder(32),
+			controller: capicontrollerutil.NewFakeController(),
+			recorder:   record.NewFakeRecorder(32),
 		}
 
 		controlPlane := &internal.ControlPlane{
@@ -4502,7 +4506,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 				Management: &internal.Management{Client: fakeClient},
 				Workload:   &fakeWorkloadCluster{},
 			},
-			recorder: record.NewFakeRecorder(32),
+			controller: capicontrollerutil.NewFakeController(),
+			recorder:   record.NewFakeRecorder(32),
 		}
 
 		controlPlane := &internal.ControlPlane{

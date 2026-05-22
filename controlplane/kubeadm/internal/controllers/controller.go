@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
@@ -73,6 +74,13 @@ const (
 	kubeadmControlPlaneKind = "KubeadmControlPlane"
 )
 
+var (
+	machineGR = schema.GroupResource{
+		Group:    clusterv1.GroupVersion.Group,
+		Resource: "machines",
+	}
+)
+
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
@@ -83,13 +91,14 @@ const (
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
 type KubeadmControlPlaneReconciler struct {
-	Client              client.Client
-	APIReader           client.Reader
-	SecretCachingClient client.Client
-	RuntimeClient       runtimeclient.Client
-	controller          capicontrollerutil.Controller
-	recorder            record.EventRecorder
-	ClusterCache        clustercache.ClusterCache
+	Client                          client.Client
+	APIReader                       client.Reader
+	SecretCachingClient             client.Client
+	machineClientWithDeleteResponse capicontrollerutil.ClientWithDeleteResponse
+	RuntimeClient                   runtimeclient.Client
+	controller                      capicontrollerutil.Controller
+	recorder                        record.EventRecorder
+	ClusterCache                    clustercache.ClusterCache
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -149,11 +158,19 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmcontrolplane", r.ClusterToKubeadmControlPlane,
 			clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod))).
+		WithConsistencyStore(map[schema.GroupResource]client.Object{
+			machineGR: &clusterv1.Machine{},
+		}).
 		Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
+	r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+		mgr.GetScheme(), mgr.GetConfig(), mgr.GetHTTPClient())
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadmcontrolplane-controller")
 	r.ssaCache = ssa.NewCache("kubeadmcontrolplane")
@@ -180,6 +197,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	kcp := &controlplanev1.KubeadmControlPlane{}
 	if err := r.Client.Get(ctx, req.NamespacedName, kcp); err != nil {
 		if apierrors.IsNotFound(err) {
+			r.controller.ClearConsistencyStore(req.NamespacedName, "")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -483,7 +501,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	if machines := controlPlane.MachinesToCompleteTriggerInPlaceUpdate(); len(machines) > 0 {
 		_, machinesUpToDateResults := controlPlane.NotUpToDateMachines()
 		for _, m := range machines {
-			if err := r.triggerInPlaceUpdate(ctx, m, machinesUpToDateResults[m.Name]); err != nil {
+			if err := r.triggerInPlaceUpdate(ctx, controlPlane, m, machinesUpToDateResults[m.Name]); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -680,6 +698,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedReason
 		controlPlane.DeletingMessage = "Deletion completed"
 
+		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP.UID)
 		controllerutil.RemoveFinalizer(controlPlane.KCP, controlplanev1.KubeadmControlPlaneFinalizer)
 		return ctrl.Result{}, nil
 	}

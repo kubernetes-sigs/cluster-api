@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
-	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -299,11 +298,12 @@ func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, machine); err != nil {
 		return err
 	}
+	r.controller.DeferNextReconcileUntilCacheUpToDate(kcp, machineGR, machine.ResourceVersion)
 	// Remove the annotation tracking that a remediation is in progress (the remediation completed when
 	// the replacement machine has been created above).
 	delete(kcp.Annotations, controlplanev1.RemediationInProgressAnnotation)
 
-	return clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "Machine creation", machine)
+	return nil
 }
 
 func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {

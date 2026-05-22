@@ -51,14 +51,6 @@ type DockerMachineSpec struct {
 	// +optional
 	ExtraMounts []Mount `json:"extraMounts,omitempty"`
 
-	// Bootstrapped is true when the kubeadm bootstrapping has been run
-	// against this machine
-	//
-	// Deprecated: This field will be removed in the next apiVersion.
-	// When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
-	// +optional
-	Bootstrapped bool `json:"bootstrapped,omitempty"`
-
 	// BootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
 	// The default value is 5m.
 	// +optional
@@ -84,8 +76,8 @@ type Mount struct {
 // DockerMachineStatus defines the observed state of DockerMachine.
 type DockerMachineStatus struct {
 	// conditions represents the observations of a DockerMachine's current state.
-	// Known condition types are NodeProvisioned, EtcdProvisioned, APIServerProvisioned, VMProvisioned,
-	// ControlPlaneInitialized, BootstrapExecSucceeded, LoadBalancerAvailable, ContainerProvisioned and Paused.
+	// Known condition types are Ready, ContainerProvisioned, CGroupsReady, PreLoadedImagesReady,
+	// BootstrapCompleted and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

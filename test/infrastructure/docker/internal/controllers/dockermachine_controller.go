@@ -49,9 +49,11 @@ import (
 // DockerMachineReconciler reconciles a DockerMachine object.
 type DockerMachineReconciler struct {
 	client.Client
-	ContainerRuntime  container.Runtime
-	ClusterCache      clustercache.ClusterCache
-	backendReconciler *dockerbackend.MachineBackendReconciler
+
+	ContainerRuntime         container.Runtime
+	ClusterCache             clustercache.ClusterCache
+	backendReconciler        *dockerbackend.MachineBackendReconciler
+	DockerMachineTaskManager *dockerbackend.TaskManager
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -192,7 +194,9 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		return err
 	}
 
-	err = capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
+	r.DockerMachineTaskManager = dockerbackend.NewTaskManager()
+
+	c, err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&infrav1.DockerMachine{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
@@ -210,17 +214,19 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("dockermachine", clusterToDockerMachines)).
-		Complete(ctx, r)
+		WatchesRawSource(r.DockerMachineTaskManager.GetSource()).
+		Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.backendReconciler = &dockerbackend.MachineBackendReconciler{
-		Client:           r.Client,
-		ContainerRuntime: r.ContainerRuntime,
-		ClusterCache:     r.ClusterCache,
+		Client:                      r.Client,
+		ContainerRuntime:            r.ContainerRuntime,
+		ClusterCache:                r.ClusterCache,
+		TaskManager:                 r.DockerMachineTaskManager,
+		DeferNextReconcileForObject: c.DeferNextReconcileForObject,
 	}
-
 	return nil
 }
 
@@ -269,8 +275,12 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 	)
 	if err := conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyCondition,
 		conditions.ForConditionTypes{
+			infrav1.DevMachineDockerCGroupsReadyCondition,
 			infrav1.DevMachineDockerContainerProvisionedCondition,
-			infrav1.DevMachineDockerContainerBootstrapExecSucceededCondition,
+			infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
+			// Note: on real infrastructure providers usually it is not possible to have visibility in the cloud-init / ignition process
+			// but for docker machine it is, and so we surface this info to help in triaging issue.
+			infrav1.DevMachineBootstrapCompletedCondition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		conditions.CustomMergeStrategy{
@@ -299,8 +309,10 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
 			infrav1.DevMachineReadyCondition,
+			infrav1.DevMachineDockerCGroupsReadyCondition,
 			infrav1.DevMachineDockerContainerProvisionedCondition,
-			infrav1.DevMachineDockerContainerBootstrapExecSucceededCondition,
+			infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
+			infrav1.DevMachineBootstrapCompletedCondition,
 		}},
 	)
 }
@@ -325,7 +337,6 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 					CustomImage:      dockerMachine.Spec.CustomImage,
 					PreLoadImages:    dockerMachine.Spec.PreLoadImages,
 					ExtraMounts:      dockerMachine.Spec.ExtraMounts,
-					Bootstrapped:     dockerMachine.Spec.Bootstrapped,
 					BootstrapTimeout: dockerMachine.Spec.BootstrapTimeout,
 				},
 			},
@@ -338,11 +349,6 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 			FailureDomain: dockerMachine.Status.FailureDomain,
 			Conditions:    dockerMachine.Status.Conditions,
 			Deprecated:    v1Beta1Status,
-			Backend: &infrav1.DevMachineBackendStatus{
-				Docker: &infrav1.DockerMachineBackendStatus{
-					LoadBalancerConfigured: dockerMachine.Status.LoadBalancerConfigured,
-				},
-			},
 		},
 	}
 }
@@ -363,7 +369,6 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 	dockerMachine.Spec.CustomImage = devMachine.Spec.Backend.Docker.CustomImage
 	dockerMachine.Spec.PreLoadImages = devMachine.Spec.Backend.Docker.PreLoadImages
 	dockerMachine.Spec.ExtraMounts = devMachine.Spec.Backend.Docker.ExtraMounts
-	dockerMachine.Spec.Bootstrapped = devMachine.Spec.Backend.Docker.Bootstrapped
 	dockerMachine.Spec.BootstrapTimeout = devMachine.Spec.Backend.Docker.BootstrapTimeout
 	dockerMachine.Status.Initialization = infrav1.DockerMachineInitializationStatus{
 		Provisioned: devMachine.Status.Initialization.Provisioned,
@@ -372,5 +377,4 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 	dockerMachine.Status.FailureDomain = devMachine.Status.FailureDomain
 	dockerMachine.Status.Conditions = devMachine.Status.Conditions
 	dockerMachine.Status.Deprecated = v1Beta1Status
-	dockerMachine.Status.LoadBalancerConfigured = devMachine.Status.Backend.Docker.LoadBalancerConfigured
 }

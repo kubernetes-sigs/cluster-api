@@ -51,14 +51,16 @@ import (
 // DevMachineReconciler reconciles a DevMachine object.
 type DevMachineReconciler struct {
 	client.Client
+	controller capicontrollerutil.Controller
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	ContainerRuntime container.Runtime
-	ClusterCache     clustercache.ClusterCache
-	InMemoryManager  inmemoryruntime.Manager
-	APIServerMux     *inmemoryserver.WorkloadClustersMux
+	ContainerRuntime         container.Runtime
+	ClusterCache             clustercache.ClusterCache
+	InMemoryManager          inmemoryruntime.Manager
+	APIServerMux             *inmemoryserver.WorkloadClustersMux
+	DockerMachineTaskManager *dockerbackend.TaskManager
 }
 
 // SetupWithManager will add watches for this controller.
@@ -73,7 +75,8 @@ func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return err
 	}
 
-	err = capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
+	r.DockerMachineTaskManager = dockerbackend.NewTaskManager()
+	c, err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&infrav1.DevMachine{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
@@ -91,10 +94,13 @@ func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("devmachine", clusterToDevMachines)).
-		Complete(ctx, r)
+		WatchesRawSource(r.DockerMachineTaskManager.GetSource()).
+		Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
+
+	r.controller = c
 	return nil
 }
 
@@ -225,9 +231,11 @@ func (r *DevMachineReconciler) backendReconcilerFactory(_ context.Context, devMa
 		}
 	}
 	return &dockerbackend.MachineBackendReconciler{
-		Client:           r.Client,
-		ContainerRuntime: r.ContainerRuntime,
-		ClusterCache:     r.ClusterCache,
+		Client:                      r.Client,
+		ContainerRuntime:            r.ContainerRuntime,
+		ClusterCache:                r.ClusterCache,
+		TaskManager:                 r.DockerMachineTaskManager,
+		DeferNextReconcileForObject: r.controller.DeferNextReconcileForObject,
 	}
 }
 

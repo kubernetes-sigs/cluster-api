@@ -29,6 +29,7 @@ type Cmd struct {
 	Cmd   string
 	Args  []string
 	Stdin string
+	Retry int
 }
 
 // UnmarshalJSON a runcmd command

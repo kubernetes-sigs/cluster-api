@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -75,6 +76,21 @@ import (
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;create;delete
 
+var (
+	clusterGR = schema.GroupResource{
+		Group:    clusterv1.GroupVersion.Group,
+		Resource: "clusters",
+	}
+	machineDeploymentGR = schema.GroupResource{
+		Group:    clusterv1.GroupVersion.Group,
+		Resource: "machinedeployments",
+	}
+	machinePoolGR = schema.GroupResource{
+		Group:    clusterv1.GroupVersion.Group,
+		Resource: "machinepools",
+	}
+)
+
 // Reconciler reconciles a managed topology for a Cluster object.
 type Reconciler struct {
 	Client       client.Client
@@ -89,6 +105,7 @@ type Reconciler struct {
 	WatchFilterValue string
 
 	externalTracker external.ObjectTracker
+	controller      capicontrollerutil.Controller
 	recorder        record.EventRecorder
 
 	hookCache cache.Cache[cache.HookEntry]
@@ -138,6 +155,11 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithConsistencyStore(map[schema.GroupResource]client.Object{
+			clusterGR:           &clusterv1.Cluster{},
+			machineDeploymentGR: &clusterv1.MachineDeployment{},
+			machinePoolGR:       &clusterv1.MachinePool{},
+		}).
 		Build(ctx, r)
 
 	if err != nil {
@@ -164,6 +186,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return errors.Wrap(err, "failed creating desired state generator")
 	}
 
+	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("topology/cluster-controller")
 	r.ssaCache = ssa.NewCache("topology/cluster")
 	return nil
@@ -265,9 +288,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	cluster := &clusterv1.Cluster{}
 	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if apierrors.IsNotFound(err) {
+			r.controller.ClearConsistencyStore(req.NamespacedName, "")
 			return ctrl.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
 	cluster.APIVersion = clusterv1.GroupVersion.String()
@@ -317,6 +340,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// In case the object is deleted, the managed topology stops to reconcile;
 	// (the other controllers will take care of deletion).
 	if !cluster.DeletionTimestamp.IsZero() {
+		// Clearing the consistency store as soon as the cluster has a deletionTimestamp which is okay
+		// because as soon as we are in deleting we stop using the consistency store.
+		// Usually we would do this when removing the finalizer but this controller does not have a finalizer.
+		r.controller.ClearConsistencyStore(req.NamespacedName, cluster.UID)
 		return r.reconcileDelete(ctx, s)
 	}
 

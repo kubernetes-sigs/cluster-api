@@ -40,7 +40,7 @@ func TestCertManagerGet(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader(),
 			},
-			want:    NewCertManager(CertManagerDefaultURL, CertManagerDefaultVersion, CertManagerDefaultTimeout.String()),
+			want:    NewCertManager(CertManagerDefaultURL, CertManagerDefaultVersion, CertManagerDefaultTimeout.String(), "0s"),
 			wantErr: false,
 		},
 		{
@@ -48,7 +48,7 @@ func TestCertManagerGet(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader().WithCertManager("foo-url", "vX.Y.Z", ""),
 			},
-			want:    NewCertManager("foo-url", "vX.Y.Z", CertManagerDefaultTimeout.String()),
+			want:    NewCertManager("foo-url", "vX.Y.Z", CertManagerDefaultTimeout.String(), "0s"),
 			wantErr: false,
 		},
 		{
@@ -59,7 +59,7 @@ func TestCertManagerGet(t *testing.T) {
 			envVars: map[string]string{
 				"TEST_REPO_PATH": "/tmp/test",
 			},
-			want:    NewCertManager("/tmp/test/foo-url", "vX.Y.Z", CertManagerDefaultTimeout.String()),
+			want:    NewCertManager("/tmp/test/foo-url", "vX.Y.Z", CertManagerDefaultTimeout.String(), "0s"),
 			wantErr: false,
 		},
 		{
@@ -67,7 +67,7 @@ func TestCertManagerGet(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader().WithCertManager("", "", "5m"),
 			},
-			want:    NewCertManager(CertManagerDefaultURL, CertManagerDefaultVersion, "5m"),
+			want:    NewCertManager(CertManagerDefaultURL, CertManagerDefaultVersion, "5m", "0s"),
 			wantErr: false,
 		},
 	}

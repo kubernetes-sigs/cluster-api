@@ -38,6 +38,8 @@ const (
 
 	// CertManagerDefaultTimeout defines the default cert-manager timeout to be used by clusterctl.
 	CertManagerDefaultTimeout = 10 * time.Minute
+
+	CertManagerDefaultWait = 0 * time.Second
 )
 
 // CertManagerClient has methods to work with cert-manager configurations.
@@ -62,15 +64,17 @@ func newCertManagerClient(reader Reader) *certManagerClient {
 
 // configCertManager mirrors config.CertManager interface and allows serialization of the corresponding info.
 type configCertManager struct {
-	URL     string `json:"url,omitempty"`
-	Version string `json:"version,omitempty"`
-	Timeout string `json:"timeout,omitempty"`
+	URL                        string `json:"url,omitempty"`
+	Version                    string `json:"version,omitempty"`
+	Timeout                    string `json:"timeout,omitempty"`
+	WaitForCertManagerDuration string `json:"waitForCertManagerDuration,omitempty"`
 }
 
 func (p *certManagerClient) Get() (CertManager, error) {
 	url := CertManagerDefaultURL
 	version := CertManagerDefaultVersion
 	timeout := CertManagerDefaultTimeout.String()
+	waitForManagerDuration := CertManagerDefaultWait.String()
 
 	userCertManager := &configCertManager{}
 	if err := p.reader.UnmarshalKey(CertManagerConfigKey, &userCertManager); err != nil {
@@ -91,6 +95,9 @@ func (p *certManagerClient) Get() (CertManager, error) {
 	if userCertManager.Timeout != "" {
 		timeout = userCertManager.Timeout
 	}
+	if userCertManager.WaitForCertManagerDuration != "" {
+		waitForManagerDuration = userCertManager.WaitForCertManagerDuration
+	}
 
-	return NewCertManager(url, version, timeout), nil
+	return NewCertManager(url, version, timeout, waitForManagerDuration), nil
 }

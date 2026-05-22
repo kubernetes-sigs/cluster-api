@@ -152,16 +152,24 @@ func (cm *certManagerClient) certManagerNamespaceExists(ctx context.Context) (bo
 func (cm *certManagerClient) EnsureInstalled(ctx context.Context) error {
 	log := logf.Log
 
-	// Checking if a version of cert manager supporting cert-manager-test-resources.yaml is already installed and properly working.
-	if err := cm.waitForAPIReady(ctx, false); err == nil {
-		log.Info("Skipping installing cert-manager as it is already installed")
-		return nil
-	}
-
 	config, err := cm.configClient.CertManager().Get()
 	if err != nil {
 		return err
 	}
+	retryInWait := true
+	waitForCertManagerDuration, err := time.ParseDuration(config.WaitForCertManagerDuration())
+	if err != nil {
+		return err
+	}
+	if waitForCertManagerDuration < 1 {
+		retryInWait = false
+	}
+	// Checking if a version of cert manager supporting cert-manager-test-resources.yaml is already installed and properly working.
+	if err := cm.waitForAPIReady(ctx, retryInWait); err == nil {
+		log.Info("Skipping installing cert-manager as it is already installed")
+		return nil
+	}
+
 	objs, err := cm.getManifestObjs(ctx, config)
 	if err != nil {
 		return err

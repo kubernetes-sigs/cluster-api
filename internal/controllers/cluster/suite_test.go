@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -107,8 +108,10 @@ func TestMain(m *testing.M) {
 	SetDefaultEventuallyTimeout(timeout)
 
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:                    m,
-		ManagerCacheOptions:  setup.ManagerCacheOptions("", 10*time.Minute),
+		M: m,
+		SetupManagerCacheOptions: func(scheme *runtime.Scheme) cache.Options {
+			return setup.ManagerCacheOptions(scheme, "test-controller-manager", "", 10*time.Minute)
+		},
 		ManagerClientOptions: setup.ManagerClientOptions(),
 		SetupEnv:             func(e *envtest.Environment) { env = e },
 		SetupIndexes:         setupIndexes,

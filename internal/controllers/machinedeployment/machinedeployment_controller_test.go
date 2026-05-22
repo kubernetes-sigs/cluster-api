@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -938,8 +939,9 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 
 			c := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 			r := &Reconciler{
-				Client:   c,
-				recorder: record.NewFakeRecorder(32),
+				Client:     c,
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   record.NewFakeRecorder(32),
 			}
 
 			s := &scope{

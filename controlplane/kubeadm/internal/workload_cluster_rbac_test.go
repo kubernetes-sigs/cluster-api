@@ -140,6 +140,119 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			targetVersion: semver.MustParse("1.38.0"),
 			wantObjs:      nil,
 		},
+		{
+			name:          "Pre-release version 1.38.0-alpha.0 should be treated as >= 1.38.0 and not create ClusterRoleBindings",
+			objs:          nil,
+			targetVersion: semver.MustParse("1.38.0-alpha.0"),
+			wantObjs:      nil,
+		},
+		{
+			name:          "Pre-release version 1.37.0-alpha.0 should be treated as < 1.38.0 and create ClusterRoleBindings",
+			objs:          nil,
+			targetVersion: semver.MustParse("1.37.0-alpha.0"),
+			wantObjs: []client.Object{
+				&rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ClusterAdminsGroupAndClusterRoleBinding,
+					},
+					RoleRef: rbacv1.RoleRef{
+						APIGroup: rbacv1.GroupName,
+						Kind:     "ClusterRole",
+						Name:     "cluster-admin",
+					},
+					Subjects: []rbacv1.Subject{
+						{
+							Kind: rbacv1.GroupKind,
+							Name: ClusterAdminsGroupAndClusterRoleBinding,
+						},
+					},
+				},
+				&rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: KubeletAPIAdminClusterRoleBindingName,
+					},
+					RoleRef: rbacv1.RoleRef{
+						APIGroup: rbacv1.GroupName,
+						Kind:     "ClusterRole",
+						Name:     KubeletAPIAdminClusterRoleName,
+					},
+					Subjects: []rbacv1.Subject{
+						{
+							Kind: rbacv1.UserKind,
+							Name: APIServerKubeletClientCertCommonName,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Only kubeadm:cluster-admins exists for K8s <= 1.37: create only kubeadm:apiserver-kubelet-client",
+			objs: []client.Object{
+				&rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ClusterAdminsGroupAndClusterRoleBinding,
+					},
+				},
+			},
+			targetVersion: semver.MustParse("1.37.0"),
+			wantObjs: []client.Object{
+				&rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ClusterAdminsGroupAndClusterRoleBinding,
+					},
+				},
+				&rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: KubeletAPIAdminClusterRoleBindingName,
+					},
+					RoleRef: rbacv1.RoleRef{
+						APIGroup: rbacv1.GroupName,
+						Kind:     "ClusterRole",
+						Name:     KubeletAPIAdminClusterRoleName,
+					},
+					Subjects: []rbacv1.Subject{
+						{
+							Kind: rbacv1.UserKind,
+							Name: APIServerKubeletClientCertCommonName,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Only kubeadm:apiserver-kubelet-client exists for K8s <= 1.37: create only kubeadm:cluster-admins",
+			objs: []client.Object{
+				&rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: KubeletAPIAdminClusterRoleBindingName,
+					},
+				},
+			},
+			targetVersion: semver.MustParse("1.37.0"),
+			wantObjs: []client.Object{
+				&rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ClusterAdminsGroupAndClusterRoleBinding,
+					},
+					RoleRef: rbacv1.RoleRef{
+						APIGroup: rbacv1.GroupName,
+						Kind:     "ClusterRole",
+						Name:     "cluster-admin",
+					},
+					Subjects: []rbacv1.Subject{
+						{
+							Kind: rbacv1.GroupKind,
+							Name: ClusterAdminsGroupAndClusterRoleBinding,
+						},
+					},
+				},
+				&rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: KubeletAPIAdminClusterRoleBindingName,
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

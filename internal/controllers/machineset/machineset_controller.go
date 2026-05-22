@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -52,7 +53,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
-	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
@@ -73,6 +73,11 @@ import (
 var (
 	// machineSetKind contains the schema.GroupVersionKind for the MachineSet type.
 	machineSetKind = clusterv1.GroupVersion.WithKind("MachineSet")
+
+	machineGR = schema.GroupResource{
+		Group:    clusterv1.GroupVersion.Group,
+		Resource: "machines",
+	}
 )
 
 const (
@@ -90,17 +95,19 @@ const (
 
 // Reconciler reconciles a MachineSet object.
 type Reconciler struct {
-	Client       client.Client
-	APIReader    client.Reader
-	ClusterCache clustercache.ClusterCache
+	Client                          client.Client
+	APIReader                       client.Reader
+	ClusterCache                    clustercache.ClusterCache
+	machineClientWithDeleteResponse capicontrollerutil.ClientWithDeleteResponse
 
 	PreflightChecks sets.Set[clusterv1.MachineSetPreflightCheck]
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	ssaCache ssa.Cache
-	recorder record.EventRecorder
+	ssaCache   ssa.Cache
+	controller capicontrollerutil.Controller
+	recorder   record.EventRecorder
 
 	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 	//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
@@ -127,7 +134,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return err
 	}
 
-	err = capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
+	c, err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&clusterv1.MachineSet{}).
 		Owns(&clusterv1.Machine{}).
 		// Watches enqueues MachineSet for corresponding Machine resources, if no managed controller reference (owner) exists.
@@ -149,11 +156,20 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("machineset", clusterToMachineSets)).
-		Complete(ctx, r)
+		WithConsistencyStore(map[schema.GroupResource]client.Object{
+			machineGR: &clusterv1.Machine{},
+		}).
+		Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
+	r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+		mgr.GetScheme(), mgr.GetConfig(), mgr.GetHTTPClient())
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
 	r.ssaCache = ssa.NewCache("machineset")
 	return nil
@@ -163,11 +179,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	machineSet := &clusterv1.MachineSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
-			// Object not found, return. Created objects are automatically garbage collected.
-			// For additional cleanup logic use finalizers.
+			r.controller.ClearConsistencyStore(req.NamespacedName, "")
 			return ctrl.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
 
@@ -356,7 +370,6 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 	log := ctrl.LoggerFrom(ctx)
 
 	errs := []error{}
-	machinesTriggeredInPlace := []*clusterv1.Machine{}
 	for _, machine := range s.machines {
 		log := log.WithValues("Machine", klog.KObj(machine))
 
@@ -409,17 +422,12 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 			errs = append(errs, errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine)))
 			continue
 		}
+		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, machineGR, machine.ResourceVersion)
 
-		machinesTriggeredInPlace = append(machinesTriggeredInPlace, machine)
 		log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", machine.Name))
 		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 	}
 
-	// Wait until the cache observed the Machine with PendingHooksAnnotation to ensure subsequent reconciles
-	// will observe it as well and won't repeatedly call the logic to trigger in-place update.
-	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "complete triggering in-place update", machinesTriggeredInPlace...); err != nil {
-		errs = append(errs, err)
-	}
 	if len(errs) > 0 {
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
@@ -572,6 +580,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 	// If all the descendant machines are deleted, then remove the machineset's finalizer.
 	if len(machineList) == 0 {
+		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(machineSet), machineSet.UID)
 		controllerutil.RemoveFinalizer(machineSet, clusterv1.MachineSetFinalizer)
 		return ctrl.Result{}, nil
 	}
@@ -842,7 +851,6 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 
 	log.V(4).Info(fmt.Sprintf("MachineSet is scaling up to %d replicas by creating %d Machines", *(ms.Spec.Replicas), machinesToAdd), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
 
-	machinesAdded := []*clusterv1.Machine{}
 	for i := range machinesToAdd {
 		// Create a new logger so the global logger is not modified.
 		log := log
@@ -907,14 +915,14 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 				clusterv1.ConditionSeverityError, "%s", err.Error())
 			return ctrl.Result{}, kerrors.NewAggregate(errs)
 		}
+		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, machineGR, machine.ResourceVersion)
 
-		machinesAdded = append(machinesAdded, machine)
 		log.Info(fmt.Sprintf("Machine %s created (scale up, creating %d of %d)", klog.KObj(machine), i+1, machinesToAdd), "Machine", klog.KObj(machine), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
 		r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created Machine %q", machine.Name)
 	}
 
 	// Wait for cache update to ensure following reconcile gets latest change.
-	return ctrl.Result{}, clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "Machine creation", machinesAdded...)
+	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDelete int) (ctrl.Result, error) {
@@ -944,16 +952,18 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 	machinesToDeleteByPriority := getMachinesToDeletePrioritized(machines, machinesToDelete, deletePriorityFunc)
 
 	var errs []error
-	machinesDeleted := []*clusterv1.Machine{}
 	for i, machine := range machinesToDeleteByPriority {
 		log := log.WithValues("Machine", klog.KObj(machine))
 		if machine.GetDeletionTimestamp().IsZero() {
-			if err := r.Client.Delete(ctx, machine); err != nil {
+			deletedMachine, err := r.machineClientWithDeleteResponse.Delete(ctx, machine)
+			if err != nil {
 				errs = append(errs, err)
 				continue
 			}
+			if deletedMachine != nil {
+				r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, machineGR, deletedMachine.GetResourceVersion())
+			}
 
-			machinesDeleted = append(machinesDeleted, machine)
 			log.Info(fmt.Sprintf("Machine %s deleting (scale down, deleting %d of %d)", klog.KObj(machine), i+1, machinesToDelete))
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 		} else {
@@ -961,10 +971,6 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 		}
 	}
 
-	// Wait for cache update to ensure following reconcile gets latest change.
-	if err := clientutil.WaitForObjectsToBeDeletedFromTheCache(ctx, r.Client, "Machine deletion (scale down)", machinesDeleted...); err != nil {
-		errs = append(errs, err)
-	}
 	if len(errs) > 0 {
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
@@ -1005,7 +1011,6 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 	machinesToMoveByPriority := getMachinesToMovePrioritized(machines, deletePriorityFunc)
 
 	errs := []error{}
-	machinesMoved := []*clusterv1.Machine{}
 	for _, machine := range machinesToMoveByPriority {
 		if machinesToMove <= 0 {
 			break
@@ -1077,13 +1082,9 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 			errs = append(errs, errors.Wrapf(err, "failed to trigger in-place update for Machine %s by moving to MachineSet %s", klog.KObj(machine), klog.KObj(targetMS)))
 			continue
 		}
-		machinesMoved = append(machinesMoved, machine)
+		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, machineGR, machine.ResourceVersion)
 	}
 
-	// Wait for cache update to ensure following reconcile gets latest change.
-	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "moving Machines", machinesMoved...); err != nil {
-		errs = append(errs, err)
-	}
 	if len(errs) > 0 {
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}

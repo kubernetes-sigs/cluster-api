@@ -59,6 +59,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -755,8 +756,9 @@ func TestMachineSetReconcile(t *testing.T) {
 
 		c := fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		msr := &Reconciler{
-			Client:   c,
-			recorder: record.NewFakeRecorder(32),
+			Client:     c,
+			controller: capicontrollerutil.NewFakeController(),
+			recorder:   record.NewFakeRecorder(32),
 		}
 		result, err := msr.Reconcile(ctx, request)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2761,8 +2763,9 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 			).WithInterceptorFuncs(tt.interceptorFuncs(&i)).Build()
 
 			r := &Reconciler{
-				Client:   fakeClient,
-				recorder: record.NewFakeRecorder(32),
+				Client:     fakeClient,
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   record.NewFakeRecorder(32),
 				// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 				//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
 				disableRemoveManagedFieldsForLabelsAndAnnotations: true,
@@ -2912,8 +2915,10 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			}
 			fakeClient := fake.NewClientBuilder().WithObjects(objs...).WithInterceptorFuncs(tt.interceptorFuncs).Build()
 			r := &Reconciler{
-				Client:   fakeClient,
-				recorder: record.NewFakeRecorder(32),
+				Client:                          fakeClient,
+				machineClientWithDeleteResponse: capicontrollerutil.NewClientWithDeleteResponseFromClient(fakeClient),
+				controller:                      capicontrollerutil.NewFakeController(),
+				recorder:                        record.NewFakeRecorder(32),
 			}
 			s := &scope{
 				machineSet: tt.ms,
@@ -3166,8 +3171,9 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			}
 			fakeClient := fake.NewClientBuilder().WithObjects(objs...).WithInterceptorFuncs(tt.interceptorFuncs).Build()
 			r := &Reconciler{
-				Client:   fakeClient,
-				recorder: record.NewFakeRecorder(32),
+				Client:     fakeClient,
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   record.NewFakeRecorder(32),
 			}
 			s := &scope{
 				machineSet: tt.ms,
@@ -3589,8 +3595,9 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			}
 			fakeClient := fake.NewClientBuilder().WithObjects(objs...).WithInterceptorFuncs(tt.interceptorFuncs).Build()
 			r := &Reconciler{
-				Client:   fakeClient,
-				recorder: record.NewFakeRecorder(32),
+				Client:     fakeClient,
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   record.NewFakeRecorder(32),
 			}
 			s := &scope{
 				machineSet: tt.ms,
@@ -4025,8 +4032,9 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 
 			c := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
 			r := &Reconciler{
-				Client:   c,
-				recorder: record.NewFakeRecorder(32),
+				Client:     c,
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   record.NewFakeRecorder(32),
 			}
 
 			s := &scope{

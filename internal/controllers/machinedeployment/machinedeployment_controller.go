@@ -394,7 +394,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 				r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(ms), err)
 				return errors.Wrapf(err, "failed to create MachineSet %s", klog.KObj(ms))
 			}
-			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, msGR, ms)
+			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, msGR, ms.ResourceVersion)
 			if len(p.oldMSs) > 0 {
 				log.Info(fmt.Sprintf("MachineSets need rollout: %s", strings.Join(machineSetNames(p.oldMSs), ", ")), "reason", p.createReason)
 			}
@@ -434,7 +434,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 
 		// Defer next reconcile only if ResourceVersion has changed.
 		if diff.OriginalMS.ResourceVersion != ms.ResourceVersion {
-			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, msGR, ms)
+			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, msGR, ms.ResourceVersion)
 		}
 
 		if diff.DesiredReplicas < diff.OriginalReplicas {

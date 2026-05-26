@@ -66,6 +66,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/cache"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -1443,9 +1444,10 @@ func TestReconcileCluster(t *testing.T) {
 			s.Desired = &scope.ClusterState{Cluster: tt.desired}
 
 			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
-				ssaCache: ssa.NewCache("topology/cluster"),
+				Client:     env,
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   env.GetEventRecorderFor("test"),
+				ssaCache:   ssa.NewCache("topology/cluster"),
 			}
 			err = r.reconcileCluster(ctx, s)
 			if tt.wantErr {
@@ -2515,10 +2517,11 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			}
 
 			r := Reconciler{
-				Client:    env.GetClient(),
-				APIReader: env.GetAPIReader(),
-				recorder:  env.GetEventRecorderFor("test"),
-				ssaCache:  ssa.NewCache("topology/cluster"),
+				Client:     env.GetClient(),
+				APIReader:  env.GetAPIReader(),
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   env.GetEventRecorderFor("test"),
+				ssaCache:   ssa.NewCache("topology/cluster"),
 			}
 			err = r.reconcileMachineDeployments(ctx, s)
 			if tt.wantErr {
@@ -2922,10 +2925,11 @@ func TestReconcileMachinePools(t *testing.T) {
 			}
 
 			r := Reconciler{
-				Client:    env.GetClient(),
-				APIReader: env.GetAPIReader(),
-				recorder:  env.GetEventRecorderFor("test"),
-				ssaCache:  ssa.NewCache("topology/cluster"),
+				Client:     env.GetClient(),
+				APIReader:  env.GetAPIReader(),
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   env.GetEventRecorderFor("test"),
+				ssaCache:   ssa.NewCache("topology/cluster"),
 			}
 			err = r.reconcileMachinePools(ctx, s)
 			if tt.wantErr {
@@ -3741,10 +3745,11 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
 
 			r := Reconciler{
-				Client:    env.GetClient(),
-				APIReader: env.GetAPIReader(),
-				recorder:  env.GetEventRecorderFor("test"),
-				ssaCache:  ssa.NewCache("topology/cluster"),
+				Client:     env.GetClient(),
+				APIReader:  env.GetAPIReader(),
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   env.GetEventRecorderFor("test"),
+				ssaCache:   ssa.NewCache("topology/cluster"),
 			}
 
 			err = r.reconcileMachineDeployments(ctx, s)
@@ -3834,9 +3839,10 @@ func TestReconcileState(t *testing.T) {
 		controlPlane.SetNamespace("do-not-exist")
 
 		r := Reconciler{
-			Client:   env,
-			recorder: env.GetEventRecorderFor("test"),
-			ssaCache: ssa.NewCache("topology/cluster"),
+			Client:     env,
+			controller: capicontrollerutil.NewFakeController(),
+			recorder:   env.GetEventRecorderFor("test"),
+			ssaCache:   ssa.NewCache("topology/cluster"),
 		}
 		err = r.reconcileState(ctx, s)
 		g.Expect(err).To(HaveOccurred())
@@ -3895,9 +3901,10 @@ func TestReconcileState(t *testing.T) {
 		prepareControlPlaneState(g, s.Desired.ControlPlane, namespace.GetName())
 
 		r := Reconciler{
-			Client:   env,
-			recorder: env.GetEventRecorderFor("test"),
-			ssaCache: ssa.NewCache("topology/cluster"),
+			Client:     env,
+			controller: capicontrollerutil.NewFakeController(),
+			recorder:   env.GetEventRecorderFor("test"),
+			ssaCache:   ssa.NewCache("topology/cluster"),
 		}
 		err = r.reconcileState(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -3951,9 +3958,10 @@ func TestReconcileState(t *testing.T) {
 		controlPlane.SetNamespace("do-not-exist")
 
 		r := Reconciler{
-			Client:   env,
-			recorder: env.GetEventRecorderFor("test"),
-			ssaCache: ssa.NewCache("topology/cluster"),
+			Client:     env,
+			controller: capicontrollerutil.NewFakeController(),
+			recorder:   env.GetEventRecorderFor("test"),
+			ssaCache:   ssa.NewCache("topology/cluster"),
 		}
 		err = r.reconcileState(ctx, s)
 		g.Expect(err).To(HaveOccurred())

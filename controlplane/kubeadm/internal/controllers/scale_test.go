@@ -71,8 +71,9 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	kcp.UID = types.UID(util.RandomString(10))
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:   env,
-		recorder: record.NewFakeRecorder(32),
+		Client:     env,
+		controller: capicontrollerutil.NewFakeController(),
+		recorder:   record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
 			Workload:   &fakeWorkloadCluster{},
@@ -154,6 +155,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		r := &KubeadmControlPlaneReconciler{
 			Client:            env,
 			managementCluster: fmc,
+			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
 		}
 		controlPlane := &internal.ControlPlane{
@@ -269,9 +271,11 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		fakeClient := newFakeClient(machines["one"])
 
 		r := &KubeadmControlPlaneReconciler{
-			recorder:            record.NewFakeRecorder(32),
-			Client:              fakeClient,
-			SecretCachingClient: fakeClient,
+			controller:                      capicontrollerutil.NewFakeController(),
+			recorder:                        record.NewFakeRecorder(32),
+			Client:                          fakeClient,
+			SecretCachingClient:             fakeClient,
+			machineClientWithDeleteResponse: capicontrollerutil.NewClientWithDeleteResponseFromClient(fakeClient),
 			managementCluster: &fakeManagementCluster{
 				Workload: &fakeWorkloadCluster{},
 			},
@@ -316,10 +320,11 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		fc := capicontrollerutil.NewFakeController()
 
 		r := &KubeadmControlPlaneReconciler{
-			recorder:            record.NewFakeRecorder(32),
-			Client:              fakeClient,
-			controller:          fc,
-			SecretCachingClient: fakeClient,
+			recorder:                        record.NewFakeRecorder(32),
+			Client:                          fakeClient,
+			controller:                      fc,
+			SecretCachingClient:             fakeClient,
+			machineClientWithDeleteResponse: capicontrollerutil.NewClientWithDeleteResponseFromClient(fakeClient),
 			managementCluster: &fakeManagementCluster{
 				Workload: &fakeWorkloadCluster{},
 			},

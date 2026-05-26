@@ -93,3 +93,19 @@ func (c *clientWithDeleteResponse) Delete(ctx context.Context, obj client.Object
 
 	return nil, nil
 }
+
+// NewClientWithDeleteResponseFromClient creates a ClientWithDeleteResponse from a regular Client.
+// Note: This client will never return a response object, but this can be useful for unit testing.
+func NewClientWithDeleteResponseFromClient(c client.Client) ClientWithDeleteResponse {
+	return &clientWithDeleteResponseFromClient{
+		client: c,
+	}
+}
+
+type clientWithDeleteResponseFromClient struct {
+	client client.Client
+}
+
+func (c clientWithDeleteResponseFromClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) (client.Object, error) {
+	return nil, c.client.Delete(ctx, obj, opts...)
+}

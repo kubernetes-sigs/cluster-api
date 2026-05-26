@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/resourceversion"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -41,10 +42,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -358,6 +359,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 		Client:              env,
 		SecretCachingClient: secretCachingClient,
 		ssaCache:            ssa.NewCache("test-controller"),
+		controller:          capicontrollerutil.NewFakeController(),
 		recorder:            record.NewFakeRecorder(32),
 	}
 
@@ -454,8 +456,27 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	// Note: Ensure the client observed the latest objects so syncMachines below is not failing with conflict errors.
 	// Note: Not adding a WaitForCacheToBeUpToDate for infraObj for now as we didn't have test flakes because of it and
 	//       WaitForCacheToBeUpToDate does not support Unstructured as of now.
-	g.Expect(clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "cloneConfigsAndGenerateMachine", &m)).To(Succeed())
-	g.Expect(clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "cloneConfigsAndGenerateMachine", kubeadmConfig)).To(Succeed())
+	g.Eventually(func(g Gomega) {
+		mCache := m.DeepCopyObject().(*clusterv1.Machine)
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&m), mCache)).To(Succeed())
+		cmp, err := resourceversion.CompareResourceVersion(mCache.ResourceVersion, m.ResourceVersion)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cmp).To(BeNumerically(">=", 0))
+	}).Should(Succeed())
+	g.Eventually(func(g Gomega) {
+		kubeadmConfigCache := kubeadmConfig.DeepCopyObject().(*bootstrapv1.KubeadmConfig)
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&m), kubeadmConfigCache)).To(Succeed())
+		cmp, err := resourceversion.CompareResourceVersion(kubeadmConfigCache.ResourceVersion, kubeadmConfig.ResourceVersion)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cmp).To(BeNumerically(">=", 0))
+	}).Should(Succeed())
+	g.Eventually(func(g Gomega) {
+		infraObjCache := infraObj.DeepCopyObject().(*unstructured.Unstructured)
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&m), infraObjCache)).To(Succeed())
+		cmp, err := resourceversion.CompareResourceVersion(infraObjCache.GetResourceVersion(), infraObj.GetResourceVersion())
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cmp).To(BeNumerically(">=", 0))
+	}).Should(Succeed())
 
 	controlPlane, err := internal.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, collections.FromMachines(&m))
 	g.Expect(err).ToNot(HaveOccurred())

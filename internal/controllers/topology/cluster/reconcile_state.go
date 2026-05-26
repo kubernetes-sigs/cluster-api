@@ -47,7 +47,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
-	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 )
@@ -524,13 +523,8 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	}
 	r.recorder.Eventf(s.Current.Cluster, corev1.EventTypeNormal, updateEventReason, "Updated Cluster %q", klog.KObj(s.Current.Cluster))
 
-	// Wait until Cluster is updated in the cache.
-	// Note: We have to do this because otherwise using a cached client in the Reconcile func could
-	// return a stale state of the Cluster we just patched (because the cache might be stale).
-	// Note: Using DeepCopy to not modify s.Current.Cluster as it's not trivial to figure out what impact that would have.
-	cluster := s.Current.Cluster.DeepCopy()
-	cluster.ResourceVersion = modifiedResourceVersion
-	return clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "Cluster update", cluster)
+	r.controller.DeferNextReconcileUntilCacheUpToDate(s.Current.Cluster, clusterGR, modifiedResourceVersion)
+	return nil
 }
 
 // reconcileMachineDeployments reconciles the desired state of the MachineDeployment objects.
@@ -681,7 +675,8 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 		bootstrapCleanupFunc()
 		return createErrorWithoutObjectName(ctx, err, md.Object)
 	}
-	if _, err := helper.Patch(ctx); err != nil {
+	modifiedResourceVersion, err := helper.Patch(ctx)
+	if err != nil {
 		// Best effort cleanup of the InfrastructureMachineTemplate & BootstrapTemplate (only on creation).
 		infrastructureMachineCleanupFunc()
 		bootstrapCleanupFunc()
@@ -689,12 +684,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created MachineDeployment %q", klog.KObj(md.Object))
 
-	// Wait until MachineDeployment is visible in the cache.
-	// Note: We have to do this because otherwise using a cached client in current state could
-	// miss a newly created MachineDeployment (because the cache might be stale).
-	if err := clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "MachineDeployment creation", md.Object); err != nil {
-		return err
-	}
+	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, machineDeploymentGR, modifiedResourceVersion)
 
 	// If the MachineDeployment has defined a MachineHealthCheck reconcile it.
 	if md.MachineHealthCheck != nil {
@@ -812,15 +802,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated MachineDeployment %q%s", klog.KObj(currentMD.Object), logMachineDeploymentVersionChange(currentMD.Object, desiredMD.Object))
 
-	// Wait until MachineDeployment is updated in the cache.
-	// Note: We have to do this because otherwise using a cached client in current state could
-	// return a stale state of a MachineDeployment we just patched (because the cache might be stale).
-	// Note: Using DeepCopy to not modify currentMD.Object as it's not trivial to figure out what impact that would have.
-	md := currentMD.Object.DeepCopy()
-	md.ResourceVersion = modifiedResourceVersion
-	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachineDeployment update", md); err != nil {
-		return err
-	}
+	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, machineDeploymentGR, modifiedResourceVersion)
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
 	return nil
@@ -1006,7 +988,8 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 		bootstrapCleanupFunc()
 		return createErrorWithoutObjectName(ctx, err, mp.Object)
 	}
-	if _, err := helper.Patch(ctx); err != nil {
+	modifiedResourceVersion, err := helper.Patch(ctx)
+	if err != nil {
 		// Best effort cleanup of the InfrastructureMachinePool & BootstrapConfig (only on creation).
 		infrastructureMachineMachinePoolCleanupFunc()
 		bootstrapCleanupFunc()
@@ -1014,10 +997,9 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created MachinePool %q", klog.KObj(mp.Object))
 
-	// Wait until MachinePool is visible in the cache.
-	// Note: We have to do this because otherwise using a cached client in current state could
-	// miss a newly created MachinePool (because the cache might be stale).
-	return clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "MachinePool creation", mp.Object)
+	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, machinePoolGR, modifiedResourceVersion)
+
+	return nil
 }
 
 // updateMachinePool updates a MachinePool. Also updates the corresponding objects if necessary.
@@ -1074,17 +1056,7 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTo
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated MachinePool %q%s", klog.KObj(currentMP.Object), logMachinePoolVersionChange(currentMP.Object, desiredMP.Object))
 
-	// Wait until MachinePool is updated in the cache.
-	// Note: We have to do this because otherwise using a cached client in current state could
-	// return a stale state of a MachinePool we just patched (because the cache might be stale).
-	// Note: It is good enough to check that the resource version changed. Other controllers might have updated the
-	// MachinePool as well, but the combination of the patch call above without a conflict and a changed resource
-	// version here guarantees that we see the changes of our own update.
-	mp := currentMP.Object.DeepCopy()
-	mp.ResourceVersion = modifiedResourceVersion
-	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachinePool update", mp); err != nil {
-		return err
-	}
+	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, machinePoolGR, modifiedResourceVersion)
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
 	return nil

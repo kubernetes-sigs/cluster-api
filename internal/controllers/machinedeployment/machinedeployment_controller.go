@@ -162,13 +162,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	log = log.WithValues("Cluster", klog.KRef(deployment.Namespace, deployment.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, deployment, clusterv1.MachineDeploymentFinalizer); err != nil || finalizerAdded {
+	cluster, err := util.GetClusterByName(ctx, r.Client, deployment.Namespace, deployment.Spec.ClusterName)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	cluster, err := util.GetClusterByName(ctx, r.Client, deployment.Namespace, deployment.Spec.ClusterName)
-	if err != nil {
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, deployment, clusterv1.MachineDeploymentFinalizer); err != nil || finalizerAdded {
 		return ctrl.Result{}, err
 	}
 

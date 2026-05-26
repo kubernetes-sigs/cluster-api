@@ -109,7 +109,7 @@ func Test_getManifestObjs(t *testing.T) {
 			name: "successfully gets the cert-manager components for a custom release",
 			fields: fields{
 				configClient: func() config.Client {
-					configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "", "").WithCertManager("", "v1.0.0", "")))
+					configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "", "").WithCertManager("", "v1.0.0", "", "false")))
 					g.Expect(err).ToNot(HaveOccurred())
 					return configClient
 				}(),
@@ -184,12 +184,12 @@ func Test_GetTimeout(t *testing.T) {
 		},
 		{
 			name:   "a custom value of timeout is set",
-			config: newFakeConfig().WithCertManager("", "", "5m"),
+			config: newFakeConfig().WithCertManager("", "", "5m", "false"),
 			want:   5 * time.Minute,
 		},
 		{
 			name:   "invalid custom value of timeout is set",
-			config: newFakeConfig().WithCertManager("", "", "foo"),
+			config: newFakeConfig().WithCertManager("", "", "foo", "false"),
 			want:   10 * time.Minute,
 		},
 	}
@@ -442,7 +442,7 @@ func Test_shouldUpgrade(t *testing.T) {
 			g := NewWithT(t)
 
 			proxy := test.NewFakeProxy()
-			fakeConfigClient := newFakeConfig().WithCertManager("", tt.configVersion, "")
+			fakeConfigClient := newFakeConfig().WithCertManager("", tt.configVersion, "", "false")
 			pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 				return nil
 			}
@@ -851,7 +851,7 @@ func (f *fakeConfigClient) WithProvider(provider config.Provider) *fakeConfigCli
 	return f
 }
 
-func (f *fakeConfigClient) WithCertManager(url, version, timeout string) *fakeConfigClient {
-	f.fakeReader.WithCertManager(url, version, timeout)
+func (f *fakeConfigClient) WithCertManager(url, version, timeout, waitForCertManager string) *fakeConfigClient {
+	f.fakeReader.WithCertManager(url, version, timeout, waitForCertManager)
 	return f
 }

@@ -78,11 +78,6 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, dockerCluster, infrav1.ClusterFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, dockerCluster.ObjectMeta)
 	if err != nil {
@@ -107,6 +102,11 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, dockerCluster, infrav1.ClusterFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
 
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(dockerCluster, r.Client)

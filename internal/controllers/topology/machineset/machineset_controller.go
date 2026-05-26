@@ -131,11 +131,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, ms, clusterv1.MachineSetTopologyFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
 	// Specifically, it will add MachineDeployment.
 	ctx, log, err := clog.AddOwners(ctx, r.Client, ms)
@@ -145,6 +140,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, ms.Namespace, ms.Spec.ClusterName)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, ms, clusterv1.MachineSetTopologyFinalizer); err != nil || finalizerAdded {
 		return ctrl.Result{}, err
 	}
 

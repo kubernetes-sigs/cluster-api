@@ -29,7 +29,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -40,7 +39,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -217,7 +215,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx, newCluster)).To(Succeed(), "failed to create new Cluster")
 
 		log.Logf("Wait for the control plane to exist")
-		newControlPlane := &unstructured.Unstructured{}
+		newKcp := &controlplanev1.KubeadmControlPlane{}
 		Eventually(func(_ Gomega) error {
 			err := input.BootstrapClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(newCluster), newCluster)
 			if err != nil {
@@ -226,23 +224,20 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			if !newCluster.Spec.ControlPlaneRef.IsDefined() {
 				return fmt.Errorf("control plane for Cluster %s is not defined", klog.KObj(newCluster))
 			}
+			if newCluster.Spec.ControlPlaneRef.Kind != "KubeadmControlPlane" {
+				return fmt.Errorf("control plane for Cluster %s is not a KubeadmControlPlane", klog.KObj(newCluster))
+			}
 
-			newControlPlane, err = external.GetObjectFromContractVersionedRef(ctx, input.BootstrapClusterProxy.GetClient(), newCluster.Spec.ControlPlaneRef, newCluster.Namespace)
+			err = input.BootstrapClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKey{Namespace: newCluster.Namespace, Name: newCluster.Spec.ControlPlaneRef.Name}, newKcp)
 			if err != nil {
 				return err
 			}
-			if _, ok := newControlPlane.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
-				return fmt.Errorf("control plane %s is not paused", klog.KObj(newControlPlane))
+			if _, ok := newKcp.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
+				return fmt.Errorf("control plane %s is not paused", klog.KObj(newKcp))
 			}
 			return nil
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
-		log.Logf(" - KubeadmControlPlane, %s", klog.KObj(newControlPlane))
-
-		tmpSchema := runtime.NewScheme()
-		Expect(controlplanev1.AddToScheme(tmpSchema)).To(Succeed())
-
-		newKcp := &controlplanev1.KubeadmControlPlane{}
-		Expect(tmpSchema.Convert(newControlPlane, newKcp, nil)).To(Succeed(), "failed to convert control plane to KubeadmControlPlane")
+		log.Logf(" - KubeadmControlPlane, %s", klog.KObj(newKcp))
 
 		By("Create stand-alone control plane machines")
 
@@ -266,7 +261,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			log.Logf(" - Secret, %s", klog.KObj(newSecret))
 
 			// Re-create bootstrap config.
-			// Note: Start from KCP spec; fixup InitConfiguration and JoinConfiguration so the object is aligned to what we have for like joined machines.
+			// Note: Start from KCP spec; fixup InitConfiguration and JoinConfiguration so the object is aligned to what we have for joined machines.
 			newBC := &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      m.Spec.Bootstrap.ConfigRef.Name,
@@ -298,7 +293,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			newIM.SetFinalizers([]string{})
 			delete(newIM.Object, "status")
 			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx, newIM)).To(Succeed(), "failed to create new InfrastructureMachine")
-			log.Logf(" - %s, %s", newIM.GetKind(), klog.KObj(newIM))
+			log.Logf(" - %s %s", newIM.GetKind(), klog.KObj(newIM))
 
 			newM := m.DeepCopy()
 			newM.SetResourceVersion("")
@@ -339,7 +334,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 					return fmt.Errorf("failed to get %s %s", im.GetKind(), klog.KObj(m))
 				}
 				if !util.IsControlledBy(im, m, clusterv1.GroupVersion.WithKind("Machine").GroupKind()) {
-					return fmt.Errorf("%s, %s is not controlled by Machine, %s", im.GetKind(), klog.KObj(im), klog.KObj(m))
+					return fmt.Errorf("%s %s is not controlled by Machine, %s", im.GetKind(), klog.KObj(im), klog.KObj(m))
 				}
 			}
 			return nil
@@ -450,16 +445,19 @@ func forceDeleteClusterObjects(ctx context.Context, proxy framework.ClusterProxy
 		objectsToDelete = append(objectsToDelete, bt)
 	}
 	for _, mp := range objects.MachinePools {
+		mp.Kind = "MachinePool" // adding for logging purposes.
 		objectsToDelete = append(objectsToDelete, mp)
 	}
 
 	for _, l := range objects.MachinesByMachineSet {
 		for _, m := range l {
+			m.Kind = "Machine" // adding for logging purposes.
 			objectsToDelete = append(objectsToDelete, m)
 		}
 	}
 	for _, l := range objects.MachineSetsByMachineDeployment {
 		for _, ms := range l {
+			ms.Kind = "MachineSet" // adding for logging purposes.
 			objectsToDelete = append(objectsToDelete, ms)
 		}
 	}
@@ -470,10 +468,12 @@ func forceDeleteClusterObjects(ctx context.Context, proxy framework.ClusterProxy
 		objectsToDelete = append(objectsToDelete, bt)
 	}
 	for _, md := range objects.MachineDeployments {
+		md.Kind = "MachineDeployment" // adding for logging purposes.
 		objectsToDelete = append(objectsToDelete, md)
 	}
 
 	for _, m := range objects.ControlPlaneMachines {
+		m.Kind = "Machine" // adding for logging purposes.
 		objectsToDelete = append(objectsToDelete, m)
 	}
 	objectsToDelete = append(objectsToDelete, objects.ControlPlaneInfrastructureMachineTemplate, objects.ControlPlane, objects.InfrastructureCluster)
@@ -482,12 +482,12 @@ func forceDeleteClusterObjects(ctx context.Context, proxy framework.ClusterProxy
 	objectsToDelete = append(objectsToDelete, cluster)
 
 	for _, obj := range objectsToDelete {
-		log.Logf(" - %s, %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj))
+		log.Logf(" - %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj))
 		if err := proxy.GetClient().Delete(ctx, obj); err != nil {
 			if apierrors.IsNotFound(err) {
 				continue
 			}
-			return fmt.Errorf("failed to delete %s, %s: %v", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), err)
+			return fmt.Errorf("failed to delete %s %s: %v", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), err)
 		}
 
 		original := obj.DeepCopyObject().(ctrlclient.Object)
@@ -496,7 +496,7 @@ func forceDeleteClusterObjects(ctx context.Context, proxy framework.ClusterProxy
 			if apierrors.IsNotFound(err) {
 				continue
 			}
-			return fmt.Errorf("failed to remove finalizers from %s, %s graph: %v", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), err)
+			return fmt.Errorf("failed to remove finalizers from %s %s: %v", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), err)
 		}
 	}
 
@@ -509,9 +509,9 @@ func forceDeleteClusterObjects(ctx context.Context, proxy framework.ClusterProxy
 					continue
 				}
 				if !apierrors.IsNotFound(err) {
-					return false, fmt.Errorf("failed to get %s, %s: %v", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), err)
+					return false, fmt.Errorf("failed to get %s %s: %v", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), err)
 				}
-				errs = append(errs, fmt.Errorf("%s, %s still exist", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				errs = append(errs, fmt.Errorf("%s %s still exist", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 			}
 		}
 		return len(errs) == 0, nil

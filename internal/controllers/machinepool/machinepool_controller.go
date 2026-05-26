@@ -146,16 +146,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	log = log.WithValues("Cluster", klog.KRef(mp.Namespace, mp.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, mp, clusterv1.MachinePoolFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	cluster, err := util.GetClusterByName(ctx, r.Client, mp.Namespace, mp.Spec.ClusterName)
 	if err != nil {
 		log.Error(err, "Failed to get Cluster for MachinePool.", "MachinePool", klog.KObj(mp), "Cluster", klog.KRef(mp.Namespace, mp.Spec.ClusterName))
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machinepool %q in namespace %q",
 			mp.Spec.ClusterName, mp.Name, mp.Namespace)
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, mp, clusterv1.MachinePoolFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
 	}
 
 	// Initialize the patch helper.

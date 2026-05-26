@@ -173,11 +173,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	ctx = ctrl.LoggerInto(ctx, ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KRef(machineSet.Namespace, machineSet.Spec.ClusterName)))
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, machineSet, clusterv1.MachineSetFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
 	// Specifically, it will add MachineDeployment.
 	ctx, _, err := clog.AddOwners(ctx, r.Client, machineSet)
@@ -187,6 +182,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, machineSet.Namespace, machineSet.Spec.ClusterName)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, machineSet, clusterv1.MachineSetFinalizer); err != nil || finalizerAdded {
 		return ctrl.Result{}, err
 	}
 

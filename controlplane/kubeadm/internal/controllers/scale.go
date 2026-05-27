@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 )
 
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
@@ -161,7 +162,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 			return ctrl.Result{}, err
 		}
 	} else if deletedMachine != nil {
-		r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, machineGR, deletedMachine.GetResourceVersion())
+		r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 	}
 
 	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.

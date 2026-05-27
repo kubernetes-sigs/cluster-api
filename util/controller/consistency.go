@@ -17,43 +17,46 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/resourceversion"
+	kcache "k8s.io/client-go/tools/cache"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Note: This util has been initially copied from: https://github.com/kubernetes/kubernetes/blob/v1.36.0/pkg/controller/util/consistency/consistency.go.
 
 type consistencyStore interface {
 	// WroteAt records a written RV for an owned resource.
-	WroteAt(owner types.NamespacedName, ownerUID types.UID, resource schema.GroupResource, rv string)
+	WroteAt(owner types.NamespacedName, ownerUID types.UID, gvkt GroupVersionKindType, rv string)
 	// Clear wipes the owner if the UID matches, if left empty it will wipe no
 	// matter what the UID is.
 	Clear(owner types.NamespacedName, ownerUID types.UID)
 	// EnsureReady queries the consistencyStore to check whether or not the
 	// stores records are up to date, returning an error if they are not.
-	EnsureReady(owner types.NamespacedName) []consistencyError
+	EnsureReady(ctx context.Context, owner types.NamespacedName) ([]consistencyError, error)
 }
 
 // consistencyError is an error type returned by EnsureReady with information
 // about the resource versions and GroupKind that caused the error.
 type consistencyError struct {
-	ReadRV        string
-	WroteRV       string
-	GroupResource schema.GroupResource
-}
-
-func (c *consistencyError) Error() string {
-	return fmt.Sprintf("read version: %s is not as new as written version: %s for group resource %s", c.ReadRV, c.WroteRV, c.GroupResource.String())
+	ReadRV               string
+	WroteRV              string
+	GroupVersionKindType GroupVersionKindType
 }
 
 var _ consistencyStore = &realConsistencyStore{}
 
-type lastSyncRVGetter interface {
-	LastStoreSyncResourceVersion() string
+type informerGetter interface {
+	GetInformer(ctx context.Context, obj client.Object, opts ...cache.InformerGetOption) (cache.Informer, error)
 }
 
 type realConsistencyStore struct {
@@ -63,13 +66,19 @@ type realConsistencyStore struct {
 	// writes is a map of owner -> ownerRecord
 	writes map[types.NamespacedName]*ownerRecord
 
-	stores map[schema.GroupResource]lastSyncRVGetter
+	storesLock sync.RWMutex
+	stores     map[GroupVersionKindType]kcache.Store
+
+	scheme         *runtime.Scheme
+	informerGetter informerGetter
 }
 
-func newConsistencyStore(stores map[schema.GroupResource]lastSyncRVGetter) *realConsistencyStore {
+func newConsistencyStore(scheme *runtime.Scheme, cache informerGetter) *realConsistencyStore {
 	return &realConsistencyStore{
-		writes: map[types.NamespacedName]*ownerRecord{},
-		stores: stores,
+		writes:         map[types.NamespacedName]*ownerRecord{},
+		stores:         map[GroupVersionKindType]kcache.Store{},
+		scheme:         scheme,
+		informerGetter: cache,
 	}
 }
 
@@ -104,8 +113,8 @@ func (c *realConsistencyStore) ensureWrittenRecord(owner types.NamespacedName, o
 
 // WroteAt writes the latest written RV if it is greater than the currently
 // written RV for the owner.
-func (c *realConsistencyStore) WroteAt(owner types.NamespacedName, ownerUID types.UID, resource schema.GroupResource, rv string) {
-	c.ensureWrittenRecord(owner, ownerUID).WroteAt(resource, rv)
+func (c *realConsistencyStore) WroteAt(owner types.NamespacedName, ownerUID types.UID, gvkt GroupVersionKindType, rv string) {
+	c.ensureWrittenRecord(owner, ownerUID).WroteAt(gvkt, rv)
 }
 
 // Clear deletes the record for owner if it exists and matches the specified
@@ -122,17 +131,21 @@ func (c *realConsistencyStore) Clear(owner types.NamespacedName, ownerUID types.
 // EnsureReady returns nil if observed resource versions are at least as new as
 // any recorded versions for the given owner, otherwise returning the error of
 // what happened. Must not be called concurrent with WroteAt for the same owner.
-func (c *realConsistencyStore) EnsureReady(owner types.NamespacedName) []consistencyError {
+func (c *realConsistencyStore) EnsureReady(ctx context.Context, owner types.NamespacedName) ([]consistencyError, error) {
 	record := c.getWrittenRecord(owner)
 	if record == nil {
-		return nil
+		return nil, nil
 	}
-	err := record.EnsureReady(c)
-	if err == nil {
+	consistencyErrors, err := record.EnsureReady(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(consistencyErrors) == 0 {
 		c.Clear(owner, record.ownerUID)
-		return nil
+		return nil, nil
 	}
-	return err
+	return consistencyErrors, nil
 }
 
 type ownerRecord struct {
@@ -140,44 +153,97 @@ type ownerRecord struct {
 	ownerUID types.UID
 
 	versionsLock sync.Mutex
-	versions     map[schema.GroupResource]string
+	versions     map[GroupVersionKindType]string
+}
+
+// ObjectType is the type of an object.
+type ObjectType string
+
+var (
+	// ObjectTypeUnstructured is the type of an object for Unstructured.
+	ObjectTypeUnstructured ObjectType = "Unstructured"
+
+	// ObjectTypePartialObjectMetadata is the type of an object for PartialObjectMetadata.
+	ObjectTypePartialObjectMetadata ObjectType = "PartialObjectMetadata"
+
+	// ObjectTypeStructured is the type of an object for a regular structured object.
+	ObjectTypeStructured ObjectType = "Structured"
+)
+
+// GroupVersionKindType described the GVK and type of an object.
+type GroupVersionKindType struct {
+	schema.GroupVersionKind
+	Type ObjectType
+}
+
+// StructuredObject is a util that allows to create a GroupVersionKindType for a structured object.
+func StructuredObject(gv schema.GroupVersion, kind string) GroupVersionKindType {
+	return GroupVersionKindType{
+		GroupVersionKind: schema.GroupVersionKind{
+			Group:   gv.Group,
+			Version: gv.Version,
+			Kind:    kind,
+		},
+		Type: ObjectTypeStructured,
+	}
+}
+
+// Unstructured is a util that allows to create a GroupVersionKindType for an Unstructured object.
+func Unstructured(u *unstructured.Unstructured) GroupVersionKindType {
+	return GroupVersionKindType{
+		GroupVersionKind: u.GroupVersionKind(),
+		Type:             ObjectTypeUnstructured,
+	}
+}
+
+// PartialObjectMetadata is a util that allows to create a GroupVersionKindType for an PartialObjectMetadata object.
+func PartialObjectMetadata(u *metav1.PartialObjectMetadata) GroupVersionKindType {
+	return GroupVersionKindType{
+		GroupVersionKind: u.GroupVersionKind(),
+		Type:             ObjectTypePartialObjectMetadata,
+	}
 }
 
 func newOwnerRecord(ownerUID types.UID) *ownerRecord {
-	return &ownerRecord{ownerUID: ownerUID, versions: map[schema.GroupResource]string{}}
+	return &ownerRecord{ownerUID: ownerUID, versions: map[GroupVersionKindType]string{}}
 }
 
 // WroteAt increments the written resource version of an ownerRecord if it is
 // the newest seen resource version for that resource.
-func (w *ownerRecord) WroteAt(resource schema.GroupResource, rv string) {
+func (w *ownerRecord) WroteAt(gvkt GroupVersionKindType, rv string) {
 	w.versionsLock.Lock()
 	defer w.versionsLock.Unlock()
-	if _, ok := w.versions[resource]; !ok {
-		w.versions[resource] = rv
+	if _, ok := w.versions[gvkt]; !ok {
+		w.versions[gvkt] = rv
 		return
 	}
-	cmp, err := resourceversion.CompareResourceVersion(w.versions[resource], rv)
+	cmp, err := resourceversion.CompareResourceVersion(w.versions[gvkt], rv)
 	if err == nil && cmp >= 0 {
 		return
 	}
-	w.versions[resource] = rv
+	w.versions[gvkt] = rv
 }
 
 // EnsureReady checks whether or not the ownerRecord is ready compared to the
 // read resource versions in the consistency store.
-func (w *ownerRecord) EnsureReady(c *realConsistencyStore) []consistencyError {
+func (w *ownerRecord) EnsureReady(ctx context.Context, c *realConsistencyStore) ([]consistencyError, error) {
 	w.versionsLock.Lock()
 	defer w.versionsLock.Unlock()
 	var errs []consistencyError
-	for gr, wroteRV := range w.versions {
-		store, exists := c.stores[gr]
-		if !exists || store == nil {
-			continue
+	for gvkt, wroteRV := range w.versions {
+		store, err := getStore(ctx, c, gvkt)
+		if err != nil {
+			return nil, err
 		}
 		readRV := store.LastStoreSyncResourceVersion()
 		if readRV == "" {
-			// Since we wait for the store to be ready, the only time "" is if the
-			// LastStoreSyncResourceVersion() feature is not enabled.
+			// As we are also creating Informers dynamically in Reconcile funcs there might be informers that are
+			// not synced yet. In that case we want to wait for informers to sync and catch up.
+			errs = append(errs, consistencyError{
+				WroteRV:              wroteRV,
+				ReadRV:               readRV,
+				GroupVersionKindType: gvkt,
+			})
 			continue
 		}
 		i, err := resourceversion.CompareResourceVersion(wroteRV, readRV)
@@ -188,11 +254,64 @@ func (w *ownerRecord) EnsureReady(c *realConsistencyStore) []consistencyError {
 		if i > 0 {
 			// read version is not as new as owner version, not ready
 			errs = append(errs, consistencyError{
-				WroteRV:       wroteRV,
-				ReadRV:        readRV,
-				GroupResource: gr,
+				WroteRV:              wroteRV,
+				ReadRV:               readRV,
+				GroupVersionKindType: gvkt,
 			})
 		}
 	}
-	return errs
+	return errs, nil
+}
+
+func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKindType) (kcache.Store, error) {
+	c.storesLock.RLock()
+	store, exists := c.stores[gvkt]
+	c.storesLock.RUnlock()
+
+	if exists {
+		return store, nil
+	}
+
+	c.storesLock.Lock()
+	defer c.storesLock.Unlock()
+
+	// Check again now that we have the write lock.
+	store, exists = c.stores[gvkt]
+	if exists {
+		return store, nil
+	}
+
+	var obj client.Object
+	switch gvkt.Type {
+	case ObjectTypeUnstructured:
+		obj = &unstructured.Unstructured{}
+		obj.GetObjectKind().SetGroupVersionKind(gvkt.GroupVersionKind)
+	case ObjectTypePartialObjectMetadata:
+		obj = &metav1.PartialObjectMetadata{}
+		obj.GetObjectKind().SetGroupVersionKind(gvkt.GroupVersionKind)
+	case ObjectTypeStructured:
+		runtimeObj, err := c.scheme.New(gvkt.GroupVersionKind)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create %s object: %w", gvkt.Kind, err)
+		}
+		var ok bool
+		obj, ok = runtimeObj.(client.Object)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast %s object to client.Object: %w", gvkt.Kind, err)
+		}
+	}
+
+	// Note: This creates the informer if it doesn't exist already, but it doesn't  wait for the cache to sync.
+	informer, err := c.informerGetter.GetInformer(ctx, obj, cache.BlockUntilSynced(false))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
+	}
+	sharedIndexInformer, ok := informer.(kcache.SharedIndexInformer)
+	if !ok {
+		// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
+		return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
+	}
+
+	c.stores[gvkt] = sharedIndexInformer.GetStore()
+	return c.stores[gvkt], nil
 }

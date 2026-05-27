@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 )
 
 func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *internal.ControlPlane, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) error {
@@ -59,7 +60,7 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 
 		// Wait until the cache observed the Machine with UpdateInProgressAnnotation to ensure subsequent reconciles
 		// will observe it as well and accordingly don't trigger another in-place update concurrently.
-		r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, machineGR, machine.ResourceVersion)
+		r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), machine.ResourceVersion)
 	}
 
 	// TODO: If this func fails below we are going to reconcile again and call triggerInPlaceUpdate again. If KCP
@@ -130,7 +131,7 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 	if err := hooks.MarkAsPending(ctx, r.Client, desiredMachine, true, runtimehooksv1.UpdateMachine); err != nil {
 		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
-	r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, machineGR, desiredMachine.ResourceVersion)
+	r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), desiredMachine.ResourceVersion)
 
 	log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", klog.KObj(machine)))
 	r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")

@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 )
 
 // sync is responsible for reconciling deployments on scaling events or when they
@@ -347,7 +348,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 			// If the deletion was successful and the MachineSet had a finalizer when deletion was triggered
 			// deletedMS will contain the MachineSet object after deletion with the resourceVersion set.
 			// If that is the case, defer the next reconcile until the cache observed the MachineSet deletion.
-			r.controller.DeferNextReconcileUntilCacheUpToDate(deployment, msGR, deletedMS.GetResourceVersion())
+			r.controller.DeferNextReconcileUntilCacheUpToDate(deployment, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachineSet"), deletedMS.GetResourceVersion())
 		}
 
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.

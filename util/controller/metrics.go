@@ -59,7 +59,7 @@ var (
 	reconcileStaleCacheSkipsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "capi_reconcile_stale_cache_skips_total",
 		Help: "Total number of reconciles skipped due to a stale watch cache.",
-	}, []string{"controller", "cached_resource"})
+	}, []string{"controller", "cached_kind"})
 )
 
 const (

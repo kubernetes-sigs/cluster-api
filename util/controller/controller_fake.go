@@ -20,7 +20,6 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -48,7 +47,7 @@ func (f *FakeController) DeferNextReconcileForObject(obj metav1.Object, reconcil
 	}] = reconcileAfter
 }
 
-func (f *FakeController) DeferNextReconcileUntilCacheUpToDate(_ metav1.Object, _ schema.GroupResource, _ string) {
+func (f *FakeController) DeferNextReconcileUntilCacheUpToDate(_ metav1.Object, _ GroupVersionKindType, _ string) {
 }
 
 func (f *FakeController) ClearConsistencyStore(_ client.ObjectKey, _ types.UID) {}

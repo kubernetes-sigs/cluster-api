@@ -17,14 +17,22 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestOwnerRecord_WroteAt(t *testing.T) {
@@ -33,91 +41,110 @@ func TestOwnerRecord_WroteAt(t *testing.T) {
 	assert.Equal(t, uid, or.ownerUID)
 	require.NotNil(t, or.versions)
 
-	grPod := schema.GroupResource{Group: "", Resource: "pods"}
-	grDs := schema.GroupResource{Group: "apps", Resource: "daemonsets"}
+	gvktPod := StructuredObject(schema.GroupVersion{Group: "", Version: "v1"}, "Pod")
+	gvktDS := StructuredObject(schema.GroupVersion{Group: "apps", Version: "v1"}, "DaemonSet")
 
 	// First write
-	or.WroteAt(grPod, "5")
-	assert.Equal(t, "5", or.versions[grPod])
+	or.WroteAt(gvktPod, "5")
+	assert.Equal(t, "5", or.versions[gvktPod])
 
 	// Second write (higher)
-	or.WroteAt(grPod, "10")
-	assert.Equal(t, "10", or.versions[grPod])
+	or.WroteAt(gvktPod, "10")
+	assert.Equal(t, "10", or.versions[gvktPod])
 
 	// Third write (lower)
-	or.WroteAt(grPod, "8")
-	assert.Equal(t, "10", or.versions[grPod])
+	or.WroteAt(gvktPod, "8")
+	assert.Equal(t, "10", or.versions[gvktPod])
 
 	// Write to different resource
-	or.WroteAt(grDs, "1")
-	assert.Equal(t, "1", or.versions[grDs])
-	assert.Equal(t, "10", or.versions[grPod], "Pod version should be unchanged")
+	or.WroteAt(gvktDS, "1")
+	assert.Equal(t, "1", or.versions[gvktDS])
+	assert.Equal(t, "10", or.versions[gvktPod], "Pod version should be unchanged")
 }
 
 func TestOwnerRecord_IsReady(t *testing.T) {
 	uid := types.UID("owner-uid-1")
 	or := newOwnerRecord(uid)
-	grPod := schema.GroupResource{Group: "", Resource: "pods"}
-	grDs := schema.GroupResource{Group: "apps", Resource: "daemonsets"}
+	gvktPod := StructuredObject(schema.GroupVersion{Group: "", Version: "v1"}, "Pod")
+	gvktDS := StructuredObject(schema.GroupVersion{Group: "apps", Version: "v1"}, "DaemonSet")
 	podStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	dsStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	resourceStores := map[schema.GroupResource]lastSyncRVGetter{
-		grPod: podStore,
-		grDs:  dsStore,
+	resourceStores := map[GroupVersionKindType]cache.Store{
+		gvktPod: podStore,
+		gvktDS:  dsStore,
 	}
 
-	store := newConsistencyStore(resourceStores)
+	store := &realConsistencyStore{
+		writes: map[types.NamespacedName]*ownerRecord{},
+		stores: resourceStores,
+	}
 
 	// Case 1: No writes. Should be ready.
-	require.Empty(t, or.EnsureReady(store), "Should be ready if no writes are recorded")
+	consistencyErrors, err := or.EnsureReady(t.Context(), store)
+	require.Nil(t, err)
+	require.Empty(t, consistencyErrors, "Should be ready if no writes are recorded")
 
 	// Add a write
-	or.WroteAt(grPod, "10")
+	or.WroteAt(gvktPod, "10")
 
-	// Case 2: Write exists, but no reads. Should stay ready.
-	require.Empty(t, or.EnsureReady(store), "Should stay ready if write exists and no read")
+	// Case 2: Write exists, but no reads. Not ready.
+	consistencyErrors, err = or.EnsureReady(t.Context(), store)
+	require.Nil(t, err)
+	require.NotEmpty(t, consistencyErrors, "Not ready if read (0) < write")
 
 	// Add a read, but it's lower
 	podStore.Bookmark("5")
 
 	// Case 3: Write exists, read is lower. Not ready.
-	require.NotEmpty(t, or.EnsureReady(store), "Not ready if read < write")
+	consistencyErrors, err = or.EnsureReady(t.Context(), store)
+	require.Nil(t, err)
+	require.NotEmpty(t, consistencyErrors, "Not ready if read < write")
 
 	// Add a read, equal
 	podStore.Bookmark("10")
 
 	// Case 4: Write exists, read is equal. Ready.
-	require.Empty(t, or.EnsureReady(store), "Ready if read == write")
+	consistencyErrors, err = or.EnsureReady(t.Context(), store)
+	require.Nil(t, err)
+	require.Empty(t, consistencyErrors, "Ready if read == write")
 
 	// Add a read, higher
 	podStore.Bookmark("15")
 
 	// Case 5: Write exists, read is higher. Ready.
-	require.Empty(t, or.EnsureReady(store), "Ready if read > write")
+	consistencyErrors, err = or.EnsureReady(t.Context(), store)
+	require.Nil(t, err)
+	require.Empty(t, consistencyErrors, "Ready if read > write")
 
 	// Add a second write and read
-	or.WroteAt(grDs, "100")
+	or.WroteAt(gvktDS, "100")
 	dsStore.Bookmark("50")
 
 	// Case 6: One resource ready, one not. Not ready.
-	require.NotEmpty(t, or.EnsureReady(store), "Not ready if one of multiple writes is not ready (no read)")
+	consistencyErrors, err = or.EnsureReady(t.Context(), store)
+	require.Nil(t, err)
+	require.NotEmpty(t, consistencyErrors, "Not ready if one of multiple writes is not ready (no read)")
 
 	// Make the second one ready
 	dsStore.Bookmark("100")
 
 	// Case 7: All resources ready. Ready.
-	require.Empty(t, or.EnsureReady(store), "Ready if all writes are ready")
+	consistencyErrors, err = or.EnsureReady(t.Context(), store)
+	require.Nil(t, err)
+	require.Empty(t, consistencyErrors, "Ready if all writes are ready")
 }
 
 func TestConsistencyStore_New(t *testing.T) {
-	store := newConsistencyStore(nil)
+	store := newConsistencyStore(nil, nil)
 	require.NotNil(t, store)
 	require.NotNil(t, store.writes)
 	assert.Empty(t, store.writes)
+	require.NotNil(t, store.stores)
+	assert.Empty(t, store.stores)
 }
 
 func TestConsistencyStore_EnsureWrittenRecord(t *testing.T) {
-	store := newConsistencyStore(nil)
+	store := newConsistencyStore(nil, nil)
 	owner := types.NamespacedName{Name: "owner1"}
 	uid1 := types.UID("uid-1")
 	uid2 := types.UID("uid-2")
@@ -141,13 +168,13 @@ func TestConsistencyStore_EnsureWrittenRecord(t *testing.T) {
 	assert.Empty(t, r3.versions, "New record should be empty")
 
 	// Check that old record is detached
-	grPod := schema.GroupResource{Group: "", Resource: "pods"}
-	r1.WroteAt(grPod, "10") // Write to old record
+	gvktPod := StructuredObject(schema.GroupVersion{Group: "", Version: "v1"}, "Pod")
+	r1.WroteAt(gvktPod, "10") // Write to old record
 	assert.Empty(t, r3.versions, "Write to old record should not affect new record")
 }
 
 func TestConsistencyStore_EnsureWrittenRecord_Concurrent(t *testing.T) {
-	store := newConsistencyStore(nil)
+	store := newConsistencyStore(nil, nil)
 	owner := types.NamespacedName{Name: "owner1"}
 	uid1 := types.UID("uid-1")
 	uid2 := types.UID("uid-2")
@@ -197,26 +224,26 @@ func TestConsistencyStore_EnsureWrittenRecord_Concurrent(t *testing.T) {
 }
 
 func TestConsistencyStore_WroteAt(t *testing.T) {
-	store := newConsistencyStore(nil)
+	store := newConsistencyStore(nil, nil)
 	owner := types.NamespacedName{Name: "owner1"}
 	uid1 := types.UID("uid-1")
-	grPod := schema.GroupResource{Group: "", Resource: "pods"}
+	gvktPod := StructuredObject(schema.GroupVersion{Group: "", Version: "v1"}, "Pod")
 
-	store.WroteAt(owner, uid1, grPod, "10")
+	store.WroteAt(owner, uid1, gvktPod, "10")
 
 	record := store.getWrittenRecord(owner)
 	require.NotNil(t, record)
 	assert.Equal(t, uid1, record.ownerUID)
 
-	assert.Equal(t, "10", record.versions[grPod])
+	assert.Equal(t, "10", record.versions[gvktPod])
 
 	// Write again
-	store.WroteAt(owner, uid1, grPod, "20")
-	assert.Equal(t, "20", record.versions[grPod])
+	store.WroteAt(owner, uid1, gvktPod, "20")
+	assert.Equal(t, "20", record.versions[gvktPod])
 }
 
 func TestConsistencyStore_Clear(t *testing.T) {
-	store := newConsistencyStore(nil)
+	store := newConsistencyStore(nil, nil)
 	owner1 := types.NamespacedName{Name: "owner1"}
 	owner2 := types.NamespacedName{Name: "owner2"}
 	uid1 := types.UID("uid-1")
@@ -256,37 +283,103 @@ func TestConsistencyStore_Clear(t *testing.T) {
 func TestConsistencyStore_IsReady(t *testing.T) {
 	owner1 := types.NamespacedName{Name: "owner1"}
 	uid1 := types.UID("uid-1")
-	grPod := schema.GroupResource{Group: "", Resource: "pods"}
+	gvktPod := StructuredObject(schema.GroupVersion{Group: "", Version: "v1"}, "Pod")
 	podStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	resourceStores := map[schema.GroupResource]lastSyncRVGetter{
-		grPod: podStore,
+	resourceStores := map[GroupVersionKindType]cache.Store{
+		gvktPod: podStore,
 	}
 
-	store := newConsistencyStore(resourceStores)
+	store := &realConsistencyStore{
+		writes: map[types.NamespacedName]*ownerRecord{},
+		stores: resourceStores,
+	}
 
 	// Case 1: No record. Ready.
-	require.Empty(t, store.EnsureReady(owner1), "Ready if no record exists")
+	consistencyErrors, err := store.EnsureReady(t.Context(), owner1)
+	require.Nil(t, err)
+	require.Empty(t, consistencyErrors, "Ready if no record exists")
 
 	// Add a write and initial read rv
 	podStore.Bookmark("5")
-	store.WroteAt(owner1, uid1, grPod, "10")
+	store.WroteAt(owner1, uid1, gvktPod, "10")
 
 	// Case 2: Record exists, read < write. Not ready.
-	require.NotEmpty(t, store.EnsureReady(owner1), "Not ready if read < write")
+	consistencyErrors, err = store.EnsureReady(t.Context(), owner1)
+	require.Nil(t, err)
+	require.NotEmpty(t, consistencyErrors, "Not ready if read < write")
 
 	// Add read, equal
 	podStore.Bookmark("10")
 
 	// Case 3: Record exists, read == write. Ready.
-	require.Empty(t, store.EnsureReady(owner1), "Ready if read == write")
+	consistencyErrors, err = store.EnsureReady(t.Context(), owner1)
+	require.Nil(t, err)
+	require.Empty(t, consistencyErrors, "Ready if read == write")
 
 	// Add read, higher
 	podStore.Bookmark("15")
 
 	// Case 4: Record exists, read > write. Ready.
-	require.Empty(t, store.EnsureReady(owner1), "Ready if read > write")
+	consistencyErrors, err = store.EnsureReady(t.Context(), owner1)
+	require.Nil(t, err)
+	require.Empty(t, consistencyErrors, "Ready if read > write")
 
 	// Assert that the record no longer exists, we no longer need to track the
 	// reads as long as the read has been higher than the latest write.
 	assert.Nil(t, store.getWrittenRecord(owner1), "Written record should no longer exist")
+}
+
+func TestConsistencyStore_getStore(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = clusterv1.AddToScheme(scheme)
+
+	c := newConsistencyStore(scheme, &fakeInformerGetter{})
+
+	// Get store of *clusterv1.Machine informer.
+	store, err := getStore(t.Context(), c, StructuredObject(clusterv1.GroupVersion, "Machine"))
+	assert.Nil(t, err)
+	_, ok := store.(*fakeStore).obj.(*clusterv1.Machine)
+	assert.True(t, ok)
+
+	// Get store of clusterv1.Machine Unstructured informer.
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine"))
+	store, err = getStore(t.Context(), c, Unstructured(u))
+	assert.Nil(t, err)
+	u, ok = store.(*fakeStore).obj.(*unstructured.Unstructured)
+	assert.True(t, ok)
+	assert.Equal(t, clusterv1.GroupVersion.WithKind("Machine"), u.GroupVersionKind())
+
+	// Get store of clusterv1.Machine PartialObjectMeta informer.
+	p := &metav1.PartialObjectMetadata{}
+	p.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine"))
+	store, err = getStore(t.Context(), c, PartialObjectMetadata(p))
+	assert.Nil(t, err)
+	p, ok = store.(*fakeStore).obj.(*metav1.PartialObjectMetadata)
+	assert.True(t, ok)
+	assert.Equal(t, clusterv1.GroupVersion.WithKind("Machine"), p.GroupVersionKind())
+
+	assert.Len(t, c.stores, 3)
+}
+
+type fakeInformerGetter struct{}
+
+func (f *fakeInformerGetter) GetInformer(_ context.Context, obj client.Object, _ ...ctrlcache.InformerGetOption) (ctrlcache.Informer, error) {
+	return &fakeInformer{obj: obj}, nil
+}
+
+var _ cache.SharedIndexInformer = &fakeInformer{}
+
+type fakeInformer struct {
+	obj client.Object
+	cache.SharedIndexInformer
+}
+
+func (f *fakeInformer) GetStore() cache.Store {
+	return &fakeStore{obj: f.obj}
+}
+
+type fakeStore struct {
+	obj client.Object
+	cache.Store
 }

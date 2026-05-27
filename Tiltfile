@@ -485,6 +485,15 @@ def deploy_observability():
             objects = ["capi-visualizer:serviceaccount"],
         )
 
+    if "headlamp" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/headlamp.observability.yaml"), allow_duplicates = True)
+        k8s_resource(
+            workload = "headlamp",
+            port_forwards = [port_forward(local_port = 4466, container_port = 4466, name = "Headlamp UI")],
+            labels = ["observability"],
+            objects = ["headlamp-kubeconfig:configmap"],
+        )
+
 def deploy_additional_kustomizations():
     for name in settings.get("additional_kustomizations", []):
         yaml = read_file("./.tiltbuild/yaml/{}.kustomization.yaml".format(name))

@@ -575,7 +575,7 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 	}, 30*time.Second, 1*time.Second).Should(Succeed())
 }
 
-func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects clusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
 	ccInfrastructureClusterTemplateTemplateMetadata := mustMetadata(contract.InfrastructureClusterTemplate().Template().Metadata().Get(clusterClassObjects.InfrastructureClusterTemplate))
 
 	// InfrastructureCluster.metadata
@@ -599,7 +599,7 @@ func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjec
 	)
 }
 
-func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects clusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
 	ccControlPlaneTemplateTemplateMetadata := mustMetadata(contract.ControlPlaneTemplate().Template().Metadata().Get(clusterClassObjects.ControlPlaneTemplate))
 	ccControlPlaneTemplateMachineTemplateMetadata := mustMetadata(contract.ControlPlaneTemplate().Template().MachineTemplate().Metadata().Get(clusterClassObjects.ControlPlaneTemplate))
 	ccControlPlaneInfrastructureMachineTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachineTemplate().Template().Metadata().Get(clusterClassObjects.ControlPlaneInfrastructureMachineTemplate))
@@ -682,7 +682,7 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 	)
 }
 
-func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster *clusterv1.Cluster, controlPlaneContractVersion string, filterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta) {
+func assertControlPlaneMachines(g Gomega, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, controlPlaneContractVersion string, filterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta) {
 	controlPlaneMachineTemplateMetadata := mustMetadata(contract.ControlPlane().MachineTemplate().Metadata().Get(clusterObjects.ControlPlane))
 	controlPlaneInfrastructureMachineTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachineTemplate().Template().Metadata().Get(clusterObjects.ControlPlaneInfrastructureMachineTemplate))
 
@@ -783,7 +783,7 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 	}
 }
 
-func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects clusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
 	for _, machineDeployment := range clusterObjects.MachineDeployments {
 		mdTopology := getMDTopology(cluster, machineDeployment)
 		mdClass := getMDClass(cluster, clusterClass, machineDeployment)
@@ -908,7 +908,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 	}
 }
 
-func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects clusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
 	for _, machinePool := range clusterObjects.MachinePools {
 		mpTopology := getMPTopology(cluster, machinePool)
 		mpClass := getMPClass(cluster, clusterClass, machinePool)
@@ -1004,7 +1004,7 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 	}
 }
 
-func assertMachineSets(g Gomega, clusterObjects clusterObjects, cluster *clusterv1.Cluster) {
+func assertMachineSets(g Gomega, clusterObjects ClusterObjects, cluster *clusterv1.Cluster) {
 	for _, machineDeployment := range clusterObjects.MachineDeployments {
 		mdTopology := getMDTopology(cluster, machineDeployment)
 
@@ -1066,7 +1066,7 @@ func assertMachineSets(g Gomega, clusterObjects clusterObjects, cluster *cluster
 	}
 }
 
-func assertMachineSetsMachines(g Gomega, clusterObjects clusterObjects, cluster *clusterv1.Cluster, filterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta) {
+func assertMachineSetsMachines(g Gomega, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, filterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta) {
 	for _, machineDeployment := range clusterObjects.MachineDeployments {
 		mdTopology := getMDTopology(cluster, machineDeployment)
 		infrastructureMachineTemplate := clusterObjects.InfrastructureMachineTemplateByMachineDeployment[machineDeployment.Name]
@@ -1328,7 +1328,7 @@ func getClusterClassObjects(ctx context.Context, g Gomega, clusterProxy framewor
 	return res
 }
 
-type clusterObjects struct {
+type ClusterObjects struct {
 	InfrastructureCluster *unstructured.Unstructured
 
 	ControlPlane                              *unstructured.Unstructured
@@ -1353,11 +1353,11 @@ type clusterObjects struct {
 }
 
 // getClusterObjects retrieves objects from the Cluster topology.
-func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) clusterObjects {
+func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) ClusterObjects {
 	mgmtClient := clusterProxy.GetClient()
 	workloadClient := clusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient()
 
-	res := clusterObjects{
+	res := ClusterObjects{
 		MachineSetsByMachineDeployment:                   map[string][]*clusterv1.MachineSet{},
 		MachinesByMachineSet:                             map[string][]*clusterv1.Machine{},
 		NodesByMachine:                                   map[string]*corev1.Node{},
@@ -1465,8 +1465,8 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 	return res
 }
 
-// addMachineObjects adds objects related to the Machine (BootstrapConfig, InfraMachine, Node) to clusterObjects.
-func addMachineObjects(ctx context.Context, mgmtClient, workloadClient client.Client, g Gomega, res clusterObjects, machine *clusterv1.Machine) {
+// addMachineObjects adds objects related to the Machine (BootstrapConfig, InfraMachine, Node) to ClusterObjects.
+func addMachineObjects(ctx context.Context, mgmtClient, workloadClient client.Client, g Gomega, res ClusterObjects, machine *clusterv1.Machine) {
 	bootstrapConfig, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, machine.Spec.Bootstrap.ConfigRef, machine.Namespace)
 	g.Expect(err).ToNot(HaveOccurred())
 	res.BootstrapConfigByMachine[machine.Name] = bootstrapConfig

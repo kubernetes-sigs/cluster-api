@@ -72,12 +72,6 @@ type KCPAdoptionSpecInput struct {
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
-type ClusterProxy interface {
-	framework.ClusterProxy
-
-	ApplyWithArgs(context.Context, []byte, ...string) error
-}
-
 // KCPAdoptionSpec implements a test that verifies KCP to properly adopt existing control plane Machines.
 func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInput) {
 	var (

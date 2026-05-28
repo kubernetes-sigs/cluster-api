@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/fatih/color"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	gtype "github.com/onsi/gomega/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,19 +42,28 @@ func Test_getRowName(t *testing.T) {
 		expect string
 	}{
 		{
-			name:   "Row name for objects should be kind/name",
+			name:   "Row name for objects should be kind namespace/name",
 			object: fakeObject("c1"),
-			expect: "Object/c1",
+			expect: "Object ns/c1",
 		},
 		{
 			name:   "Row name for a deleting object should have deleted prefix",
 			object: fakeObject("c1", withDeletionTimestamp),
-			expect: "!! DELETED !! Object/c1",
+			expect: "!! DELETED !! Object ns/c1",
 		},
 		{
-			name:   "Row name for objects with meta name should be meta-name - kind/name",
+			name: "Raw name should surface version",
+			object: func() ctrlclient.Object {
+				obj := fakeObject("c1").(*clusterv1.Cluster)
+				obj.Spec.Topology.Version = "v1.36.0"
+				return obj
+			}(),
+			expect: "Object ns/c1, v1.36.0",
+		},
+		{
+			name:   "Meta name should be ignored",
 			object: fakeObject("c1", withAnnotation(tree.ObjectMetaNameAnnotation, "MetaName")),
-			expect: "MetaName - Object/c1",
+			expect: "Object ns/c1",
 		},
 		{
 			name:   "Row name for virtual objects should be name",
@@ -170,9 +180,9 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 				return obectjTree
 			}(),
 			expectPrefix: []string{
-				"Object/root",
-				"├─Object/child1", // first objects gets ├─
-				"└─Object/child2", // last objects gets └─
+				"Object ns/root",
+				"├─Object ns/child1", // first objects gets ├─
+				"└─Object ns/child2", // last objects gets └─
 			},
 		},
 		{
@@ -197,13 +207,13 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 				return obectjTree
 			}(),
 			expectPrefix: []string{
-				"Object/root",
-				"├─Object/child1",
-				"│ ├─Object/child1.1", // first second level child gets pipes and ├─
-				"│ └─Object/child1.2", // last second level child gets pipes and └─
-				"└─Object/child2",
-				"  ├─Object/child2.1", // first second level child spaces and ├─
-				"  └─Object/child2.2", // last second level child gets spaces and └─
+				"Object ns/root",
+				"├─Object ns/child1",
+				"│ ├─Object ns/child1.1", // first second level child gets pipes and ├─
+				"│ └─Object ns/child1.2", // last second level child gets pipes and └─
+				"└─Object ns/child2",
+				"  ├─Object ns/child2.1", // first second level child spaces and ├─
+				"  └─Object ns/child2.2", // last second level child gets spaces and └─
 			},
 		},
 		{
@@ -227,11 +237,11 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 				return obectjTree
 			}(),
 			expectPrefix: []string{
-				"Object/root",
-				"├─Object/child1",
+				"Object ns/root",
+				"├─Object ns/child1",
 				"│             ├─C1.1", // first condition child gets pipes and ├─
 				"│             └─C1.2", // last condition child gets └─ and pipes and └─
-				"└─Object/child2",
+				"└─Object ns/child2",
 				"              ├─C2.1", // first condition child gets spaces and ├─
 				"              └─C2.2", // last condition child gets spaces and └─
 			},
@@ -262,15 +272,15 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 				return obectjTree
 			}(),
 			expectPrefix: []string{
-				"Object/root",
-				"├─Object/child1",
+				"Object ns/root",
+				"├─Object ns/child1",
 				"│ │           ├─C1.1", // first condition child gets pipes, children pipe and ├─
 				"│ │           └─C1.2", // last condition child gets pipes, children pipe and └─
-				"│ └─Object/child1.1",
-				"└─Object/child2",
+				"│ └─Object ns/child1.1",
+				"└─Object ns/child2",
 				"  │           ├─C2.1", // first condition child gets spaces, children pipe and ├─
 				"  │           └─C2.2", // last condition child gets spaces, children pipe and └─
-				"  └─Object/child2.1",
+				"  └─Object ns/child2.1",
 			},
 		},
 	}
@@ -326,12 +336,12 @@ func Test_TreePrefix(t *testing.T) {
 				return objectTree
 			}(),
 			expectPrefix: []string{
-				"Object/root              False  NotAvailable",
-				"│                                                   second line",
-				"├─Object/child1          False  NotAvailable",
-				"│                                                   second line",
-				"└─Object/child2          False  NotAvailable",
-				"                                                    second line",
+				"Object ns/root              False  NotAvailable",
+				"│                                                      second line",
+				"├─Object ns/child1          False  NotAvailable",
+				"│                                                      second line",
+				"└─Object ns/child2          False  NotAvailable",
+				"                                                       second line",
 			},
 		},
 		{
@@ -360,11 +370,11 @@ func Test_TreePrefix(t *testing.T) {
 				return obectjTree
 			}(),
 			expectPrefix: []string{
-				"Object/root                  True   Available",
-				"├─Object/child1              True   Available",
-				"└─Object/child2              False  NotAvailable",
-				"  │                                                     second line",
-				"  └─Object/child2.1",
+				"Object ns/root                  True   Available",
+				"├─Object ns/child1              True   Available",
+				"└─Object ns/child2              False  NotAvailable",
+				"  │                                                        second line",
+				"  └─Object ns/child2.1",
 			},
 		},
 		{
@@ -402,16 +412,16 @@ func Test_TreePrefix(t *testing.T) {
 				return obectjTree
 			}(),
 			expectPrefix: []string{
-				"Object/root                    True   Available",
-				"├─Object/child1                True   Available",
-				"│ └─Object/child2              False  NotAvailable",
-				"│   │                                                     second line",
-				"│   └─Object/child3            False  NotAvailable",
-				"│     │                                                   second line",
-				"│     └─Object/child4          False  NotAvailable",
-				"│                                                         second line",
-				"└─Object/child5                False  NotAvailable",
-				"                                                          second line",
+				"Object ns/root                    True   Available",
+				"├─Object ns/child1                True   Available",
+				"│ └─Object ns/child2              False  NotAvailable",
+				"│   │                                                        second line",
+				"│   └─Object ns/child3            False  NotAvailable",
+				"│     │                                                      second line",
+				"│     └─Object ns/child4          False  NotAvailable",
+				"│                                                            second line",
+				"└─Object ns/child5                False  NotAvailable",
+				"                                                             second line",
 			},
 		},
 		{
@@ -445,14 +455,14 @@ func Test_TreePrefix(t *testing.T) {
 				return obectjTree
 			}(),
 			expectPrefix: []string{
-				"Object/root                    True   Available",
-				"└─Object/child1                True   Available",
-				"  └─Object/child2              False  NotAvailable",
-				"    │                                                     second line",
-				"    └─Object/child3            False  NotAvailable",
-				"      │                                                   second line",
-				"      └─Object/child4          False  NotAvailable",
-				"                                                          second line",
+				"Object ns/root                    True   Available",
+				"└─Object ns/child1                True   Available",
+				"  └─Object ns/child2              False  NotAvailable",
+				"    │                                                        second line",
+				"    └─Object ns/child3            False  NotAvailable",
+				"      │                                                      second line",
+				"      └─Object ns/child4          False  NotAvailable",
+				"                                                             second line",
 			},
 		},
 		{
@@ -491,16 +501,16 @@ func Test_TreePrefix(t *testing.T) {
 				return obectjTree
 			}(),
 			expectPrefix: []string{
-				"Object/root                  True   Available",
-				"├─Object/child1              True   Available",
-				"├─Object/child2              False  NotAvailable",
-				"│ │                                                     second line",
-				"│ └─Object/child2.1          False  NotAvailable",
-				"│                                                       second line",
-				"└─Object/child3              False  NotAvailable",
-				"  │                                                     second line",
-				"  └─Object/child3.1          False  NotAvailable",
-				"                                                        second line",
+				"Object ns/root                  True   Available",
+				"├─Object ns/child1              True   Available",
+				"├─Object ns/child2              False  NotAvailable",
+				"│ │                                                        second line",
+				"│ └─Object ns/child2.1          False  NotAvailable",
+				"│                                                          second line",
+				"└─Object ns/child3              False  NotAvailable",
+				"  │                                                        second line",
+				"  └─Object ns/child3.1          False  NotAvailable",
+				"                                                           second line",
 			},
 		},
 	}
@@ -611,6 +621,8 @@ func (t *Table) Match(actual interface{}) (bool, error) {
 
 	for i := range t.tableData {
 		if !strings.HasPrefix(tableParts[i], t.tableData[i]) {
+			diff := cmp.Diff(tableParts[i], t.tableData[i])
+			fmt.Println(diff)
 			return false, nil
 		}
 	}

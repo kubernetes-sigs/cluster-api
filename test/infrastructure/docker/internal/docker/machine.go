@@ -402,7 +402,7 @@ func (m *Machine) GetBootstrapCommands(_ context.Context, data string, format bo
 	return commands, nil
 }
 
-// CheckForSentinelFile checks if bootstrap was successful by checking for existence of the sentinel file.
+// CheckForSentinelFile checks if bootstrap was already started by checking for existence of the sentinel file.
 func (m *Machine) CheckForSentinelFile(ctx context.Context) (bool, error) {
 	if m.container == nil {
 		return false, errors.New("unable to set CheckForBootstrapSuccess. the container hosting this machine does not exists")
@@ -410,7 +410,7 @@ func (m *Machine) CheckForSentinelFile(ctx context.Context) (bool, error) {
 
 	var outErr bytes.Buffer
 	var outStd bytes.Buffer
-	cmd := m.container.Commander.Command("/bin/sh", "-c", "test -f /run/cluster-api/bootstrap-success.complete && echo \"true\" || echo \"false\"")
+	cmd := m.container.Commander.Command("/bin/sh", "-c", "test -f /run/cluster-api/capd.bootstrap.started && echo \"true\" || echo \"false\"")
 	cmd.SetStderr(&outErr)
 	cmd.SetStdout(&outStd)
 	if err := cmd.Run(ctx); err != nil {

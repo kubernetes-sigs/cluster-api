@@ -118,9 +118,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		WithConsistencyStore(map[schema.GroupResource]client.Object{
-			msGR: &clusterv1.MachineSet{},
-		}).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
@@ -394,7 +391,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 				r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(ms), err)
 				return errors.Wrapf(err, "failed to create MachineSet %s", klog.KObj(ms))
 			}
-			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, msGR, ms.ResourceVersion)
+			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachineSet"), ms.ResourceVersion)
 			if len(p.oldMSs) > 0 {
 				log.Info(fmt.Sprintf("MachineSets need rollout: %s", strings.Join(machineSetNames(p.oldMSs), ", ")), "reason", p.createReason)
 			}
@@ -434,7 +431,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 
 		// Defer next reconcile only if ResourceVersion has changed.
 		if diff.OriginalMS.ResourceVersion != ms.ResourceVersion {
-			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, msGR, ms.ResourceVersion)
+			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachineSet"), ms.ResourceVersion)
 		}
 
 		if diff.DesiredReplicas < diff.OriginalReplicas {

@@ -30,7 +30,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -1345,7 +1344,7 @@ func (f fakeController) DeferNextReconcile(_ reconcile.Request, _ time.Time) {}
 
 func (f fakeController) DeferNextReconcileForObject(_ metav1.Object, _ time.Time) {}
 
-func (f fakeController) DeferNextReconcileUntilCacheUpToDate(_ metav1.Object, _ schema.GroupResource, _ string) {
+func (f fakeController) DeferNextReconcileUntilCacheUpToDate(_ metav1.Object, _ capicontrollerutil.GroupVersionKindType, _ string) {
 }
 
 func (f fakeController) ClearConsistencyStore(_ client.ObjectKey, _ types.UID) {}

@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -75,21 +74,6 @@ import (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinehealthchecks,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;create;delete
-
-var (
-	clusterGR = schema.GroupResource{
-		Group:    clusterv1.GroupVersion.Group,
-		Resource: "clusters",
-	}
-	machineDeploymentGR = schema.GroupResource{
-		Group:    clusterv1.GroupVersion.Group,
-		Resource: "machinedeployments",
-	}
-	machinePoolGR = schema.GroupResource{
-		Group:    clusterv1.GroupVersion.Group,
-		Resource: "machinepools",
-	}
-)
 
 // Reconciler reconciles a managed topology for a Cluster object.
 type Reconciler struct {
@@ -155,11 +139,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		WithConsistencyStore(map[schema.GroupResource]client.Object{
-			clusterGR:           &clusterv1.Cluster{},
-			machineDeploymentGR: &clusterv1.MachineDeployment{},
-			machinePoolGR:       &clusterv1.MachinePool{},
-		}).
 		Build(ctx, r)
 
 	if err != nil {

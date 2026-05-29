@@ -25,7 +25,6 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,24 +62,26 @@ func (r *reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request
 		}
 	}
 
-	if r.consistencyStore != nil {
-		if consistencyErrs := r.consistencyStore.EnsureReady(req.NamespacedName); len(consistencyErrs) > 0 {
-			log := ctrl.LoggerFrom(ctx)
-			atMostEvery10Seconds.Do(func() {
-				log.V(2).Info("Cache stale, reconciles are requeued until the cache is up-to-date")
-			})
-			for _, consistencyErr := range consistencyErrs {
-				reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, consistencyErr.GroupResource.Resource).Inc()
-			}
-			if log.V(5).Enabled() {
-				var staleCaches []string
-				for _, consistencyErr := range consistencyErrs {
-					staleCaches = append(staleCaches, fmt.Sprintf("%s, writtenRV: %s, observedRV: %s", consistencyErr.GroupResource.Resource, consistencyErr.WroteRV, consistencyErr.ReadRV))
-				}
-				log.V(5).Info(fmt.Sprintf("Cache stale, requeueing after %s (%s)", requeueDurationStaleCache, strings.Join(staleCaches, ", ")))
-			}
-			return ctrl.Result{RequeueAfter: requeueDurationStaleCache}, nil
+	consistencyErrs, err := r.consistencyStore.EnsureReady(ctx, req.NamespacedName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if len(consistencyErrs) > 0 {
+		log := ctrl.LoggerFrom(ctx)
+		atMostEvery10Seconds.Do(func() {
+			log.V(2).Info("Cache stale, reconciles are requeued until the cache is up-to-date")
+		})
+		for _, consistencyErr := range consistencyErrs {
+			reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, consistencyErr.GroupVersionKindType.Kind).Inc()
 		}
+		if log.V(5).Enabled() {
+			var staleCaches []string
+			for _, consistencyErr := range consistencyErrs {
+				staleCaches = append(staleCaches, fmt.Sprintf("%s, writtenRV: %s, observedRV: %s", consistencyErr.GroupVersionKindType.Kind, consistencyErr.WroteRV, consistencyErr.ReadRV))
+			}
+			log.V(5).Info(fmt.Sprintf("Cache stale, requeueing after %s (%s)", requeueDurationStaleCache, strings.Join(staleCaches, ", ")))
+		}
+		return ctrl.Result{RequeueAfter: requeueDurationStaleCache}, nil
 	}
 
 	// Add entry to the reconcileCache so we won't run Reconcile more than once per second.
@@ -179,11 +180,11 @@ func (r reconcileCacheEntry) ShouldRequeue(now time.Time) (requeueAfter time.Dur
 	return time.Duration(0), false
 }
 
-func (c *controllerWrapper) DeferNextReconcileUntilCacheUpToDate(reconciledObject metav1.Object, writtenObjectGroupResource schema.GroupResource, writtenObjectResourceVersion string) {
+func (c *controllerWrapper) DeferNextReconcileUntilCacheUpToDate(reconciledObject metav1.Object, writtenObjectGVKT GroupVersionKindType, writtenObjectResourceVersion string) {
 	// Note: We are using GroupResource here because we want to avoid making bigger changes to the vendored consistencyStore util.
 	// We could calculate GroupResource from a client.Object but we would have to handle error cases.
 	c.consistencyStore.WroteAt(client.ObjectKey{Namespace: reconciledObject.GetNamespace(), Name: reconciledObject.GetName()},
-		reconciledObject.GetUID(), writtenObjectGroupResource, writtenObjectResourceVersion)
+		reconciledObject.GetUID(), writtenObjectGVKT, writtenObjectResourceVersion)
 }
 
 func (c *controllerWrapper) ClearConsistencyStore(reconciledObject client.ObjectKey, reconciledObjectUID types.UID) {

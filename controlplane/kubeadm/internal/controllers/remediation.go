@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -359,7 +360,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		})
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete unhealthy machine %s", machineToBeRemediated.Name)
 	} else if deletedMachine != nil {
-		r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, machineGR, deletedMachine.GetResourceVersion())
+		r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 	}
 
 	// Surface the operation is in progress.

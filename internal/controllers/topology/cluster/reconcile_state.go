@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 )
 
 const (
@@ -523,7 +524,7 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	}
 	r.recorder.Eventf(s.Current.Cluster, corev1.EventTypeNormal, updateEventReason, "Updated Cluster %q", klog.KObj(s.Current.Cluster))
 
-	r.controller.DeferNextReconcileUntilCacheUpToDate(s.Current.Cluster, clusterGR, modifiedResourceVersion)
+	r.controller.DeferNextReconcileUntilCacheUpToDate(s.Current.Cluster, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Cluster"), modifiedResourceVersion)
 	return nil
 }
 
@@ -684,7 +685,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created MachineDeployment %q", klog.KObj(md.Object))
 
-	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, machineDeploymentGR, modifiedResourceVersion)
+	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachineDeployment"), modifiedResourceVersion)
 
 	// If the MachineDeployment has defined a MachineHealthCheck reconcile it.
 	if md.MachineHealthCheck != nil {
@@ -802,7 +803,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated MachineDeployment %q%s", klog.KObj(currentMD.Object), logMachineDeploymentVersionChange(currentMD.Object, desiredMD.Object))
 
-	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, machineDeploymentGR, modifiedResourceVersion)
+	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachineDeployment"), modifiedResourceVersion)
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
 	return nil
@@ -997,7 +998,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created MachinePool %q", klog.KObj(mp.Object))
 
-	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, machinePoolGR, modifiedResourceVersion)
+	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachinePool"), modifiedResourceVersion)
 
 	return nil
 }
@@ -1056,7 +1057,7 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTo
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated MachinePool %q%s", klog.KObj(currentMP.Object), logMachinePoolVersionChange(currentMP.Object, desiredMP.Object))
 
-	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, machinePoolGR, modifiedResourceVersion)
+	r.controller.DeferNextReconcileUntilCacheUpToDate(cluster, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachinePool"), modifiedResourceVersion)
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
 	return nil

@@ -156,9 +156,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("machineset", clusterToMachineSets)).
-		WithConsistencyStore(map[schema.GroupResource]client.Object{
-			machineGR: &clusterv1.Machine{},
-		}).
 		Build(ctx, r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -422,7 +419,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 			errs = append(errs, errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine)))
 			continue
 		}
-		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, machineGR, machine.ResourceVersion)
+		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), machine.ResourceVersion)
 
 		log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", machine.Name))
 		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
@@ -877,6 +874,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 			}
 			machine.Spec.Bootstrap.ConfigRef = bootstrapRef
 			log = log.WithValues(bootstrapRef.Kind, klog.KRef(ms.Namespace, bootstrapRef.Name))
+			r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.Unstructured(bootstrapConfig), bootstrapConfig.GetResourceVersion())
 		}
 
 		// Create the InfraMachine.
@@ -897,6 +895,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		}
 		log = log.WithValues(infraRef.Kind, klog.KRef(ms.Namespace, infraRef.Name))
 		machine.Spec.InfrastructureRef = infraRef
+		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.Unstructured(infraMachine), infraMachine.GetResourceVersion())
 
 		// Create the Machine.
 		if err := ssa.Patch(ctx, r.Client, machineSetManagerName, machine); err != nil {
@@ -915,7 +914,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 				clusterv1.ConditionSeverityError, "%s", err.Error())
 			return ctrl.Result{}, kerrors.NewAggregate(errs)
 		}
-		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, machineGR, machine.ResourceVersion)
+		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), machine.ResourceVersion)
 
 		log.Info(fmt.Sprintf("Machine %s created (scale up, creating %d of %d)", klog.KObj(machine), i+1, machinesToAdd), "Machine", klog.KObj(machine), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
 		r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created Machine %q", machine.Name)
@@ -961,7 +960,7 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 				continue
 			}
 			if deletedMachine != nil {
-				r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, machineGR, deletedMachine.GetResourceVersion())
+				r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 			}
 
 			log.Info(fmt.Sprintf("Machine %s deleting (scale down, deleting %d of %d)", klog.KObj(machine), i+1, machinesToDelete))
@@ -1082,7 +1081,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 			errs = append(errs, errors.Wrapf(err, "failed to trigger in-place update for Machine %s by moving to MachineSet %s", klog.KObj(machine), klog.KObj(targetMS)))
 			continue
 		}
-		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, machineGR, machine.ResourceVersion)
+		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), machine.ResourceVersion)
 	}
 
 	if len(errs) > 0 {

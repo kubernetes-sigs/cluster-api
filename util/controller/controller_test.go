@@ -137,20 +137,14 @@ func TestReconcile(t *testing.T) {
 		// Simulate a stale cache
 		consistencyStore.errs = []consistencyError{
 			{
-				GroupResource: schema.GroupResource{
-					Group:    clusterv1.GroupVersion.Group,
-					Resource: "machinedeployments",
-				},
-				ReadRV:  "10",
-				WroteRV: "11",
+				GroupVersionKindType: StructuredObject(clusterv1.GroupVersion, "MachineDeployment"),
+				ReadRV:               "10",
+				WroteRV:              "11",
 			},
 			{
-				GroupResource: schema.GroupResource{
-					Group:    clusterv1.GroupVersion.Group,
-					Resource: "cluster",
-				},
-				ReadRV:  "10",
-				WroteRV: "15",
+				GroupVersionKindType: StructuredObject(clusterv1.GroupVersion, "Cluster"),
+				ReadRV:               "10",
+				WroteRV:              "15",
 			},
 		}
 
@@ -161,8 +155,8 @@ func TestReconcile(t *testing.T) {
 		// Metrics should only show a skipped reconcile
 		g.Expect(reconcileCounter.Load()).To(Equal(int64(1)))
 		g.Expect(counterMetricValue(reconcileTotal.WithLabelValues(r.name, labelSuccess))).To(Equal(1))
-		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "machinedeployments"))).To(Equal(1))
-		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "cluster"))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "MachineDeployment"))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "Cluster"))).To(Equal(1))
 
 		// Simulate an up-to-date cache
 		consistencyStore.errs = nil
@@ -277,8 +271,8 @@ func TestReconcile(t *testing.T) {
 		g.Expect(r.queueRateLimiter.NumRequeues(req)).To(Equal(0))
 
 		// No additional reconciles should have been skipped because of a stale cache.
-		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "machinedeployments"))).To(Equal(1))
-		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "cluster"))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "MachineDeployment"))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "Cluster"))).To(Equal(1))
 
 		ctrlCancel()
 	})
@@ -301,6 +295,7 @@ func TestReconcileMetrics(t *testing.T) {
 			reconcileCache:    reconcileCache,
 			rateLimitInterval: rateLimitInterval,
 			queueRateLimiter:  newTypedItemExponentialFailureRateLimiter[reconcile.Request](rateLimitInterval, 5*time.Millisecond, 1000*time.Second),
+			consistencyStore:  &fakeConsistencyStore{},
 		}
 
 		req := reconcile.Request{
@@ -449,13 +444,13 @@ type fakeConsistencyStore struct {
 
 var _ consistencyStore = &fakeConsistencyStore{}
 
-func (cs *fakeConsistencyStore) WroteAt(_ types.NamespacedName, _ types.UID, _ schema.GroupResource, _ string) {
+func (cs *fakeConsistencyStore) WroteAt(_ types.NamespacedName, _ types.UID, _ GroupVersionKindType, _ string) {
 }
 
 func (cs *fakeConsistencyStore) ReadAt(_ schema.GroupResource, _ string) {}
 
 func (cs *fakeConsistencyStore) Clear(_ types.NamespacedName, _ types.UID) {}
 
-func (cs *fakeConsistencyStore) EnsureReady(_ types.NamespacedName) []consistencyError {
-	return cs.errs
+func (cs *fakeConsistencyStore) EnsureReady(_ context.Context, _ types.NamespacedName) ([]consistencyError, error) {
+	return cs.errs, nil
 }

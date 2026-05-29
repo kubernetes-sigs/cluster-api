@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -31,18 +30,18 @@ import (
 )
 
 func TestKubeadmConfigReconciler_getControlPlaneVersion(t *testing.T) {
-	ctx := context.Background()
-
 	t.Run("returns empty when ControlPlaneRef is not defined", func(t *testing.T) {
+		ctx := t.Context()
 		g := NewWithT(t)
 		cluster := builder.Cluster(metav1.NamespaceDefault, "c").Build()
-		r := &KubeadmConfigReconciler{Client: fake.NewClientBuilder().Build()}
+		r := &KubeadmConfigReconciler{APIReader: fake.NewClientBuilder().Build()}
 		v, err := r.getControlPlaneVersion(ctx, cluster)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(v).To(BeEmpty())
 	})
 
 	t.Run("returns version when control plane exists", func(t *testing.T) {
+		ctx := t.Context()
 		g := NewWithT(t)
 		scheme := runtime.NewScheme()
 		g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
@@ -58,13 +57,14 @@ func TestKubeadmConfigReconciler_getControlPlaneVersion(t *testing.T) {
 		}
 
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cp, cluster).Build()
-		r := &KubeadmConfigReconciler{Client: c}
+		r := &KubeadmConfigReconciler{APIReader: c}
 		v, err := r.getControlPlaneVersion(ctx, cluster)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(v).To(Equal("v1.30.0"))
 	})
 
 	t.Run("returns error when control plane object is missing", func(t *testing.T) {
+		ctx := t.Context()
 		g := NewWithT(t)
 		scheme := runtime.NewScheme()
 		g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
@@ -79,12 +79,13 @@ func TestKubeadmConfigReconciler_getControlPlaneVersion(t *testing.T) {
 		}
 
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cluster).Build()
-		r := &KubeadmConfigReconciler{Client: c}
+		r := &KubeadmConfigReconciler{APIReader: c}
 		_, err := r.getControlPlaneVersion(ctx, cluster)
 		g.Expect(err).To(HaveOccurred())
 	})
 
 	t.Run("returns empty when control plane has no spec.version", func(t *testing.T) {
+		ctx := t.Context()
 		g := NewWithT(t)
 		scheme := runtime.NewScheme()
 		g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
@@ -100,7 +101,7 @@ func TestKubeadmConfigReconciler_getControlPlaneVersion(t *testing.T) {
 		}
 
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cp, cluster).Build()
-		r := &KubeadmConfigReconciler{Client: c}
+		r := &KubeadmConfigReconciler{APIReader: c}
 		v, err := r.getControlPlaneVersion(ctx, cluster)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(v).To(BeEmpty())

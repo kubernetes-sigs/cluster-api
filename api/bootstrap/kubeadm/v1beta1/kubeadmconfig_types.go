@@ -585,14 +585,14 @@ const (
 )
 
 // FileContentFormat specifies how file content is interpreted after resolving content/contentFrom and before writing bootstrap data.
-// +kubebuilder:validation:Enum=raw;template
+// +kubebuilder:validation:Enum=Raw;Template
 type FileContentFormat string
 
 const (
 	// FileContentFormatRaw means content is used verbatim.
-	FileContentFormatRaw FileContentFormat = "raw"
+	FileContentFormatRaw FileContentFormat = "Raw"
 	// FileContentFormatTemplate means content is rendered as a Go text/template.
-	FileContentFormatTemplate FileContentFormat = "template"
+	FileContentFormatTemplate FileContentFormat = "Template"
 )
 
 // File defines the input for generating write_files in cloud-init.
@@ -634,10 +634,11 @@ type File struct {
 	ContentFrom *FileSource `json:"contentFrom,omitempty"`
 
 	// contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).
-	// When set to "template", content is rendered as a Go text/template.
+	// When set to "Template", content is rendered as a Go text/template.
 	// Available template variables:
 	//   - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").
-	// When set to "raw" or omitted, content is used verbatim.
+	//     Only set when the cluster has a control plane reference that exposes spec.version.
+	// When set to "Raw" or omitted, content is used verbatim.
 	// +optional
 	ContentFormat FileContentFormat `json:"contentFormat,omitempty"`
 }

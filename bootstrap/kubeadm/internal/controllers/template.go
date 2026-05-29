@@ -26,9 +26,17 @@ import (
 )
 
 // templateData returns the data map passed to Go text/template when a KubeadmConfig spec.files entry uses
-// contentFormat "template". The map uses lowercase keys to match CAPI's builtin variable naming convention
+// contentFormat "Template". The map uses lowercase keys to match CAPI's builtin variable naming convention
 // (e.g. {{ .controlPlane.version }}).
+//
+// The controlPlane key is only set when the control plane version is known. When it is empty (the cluster
+// has no control plane ref or the referenced object does not expose spec.version) the key is omitted, so
+// template authors can detect its absence with {{ if .controlPlane }}, consistent with how builtin variables
+// behave.
 func templateData(controlPlaneVersion string) map[string]interface{} {
+	if controlPlaneVersion == "" {
+		return map[string]interface{}{}
+	}
 	return map[string]interface{}{
 		"controlPlane": map[string]interface{}{
 			"version": controlPlaneVersion,
@@ -44,7 +52,7 @@ func renderTemplates(files []bootstrapv1.File, data map[string]interface{}) ([]b
 		if out[i].ContentFormat != bootstrapv1.FileContentFormatTemplate {
 			continue
 		}
-		tpl, err := template.New(out[i].Path).Option("missingkey=error").Parse(out[i].Content)
+		tpl, err := template.New(out[i].Path).Parse(out[i].Content)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse template for file %q", out[i].Path)
 		}

@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
@@ -812,7 +811,6 @@ func TestBootstrapDataFormat(t *testing.T) {
 		isWorker           bool
 		format             bootstrapv1.Format
 		clusterInitialized bool
-		withClusterClass   bool
 	}{
 		{
 			name:   "cloud-config init config",
@@ -837,13 +835,6 @@ func TestBootstrapDataFormat(t *testing.T) {
 			name:   "Empty format field",
 			format: bootstrapv1.CloudConfig,
 		},
-		{
-			name:               "cloudinit worker with clusterclass on different k8s version",
-			isWorker:           true,
-			format:             bootstrapv1.CloudConfig,
-			clusterInitialized: true,
-			withClusterClass:   true,
-		},
 	}
 
 	for _, tc := range testcases {
@@ -851,19 +842,6 @@ func TestBootstrapDataFormat(t *testing.T) {
 			g := NewWithT(t)
 
 			cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-			clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
-				WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
-				Build()
-			// intentionally use a different version from configOwner, where 1.31.0 will be parsed to upstreamv1beta4
-			// and <1.30.0 will be parsed to upstreamv1beta3, to test the compatibility of clusterclass and kubeadmconfig versions.
-			topology := builder.ClusterTopology().
-				WithClass(clusterClass.Name).
-				WithClassNamespace(clusterClass.Namespace).
-				WithVersion(testSkewK8sVersion).
-				Build()
-			if tc.withClusterClass {
-				cluster.Spec.Topology = *topology
-			}
 			cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 			cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 			if tc.clusterInitialized {
@@ -2842,6 +2820,7 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions_WorkerJoinWithCont
 	r := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
+		APIReader:           myclient,
 		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 	}

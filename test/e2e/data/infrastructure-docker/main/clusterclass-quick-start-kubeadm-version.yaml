@@ -276,7 +276,7 @@ spec:
       - path: /run/cluster-api/fetch-kubeadm.sh
         owner: "root:root"
         permissions: "0755"
-        contentFormat: template
+        contentFormat: Template
         content: |
           #!/bin/sh
           set -e

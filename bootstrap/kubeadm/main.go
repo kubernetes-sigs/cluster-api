@@ -328,6 +328,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
 		Client:              mgr.GetClient(),
 		SecretCachingClient: secretCachingClient,
+		APIReader:           mgr.GetAPIReader(),
 		ClusterCache:        clusterCache,
 		WatchFilterValue:    watchFilterValue,
 		TokenTTL:            tokenTTL,

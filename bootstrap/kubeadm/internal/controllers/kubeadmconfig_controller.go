@@ -51,7 +51,9 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -77,6 +79,7 @@ type InitLocker interface {
 
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status;kubeadmconfigs/finalizers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machinesets;machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
@@ -84,8 +87,12 @@ type InitLocker interface {
 type KubeadmConfigReconciler struct {
 	Client              client.Client
 	SecretCachingClient client.Client
-	ClusterCache        clustercache.ClusterCache
-	KubeadmInitLock     InitLocker
+	// APIReader is used to read objects without caching them, e.g. the referenced control plane object when
+	// resolving the control plane version. This avoids setting up an informer (and its memory cost) for kinds
+	// like KubeadmControlPlane that the controller otherwise does not watch.
+	APIReader       client.Reader
+	ClusterCache    clustercache.ClusterCache
+	KubeadmInitLock InitLocker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -565,14 +572,14 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config)
+	files, err := r.resolveFiles(ctx, scope.Config, scope.Cluster)
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to read content from secrets for spec.files",
+			Message: fmt.Sprintf("Failed to prepare spec.files: %v", err),
 		})
 		return ctrl.Result{}, err
 	}
@@ -685,10 +692,14 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		return res, nil
 	}
 
-	kubernetesVersion := scope.ConfigOwner.KubernetesVersion()
-	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
+	// The joining Machine's Kubernetes version selects the kubeadm JoinConfiguration API version (the YAML
+	// schema). The control plane version is intentionally NOT used here: a newer kubeadm binary can consume a
+	// JoinConfiguration written for an older (worst case n-3) kubeadm API version, and kubeadm rarely drops API
+	// versions. The control plane version is instead surfaced to operators via the .controlPlane.version
+	// template variable in spec.files (see resolveFiles / getControlPlaneVersion).
+	parsedVersion, err := semver.ParseTolerant(scope.ConfigOwner.KubernetesVersion())
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", scope.ConfigOwner.KubernetesVersion())
 	}
 
 	// Add the node uninitialized taint to the list of taints.
@@ -717,14 +728,14 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config)
+	files, err := r.resolveFiles(ctx, scope.Config, scope.Cluster)
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to read content from secrets for spec.files",
+			Message: fmt.Sprintf("Failed to prepare spec.files: %v", err),
 		})
 		return ctrl.Result{}, err
 	}
@@ -807,6 +818,35 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	return ctrl.Result{RequeueAfter: r.tokenCheckRefreshOrRotationInterval()}, nil
 }
 
+// getControlPlaneVersion returns the control plane version from the cluster's ControlPlaneRef,
+// e.g. KubeadmControlPlane.spec.version. Returns ("", nil) if the cluster has no ControlPlaneRef or the referenced
+// control plane does not expose spec.version (ErrFieldNotFound or unset). Returns an error if the control plane
+// object cannot be fetched or if the version field cannot be read for any other reason.
+//
+// This is the single source for the "controlPlane.version" template variable rendered into spec.files entries
+// with contentFormat "Template". It does not influence the kubeadm JoinConfiguration API version, which is
+// selected from the joining Machine's own Kubernetes version.
+func (r *KubeadmConfigReconciler) getControlPlaneVersion(ctx context.Context, cluster *clusterv1.Cluster) (string, error) {
+	if cluster == nil || !cluster.Spec.ControlPlaneRef.IsDefined() {
+		return "", nil
+	}
+	controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, r.APIReader, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get control plane for join version")
+	}
+	cpVersion, err := contract.ControlPlane().Version().Get(controlPlane)
+	if err != nil {
+		if errors.Is(err, contract.ErrFieldNotFound) {
+			return "", nil
+		}
+		return "", errors.Wrap(err, "failed to read control plane version")
+	}
+	if cpVersion == nil {
+		return "", nil
+	}
+	return *cpVersion, nil
+}
+
 func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.Result, error) {
 	scope.Info("Creating BootstrapData for the joining control plane")
 
@@ -877,14 +917,14 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
 	}
 
-	files, err := r.resolveFiles(ctx, scope.Config)
+	files, err := r.resolveFiles(ctx, scope.Config, scope.Cluster)
 	if err != nil {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.DataSecretGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
-			Message: "Failed to read content from secrets for spec.files",
+			Message: fmt.Sprintf("Failed to prepare spec.files: %v", err),
 		})
 		return ctrl.Result{}, err
 	}
@@ -968,11 +1008,31 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	return ctrl.Result{RequeueAfter: r.tokenCheckRefreshOrRotationInterval()}, nil
 }
 
-// resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references
-// along the way.
-func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig) ([]bootstrapv1.File, error) {
-	collected := make([]bootstrapv1.File, 0, len(cfg.Spec.Files))
+// resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references and rendering
+// template content. The control plane version used by templates is read from the cluster's ControlPlaneRef
+// via getControlPlaneVersion, so callers do not need to compute it: there is one place where the
+// "controlPlane.version" template variable is sourced.
+//
+// The .controlPlane key is omitted from the template data when the cluster has no control plane reference
+// or the referenced object does not expose spec.version; authors of contentFormat "Template" files are
+// responsible for handling that case (e.g. with {{ if .controlPlane }}).
+func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) ([]bootstrapv1.File, error) {
+	cpVersion, err := r.getControlPlaneVersion(ctx, cluster)
+	if err != nil {
+		return nil, err
+	}
+	if cpVersion != "" {
+		// Normalize to a fully qualified, "v"-prefixed semver (e.g. "1.35" -> "v1.35.0") so the
+		// .controlPlane.version template variable is consistent with the version field on the Cluster object
+		// and with CAPI builtin variables. This also validates that the control plane version is valid semver.
+		parsed, perr := semver.ParseTolerant(cpVersion)
+		if perr != nil {
+			return nil, errors.Wrapf(perr, "failed to parse control plane version %q for template data", cpVersion)
+		}
+		cpVersion = "v" + parsed.String()
+	}
 
+	collected := make([]bootstrapv1.File, 0, len(cfg.Spec.Files))
 	for i := range cfg.Spec.Files {
 		in := cfg.Spec.Files[i]
 		if in.ContentFrom.IsDefined() {
@@ -986,7 +1046,11 @@ func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstr
 		collected = append(collected, in)
 	}
 
-	return collected, nil
+	rendered, err := renderTemplates(collected, templateData(cpVersion))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to render templates")
+	}
+	return rendered, nil
 }
 
 // resolveSecretFileContent returns file content fetched from a referenced secret object.

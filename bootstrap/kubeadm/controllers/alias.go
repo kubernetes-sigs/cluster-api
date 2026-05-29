@@ -40,6 +40,7 @@ const (
 type KubeadmConfigReconciler struct {
 	Client              client.Client
 	SecretCachingClient client.Client
+	APIReader           client.Reader
 
 	ClusterCache clustercache.ClusterCache
 
@@ -55,6 +56,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	return (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
 		Client:              r.Client,
 		SecretCachingClient: r.SecretCachingClient,
+		APIReader:           r.APIReader,
 		ClusterCache:        r.ClusterCache,
 		WatchFilterValue:    r.WatchFilterValue,
 		TokenTTL:            r.TokenTTL,

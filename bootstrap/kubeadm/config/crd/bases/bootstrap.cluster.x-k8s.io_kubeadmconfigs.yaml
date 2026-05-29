@@ -1280,6 +1280,18 @@ spec:
                       maxLength: 10240
                       minLength: 1
                       type: string
+                    contentFormat:
+                      description: |-
+                        contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).
+                        When set to "Template", content is rendered as a Go text/template.
+                        Available template variables:
+                          - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").
+                            Only set when the cluster has a control plane reference that exposes spec.version.
+                        When set to "Raw" or omitted, content is used verbatim.
+                      enum:
+                      - Raw
+                      - Template
+                      type: string
                     contentFrom:
                       description: contentFrom is a referenced source of content to
                         populate the file.
@@ -3668,6 +3680,18 @@ spec:
                       description: content is the actual content of the file.
                       maxLength: 10240
                       minLength: 1
+                      type: string
+                    contentFormat:
+                      description: |-
+                        contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).
+                        When set to "Template", content is rendered as a Go text/template.
+                        Available template variables:
+                          - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").
+                            Only set when the cluster has a control plane reference that exposes spec.version.
+                        When set to "Raw" or omitted, content is used verbatim.
+                      enum:
+                      - Raw
+                      - Template
                       type: string
                     contentFrom:
                       description: contentFrom is a referenced source of content to

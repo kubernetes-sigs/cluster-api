@@ -633,6 +633,17 @@ const (
 	GzipBase64 Encoding = "gzip+base64"
 )
 
+// FileContentFormat specifies how file content is interpreted after resolving content/contentFrom and before writing bootstrap data.
+// +kubebuilder:validation:Enum=Raw;Template
+type FileContentFormat string
+
+const (
+	// FileContentFormatRaw means content is used verbatim.
+	FileContentFormatRaw FileContentFormat = "Raw"
+	// FileContentFormatTemplate means content is rendered as a Go text/template.
+	FileContentFormatTemplate FileContentFormat = "Template"
+)
+
 // File defines the input for generating write_files in cloud-init.
 type File struct {
 	// path specifies the full path on disk where to store the file.
@@ -670,6 +681,15 @@ type File struct {
 	// contentFrom is a referenced source of content to populate the file.
 	// +optional
 	ContentFrom FileSource `json:"contentFrom,omitempty,omitzero"`
+
+	// contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).
+	// When set to "Template", content is rendered as a Go text/template.
+	// Available template variables:
+	//   - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").
+	//     Only set when the cluster has a control plane reference that exposes spec.version.
+	// When set to "Raw" or omitted, content is used verbatim.
+	// +optional
+	ContentFormat FileContentFormat `json:"contentFormat,omitempty"`
 }
 
 // FileSource is a union of all possible external source types for file data.

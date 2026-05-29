@@ -154,6 +154,23 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		"valid template contentFormat": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Path:          "/x",
+							Content:       "{{ .controlPlane.version }}",
+							ContentFormat: bootstrapv1.FileContentFormatTemplate,
+						},
+					},
+				},
+			},
+		},
 		"valid passwd": {
 			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{

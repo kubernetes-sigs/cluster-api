@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -501,30 +503,31 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, s.Current.Cluster, s.Desired.Cluster, r.Client, r.ssaCache)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for Cluster %s", klog.KObj(s.Current.Cluster))
-	}
-	if !patchHelper.HasChanges() {
+	currentCluster := s.Current.Cluster
+	desiredCluster := s.Desired.Cluster
+
+	if maps.Equal(currentCluster.Labels, desiredCluster.Labels) &&
+		maps.Equal(currentCluster.Annotations, desiredCluster.Annotations) &&
+		currentCluster.Spec.InfrastructureRef == desiredCluster.Spec.InfrastructureRef &&
+		currentCluster.Spec.ControlPlaneRef == desiredCluster.Spec.ControlPlaneRef {
 		log.V(3).Info("No changes for Cluster")
 		return nil
 	}
 
-	diff := patchHelper.Diff()
-	patchData := patchHelper.PatchData()
-	if diff == "" && patchData == "" {
-		log.Info("Patching Cluster")
-	} else {
-		log.Info("Patching Cluster", "diff", diff, "patch", patchData)
-	}
-	modifiedResourceVersion, err := patchHelper.Patch(ctx)
+	// Note: Using DeepCopy here to avoid modifying s.Current.Cluster (we might be using it later in the same Reconcile).
+	desiredCluster = desiredCluster.DeepCopy()
+
+	patchData, err := client.MergeFrom(currentCluster).Data(desiredCluster)
 	if err != nil {
+		return errors.Wrapf(err, "failed to patch Cluster %s: failed to calculate patch", klog.KObj(s.Current.Cluster))
+	}
+	log.Info("Patching Cluster", "patch", patchData)
+	if err := r.Client.Patch(ctx, desiredCluster, client.RawPatch(types.MergePatchType, patchData)); err != nil {
 		return errors.Wrapf(err, "failed to patch Cluster %s", klog.KObj(s.Current.Cluster))
 	}
 	r.recorder.Eventf(s.Current.Cluster, corev1.EventTypeNormal, updateEventReason, "Updated Cluster %q", klog.KObj(s.Current.Cluster))
 
-	r.controller.DeferNextReconcileUntilCacheUpToDate(s.Current.Cluster, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Cluster"), modifiedResourceVersion)
+	r.controller.DeferNextReconcileUntilCacheUpToDate(s.Current.Cluster, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Cluster"), desiredCluster.ResourceVersion)
 	return nil
 }
 

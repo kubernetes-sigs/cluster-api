@@ -38,6 +38,436 @@ import (
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
+func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
+	testFieldManager := "ssa-manager"
+	otherFieldManager := "other-manager"
+
+	cluster := &clusterv1.Cluster{
+		// Have to set TypeMeta explicitly when using SSA with typed objects.
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-1",
+			Namespace: "default",
+			Labels: map[string]string{
+				"label-1": "value-1",
+			},
+			Annotations: map[string]string{
+				"annotation-1": "value-1",
+			},
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
+			},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.GenericInfrastructureClusterKind,
+				Name:     "infra1",
+			},
+		},
+	}
+	clusterApply := &clusterv1.Cluster{
+		// Have to set TypeMeta explicitly when using SSA with typed objects.
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-1",
+			Namespace: "default",
+			Labels: map[string]string{
+				"label-ssa": "value-1",
+			},
+			Annotations: map[string]string{
+				"annotation-ssa": "value-1",
+			},
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: clusterv1.ClusterNetwork{
+				Services: clusterv1.NetworkRanges{
+					CIDRBlocks: []string{"10.128.0.0/12"},
+				},
+				Pods: clusterv1.NetworkRanges{
+					CIDRBlocks: []string{"192.168.0.0/16"},
+				},
+			},
+		},
+	}
+	// Cluster after apply is the combination of cluster and clusterApply.
+	clusterAfterApply := clusterApply.DeepCopy()
+	clusterAfterApply.Annotations["annotation-1"] = "value-1"
+	clusterAfterApply.Labels["label-1"] = "value-1"
+	clusterAfterApply.Spec.ControlPlaneRef = cluster.Spec.ControlPlaneRef
+	clusterAfterApply.Spec.InfrastructureRef = cluster.Spec.InfrastructureRef
+	clusterManagedFieldsAfterApply := trimSpaces(`{
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-ssa":{}
+	},
+	"f:labels":{
+		"f:label-ssa":{}
+	}
+},
+"f:spec":{
+	"f:clusterNetwork":{
+		"f:pods":{
+			"f:cidrBlocks":{}
+		},
+		"f:services":{
+			"f:cidrBlocks":{}
+		}
+	}
+}}`)
+
+	type objectApply struct {
+		object                client.Object
+		expectedObject        client.Object
+		expectedManagedFields []metav1.ManagedFieldsEntry
+	}
+	tests := []struct {
+		name                             string
+		object                           *clusterv1.Cluster
+		managedFields                    []metav1.ManagedFieldsEntry
+		expectManagedFieldIssueMitigated bool
+		expectedManagedFields            []metav1.ManagedFieldsEntry
+		objectApplies                    []objectApply
+	}{
+		{
+			name:   "Case 0: [manager:Update] => [manager:Update]",
+			object: cluster.DeepCopy(),
+			managedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    patchManager,
+				Operation:  metav1.ManagedFieldsOperationUpdate,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{}
+	},
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))},
+			}},
+			expectManagedFieldIssueMitigated: false,
+			// managedFields are not changed
+			expectedManagedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    patchManager,
+				Operation:  metav1.ManagedFieldsOperationUpdate,
+				APIVersion: clusterv1.GroupVersion.String(),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{}
+	},
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))},
+			}},
+		},
+		{
+			name:                             "Case 1: [] => [manager:Update] (+ SSA call afterwards)",
+			object:                           cluster.DeepCopy(),
+			managedFields:                    []metav1.ManagedFieldsEntry{{}}, // One empty entry sets managedFields on the object to empty
+			expectManagedFieldIssueMitigated: true,
+			expectedManagedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    patchManager,
+				Operation:  metav1.ManagedFieldsOperationUpdate,
+				APIVersion: clusterv1.GroupVersion.String(),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:name":{}
+}}`))},
+			}},
+			objectApplies: []objectApply{
+				{
+					object:         clusterApply,
+					expectedObject: clusterAfterApply,
+					expectedManagedFields: []metav1.ManagedFieldsEntry{{
+						Manager:    testFieldManager,
+						Operation:  metav1.ManagedFieldsOperationApply,
+						APIVersion: clusterv1.GroupVersion.String(),
+						FieldsType: "FieldsV1",
+						FieldsV1:   &metav1.FieldsV1{Raw: []byte(clusterManagedFieldsAfterApply)},
+					}, {
+						Manager:    patchManager,
+						Operation:  metav1.ManagedFieldsOperationUpdate,
+						APIVersion: clusterv1.GroupVersion.String(),
+						FieldsType: "FieldsV1",
+						FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:name":{}
+}}`))},
+					}},
+				},
+			},
+		},
+		{
+			name:   "Case 2a: [before-first-apply:Apply] => [manager:Update]",
+			object: cluster.DeepCopy(),
+			managedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    beforeFirstApplyManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{}
+	},
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))},
+			}},
+			expectManagedFieldIssueMitigated: true,
+			expectedManagedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    patchManager,
+				Operation:  metav1.ManagedFieldsOperationUpdate,
+				APIVersion: clusterv1.GroupVersion.String(),
+				FieldsType: "FieldsV1",
+				FieldsV1:   &metav1.FieldsV1{Raw: []byte(`{"f:metadata":{"f:name":{}}}`)},
+			}},
+		},
+		{
+			name:   "Case 2b: [capi-topology:Apply] => [manager:Update]",
+			object: cluster.DeepCopy(),
+			managedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    oldClusterSSAManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{}
+	},
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))},
+			}},
+			expectManagedFieldIssueMitigated: true,
+			expectedManagedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    patchManager,
+				Operation:  metav1.ManagedFieldsOperationUpdate,
+				APIVersion: clusterv1.GroupVersion.String(),
+				FieldsType: "FieldsV1",
+				FieldsV1:   &metav1.FieldsV1{Raw: []byte(`{"f:metadata":{"f:name":{}}}`)},
+			}},
+		},
+		{
+			name:   "Case 2c: [before-first-apply:Apply,other managers ...] => [other managers ...]",
+			object: cluster.DeepCopy(),
+			managedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    beforeFirstApplyManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{}
+	}
+}}`))},
+			}, {
+				Manager:    otherFieldManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))}}},
+			expectManagedFieldIssueMitigated: true,
+			expectedManagedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    otherFieldManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))},
+			}},
+		},
+		{
+			name:   "Case 2d: [capi-topology:Apply,other managers ...] => [other managers ...]",
+			object: cluster.DeepCopy(),
+			managedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    oldClusterSSAManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{}
+	}
+}}`))},
+			}, {
+				Manager:    otherFieldManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))}}},
+			expectManagedFieldIssueMitigated: true,
+			expectedManagedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    otherFieldManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))},
+			}},
+		},
+		{
+			name:   "Case 2e: [before-first-apply:Apply,capi-topology:Apply,other managers ...] => [other managers ...]",
+			object: cluster.DeepCopy(),
+			managedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    beforeFirstApplyManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{}
+	}
+}}`))},
+			}, {
+				Manager:    oldClusterSSAManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:finalizers":{
+		".":{},
+		"v:\"test.com/finalizer\"":{}
+	}
+}}`))},
+			}, {
+				Manager:    otherFieldManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Time:       ptr.To(metav1.Now()),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))}}},
+			expectManagedFieldIssueMitigated: true,
+			expectedManagedFields: []metav1.ManagedFieldsEntry{{
+				Manager:    otherFieldManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				APIVersion: clusterv1.GroupVersion.String(),
+				FieldsType: "FieldsV1",
+				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+"f:metadata":{
+	"f:labels":{
+		"f:label-1":{}
+	}
+}}`))},
+			}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			g := NewWithT(t)
+
+			g.Expect(env.Client.Create(ctx, tt.object)).To(Succeed())
+			t.Cleanup(func() {
+				ctx := context.Background()
+				g.Expect(env.CleanupAndWait(ctx, tt.object)).To(Succeed())
+			})
+
+			// Overwrite managedFields on the object with tt.managedFields.
+			jsonPatch := []map[string]interface{}{
+				{
+					"op":    "replace",
+					"path":  "/metadata/managedFields",
+					"value": tt.managedFields,
+				},
+				{
+					"op":    "replace",
+					"path":  "/metadata/resourceVersion",
+					"value": tt.object.GetResourceVersion(),
+				},
+			}
+			patch, err := json.Marshal(jsonPatch)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(env.Client.Patch(ctx, tt.object, client.RawPatch(types.JSONPatchType, patch))).To(Succeed())
+			// Verify managedField patch above worked.
+			if reflect.DeepEqual(tt.managedFields, []metav1.ManagedFieldsEntry{{}}) {
+				g.Expect(tt.object.GetManagedFields()).To(BeEmpty())
+			} else {
+				g.Expect(cleanupTime(tt.object.GetManagedFields())).To(BeComparableTo(cleanupTime(tt.managedFields)))
+			}
+
+			// Run mitigation code and verify managedFields are as expected afterward.
+			managedFieldIssueMitigated, err := MigrateClusterAndMitigateManagedFieldsIssue(ctx, env.GetClient(), tt.object)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(managedFieldIssueMitigated).To(Equal(tt.expectManagedFieldIssueMitigated))
+			g.Expect(cleanupTime(tt.object.GetManagedFields())).To(BeComparableTo(tt.expectedManagedFields))
+
+			for _, apply := range tt.objectApplies {
+				// Apply object and verify managedFields are as expected afterward.
+				g.Expect(Patch(ctx, env.GetClient(), testFieldManager, apply.object)).To(Succeed())
+				g.Expect(cleanupTime(apply.object.GetManagedFields())).To(BeComparableTo(apply.expectedManagedFields))
+
+				// Verify spec is as expected
+				expectedJSON, err := json.Marshal(apply.expectedObject)
+				g.Expect(err).ToNot(HaveOccurred())
+				expectedJSONMap := map[string]any{}
+				g.Expect(json.Unmarshal(expectedJSON, &expectedJSONMap)).To(Succeed())
+				modifiedJSON, err := json.Marshal(apply.object)
+				g.Expect(err).ToNot(HaveOccurred())
+				modifiedJSONMap := map[string]any{}
+				g.Expect(json.Unmarshal(modifiedJSON, &modifiedJSONMap)).To(Succeed())
+				g.Expect(modifiedJSONMap["metadata"].(map[string]any)["annotations"]).To(BeComparableTo(expectedJSONMap["metadata"].(map[string]any)["annotations"]))
+				g.Expect(modifiedJSONMap["metadata"].(map[string]any)["labels"]).To(BeComparableTo(expectedJSONMap["metadata"].(map[string]any)["labels"]))
+				g.Expect(modifiedJSONMap["spec"]).To(BeComparableTo(expectedJSONMap["spec"]))
+			}
+		})
+	}
+}
+
 func TestMitigateManagedFieldsIssue(t *testing.T) {
 	testFieldManager := "ssa-manager"
 	otherFieldManager := "other-manager"

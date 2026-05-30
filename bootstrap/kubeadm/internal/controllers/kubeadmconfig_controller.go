@@ -832,7 +832,7 @@ func (r *KubeadmConfigReconciler) getControlPlaneVersion(ctx context.Context, cl
 	}
 	controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, r.APIReader, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get control plane for join version")
+		return "", errors.Wrap(err, "failed to read control plane version")
 	}
 	cpVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 	if err != nil {

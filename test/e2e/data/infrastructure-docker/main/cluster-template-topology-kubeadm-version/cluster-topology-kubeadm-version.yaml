@@ -1,35 +1,92 @@
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
-  labels:
-    cni: ${CLUSTER_NAME}-crs-0
-  name: ${CLUSTER_NAME}
+  name: '${CLUSTER_NAME}'
   namespace: default
+  labels:
+    cni: "${CLUSTER_NAME}-crs-0"
 spec:
   clusterNetwork:
-    pods:
-      cidrBlocks:
-      - ${DOCKER_POD_CIDRS}
-    serviceDomain: ${DOCKER_SERVICE_DOMAIN}
     services:
-      cidrBlocks:
-      - ${DOCKER_SERVICE_CIDRS}
+      cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
+    pods:
+      cidrBlocks: ['${DOCKER_POD_CIDRS}']
+    serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   topology:
     classRef:
-      name: quick-start-kubeadm-version
-      namespace: ${CLUSTER_CLASS_NAMESPACE:-${NAMESPACE}}
+      name: "quick-start-runtimesdk"
+      namespace: '${CLUSTER_CLASS_NAMESPACE:-${NAMESPACE}}'
+    version: "${KUBERNETES_VERSION}"
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
-    variables:
-    - name: etcdImageTag
-      value: ""
-    - name: coreDNSImageTag
-      value: ""
-    - name: preLoadImages
-      value: ${DOCKER_PRELOAD_IMAGES:-[]}
-    version: ${KUBERNETES_VERSION}
     workers:
       machineDeployments:
-      - class: default-worker
-        name: md-0
-        replicas: ${WORKER_MACHINE_COUNT}
+        - class: "default-worker"
+          name: "md-0"
+          replicas: ${WORKER_MACHINE_COUNT}
+          variables:
+            overrides:
+              - name: preKubeadmCommands
+                value:
+                  - |
+                    command -v curl >/dev/null 2>&1 || (apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*)
+                  # Redirect rather than pipe to tee so the script's non-zero exit propagates and fails bootstrap.
+                  - 'bash /run/cluster-api/fetch-kubeadm.sh > /var/log/fetch-kubeadm.log 2>&1'
+              - name: files
+                value:
+                  - path: /run/cluster-api/fetch-kubeadm.sh
+                    contentFormat: Template
+                    content: |
+                      #!/bin/bash
+                      set -e
+                      KUBEADM_INSTALL="/usr/bin/kubeadm"
+                      BASE_URL="https://dl.k8s.io/ci"
+                      version="{{ .controlPlane.version }}"
+                      echo "fetch-kubeadm.sh: starting"
+                      echo "fetch-kubeadm.sh: raw version from template: '$$version'"
+                      if [ -z "$$version" ]; then
+                        echo "fetch-kubeadm.sh: ERROR: empty KubernetesVersion in script, aborting"
+                        exit 1
+                      fi
+                      case "$$version" in
+                        v*) ;;
+                        *) version="v$$version" ;;
+                      esac
+                      current_version=""
+                      if [ -x "$$KUBEADM_INSTALL" ]; then
+                        current_version=$$($$KUBEADM_INSTALL version -o short 2>/dev/null || true)
+                      fi
+                      if [ "$$current_version" = "$$version" ]; then
+                        echo "fetch-kubeadm.sh: kubeadm $$version already installed, skipping download"
+                        exit 0
+                      fi
+                      echo "fetch-kubeadm.sh: installed=$$current_version desired=$$version, fetching"
+                      arch=$$(uname -m)
+                      case "$$arch" in
+                        x86_64) arch="amd64" ;;
+                        aarch64|arm64) arch="arm64" ;;
+                        *) echo "Unsupported arch: $$arch"; exit 1 ;;
+                      esac
+                      if [[ "$${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ "$${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(beta|rc).[0-9]+$ ]]; then
+                        BASE_URL="https://dl.k8s.io/release"
+                      fi
+                      url="$${BASE_URL}/$${version}/bin/linux/$${arch}/kubeadm"
+                      echo "Fetching kubeadm $${version} ($${arch}) from $${url}"
+                      echo "fetch-kubeadm.sh: curl -fLsS -o <tmpfile> $$url"
+                      tmp=$$(mktemp -p /tmp kubeadm.XXXXXX)
+                      if curl --retry 5 --retry-all-errors -fLsS -o "$$tmp" "$$url"; then
+                        echo "fetch-kubeadm.sh: download succeeded, installing to $$KUBEADM_INSTALL"
+                        chmod 755 "$$tmp"
+                        mv -f "$$tmp" "$$KUBEADM_INSTALL"
+                        echo "fetch-kubeadm.sh: done, kubeadm installed"
+                      else
+                        rc=$$?
+                        echo "fetch-kubeadm.sh: curl failed with exit code $$rc"
+                        echo "fetch-kubeadm.sh: trying curl -v to diagnose..."
+                        curl -v -o /dev/null "$$url" 2>&1 || true
+                        rm -f "$$tmp"
+                        exit 1
+                      fi
+    variables:
+      - name: imageRepository
+        value: "kindest"

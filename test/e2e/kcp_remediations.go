@@ -539,10 +539,16 @@ func sendSignalToBootstrappingMachine(ctx context.Context, input sendSignalToBoo
 	Expect(input.Client.Patch(ctx, cmWithSignal, client.MergeFrom(cm))).To(Succeed(), "failed to patch mhc-test config map")
 
 	log.Logf("Waiting for Machine %s to acknowledge signal %s has been received", input.Machine, input.Signal)
-	Eventually(func() string {
-		_ = input.Client.Get(ctx, client.ObjectKeyFromObject(cmWithSignal), cmWithSignal)
-		return cmWithSignal.Data[configMapDataKey]
-	}, "1m", "10s").Should(Equal(fmt.Sprintf("ack-%s", input.Signal)), "Failed to get ack signal from machine %s", input.Machine)
+	Eventually(func(g Gomega) {
+		latestCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      configMapName,
+				Namespace: input.Namespace,
+			},
+		}
+		g.Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(latestCM), latestCM)).To(Succeed())
+		g.Expect(latestCM.Data).To(HaveKeyWithValue(configMapDataKey, fmt.Sprintf("ack-%s", input.Signal)))
+	}, "1m", "10s").Should(Succeed(), "Failed to get ack signal from machine %s", input.Machine)
 
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -552,9 +558,19 @@ func sendSignalToBootstrappingMachine(ctx context.Context, input sendSignalToBoo
 	}
 	Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(machine), machine)).To(Succeed())
 
-	// Resetting the signal in the config map
-	cmWithSignal.Data[configMapDataKey] = "hold"
-	Expect(input.Client.Patch(ctx, cmWithSignal, client.MergeFrom(cm))).To(Succeed(), "failed to patch mhc-test config map")
+	// Resetting the signal in the config map.
+	// We re-fetch the ConfigMap to get the current state as the base for the merge patch,
+	// ensuring the reset patch correctly computes the diff from the current value to "hold".
+	cmForReset := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: input.Namespace,
+		},
+	}
+	Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(cmForReset), cmForReset)).To(Succeed(), "failed to get mhc-test config map for reset")
+	cmForResetBase := cmForReset.DeepCopy()
+	cmForReset.Data[configMapDataKey] = "hold"
+	Expect(input.Client.Patch(ctx, cmForReset, client.MergeFrom(cmForResetBase))).To(Succeed(), "failed to patch mhc-test config map")
 }
 
 type waitForMachinesInput struct {

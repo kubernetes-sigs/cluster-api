@@ -1111,6 +1111,18 @@ func TestClient_GetHttpClient(t *testing.T) {
 	g.Expect(ok).To(BeTrue())
 }
 
+func TestCreateHTTPClient_doesNotFollowRedirects(t *testing.T) {
+	g := NewWithT(t)
+
+	httpClient, err := createHTTPClient("", "", testcerts.CACert, "extension.example.com")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(httpClient.CheckRedirect).ToNot(BeNil())
+
+	// A redirect returned by an extension server must not be followed, otherwise
+	// the response could reroute the call to an arbitrary host.
+	g.Expect(httpClient.CheckRedirect(&http.Request{}, nil)).To(HaveOccurred())
+}
+
 func cacheKeyFunc(extensionName, extensionConfigResourceVersion string, request runtimehooksv1.RequestObject) string {
 	// Note: extensionName is identical to the value of the name parameter passed into CallExtension.
 	s := fmt.Sprintf("%s-%s", extensionName, extensionConfigResourceVersion)

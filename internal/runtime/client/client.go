@@ -506,6 +506,15 @@ func createHTTPClient(certFile, keyFile string, caData []byte, hostName string) 
 	httpClient.Transport = utilnet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: tlsConfig,
 	})
+
+	// Runtime extensions are called at the URL registered via the ExtensionConfig.
+	// Do not follow redirects so the extension server cannot reroute the call to a
+	// different host (e.g. a link-local metadata endpoint), which would bypass the
+	// pinned TLS server name and turn the response into an SSRF primitive.
+	httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return errors.New("redirects are not allowed when calling a runtime extension")
+	}
+
 	return httpClient, nil
 }
 

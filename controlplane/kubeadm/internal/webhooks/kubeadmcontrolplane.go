@@ -37,6 +37,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	bootstrapvalidation "sigs.k8s.io/cluster-api/bootstrap/kubeadm/validation"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/container"
@@ -82,7 +83,7 @@ func (webhook *KubeadmControlPlane) ValidateCreate(_ context.Context, k *control
 	spec := k.Spec
 	allErrs := validateKubeadmControlPlaneSpec(spec, field.NewPath("spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(nil, &spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
-	allErrs = append(allErrs, spec.KubeadmConfigSpec.Validate(true, field.NewPath("spec", "kubeadmConfigSpec"))...)
+	allErrs = append(allErrs, bootstrapvalidation.Validate(&spec.KubeadmConfigSpec, true, field.NewPath("spec", "kubeadmConfigSpec"))...)
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), k.Name, allErrs)
 	}
@@ -235,7 +236,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldK, newK
 	allErrs = append(allErrs, webhook.validateVersion(oldK, newK)...)
 	allErrs = append(allErrs, validateClusterConfiguration(&oldK.Spec.KubeadmConfigSpec.ClusterConfiguration, &newK.Spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, webhook.validateCoreDNSVersion(oldK, newK)...)
-	allErrs = append(allErrs, newK.Spec.KubeadmConfigSpec.Validate(true, field.NewPath("spec", "kubeadmConfigSpec"))...)
+	allErrs = append(allErrs, bootstrapvalidation.Validate(&newK.Spec.KubeadmConfigSpec, true, field.NewPath("spec", "kubeadmConfigSpec"))...)
 
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), newK.Name, allErrs)

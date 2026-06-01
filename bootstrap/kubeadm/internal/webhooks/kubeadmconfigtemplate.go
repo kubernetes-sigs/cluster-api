@@ -27,6 +27,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/defaulting"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/validation"
 	"sigs.k8s.io/cluster-api/util/topology"
 )
 
@@ -80,7 +81,7 @@ func (webhook *KubeadmConfigTemplate) ValidateDelete(_ context.Context, _ *boots
 func (webhook *KubeadmConfigTemplate) validate(r *bootstrapv1.KubeadmConfigTemplateSpec, name string) error {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, r.Template.Spec.Validate(false, field.NewPath("spec", "template", "spec"))...)
+	allErrs = append(allErrs, validation.Validate(&r.Template.Spec, false, field.NewPath("spec", "template", "spec"))...)
 	// Validate the metadata of the template.
 	allErrs = append(allErrs, r.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
 

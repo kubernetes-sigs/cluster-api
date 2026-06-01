@@ -727,9 +727,8 @@ verify-crd-docs: generate-crd-docs ## Verify CRD API docs are up to date
 	fi
 
 .PHONY: verify-conversions
-verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
+verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place. Only run this for CAPDev because api/ is implementing conversion outside of the api/ package
 	$(CONVERSION_VERIFIER) \
-		./api/... \
 		./test/infrastructure/docker/api/...
 
 .PHONY: verify-doctoc

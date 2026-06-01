@@ -45,7 +45,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -69,6 +68,7 @@ import (
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
+	webhooksconversion "sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 var IgnoreNameGenerated = IgnorePaths{
@@ -305,7 +305,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 		},
 	}
 
-	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+	webhooksconversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{
@@ -315,8 +315,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 			}
 		}
 		return "", fmt.Errorf("unknown GroupVersionKind: %v", gk)
-	}
-	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
+	})
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)

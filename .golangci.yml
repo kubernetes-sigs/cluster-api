@@ -340,7 +340,7 @@ linters:
         # Disable linters for conversion
       - linters:
           - staticcheck
-        path: .*(api|types)\/.*\/conversion.*\.go$
+        path: api/core/v1beta1/conversion.go|webhooks/conversion/.*\.go
         text: 'SA1019: in.(.+) is deprecated'
       - linters:
           - revive

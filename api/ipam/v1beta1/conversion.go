@@ -21,35 +21,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 )
-
-func (src *IPAddress) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*ipamv1.IPAddress)
-
-	return Convert_v1beta1_IPAddress_To_v1beta2_IPAddress(src, dst, nil)
-}
-
-func (dst *IPAddress) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*ipamv1.IPAddress)
-
-	return Convert_v1beta2_IPAddress_To_v1beta1_IPAddress(src, dst, nil)
-}
-
-func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*ipamv1.IPAddressClaim)
-
-	return Convert_v1beta1_IPAddressClaim_To_v1beta2_IPAddressClaim(src, dst, nil)
-}
-
-func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*ipamv1.IPAddressClaim)
-
-	return Convert_v1beta2_IPAddressClaim_To_v1beta1_IPAddressClaim(src, dst, nil)
-}
 
 func Convert_v1beta2_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(in *ipamv1.IPAddressClaimStatus, out *IPAddressClaimStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(in, out, s); err != nil {

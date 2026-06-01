@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 // SetupWebhookWithManager sets up Cluster webhooks.
@@ -58,6 +59,7 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.Cluster{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.Cluster).
 		Complete()
 }
 

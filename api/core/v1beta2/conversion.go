@@ -24,15 +24,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func (*Cluster) Hub()            {}
-func (*ClusterClass) Hub()       {}
-func (*Machine) Hub()            {}
-func (*MachineSet) Hub()         {}
-func (*MachineDeployment) Hub()  {}
-func (*MachineHealthCheck) Hub() {}
-func (*MachinePool) Hub()        {}
-func (*MachineDrainRule) Hub()   {}
-
 // ConvertToSeconds takes *metav1.Duration and returns a *int32.
 // Durations longer than MaxInt32 are capped.
 // NOTE: this is a util function intended only for usage in API conversions.

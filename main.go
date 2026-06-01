@@ -78,6 +78,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 var (
@@ -722,12 +723,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 	return clusterCache
 }
 
-func setupWebhooks(ctx context.Context, mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheReader) {
+func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheReader) {
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
-	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
-	}
-	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
+	})
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled.

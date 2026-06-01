@@ -33,12 +33,14 @@ import (
 
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 // SetupWebhookWithManager sets up IPAddress webhooks.
 func (webhook *IPAddress) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &ipamv1.IPAddress{}).
 		WithValidator(webhook).
+		WithConverter(conversion.IPAddress).
 		Complete()
 }
 

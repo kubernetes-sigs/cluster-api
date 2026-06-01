@@ -32,6 +32,7 @@ import (
 
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 // ExtensionConfig is the webhook for runtimev1.ExtensionConfig.
@@ -41,6 +42,7 @@ func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error 
 	return ctrl.NewWebhookManagedBy(mgr, &runtimev1.ExtensionConfig{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.ExtensionConfig).
 		Complete()
 }
 

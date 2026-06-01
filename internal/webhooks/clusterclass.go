@@ -41,11 +41,13 @@ import (
 	"sigs.k8s.io/cluster-api/util/index"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/version"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.ClusterClass{}).
 		WithValidator(webhook).
+		WithConverter(conversion.ClusterClass).
 		Complete()
 }
 

@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 var (
@@ -50,6 +51,7 @@ func (webhook *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) err
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachineHealthCheck{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.MachineHealthCheck).
 		Complete()
 }
 

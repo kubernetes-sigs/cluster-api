@@ -27,11 +27,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func (webhook *MachineDrainRule) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachineDrainRule{}).
 		WithValidator(webhook).
+		WithConverter(conversion.MachineDrainRule).
 		Complete()
 }
 

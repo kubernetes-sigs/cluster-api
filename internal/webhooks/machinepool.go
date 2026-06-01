@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/version"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -43,6 +44,7 @@ func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachinePool{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.MachinePool).
 		Complete()
 }
 

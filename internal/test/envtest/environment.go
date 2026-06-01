@@ -64,12 +64,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/yaml"
 
+	addonsv1beta1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	ipamv1alpha1 "sigs.k8s.io/cluster-api/api/ipam/v1alpha1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
+	runtimev1alpha1 "sigs.k8s.io/cluster-api/api/runtime/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	bootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -81,6 +87,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/test/builder"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func init() {
@@ -120,12 +127,18 @@ func registerSchemes(s *runtime.Scheme) {
 	utilruntime.Must(apiextensionsv1.AddToScheme(s))
 
 	utilruntime.Must(addonsv1.AddToScheme(s))
+	utilruntime.Must(addonsv1beta1.AddToScheme(s))
 	utilruntime.Must(bootstrapv1.AddToScheme(s))
+	utilruntime.Must(bootstrapv1beta1.AddToScheme(s))
 	utilruntime.Must(clusterv1.AddToScheme(s))
+	utilruntime.Must(clusterv1beta1.AddToScheme(s))
 	utilruntime.Must(controlplanev1.AddToScheme(s))
 	utilruntime.Must(controlplanev1beta1.AddToScheme(s))
 	utilruntime.Must(ipamv1.AddToScheme(s))
+	utilruntime.Must(ipamv1alpha1.AddToScheme(s))
+	utilruntime.Must(ipamv1beta1.AddToScheme(s))
 	utilruntime.Must(runtimev1.AddToScheme(s))
+	utilruntime.Must(runtimev1alpha1.AddToScheme(s))
 }
 
 // RunInput is the input for Run.
@@ -391,6 +404,9 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
 	}
 	controlplanev1beta1.SetAPIVersionGetter(apiVersionGetter)
+	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
+		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
+	})
 
 	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)

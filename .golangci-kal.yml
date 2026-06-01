@@ -77,8 +77,11 @@ linters:
       - vendored_openapi\.go$
       - ".*_test.go"  # Exclude test files.
     rules:
-    ## KAL should only run on API folders.
+    ## KAL should only run on API folders, except api/runtime/catalog.
     - path-except: "api//*"
+      linters:
+        - kubeapilinter
+    - path: "api/runtime/catalog"
       linters:
         - kubeapilinter
 

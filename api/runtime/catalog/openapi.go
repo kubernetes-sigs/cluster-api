@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -115,7 +114,7 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, gvh GroupVersi
 	}
 	requestType, ok := c.scheme.AllKnownTypes()[requestGVK]
 	if !ok {
-		return errors.Errorf("type for request GVK %q is unknown", requestGVK)
+		return fmt.Errorf("type for request GVK %q is unknown", requestGVK)
 	}
 	requestTypeName := typeName(requestType, requestGVK)
 	operation.RequestBody = &spec3.RequestBody{
@@ -134,7 +133,7 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, gvh GroupVersi
 	}
 	responseType := c.scheme.AllKnownTypes()[responseGVK]
 	if !ok {
-		return errors.Errorf("type for response GVK %q is unknown", responseGVK)
+		return fmt.Errorf("type for response GVK %q is unknown", responseGVK)
 	}
 	responseTypeName := typeName(responseType, responseGVK)
 	operation.Responses.StatusCodeResponses[http.StatusOK] = &spec3.Response{
@@ -192,7 +191,7 @@ func addTypeToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, typeName string) error
 	}
 
 	if openAPIDefinition == nil {
-		return errors.Errorf("failed to get definition for %v. If you added a new type, you may need to add +k8s:openapi-gen=true to the package or type and run openapi-gen again", typeName)
+		return fmt.Errorf("failed to get definition for %v. If you added a new type, you may need to add +k8s:openapi-gen=true to the package or type and run openapi-gen again", typeName)
 	}
 
 	// Add schema for component to components.

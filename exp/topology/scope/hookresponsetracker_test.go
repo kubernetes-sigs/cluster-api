@@ -22,8 +22,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 func TestHookResponseTracker_AggregateRetryAfter(t *testing.T) {

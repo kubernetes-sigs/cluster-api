@@ -136,6 +136,13 @@ type ClusterctlUpgradeSpecInput struct {
 
 	// ControlPlaneMachineCount specifies the number of control plane machines to create in the workload cluster.
 	ControlPlaneMachineCount *int64
+
+	// ManagementClusterControlPlaneMachineCount specifies the number of control plane machines to create for the
+	// self-hosted management cluster (the workload cluster that is pivoted into and used as the new management
+	// cluster). Defaults to 1 if not set. Setting this higher (e.g. 3) makes the management cluster's control
+	// plane highly available, which can reduce flakiness when the management cluster's API server is fronted by a
+	// load balancer. This has no effect when UseKindForManagementCluster is true.
+	ManagementClusterControlPlaneMachineCount *int64
 }
 
 // ClusterctlUpgradeSpecInputUpgrade defines an upgrade.
@@ -238,6 +245,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		initKubernetesVersion = input.InitWithKubernetesVersion
 
+		if input.ManagementClusterControlPlaneMachineCount == nil {
+			input.ManagementClusterControlPlaneMachineCount = ptr.To[int64](1)
+		}
+
 		if len(input.Upgrades) == 0 {
 			// Upgrade once to latest contract version if no upgrades are specified.
 			input.Upgrades = []ClusterctlUpgradeSpecInputUpgrade{
@@ -305,7 +316,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					Namespace:                managementClusterNamespace.Name,
 					ClusterName:              managementClusterName,
 					KubernetesVersion:        initKubernetesVersion,
-					ControlPlaneMachineCount: ptr.To[int64](1),
+					ControlPlaneMachineCount: input.ManagementClusterControlPlaneMachineCount,
 					WorkerMachineCount:       ptr.To[int64](1),
 				},
 				PreWaitForCluster: func() {

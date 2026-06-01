@@ -173,17 +173,42 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, cluster *clusterv1.
 	caPool := x509.NewCertPool()
 	caPool.AppendCertsFromPEM(crtData)
 	tlsConfig := &tls.Config{
-		RootCAs:      caPool,
 		Certificates: []tls.Certificate{clientCert},
 		MinVersion:   tls.VersionTLS12,
+		// etcd members are reached through the API server proxy using their static pod
+		// name, which is not part of the serving certificate SANs, so the default host
+		// name verification can't be used. Skip it but still verify that the served
+		// certificate chains up to the etcd CA via VerifyConnection.
+		InsecureSkipVerify: true, //nolint:gosec // host name verification is replaced by VerifyConnection below.
+		VerifyConnection:   verifyEtcdServerCertificate(caPool),
 	}
-	tlsConfig.InsecureSkipVerify = true
 	return &Workload{
 		restConfig:          restConfig,
 		Client:              c,
 		CoreDNSMigrator:     &CoreDNSMigrator{},
 		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig, m.EtcdDialTimeout, m.EtcdCallTimeout, m.EtcdLogger),
 	}, nil
+}
+
+// verifyEtcdServerCertificate returns a tls.Config VerifyConnection callback that verifies the
+// etcd serving certificate chains up to roots without checking the host name. This is used
+// together with InsecureSkipVerify because etcd members are dialed through the API server proxy
+// using their static pod name, which is not present in the serving certificate SANs.
+func verifyEtcdServerCertificate(roots *x509.CertPool) func(tls.ConnectionState) error {
+	return func(cs tls.ConnectionState) error {
+		if len(cs.PeerCertificates) == 0 {
+			return errors.New("etcd server presented no certificates")
+		}
+		intermediates := x509.NewCertPool()
+		for _, cert := range cs.PeerCertificates[1:] {
+			intermediates.AddCert(cert)
+		}
+		_, err := cs.PeerCertificates[0].Verify(x509.VerifyOptions{
+			Roots:         roots,
+			Intermediates: intermediates,
+		})
+		return err
+	}
 }
 
 func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.ObjectKey) ([]byte, []byte, error) {

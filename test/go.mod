@@ -33,7 +33,7 @@ require (
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.23.3
-	sigs.k8s.io/kind v0.31.0
+	sigs.k8s.io/kind v0.32.0-alpha.0.20260602031449-d1b84e81dfe8
 	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/yaml v1.6.0
 )

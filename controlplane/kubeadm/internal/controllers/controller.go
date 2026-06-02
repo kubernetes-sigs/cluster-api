@@ -47,6 +47,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
@@ -1273,12 +1274,12 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 
 	// Loop trough etcd members and identify unexpected members.
 	// Note: A member without a name yet is also considered an unexpected members at this stage.
-	unexpectedMembers := sets.New[string]()
+	unexpectedMembers := sets.New[*etcd.Member]()
 	for _, member := range controlPlane.EtcdMembers {
 		if expectedMembers.Has(member.Name) {
 			continue
 		}
-		unexpectedMembers.Insert(member.Name)
+		unexpectedMembers.Insert(member)
 	}
 
 	// If there are no unexpected members, return.
@@ -1288,11 +1289,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 
 	unexpectedMembersMsg := []string{}
 	for _, m := range unexpectedMembers.UnsortedList() {
-		if m == "" {
+		if m.Name == "" {
 			unexpectedMembersMsg = append(unexpectedMembersMsg, "(Name not yet assigned)")
 			continue
 		}
-		unexpectedMembersMsg = append(unexpectedMembersMsg, m)
+		unexpectedMembersMsg = append(unexpectedMembersMsg, m.Name)
 	}
 	sort.Strings(unexpectedMembersMsg)
 
@@ -1319,20 +1320,20 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 	}
 
 	sortedUnexpectedMembers := unexpectedMembers.UnsortedList()
-	sort.Strings(sortedUnexpectedMembers)
+	sort.Sort(etcd.Members(sortedUnexpectedMembers))
 	etcdMemberToBeDeleted := sortedUnexpectedMembers[0]
-	etcdMemberToBeDeletedMsg := etcdMemberToBeDeleted
+	etcdMemberToBeDeletedMsg := etcdMemberToBeDeleted.Name
 	if etcdMemberToBeDeletedMsg == "" {
 		etcdMemberToBeDeletedMsg = "(Name not yet assigned)"
 	}
-	log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, removing member %s", strings.Join(unexpectedMembersMsg, ", "), etcdMemberToBeDeleted))
+	log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, removing member %s", strings.Join(unexpectedMembersMsg, ", "), etcdMemberToBeDeleted.Name))
 
 	// Note: if the etcd member to be deleted doesn't have a name yet, we know it is not started yet/still a learner,
 	// and we also know it won't be promoted because there is no underlying machine where kubeadm is running.
 	// Accordingly, skipping checking targetEtcdClusterHealthy (which will fail with learner nodes).
-	if etcdMemberToBeDeleted != "" {
+	if etcdMemberToBeDeleted.Name != "" {
 		addEtcdMember := false
-		if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
+		if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted.Name) {
 			return ctrl.Result{}, errors.Errorf("etcd member %s does not have a corresponding Machine, it must be removed from the cluster but this operation can lead to quorum loss. Please check the etcd status", etcdMemberToBeDeletedMsg)
 		}
 	}
@@ -1444,14 +1445,14 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	// Target list of machines will have current machines -1 machine (the deletingMachine).
 	// As a consequence:
 	// - etcd member on the deletingMachine is going to be deleted, no etcd member are going to be added.
-	etcdMemberToBeDeleted := r.tryGetEtcdMemberName(ctx, controlPlane, deletingMachine)
+	etcdMemberNameToBeDeleted := r.tryGetEtcdMemberName(ctx, controlPlane, deletingMachine)
 	addEtcdMember := false
 
 	// If it was not possible to get the name of the etcd member hosted on this machine or if the etcd member doesn't have
 	// a name yet, no other checks can be performed. Continue with deletion.
 	// Note: reconcileEtcMembers acts a safeguard/cleanup procedure if an etcdMember is added/reported after this point
 	// and for etcd member without a name.
-	if etcdMemberToBeDeleted == "" {
+	if etcdMemberNameToBeDeleted == "" {
 		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -1460,7 +1461,7 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
-	if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
+	if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberNameToBeDeleted) {
 		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s, the operation can lead to etcd quorum loss. Please check the etcd status", klog.KObj(deletingMachine)))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
@@ -1485,8 +1486,17 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	// Note: Removing the etcd member will lead to the etcd and the kube-apiserver Pod on the Machine shutting down.
 	// If ControlPlaneKubeletLocalMode is used, the kubelet is communicating with the local apiserver and thus now
 	// won't be able to see any updates to e.g. Pods anymore.
-	if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted, controlPlane.Nodes); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
+	var etcdMemberToBeDeleted *etcd.Member
+	for _, member := range controlPlane.EtcdMembers {
+		if member.Name == etcdMemberNameToBeDeleted {
+			etcdMemberToBeDeleted = member
+			break
+		}
+	}
+	if etcdMemberToBeDeleted != nil {
+		if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted, controlPlane.Nodes); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
+		}
 	}
 
 	if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {

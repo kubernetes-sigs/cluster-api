@@ -239,19 +239,19 @@ func TestRemoveEtcdMember(t *testing.T) {
 
 	tests := []struct {
 		name                string
-		memberToDelete      string
+		memberToDelete      *etcd.Member
 		etcdClientGenerator etcdClientFor
 		expectErr           bool
 	}{
 		{
 			name:                "returns an error if it fails to create the etcd client",
-			memberToDelete:      "cp1",
+			memberToDelete:      &etcd.Member{ID: uint64(1), Name: "cp1"},
 			etcdClientGenerator: &fakeEtcdClientGenerator{forNodesErr: errors.New("no client")},
 			expectErr:           true,
 		},
 		{
 			name:           "returns an error if the client errors getting etcd members",
-			memberToDelete: "cp1",
+			memberToDelete: &etcd.Member{ID: uint64(1), Name: "cp1"},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
@@ -263,7 +263,7 @@ func TestRemoveEtcdMember(t *testing.T) {
 		},
 		{
 			name:           "no op if the member already does not exist",
-			memberToDelete: "cp2",
+			memberToDelete: &etcd.Member{ID: uint64(2), Name: "cp2"},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
@@ -279,7 +279,7 @@ func TestRemoveEtcdMember(t *testing.T) {
 		},
 		{
 			name:           "returns an error if there is only one member",
-			memberToDelete: "cp1",
+			memberToDelete: &etcd.Member{ID: uint64(1), Name: "cp1"},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
@@ -295,7 +295,7 @@ func TestRemoveEtcdMember(t *testing.T) {
 		},
 		{
 			name:           "returns an error if the client errors removing the etcd member",
-			memberToDelete: "cp1",
+			memberToDelete: &etcd.Member{ID: uint64(1), Name: "cp1"},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
@@ -313,7 +313,7 @@ func TestRemoveEtcdMember(t *testing.T) {
 		},
 		{
 			name:           "removes the member from etcd",
-			memberToDelete: "cp1",
+			memberToDelete: &etcd.Member{ID: uint64(1), Name: "cp1"},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{

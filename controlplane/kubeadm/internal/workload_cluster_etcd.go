@@ -53,12 +53,12 @@ func (w *Workload) UpdateEtcdExternalInKubeadmConfigMap(etcdExternal bootstrapv1
 // RemoveEtcdMember removes the etcd member from the target cluster's etcd cluster.
 // Removing the last remaining member of the cluster is not supported.
 // Note: It is a responsibility of the caller to check if this operation doesn't lead to quorum loss.
-func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*Node) error {
+func (w *Workload) RemoveEtcdMember(ctx context.Context, m *etcd.Member, nodes []*Node) error {
 	// Exclude node being removed from etcd client node list
 	// Note: this operation relies on the assumption that node name is equal to the name of the corresponding etcd member.
 	var remainingNodes []string
 	for _, n := range nodes {
-		if n.Name != name {
+		if n.Name != m.Name {
 			remainingNodes = append(remainingNodes, n.Name)
 		}
 	}
@@ -73,7 +73,7 @@ func (w *Workload) RemoveEtcdMember(ctx context.Context, name string, nodes []*N
 	if err != nil {
 		return errors.Wrap(err, "failed to list etcd members using etcd client")
 	}
-	member := etcdutil.MemberForName(members, name)
+	member := etcdutil.MemberForID(members, m.ID)
 
 	// The member has already been removed, return immediately
 	if member == nil {

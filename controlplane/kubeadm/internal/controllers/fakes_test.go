@@ -27,6 +27,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
@@ -106,7 +107,7 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 	return nil
 }
 
-func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ string, _ []*internal.Node) error {
+func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ *etcd.Member, _ []*internal.Node) error {
 	f.removeEtcdMemberCalled++
 	return nil
 }

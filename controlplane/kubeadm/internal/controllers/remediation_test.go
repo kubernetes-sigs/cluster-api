@@ -2484,6 +2484,30 @@ func TestTargetEtcdClusterHealthy(t *testing.T) {
 		g.Expect(canSafelyTransitionToTargetState).To(BeFalse())
 	})
 
+	t.Run("Can safely remove a member when it doesn't have a corresponding machine and it has no alarm", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := getMachine(metav1.NamespaceDefault, "m1-mhc-unhealthy", withMachineHealthCheckFailed())
+		m2 := getMachine(metav1.NamespaceDefault, "m2-etcd-healthy", withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			Machines: collections.FromMachines(m1, m2),
+		}
+		controlPlane.EtcdMembers = []*etcd.Member{
+			{
+				ID:   1,
+				Name: m1.Status.NodeRef.Name,
+			},
+			{
+				ID:   2,
+				Name: "foo",
+			},
+		}
+
+		canSafelyTransitionToTargetState := r.targetEtcdClusterHealthy(ctx, controlPlane, false, m1.Status.NodeRef.Name)
+		g.Expect(canSafelyTransitionToTargetState).To(BeTrue())
+	})
+
 	t.Run("Ignore alarms from external members being removed when computing target etcd cluster status", func(t *testing.T) {
 		g := NewWithT(t)
 

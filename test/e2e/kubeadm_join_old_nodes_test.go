@@ -34,6 +34,12 @@ var _ = Describe("When a worker joins with kubeadm with an older version than th
 			SkipCleanup:            skipCleanup,
 			InfrastructureProvider: ptr.To("docker"),
 			Flavor:                 "topology-kubeadm-version",
+			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
+			// by the test-extension-webhook-service.
+			// The below values are used when creating the cluster-wide ExtensionConfig to refer
+			// the actual service.
+			ExtensionServiceNamespace: "test-extension-system",
+			ExtensionServiceName:      "test-extension-webhook-service",
 		}
 	})
 })

@@ -274,6 +274,22 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 		}
 	}
 
+	preKubeadmCommands := []string{}
+	err = topologymutation.GetObjectVariableInto(templateVariables, "preKubeadmCommands", &preKubeadmCommands)
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate preKubeadmCommands")
+	}
+	if len(preKubeadmCommands) > 0 {
+		kcpTemplateV1Beta1, ok := obj.(*controlplanev1beta1.KubeadmControlPlaneTemplate)
+		if ok {
+			kcpTemplateV1Beta1.Spec.Template.Spec.KubeadmConfigSpec.PreKubeadmCommands = append(kcpTemplateV1Beta1.Spec.Template.Spec.KubeadmConfigSpec.PreKubeadmCommands, preKubeadmCommands...)
+		}
+		kcpTemplate, ok := obj.(*controlplanev1.KubeadmControlPlaneTemplate)
+		if ok {
+			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.PreKubeadmCommands = append(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.PreKubeadmCommands, preKubeadmCommands...)
+		}
+	}
+
 	return nil
 }
 
@@ -311,12 +327,29 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, templateV
 		}
 	}
 
+	preKubeadmCommands := []string{}
+	err = topologymutation.GetObjectVariableInto(templateVariables, "preKubeadmCommands", &preKubeadmCommands)
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate preKubeadmCommands")
+	}
+	if len(preKubeadmCommands) > 0 {
+		kcpTemplateV1Beta1, ok := obj.(*bootstrapv1beta1.KubeadmConfigTemplate)
+		if ok {
+			kcpTemplateV1Beta1.Spec.Template.Spec.PreKubeadmCommands = append(kcpTemplateV1Beta1.Spec.Template.Spec.PreKubeadmCommands, preKubeadmCommands...)
+		}
+		kcpTemplate, ok := obj.(*bootstrapv1.KubeadmConfigTemplate)
+		if ok {
+			kcpTemplate.Spec.Template.Spec.PreKubeadmCommands = append(kcpTemplate.Spec.Template.Spec.PreKubeadmCommands, preKubeadmCommands...)
+		}
+	}
+
 	return nil
 }
 
 type fileVariable struct {
-	Path    string `json:"path,omitempty"`
-	Content string `json:"content,omitempty"`
+	Path          string `json:"path,omitempty"`
+	Content       string `json:"content,omitempty"`
+	ContentFormat string `json:"contentFormat,omitempty"`
 }
 
 func convertToKubeadmConfigV1Beta1Files(files []fileVariable) []bootstrapv1beta1.File {
@@ -324,10 +357,11 @@ func convertToKubeadmConfigV1Beta1Files(files []fileVariable) []bootstrapv1beta1
 	for _, f := range files {
 		kubeadmConfigV1Beta1Files = append(kubeadmConfigV1Beta1Files,
 			bootstrapv1beta1.File{
-				Path:        f.Path,
-				Content:     f.Content,
-				Owner:       "root:root",
-				Permissions: "0600",
+				Path:          f.Path,
+				Content:       f.Content,
+				ContentFormat: bootstrapv1beta1.FileContentFormat(f.ContentFormat),
+				Owner:         "root:root",
+				Permissions:   "0600",
 			},
 		)
 	}
@@ -339,10 +373,11 @@ func convertToKubeadmConfigFiles(files []fileVariable) []bootstrapv1.File {
 	for _, f := range files {
 		kubeadmConfigFiles = append(kubeadmConfigFiles,
 			bootstrapv1.File{
-				Path:        f.Path,
-				Content:     f.Content,
-				Owner:       "root:root",
-				Permissions: "0600",
+				Path:          f.Path,
+				Content:       f.Content,
+				ContentFormat: bootstrapv1.FileContentFormat(f.ContentFormat),
+				Owner:         "root:root",
+				Permissions:   "0600",
 			},
 		)
 	}
@@ -507,7 +542,22 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 							"content": {
 								Type: "string",
 							},
+							"contentFormat": {
+								Type: "string",
+							},
 						},
+					},
+				},
+			},
+		},
+		{
+			Name:     "preKubeadmCommands",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type: "array",
+					Items: &clusterv1.JSONSchemaProps{
+						Type: "string",
 					},
 				},
 			},

@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
+	toolscache "k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -96,6 +97,9 @@ type clusterAccessorCacheConfig struct {
 
 	// SyncPeriod is the sync period of the cache.
 	SyncPeriod *time.Duration
+
+	// DefaultTransform is applied to all objects before they are stored in the cache.
+	DefaultTransform toolscache.TransformFunc
 
 	// ByObject restricts the cache's ListWatch to the desired fields per GVK at the specified object.
 	ByObject map[client.Object]cache.ByObject

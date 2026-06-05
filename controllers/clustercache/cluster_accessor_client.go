@@ -237,11 +237,12 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 
 	// Create the cache for the cluster.
 	cacheOptions := cache.Options{
-		HTTPClient: httpClientWith11mTimeout,
-		Scheme:     clusterAccessorConfig.Scheme,
-		Mapper:     mapper,
-		SyncPeriod: clusterAccessorConfig.Cache.SyncPeriod,
-		ByObject:   clusterAccessorConfig.Cache.ByObject,
+		HTTPClient:       httpClientWith11mTimeout,
+		Scheme:           clusterAccessorConfig.Scheme,
+		Mapper:           mapper,
+		SyncPeriod:       clusterAccessorConfig.Cache.SyncPeriod,
+		DefaultTransform: clusterAccessorConfig.Cache.DefaultTransform,
+		ByObject:         clusterAccessorConfig.Cache.ByObject,
 	}
 	remoteCache, err := cache.New(configWith11mTimeout, cacheOptions)
 	if err != nil {

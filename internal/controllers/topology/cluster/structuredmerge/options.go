@@ -17,9 +17,6 @@ limitations under the License.
 package structuredmerge
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
@@ -40,28 +37,6 @@ var (
 		{"metadata", "ownerReferences"},
 		{"spec"},
 	}
-
-	// allowedPathsCluster are the allowed paths specific for Clusters.
-	// The cluster object is not created by the topology controller and already contains fields which are
-	// not supposed for the topology controller to have an opinion on / take (co-)ownership of.
-	// Because of that the allowedPaths are different to other objects.
-	// NOTE: This is mostly the same as defaultAllowedPaths but having more restrictions.
-	allowedPathsCluster = []contract.Path{
-		// apiVersion, kind, name and namespace are required field for a server side apply intent.
-		{"apiVersion"},
-		{"kind"},
-		{"metadata", "name"},
-		{"metadata", "namespace"},
-		{"metadata", "annotations", clusterv1.ClusterTopologyUpgradeStepAnnotation},
-		// uid is optional for a server side apply intent but sets the expectation of an object getting created or a specific one updated.
-		{"metadata", "uid"},
-		// the topology controller controls/has an opinion for the labels ClusterNameLabel
-		// and ClusterTopologyOwnedLabel as well as infrastructureRef and controlPlaneRef in spec.
-		{"metadata", "labels", clusterv1.ClusterNameLabel},
-		{"metadata", "labels", clusterv1.ClusterTopologyOwnedLabel},
-		{"spec", "infrastructureRef"},
-		{"spec", "controlPlaneRef"},
-	}
 )
 
 // HelperOption is some configuration that modifies options for Helper.
@@ -76,17 +51,12 @@ type HelperOptions struct {
 }
 
 // newHelperOptions returns initialized HelperOptions.
-func newHelperOptions(target client.Object, opts ...HelperOption) *HelperOptions {
+func newHelperOptions(opts ...HelperOption) *HelperOptions {
 	helperOptions := &HelperOptions{
 		FilterObjectInput: ssa.FilterObjectInput{
 			AllowedPaths: defaultAllowedPaths,
 			IgnorePaths:  []contract.Path{},
 		},
-	}
-	// Overwrite the allowedPaths for Cluster objects to prevent the topology controller
-	// to take ownership of fields it is not supposed to.
-	if _, ok := target.(*clusterv1.Cluster); ok {
-		helperOptions.AllowedPaths = allowedPathsCluster
 	}
 	helperOptions = helperOptions.ApplyOptions(opts)
 	return helperOptions

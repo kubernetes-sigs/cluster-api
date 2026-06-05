@@ -1376,14 +1376,27 @@ func TestReconcileCluster(t *testing.T) {
 		Build()
 	// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
 	cluster1.Spec.Paused = ptr.To(true)
-	cluster1WithReferences := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+	cluster1WithReferencesLabelsAnnotations := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+		WithLabels(map[string]string{
+			clusterv1.ClusterNameLabel:          "cluster1",
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		}).
+		WithAnnotations(map[string]string{
+			clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.29.0",
+		}).
+		WithTopology(&clusterv1.Topology{
+			ClassRef: clusterv1.ClusterClassRef{
+				Name: "class1",
+			},
+			Version: "v1.30.0",
+		}).
 		WithInfrastructureCluster(builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").
 			Build()).
 		WithControlPlane(builder.TestControlPlane(metav1.NamespaceDefault, "control-plane1").Build()).
 		Build()
-	cluster2WithReferences := cluster1WithReferences.DeepCopy()
-	cluster2WithReferences.SetGroupVersionKind(cluster1WithReferences.GroupVersionKind())
-	cluster2WithReferences.Name = "cluster2"
+	cluster2ReferencesLabelsAnnotations := cluster1WithReferencesLabelsAnnotations.DeepCopy()
+	cluster2ReferencesLabelsAnnotations.SetGroupVersionKind(cluster1WithReferencesLabelsAnnotations.GroupVersionKind())
+	cluster2ReferencesLabelsAnnotations.Name = "cluster2"
 
 	tests := []struct {
 		name    string
@@ -1393,17 +1406,17 @@ func TestReconcileCluster(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Should update the cluster if infrastructure and control plane references are not set",
+			name:    "Should update the cluster if infrastructure and control plane references, labels and annotations are not set",
 			current: cluster1,
-			desired: cluster1WithReferences,
-			want:    cluster1WithReferences,
+			desired: cluster1WithReferencesLabelsAnnotations,
+			want:    cluster1WithReferencesLabelsAnnotations,
 			wantErr: false,
 		},
 		{
-			name:    "Should be a no op if infrastructure and control plane references are already set",
-			current: cluster2WithReferences,
-			desired: cluster2WithReferences,
-			want:    cluster2WithReferences,
+			name:    "Should be a no op if infrastructure and control plane references, labels and annotations are already set",
+			current: cluster2ReferencesLabelsAnnotations,
+			desired: cluster2ReferencesLabelsAnnotations,
+			want:    cluster2ReferencesLabelsAnnotations,
 			wantErr: false,
 		},
 	}
@@ -1434,10 +1447,9 @@ func TestReconcileCluster(t *testing.T) {
 			g.Expect(env.CreateAndWait(ctx, cpt)).To(Succeed())
 			g.Expect(env.CreateAndWait(ctx, clusterClass)).To(Succeed())
 
-			if tt.current != nil {
-				// NOTE: it is ok to use create given that the Cluster are created by user.
-				g.Expect(env.CreateAndWait(ctx, tt.current)).To(Succeed())
-			}
+			// NOTE: it is ok to use create given that the Cluster are created by user.
+			g.Expect(env.CreateAndWait(ctx, tt.current)).To(Succeed())
+			tt.desired.ResourceVersion = tt.current.ResourceVersion // Set resourceVersion so patch works.
 
 			s := scope.New(tt.current)
 
@@ -3809,6 +3821,12 @@ func TestReconcileState(t *testing.T) {
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
 		desiredCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithTopology(&clusterv1.Topology{
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: "class1",
+				},
+				Version: "v1.30.0",
+			}).
 			WithInfrastructureCluster(infrastructureCluster).
 			WithControlPlane(controlPlane).
 			Build()
@@ -3824,6 +3842,7 @@ func TestReconcileState(t *testing.T) {
 
 		// NOTE: it is ok to use create given that the Cluster are created by user.
 		g.Expect(env.CreateAndWait(ctx, currentCluster)).To(Succeed())
+		desiredCluster.ResourceVersion = currentCluster.ResourceVersion // Set resourceVersion so patch works.
 
 		s := scope.New(currentCluster)
 		s.Blueprint = &scope.ClusterBlueprint{ClusterClass: &clusterv1.ClusterClass{}}
@@ -3874,6 +3893,12 @@ func TestReconcileState(t *testing.T) {
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
 		desiredCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithTopology(&clusterv1.Topology{
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: "class1",
+				},
+				Version: "v1.30.0",
+			}).
 			WithInfrastructureCluster(infrastructureCluster).
 			WithControlPlane(controlPlane).
 			Build()
@@ -3889,6 +3914,7 @@ func TestReconcileState(t *testing.T) {
 
 		// NOTE: it is ok to use create given that the Cluster are created by user.
 		g.Expect(env.CreateAndWait(ctx, currentCluster)).To(Succeed())
+		desiredCluster.ResourceVersion = currentCluster.ResourceVersion // Set resourceVersion so patch works.
 
 		s := scope.New(currentCluster)
 		s.Blueprint = &scope.ClusterBlueprint{ClusterClass: &clusterv1.ClusterClass{}}
@@ -3926,12 +3952,24 @@ func TestReconcileState(t *testing.T) {
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
 
 		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithTopology(&clusterv1.Topology{
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: "class1",
+				},
+				Version: "v1.30.0",
+			}).
 			WithInfrastructureCluster(infrastructureCluster).
 			Build()
 		// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
 		currentCluster.Spec.Paused = ptr.To(true)
 
 		desiredCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithTopology(&clusterv1.Topology{
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: "class1",
+				},
+				Version: "v1.30.0",
+			}).
 			WithInfrastructureCluster(infrastructureCluster).
 			WithControlPlane(controlPlane).
 			Build()
@@ -3943,6 +3981,7 @@ func TestReconcileState(t *testing.T) {
 
 		// NOTE: it is ok to use create given that the Cluster are created by user.
 		g.Expect(env.CreateAndWait(ctx, currentCluster)).To(Succeed())
+		desiredCluster.ResourceVersion = currentCluster.ResourceVersion // Set resourceVersion so patch works.
 
 		s := scope.New(currentCluster)
 		s.Blueprint = &scope.ClusterBlueprint{ClusterClass: &clusterv1.ClusterClass{}}

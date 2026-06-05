@@ -390,7 +390,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 		return ctrl.Result{}, errors.Wrap(err, "error creating dynamic watch")
 	}
 
-	anyManagedFieldIssueMitigated, err := r.mitigateManagedFieldsIssue(ctx, s)
+	anyManagedFieldIssueMitigated, err := r.migrateClusterAndMitigateManagedFieldsIssue(ctx, s)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

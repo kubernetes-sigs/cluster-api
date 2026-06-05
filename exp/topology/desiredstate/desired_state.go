@@ -734,6 +734,8 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, controlPlane *unstructured.Unstructured) (*clusterv1.Cluster, error) {
 	cluster := s.Current.Cluster.DeepCopy()
 
+	// Note: If additional fields should be modified here we have to adjust reconcileCluster accordingly.
+
 	// Enforce the topology labels.
 	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
 	// controller immediately after creation, even before other controllers are going to add the label (if missing).
@@ -766,10 +768,7 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 		}
 		cluster.Annotations[clusterv1.ClusterTopologyUpgradeStepAnnotation] = *controlPlaneVersion
 	} else {
-		// Note: Setting the annotation to "" instead of deleting it because we cannot be sure
-		// that we are able to remove the annotation from the Cluster with SSA if we lost ownership of
-		// the annotation in managedFields e.g. because of: https://github.com/kubernetes/kubernetes/issues/136919.
-		cluster.Annotations[clusterv1.ClusterTopologyUpgradeStepAnnotation] = ""
+		delete(cluster.Annotations, clusterv1.ClusterTopologyUpgradeStepAnnotation)
 	}
 
 	return cluster, nil

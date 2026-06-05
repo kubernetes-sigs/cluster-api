@@ -36,16 +36,117 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 )
 
-const beforeFirstApplyManager = "before-first-apply"
+const (
+	beforeFirstApplyManager = "before-first-apply"
+
+	oldClusterSSAManager = "capi-topology"
+
+	patchManager = "manager"
+)
 
 var kcpScheme = runtime.NewScheme()
 
 func init() {
 	_ = controlplanev1.AddToScheme(kcpScheme)
 	_ = controlplanev1beta1.AddToScheme(kcpScheme)
+}
+
+// MigrateClusterAndMitigateManagedFieldsIssue migrates the Cluster object to regular patch
+// and mitigates the managedField apiserver issue,
+// where apiserver drops managedFields of an object under certain circumstances:
+// https://github.com/kubernetes/kubernetes/issues/136919
+//
+// It removes before-first-apply and capi-topology entries (if they exist)
+// and ensures that there is always a (minimal) entry for manager:Update to avoid
+// that the apiserver adds a new before-first-apply entry during the next SSA call.
+//
+// This addresses the issue in most scenarios, but it also means that an SSA call (by a user) directly after
+// we cleaned up managedFields won't be able to unset fields that the same user previously set.
+//
+// The following cases have to be handled:
+// Case 0: no-op
+//   - [manager:Update]                                                     => [manager:Update]
+//
+// Case 1: no managedFields
+//   - []                                                                   => [manager:Update]
+//
+// Case 2: before-first-apply & capi-topology entries
+//   - a: [before-first-apply:Apply]                                        => [manager:Update]
+//   - b: [capi-topology:Apply]                                             => [manager:Update]
+//   - c: [before-first-apply:Apply,other managers ...]                     => [other managers ...]
+//   - d: [capi-topology:Apply,other managers ...]                          => [other managers ...]
+//   - e: [before-first-apply:Apply,capi-topology:Apply,other managers ...] => [other managers ...]
+//
+// Note: Once the migration period from capi-topology:Apply => manager:Update is over we should remove the migration
+// code. Then we should discuss if we still want to keep the managedField mitigation for other clients that use SSA
+// with the Cluster object until the issue has been fixed in apiserver and our minimal supported Kubernetes version has the fix.
+// Note: Eventually we would like to remove this so we can stop caching managedFields for Cluster objects.
+func MigrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (bool, error) {
+	if util.IsNil(cluster) {
+		// Return if object is nil.
+		return false, nil
+	}
+
+	managedFields := cluster.GetManagedFields()
+
+	if len(managedFields) > 0 && !slices.ContainsFunc(managedFields, isManager(beforeFirstApplyManager, oldClusterSSAManager)) {
+		// Return if object has managedFields and no before-first-apply or capi-topology entry.
+		return false, nil
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+
+	// Remove before-first-apply and capi-topology entries if they exist.
+	managedFields = slices.DeleteFunc(managedFields, isManager(beforeFirstApplyManager, oldClusterSSAManager))
+
+	// Add manager:Update entry managedFields are empty.
+	// Add a seeding managedField entry to prevent SSA to create/infer a default managedField entry when the
+	// first SSA is applied.
+	// If an existing object doesn't have managedFields when applying the first SSA the API server
+	// creates an entry with operation=Update (guessing where the object comes from), but this entry ends up
+	// acting as a co-ownership and we want to prevent this.
+	// NOTE: fieldV1Map cannot be empty, so we add metadata.name which will be cleaned up at the next call with
+	//       the same manager.
+	if len(managedFields) == 0 {
+		managedFields = append(managedFields, metav1.ManagedFieldsEntry{
+			Manager:    patchManager,
+			Operation:  metav1.ManagedFieldsOperationUpdate,
+			APIVersion: clusterv1.GroupVersion.String(),
+			Time:       ptr.To(metav1.Now()),
+			FieldsType: "FieldsV1",
+			FieldsV1:   &metav1.FieldsV1{Raw: []byte(`{"f:metadata":{"f:name":{}}}`)},
+		})
+	}
+
+	// Create a patch to update only managedFields.
+	// Include resourceVersion to avoid race conditions.
+	jsonPatch := []map[string]interface{}{
+		{
+			"op":    "replace",
+			"path":  "/metadata/managedFields",
+			"value": managedFields,
+		},
+		{
+			"op":    "replace",
+			"path":  "/metadata/resourceVersion",
+			"value": cluster.GetResourceVersion(),
+		},
+	}
+	patch, err := json.Marshal(jsonPatch)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to migrate Cluster to regular patch and mitigate managedFields issue: failed to marshal patch for managedFields entry")
+	}
+
+	log.Info("Migrating Cluster or fixing up managedFields to mitigate kube-apiserver managedFields issue", "Cluster", klog.KObj(cluster))
+	if err := c.Patch(ctx, cluster, client.RawPatch(types.JSONPatchType, patch)); err != nil {
+		return false, errors.Wrapf(err, "failed to migrate Cluster to regular patch and mitigate managedFields issue: failed to patch %s %s", "Cluster", klog.KObj(cluster))
+	}
+
+	return true, nil
 }
 
 // MitigateManagedFieldsIssue mitigates the managedField apiserver issue,
@@ -88,7 +189,9 @@ func MitigateManagedFieldsIssue(ctx context.Context, c client.Client, obj client
 		return false, nil
 	}
 
-	if len(obj.GetManagedFields()) > 0 && !slices.ContainsFunc(obj.GetManagedFields(), isManager(beforeFirstApplyManager)) {
+	managedFields := obj.GetManagedFields()
+
+	if len(managedFields) > 0 && !slices.ContainsFunc(managedFields, isManager(beforeFirstApplyManager)) {
 		// Return if object has managedFields and no before-first-apply entry.
 		return false, nil
 	}
@@ -100,10 +203,10 @@ func MitigateManagedFieldsIssue(ctx context.Context, c client.Client, obj client
 	}
 
 	// Remove before-first-apply entry if it exists.
-	managedFields := slices.DeleteFunc(obj.GetManagedFields(), isManager(beforeFirstApplyManager))
+	managedFields = slices.DeleteFunc(managedFields, isManager(beforeFirstApplyManager))
 
 	// Add fieldManager entry if it does not exist.
-	if !slices.ContainsFunc(obj.GetManagedFields(), isManager(fieldManager)) {
+	if !slices.ContainsFunc(managedFields, isManager(fieldManager)) {
 		fieldsV1, err := computeManagedFields(obj, objGVK)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to mitigate managedFields issue: failed to compute managedFields entry")
@@ -216,9 +319,14 @@ func computeManagedFields(obj client.Object, objGVK schema.GroupVersionKind) ([]
 	return fieldsV1, nil
 }
 
-func isManager(manager string) func(entry metav1.ManagedFieldsEntry) bool {
+func isManager(managers ...string) func(entry metav1.ManagedFieldsEntry) bool {
 	return func(entry metav1.ManagedFieldsEntry) bool {
-		return entry.Manager == manager
+		for _, manager := range managers {
+			if entry.Manager == manager {
+				return true
+			}
+		}
+		return false
 	}
 }
 

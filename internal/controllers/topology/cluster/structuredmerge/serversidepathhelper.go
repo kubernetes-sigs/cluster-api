@@ -43,7 +43,7 @@ type serverSidePatchHelper struct {
 // NewServerSidePatchHelper returns a new PatchHelper using server side apply.
 func NewServerSidePatchHelper(ctx context.Context, original, modified client.Object, c client.Client, ssaCache ssa.Cache, opts ...HelperOption) (PatchHelper, error) {
 	// Create helperOptions for filtering the original and modified objects to the desired intent.
-	helperOptions := newHelperOptions(modified, opts...)
+	helperOptions := newHelperOptions(opts...)
 
 	// If required, convert the original and modified objects to unstructured and filter out all the information
 	// not relevant for the topology controller.

@@ -24,12 +24,12 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
 
-func (r *Reconciler) mitigateManagedFieldsIssue(ctx context.Context, s *scope.Scope) (bool, error) {
+func (r *Reconciler) migrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, s *scope.Scope) (bool, error) {
 	if s.Current == nil {
 		return false, nil
 	}
 
-	anyManagedFieldIssueMitigated, err := ssa.MitigateManagedFieldsIssue(ctx, r.Client, s.Current.Cluster, structuredmerge.TopologyManagerName)
+	anyManagedFieldIssueMitigated, err := ssa.MigrateClusterAndMitigateManagedFieldsIssue(ctx, r.Client, s.Current.Cluster)
 	if err != nil {
 		return false, err
 	}

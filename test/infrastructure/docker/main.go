@@ -96,8 +96,13 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// CAPD specific flags.
-	concurrency             int
-	clusterCacheConcurrency int
+	dockerMachineConcurrency     int
+	dockerClusterConcurrency     int
+	dockerMachinePoolConcurrency int
+	devMachineConcurrency        int
+	devClusterConcurrency        int
+	devMachinePoolConcurrency    int
+	clusterCacheConcurrency      int
 	skipCRDMigrationPhases  []string
 )
 
@@ -146,8 +151,23 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
 		"Enable block profiling")
 
-	fs.IntVar(&concurrency, "concurrency", 100,
-		"The number of docker machines to process simultaneously")
+	fs.IntVar(&dockerMachineConcurrency, "dockermachine-concurrency", 10,
+		"Number of DockerMachines to process simultaneously")
+
+	fs.IntVar(&dockerClusterConcurrency, "dockercluster-concurrency", 10,
+		"Number of DockerClusters to process simultaneously")
+
+	fs.IntVar(&dockerMachinePoolConcurrency, "dockermachinepool-concurrency", 10,
+		"Number of DockerMachinePools to process simultaneously")
+
+	fs.IntVar(&devMachineConcurrency, "devmachine-concurrency", 10,
+		"Number of DevMachines to process simultaneously")
+
+	fs.IntVar(&devClusterConcurrency, "devcluster-concurrency", 10,
+		"Number of DevClusters to process simultaneously")
+
+	fs.IntVar(&devMachinePoolConcurrency, "devmachinepool-concurrency", 10,
+		"Number of DevMachinePools to process simultaneously")
 
 	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")
@@ -436,7 +456,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		ClusterCache:     clusterCache,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, controller.Options{
-		MaxConcurrentReconciles: concurrency,
+		MaxConcurrentReconciles: dockerMachineConcurrency,
 		ReconciliationTimeout:   6 * time.Minute, // increase reconciliation timeout because the DockerMachineReconciler performs long operations like kubeadm init/join, image copy, etc.
 	}); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "DockerMachine")
@@ -447,8 +467,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:           mgr.GetClient(),
 		ContainerRuntime: runtimeClient,
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
-		setupLog.Error(err, "Unable to create controller", "controller", "DockerCluster")
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: dockerClusterConcurrency}); err != nil {
 		os.Exit(1)
 	}
 
@@ -466,8 +485,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			Client:           mgr.GetClient(),
 			ContainerRuntime: runtimeClient,
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
-			setupLog.Error(err, "Unable to create controller", "controller", "DockerMachinePool")
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: dockerMachinePoolConcurrency}); err != nil {
 			os.Exit(1)
 		}
 	}
@@ -480,7 +498,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		InMemoryManager:  inMemoryManager,
 		APIServerMux:     apiServerMux,
 	}).SetupWithManager(ctx, mgr, controller.Options{
-		MaxConcurrentReconciles: concurrency,
+		MaxConcurrentReconciles: devMachineConcurrency,
 		ReconciliationTimeout:   5 * time.Minute, // increase reconciliation timeout because the Docker backend performs long operations like kubeadm init/join, image copy, etc.
 	}); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "DevMachine")
@@ -493,8 +511,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		ContainerRuntime: runtimeClient,
 		InMemoryManager:  inMemoryManager,
 		APIServerMux:     apiServerMux,
-	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
-		setupLog.Error(err, "Unable to create controller", "controller", "DevCluster")
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: devClusterConcurrency}); err != nil {
 		os.Exit(1)
 	}
 
@@ -512,8 +529,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			Client:           mgr.GetClient(),
 			ContainerRuntime: runtimeClient,
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
-			setupLog.Error(err, "Unable to create controller", "controller", "DevMachinePool")
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: devMachinePoolConcurrency}); err != nil {
 			os.Exit(1)
 		}
 	}

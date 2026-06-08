@@ -48,7 +48,7 @@ a target [management cluster] on the selected [infrastructure provider].
 
    [kind] is not designed for production use.
 
-   **Minimum [kind] supported version**: v0.31.0
+   **Minimum [kind] supported version**: v0.32.0
 
    **Help with common issues can be found in the [Troubleshooting Guide](./troubleshooting.md).**
 
@@ -992,7 +992,7 @@ export CLOUDSCALE_SSH_PUBLIC_KEY="ssh-ed25519 AAAA..."
 # cloudscale.ch region
 export CLOUDSCALE_REGION="lpg"
 # Server image for nodes
-export CLOUDSCALE_MACHINE_IMAGE="custom:ubuntu-2404-kube-v1.35.2"
+export CLOUDSCALE_MACHINE_IMAGE="custom:ubuntu-2404-kube-v1.36.1"
 # Flavor for control plane nodes
 export CLOUDSCALE_CONTROL_PLANE_MACHINE_FLAVOR="flex-4-2"
 # Flavor for worker nodes 
@@ -1591,7 +1591,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.35.0 \
+  --kubernetes-version v1.36.1 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1637,7 +1637,7 @@ clusterctl generate cluster capi-quickstart \
 ```bash
 clusterctl generate cluster capi-quickstart \
   --infrastructure azure \
-  --kubernetes-version v1.35.0 \
+  --kubernetes-version v1.36.1 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1652,7 +1652,7 @@ yq -i "with(. | select(.kind == \"AzureClusterIdentity\"); .spec.type |= \"Servi
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.35.0 \
+  --kubernetes-version v1.36.1 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1706,7 +1706,7 @@ and see an output similar to this:
 
 ```bash
 NAME              PHASE         AGE   VERSION
-capi-quickstart   Provisioned   8s    v1.35.0
+capi-quickstart   Provisioned   8s    v1.36.1
 ```
 
 To verify the first control plane is up:
@@ -1719,7 +1719,7 @@ You should see an output is similar to this:
 
 ```bash
 NAME                    CLUSTER           INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE    VERSION
-capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.35.0
+capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.36.1
 ```
 
 <aside class="note warning">
@@ -1873,12 +1873,12 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
 ```bash
 NAME                                          STATUS   ROLES           AGE    VERSION
-capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.35.0
-capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.35.0
-capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.35.0
-capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.35.0
-capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.35.0
-capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.35.0
+capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.36.1
+capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.36.1
+capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.36.1
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.36.1
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.36.1
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.36.1
 ```
 
 {{#/tab }}
@@ -1962,12 +1962,12 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
 ```bash
 NAME                                          STATUS   ROLES           AGE    VERSION
-capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.35.0
-capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.35.0
-capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.35.0
-capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.35.0
-capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.35.0
-capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.35.0
+capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.36.1
+capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.36.1
+capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.36.1
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.36.1
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.36.1
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.36.1
 ```
 
 {{#/tab }}

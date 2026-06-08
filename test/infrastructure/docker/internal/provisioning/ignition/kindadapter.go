@@ -70,6 +70,11 @@ func getActions(userData []byte) ([]provisioning.Cmd, error) {
 		return nil, fmt.Errorf("unmarshalling Ignition JSON: %w", err)
 	}
 
+	// Add the bootstrap started sentinel file.
+	// Note: this sentinel file stored inside the machine, and it is used as a gate to prevent bootstrap twice.
+	bootstrapStarted := provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", "mkdir -p /run/cluster-api && echo started > /run/cluster-api/capd.bootstrap.started"}, Retry: 5}
+	commands = append(commands, bootstrapStarted)
+
 	// Generate commands for files.
 	for _, f := range ignition.Storage.Files {
 		raw := strings.TrimSpace(f.Contents.Source)
@@ -125,10 +130,10 @@ func hackKubeadmIgnoreErrors(s string) string {
 
 	for idx, line := range lines {
 		if strings.Contains(line, "kubeadm init") {
-			lines[idx] = strings.ReplaceAll(line, "kubeadm init", "mkdir -p /run/cluster-api && echo started > /run/cluster-api/capd.bootstrap.started && kubeadm init --ignore-preflight-errors=all")
+			lines[idx] = strings.ReplaceAll(line, "kubeadm init", "kubeadm init --ignore-preflight-errors=all")
 		}
 		if strings.Contains(line, "kubeadm join") {
-			lines[idx] = strings.ReplaceAll(line, "kubeadm join", "mkdir -p /run/cluster-api && echo started > /run/cluster-api/capd.bootstrap.started && kubeadm join --ignore-preflight-errors=all")
+			lines[idx] = strings.ReplaceAll(line, "kubeadm join", "kubeadm join --ignore-preflight-errors=all")
 		}
 	}
 

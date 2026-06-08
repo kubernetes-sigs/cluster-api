@@ -494,6 +494,7 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 
 func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machine *clusterv1.Machine, dataSecretName *string, version string, dockerMachine *infrav1.DevMachine, externalMachine *docker.Machine) (ctrl.Result, error) { //nolint:unparam
 	const CloudInitOrIgnitionTask = "CloudInitOrIgnition"
+	log := ctrl.LoggerFrom(ctx)
 
 	// no-op if already completed or failed.
 	if conditions.IsTrue(dockerMachine, infrav1.DevMachineBootstrapCompletedCondition) ||
@@ -547,6 +548,8 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 	taskState := r.TaskManager.GetStatus(dockerMachine, CloudInitOrIgnitionTask)
 	switch {
 	case taskState == nil:
+		log.Info("Checking for sentinel file")
+
 		// Before creating the command, check if the sentinel file already exists into the container to prevent running the bootstrap twice.
 		// Note: this is required for the clusterctl move scenario, where there is a race between this controller
 		// and the machine controller surfacing the NodeRef which is the other signal used to prevent executing bootstrap twice.
@@ -561,6 +564,7 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 			return ctrl.Result{}, err
 		}
 		if sentinelFileExists {
+			log.Info("Sentinel file already exists, machine has been already bootstrapped")
 			conditions.Set(dockerMachine, metav1.Condition{
 				Type:   infrav1.DevMachineBootstrapCompletedCondition,
 				Status: metav1.ConditionTrue,
@@ -568,6 +572,7 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 			})
 			return ctrl.Result{}, nil
 		}
+		log.Info("Sentinel file does not exist, bootstrapping the machine for the first time")
 
 		// CloudInitOrIgnitionTask not it performed, start it.
 

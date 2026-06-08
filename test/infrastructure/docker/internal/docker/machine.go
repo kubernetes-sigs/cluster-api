@@ -416,7 +416,7 @@ func (m *Machine) CheckForSentinelFile(ctx context.Context) (bool, error) {
 	if err := cmd.Run(ctx); err != nil {
 		return false, errors.Wrap(err, "failed to run bootstrap check")
 	}
-	return outStd.String() == "true", nil
+	return strings.Contains(outStd.String(), "true"), nil
 }
 
 // Delete deletes a docker container hosting a Kubernetes node.

@@ -22,7 +22,7 @@ pluginsManager:
     plugins:
       - name: headlamp_cluster-api
         source: https://artifacthub.io/packages/headlamp/headlamp-plugins/headlamp_cluster-api
-        version: 0.1.0-alpha
+        version: 0.2.0-beta
 
 clusterRoleBinding:
   create: true

@@ -34,10 +34,12 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest/fake"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -335,6 +337,40 @@ func TestMinDurationOrDefault(t *testing.T) {
 
 			gotDuration := minDurationOrDefault(tt.durations, tt.defaultDuration)
 			g.Expect(gotDuration).To(Equal(tt.wantDuration))
+		})
+	}
+}
+
+func TestBuildClusterAccessorConfigDefaultTransform(t *testing.T) {
+	transform := cache.TransformStripManagedFields()
+	tests := []struct {
+		name      string
+		transform toolscache.TransformFunc
+		wantNil   bool
+	}{
+		{
+			name:      "nil transform is preserved as nil",
+			transform: nil,
+			wantNil:   true,
+		},
+		{
+			name:      "non-nil transform is propagated",
+			transform: transform,
+			wantNil:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got := buildClusterAccessorConfig(scheme.Scheme, Options{
+				Cache: CacheOptions{DefaultTransform: tt.transform},
+			}, nil)
+			if tt.wantNil {
+				g.Expect(got.Cache.DefaultTransform).To(BeNil())
+			} else {
+				g.Expect(got.Cache.DefaultTransform).ToNot(BeNil())
+			}
 		})
 	}
 }

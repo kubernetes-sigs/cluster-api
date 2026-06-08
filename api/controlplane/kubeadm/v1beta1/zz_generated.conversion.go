@@ -339,6 +339,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneS
 	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	// WARNING: in.MachineNaming requires manual conversion: does not exist in peer-type
+	// WARNING: in.EtcdMaintenance requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -405,6 +406,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlan
 	}
 	out.ObservedGeneration = in.ObservedGeneration
 	// WARNING: in.LastRemediation requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2.LastRemediationStatus vs *sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1.LastRemediationStatus)
+	// WARNING: in.EtcdMemberDefragTimes requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

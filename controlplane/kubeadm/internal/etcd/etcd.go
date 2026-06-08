@@ -114,6 +114,13 @@ type Member struct {
 	IsLearner bool
 }
 
+// Members is a slice of Member pointers that implements sort.Interface, ordering by member name.
+type Members []*Member
+
+func (m Members) Len() int           { return len(m) }
+func (m Members) Less(i, j int) bool { return m[i].Name < m[j].Name }
+func (m Members) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
+
 // pbMemberToMember converts the protobuf representation of a cluster member to a Member struct.
 func pbMemberToMember(m *etcdserverpb.Member) *Member {
 	return &Member{

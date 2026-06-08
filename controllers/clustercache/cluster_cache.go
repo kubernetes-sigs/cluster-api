@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -80,6 +81,14 @@ type ClusterFilter func(cluster *clusterv1.Cluster) bool
 type CacheOptions struct {
 	// SyncPeriod is the sync period of the cache.
 	SyncPeriod *time.Duration
+
+	// DefaultTransform is a transform function applied to all objects before they are
+	// stored in the per-cluster cache. It is equivalent to cache.Options.DefaultTransform
+	// from controller-runtime and is a convenient way to strip managedFields (or apply
+	// other mutations) from every cached object without having to enumerate every type
+	// in ByObject. When a type also has a ByObject entry with its own Transform set, that
+	// per-type transform takes precedence.
+	DefaultTransform toolscache.TransformFunc
 
 	// ByObject restricts the cache's ListWatch to the desired fields per GVK at the specified object.
 	ByObject map[client.Object]cache.ByObject
@@ -747,6 +756,7 @@ func buildClusterAccessorConfig(scheme *runtime.Scheme, options Options, control
 		Cache: &clusterAccessorCacheConfig{
 			InitialSyncTimeout: 5 * time.Minute,
 			SyncPeriod:         options.Cache.SyncPeriod,
+			DefaultTransform:   options.Cache.DefaultTransform,
 			ByObject:           options.Cache.ByObject,
 			Indexes:            options.Cache.Indexes,
 		},

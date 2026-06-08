@@ -256,6 +256,20 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	if in.LastRemediation.RetryCount == nil {
 		in.LastRemediation.RetryCount = ptr.To(int32(0)) // RetryCount is a required field and nil does not round trip
 	}
+
+	// metav1.Time.MarshalJSON returns "null" for the zero instant, which json.Unmarshal
+	// then decodes as a zero metav1.Time. Drop any entries with a zero LastDefragTime from
+	// EtcdMemberDefragTimes so the round-trip comparison succeeds.
+	filtered := in.EtcdMemberDefragTimes[:0]
+	for _, entry := range in.EtcdMemberDefragTimes {
+		if !entry.LastDefragTime.IsZero() {
+			filtered = append(filtered, entry)
+		}
+	}
+	in.EtcdMemberDefragTimes = filtered
+	if len(in.EtcdMemberDefragTimes) == 0 {
+		in.EtcdMemberDefragTimes = nil
+	}
 }
 
 func spokeKubeadmControlPlaneStatus(in *controlplanev1beta1.KubeadmControlPlaneStatus, c randfill.Continue) {

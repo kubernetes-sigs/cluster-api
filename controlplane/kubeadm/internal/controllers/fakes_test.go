@@ -81,6 +81,20 @@ type fakeWorkloadCluster struct {
 
 	forwardEtcdLeadershipCalled int
 	removeEtcdMemberCalled      int
+
+	// EtcdMemberStatuses maps node name → status returned by EtcdMemberStatus.
+	EtcdMemberStatuses map[string]*etcd.MemberStatus
+	// EtcdMemberStatusErrors maps node name → error returned by EtcdMemberStatus.
+	EtcdMemberStatusErrors map[string]error
+	// DefraggedMembers records the node names passed to DefragEtcdMember, in call order.
+	DefraggedMembers []string
+	// DefragEtcdMemberErr is returned by every DefragEtcdMember call if non-nil.
+	DefragEtcdMemberErr error
+
+	// DisarmedMembers records the node names passed to DisarmEtcdMemberNoSpaceAlarm, in call order.
+	DisarmedMembers []string
+	// DisarmEtcdMemberNoSpaceAlarmErr is returned by every DisarmEtcdMemberNoSpaceAlarm call if non-nil.
+	DisarmEtcdMemberNoSpaceAlarmErr error
 }
 
 func (f *fakeWorkloadCluster) ForwardEtcdLeadership(ctx context.Context, member, leaderCandidate string) error {
@@ -110,6 +124,26 @@ func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.Loca
 func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ *etcd.Member, _ []*internal.Node) error {
 	f.removeEtcdMemberCalled++
 	return nil
+}
+
+func (f *fakeWorkloadCluster) EtcdMemberStatus(_ context.Context, nodeName string) (*etcd.MemberStatus, error) {
+	if err, ok := f.EtcdMemberStatusErrors[nodeName]; ok {
+		return nil, err
+	}
+	if status, ok := f.EtcdMemberStatuses[nodeName]; ok {
+		return status, nil
+	}
+	return &etcd.MemberStatus{}, nil
+}
+
+func (f *fakeWorkloadCluster) DefragEtcdMember(_ context.Context, nodeName string) error {
+	f.DefraggedMembers = append(f.DefraggedMembers, nodeName)
+	return f.DefragEtcdMemberErr
+}
+
+func (f *fakeWorkloadCluster) DisarmEtcdMemberNoSpaceAlarm(_ context.Context, nodeName string, _ uint64) error {
+	f.DisarmedMembers = append(f.DisarmedMembers, nodeName)
+	return f.DisarmEtcdMemberNoSpaceAlarmErr
 }
 
 func (f *fakeWorkloadCluster) UpdateClusterConfiguration(context.Context, semver.Version, ...func(*bootstrapv1.ClusterConfiguration)) error {

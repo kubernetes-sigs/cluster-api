@@ -477,6 +477,11 @@ type KubeadmControlPlaneSpec struct {
 	// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
 	// +optional
 	MachineNaming MachineNamingSpec `json:"machineNaming,omitempty,omitzero"`
+
+	// etcdMaintenance defines settings for automatic etcd maintenance operations such as defragmentation.
+	// Only applies when using managed (local) etcd; has no effect with external etcd.
+	// +optional
+	EtcdMaintenance *EtcdMaintenanceSpec `json:"etcdMaintenance,omitempty"`
 }
 
 // KubeadmControlPlaneMachineTemplate defines the template for Machines
@@ -693,6 +698,75 @@ type MachineNamingSpec struct {
 	Template string `json:"template,omitempty"`
 }
 
+// EtcdMaintenanceSpec defines settings for automatic etcd maintenance operations.
+type EtcdMaintenanceSpec struct {
+	// defragRule is a boolean expression evaluated independently for each etcd member to decide
+	// whether defragmentation should be performed on that member.
+	//
+	// The following variables are available:
+	//   - dbSize:       total size of the etcd database file, in bytes
+	//   - dbSizeInUse:  total size actually in use in the etcd database, in bytes
+	//   - dbSizeFree:   total unused space (dbSize - dbSizeInUse), in bytes
+	//   - dbQuota:      etcd storage quota in bytes; resolved from the etcd Status response
+	//                   (etcd v3.6+), then from spec.kubeadmConfigSpec.clusterConfiguration.etcd.local.extraArgs
+	//                   quota-backend-bytes, then defaulting to 2 GiB
+	//   - dbQuotaUsage: ratio of database size to quota (dbSize / dbQuota)
+	//
+	// Supported operators: <, <=, >, >=, ==, !=, &&, ||, !, ()
+	// Arithmetic: +, -, *, /
+	//
+	// Examples:
+	//   "dbQuotaUsage > 0.8 || dbSizeFree > 209715200"
+	//   "dbSize > dbQuota*80/100 && dbSizeFree > 100*1024*1024"
+	//
+	// If empty or not set, defragmentation is disabled.
+	// +optional
+	// +kubebuilder:validation:MaxLength=512
+	DefragRule string `json:"defragRule,omitempty"` //nolint:kubeapilinter // empty string is a valid value meaning "defragmentation disabled"
+
+	// minDefragIntervalSeconds is the minimum number of seconds that must elapse
+	// between two consecutive defragmentations of the same etcd member.
+	// The interval is enforced independently per member, so all members in a cluster
+	// can be defragmented in rapid succession (one per reconcile, 5 s apart) and each
+	// member will not be defragmented again until its own timer has expired.
+	// Defaults to 3600 (1 hour) when set to 0 or not specified.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	MinDefragIntervalSeconds int32 `json:"minDefragIntervalSeconds,omitempty"` //nolint:kubeapilinter // zero value (0) means "use default (3600s)"; nil vs 0 carry identical semantics
+
+	// autoDisalarm controls whether the controller should automatically disarm the etcd
+	// NOSPACE alarm on a member after it has been successfully defragmented and its
+	// dbSize/dbQuota ratio drops below disalarmThreshold.
+	// Defaults to false.
+	// +optional
+	AutoDisalarm bool `json:"autoDisalarm,omitempty"` //nolint:kubeapilinter // false is a valid explicit value meaning "disabled"; intentionally a non-pointer bool
+
+	// disalarmThresholdPercent is the maximum database-size-to-quota ratio, expressed as
+	// an integer percentage, below which the NOSPACE alarm is cleared on a member after
+	// successful defragmentation. For example, 90 means the alarm is disarmed when
+	// dbSize / dbQuota < 0.90.
+	// The check is performed independently per member immediately after it is defragmented.
+	// Only evaluated when autoDisalarm is true.
+	// Must be in the range (0, 100]. Defaults to 90 when set to 0 or not specified.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	DisalarmThresholdPercent int32 `json:"disalarmThresholdPercent,omitempty"` //nolint:kubeapilinter // zero value (0) means "use default (90)"; nil vs 0 carry identical semantics
+}
+
+// EtcdMemberDefragStatus records when an etcd member was last defragmented.
+type EtcdMemberDefragStatus struct {
+	// name is the name of the etcd member.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name,omitempty"`
+
+	// lastDefragTime is the timestamp when this etcd member was last defragmented.
+	// +required
+	LastDefragTime metav1.Time `json:"lastDefragTime,omitempty"`
+}
+
 // KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.
 // +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneStatus struct {
@@ -763,6 +837,15 @@ type KubeadmControlPlaneStatus struct {
 	// lastRemediation stores info about last remediation performed.
 	// +optional
 	LastRemediation LastRemediationStatus `json:"lastRemediation,omitempty,omitzero"`
+
+	// etcdMemberDefragTimes records the last time each etcd member was defragmented.
+	// Used by the controller to enforce spec.etcdMaintenance.minDefragIntervalSeconds
+	// independently for each member.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=32
+	EtcdMemberDefragTimes []EtcdMemberDefragStatus `json:"etcdMemberDefragTimes,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional

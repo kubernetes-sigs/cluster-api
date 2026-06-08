@@ -1,0 +1,82 @@
+---
+# DevCluster using the in-memory backend so that the fake etcd gRPC server is used.
+# This lets the e2e test assert defragmentation by inspecting the
+# etcd.inmemory.infrastructure.cluster.x-k8s.io/defrag-count annotation that the
+# fake Defragment handler increments on each call.
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DevCluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  backend:
+    inMemory: {}
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
+    pods:
+      cidrBlocks: ['${DOCKER_POD_CIDRS}']
+    serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: DevCluster
+    name: '${CLUSTER_NAME}'
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiGroup: controlplane.cluster.x-k8s.io
+    name: "${CLUSTER_NAME}-control-plane"
+---
+# DevMachineTemplate for the control plane using the in-memory backend.
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DevMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  template:
+    spec:
+      backend:
+        inMemory:
+          vm:
+            provisioning:
+              startupDuration: "3s"
+              startupJitter: "0.2"
+          node:
+            provisioning:
+              startupDuration: "1s"
+              startupJitter: "0.2"
+          apiServer:
+            provisioning:
+              startupDuration: "2s"
+              startupJitter: "0.2"
+          etcd:
+            provisioning:
+              startupDuration: "2s"
+              startupJitter: "0.2"
+---
+# KubeadmControlPlane with automatic etcd defragmentation enabled.
+# defragRule "dbSize >= 0.0" is always true (the in-memory fake returns DbSize=0),
+# so defragmentation is triggered on every reconcile cycle, giving the test a
+# deterministic way to verify the full codepath end-to-end.
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  machineTemplate:
+    spec:
+      infrastructureRef:
+        kind: DevMachineTemplate
+        apiGroup: infrastructure.cluster.x-k8s.io
+        name: "${CLUSTER_NAME}-control-plane"
+  kubeadmConfigSpec: {}
+  version: "${KUBERNETES_VERSION}"
+  etcdMaintenance:
+    defragRule: "dbSize >= 0"
+    # Short interval so the e2e test can observe a second defrag cycle without a long wait.
+    minDefragIntervalSeconds: 5

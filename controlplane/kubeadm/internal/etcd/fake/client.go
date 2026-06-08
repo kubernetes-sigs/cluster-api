@@ -29,6 +29,14 @@ type FakeEtcdClient struct { //nolint:revive
 	AlarmResponse *clientv3.AlarmResponse
 	AlarmError    error
 
+	AlarmDisarmResponse   *clientv3.AlarmResponse
+	AlarmDisarmError      error
+	DisarmedAlarmMemberID uint64
+
+	DefragmentResponse   *clientv3.DefragmentResponse
+	DefragmentError      error
+	DefragmentedEndpoint string
+
 	MemberListResponse *clientv3.MemberListResponse
 	MemberListError    error
 
@@ -60,6 +68,16 @@ func (c *FakeEtcdClient) Close() error {
 
 func (c *FakeEtcdClient) AlarmList(_ context.Context) (*clientv3.AlarmResponse, error) {
 	return c.AlarmResponse, c.AlarmError
+}
+
+func (c *FakeEtcdClient) AlarmDisarm(_ context.Context, m *clientv3.AlarmMember) (*clientv3.AlarmResponse, error) {
+	c.DisarmedAlarmMemberID = m.MemberID
+	return c.AlarmDisarmResponse, c.AlarmDisarmError
+}
+
+func (c *FakeEtcdClient) Defragment(_ context.Context, endpoint string) (*clientv3.DefragmentResponse, error) {
+	c.DefragmentedEndpoint = endpoint
+	return c.DefragmentResponse, c.DefragmentError
 }
 
 func (c *FakeEtcdClient) MemberList(_ context.Context, _ ...clientv3.OpOption) (*clientv3.MemberListResponse, error) {

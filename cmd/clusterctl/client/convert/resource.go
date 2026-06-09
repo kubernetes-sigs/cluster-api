@@ -20,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // convertResource converts a single resource to the target GroupVersion.
@@ -40,24 +39,6 @@ func convertResource(obj runtime.Object, targetGV schema.GroupVersion, scheme *r
 
 	if !scheme.Recognizes(targetGVK) {
 		return nil, errors.Errorf("target GVK %s not recognized by scheme", targetGVK.String())
-	}
-
-	// Use the Convertible/Hub interface if available (preferred path for CAPI types).
-	if convertible, ok := obj.(conversion.Convertible); ok {
-		targetObj, err := scheme.New(targetGVK)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create target object for %s", targetGVK.String())
-		}
-
-		if hub, ok := targetObj.(conversion.Hub); ok {
-			if err := convertible.ConvertTo(hub); err != nil {
-				return nil, errors.Wrapf(err, "failed to convert %s from %s to %s", gvk.Kind, gvk.Version, targetGV.Version)
-			}
-
-			hubObj := hub.(runtime.Object)
-			hubObj.GetObjectKind().SetGroupVersionKind(targetGVK)
-			return hubObj, nil
-		}
 	}
 
 	// Fallback to scheme conversion.

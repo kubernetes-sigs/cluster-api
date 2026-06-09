@@ -41,6 +41,9 @@ func TestConvertResource(t *testing.T) {
 			Version: "v1beta1",
 			Kind:    "Cluster",
 		})
+		cluster.Spec.Topology = &clusterv1beta1.Topology{
+			Class: "class1",
+		}
 
 		convertedObj, err := convertResource(cluster, targetGV, scheme.Scheme)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -50,6 +53,7 @@ func TestConvertResource(t *testing.T) {
 		g.Expect(ok).To(BeTrue())
 		g.Expect(convertedCluster.Name).To(Equal("test-cluster"))
 		g.Expect(convertedCluster.GetObjectKind().GroupVersionKind().Version).To(Equal("v1beta2"))
+		g.Expect(convertedCluster.Spec.Topology.ClassRef.Name).To(Equal("class1"))
 	})
 
 	t.Run("no-op for v1beta2 resource", func(t *testing.T) {

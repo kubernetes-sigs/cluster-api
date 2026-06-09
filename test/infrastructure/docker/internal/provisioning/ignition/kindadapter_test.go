@@ -62,7 +62,6 @@ func TestRealUseCase(t *testing.T) {
   }`)
 
 	expectedCmds := []provisioning.Cmd{
-		{Cmd: "/bin/sh", Args: []string{"-c", "mkdir -p /run/cluster-api && echo started > /run/cluster-api/capd.bootstrap.started"}, Retry: 5},
 		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
 		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.crt /dev/stdin"}, Retry: 5},
 		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/ca.crt"}, Retry: 5},

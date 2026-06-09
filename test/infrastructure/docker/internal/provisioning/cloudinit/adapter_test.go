@@ -109,7 +109,6 @@ write_files:
 `)
 
 	expectedCmds := []provisioning.Cmd{
-		{Cmd: "/bin/sh", Args: []string{"-c", "mkdir -p /run/cluster-api && echo started > /run/cluster-api/capd.bootstrap.started"}, Retry: 5},
 		// ca
 		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
 		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.crt /dev/stdin"}, Retry: 5},

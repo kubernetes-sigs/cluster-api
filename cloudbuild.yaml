@@ -1,5 +1,5 @@
 # See https://cloud.google.com/cloud-build/docs/build-config
-# See https://console.cloud.google.com/gcr/images/k8s-staging-test-infra/global/gcb-docker-gcloud
+# See https://console.cloud.google.com/artifacts/docker/k8s-staging-test-infra/us/gcr.io/gcb-docker-gcloud
 timeout: 2700s
 options:
   substitution_option: ALLOW_LOOSE

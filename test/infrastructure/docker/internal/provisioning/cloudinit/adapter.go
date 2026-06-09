@@ -68,13 +68,6 @@ func RawCloudInitToProvisioningCommands(config []byte, mapping kind.Mapping) ([]
 	}
 
 	commands := []provisioning.Cmd{}
-
-	// Add the bootstrap started sentinel file.
-	// Note: this sentinel file stored inside the machine, and it is used as a gate to prevent bootstrap twice.
-	bootstrapStarted := provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", "mkdir -p /run/cluster-api && echo started > /run/cluster-api/capd.bootstrap.started"}, Retry: 5}
-	commands = append(commands, bootstrapStarted)
-
-	// Add other commands.
 	for _, action := range actions {
 		cmds, err := action.Commands()
 		if err != nil {

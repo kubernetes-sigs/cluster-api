@@ -95,3 +95,6 @@ tmp
 
 # Development container configurations (https://containers.dev/)
 .devcontainer
+
+# Claude's configuration
+.claude/

@@ -2,9 +2,11 @@ module sigs.k8s.io/cluster-api/hack/tools
 
 go 1.26.0
 
-replace sigs.k8s.io/cluster-api => ../../
-
-replace sigs.k8s.io/cluster-api/test => ../../test
+replace (
+	sigs.k8s.io/cluster-api => ../../
+	sigs.k8s.io/cluster-api/api => ../../api
+	sigs.k8s.io/cluster-api/test => ../../test
+)
 
 require (
 	cloud.google.com/go/storage v1.62.3
@@ -25,6 +27,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20260427204847-8949caaa1199
 	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api/api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/controller-tools v0.21.0

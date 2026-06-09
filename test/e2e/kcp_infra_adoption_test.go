@@ -31,6 +31,12 @@ var _ = Describe("When testing KCP infra adoption [ClusterClass]", func() {
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
+			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
+			// by the test-extension-webhook-service.
+			// The below values are used when creating the cluster-wide ExtensionConfig to refer
+			// the actual service.
+			ExtensionServiceNamespace: "test-extension-system",
+			ExtensionServiceName:      "test-extension-webhook-service",
 		}
 	})
 })

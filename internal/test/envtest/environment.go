@@ -80,6 +80,7 @@ import (
 	bootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
+	controlplaneconversion "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
@@ -275,7 +276,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, managerClientOptions client.Options) *Environment {
+func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, managerClientOptions client.Options) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
@@ -400,10 +401,9 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 	internalwebhooks.SetMinNodeStartupTimeoutSeconds(0)
 
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
-	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+	controlplaneconversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
-	}
-	controlplanev1beta1.SetAPIVersionGetter(apiVersionGetter)
+	})
 	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
 	})

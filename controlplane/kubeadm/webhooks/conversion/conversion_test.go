@@ -1,7 +1,7 @@
 //go:build !race
 
 /*
-Copyright 2025 The Kubernetes Authors.
+Copyright 2026 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package conversion
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
@@ -33,6 +34,7 @@ import (
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -45,7 +47,7 @@ const (
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
-	SetAPIVersionGetter(func(gk schema.GroupKind) (string, error) {
+	SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{
@@ -57,16 +59,20 @@ func TestFuzzyConversion(t *testing.T) {
 		return "", fmt.Errorf("failed to map GroupKind %s to version", gk.String())
 	})
 
-	t.Run("for KubeadmControlPlane", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &controlplanev1.KubeadmControlPlane{},
-		Spoke:       &KubeadmControlPlane{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmControlPlaneFuzzFuncs},
-	}))
-	t.Run("for KubeadmControlPlaneTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &controlplanev1.KubeadmControlPlaneTemplate{},
-		Spoke:       &KubeadmControlPlaneTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmControlPlaneTemplateFuzzFuncs},
-	}))
+	t.Run("for KubeadmControlPlane (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
+		utilconversion.SpokeConverterFuzzTestFuncInput[*controlplanev1.KubeadmControlPlane, *controlplanev1beta1.KubeadmControlPlane]{
+			ConvertSpokeToHubFunc: ConvertKubeadmControlPlaneV1Beta1ToHub,
+			ConvertHubToSpokeFunc: ConvertKubeadmControlPlaneHubToV1Beta1,
+			FuzzerFuncs:           []fuzzer.FuzzerFuncs{KubeadmControlPlaneFuzzFuncs},
+		}),
+	)
+	t.Run("for KubeadmControlPlaneTemplate (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
+		utilconversion.SpokeConverterFuzzTestFuncInput[*controlplanev1.KubeadmControlPlaneTemplate, *controlplanev1beta1.KubeadmControlPlaneTemplate]{
+			ConvertSpokeToHubFunc: ConvertKubeadmControlPlaneTemplateV1Beta1ToHub,
+			ConvertHubToSpokeFunc: ConvertKubeadmControlPlaneTemplateHubToV1Beta1,
+			FuzzerFuncs:           []fuzzer.FuzzerFuncs{KubeadmControlPlaneTemplateFuzzFuncs},
+		}),
+	)
 }
 
 func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -200,7 +206,7 @@ func hubMachineTemplateSpec(in *controlplanev1.KubeadmControlPlaneMachineTemplat
 	in.Spec.InfrastructureRef.Kind = gvk.Kind
 }
 
-func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
+func spokeKubeadmControlPlane(in *controlplanev1beta1.KubeadmControlPlane, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	// Ensure ref fields are always set to realistic values.
@@ -212,21 +218,21 @@ func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
 	in.Spec.MachineTemplate.InfrastructureRef.ResourceVersion = ""
 	in.Spec.MachineTemplate.InfrastructureRef.FieldPath = ""
 
-	if reflect.DeepEqual(in.Spec.RolloutBefore, &RolloutBefore{}) {
+	if reflect.DeepEqual(in.Spec.RolloutBefore, &controlplanev1beta1.RolloutBefore{}) {
 		in.Spec.RolloutBefore = nil
 	}
 	if in.Spec.RolloutStrategy != nil {
-		if reflect.DeepEqual(in.Spec.RolloutStrategy.RollingUpdate, &RollingUpdate{}) {
+		if reflect.DeepEqual(in.Spec.RolloutStrategy.RollingUpdate, &controlplanev1beta1.RollingUpdate{}) {
 			in.Spec.RolloutStrategy.RollingUpdate = nil
 		}
 	}
-	if reflect.DeepEqual(in.Spec.RolloutStrategy, &RolloutStrategy{}) {
+	if reflect.DeepEqual(in.Spec.RolloutStrategy, &controlplanev1beta1.RolloutStrategy{}) {
 		in.Spec.RolloutStrategy = nil
 	}
 	if reflect.DeepEqual(in.Spec.RolloutAfter, &metav1.Time{}) {
 		in.Spec.RolloutAfter = nil
 	}
-	if reflect.DeepEqual(in.Spec.MachineNamingStrategy, &MachineNamingStrategy{}) {
+	if reflect.DeepEqual(in.Spec.MachineNamingStrategy, &controlplanev1beta1.MachineNamingStrategy{}) {
 		in.Spec.MachineNamingStrategy = nil
 	}
 }
@@ -252,11 +258,11 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	}
 }
 
-func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Continue) {
+func spokeKubeadmControlPlaneStatus(in *controlplanev1beta1.KubeadmControlPlaneStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &KubeadmControlPlaneV1Beta2Status{}) {
+		if reflect.DeepEqual(in.V1Beta2, &controlplanev1beta1.KubeadmControlPlaneV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -384,24 +390,24 @@ func hubKubeadmControlPlaneTemplate(in *controlplanev1.KubeadmControlPlaneTempla
 	}
 }
 
-func spokeKubeadmControlPlaneTemplate(in *KubeadmControlPlaneTemplate, c randfill.Continue) {
+func spokeKubeadmControlPlaneTemplate(in *controlplanev1beta1.KubeadmControlPlaneTemplate, c randfill.Continue) {
 	c.FillNoCustom(in)
 
-	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutBefore, &RolloutBefore{}) {
+	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutBefore, &controlplanev1beta1.RolloutBefore{}) {
 		in.Spec.Template.Spec.RolloutBefore = nil
 	}
 	if in.Spec.Template.Spec.RolloutStrategy != nil {
-		if reflect.DeepEqual(in.Spec.Template.Spec.RolloutStrategy.RollingUpdate, &RollingUpdate{}) {
+		if reflect.DeepEqual(in.Spec.Template.Spec.RolloutStrategy.RollingUpdate, &controlplanev1beta1.RollingUpdate{}) {
 			in.Spec.Template.Spec.RolloutStrategy.RollingUpdate = nil
 		}
 	}
-	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutStrategy, &RolloutStrategy{}) {
+	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutStrategy, &controlplanev1beta1.RolloutStrategy{}) {
 		in.Spec.Template.Spec.RolloutStrategy = nil
 	}
 	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutAfter, &metav1.Time{}) {
 		in.Spec.Template.Spec.RolloutAfter = nil
 	}
-	if reflect.DeepEqual(in.Spec.Template.Spec.MachineNamingStrategy, &MachineNamingStrategy{}) {
+	if reflect.DeepEqual(in.Spec.Template.Spec.MachineNamingStrategy, &controlplanev1beta1.MachineNamingStrategy{}) {
 		in.Spec.Template.Spec.MachineNamingStrategy = nil
 	}
 
@@ -409,11 +415,11 @@ func spokeKubeadmControlPlaneTemplate(in *KubeadmControlPlaneTemplate, c randfil
 	// RollingUpdateStrategyType is also the only valid value.
 	if in.Spec.Template.Spec.RolloutStrategy != nil &&
 		in.Spec.Template.Spec.RolloutStrategy.Type == "" {
-		in.Spec.Template.Spec.RolloutStrategy.Type = RollingUpdateStrategyType
+		in.Spec.Template.Spec.RolloutStrategy.Type = controlplanev1beta1.RollingUpdateStrategyType
 	}
 }
 
-func spokeRemediationStrategy(in *RemediationStrategy, c randfill.Continue) {
+func spokeRemediationStrategy(in *controlplanev1beta1.RemediationStrategy, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.MinHealthyPeriod != nil {
@@ -422,7 +428,7 @@ func spokeRemediationStrategy(in *RemediationStrategy, c randfill.Continue) {
 	in.RetryPeriod = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
 }
 
-func spokeKubeadmControlPlaneMachineTemplate(in *KubeadmControlPlaneMachineTemplate, c randfill.Continue) {
+func spokeKubeadmControlPlaneMachineTemplate(in *controlplanev1beta1.KubeadmControlPlaneMachineTemplate, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
@@ -436,7 +442,7 @@ func spokeKubeadmControlPlaneMachineTemplate(in *KubeadmControlPlaneMachineTempl
 	}
 }
 
-func spokeKubeadmControlPlaneTemplateMachineTemplate(in *KubeadmControlPlaneTemplateMachineTemplate, c randfill.Continue) {
+func spokeKubeadmControlPlaneTemplateMachineTemplate(in *controlplanev1beta1.KubeadmControlPlaneTemplateMachineTemplate, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {

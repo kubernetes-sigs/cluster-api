@@ -26,11 +26,13 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/validation"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/conversion"
 )
 
 func (webhook *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &bootstrapv1.KubeadmConfig{}).
 		WithValidator(webhook).
+		WithConverter(conversion.KubeadmConfig).
 		Complete()
 }
 

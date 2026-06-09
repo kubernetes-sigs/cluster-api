@@ -28,6 +28,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/defaulting"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/validation"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/util/topology"
 )
 
@@ -35,6 +36,7 @@ func (webhook *KubeadmConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) 
 	return ctrl.NewWebhookManagedBy(mgr, &bootstrapv1.KubeadmConfigTemplate{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.KubeadmConfigTemplate).
 		Complete()
 }
 

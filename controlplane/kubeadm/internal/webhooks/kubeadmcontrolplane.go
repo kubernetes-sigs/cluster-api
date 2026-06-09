@@ -38,6 +38,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bootstrapvalidation "sigs.k8s.io/cluster-api/bootstrap/kubeadm/validation"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/container"
@@ -49,6 +50,7 @@ func (webhook *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) er
 	return ctrl.NewWebhookManagedBy(mgr, &controlplanev1.KubeadmControlPlane{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.KubeadmControlPlane).
 		Complete()
 }
 

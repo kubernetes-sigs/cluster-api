@@ -17,148 +17,19 @@ limitations under the License.
 package v1beta1
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
-
-var apiVersionGetter = func(_ schema.GroupKind) (string, error) {
-	return "", errors.New("apiVersionGetter not set")
-}
-
-func SetAPIVersionGetter(f func(gk schema.GroupKind) (string, error)) {
-	apiVersionGetter = f
-}
-
-func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*controlplanev1.KubeadmControlPlane)
-	if err := Convert_v1beta1_KubeadmControlPlane_To_v1beta2_KubeadmControlPlane(src, dst, nil); err != nil {
-		return err
-	}
-
-	infraRef, err := convertToContractVersionedObjectReference(&src.Spec.MachineTemplate.InfrastructureRef)
-	if err != nil {
-		return err
-	}
-	dst.Spec.MachineTemplate.Spec.InfrastructureRef = *infraRef
-
-	// Manually restore data.
-	restored := &controlplanev1.KubeadmControlPlane{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
-	if err != nil {
-		return err
-	}
-
-	// Recover intent for bool values converted to *bool.
-	initialization := controlplanev1.KubeadmControlPlaneInitializationStatus{}
-	restoredControlPlaneInitialized := restored.Status.Initialization.ControlPlaneInitialized
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Initialized, ok, restoredControlPlaneInitialized, &initialization.ControlPlaneInitialized)
-	if !reflect.DeepEqual(initialization, controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
-		dst.Status.Initialization = initialization
-	}
-
-	if err := bootstrapv1beta1.RestoreBoolIntentKubeadmConfigSpec(&src.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec, ok, &restored.Spec.KubeadmConfigSpec); err != nil {
-		return err
-	}
-
-	// Recover other values
-	if ok {
-		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec)
-	}
-
-	if src.Spec.RemediationStrategy != nil {
-		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.RemediationStrategy.RetryPeriod, ok, restored.Spec.Remediation.RetryPeriodSeconds, &dst.Spec.Remediation.RetryPeriodSeconds)
-	}
-
-	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
-	src.Spec.KubeadmConfigSpec.ConvertTo(&dst.Spec.KubeadmConfigSpec)
-	return nil
-}
-
-func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*controlplanev1.KubeadmControlPlane)
-	if err := Convert_v1beta2_KubeadmControlPlane_To_v1beta1_KubeadmControlPlane(src, dst, nil); err != nil {
-		return err
-	}
-
-	if src.Spec.MachineTemplate.Spec.InfrastructureRef.IsDefined() {
-		infraRef, err := convertToObjectReference(&src.Spec.MachineTemplate.Spec.InfrastructureRef, src.Namespace)
-		if err != nil {
-			return err
-		}
-		dst.Spec.MachineTemplate.InfrastructureRef = *infraRef
-	}
-
-	// Convert timeouts moved from one struct to another.
-	dst.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.KubeadmConfigSpec)
-
-	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec)
-	dropEmptyStringsKubeadmControlPlaneStatus(&dst.Status)
-
-	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
-}
-
-func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneTemplate)
-	if err := Convert_v1beta1_KubeadmControlPlaneTemplate_To_v1beta2_KubeadmControlPlaneTemplate(src, dst, nil); err != nil {
-		return err
-	}
-
-	// Manually restore data.
-	restored := &controlplanev1.KubeadmControlPlaneTemplate{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
-	if err != nil {
-		return err
-	}
-
-	// Recover intent for bool values converted to *bool.
-	if err := bootstrapv1beta1.RestoreBoolIntentKubeadmConfigSpec(&src.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec, ok, &restored.Spec.Template.Spec.KubeadmConfigSpec); err != nil {
-		return err
-	}
-
-	// Recover other values
-	if ok {
-		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec)
-	}
-
-	if src.Spec.Template.Spec.RemediationStrategy != nil {
-		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.Template.Spec.RemediationStrategy.RetryPeriod, ok, restored.Spec.Template.Spec.Remediation.RetryPeriodSeconds, &dst.Spec.Template.Spec.Remediation.RetryPeriodSeconds)
-	}
-
-	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
-	src.Spec.Template.Spec.KubeadmConfigSpec.ConvertTo(&dst.Spec.Template.Spec.KubeadmConfigSpec)
-	return nil
-}
-
-func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*controlplanev1.KubeadmControlPlaneTemplate)
-	if err := Convert_v1beta2_KubeadmControlPlaneTemplate_To_v1beta1_KubeadmControlPlaneTemplate(src, dst, nil); err != nil {
-		return err
-	}
-
-	// Convert timeouts moved from one struct to another.
-	dst.Spec.Template.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.Template.Spec.KubeadmConfigSpec)
-
-	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.Template.Spec.KubeadmConfigSpec)
-
-	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
-}
 
 func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(in, out, s); err != nil {
@@ -557,71 +428,4 @@ func Convert_v1beta2_LastRemediationStatus_To_v1beta1_LastRemediationStatus(in *
 	}
 	out.Timestamp = in.Time
 	return nil
-}
-
-func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (*clusterv1.ContractVersionedObjectReference, error) {
-	var apiGroup string
-	if ref.APIVersion != "" {
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert object: failed to parse apiVersion: %v", err)
-		}
-		apiGroup = gv.Group
-	}
-	return &clusterv1.ContractVersionedObjectReference{
-		APIGroup: apiGroup,
-		Kind:     ref.Kind,
-		Name:     ref.Name,
-	}, nil
-}
-
-func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, namespace string) (*corev1.ObjectReference, error) {
-	apiVersion, err := apiVersionGetter(schema.GroupKind{
-		Group: ref.APIGroup,
-		Kind:  ref.Kind,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert object: %v", err)
-	}
-	return &corev1.ObjectReference{
-		APIVersion: apiVersion,
-		Kind:       ref.Kind,
-		Namespace:  namespace,
-		Name:       ref.Name,
-	}, nil
-}
-
-func dropEmptyStringsKubeadmConfigSpec(dst *bootstrapv1beta1.KubeadmConfigSpec) {
-	for i, u := range dst.Users {
-		dropEmptyString(&u.Gecos)
-		dropEmptyString(&u.Groups)
-		dropEmptyString(&u.HomeDir)
-		dropEmptyString(&u.Shell)
-		dropEmptyString(&u.Passwd)
-		dropEmptyString(&u.PrimaryGroup)
-		dropEmptyString(&u.Sudo)
-		dst.Users[i] = u
-	}
-
-	if dst.DiskSetup != nil {
-		for i, p := range dst.DiskSetup.Partitions {
-			dropEmptyString(&p.TableType)
-			dst.DiskSetup.Partitions[i] = p
-		}
-		for i, f := range dst.DiskSetup.Filesystems {
-			dropEmptyString(&f.Partition)
-			dropEmptyString(&f.ReplaceFS)
-			dst.DiskSetup.Filesystems[i] = f
-		}
-	}
-}
-
-func dropEmptyStringsKubeadmControlPlaneStatus(dst *KubeadmControlPlaneStatus) {
-	dropEmptyString(&dst.Version)
-}
-
-func dropEmptyString(s **string) {
-	if *s != nil && **s == "" {
-		*s = nil
-	}
 }

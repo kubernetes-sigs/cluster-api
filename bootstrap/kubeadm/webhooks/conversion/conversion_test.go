@@ -1,7 +1,7 @@
 //go:build !race
 
 /*
-Copyright 2025 The Kubernetes Authors.
+Copyright 2026 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package conversion
 
 import (
 	"reflect"
@@ -29,6 +29,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -41,16 +42,20 @@ const (
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
-	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &bootstrapv1.KubeadmConfig{},
-		Spoke:       &KubeadmConfig{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigFuzzFuncs},
-	}))
-	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &bootstrapv1.KubeadmConfigTemplate{},
-		Spoke:       &KubeadmConfigTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigTemplateFuzzFuncs},
-	}))
+	t.Run("for KubeadmConfig (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
+		utilconversion.SpokeConverterFuzzTestFuncInput[*bootstrapv1.KubeadmConfig, *bootstrapv1beta1.KubeadmConfig]{
+			ConvertSpokeToHubFunc: ConvertKubeadmConfigV1Beta1ToHub,
+			ConvertHubToSpokeFunc: ConvertKubeadmConfigHubToV1Beta1,
+			FuzzerFuncs:           []fuzzer.FuzzerFuncs{KubeadmConfigFuzzFuncs},
+		}),
+	)
+	t.Run("for KubeadmConfigTemplate (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
+		utilconversion.SpokeConverterFuzzTestFuncInput[*bootstrapv1.KubeadmConfigTemplate, *bootstrapv1beta1.KubeadmConfigTemplate]{
+			ConvertSpokeToHubFunc: ConvertKubeadmConfigTemplateV1Beta1ToHub,
+			ConvertHubToSpokeFunc: ConvertKubeadmConfigTemplateHubToV1Beta1,
+			FuzzerFuncs:           []fuzzer.FuzzerFuncs{KubeadmConfigTemplateFuzzFuncs},
+		}),
+	)
 }
 
 func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -88,7 +93,7 @@ func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Co
 	in.Secret = fakeSecret
 }
 
-func spokeBootstrapTokenString(in *BootstrapTokenString, _ randfill.Continue) {
+func spokeBootstrapTokenString(in *bootstrapv1beta1.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
@@ -178,7 +183,7 @@ func hubNodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, c randf
 	}
 }
 
-func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
+func spokeKubeadmConfigSpec(in *bootstrapv1beta1.KubeadmConfigSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
@@ -186,51 +191,51 @@ func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
 
 	dropEmptyStringsKubeadmConfigSpec(in)
 
-	if in.InitConfiguration != nil && in.InitConfiguration.Patches != nil && reflect.DeepEqual(in.InitConfiguration.Patches, &Patches{}) {
+	if in.InitConfiguration != nil && in.InitConfiguration.Patches != nil && reflect.DeepEqual(in.InitConfiguration.Patches, &bootstrapv1beta1.Patches{}) {
 		in.InitConfiguration.Patches = nil
 	}
-	if in.JoinConfiguration != nil && in.JoinConfiguration.Patches != nil && reflect.DeepEqual(in.JoinConfiguration.Patches, &Patches{}) {
+	if in.JoinConfiguration != nil && in.JoinConfiguration.Patches != nil && reflect.DeepEqual(in.JoinConfiguration.Patches, &bootstrapv1beta1.Patches{}) {
 		in.JoinConfiguration.Patches = nil
 	}
 	if in.Ignition != nil {
-		if in.Ignition.ContainerLinuxConfig != nil && reflect.DeepEqual(in.Ignition.ContainerLinuxConfig, &ContainerLinuxConfig{}) {
+		if in.Ignition.ContainerLinuxConfig != nil && reflect.DeepEqual(in.Ignition.ContainerLinuxConfig, &bootstrapv1beta1.ContainerLinuxConfig{}) {
 			in.Ignition.ContainerLinuxConfig = nil
 		}
-		if reflect.DeepEqual(in.Ignition, &IgnitionSpec{}) {
+		if reflect.DeepEqual(in.Ignition, &bootstrapv1beta1.IgnitionSpec{}) {
 			in.Ignition = nil
 		}
 	}
-	if in.DiskSetup != nil && reflect.DeepEqual(in.DiskSetup, &DiskSetup{}) {
+	if in.DiskSetup != nil && reflect.DeepEqual(in.DiskSetup, &bootstrapv1beta1.DiskSetup{}) {
 		in.DiskSetup = nil
 	}
-	if in.NTP != nil && reflect.DeepEqual(in.NTP, &NTP{}) {
+	if in.NTP != nil && reflect.DeepEqual(in.NTP, &bootstrapv1beta1.NTP{}) {
 		in.NTP = nil
 	}
 	for i, file := range in.Files {
-		if file.ContentFrom != nil && reflect.DeepEqual(file.ContentFrom, &FileSource{}) {
+		if file.ContentFrom != nil && reflect.DeepEqual(file.ContentFrom, &bootstrapv1beta1.FileSource{}) {
 			file.ContentFrom = nil
 		}
 		in.Files[i] = file
 	}
 	for i, user := range in.Users {
-		if user.PasswdFrom != nil && reflect.DeepEqual(user.PasswdFrom, &PasswdSource{}) {
+		if user.PasswdFrom != nil && reflect.DeepEqual(user.PasswdFrom, &bootstrapv1beta1.PasswdSource{}) {
 			user.PasswdFrom = nil
 		}
 		in.Users[i] = user
 	}
 
-	if reflect.DeepEqual(in.ClusterConfiguration, &ClusterConfiguration{}) {
+	if reflect.DeepEqual(in.ClusterConfiguration, &bootstrapv1beta1.ClusterConfiguration{}) {
 		in.ClusterConfiguration = nil
 	}
-	if reflect.DeepEqual(in.InitConfiguration, &InitConfiguration{}) {
+	if reflect.DeepEqual(in.InitConfiguration, &bootstrapv1beta1.InitConfiguration{}) {
 		in.InitConfiguration = nil
 	}
-	if reflect.DeepEqual(in.JoinConfiguration, &JoinConfiguration{}) {
+	if reflect.DeepEqual(in.JoinConfiguration, &bootstrapv1beta1.JoinConfiguration{}) {
 		in.JoinConfiguration = nil
 	}
 }
 
-func spokeClusterConfiguration(in *ClusterConfiguration, c randfill.Continue) {
+func spokeClusterConfiguration(in *bootstrapv1beta1.ClusterConfiguration, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
@@ -240,15 +245,15 @@ func spokeClusterConfiguration(in *ClusterConfiguration, c randfill.Continue) {
 	in.KubernetesVersion = ""
 	in.ClusterName = ""
 
-	if in.Etcd.Local != nil && reflect.DeepEqual(in.Etcd.Local, &LocalEtcd{}) {
+	if in.Etcd.Local != nil && reflect.DeepEqual(in.Etcd.Local, &bootstrapv1beta1.LocalEtcd{}) {
 		in.Etcd.Local = nil
 	}
-	if in.Etcd.External != nil && reflect.DeepEqual(in.Etcd.External, &ExternalEtcd{}) {
+	if in.Etcd.External != nil && reflect.DeepEqual(in.Etcd.External, &bootstrapv1beta1.ExternalEtcd{}) {
 		in.Etcd.External = nil
 	}
 }
 
-func spokeAPIServer(in *APIServer, c randfill.Continue) {
+func spokeAPIServer(in *bootstrapv1beta1.APIServer, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TimeoutForControlPlane != nil {
@@ -256,7 +261,7 @@ func spokeAPIServer(in *APIServer, c randfill.Continue) {
 	}
 }
 
-func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
+func spokeBootstrapToken(in *bootstrapv1beta1.BootstrapToken, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TTL != nil {
@@ -267,7 +272,7 @@ func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
 	}
 }
 
-func spokeDiscovery(in *Discovery, c randfill.Continue) {
+func spokeDiscovery(in *bootstrapv1beta1.Discovery, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.Timeout != nil {
@@ -275,33 +280,33 @@ func spokeDiscovery(in *Discovery, c randfill.Continue) {
 	}
 	if in.File != nil {
 		if in.File.KubeConfig != nil {
-			if in.File.KubeConfig.Cluster != nil && reflect.DeepEqual(in.File.KubeConfig.Cluster, &KubeConfigCluster{}) {
+			if in.File.KubeConfig.Cluster != nil && reflect.DeepEqual(in.File.KubeConfig.Cluster, &bootstrapv1beta1.KubeConfigCluster{}) {
 				in.File.KubeConfig.Cluster = nil
 			}
-			if in.File.KubeConfig.User.AuthProvider != nil && reflect.DeepEqual(in.File.KubeConfig.User.AuthProvider, &KubeConfigAuthProvider{}) {
+			if in.File.KubeConfig.User.AuthProvider != nil && reflect.DeepEqual(in.File.KubeConfig.User.AuthProvider, &bootstrapv1beta1.KubeConfigAuthProvider{}) {
 				in.File.KubeConfig.User.AuthProvider = nil
 			}
-			if in.File.KubeConfig.User.Exec != nil && reflect.DeepEqual(in.File.KubeConfig.User.Exec, &KubeConfigAuthExec{}) {
+			if in.File.KubeConfig.User.Exec != nil && reflect.DeepEqual(in.File.KubeConfig.User.Exec, &bootstrapv1beta1.KubeConfigAuthExec{}) {
 				in.File.KubeConfig.User.Exec = nil
 			}
-			if reflect.DeepEqual(in.File.KubeConfig, &FileDiscoveryKubeConfig{}) {
+			if reflect.DeepEqual(in.File.KubeConfig, &bootstrapv1beta1.FileDiscoveryKubeConfig{}) {
 				in.File.KubeConfig = nil
 			}
 		}
-		if reflect.DeepEqual(in.File, &FileDiscovery{}) {
+		if reflect.DeepEqual(in.File, &bootstrapv1beta1.FileDiscovery{}) {
 			in.File = nil
 		}
 	}
-	if in.BootstrapToken != nil && reflect.DeepEqual(in.BootstrapToken, &BootstrapTokenDiscovery{}) {
+	if in.BootstrapToken != nil && reflect.DeepEqual(in.BootstrapToken, &bootstrapv1beta1.BootstrapTokenDiscovery{}) {
 		in.BootstrapToken = nil
 	}
 }
 
-func spokeKubeadmConfigStatus(in *KubeadmConfigStatus, c randfill.Continue) {
+func spokeKubeadmConfigStatus(in *bootstrapv1beta1.KubeadmConfigStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &KubeadmConfigV1Beta2Status{}) {
+		if reflect.DeepEqual(in.V1Beta2, &bootstrapv1beta1.KubeadmConfigV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}

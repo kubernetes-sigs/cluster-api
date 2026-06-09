@@ -22,13 +22,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func (*KubeadmConfig) Hub()         {}
-func (*KubeadmConfigTemplate) Hub() {}
-
-func (*ClusterConfiguration) Hub() {}
-func (*InitConfiguration) Hub()    {}
-func (*JoinConfiguration) Hub()    {}
-
 // ConvertToArgs takes a argument map and converts it to a slice of arguments.
 // The resulting argument slice is sorted alpha-numerically.
 // NOTE: this is a util function intended only for usage in API conversions.

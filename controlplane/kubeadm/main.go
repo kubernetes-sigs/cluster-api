@@ -62,6 +62,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/setup"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -443,12 +444,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 }
 
-func setupWebhooks(ctx context.Context, mgr ctrl.Manager) {
+func setupWebhooks(_ context.Context, mgr ctrl.Manager) {
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
-	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
-	}
-	controlplanev1beta1.SetAPIVersionGetter(apiVersionGetter)
+	})
 
 	if err := (&kcpwebhooks.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")

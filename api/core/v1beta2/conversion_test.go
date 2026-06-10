@@ -23,11 +23,10 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 )
 
 func TestConvertSeconds(t *testing.T) {
-	seconds := ptr.To[int32](100)
+	seconds := new(int32(100))
 	duration := ConvertFromSeconds(seconds)
 	if !reflect.DeepEqual(ConvertToSeconds(duration), seconds) {
 		t.Fatalf("Expected %+v to equal %+v", duration, seconds)
@@ -40,9 +39,9 @@ func TestConvertSeconds(t *testing.T) {
 	}
 
 	// Durations longer than MaxInt32 are capped.
-	duration = ptr.To(metav1.Duration{Duration: (math.MaxInt32 + 1) * time.Second})
-	if !reflect.DeepEqual(ConvertToSeconds(duration), ptr.To[int32](math.MaxInt32)) {
-		t.Fatalf("Expected %+v to equal %+v", duration, ptr.To[int32](math.MaxInt32))
+	duration = new(metav1.Duration{Duration: (math.MaxInt32 + 1) * time.Second})
+	if !reflect.DeepEqual(ConvertToSeconds(duration), new(int32(math.MaxInt32))) {
+		t.Fatalf("Expected %+v to equal %+v", duration, new(int32(math.MaxInt32)))
 	}
 }
 
@@ -62,7 +61,7 @@ func TestConvert_bool_To_Pointer_bool(t *testing.T) {
 		{
 			name:    "when applying v1beta1, true should be converted to *true",
 			in:      true,
-			wantOut: ptr.To(true),
+			wantOut: new(true),
 		},
 		{
 			name:        "when doing round trip, false should be converted to nil if not previously explicitly set to false (previously set to nil)",
@@ -75,36 +74,36 @@ func TestConvert_bool_To_Pointer_bool(t *testing.T) {
 			name:        "when doing round trip, false should be converted to nil if not previously explicitly set to false (previously set to true)",
 			in:          false,
 			hasRestored: true,
-			restored:    ptr.To(true),
+			restored:    new(true),
 			wantOut:     nil,
 		},
 		{
 			name:        "when doing round trip, false should be converted to false if previously explicitly set to false",
 			in:          false,
 			hasRestored: true,
-			restored:    ptr.To(false),
-			wantOut:     ptr.To(false),
+			restored:    new(false),
+			wantOut:     new(false),
 		},
 		{
 			name:        "when doing round trip, true should be converted to *true (no matter of restored value is nil)",
 			in:          true,
 			hasRestored: true,
 			restored:    nil,
-			wantOut:     ptr.To(true),
+			wantOut:     new(true),
 		},
 		{
 			name:        "when doing round trip, true should be converted to *true (no matter of restored value is true)",
 			in:          true,
 			hasRestored: true,
-			restored:    ptr.To(true),
-			wantOut:     ptr.To(true),
+			restored:    new(true),
+			wantOut:     new(true),
 		},
 		{
 			name:        "when doing round trip, true should be converted to *true (no matter of restored value is false)",
 			in:          true,
 			hasRestored: true,
-			restored:    ptr.To(false),
-			wantOut:     ptr.To(true),
+			restored:    new(false),
+			wantOut:     new(true),
 		},
 	}
 	for _, tt := range testCases {
@@ -134,7 +133,7 @@ func TestConvert_int32_To_Pointer_int32(t *testing.T) {
 		{
 			name:    "when applying v1beta1, value!=0 should be converted to *value",
 			in:      1,
-			wantOut: ptr.To[int32](1),
+			wantOut: new(int32(1)),
 		},
 		{
 			name:        "when doing round trip, 0 should be converted to nil if not previously explicitly set to 0 (previously set to nil)",
@@ -147,36 +146,36 @@ func TestConvert_int32_To_Pointer_int32(t *testing.T) {
 			name:        "when doing round trip, 0 should be converted to nil if not previously explicitly set to 0 (previously set to another value)",
 			in:          0,
 			hasRestored: true,
-			restored:    ptr.To[int32](1),
+			restored:    new(int32(1)),
 			wantOut:     nil,
 		},
 		{
 			name:        "when doing round trip, 0 should be converted to 0 if previously explicitly set to 0",
 			in:          0,
 			hasRestored: true,
-			restored:    ptr.To[int32](0),
-			wantOut:     ptr.To[int32](0),
+			restored:    new(int32(0)),
+			wantOut:     new(int32(0)),
 		},
 		{
 			name:        "when doing round trip, value should be converted to *value (no matter of restored value is nil)",
 			in:          1,
 			hasRestored: true,
 			restored:    nil,
-			wantOut:     ptr.To[int32](1),
+			wantOut:     new(int32(1)),
 		},
 		{
 			name:        "when doing round trip, value should be converted to *value (no matter of restored value is not 0)",
 			in:          1,
 			hasRestored: true,
-			restored:    ptr.To[int32](2),
-			wantOut:     ptr.To[int32](1),
+			restored:    new(int32(2)),
+			wantOut:     new(int32(1)),
 		},
 		{
 			name:        "when doing round trip, value should be converted to *value (no matter of restored value is 0)",
 			in:          1,
 			hasRestored: true,
-			restored:    ptr.To[int32](0),
-			wantOut:     ptr.To[int32](1),
+			restored:    new(int32(0)),
+			wantOut:     new(int32(1)),
 		},
 	}
 	for _, tt := range testCases {
@@ -206,7 +205,7 @@ func TestConvert_Duration_To_Pointer_int32(t *testing.T) {
 		{
 			name:    "when applying v1beta1, value!=0s should be converted to *value",
 			in:      metav1.Duration{Duration: 1 * time.Second},
-			wantOut: ptr.To[int32](1),
+			wantOut: new(int32(1)),
 		},
 		{
 			name:        "when doing round trip, 0s should be converted to nil if not previously explicitly set to 0s (previously set to nil)",
@@ -219,36 +218,36 @@ func TestConvert_Duration_To_Pointer_int32(t *testing.T) {
 			name:        "when doing round trip, 0s should be converted to nil if not previously explicitly set to 0s (previously set to another value)",
 			in:          metav1.Duration{},
 			hasRestored: true,
-			restored:    ptr.To[int32](1),
+			restored:    new(int32(1)),
 			wantOut:     nil,
 		},
 		{
 			name:        "when doing round trip, 0s should be converted to 0s if previously explicitly set to 0s",
 			in:          metav1.Duration{},
 			hasRestored: true,
-			restored:    ptr.To[int32](0),
-			wantOut:     ptr.To[int32](0),
+			restored:    new(int32(0)),
+			wantOut:     new(int32(0)),
 		},
 		{
 			name:        "when doing round trip, value should be converted to *value (no matter of restored value is nil)",
 			in:          metav1.Duration{Duration: 1 * time.Second},
 			hasRestored: true,
 			restored:    nil,
-			wantOut:     ptr.To[int32](1),
+			wantOut:     new(int32(1)),
 		},
 		{
 			name:        "when doing round trip, value should be converted to *value (no matter of restored value is not 0s)",
 			in:          metav1.Duration{Duration: 1 * time.Second},
 			hasRestored: true,
-			restored:    ptr.To[int32](2),
-			wantOut:     ptr.To[int32](1),
+			restored:    new(int32(2)),
+			wantOut:     new(int32(1)),
 		},
 		{
 			name:        "when doing round trip, value should be converted to *value (no matter of restored value is 0s)",
 			in:          metav1.Duration{Duration: 1 * time.Second},
 			hasRestored: true,
-			restored:    ptr.To[int32](0),
-			wantOut:     ptr.To[int32](1),
+			restored:    new(int32(0)),
+			wantOut:     new(int32(1)),
 		},
 	}
 	for _, tt := range testCases {

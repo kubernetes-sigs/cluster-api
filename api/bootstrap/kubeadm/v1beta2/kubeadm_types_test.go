@@ -118,10 +118,10 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 		}
 	} else { // Otherwise, roundtrip like this: object -> (marshal) -> string -> (unmarshal) -> object
 		if b, err = json.Marshal(bts); err != nil {
-			return fmt.Errorf( "expected no marshal error, got error: %w", err)
+			return fmt.Errorf("expected no marshal error, got error: %w", err)
 		}
 		if err := json.Unmarshal(b, newbts); err != nil {
-			return fmt.Errorf( "expected no unmarshal error, got error: %w", err)
+			return fmt.Errorf("expected no unmarshal error, got error: %w", err)
 		}
 		if *bts != *newbts {
 			return fmt.Errorf(

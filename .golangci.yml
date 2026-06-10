@@ -84,7 +84,6 @@ linters:
           - k8s.io/apimachinery/pkg/util/validation/field$
           - k8s.io/cluster-bootstrap/token/api$
           - k8s.io/cluster-bootstrap/token/util$
-          - k8s.io/utils/ptr$
     forbidigo:
       forbid:
         - pattern: ctrl.NewControllerManagedBy

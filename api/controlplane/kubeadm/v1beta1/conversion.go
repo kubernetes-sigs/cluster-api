@@ -22,7 +22,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -44,10 +43,10 @@ func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(
 	}
 	if !reflect.DeepEqual(in.Rollout.Before, controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{}) {
 		out.RolloutBefore = &RolloutBefore{}
-		out.RolloutBefore.CertificatesExpiryDays = ptr.To(in.Rollout.Before.CertificatesExpiryDays)
+		out.RolloutBefore.CertificatesExpiryDays = new(in.Rollout.Before.CertificatesExpiryDays)
 	}
 	if !reflect.DeepEqual(in.Rollout.After, metav1.Time{}) {
-		out.RolloutAfter = ptr.To(in.Rollout.After)
+		out.RolloutAfter = new(in.Rollout.After)
 	}
 	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
 		out.RolloutStrategy = &RolloutStrategy{}
@@ -115,10 +114,10 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1beta1_KubeadmC
 	}
 	if !reflect.DeepEqual(in.Rollout.Before, controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{}) {
 		out.RolloutBefore = &RolloutBefore{}
-		out.RolloutBefore.CertificatesExpiryDays = ptr.To(in.Rollout.Before.CertificatesExpiryDays)
+		out.RolloutBefore.CertificatesExpiryDays = new(in.Rollout.Before.CertificatesExpiryDays)
 	}
 	if !reflect.DeepEqual(in.Rollout.After, metav1.Time{}) {
-		out.RolloutAfter = ptr.To(in.Rollout.After)
+		out.RolloutAfter = new(in.Rollout.After)
 	}
 	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
 		out.RolloutStrategy = &RolloutStrategy{}
@@ -213,7 +212,7 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneSta
 	}
 
 	// Move initialized to ControlPlaneInitialized, rebuild ready
-	out.Initialized = ptr.Deref(in.Initialization.ControlPlaneInitialized, false)
+	out.Initialized = deref(in.Initialization.ControlPlaneInitialized, false)
 	out.Ready = out.ReadyReplicas > 0
 
 	// Move new conditions (v1beta2) and replica counter to the v1beta2 field.
@@ -374,7 +373,7 @@ func Convert_v1beta1_RemediationStrategy_To_v1beta2_KubeadmControlPlaneRemediati
 func Convert_v1beta2_KubeadmControlPlaneRemediationSpec_To_v1beta1_RemediationStrategy(in *controlplanev1.KubeadmControlPlaneRemediationSpec, out *RemediationStrategy, _ apimachineryconversion.Scope) error {
 	out.MaxRetry = in.MaxRetry
 	out.MinHealthyPeriod = clusterv1.ConvertFromSeconds(in.MinHealthyPeriodSeconds)
-	out.RetryPeriod = ptr.Deref(clusterv1.ConvertFromSeconds(in.RetryPeriodSeconds), metav1.Duration{})
+	out.RetryPeriod = deref(clusterv1.ConvertFromSeconds(in.RetryPeriodSeconds), metav1.Duration{})
 	return nil
 }
 
@@ -428,4 +427,11 @@ func Convert_v1beta2_LastRemediationStatus_To_v1beta1_LastRemediationStatus(in *
 	}
 	out.Timestamp = in.Time
 	return nil
+}
+
+func deref[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }

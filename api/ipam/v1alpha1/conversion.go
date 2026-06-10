@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 )
@@ -27,7 +26,7 @@ func Convert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, 
 	if err := autoConvert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in, out, s); err != nil {
 		return err
 	}
-	out.Prefix = ptr.To(int32(in.Prefix))
+	out.Prefix = new(int32(in.Prefix))
 	return nil
 }
 
@@ -35,7 +34,7 @@ func Convert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(in *ipamv1.IPAddres
 	if err := autoConvert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(in, out, s); err != nil {
 		return err
 	}
-	out.Prefix = int(ptr.Deref(in.Prefix, 0))
+	out.Prefix = int(deref(in.Prefix, 0))
 	return nil
 }
 
@@ -45,4 +44,11 @@ func Convert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from *ipa
 
 func Convert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from *ipamv1.IPAddressClaimStatus, to *IPAddressClaimStatus, scope apimachineryconversion.Scope) error {
 	return autoConvert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from, to, scope)
+}
+
+func deref[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }

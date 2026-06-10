@@ -22,7 +22,6 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 )
 
 func TestIsResourceApplied(t *testing.T) {
@@ -43,13 +42,13 @@ func TestIsResourceApplied(t *testing.T) {
 		Resources: []ResourceBinding{
 			{
 				ResourceRef:     resourceRefApplySucceeded,
-				Applied:         ptr.To(true),
+				Applied:         new(true),
 				Hash:            "xyz",
 				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
 			{
 				ResourceRef:     resourceRefApplyFailed,
-				Applied:         ptr.To(false),
+				Applied:         new(false),
 				Hash:            "",
 				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
@@ -107,7 +106,7 @@ func TestResourceSetBindingGetResourceBinding(t *testing.T) {
 
 	resourceRefApplyFailedBinding := ResourceBinding{
 		ResourceRef:     resourceRefApplyFailed,
-		Applied:         ptr.To(false),
+		Applied:         new(false),
 		Hash:            "",
 		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 	}
@@ -116,7 +115,7 @@ func TestResourceSetBindingGetResourceBinding(t *testing.T) {
 		Resources: []ResourceBinding{
 			{
 				ResourceRef:     resourceRefApplySucceeded,
-				Applied:         ptr.To(true),
+				Applied:         new(true),
 				Hash:            "xyz",
 				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
@@ -163,7 +162,7 @@ func TestSetResourceBinding(t *testing.T) {
 		Resources: []ResourceBinding{
 			{
 				ResourceRef:     resourceRefApplyFailed,
-				Applied:         ptr.To(false),
+				Applied:         new(false),
 				Hash:            "",
 				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
@@ -171,7 +170,7 @@ func TestSetResourceBinding(t *testing.T) {
 	}
 	updateFailedResourceBinding := ResourceBinding{
 		ResourceRef:     resourceRefApplyFailed,
-		Applied:         ptr.To(true),
+		Applied:         new(true),
 		Hash:            "xyz",
 		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 	}
@@ -181,7 +180,7 @@ func TestSetResourceBinding(t *testing.T) {
 			Name: "newBinding",
 			Kind: "Secret",
 		},
-		Applied:         ptr.To(false),
+		Applied:         new(false),
 		Hash:            "xyz",
 		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 	}

@@ -21,7 +21,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -113,7 +112,7 @@ func Convert_v1beta2_ResourceBinding_To_v1beta1_ResourceBinding(in *addonsv1.Res
 		return err
 	}
 	if !reflect.DeepEqual(in.LastAppliedTime, metav1.Time{}) {
-		out.LastAppliedTime = ptr.To(in.LastAppliedTime)
+		out.LastAppliedTime = new(in.LastAppliedTime)
 	}
 	return nil
 }

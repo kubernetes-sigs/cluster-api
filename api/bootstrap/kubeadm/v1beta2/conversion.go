@@ -18,8 +18,6 @@ package v1beta2
 
 import (
 	"sort"
-
-	"k8s.io/utils/ptr"
 )
 
 // ConvertToArgs takes a argument map and converts it to a slice of arguments.
@@ -31,11 +29,11 @@ func ConvertToArgs(in map[string]string) []Arg {
 	}
 	args := make([]Arg, 0, len(in))
 	for k, v := range in {
-		args = append(args, Arg{Name: k, Value: ptr.To(v)})
+		args = append(args, Arg{Name: k, Value: new(v)})
 	}
 	sort.Slice(args, func(i, j int) bool {
 		if args[i].Name == args[j].Name {
-			return ptr.Deref(args[i].Value, "") < ptr.Deref(args[j].Value, "")
+			return deref(args[i].Value, "") < deref(args[j].Value, "")
 		}
 		return args[i].Name < args[j].Name
 	})
@@ -51,7 +49,14 @@ func ConvertFromArgs(in []Arg) map[string]string {
 	}
 	args := make(map[string]string, len(in))
 	for _, arg := range in {
-		args[arg.Name] = ptr.Deref(arg.Value, "")
+		args[arg.Name] = deref(arg.Value, "")
 	}
 	return args
+}
+
+func deref[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }

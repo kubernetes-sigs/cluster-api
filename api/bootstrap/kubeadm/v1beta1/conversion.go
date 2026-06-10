@@ -21,7 +21,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -75,7 +74,7 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *boot
 	}
 
 	// Move initialization to old fields
-	out.Ready = ptr.Deref(in.Initialization.DataSecretCreated, false)
+	out.Ready = deref(in.Initialization.DataSecretCreated, false)
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
@@ -186,7 +185,7 @@ func Convert_v1beta2_BootstrapToken_To_v1beta1_BootstrapToken(in *bootstrapv1.Bo
 	}
 	out.TTL = clusterv1.ConvertFromSeconds(in.TTLSeconds)
 	if !reflect.DeepEqual(in.Expires, metav1.Time{}) {
-		out.Expires = ptr.To(in.Expires)
+		out.Expires = new(in.Expires)
 	}
 	if !reflect.DeepEqual(in.Token, bootstrapv1.BootstrapTokenString{}) {
 		out.Token = &BootstrapTokenString{}
@@ -203,7 +202,7 @@ func Convert_v1beta1_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstra
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		out.ExtraEnvs = new(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
 		for i := range in.ExtraEnvs {
 			if err := Convert_v1beta1_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
 				return err
@@ -221,7 +220,7 @@ func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControllerManager(in *Cont
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		out.ExtraEnvs = new(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
 		for i := range in.ExtraEnvs {
 			if err := Convert_v1beta1_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
 				return err
@@ -236,7 +235,7 @@ func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlane
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		out.ExtraEnvs = new(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
 		for i := range in.ExtraEnvs {
 			if err := Convert_v1beta1_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
 				return err
@@ -287,7 +286,7 @@ func Convert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstra
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		out.ExtraEnvs = new(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
 		for i := range in.ExtraEnvs {
 			if err := Convert_v1beta1_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
 				return err
@@ -304,7 +303,7 @@ func Convert_v1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(
 	if in.Taints == nil {
 		out.Taints = nil
 	} else {
-		out.Taints = ptr.To(in.Taints)
+		out.Taints = new(in.Taints)
 	}
 	return autoConvert_v1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
@@ -691,4 +690,11 @@ func Convert_v1beta2_File_To_v1beta1_File(in *bootstrapv1.File, out *File, s api
 		}
 	}
 	return nil
+}
+
+func deref[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }

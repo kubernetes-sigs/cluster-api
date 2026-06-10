@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -71,7 +70,7 @@ func Convert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *clusterv1.
 
 	if in.Infrastructure.Naming.Template != "" {
 		out.InfrastructureNamingStrategy = &InfrastructureNamingStrategy{
-			Template: ptr.To(in.Infrastructure.Naming.Template),
+			Template: new(in.Infrastructure.Naming.Template),
 		}
 	}
 
@@ -94,7 +93,7 @@ func Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *ClusterCla
 
 	if in.InfrastructureNamingStrategy != nil {
 		out.Infrastructure.Naming = clusterv1.InfrastructureClassNamingSpec{
-			Template: ptr.Deref(in.InfrastructureNamingStrategy.Template, ""),
+			Template: deref(in.InfrastructureNamingStrategy.Template, ""),
 		}
 	}
 	return nil
@@ -135,7 +134,7 @@ func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlP
 		}
 		out.HealthCheck.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.MachineHealthCheck.NodeStartupTimeout)
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MachineHealthCheck.MaxUnhealthy
-		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.MachineHealthCheck.UnhealthyRange, "")
+		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = deref(in.MachineHealthCheck.UnhealthyRange, "")
 		if in.MachineHealthCheck.RemediationTemplate != nil {
 			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, &out.HealthCheck.Remediation.TemplateRef, s); err != nil {
 				return err
@@ -144,7 +143,7 @@ func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlP
 	}
 	if in.NamingStrategy != nil {
 		out.Naming = clusterv1.ControlPlaneClassNamingSpec{
-			Template: ptr.Deref(in.NamingStrategy.Template, ""),
+			Template: deref(in.NamingStrategy.Template, ""),
 		}
 	}
 	if in.MachineInfrastructure != nil {
@@ -170,20 +169,20 @@ func Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *clusterv
 			out.MachineHealthCheck.UnhealthyConditions = append(out.MachineHealthCheck.UnhealthyConditions, UnhealthyCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		for _, c := range in.HealthCheck.Checks.UnhealthyMachineConditions {
 			out.MachineHealthCheck.UnhealthyMachineConditions = append(out.MachineHealthCheck.UnhealthyMachineConditions, UnhealthyMachineCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		out.MachineHealthCheck.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.HealthCheck.Checks.NodeStartupTimeoutSeconds)
 		out.MachineHealthCheck.MaxUnhealthy = in.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo
 		if in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange != "" {
-			out.MachineHealthCheck.UnhealthyRange = ptr.To(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
+			out.MachineHealthCheck.UnhealthyRange = new(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
 		}
 		if in.HealthCheck.Remediation.TemplateRef.IsDefined() {
 			out.MachineHealthCheck.RemediationTemplate = &corev1.ObjectReference{}
@@ -194,7 +193,7 @@ func Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *clusterv
 	}
 	if in.Naming.Template != "" {
 		out.NamingStrategy = &ControlPlaneClassNamingStrategy{
-			Template: ptr.To(in.Naming.Template),
+			Template: new(in.Naming.Template),
 		}
 	}
 	if in.MachineInfrastructure.TemplateRef.IsDefined() {
@@ -237,7 +236,7 @@ func Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in *Co
 		}
 		out.HealthCheck.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.MachineHealthCheck.NodeStartupTimeout)
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MachineHealthCheck.MaxUnhealthy
-		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.MachineHealthCheck.UnhealthyRange, "")
+		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = deref(in.MachineHealthCheck.UnhealthyRange, "")
 		if in.MachineHealthCheck.RemediationTemplate != nil {
 			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, &out.HealthCheck.Remediation.TemplateRef, s); err != nil {
 				return err
@@ -268,20 +267,20 @@ func Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in *cl
 			out.MachineHealthCheck.UnhealthyConditions = append(out.MachineHealthCheck.UnhealthyConditions, UnhealthyCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		for _, c := range in.HealthCheck.Checks.UnhealthyMachineConditions {
 			out.MachineHealthCheck.UnhealthyMachineConditions = append(out.MachineHealthCheck.UnhealthyMachineConditions, UnhealthyMachineCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		out.MachineHealthCheck.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.HealthCheck.Checks.NodeStartupTimeoutSeconds)
 		out.MachineHealthCheck.MaxUnhealthy = in.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo
 		if in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange != "" {
-			out.MachineHealthCheck.UnhealthyRange = ptr.To(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
+			out.MachineHealthCheck.UnhealthyRange = new(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
 		}
 		if in.HealthCheck.Remediation.TemplateRef.IsDefined() {
 			out.MachineHealthCheck.RemediationTemplate = &corev1.ObjectReference{}
@@ -340,7 +339,7 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 		}
 		out.HealthCheck.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.MachineHealthCheck.NodeStartupTimeout)
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MachineHealthCheck.MaxUnhealthy
-		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.MachineHealthCheck.UnhealthyRange, "")
+		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = deref(in.MachineHealthCheck.UnhealthyRange, "")
 		if in.MachineHealthCheck.RemediationTemplate != nil {
 			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, &out.HealthCheck.Remediation.TemplateRef, s); err != nil {
 				return err
@@ -349,7 +348,7 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 	}
 	if in.NamingStrategy != nil {
 		out.Naming = clusterv1.MachineDeploymentClassNamingSpec{
-			Template: ptr.Deref(in.NamingStrategy.Template, ""),
+			Template: deref(in.NamingStrategy.Template, ""),
 		}
 	}
 	return nil
@@ -384,7 +383,7 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 		if out.Strategy.RollingUpdate == nil {
 			out.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
 		}
-		out.Strategy.RollingUpdate.DeletePolicy = ptr.To(string(in.Deletion.Order))
+		out.Strategy.RollingUpdate.DeletePolicy = new(string(in.Deletion.Order))
 	}
 	if in.HealthCheck.Remediation.MaxInFlight != nil {
 		if out.Strategy == nil {
@@ -408,20 +407,20 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 			out.MachineHealthCheck.UnhealthyConditions = append(out.MachineHealthCheck.UnhealthyConditions, UnhealthyCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		for _, c := range in.HealthCheck.Checks.UnhealthyMachineConditions {
 			out.MachineHealthCheck.UnhealthyMachineConditions = append(out.MachineHealthCheck.UnhealthyMachineConditions, UnhealthyMachineCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		out.MachineHealthCheck.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.HealthCheck.Checks.NodeStartupTimeoutSeconds)
 		out.MachineHealthCheck.MaxUnhealthy = in.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo
 		if in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange != "" {
-			out.MachineHealthCheck.UnhealthyRange = ptr.To(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
+			out.MachineHealthCheck.UnhealthyRange = new(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
 		}
 		if in.HealthCheck.Remediation.TemplateRef.IsDefined() {
 			out.MachineHealthCheck.RemediationTemplate = &corev1.ObjectReference{}
@@ -432,7 +431,7 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 	}
 	if in.Naming.Template != "" {
 		out.NamingStrategy = &MachineDeploymentClassNamingStrategy{
-			Template: ptr.To(in.Naming.Template),
+			Template: new(in.Naming.Template),
 		}
 	}
 	return nil
@@ -482,7 +481,7 @@ func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopol
 		}
 		out.HealthCheck.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.MachineHealthCheck.NodeStartupTimeout)
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MachineHealthCheck.MaxUnhealthy
-		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.MachineHealthCheck.UnhealthyRange, "")
+		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = deref(in.MachineHealthCheck.UnhealthyRange, "")
 		if in.MachineHealthCheck.RemediationTemplate != nil {
 			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, &out.HealthCheck.Remediation.TemplateRef, s); err != nil {
 				return err
@@ -518,7 +517,7 @@ func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopol
 		if out.Strategy.RollingUpdate == nil {
 			out.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
 		}
-		out.Strategy.RollingUpdate.DeletePolicy = ptr.To(string(in.Deletion.Order))
+		out.Strategy.RollingUpdate.DeletePolicy = new(string(in.Deletion.Order))
 	}
 	if in.HealthCheck.Remediation.MaxInFlight != nil {
 		if out.Strategy == nil {
@@ -543,20 +542,20 @@ func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopol
 			out.MachineHealthCheck.UnhealthyConditions = append(out.MachineHealthCheck.UnhealthyConditions, UnhealthyCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		for _, c := range in.HealthCheck.Checks.UnhealthyMachineConditions {
 			out.MachineHealthCheck.UnhealthyMachineConditions = append(out.MachineHealthCheck.UnhealthyMachineConditions, UnhealthyMachineCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		out.MachineHealthCheck.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.HealthCheck.Checks.NodeStartupTimeoutSeconds)
 		out.MachineHealthCheck.MaxUnhealthy = in.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo
 		if in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange != "" {
-			out.MachineHealthCheck.UnhealthyRange = ptr.To(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
+			out.MachineHealthCheck.UnhealthyRange = new(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
 		}
 		if in.HealthCheck.Remediation.TemplateRef.IsDefined() {
 			out.MachineHealthCheck.RemediationTemplate = &corev1.ObjectReference{}
@@ -591,7 +590,7 @@ func Convert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(in *MachinePoo
 	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	if in.NamingStrategy != nil {
 		out.Naming = clusterv1.MachinePoolClassNamingSpec{
-			Template: ptr.Deref(in.NamingStrategy.Template, ""),
+			Template: deref(in.NamingStrategy.Template, ""),
 		}
 	}
 	return nil
@@ -615,7 +614,7 @@ func Convert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in *clusterv1.
 	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 	if in.Naming.Template != "" {
 		out.NamingStrategy = &MachinePoolClassNamingStrategy{
-			Template: ptr.To(in.Naming.Template),
+			Template: new(in.Naming.Template),
 		}
 	}
 	return nil
@@ -737,15 +736,15 @@ func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.Cluste
 	}
 
 	// Move initialization to old fields
-	out.ControlPlaneReady = ptr.Deref(in.Initialization.ControlPlaneInitialized, false)
-	out.InfrastructureReady = ptr.Deref(in.Initialization.InfrastructureProvisioned, false)
+	out.ControlPlaneReady = deref(in.Initialization.ControlPlaneInitialized, false)
+	out.InfrastructureReady = deref(in.Initialization.InfrastructureProvisioned, false)
 
 	// Move FailureDomains
 	if in.FailureDomains != nil {
 		out.FailureDomains = FailureDomains{}
 		for _, fd := range in.FailureDomains {
 			out.FailureDomains[fd.Name] = FailureDomainSpec{
-				ControlPlane: ptr.Deref(fd.ControlPlane, false),
+				ControlPlane: deref(fd.ControlPlane, false),
 				Attributes:   fd.Attributes,
 			}
 		}
@@ -835,7 +834,7 @@ func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, o
 			fd := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: ptr.To(fd.ControlPlane),
+				ControlPlane: new(fd.ControlPlane),
 				Attributes:   fd.Attributes,
 			})
 		}
@@ -972,7 +971,7 @@ func Convert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(in
 	}
 	out.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
 	out.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MaxUnhealthy
-	out.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.UnhealthyRange, "")
+	out.Remediation.TriggerIf.UnhealthyInRange = deref(in.UnhealthyRange, "")
 	if in.RemediationTemplate != nil {
 		if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.RemediationTemplate, &out.Remediation.TemplateRef, s); err != nil {
 			return err
@@ -991,20 +990,20 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpec(in
 		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
 			Type:    c.Type,
 			Status:  c.Status,
-			Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+			Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 		})
 	}
 	for _, c := range in.Checks.UnhealthyMachineConditions {
 		out.UnhealthyMachineConditions = append(out.UnhealthyMachineConditions, UnhealthyMachineCondition{
 			Type:    c.Type,
 			Status:  c.Status,
-			Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
+			Timeout: deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 		})
 	}
 	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.Checks.NodeStartupTimeoutSeconds)
 	out.MaxUnhealthy = in.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo
 	if in.Remediation.TriggerIf.UnhealthyInRange != "" {
-		out.UnhealthyRange = ptr.To(in.Remediation.TriggerIf.UnhealthyInRange)
+		out.UnhealthyRange = new(in.Remediation.TriggerIf.UnhealthyInRange)
 	}
 	if in.Remediation.TemplateRef.IsDefined() {
 		out.RemediationTemplate = &corev1.ObjectReference{}
@@ -1019,14 +1018,14 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpec(in
 func Convert_v1beta1_UnhealthyMachineCondition_To_v1beta2_UnhealthyMachineCondition(in *UnhealthyMachineCondition, out *clusterv1.UnhealthyMachineCondition, _ apimachineryconversion.Scope) error {
 	out.Type = in.Type
 	out.Status = in.Status
-	out.TimeoutSeconds = clusterv1.ConvertToSeconds(ptr.To(in.Timeout))
+	out.TimeoutSeconds = clusterv1.ConvertToSeconds(new(in.Timeout))
 	return nil
 }
 
 func Convert_v1beta2_UnhealthyMachineCondition_To_v1beta1_UnhealthyMachineCondition(in *clusterv1.UnhealthyMachineCondition, out *UnhealthyMachineCondition, _ apimachineryconversion.Scope) error {
 	out.Type = in.Type
 	out.Status = in.Status
-	out.Timeout = ptr.Deref(clusterv1.ConvertFromSeconds(in.TimeoutSeconds), metav1.Duration{})
+	out.Timeout = deref(clusterv1.ConvertFromSeconds(in.TimeoutSeconds), metav1.Duration{})
 	return nil
 }
 
@@ -1176,10 +1175,10 @@ func Convert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *clusterv1.Machin
 	}
 
 	if !reflect.DeepEqual(in.LastUpdated, metav1.Time{}) {
-		out.LastUpdated = ptr.To(in.LastUpdated)
+		out.LastUpdated = new(in.LastUpdated)
 	}
 	if !reflect.DeepEqual(in.CertificatesExpiryDate, metav1.Time{}) {
-		out.CertificatesExpiryDate = ptr.To(in.CertificatesExpiryDate)
+		out.CertificatesExpiryDate = new(in.CertificatesExpiryDate)
 	}
 	if in.NodeRef.IsDefined() {
 		out.NodeRef = &corev1.ObjectReference{
@@ -1203,8 +1202,8 @@ func Convert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *clusterv1.Machin
 	}
 
 	// Move initialization to old fields
-	out.BootstrapReady = ptr.Deref(in.Initialization.BootstrapDataSecretCreated, false)
-	out.InfrastructureReady = ptr.Deref(in.Initialization.InfrastructureProvisioned, false)
+	out.BootstrapReady = deref(in.Initialization.BootstrapDataSecretCreated, false)
+	out.InfrastructureReady = deref(in.Initialization.InfrastructureProvisioned, false)
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
@@ -1327,8 +1326,8 @@ func Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in *clusterv
 	}
 
 	// Move initialization to old fields
-	out.BootstrapReady = ptr.Deref(in.Initialization.BootstrapDataSecretCreated, false)
-	out.InfrastructureReady = ptr.Deref(in.Initialization.InfrastructureProvisioned, false)
+	out.BootstrapReady = deref(in.Initialization.BootstrapDataSecretCreated, false)
+	out.InfrastructureReady = deref(in.Initialization.InfrastructureProvisioned, false)
 
 	// Move new conditions (v1beta2) and replica counters to the v1beta2 field.
 	if in.Conditions == nil && in.ReadyReplicas == nil && in.AvailableReplicas == nil && in.UpToDateReplicas == nil {
@@ -1421,8 +1420,8 @@ func Convert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(
 		return err
 	}
 
-	out.GeneratePatchesExtension = ptr.Deref(in.GenerateExtension, "")
-	out.ValidateTopologyExtension = ptr.Deref(in.ValidateExtension, "")
+	out.GeneratePatchesExtension = deref(in.GenerateExtension, "")
+	out.ValidateTopologyExtension = deref(in.ValidateExtension, "")
 	return nil
 }
 
@@ -1432,10 +1431,10 @@ func Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(
 	}
 
 	if in.GeneratePatchesExtension != "" {
-		out.GenerateExtension = ptr.To(in.GeneratePatchesExtension)
+		out.GenerateExtension = new(in.GeneratePatchesExtension)
 	}
 	if in.ValidateTopologyExtension != "" {
-		out.ValidateExtension = ptr.To(in.ValidateTopologyExtension)
+		out.ValidateExtension = new(in.ValidateTopologyExtension)
 	}
 	return nil
 }
@@ -1705,7 +1704,7 @@ func Convert_v1beta2_MachineDeploymentSpec_To_v1beta1_MachineDeploymentSpec(in *
 		if out.Strategy.RollingUpdate == nil {
 			out.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
 		}
-		out.Strategy.RollingUpdate.DeletePolicy = ptr.To(string(in.Deletion.Order))
+		out.Strategy.RollingUpdate.DeletePolicy = new(string(in.Deletion.Order))
 	}
 	if in.Remediation.MaxInFlight != nil {
 		if out.Strategy == nil {
@@ -1717,7 +1716,7 @@ func Convert_v1beta2_MachineDeploymentSpec_To_v1beta1_MachineDeploymentSpec(in *
 		out.Strategy.Remediation.MaxInFlight = in.Remediation.MaxInFlight
 	}
 	if !reflect.DeepEqual(in.Rollout.After, metav1.Time{}) {
-		out.RolloutAfter = ptr.To(in.Rollout.After)
+		out.RolloutAfter = new(in.Rollout.After)
 	}
 	if in.MachineNaming.Template != "" {
 		out.MachineNamingStrategy = &MachineNamingStrategy{
@@ -1789,10 +1788,17 @@ func Convert_v1beta1_MachineDeletionStatus_To_v1beta2_MachineDeletionStatus(in *
 
 func Convert_v1beta2_MachineDeletionStatus_To_v1beta1_MachineDeletionStatus(in *clusterv1.MachineDeletionStatus, out *MachineDeletionStatus, _ apimachineryconversion.Scope) error {
 	if !reflect.DeepEqual(in.NodeDrainStartTime, metav1.Time{}) {
-		out.NodeDrainStartTime = ptr.To(in.NodeDrainStartTime)
+		out.NodeDrainStartTime = new(in.NodeDrainStartTime)
 	}
 	if !reflect.DeepEqual(in.WaitForNodeVolumeDetachStartTime, metav1.Time{}) {
-		out.WaitForNodeVolumeDetachStartTime = ptr.To(in.WaitForNodeVolumeDetachStartTime)
+		out.WaitForNodeVolumeDetachStartTime = new(in.WaitForNodeVolumeDetachStartTime)
 	}
 	return nil
+}
+
+func deref[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }

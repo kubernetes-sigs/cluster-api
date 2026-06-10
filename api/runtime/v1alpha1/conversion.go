@@ -21,7 +21,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -108,7 +107,7 @@ func Convert_v1beta2_ExtensionHandler_To_v1alpha1_ExtensionHandler(in *runtimev1
 	}
 
 	if in.FailurePolicy != "" {
-		out.FailurePolicy = ptr.To(FailurePolicy(in.FailurePolicy))
+		out.FailurePolicy = new(FailurePolicy(in.FailurePolicy))
 	}
 	return nil
 }

@@ -19,23 +19,21 @@ package v1beta2
 import (
 	"reflect"
 	"testing"
-
-	"k8s.io/utils/ptr"
 )
 
 func TestConvertArgs(t *testing.T) {
 	argList := []Arg{
 		{
 			Name:  "foo",
-			Value: ptr.To("1"),
+			Value: new("1"),
 		},
 		{
 			Name:  "bar",
-			Value: ptr.To("1"),
+			Value: new("1"),
 		},
 		{
 			Name:  "foo",
-			Value: ptr.To("2"),
+			Value: new("2"),
 		},
 	}
 	argMap := ConvertFromArgs(argList)
@@ -47,11 +45,11 @@ func TestConvertArgs(t *testing.T) {
 	expectedArgList := []Arg{
 		{
 			Name:  "bar",
-			Value: ptr.To("1"),
+			Value: new("1"),
 		},
 		{
 			Name:  "foo",
-			Value: ptr.To("2"),
+			Value: new("2"),
 		},
 	}
 	if !reflect.DeepEqual(argList, expectedArgList) {

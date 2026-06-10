@@ -3,7 +3,6 @@ module sigs.k8s.io/cluster-api/api
 go 1.26.0
 
 require (
-	github.com/pkg/errors v0.9.1
 	golang.org/x/text v0.38.0
 	k8s.io/api v0.36.1
 	k8s.io/apiextensions-apiserver v0.36.1

@@ -18,11 +18,11 @@ package v1beta1
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

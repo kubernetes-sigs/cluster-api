@@ -22,8 +22,6 @@ import (
 	"reflect"
 	"strings"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/spec3"
@@ -236,17 +234,17 @@ func componentName(typeName string) string {
 // * listExtensionsV1beta1IngressForAllNamespaces
 // In our case:
 // * hooksRuntimeClusterV1alpha1Discovery.
+// * hooksRuntimeClusterV1alpha1AfterClusterUpgrade.
 func operationID(gvh GroupVersionHook) string {
 	shortAPIGroup := strings.TrimSuffix(gvh.Group, ".x-k8s.io")
 
 	split := strings.Split(shortAPIGroup, ".")
-	title := cases.Title(language.Und)
 
 	res := split[0]
 	for i := 1; i < len(split); i++ {
-		res += title.String(split[i])
+		res += strings.ToTitle(split[i][:1]) + split[i][1:]
 	}
-	res += title.String(gvh.Version) + title.String(gvh.Hook)
+	res += strings.ToTitle(gvh.Version[:1]) + gvh.Version[1:] + strings.ToTitle(gvh.Hook[:1]) + gvh.Hook[1:]
 
 	return res
 }

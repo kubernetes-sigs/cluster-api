@@ -17,15 +17,13 @@ limitations under the License.
 package v1beta2
 
 import (
+	"reflect"
 	"testing"
 
-	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 )
 
 func TestConvertArgs(t *testing.T) {
-	g := NewWithT(t)
-
 	argList := []Arg{
 		{
 			Name:  "foo",
@@ -43,15 +41,20 @@ func TestConvertArgs(t *testing.T) {
 	argMap := ConvertFromArgs(argList)
 
 	argList = ConvertToArgs(argMap)
-	g.Expect(argList).To(HaveLen(2))
-	g.Expect(argList).To(ConsistOf(
-		Arg{
+	if len(argList) != 2 {
+		t.Fatal("Expected list to have 2 elements")
+	}
+	expectedArgList := []Arg{
+		{
 			Name:  "bar",
 			Value: ptr.To("1"),
 		},
-		Arg{
+		{
 			Name:  "foo",
 			Value: ptr.To("2"),
 		},
-	))
+	}
+	if !reflect.DeepEqual(argList, expectedArgList) {
+		t.Fatalf("Expected %+v to equal %+v", argList, expectedArgList)
+	}
 }

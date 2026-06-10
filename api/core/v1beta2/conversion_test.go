@@ -18,28 +18,32 @@ package v1beta2
 
 import (
 	"math"
+	"reflect"
 	"testing"
 	"time"
 
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
 func TestConvertSeconds(t *testing.T) {
-	g := NewWithT(t)
-
 	seconds := ptr.To[int32](100)
 	duration := ConvertFromSeconds(seconds)
-	g.Expect(ConvertToSeconds(duration)).To(Equal(seconds))
+	if !reflect.DeepEqual(ConvertToSeconds(duration), seconds) {
+		t.Fatalf("Expected %+v to equal %+v", duration, seconds)
+	}
 
 	seconds = nil
 	duration = ConvertFromSeconds(seconds)
-	g.Expect(ConvertToSeconds(duration)).To(Equal(seconds))
+	if !reflect.DeepEqual(ConvertToSeconds(duration), seconds) {
+		t.Fatalf("Expected %+v to equal %+v", duration, seconds)
+	}
 
 	// Durations longer than MaxInt32 are capped.
 	duration = ptr.To(metav1.Duration{Duration: (math.MaxInt32 + 1) * time.Second})
-	g.Expect(ConvertToSeconds(duration)).To(Equal(ptr.To[int32](math.MaxInt32)))
+	if !reflect.DeepEqual(ConvertToSeconds(duration), ptr.To[int32](math.MaxInt32)) {
+		t.Fatalf("Expected %+v to equal %+v", duration, ptr.To[int32](math.MaxInt32))
+	}
 }
 
 func TestConvert_bool_To_Pointer_bool(t *testing.T) {
@@ -105,11 +109,11 @@ func TestConvert_bool_To_Pointer_bool(t *testing.T) {
 	}
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
 			var out *bool
 			Convert_bool_To_Pointer_bool(tt.in, tt.hasRestored, tt.restored, &out)
-			g.Expect(out).To(Equal(tt.wantOut))
+			if !reflect.DeepEqual(out, tt.wantOut) {
+				t.Fatalf("Expected %+v to equal %+v", out, tt.wantOut)
+			}
 		})
 	}
 }
@@ -177,11 +181,11 @@ func TestConvert_int32_To_Pointer_int32(t *testing.T) {
 	}
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
 			var out *int32
 			Convert_int32_To_Pointer_int32(tt.in, tt.hasRestored, tt.restored, &out)
-			g.Expect(out).To(Equal(tt.wantOut))
+			if !reflect.DeepEqual(out, tt.wantOut) {
+				t.Fatalf("Expected %+v to equal %+v", out, tt.wantOut)
+			}
 		})
 	}
 }
@@ -249,11 +253,11 @@ func TestConvert_Duration_To_Pointer_int32(t *testing.T) {
 	}
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
 			var out *int32
 			Convert_Duration_To_Pointer_int32(tt.in, tt.hasRestored, tt.restored, &out)
-			g.Expect(out).To(Equal(tt.wantOut))
+			if !reflect.DeepEqual(out, tt.wantOut) {
+				t.Fatalf("Expected %+v to equal %+v", out, tt.wantOut)
+			}
 		})
 	}
 }

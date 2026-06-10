@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -177,12 +176,11 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 		if err := json.Unmarshal(b, newbts); err != nil {
 			return errors.Wrap(err, "expected no unmarshal error, got error")
 		}
-		if diff := cmp.Diff(bts, newbts); diff != "" {
+		if *bts != *newbts {
 			return errors.Errorf(
-				"expected object: %v\n\t  actual: %v\n\t got diff: %v",
+				"expected object: %v\n\t  actual: %v\n\t",
 				bts,
 				newbts,
-				diff,
 			)
 		}
 	}

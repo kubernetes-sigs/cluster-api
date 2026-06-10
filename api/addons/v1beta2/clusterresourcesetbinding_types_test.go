@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -208,7 +207,7 @@ func TestSetResourceBinding(t *testing.T) {
 			tt.resourceSetBinding.SetBinding(tt.resourceBinding)
 			exist := false
 			for _, b := range tt.resourceSetBinding.Resources {
-				if cmp.Equal(b.ResourceRef, tt.resourceBinding.ResourceRef) {
+				if b.ResourceRef == tt.resourceBinding.ResourceRef {
 					gs.Expect(tt.resourceBinding.Applied).To(BeEquivalentTo(b.Applied))
 					exist = true
 				}

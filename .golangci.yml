@@ -75,7 +75,6 @@ linters:
           - k8s.io/kube-openapi
           - sigs.k8s.io/cluster-api/api
           # TODO: Remove these imports (or at least consider it)
-          - github.com/google/go-cmp/cmp$
           - github.com/onsi/gomega$
           - github.com/pkg/errors$
           - golang.org/x/text/cases$

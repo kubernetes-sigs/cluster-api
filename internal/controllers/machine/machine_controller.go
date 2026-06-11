@@ -94,22 +94,24 @@ var (
 
 // Reconciler reconciles a Machine object.
 type Reconciler struct {
-	Client        client.Client
-	APIReader     client.Reader
-	ClusterCache  clustercache.ClusterCache
-	RuntimeClient runtimeclient.Client
+	Client              client.Client
+	APIReader           client.Reader
+	ClusterCache        clustercache.ClusterCache
+	contractObjectCache *external.ContractObjectCache
+	RuntimeClient       runtimeclient.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+	WatchNamespace   string
+	ControllerName   string
 
 	RemoteConditionsGracePeriod time.Duration
 
 	AdditionalSyncMachineLabels      []*regexp.Regexp
 	AdditionalSyncMachineAnnotations []*regexp.Regexp
 
-	controller      capicontrollerutil.Controller
-	recorder        record.EventRecorder
-	externalTracker external.ObjectTracker
+	controller capicontrollerutil.Controller
+	recorder   record.EventRecorder
 
 	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
 	// during a single reconciliation.
@@ -178,12 +180,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.hookCache = cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
-	r.externalTracker = external.ObjectTracker{
-		Controller:      c,
-		Cache:           mgr.GetCache(),
-		Scheme:          mgr.GetScheme(),
-		PredicateLogger: r.predicateLog,
-	}
+	r.contractObjectCache = external.NewContractObjectCache(mgr, c, r.Client, r.predicateLog, r.WatchNamespace, r.ControllerName)
 	return nil
 }
 

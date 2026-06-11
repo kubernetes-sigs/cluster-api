@@ -972,7 +972,7 @@ func TestReconcileRequest(t *testing.T) {
 				Client:       clientFake,
 				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				recorder:     record.NewFakeRecorder(10),
-				externalTracker: external.ObjectTracker{
+				contractObjectCache: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          clientFake.Scheme(),
@@ -1311,7 +1311,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 				Client:       clientFake,
 				recorder:     record.NewFakeRecorder(10),
 				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				externalTracker: external.ObjectTracker{
+				contractObjectCache: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          clientFake.Scheme(),

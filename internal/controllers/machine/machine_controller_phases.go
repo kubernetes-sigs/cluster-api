@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
+	contractv1 "sigs.k8s.io/cluster-api/api/contract/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -40,7 +41,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 var externalReadyWait = 30 * time.Second
@@ -86,15 +86,14 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 // ensureExternalOwnershipAndWatch ensures that only the Machine owns the external object,
 // adds a watch to the external object if one does not already exist and adds the necessary labels.
 func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, m.Namespace)
+	obj, err := r.contractObjectCache.Get(ctx, ref, m.Namespace, &contractv1.BootstrapConfig{}, &contractv1.BootstrapConfigList{})
 	if err != nil {
 		return nil, err
 	}
 
 	// Ensure we add a watch to the external object, if there isn't one already.
-	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Machine{}), predicates.ResourceIsChanged(r.Client.Scheme(), *r.externalTracker.PredicateLogger)); err != nil {
+	if err := r.contractObjectCache.Watch(ctx, ref, &contractv1.BootstrapConfig{}, &contractv1.BootstrapConfigList{},
+		handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Machine{})); err != nil {
 		return nil, err
 	}
 
@@ -114,7 +113,7 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 	if !hasOnCreateOwnerRefs &&
 		util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) &&
 		obj.GetLabels()[clusterv1.ClusterNameLabel] == m.Spec.ClusterName {
-		return obj, nil
+		return &unstructured.Unstructured{}, nil // FIXME
 	}
 
 	original := obj.DeepCopyObject().(client.Object)
@@ -139,9 +138,9 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 	obj.SetLabels(labels)
 
 	if err := r.Client.Patch(ctx, obj, client.MergeFrom(original)); err != nil {
-		return nil, err
+		return nil, err // FIXME: doesn't work this obj is not registered in the scheme of this client, have to use a special client for these objects everywhere
 	}
-	return obj, nil
+	return &unstructured.Unstructured{}, nil // FIXME
 }
 
 // reconcileBootstrap reconciles the BootstrapConfig of a Machine.
@@ -423,12 +422,12 @@ func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ct
 }
 
 // removeOnCreateOwnerRefs will remove any MachineSet or control plane owner references from passed objects.
-func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) error {
+func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj client.Object) error {
 	cpGK := getControlPlaneGKForMachine(cluster, m)
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
-			return errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
+			return errors.Wrapf(err, "could not remove ownerReference %v", owner.String())
 		}
 		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
 			(cpGK != nil && ownerGV.Group == cpGK.Group && owner.Kind == cpGK.Kind) {
@@ -440,12 +439,12 @@ func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, o
 }
 
 // hasOnCreateOwnerRefs will check if any MachineSet or control plane owner references from passed objects are set.
-func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) (bool, error) {
+func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj client.Object) (bool, error) {
 	cpGK := getControlPlaneGKForMachine(cluster, m)
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
-			return false, errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
+			return false, errors.Wrapf(err, "could not remove ownerReference %v", owner.String())
 		}
 		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
 			(cpGK != nil && ownerGV.Group == cpGK.Group && owner.Kind == cpGK.Kind) {

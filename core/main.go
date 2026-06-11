@@ -454,6 +454,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		os.Exit(1)
 	}
 
+	dynamicCache := setup.NewDynamicCache(mgr, watchNamespace, controllerName)
+
 	// Note: The kubebuilder RBAC markers above has to be kept in sync
 	// with the CRDs that should be migrated by this provider.
 	crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{
@@ -651,6 +653,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		Client:                           mgr.GetClient(),
 		APIReader:                        mgr.GetAPIReader(),
 		ClusterCache:                     clusterCache,
+		DynamicCache:                     dynamicCache,
 		RuntimeClient:                    runtimeClient,
 		WatchFilterValue:                 watchFilterValue,
 		RemoteConditionsGracePeriod:      remoteConditionsGracePeriod,
@@ -683,6 +686,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),
 		ClusterCache:     clusterCache,
+		DynamicCache:     dynamicCache,
 		PreflightChecks:  machineSetPreflightChecksSet,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineSetConcurrency)); err != nil {

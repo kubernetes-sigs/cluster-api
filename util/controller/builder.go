@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/cache"
 	predicatesutil "sigs.k8s.io/cluster-api/util/predicates"
@@ -59,6 +60,7 @@ type Builder struct {
 	forObject         client.Object
 	controllerName    string
 	rateLimitInterval time.Duration
+	dynamicCache      *external.DynamicCache
 }
 
 // NewControllerManagedBy returns a new controller builder that will be started by the provided Manager.
@@ -143,6 +145,12 @@ func (blder *Builder) WithEventFilter(p predicate.Predicate) *Builder {
 func (blder *Builder) Named(name string) *Builder {
 	blder.controllerName = name
 	blder.builder.Named(name)
+	return blder
+}
+
+// WithDynamicCache TODO
+func (blder *Builder) WithDynamicCache(dynamicCache *external.DynamicCache) *Builder {
+	blder.dynamicCache = dynamicCache
 	return blder
 }
 
@@ -245,7 +253,7 @@ func (blder *Builder) Build(ctx context.Context, r reconcile.TypedReconciler[rec
 	reconcileCache := cache.New[reconcileCacheEntry](ctx, cache.DefaultTTL)
 
 	// Create consistencyStore.
-	consistencyStore := newConsistencyStore(blder.mgr.GetScheme(), blder.mgr.GetCache())
+	consistencyStore := newConsistencyStore(blder.mgr.GetScheme(), blder.mgr.GetCache(), blder.dynamicCache)
 
 	c, err := blder.builder.Build(&reconcilerWrapper{
 		name:              controllerName,

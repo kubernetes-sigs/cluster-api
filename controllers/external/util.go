@@ -18,6 +18,7 @@ package external
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -56,29 +57,42 @@ func GetObjectFromContractVersionedRef(ctx context.Context, c client.Reader, ref
 		return nil, pkgerrors.Errorf("cannot get object - object reference not set")
 	}
 
-	metadata, err := contract.GetGKMetadata(ctx, c, schema.GroupKind{Group: ref.APIGroup, Kind: ref.Kind})
+	gvk, err := GetGVKFromContractVersionedRef(ctx, c, schema.GroupKind{Group: ref.APIGroup, Kind: ref.Kind})
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
-			return nil, pkgerrors.Errorf("failed to get object from ref: %v", err.Error())
-		}
-		return nil, pkgerrors.Wrapf(err, "failed to get object from ref")
-	}
-
-	_, latestAPIVersion, err := contract.GetLatestContractAndAPIVersionFromContract(metadata, contract.Version)
-	if err != nil {
-		return nil, pkgerrors.Wrapf(err, "failed to get object from ref")
+		return nil, err
 	}
 
 	obj := new(unstructured.Unstructured)
-	obj.SetAPIVersion(schema.GroupVersion{Group: ref.APIGroup, Version: latestAPIVersion}.String())
-	obj.SetKind(ref.Kind)
+	obj.GetObjectKind().SetGroupVersionKind(gvk)
 	obj.SetName(ref.Name)
 	obj.SetNamespace(namespace)
 	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
 		return nil, pkgerrors.Wrapf(err, "failed to retrieve %s %s", obj.GetKind(), klog.KRef(namespace, ref.Name))
 	}
 	return obj, nil
+}
+
+func GetGVKFromContractVersionedRef(ctx context.Context, c client.Reader, gk schema.GroupKind) (schema.GroupVersionKind, error) {
+	metadata, err := contract.GetGKMetadata(ctx, c, schema.GroupKind{Group: gk.Group, Kind: gk.Kind})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found. // FIXME: does this still work as expected?
+			return schema.GroupVersionKind{}, pkgerrors.Errorf("failed to get object from ref: %v", err.Error())
+		}
+		return schema.GroupVersionKind{}, pkgerrors.Wrapf(err, "failed to get object from ref")
+	}
+
+	_, latestAPIVersion, err := contract.GetLatestContractAndAPIVersionFromContract(metadata, contract.Version)
+	if err != nil {
+		return schema.GroupVersionKind{}, pkgerrors.Wrapf(err, "failed to get object from ref")
+	}
+
+	gvk := schema.GroupVersionKind{
+		Group:   gk.Group,
+		Version: latestAPIVersion,
+		Kind:    gk.Kind,
+	}
+	return gvk, nil
 }
 
 // Delete uses the client and reference to delete an external, unstructured object.
@@ -166,6 +180,14 @@ type GenerateTemplateInput struct {
 	// TemplateRef is a reference to the template that needs to be cloned.
 	TemplateRef *corev1.ObjectReference
 
+	// FIXME: try to migrate all callers to new fields
+
+	// TemplateGroupKind is the GroupKind of the template.
+	TemplateGroupKind schema.GroupKind
+
+	// TemplateName is the name of the template
+	TemplateName string
+
 	// Namespace is the Kubernetes namespace the cloned object should be created into.
 	Namespace string
 
@@ -220,8 +242,17 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 	for key, value := range in.Annotations {
 		annotations[key] = value
 	}
-	annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.TemplateRef.Name
-	annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.TemplateRef.GroupVersionKind().GroupKind().String()
+	if in.TemplateRef != nil {
+		annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.TemplateRef.Name
+		annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.TemplateRef.GroupVersionKind().GroupKind().String()
+	} else {
+		if in.TemplateName != "" && !in.TemplateGroupKind.Empty() {
+			annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.TemplateName
+			annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.TemplateGroupKind.String()
+		} else {
+			return nil, fmt.Errorf("failed to generate template, either TemplateRef or TemplateName and TemplateGroupKind must be set")
+		}
+	}
 	to.SetAnnotations(annotations)
 
 	// Set labels.

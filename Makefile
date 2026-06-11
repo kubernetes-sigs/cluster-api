@@ -408,7 +408,7 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 
 .PHONY: generate-go-deepcopy-core
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./api/runtime/hooks"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./api/runtime/hooks,./internal/contract/api"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		paths=./api/addons/... \
@@ -418,6 +418,7 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./api/runtime/hooks/... \
 		paths=./cmd/clusterctl/... \
 		paths=./controllers/crdmigrator/test/... \
+		paths=./internal/contract/api/... \
 		paths=./internal/runtime/test/... \
 		paths=./internal/topology/upgrade/test/... \
 		paths=./util/test/builder/... \

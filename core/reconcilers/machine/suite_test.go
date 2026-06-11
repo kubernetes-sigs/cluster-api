@@ -89,12 +89,15 @@ func TestMain(m *testing.M) {
 		clusterCache.(interface{ SetConnectionCreationRetryInterval(time.Duration) }).
 			SetConnectionCreationRetryInterval(2 * time.Second)
 
+		dynamicCache := setup.NewDynamicCache(mgr, "test-controller-manager", "")
+
 		if err := (&Reconciler{
 			Client:    mgr.GetClient(),
 			APIReader: mgr.GetAPIReader(),
 			// Just adding a minimal RuntimeClient to avoid panics in tests.
 			RuntimeClient:                    fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(runtimecatalog.New()).Build(),
 			ClusterCache:                     clusterCache,
+			DynamicCache:                     dynamicCache,
 			RemoteConditionsGracePeriod:      5 * time.Minute,
 			AdditionalSyncMachineLabels:      nil,
 			AdditionalSyncMachineAnnotations: nil,

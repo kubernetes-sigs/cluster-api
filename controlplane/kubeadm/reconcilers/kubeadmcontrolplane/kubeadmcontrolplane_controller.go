@@ -47,6 +47,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
@@ -100,6 +101,7 @@ type Reconciler struct {
 	controller                      capicontrollerutil.Controller
 	recorder                        record.EventRecorder
 	ClusterCache                    clustercache.ClusterCache
+	DynamicCache                    dynamiccache.DynamicCache
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -310,7 +312,7 @@ func (r *Reconciler) initControlPlaneScope(ctx context.Context, cluster *cluster
 
 	// Return early if the cluster is not yet in a state where control plane machines exists
 	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) || !cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, collections.Machines{})
+		controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, collections.Machines{})
 		if err != nil {
 			log.Error(err, "Failed to initialize control plane scope")
 			return nil, false, err
@@ -338,7 +340,7 @@ func (r *Reconciler) initControlPlaneScope(ctx context.Context, cluster *cluster
 		return nil, false, err
 	}
 
-	controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, ownedMachines)
+	controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, ownedMachines)
 	if err != nil {
 		log.Error(err, "Failed to initialize control plane scope")
 		return nil, false, err

@@ -71,14 +71,16 @@ type realConsistencyStore struct {
 
 	scheme         *runtime.Scheme
 	informerGetter informerGetter
+	dynamicCache   DynamicCache
 }
 
-func newConsistencyStore(scheme *runtime.Scheme, cache informerGetter) *realConsistencyStore {
+func newConsistencyStore(scheme *runtime.Scheme, cache informerGetter, dynamicCache DynamicCache) *realConsistencyStore {
 	return &realConsistencyStore{
 		writes:         map[types.NamespacedName]*ownerRecord{},
 		stores:         map[GroupVersionKindType]kcache.Store{},
 		scheme:         scheme,
 		informerGetter: cache,
+		dynamicCache:   dynamicCache,
 	}
 }
 
@@ -168,6 +170,9 @@ var (
 
 	// ObjectTypeStructured is the type of an object for a regular structured object.
 	ObjectTypeStructured ObjectType = "Structured"
+
+	// ObjectTypeDynamicCacheStructured is the type of an object for a structured object in a dynamic cache.
+	ObjectTypeDynamicCacheStructured ObjectType = "DynamicCacheStructured"
 )
 
 // GroupVersionKindType described the GVK and type of an object.
@@ -185,6 +190,14 @@ func StructuredObject(gv schema.GroupVersion, kind string) GroupVersionKindType 
 			Kind:    kind,
 		},
 		Type: ObjectTypeStructured,
+	}
+}
+
+// DynamicCacheStructuredObject is a util that allows to create a GroupVersionKindType for a structured object in a dynamic cache.
+func DynamicCacheStructuredObject(gvk schema.GroupVersionKind) GroupVersionKindType {
+	return GroupVersionKindType{
+		GroupVersionKind: gvk,
+		Type:             ObjectTypeDynamicCacheStructured,
 	}
 }
 
@@ -281,35 +294,62 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 		return store, nil
 	}
 
-	var obj client.Object
-	switch gvkt.Type {
-	case ObjectTypeUnstructured:
-		obj = &unstructured.Unstructured{}
-		obj.GetObjectKind().SetGroupVersionKind(gvkt.GroupVersionKind)
-	case ObjectTypePartialObjectMetadata:
-		obj = &metav1.PartialObjectMetadata{}
-		obj.GetObjectKind().SetGroupVersionKind(gvkt.GroupVersionKind)
-	case ObjectTypeStructured:
-		runtimeObj, err := c.scheme.New(gvkt.GroupVersionKind)
+	var sharedIndexInformer kcache.SharedIndexInformer
+	if gvkt.Type == ObjectTypeDynamicCacheStructured {
+		if c.dynamicCache == nil {
+			return nil, fmt.Errorf("failed to create %s informer: DynamicCache not configured", gvkt.Kind)
+		}
+
+		dc, exists := c.dynamicCache.GetCache(ctx, gvkt.GroupVersionKind)
+		if !exists {
+			return nil, fmt.Errorf("failed to create %s informer: DynamicCache does not have a corresponding Cache", gvkt.Kind)
+		}
+
+		// Note: This creates the informer if it doesn't exist already, but it doesn't  wait for the cache to sync.
+		// Note: Using GetInformerForKind instead of GetInformer because we cannot create an obj because c.scheme does
+		// not contain the type we need. GetInformerForKind will create the object internally instead.
+		informer, err := dc.GetInformerForKind(ctx, gvkt.GroupVersionKind, cache.BlockUntilSynced(false))
 		if err != nil {
-			return nil, fmt.Errorf("failed to create %s object: %w", gvkt.Kind, err)
+			return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
 		}
 		var ok bool
-		obj, ok = runtimeObj.(client.Object)
+		sharedIndexInformer, ok = informer.(kcache.SharedIndexInformer)
 		if !ok {
-			return nil, fmt.Errorf("failed to cast %s object to client.Object: %w", gvkt.Kind, err)
+			// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
+			return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
 		}
-	}
+	} else {
+		var obj client.Object
+		switch gvkt.Type {
+		case ObjectTypeUnstructured:
+			obj = &unstructured.Unstructured{}
+			obj.GetObjectKind().SetGroupVersionKind(gvkt.GroupVersionKind)
+		case ObjectTypePartialObjectMetadata:
+			obj = &metav1.PartialObjectMetadata{}
+			obj.GetObjectKind().SetGroupVersionKind(gvkt.GroupVersionKind)
+		case ObjectTypeStructured:
+			runtimeObj, err := c.scheme.New(gvkt.GroupVersionKind)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create %s object: %w", gvkt.Kind, err)
+			}
+			var ok bool
+			obj, ok = runtimeObj.(client.Object)
+			if !ok {
+				return nil, fmt.Errorf("failed to cast %s object to client.Object: %w", gvkt.Kind, err)
+			}
+		}
 
-	// Note: This creates the informer if it doesn't exist already, but it doesn't  wait for the cache to sync.
-	informer, err := c.informerGetter.GetInformer(ctx, obj, cache.BlockUntilSynced(false))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
-	}
-	sharedIndexInformer, ok := informer.(kcache.SharedIndexInformer)
-	if !ok {
-		// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
-		return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
+		// Note: This creates the informer if it doesn't exist already, but it doesn't  wait for the cache to sync.
+		informer, err := c.informerGetter.GetInformer(ctx, obj, cache.BlockUntilSynced(false))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
+		}
+		var ok bool
+		sharedIndexInformer, ok = informer.(kcache.SharedIndexInformer)
+		if !ok {
+			// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
+			return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
+		}
 	}
 
 	c.stores[gvkt] = sharedIndexInformer.GetStore()

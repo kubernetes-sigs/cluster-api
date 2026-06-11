@@ -56,21 +56,3 @@ func (b *BootstrapContract) DataSecretName() *String {
 		path: []string{"status", "dataSecretName"},
 	}
 }
-
-// FailureReason provides access to the status.failureReason field in an bootstrap object. Note that this field is optional.
-//
-// Deprecated: This function is deprecated and is going to be removed. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-func (b *BootstrapContract) FailureReason() *String {
-	return &String{
-		path: []string{"status", "failureReason"},
-	}
-}
-
-// FailureMessage provides access to the status.failureMessage field in an bootstrap object. Note that this field is optional.
-//
-// Deprecated: This function is deprecated and is going to be removed. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-func (b *BootstrapContract) FailureMessage() *String {
-	return &String{
-		path: []string{"status", "failureMessage"},
-	}
-}

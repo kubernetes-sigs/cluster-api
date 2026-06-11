@@ -21,7 +21,10 @@ import (
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -93,34 +96,52 @@ func TestGetContractVersion(t *testing.T) {
 	}
 }
 
-func TestGetAPIVersion(t *testing.T) {
+func TestGetGVKFromGK(t *testing.T) {
+	gk := schema.GroupKind{
+		Group: clusterv1.GroupVersionBootstrap.Group,
+		Kind:  "TestBootstrapConfig",
+	}
+
 	testCases := []struct {
-		name               string
-		crdLabels          map[string]string
-		expectedAPIVersion string
-		expectError        bool
+		name                    string
+		crdLabels               map[string]string
+		skipCRDCreation         bool
+		expectedContractVersion string
+		expectedGVK             schema.GroupVersionKind
+		expectError             bool
 	}{
 		{
-			name:               "no contract labels",
-			crdLabels:          nil,
-			expectedAPIVersion: "",
-			expectError:        true,
+			name:                    "no contract labels",
+			crdLabels:               nil,
+			expectedContractVersion: "",
+			expectedGVK:             schema.GroupVersionKind{},
+			expectError:             true,
 		},
 		{
 			name: "only v1beta1 contract label",
 			crdLabels: map[string]string{
 				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
 			},
-			expectedAPIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
-			expectError:        false,
+			expectedContractVersion: "v1beta1",
+			expectedGVK: schema.GroupVersionKind{
+				Group:   gk.Group,
+				Version: "v1alpha2",
+				Kind:    gk.Kind,
+			},
+			expectError: false,
 		},
 		{
 			name: "only v1beta2 contract label",
 			crdLabels: map[string]string{
 				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
 			},
-			expectedAPIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-			expectError:        false,
+			expectedContractVersion: "v1beta2",
+			expectedGVK: schema.GroupVersionKind{
+				Group:   gk.Group,
+				Version: "v1alpha4",
+				Kind:    gk.Kind,
+			},
+			expectError: false,
 		},
 		{
 			name: "v1beta1 and v1beta2 contract labels",
@@ -128,8 +149,18 @@ func TestGetAPIVersion(t *testing.T) {
 				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
 				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
 			},
-			expectedAPIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
-			expectError:        false,
+			expectedContractVersion: "v1beta2",
+			expectedGVK: schema.GroupVersionKind{
+				Group:   gk.Group,
+				Version: "v1alpha4",
+				Kind:    gk.Kind,
+			},
+			expectError: false,
+		},
+		{
+			name:            "no CRD",
+			skipCRDCreation: true,
+			expectError:     true,
 		},
 	}
 
@@ -137,23 +168,27 @@ func TestGetAPIVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig").GroupKind()
+			var obj []client.Object
+			if !tt.skipCRDCreation {
+				u := &unstructured.Unstructured{}
+				u.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
+				u.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
+				u.SetLabels(tt.crdLabels)
+				obj = append(obj, u)
+			}
 
-			u := &unstructured.Unstructured{}
-			u.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
-			u.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
-			u.SetLabels(tt.crdLabels)
+			fakeClient := fake.NewClientBuilder().WithObjects(obj...).Build()
 
-			fakeClient := fake.NewClientBuilder().WithObjects(u).Build()
-
-			apiVersion, err := GetAPIVersion(t.Context(), fakeClient, gk)
+			contractVersion, gvk, err := GetGVKFromGK(t.Context(), fakeClient, gk)
 
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(apierrors.IsNotFound(err)).To(BeFalse()) // Should never return NotFound error.
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(apiVersion).To(Equal(tt.expectedAPIVersion))
+			g.Expect(contractVersion).To(Equal(tt.expectedContractVersion))
+			g.Expect(gvk).To(Equal(tt.expectedGVK))
 		})
 	}
 }

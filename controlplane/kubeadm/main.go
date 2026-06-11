@@ -357,6 +357,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	dynamicCache := setup.NewDynamicCache(mgr, controllerName, watchNamespace)
+
 	crdMigratorSkipPhases := make([]crdmigrator.Phase, 0, len(skipCRDMigrationPhases))
 	for _, p := range skipCRDMigrationPhases {
 		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
@@ -429,6 +431,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		APIReader:                   mgr.GetAPIReader(),
 		SecretCachingClient:         secretCachingClient,
 		ClusterCache:                clusterCache,
+		DynamicCache:                dynamicCache,
 		WatchFilterValue:            watchFilterValue,
 		EtcdDialTimeout:             etcdDialTimeout,
 		EtcdCallTimeout:             etcdCallTimeout,
@@ -447,7 +450,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 func setupWebhooks(_ context.Context, mgr ctrl.Manager) {
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
 	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
-		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
+		_, gvk, err := contract.GetGVKFromGK(ctx, mgr.GetClient(), gk)
+		if err != nil {
+			return "", err
+		}
+		return gvk.GroupVersion().String(), nil
 	})
 
 	if err := (&controlplaneadmission.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {

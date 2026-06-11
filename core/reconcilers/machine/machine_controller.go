@@ -30,7 +30,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -48,12 +48,13 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine/drain"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/contract"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -98,6 +99,7 @@ type Reconciler struct {
 	APIReader     client.Reader
 	ClusterCache  clustercache.ClusterCache
 	RuntimeClient runtimeclient.Client
+	DynamicCache  dynamiccache.DynamicCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -107,15 +109,15 @@ type Reconciler struct {
 	AdditionalSyncMachineLabels      []*regexp.Regexp
 	AdditionalSyncMachineAnnotations []*regexp.Regexp
 
-	controller      capicontrollerutil.Controller
-	recorder        record.EventRecorder
-	externalTracker external.ObjectTracker
+	controller capicontrollerutil.Controller
+	recorder   record.EventRecorder
 
 	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
 	// during a single reconciliation.
 	nodeDeletionRetryTimeout time.Duration
 
-	hookCache cache.Cache[cache.HookEntry]
+	hookCache            cache.Cache[cache.HookEntry]
+	contractObjectsCache cache.Cache[contractObjectsCacheEntry]
 
 	predicateLog *logr.Logger
 }
@@ -176,14 +178,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	r.hookCache = cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)
+	r.contractObjectsCache = cache.New[contractObjectsCacheEntry](ctx, 1*time.Hour)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
-	r.externalTracker = external.ObjectTracker{
-		Controller:      c,
-		Cache:           mgr.GetCache(),
-		Scheme:          mgr.GetScheme(),
-		PredicateLogger: r.predicateLog,
-	}
 	return nil
 }
 
@@ -410,14 +407,20 @@ type scope struct {
 
 	// infraMachine is the Infrastructure Machine object that is referenced by the
 	// Machine. It is set after reconcileInfrastructure is called.
-	infraMachine *unstructured.Unstructured
+	infraMachine contractapi.InfraMachine
+
+	// infraMachineGVK is the GVK of InfraMachine
+	infraMachineGVK schema.GroupVersionKind
 
 	// infraMachineNotFound is true if getting the infra machine object failed with an NotFound err
 	infraMachineIsNotFound bool
 
 	// bootstrapConfig is the BootstrapConfig object that is referenced by the
 	// Machine. It is set after reconcileBootstrap is called.
-	bootstrapConfig *unstructured.Unstructured
+	bootstrapConfig contractapi.BootstrapConfig
+
+	// bootstrapConfigGVK is the GVK of BootstrapConfig
+	bootstrapConfigGVK schema.GroupVersionKind
 
 	// bootstrapConfigNotFound is true if getting the BootstrapConfig object failed with an NotFound err
 	bootstrapConfigIsNotFound bool
@@ -679,7 +682,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine, infraMachine *unstructured.Unstructured) bool {
+func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine, infraMachine contractapi.InfraMachine) bool {
 	if _, exists := m.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; exists {
 		return false
 	}
@@ -701,7 +704,7 @@ func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine, infraMachine *unst
 
 // isNodeVolumeDetachingAllowed returns False if either ExcludeWaitForNodeVolumeDetachAnnotation annotation is set OR
 // nodeVolumeDetachTimeoutExceeded timeout is exceeded, otherwise returns True.
-func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine, infraMachine *unstructured.Unstructured) bool {
+func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine, infraMachine contractapi.InfraMachine) bool {
 	if _, exists := m.Annotations[clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation]; exists {
 		return false
 	}
@@ -758,7 +761,7 @@ func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine)
 
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil
 // and if the Machine is not the last control plane node in the cluster.
-func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, infraMachine *unstructured.Unstructured) error {
+func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, infraMachine contractapi.InfraMachine) error {
 	log := ctrl.LoggerFrom(ctx)
 	// Return early if the cluster is being deleted.
 	if !cluster.DeletionTimestamp.IsZero() {
@@ -770,9 +773,7 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		providerID = machine.Spec.ProviderID
 	} else if infraMachine != nil {
 		// Fallback to retrieve from infraMachine.
-		if providerIDFromInfraMachine, err := contract.InfrastructureMachine().ProviderID().Get(infraMachine); err == nil {
-			providerID = *providerIDFromInfraMachine
-		}
+		providerID = infraMachine.GetProviderID()
 	}
 
 	if !machine.Status.NodeRef.IsDefined() && providerID != "" {
@@ -1050,10 +1051,11 @@ func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, s *scope) (bo
 	}
 
 	if s.bootstrapConfig != nil && s.bootstrapConfig.GetDeletionTimestamp().IsZero() {
-		if err := r.Client.Delete(ctx, s.bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
+		// Note: Delete via Unstructured because r.Client does not have the BootstrapConfig type in its schema.
+		if err := r.Client.Delete(ctx, contractapi.ToUnstructuredForDelete(s.bootstrapConfigGVK, s.bootstrapConfig)); err != nil && !apierrors.IsNotFound(err) {
 			return false, pkgerrors.Wrapf(err,
 				"failed to delete %v %q for Machine %q in namespace %q",
-				s.bootstrapConfig.GroupVersionKind().Kind, s.bootstrapConfig.GetName(), s.machine.Name, s.machine.Namespace)
+				s.bootstrapConfigGVK.Kind, s.bootstrapConfig.GetName(), s.machine.Name, s.machine.Namespace)
 		}
 	}
 
@@ -1067,10 +1069,11 @@ func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, s *scope
 	}
 
 	if s.infraMachine != nil && s.infraMachine.GetDeletionTimestamp().IsZero() {
-		if err := r.Client.Delete(ctx, s.infraMachine); err != nil && !apierrors.IsNotFound(err) {
+		// Note: Delete via Unstructured because r.Client does not have the InfraMachine type in its schema.
+		if err := r.Client.Delete(ctx, contractapi.ToUnstructuredForDelete(s.infraMachineGVK, s.infraMachine)); err != nil && !apierrors.IsNotFound(err) {
 			return false, pkgerrors.Wrapf(err,
 				"failed to delete %v %q for Machine %q in namespace %q",
-				s.infraMachine.GroupVersionKind().Kind, s.infraMachine.GetName(), s.machine.Name, s.machine.Namespace)
+				s.infraMachineGVK.Kind, s.infraMachine.GetName(), s.machine.Name, s.machine.Namespace)
 		}
 	}
 

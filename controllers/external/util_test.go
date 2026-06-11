@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -160,7 +161,281 @@ func TestGetObjectFromContractVersionedRef(t *testing.T) {
 	}
 }
 
-func TestCloneTemplateResourceNotFound(t *testing.T) {
+func TestGenerateTemplate(t *testing.T) {
+	templateName := "infraTemplate"
+	templateGVK := schema.GroupVersionKind{
+		Group:   "infra.cluster.x-k8s.io",
+		Version: "v1beta1",
+		Kind:    "InfraMachineTemplate",
+	}
+
+	newTemplate := func(templateSpec map[string]interface{}) *unstructured.Unstructured {
+		return &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": templateGVK.GroupVersion().String(),
+				"kind":       templateGVK.Kind,
+				"metadata": map[string]interface{}{
+					"name":      templateName,
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"template": templateSpec,
+				},
+			},
+		}
+	}
+
+	templateRef := &corev1.ObjectReference{
+		Kind:       templateGVK.Kind,
+		APIVersion: templateGVK.GroupVersion().String(),
+		Name:       templateName,
+		Namespace:  metav1.NamespaceDefault,
+	}
+
+	owner := &metav1.OwnerReference{
+		Kind:       "Cluster",
+		APIVersion: clusterv1.GroupVersion.String(),
+		Name:       testClusterName,
+	}
+
+	tests := []struct {
+		name                     string
+		in                       *GenerateTemplateInput
+		expectedErr              bool
+		expectedNameHasPrefix    string
+		expectedName             string
+		expectedNamespace        string
+		expectedGroupVersionKind schema.GroupVersionKind
+		expectedLabels           map[string]string
+		expectedAnnotations      map[string]string
+		expectedOwnerRefs        []metav1.OwnerReference
+		expectSpecNotFound       bool
+		expectedSpec             map[string]interface{}
+	}{
+		{
+			name: "generates a name when Name is not set, using TemplateRef for provenance annotations",
+			in: &GenerateTemplateInput{
+				Template:    newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				TemplateRef: templateRef.DeepCopy(),
+				Namespace:   metav1.NamespaceDefault,
+				ClusterName: testClusterName,
+			},
+			expectedNameHasPrefix: templateName + "-",
+			expectedNamespace:     metav1.NamespaceDefault,
+			expectedGroupVersionKind: schema.GroupVersionKind{
+				Group:   templateGVK.Group,
+				Version: templateGVK.Version,
+				Kind:    "InfraMachine", // "Template" suffix stripped
+			},
+			expectedLabels: map[string]string{clusterv1.ClusterNameLabel: testClusterName},
+			expectedAnnotations: map[string]string{
+				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
+				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
+			},
+			expectedSpec: map[string]interface{}{"hello": "world"},
+		},
+		{
+			name: "uses the given Name instead of generating one",
+			in: &GenerateTemplateInput{
+				Template:    newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				TemplateRef: templateRef.DeepCopy(),
+				Namespace:   metav1.NamespaceDefault,
+				Name:        "explicit-name",
+				ClusterName: testClusterName,
+			},
+			expectedName:      "explicit-name",
+			expectedNamespace: metav1.NamespaceDefault,
+			expectedGroupVersionKind: schema.GroupVersionKind{
+				Group:   templateGVK.Group,
+				Version: templateGVK.Version,
+				Kind:    "InfraMachine", // "Template" suffix stripped
+			},
+			expectedLabels: map[string]string{clusterv1.ClusterNameLabel: testClusterName},
+			expectedAnnotations: map[string]string{
+				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
+				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
+			},
+			expectedSpec: map[string]interface{}{"hello": "world"},
+		},
+		{
+			name: "tolerates a template without spec.template",
+			in: &GenerateTemplateInput{
+				Template: &unstructured.Unstructured{Object: map[string]interface{}{
+					"kind":       templateGVK.Kind,
+					"apiVersion": templateGVK.GroupVersion().String(),
+					"metadata": map[string]interface{}{
+						"name": templateName,
+					},
+					"spec": map[string]interface{}{},
+				}},
+				TemplateRef: templateRef.DeepCopy(),
+				Namespace:   metav1.NamespaceDefault,
+				Name:        "explicit-name",
+				ClusterName: testClusterName,
+			},
+			expectedName:      "explicit-name",
+			expectedNamespace: metav1.NamespaceDefault,
+			expectedGroupVersionKind: schema.GroupVersionKind{
+				Group:   templateGVK.Group,
+				Version: templateGVK.Version,
+				Kind:    "InfraMachine", // "Template" suffix stripped
+			},
+			expectedLabels: map[string]string{clusterv1.ClusterNameLabel: testClusterName},
+			expectedAnnotations: map[string]string{
+				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
+				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
+			},
+			expectSpecNotFound: true,
+		},
+		{
+			name: "uses TemplateName and TemplateGroupKind instead of TemplateRef for provenance annotations",
+			in: &GenerateTemplateInput{
+				Template:          newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				TemplateName:      templateName,
+				TemplateGroupKind: templateGVK.GroupKind(),
+				Namespace:         metav1.NamespaceDefault,
+				Name:              "explicit-name",
+				ClusterName:       testClusterName,
+			},
+			expectedName:      "explicit-name",
+			expectedNamespace: metav1.NamespaceDefault,
+			expectedGroupVersionKind: schema.GroupVersionKind{
+				Group:   templateGVK.Group,
+				Version: templateGVK.Version,
+				Kind:    "InfraMachine", // "Template" suffix stripped
+			},
+			expectedLabels: map[string]string{clusterv1.ClusterNameLabel: testClusterName},
+			expectedAnnotations: map[string]string{
+				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
+				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
+			},
+			expectedSpec: map[string]interface{}{"hello": "world"},
+		},
+		{
+			name: "preserves an apiVersion/kind already set on spec.template",
+			in: &GenerateTemplateInput{
+				Template:    newTemplate(map[string]interface{}{"apiVersion": "custom.io/v2", "kind": "CustomKind", "spec": map[string]interface{}{"hello": "world"}}),
+				TemplateRef: templateRef.DeepCopy(),
+				Namespace:   metav1.NamespaceDefault,
+				Name:        "explicit-name",
+				ClusterName: testClusterName,
+			},
+			expectedName:      "explicit-name",
+			expectedNamespace: metav1.NamespaceDefault,
+			expectedGroupVersionKind: schema.GroupVersionKind{
+				Group:   "custom.io",
+				Version: "v2",
+				Kind:    "CustomKind",
+			},
+			expectedLabels: map[string]string{clusterv1.ClusterNameLabel: testClusterName},
+			expectedAnnotations: map[string]string{
+				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
+				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
+			},
+			expectedSpec: map[string]interface{}{"hello": "world"},
+		},
+		{
+			name: "merges owner ref, labels and annotations, with provenance annotations and cluster name label taking precedence",
+			in: &GenerateTemplateInput{
+				Template:    newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				TemplateRef: templateRef.DeepCopy(),
+				Namespace:   metav1.NamespaceDefault,
+				Name:        "explicit-name",
+				ClusterName: testClusterName,
+				OwnerRef:    owner.DeepCopy(),
+				Labels: map[string]string{
+					"precedence":               "input",
+					clusterv1.ClusterNameLabel: "should-be-overwritten",
+				},
+				Annotations: map[string]string{
+					"precedence": "input",
+					clusterv1.TemplateClonedFromNameAnnotation:      "should-be-overwritten",
+					clusterv1.TemplateClonedFromGroupKindAnnotation: "should-be-overwritten",
+				},
+			},
+			expectedName:      "explicit-name",
+			expectedNamespace: metav1.NamespaceDefault,
+			expectedGroupVersionKind: schema.GroupVersionKind{
+				Group:   templateGVK.Group,
+				Version: templateGVK.Version,
+				Kind:    "InfraMachine", // "Template" suffix stripped
+			},
+			expectedLabels: map[string]string{
+				"precedence":               "input",
+				clusterv1.ClusterNameLabel: testClusterName,
+			},
+			expectedAnnotations: map[string]string{
+				"precedence": "input",
+				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
+				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
+			},
+			expectedOwnerRefs: []metav1.OwnerReference{*owner},
+			expectedSpec:      map[string]interface{}{"hello": "world"},
+		},
+		{
+			name: "returns an error when both TemplateRef and TemplateName/TemplateGroupKind are set",
+			in: &GenerateTemplateInput{
+				Template:          newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				TemplateRef:       templateRef.DeepCopy(),
+				TemplateName:      templateName,
+				TemplateGroupKind: templateGVK.GroupKind(),
+				Namespace:         metav1.NamespaceDefault,
+				ClusterName:       testClusterName,
+			},
+			expectedErr: true,
+		},
+		{
+			name: "returns an error when neither TemplateRef nor TemplateName/TemplateGroupKind are set",
+			in: &GenerateTemplateInput{
+				Template:    newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				Namespace:   metav1.NamespaceDefault,
+				ClusterName: testClusterName,
+			},
+			expectedErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got, err := GenerateTemplate(tt.in)
+
+			if tt.expectedErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			if tt.expectedName != "" {
+				g.Expect(got.GetName()).To(Equal(tt.expectedName))
+			}
+			if tt.expectedNameHasPrefix != "" {
+				g.Expect(got.GetName()).To(HavePrefix(tt.expectedNameHasPrefix))
+			}
+			g.Expect(got.GetNamespace()).To(Equal(tt.expectedNamespace))
+			g.Expect(got.GroupVersionKind()).To(Equal(tt.expectedGroupVersionKind))
+			g.Expect(got.GetResourceVersion()).To(BeEmpty())
+			g.Expect(got.GetUID()).To(BeEmpty())
+			g.Expect(got.GetFinalizers()).To(BeEmpty())
+
+			g.Expect(got.GetLabels()).To(Equal(tt.expectedLabels))
+			g.Expect(got.GetAnnotations()).To(Equal(tt.expectedAnnotations))
+			g.Expect(got.GetOwnerReferences()).To(Equal(tt.expectedOwnerRefs))
+
+			spec, found, err := unstructured.NestedMap(got.UnstructuredContent(), "spec")
+			g.Expect(err).ToNot(HaveOccurred())
+			if tt.expectSpecNotFound {
+				g.Expect(found).To(BeFalse())
+			} else {
+				g.Expect(found).To(BeTrue())
+				g.Expect(spec).To(Equal(tt.expectedSpec))
+			}
+		})
+	}
+}
+
+func TestCreateFromTemplateResourceNotFound(t *testing.T) {
 	g := NewWithT(t)
 
 	testClusterName := "bar"
@@ -183,7 +458,7 @@ func TestCloneTemplateResourceNotFound(t *testing.T) {
 	g.Expect(apierrors.IsNotFound(pkgerrors.Cause(err))).To(BeTrue())
 }
 
-func TestCloneTemplateResourceFound(t *testing.T) {
+func TestCreateFromTemplateResourceFound(t *testing.T) {
 	g := NewWithT(t)
 
 	templateName := "purpleTemplate"
@@ -292,7 +567,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	g.Expect(cloneAnnotations).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, templateRef.GroupVersionKind().GroupKind().String()))
 }
 
-func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
+func TestCreateFromTemplateResourceFoundNoOwner(t *testing.T) {
 	g := NewWithT(t)
 
 	templateName := "yellowTemplate"
@@ -360,7 +635,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 	g.Expect(cloneSpec).To(BeComparableTo(expectedSpec))
 }
 
-func TestCloneTemplateMissingSpec(t *testing.T) {
+func TestCreateFromTemplateMissingSpec(t *testing.T) {
 	g := NewWithT(t)
 
 	templateName := "aquaTemplate"

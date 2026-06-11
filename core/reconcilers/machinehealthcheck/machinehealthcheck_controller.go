@@ -654,7 +654,7 @@ func (r *Reconciler) nodeToMachineHealthCheck(ctx context.Context, o client.Obje
 
 func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
 	return r.ClusterCache.Watch(ctx, util.ObjectKey(cluster), clustercache.NewWatcher(clustercache.WatcherOptions{
-		Name:         "machinehealthcheck-watchClusterNodes",
+		Name:         "machinehealthcheck-watchNodes",
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachineHealthCheck),

@@ -21,23 +21,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers/external"
-	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
+	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
+	"sigs.k8s.io/cluster-api/core/setup"
+	contractv1beta1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta1"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -162,6 +165,78 @@ func TestReconcileBootstrap(t *testing.T) {
 				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
 				g.Expect(m.Spec.Bootstrap.DataSecretName).NotTo(BeNil())
 				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
+			},
+		},
+		{
+			name:     "bootstrap config ready and reporting a v1beta1 Ready condition, it should mirror onto the machine",
+			contract: "v1beta1",
+			machine:  defaultMachine.DeepCopy(),
+			bootstrapConfig: map[string]interface{}{
+				"kind":       "GenericBootstrapConfig",
+				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":          true,
+					"dataSecretName": "secret-data",
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type":     "Ready",
+							"status":   "False",
+							"severity": "Warning",
+							"reason":   "SomeReason",
+							"message":  "some message",
+						},
+					},
+				},
+			},
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{},
+			expectError:             false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
+				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
+				mirroredCondition := v1beta1conditions.Get(m, clusterv1.BootstrapReadyV1Beta1Condition)
+				g.Expect(mirroredCondition).ToNot(BeNil())
+				g.Expect(mirroredCondition.Status).To(Equal(corev1.ConditionFalse))
+				g.Expect(mirroredCondition.Severity).To(Equal(clusterv1.ConditionSeverityWarning))
+				g.Expect(mirroredCondition.Reason).To(Equal("SomeReason"))
+				g.Expect(mirroredCondition.Message).To(Equal("some message"))
+			},
+		},
+		{
+			name:     "bootstrap config ready and reporting a legacy v1beta1 failure, it should surface on the machine",
+			contract: "v1beta1",
+			machine:  defaultMachine.DeepCopy(),
+			bootstrapConfig: map[string]interface{}{
+				"kind":       "GenericBootstrapConfig",
+				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":          true,
+					"dataSecretName": "secret-data",
+					"failureReason":  string(capierrors.CreateMachineError),
+					"failureMessage": "something went wrong",
+				},
+			},
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{},
+			expectError:             false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
+				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
+				g.Expect(m.Status.Deprecated).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).To(HaveValue(Equal(capierrors.CreateMachineError)))
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).To(HaveValue(Equal(
+					"Failure detected from referenced resource GenericBootstrapConfig bootstrap-config1: something went wrong")))
 			},
 		},
 		{
@@ -340,7 +415,16 @@ func TestReconcileBootstrap(t *testing.T) {
 				bootstrapConfig = &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			}
 
+			scheme := runtime.NewScheme()
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			if tc.contract == "v1beta1" {
+				scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind), &contractv1beta1.BootstrapConfig{})
+			} else {
+				scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind), &contractv1.BootstrapConfig{})
+			}
 			c := fake.NewClientBuilder().
+				WithScheme(scheme).
 				WithObjects(tc.machine).Build()
 
 			if tc.bootstrapConfigGetError == nil {
@@ -357,13 +441,8 @@ func TestReconcileBootstrap(t *testing.T) {
 			}
 
 			r := &Reconciler{
-				Client: c,
-				externalTracker: external.ObjectTracker{
-					Controller:      externalfake.Controller{},
-					Cache:           &informertest.FakeInformers{},
-					Scheme:          runtime.NewScheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
-				},
+				Client:       c,
+				DynamicCache: dynamiccache.NewFakeDynamicCache(c, setup.DynamicCacheOptions()),
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			res, err := r.reconcileBootstrap(ctx, s)
@@ -715,6 +794,80 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 		},
 		{
+			name:     "infra machine ready and reporting a v1beta1 Ready condition, it should mirror onto the machine",
+			contract: "v1beta1",
+			machine:  defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type":     "Ready",
+							"status":   "False",
+							"severity": "Warning",
+							"reason":   "SomeReason",
+							"message":  "some message",
+						},
+					},
+				},
+			},
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				mirroredCondition := v1beta1conditions.Get(m, clusterv1.InfrastructureReadyV1Beta1Condition)
+				g.Expect(mirroredCondition).ToNot(BeNil())
+				g.Expect(mirroredCondition.Status).To(Equal(corev1.ConditionFalse))
+				g.Expect(mirroredCondition.Severity).To(Equal(clusterv1.ConditionSeverityWarning))
+				g.Expect(mirroredCondition.Reason).To(Equal("SomeReason"))
+				g.Expect(mirroredCondition.Message).To(Equal("some message"))
+			},
+		},
+		{
+			name:     "infra machine ready and reporting a legacy v1beta1 failure, it should surface on the machine",
+			contract: "v1beta1",
+			machine:  defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready":          true,
+					"failureReason":  string(capierrors.UpdateMachineError),
+					"failureMessage": "something went wrong",
+				},
+			},
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Status.Deprecated).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).To(HaveValue(Equal(capierrors.UpdateMachineError)))
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).To(HaveValue(Equal(
+					"Failure detected from referenced resource GenericInfrastructureMachine infra-config1: something went wrong")))
+			},
+		},
+		{
 			name:     "should do nothing if infra machine ready and no provider ID",
 			contract: "v1beta1",
 			machine:  defaultMachine.DeepCopy(),
@@ -994,7 +1147,17 @@ func TestReconcileInfrastructure(t *testing.T) {
 			if tc.infraMachine != nil {
 				infraMachine = &unstructured.Unstructured{Object: tc.infraMachine}
 			}
+
+			scheme := runtime.NewScheme()
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			if tc.contract == "v1beta1" {
+				scheme.AddKnownTypeWithName(builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind), &contractv1beta1.InfraMachine{})
+			} else {
+				scheme.AddKnownTypeWithName(builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind), &contractv1.InfraMachine{})
+			}
 			c := fake.NewClientBuilder().
+				WithScheme(scheme).
 				WithObjects(tc.machine).Build()
 
 			if tc.infraMachineGetError == nil {
@@ -1013,14 +1176,9 @@ func TestReconcileInfrastructure(t *testing.T) {
 			fc := capicontrollerutil.NewFakeController()
 
 			r := &Reconciler{
-				Client:     c,
-				controller: fc,
-				externalTracker: external.ObjectTracker{
-					Controller:      externalfake.Controller{},
-					Cache:           &informertest.FakeInformers{},
-					Scheme:          c.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
-				},
+				Client:       c,
+				controller:   fc,
+				DynamicCache: dynamiccache.NewFakeDynamicCache(c, setup.DynamicCacheOptions()),
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			result, err := r.reconcileInfrastructure(ctx, s)
@@ -1056,45 +1214,39 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 	fakeTime2, _ := time.Parse(time.RFC3339, fakeTimeString2)
 	fakeMetaTime2 := metav1.Time{Time: fakeTime2}
 
-	bootstrapConfigWithExpiry := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "GenericBootstrapConfig",
-			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
-				"name":      "bootstrap-config-with-expiry",
-				"namespace": metav1.NamespaceDefault,
-				"annotations": map[string]interface{}{
-					clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
-				},
+	bootstrapConfigWithExpiry := &contractv1.BootstrapConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bootstrap-config-with-expiry",
+			Namespace: metav1.NamespaceDefault,
+			Annotations: map[string]string{
+				clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
 			},
-			"spec": map[string]interface{}{},
-			"status": map[string]interface{}{
-				"ready":          true,
-				"dataSecretName": "secret-data",
+		},
+		Status: contractv1.BootstrapConfigStatus{
+			Initialization: contractv1.BootstrapConfigInitializationStatus{
+				DataSecretCreated: new(true),
 			},
+			DataSecretName: "secret-data",
 		},
 	}
 
-	bootstrapConfigWithoutExpiry := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "GenericBootstrapConfig",
-			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
-				"name":      "bootstrap-config-without-expiry",
-				"namespace": metav1.NamespaceDefault,
+	bootstrapConfigWithoutExpiry := &contractv1.BootstrapConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bootstrap-config-without-expiry",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Status: contractv1.BootstrapConfigStatus{
+			Initialization: contractv1.BootstrapConfigInitializationStatus{
+				DataSecretCreated: new(true),
 			},
-			"spec": map[string]interface{}{},
-			"status": map[string]interface{}{
-				"ready":          true,
-				"dataSecretName": "secret-data",
-			},
+			DataSecretName: "secret-data",
 		},
 	}
 
 	tests := []struct {
 		name            string
 		machine         *clusterv1.Machine
-		bootstrapConfig *unstructured.Unstructured
+		bootstrapConfig *contractv1.BootstrapConfig
 		expected        func(g *WithT, m *clusterv1.Machine)
 	}{
 		{
@@ -1274,7 +1426,12 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 			g := NewWithT(t)
 
 			r := &Reconciler{}
-			s := &scope{machine: tc.machine, bootstrapConfig: tc.bootstrapConfig}
+			s := &scope{
+				machine: tc.machine,
+			}
+			if tc.bootstrapConfig != nil {
+				s.bootstrapConfig = tc.bootstrapConfig
+			}
 			_, _ = r.reconcileCertificateExpiry(ctx, s)
 			if tc.expected != nil {
 				tc.expected(g, tc.machine)

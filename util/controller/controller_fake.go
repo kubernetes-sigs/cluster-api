@@ -32,6 +32,8 @@ func NewFakeController() *FakeController {
 	}
 }
 
+var _ Controller = &FakeController{}
+
 type FakeController struct {
 	controller.Controller
 	Deferrals map[reconcile.Request]time.Time

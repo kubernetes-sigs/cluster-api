@@ -41,7 +41,10 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/core/setup"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -76,6 +79,7 @@ type Reconciler struct {
 	Client       client.Client
 	APIReader    client.Reader
 	ClusterCache clustercache.ClusterCache
+	DynamicCache dynamiccache.DynamicCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -310,17 +314,22 @@ func (r *Reconciler) isMachinePoolNodeDeleteTimeoutPassed(machinePool *clusterv1
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.
 func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, machinePool *clusterv1.MachinePool) (bool, error) {
 	objects := []*unstructured.Unstructured{}
-	references := []clusterv1.ContractVersionedObjectReference{
-		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef,
-		machinePool.Spec.Template.Spec.InfrastructureRef,
-	}
 
 	// Loop over the references and try to retrieve it with the client.
-	for _, ref := range references {
-		if !ref.IsDefined() {
-			continue
+	if machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
+		ref := machinePool.Spec.Template.Spec.Bootstrap.ConfigRef
+		key := client.ObjectKey{Namespace: machinePool.Namespace, Name: ref.Name}
+		objGVK, obj, err := r.DynamicCache.GetContractObject(ctx, ref.GroupKind(), key, setup.DynamicCacheBootstrapConfigObjectType)
+		if err != nil && !apierrors.IsNotFound(pkgerrors.Cause(err)) {
+			return false, pkgerrors.Wrapf(err, "failed to get %s %s for MachinePool %s",
+				ref.Kind, klog.KRef(machinePool.Namespace, ref.Name), klog.KObj(machinePool))
 		}
-
+		if obj != nil {
+			objects = append(objects, contractapi.ToUnstructuredForDelete(objGVK, obj))
+		}
+	}
+	if machinePool.Spec.Template.Spec.InfrastructureRef.IsDefined() {
+		ref := machinePool.Spec.Template.Spec.InfrastructureRef
 		obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, machinePool.Namespace)
 		if err != nil && !apierrors.IsNotFound(pkgerrors.Cause(err)) {
 			return false, pkgerrors.Wrapf(err, "failed to get %s %s for MachinePool %s",

@@ -31,7 +31,13 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", Label("Clus
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                "topology",
+			Flavor:                "in-memory-topology",
+			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
+			// by the test-extension-webhook-service.
+			// The below values are used when creating the cluster-wide ExtensionConfig to refer
+			// the actual service.
+			ExtensionServiceNamespace: "test-extension-system",
+			ExtensionServiceName:      "test-extension-webhook-service",
 			// ModifyControlPlaneFields are the ControlPlane fields which will be set on the
 			// ControlPlaneTemplate of the ClusterClass after the initial Cluster creation.
 			// The test verifies that these fields are rolled out to the ControlPlane.
@@ -48,42 +54,9 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", Label("Clus
 			// InfrastructureMachineTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
 			// The test verifies that these fields are rolled out to the MachineDeployments.
 			ModifyMachineDeploymentInfrastructureMachineTemplateFields: map[string]interface{}{
-				"spec.template.spec.backend.docker.extraMounts": []interface{}{
-					map[string]interface{}{
-						"containerPath": "/var/run/docker.sock",
-						"hostPath":      "/var/run/docker.sock",
-					},
-					map[string]interface{}{
-						// /tmp cannot be used as containerPath as
-						// it already exists.
-						"containerPath": "/test",
-						"hostPath":      "/tmp",
-					},
-				},
+				"spec.template.spec.backend.inMemory.vm.provisioning.startupDuration": "15s",
 			},
-			// ModifyMachinePoolBootstrapConfigTemplateFields are the fields which will be set on the
-			// BootstrapConfigTemplate of all MachinePoolClasses of the ClusterClass after the initial Cluster creation.
-			// The test verifies that these fields are rolled out to the MachinePools.
-			ModifyMachinePoolBootstrapConfigTemplateFields: map[string]interface{}{
-				"spec.template.spec.verbosity": int64(4),
-			},
-			// ModifyMachinePoolInfrastructureMachineTemplateFields are the fields which will be set on the
-			// InfrastructureMachinePoolTemplate of all MachinePoolClasses of the ClusterClass after the initial Cluster creation.
-			// The test verifies that these fields are rolled out to the MachinePools.
-			ModifyMachinePoolInfrastructureMachinePoolTemplateFields: map[string]interface{}{
-				"spec.template.spec.backend.docker.extraMounts": []interface{}{
-					map[string]interface{}{
-						"containerPath": "/var/run/docker.sock",
-						"hostPath":      "/var/run/docker.sock",
-					},
-					map[string]interface{}{
-						// /tmp cannot be used as containerPath as
-						// it already exists.
-						"containerPath": "/test",
-						"hostPath":      "/tmp",
-					},
-				},
-			},
+			// Note: MachinePool changes are not covered as DevMachinePool does not support in-memory backend yet.
 		}
 	})
 })

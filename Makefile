@@ -82,6 +82,14 @@ export DBG ?= 0
 LDFLAGS := $(shell hack/version.sh)
 GCFLAGS := $(shell hack/gogcflags.sh)
 
+# Check if LDFLAGS was able to identify a Semantic Version tag in the repository, or not;
+# avoid building if that's true (see hack/version.sh for more information).
+SEMVER_CHECK = $(findstring GIT_VERSION should be a valid Semantic Version, $(LDFLAGS))
+ifneq ($(SEMVER_CHECK),)
+    $(warning SEMVER_CHECK: $(LDFLAGS))
+    $(error Build halted)
+endif
+
 #
 # Ginkgo configuration.
 #

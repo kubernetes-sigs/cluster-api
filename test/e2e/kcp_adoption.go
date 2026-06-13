@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -24,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -38,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // KCPAdoptionSpecInput is the input for KCPAdoptionSpec.
@@ -141,6 +144,13 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 		})
 		Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
+
+		// Remove ControlPlaneKubeletLocalMode for Kubernetes >= v1.36 because the fg has been removed with v1.36.
+		v, err := semver.ParseTolerant(input.E2EConfig.MustGetVariable(KubernetesVersion))
+		Expect(err).ToNot(HaveOccurred())
+		if version.Compare(v, semver.MustParse("1.36.0"), version.WithoutPreReleases()) >= 0 {
+			workloadClusterTemplate = bytes.Replace(workloadClusterTemplate, []byte("featureGates:\n      ControlPlaneKubeletLocalMode: true"), []byte(""), 1)
+		}
 
 		By("Applying the cluster template yaml to the cluster with the 'initial' selector")
 		selector := labels.NewSelector().Add(must(labels.NewRequirement("kcp-adoption.step1", selection.Exists, nil)))

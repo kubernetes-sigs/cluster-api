@@ -487,10 +487,10 @@ func TestUpdateCoreDNS(t *testing.T) {
 						return errors.Errorf("the coredns ConfigMap has %d data items, expected 2", len(expectedConfigMap.Data))
 					}
 					if val, ok := expectedConfigMap.Data["Corefile"]; !ok || val != "updated-core-file" {
-						return errors.New("the coredns ConfigMap does not have the Corefile entry or this it has an unexpected value")
+						return errors.New("the coredns ConfigMap does not have the Corefile entry or it has an unexpected value")
 					}
 					if val, ok := expectedConfigMap.Data["Corefile-backup"]; !ok || val != expectedCorefile {
-						return errors.New("the coredns ConfigMap does not have the Corefile-backup entry or this it has an unexpected value")
+						return errors.New("the coredns ConfigMap does not have the Corefile-backup entry or it has an unexpected value")
 					}
 					return nil
 				}, "5s").Should(Succeed())

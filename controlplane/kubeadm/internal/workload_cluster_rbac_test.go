@@ -75,7 +75,7 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			},
 		},
 		{
-			name: "Ignore kubeadm:cluster-admins and kubeadm:apiserver-kubelet-client ClusterRoleBinding it they already exist for K8s <= 1.37 (kubeadm started adding those roles in patch versions)",
+			name: "Ignore kubeadm:cluster-admins and kubeadm:apiserver-kubelet-client ClusterRoleBinding if they already exist for K8s <= 1.37 (kubeadm started adding those roles in patch versions)",
 			objs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{
@@ -105,7 +105,7 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			},
 		},
 		{
-			name: "Ignore kubeadm:cluster-admins and kubeadm:apiserver-kubelet-client ClusterRoleBinding it they already exist for K8s >= 1.38 (kubeadm should add those roles or KCP in a previous update)",
+			name: "Ignore kubeadm:cluster-admins and kubeadm:apiserver-kubelet-client ClusterRoleBinding if they already exist for K8s >= 1.38 (kubeadm should add those roles or KCP in a previous update)",
 			objs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{

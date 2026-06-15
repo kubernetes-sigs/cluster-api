@@ -45,7 +45,7 @@ const (
 	APIServerKubeletClientCertCommonName = "kube-apiserver-kubelet-client"
 )
 
-// EnsureResource creates a resoutce if the target resource doesn't exist. If the resource exists already, this function will ignore the resource instead.
+// EnsureResource creates a resource if the target resource doesn't exist. If the resource exists already, this function will ignore the resource instead.
 func (w *Workload) EnsureResource(ctx context.Context, obj client.Object) error {
 	testObj := obj.DeepCopyObject().(client.Object)
 	key := client.ObjectKeyFromObject(obj)

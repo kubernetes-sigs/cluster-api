@@ -124,7 +124,7 @@ func getLocalOverride(info *newOverrideInput) ([]byte, error) {
 		return nil, err
 	}
 
-	// it the local override exists, use it
+	// if the local override exists, use it
 	_, err = os.Stat(overridePath)
 	if err == nil {
 		content, err := os.ReadFile(overridePath) //nolint:gosec
@@ -134,7 +134,7 @@ func getLocalOverride(info *newOverrideInput) ([]byte, error) {
 		return content, nil
 	}
 
-	// it the local override does not exists, return (so files from the provider's repository could be used)
+	// if the local override does not exist, return (so files from the provider's repository could be used)
 	if os.IsNotExist(err) {
 		return nil, nil
 	}

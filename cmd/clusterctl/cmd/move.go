@@ -65,7 +65,7 @@ var moveCmd = &cobra.Command{
 		Read Cluster API objects and all dependencies from a directory into a management cluster.
 		clusterctl move --from-directory /tmp/backup-directory
 	`),
-	Args: cobra.NoArgs,
+	Args: helpOnErrorArgs(cobra.NoArgs),
 	RunE: func(*cobra.Command, []string) error {
 		return runMove()
 	},

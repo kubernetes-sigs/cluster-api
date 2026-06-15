@@ -52,7 +52,7 @@ var cro = &configRepositoriesOptions{}
 
 var configRepositoryCmd = &cobra.Command{
 	Use:   "repositories",
-	Args:  cobra.NoArgs,
+	Args:  helpOnErrorArgs(cobra.NoArgs),
 	Short: "Display the list of providers and their repository configurations",
 	Long: templates.LongDesc(`
 		Display the list of providers and their repository configurations.

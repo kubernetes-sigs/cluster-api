@@ -1119,8 +1119,9 @@ func TestCreateHTTPClient_doesNotFollowRedirects(t *testing.T) {
 	g.Expect(httpClient.CheckRedirect).ToNot(BeNil())
 
 	// A redirect returned by an extension server must not be followed, otherwise
-	// the response could reroute the call to an arbitrary host.
-	g.Expect(httpClient.CheckRedirect(&http.Request{}, nil)).To(HaveOccurred())
+	// the response could reroute the call to an arbitrary host. ErrUseLastResponse
+	// makes the client stop at the redirect rather than following it.
+	g.Expect(httpClient.CheckRedirect(&http.Request{}, nil)).To(MatchError(http.ErrUseLastResponse))
 }
 
 func cacheKeyFunc(extensionName, extensionConfigResourceVersion string, request runtimehooksv1.RequestObject) string {

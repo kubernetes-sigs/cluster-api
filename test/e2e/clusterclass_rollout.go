@@ -80,6 +80,18 @@ type ClusterClassRolloutSpecInput struct {
 	// This can be e.g. used to filter out additional infrastructure provider specific labels that would
 	// otherwise lead to a failed test.
 	FilterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta
+
+	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "clusterclass-rollout".
+	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
+	// name of the ExtensionConfig into the ClusterClass.
+	ExtensionConfigName string
+
+	// ExtensionServiceNamespace is the namespace where the service for the Runtime SDK is located
+	// and is used to configure in the test-namespace scoped ExtensionConfig.
+	ExtensionServiceNamespace string
+
+	// ExtensionServiceName is the name of the service to configure in the test-namespace scoped ExtensionConfig.
+	ExtensionServiceName string
 }
 
 // ClusterClassRolloutSpec implements a test that verifies the ClusterClass rollout behavior.
@@ -115,6 +127,11 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.MustGetVariable(KubernetesVersion)))
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			if input.ExtensionConfigName == "" {
+				input.ExtensionConfigName = specName
+			}
+		}
 
 		// Set a default function to ensure that FilterMetadataBeforeValidation has a default behavior for
 		// filtering metadata if it is not specified by infrastructure provider.
@@ -130,11 +147,27 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 	})
 
 	It("Should successfully rollout the managed topology upon changes to the ClusterClass", func() {
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			By("Deploy Test Extension ExtensionConfig")
+			defaultAllHandlersToBlocking := false
+			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, defaultAllHandlersToBlocking, namespace.Name)
+			Expect(client.IgnoreAlreadyExists(input.BootstrapClusterProxy.GetClient().Create(ctx,
+				extensionConfig))).
+				To(Succeed(), "Failed to create the ExtensionConfig")
+		}
+
 		By("Creating a workload cluster")
 		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
 		if input.InfrastructureProvider != nil {
 			infrastructureProvider = *input.InfrastructureProvider
 		}
+
+		variables := map[string]string{}
+		if input.ExtensionConfigName != "" {
+			// This is used to template the name of the ExtensionConfig into the ClusterClass.
+			variables["EXTENSION_CONFIG_NAME"] = input.ExtensionConfigName
+		}
+
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -148,6 +181,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: ptr.To[int64](1),
 				WorkerMachineCount:       ptr.To[int64](1),
+				ClusterctlVariables:      variables,
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
@@ -596,6 +630,8 @@ func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjec
 			},
 			ccInfrastructureClusterTemplateTemplateMetadata.Annotations,
 		),
+		// Ignore InMemory listener annotation.
+		"inmemorycluster.infrastructure.cluster.x-k8s.io/listener",
 	)
 }
 
@@ -705,6 +741,8 @@ func assertControlPlaneMachines(g Gomega, clusterObjects ClusterObjects, cluster
 				machineMetadata.Annotations,
 			).without(g, controlplanev1.PreTerminateHookCleanupAnnotation),
 			controlPlaneMachineTemplateMetadata.Annotations,
+			// Ignore InMemory specific annotations.
+			"machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped",
 		)
 
 		// ControlPlane Machine InfrastructureMachine.metadata
@@ -743,6 +781,8 @@ func assertControlPlaneMachines(g Gomega, clusterObjects ClusterObjects, cluster
 				controlPlaneMachineTemplateMetadata.Annotations,
 				controlPlaneInfrastructureMachineTemplateTemplateMetadata.Annotations,
 			),
+			// Ignore InMemory specific annotations.
+			"machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped",
 		)
 
 		// ControlPlane Machine BootstrapConfig.metadata
@@ -1095,6 +1135,8 @@ func assertMachineSetsMachines(g Gomega, clusterObjects ClusterObjects, cluster 
 				)
 				expectMapsToBeEquivalent(g, machineMetadata.Annotations,
 					machineSet.Spec.Template.Annotations,
+					// Ignore InMemory specific annotations.
+					"machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped",
 				)
 
 				// MachineDeployment MachineSet Machine InfrastructureMachine.metadata
@@ -1123,6 +1165,8 @@ func assertMachineSetsMachines(g Gomega, clusterObjects ClusterObjects, cluster 
 						machineSet.Spec.Template.Annotations,
 						infrastructureMachineTemplateTemplateMetadata.Annotations,
 					),
+					// Ignore InMemory specific annotations.
+					"machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped",
 				)
 
 				// MachineDeployment MachineSet Machine BootstrapConfig.metadata

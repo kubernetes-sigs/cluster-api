@@ -361,23 +361,69 @@ func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, clus
 			node.Labels = map[string]string{}
 		}
 		node.Labels["node-role.kubernetes.io/control-plane"] = ""
-		node.Spec.Taints = []corev1.Taint{
-			{
-				Key:    "node-role.kubernetes.io/control-plane",
-				Effect: corev1.TaintEffectNoSchedule,
-			},
-		}
+		node.Spec.Taints = append(node.Spec.Taints, corev1.Taint{
+			Key:    "node-role.kubernetes.io/control-plane",
+			Effect: corev1.TaintEffectNoSchedule,
+		})
 	}
 
-	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(node), node); err != nil {
+	existingNode := &corev1.Node{}
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(node), existingNode); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get node")
+		}
+
+		// Node doesn't exist, create it with both "Always" and "OnInitialization" taints
+		for _, machineTaint := range machine.Spec.Taints {
+			if machineTaint.Propagation == clusterv1.MachineTaintPropagationAlways ||
+				machineTaint.Propagation == clusterv1.MachineTaintPropagationOnInitialization {
+				node.Spec.Taints = append(node.Spec.Taints, corev1.Taint{
+					Key:    machineTaint.Key,
+					Value:  machineTaint.Value,
+					Effect: machineTaint.Effect,
+				})
+			}
 		}
 
 		// NOTE: for the first control plane machine we might create the node before etcd and API server pod are running
 		// but this is not an issue, because it won't be visible to CAPI until the API server start serving requests.
 		if err := inmemoryClient.Create(ctx, node); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create Node")
+		}
+	} else {
+		// Node exists, update it with only "Always" taints (OnInitialization taints should not be updated)
+		var updatedTaints []corev1.Taint
+
+		// Keep existing OnInitialization taints
+		for _, existingTaint := range existingNode.Spec.Taints {
+			isOnInitTaint := false
+			for _, machineTaint := range machine.Spec.Taints {
+				if machineTaint.Key == existingTaint.Key && machineTaint.Propagation == clusterv1.MachineTaintPropagationOnInitialization {
+					isOnInitTaint = true
+					break
+				}
+			}
+			if isOnInitTaint {
+				updatedTaints = append(updatedTaints, existingTaint)
+			}
+		}
+
+		// Add Always taints and control plane taint
+		updatedTaints = append(updatedTaints, node.Spec.Taints...)
+		for _, machineTaint := range machine.Spec.Taints {
+			if machineTaint.Propagation == clusterv1.MachineTaintPropagationAlways {
+				updatedTaints = append(updatedTaints, corev1.Taint{
+					Key:    machineTaint.Key,
+					Value:  machineTaint.Value,
+					Effect: machineTaint.Effect,
+				})
+			}
+		}
+
+		existingNode.Spec.Taints = updatedTaints
+		existingNode.Labels = node.Labels
+		if err := inmemoryClient.Update(ctx, existingNode); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to update Node")
 		}
 	}
 

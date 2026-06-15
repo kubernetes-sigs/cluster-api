@@ -84,7 +84,7 @@ var deleteCmd = &cobra.Command{
 		# Important! As a consequence of this operation all the corresponding resources on target clouds
 		# are "orphaned" and thus there may be ongoing costs incurred as a result of this.
 		clusterctl delete --all --include-crd  --include-namespace`),
-	Args: cobra.NoArgs,
+	Args: helpOnErrorArgs(cobra.NoArgs),
 	RunE: func(*cobra.Command, []string) error {
 		return runDelete()
 	},

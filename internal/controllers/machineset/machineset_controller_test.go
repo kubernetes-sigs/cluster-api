@@ -4177,7 +4177,7 @@ func toManagedFields(managedFields []managedFieldEntry) []metav1.ManagedFieldsEn
 			Operation:   f.Operation,
 			APIVersion:  f.APIVersion,
 			FieldsType:  "FieldsV1",
-			FieldsV1:    &metav1.FieldsV1{Raw: []byte(trimSpaces(f.FieldsV1))},
+			FieldsV1:    metav1.NewFieldsV1(trimSpaces(f.FieldsV1)),
 			Subresource: f.Subresource,
 		})
 	}

@@ -223,7 +223,7 @@ def build_go_binary(context, reload_deps, debug, go_main, binary_name, label):
         arch = os_arch,
     )
 
-    build_cmd = "{build_env} go build {build_options} -gcflags '{gcflags}' -ldflags '{ldflags}' -o .tiltbuild/bin/{binary_name} {go_main}".format(
+    build_cmd = "{build_env} go build -tags=fieldsv1string {build_options} -gcflags '{gcflags}' -ldflags '{ldflags}' -o .tiltbuild/bin/{binary_name} {go_main}".format(
         build_env = build_env,
         build_options = build_options,
         gcflags = gcflags,

@@ -177,7 +177,7 @@ func (b objectBuilder) WithManagedFieldsEntry(manager, subresource string, opera
 		Manager:     manager,
 		Operation:   operation,
 		Subresource: subresource,
-		FieldsV1:    &metav1.FieldsV1{Raw: fieldsV1},
+		FieldsV1:    metav1.NewFieldsV1(string(fieldsV1)),
 		Time:        time,
 	})
 	b.u.SetManagedFields(managedFields)

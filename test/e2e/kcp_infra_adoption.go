@@ -39,6 +39,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -485,12 +486,21 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 	AfterEach(func() {
 		if newManagementClusterProxy != nil && newManagementClusterProxy.GetName() != input.BootstrapClusterProxy.GetName() {
 			// Dump all the resources in the spec namespace and the workload cluster.
+			// NOTE: In this case cleanup is deferred to the Janitor (otherwise it would require to pivot back to the bootstrap management cluster).
 			framework.DumpAllResourcesAndLogs(ctx, newManagementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, clusterResources.Cluster)
 		}
 
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		cancelWatches()
+
+		if !input.SkipCleanup {
+			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+				Eventually(func() error {
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
+				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
+			}
+		}
 	})
 }
 

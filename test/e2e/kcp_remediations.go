@@ -54,7 +54,6 @@ type KCPRemediationSpecInput struct {
 	// - wait-cluster, used when waiting for the cluster infrastructure to be provisioned.
 	// - wait-machines, used when waiting for an old machine to be remediated and a new one provisioned.
 	// - check-machines-stable, used when checking that the current list of machines in stable.
-	// - wait-ack-signal, used when waiting for a bootstrapping machine to acknowledge a bootstrap signal.
 	// - wait-machine-provisioned, used when waiting for a machine to be provisioned after unblocking bootstrap.
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
@@ -205,11 +204,10 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		Byf("Unblock bootstrap for Machine %s and wait for it to be provisioned", firstMachineReplacementName)
 		sendSignalToBootstrappingMachine(ctx, sendSignalToBootstrappingMachineInput{
-			Client:                    input.BootstrapClusterProxy.GetClient(),
-			Namespace:                 namespace.Name,
-			Machine:                   firstMachineReplacementName,
-			Signal:                    "pass",
-			WaitForAckSignalIntervals: input.E2EConfig.GetIntervals(specName, "wait-ack-signal"),
+			Client:    input.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Machine:   firstMachineReplacementName,
+			Signal:    "pass",
 		})
 		log.Logf("Waiting for Machine %s to be provisioned", firstMachineReplacementName)
 		Eventually(func() bool {
@@ -287,11 +285,10 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		Byf("Unblock bootstrap for Machine %s and wait for it to be provisioned", secondMachineReplacementName)
 		sendSignalToBootstrappingMachine(ctx, sendSignalToBootstrappingMachineInput{
-			Client:                    input.BootstrapClusterProxy.GetClient(),
-			Namespace:                 namespace.Name,
-			Machine:                   secondMachineReplacementName,
-			Signal:                    "pass",
-			WaitForAckSignalIntervals: input.E2EConfig.GetIntervals(specName, "wait-ack-signal"),
+			Client:    input.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Machine:   secondMachineReplacementName,
+			Signal:    "pass",
 		})
 		log.Logf("Waiting for Machine %s to be provisioned", secondMachineReplacementName)
 		Eventually(func() bool {
@@ -330,11 +327,10 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		Byf("Unblock bootstrap for Machine %s and wait for it to be provisioned", thirdMachineName)
 		sendSignalToBootstrappingMachine(ctx, sendSignalToBootstrappingMachineInput{
-			Client:                    input.BootstrapClusterProxy.GetClient(),
-			Namespace:                 namespace.Name,
-			Machine:                   thirdMachineName,
-			Signal:                    "pass",
-			WaitForAckSignalIntervals: input.E2EConfig.GetIntervals(specName, "wait-ack-signal"),
+			Client:    input.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Machine:   thirdMachineName,
+			Signal:    "pass",
 		})
 		log.Logf("Waiting for Machine %s to be provisioned", thirdMachineName)
 		Eventually(func() bool {
@@ -400,11 +396,10 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		Byf("Unblock bootstrap for Machine %s and wait for it to be provisioned", thirdMachineReplacementName)
 		sendSignalToBootstrappingMachine(ctx, sendSignalToBootstrappingMachineInput{
-			Client:                    input.BootstrapClusterProxy.GetClient(),
-			Namespace:                 namespace.Name,
-			Machine:                   thirdMachineReplacementName,
-			Signal:                    "pass",
-			WaitForAckSignalIntervals: input.E2EConfig.GetIntervals(specName, "wait-ack-signal"),
+			Client:    input.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Machine:   thirdMachineReplacementName,
+			Signal:    "pass",
 		})
 		log.Logf("Waiting for Machine %s to be provisioned", thirdMachineReplacementName)
 		Eventually(func() bool {
@@ -522,11 +517,10 @@ func createWorkloadClusterAndWait(ctx context.Context, input createWorkloadClust
 }
 
 type sendSignalToBootstrappingMachineInput struct {
-	Client                    client.Client
-	Namespace                 string
-	Machine                   string
-	Signal                    string
-	WaitForAckSignalIntervals []interface{}
+	Client    client.Client
+	Namespace string
+	Machine   string
+	Signal    string
 }
 
 // sendSignalToBootstrappingMachine sends a signal to a machine stuck during bootstrap.
@@ -546,15 +540,9 @@ func sendSignalToBootstrappingMachine(ctx context.Context, input sendSignalToBoo
 
 	log.Logf("Waiting for Machine %s to acknowledge signal %s has been received", input.Machine, input.Signal)
 	Eventually(func(g Gomega) {
-		latestCM := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      configMapName,
-				Namespace: input.Namespace,
-			},
-		}
-		g.Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(latestCM), latestCM)).To(Succeed())
-		g.Expect(latestCM.Data).To(HaveKeyWithValue(configMapDataKey, fmt.Sprintf("ack-%s", input.Signal)))
-	}, input.WaitForAckSignalIntervals...).Should(Succeed(), "Failed to get ack signal from machine %s", input.Machine)
+		g.Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(cmWithSignal), cmWithSignal)).To(Succeed())
+		g.Expect(cmWithSignal.Data).To(HaveKeyWithValue(configMapDataKey, fmt.Sprintf("ack-%s", input.Signal)))
+	}, "1m", "10s").Should(Succeed(), "Failed to get ack signal from machine %s", input.Machine)
 
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -565,18 +553,9 @@ func sendSignalToBootstrappingMachine(ctx context.Context, input sendSignalToBoo
 	Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(machine), machine)).To(Succeed())
 
 	// Resetting the signal in the config map.
-	// We re-fetch the ConfigMap to get the current state as the base for the merge patch,
-	// ensuring the reset patch correctly computes the diff from the current value to "hold".
-	cmForReset := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName,
-			Namespace: input.Namespace,
-		},
-	}
-	Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(cmForReset), cmForReset)).To(Succeed(), "failed to get mhc-test config map for reset")
-	cmForResetBase := cmForReset.DeepCopy()
-	cmForReset.Data[configMapDataKey] = "hold"
-	Expect(input.Client.Patch(ctx, cmForReset, client.MergeFrom(cmForResetBase))).To(Succeed(), "failed to patch mhc-test config map")
+	cmWithSignalBase := cmWithSignal.DeepCopy()
+	cmWithSignal.Data[configMapDataKey] = "hold"
+	Expect(input.Client.Patch(ctx, cmWithSignal, client.MergeFrom(cmWithSignalBase))).To(Succeed(), "failed to patch mhc-test config map")
 }
 
 type waitForMachinesInput struct {

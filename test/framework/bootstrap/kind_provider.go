@@ -141,12 +141,23 @@ func (k *KindClusterProvider) createKindCluster() {
 		kind.CreateWithKubeconfigPath(k.kubeconfigPath),
 	}
 
+	// We enable the OwnerReferencesPermissionEnforcement admission plugin to detect potential
+	// RBAC issues when applying owner references with blockOwnerDeletion.
+	const ownerReferencesPermissionEnforcementPatch = `kind: ClusterConfiguration
+apiServer:
+  extraArgs:
+    enable-admission-plugins: OwnerReferencesPermissionEnforcement
+`
+
 	cfg := &kindv1.Cluster{
 		Nodes: []kindv1.Node{
 			{
 				Role:              kindv1.ControlPlaneRole,
 				ExtraPortMappings: k.extraPortMappings,
 			},
+		},
+		KubeadmConfigPatches: []string{
+			ownerReferencesPermissionEnforcementPatch,
 		},
 	}
 

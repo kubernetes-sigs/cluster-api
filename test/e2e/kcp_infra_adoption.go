@@ -70,7 +70,7 @@ type KCPInfraAdoptionSpecInput struct {
 	// specially crafted with FIXME: describe requirements for the template
 	Flavor *string
 
-	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "k8s-upgrade-with-runtimesdk".
+	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "kcp-infra-adoption".
 	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
 	// name of the ExtensionConfig into the ClusterClass.
 	ExtensionConfigName string
@@ -96,7 +96,8 @@ type KCPInfraAdoptionSpecInput struct {
 	BeforeForceDelete func(ctx context.Context, managementClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster, objects ClusterObjects) error
 
 	// Allows to inject a function to be run BeforeAdoption of the orphaned infra; the function also allows
-	// to choose which one between the boostrap management cluster and the cluster on the orphaned infra should be used for adoption.
+	// to choose which one between the boostrap management cluster and the cluster on the orphaned infra should be used for adoption
+	// by returning the corresponding ClusterProxy.
 	//
 	// In case the cluster on the orphaned infra should be used for adoption, this function must be used to
 	// install the required CAPI providers; as a consequence, once adoption completes, this will become
@@ -131,10 +132,10 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
-		Expect(input.ExtensionServiceNamespace).ToNot(BeEmpty())
-		Expect(input.ExtensionServiceName).ToNot(BeEmpty())
-		if input.ExtensionConfigName == "" {
-			input.ExtensionConfigName = specName
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			if input.ExtensionConfigName == "" {
+				input.ExtensionConfigName = specName
+			}
 		}
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
@@ -144,14 +145,12 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 	})
 
 	It("Should adopt up-to-date control plane Machines without modification", func() {
-		By("Deploy Test Extension ExtensionConfig")
-
-		// In this test we are defaulting all handlers to blocking because we expect the handlers to block the
-		// cluster lifecycle by default. Setting defaultAllHandlersToBlocking to true enforces that the test-extension
-		// automatically creates the ConfigMap with blocking preloaded responses.
-		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
-			extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, false, namespace.Name))).
-			To(Succeed(), "Failed to create the extension config")
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			By("Deploy Test Extension ExtensionConfig")
+			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
+				extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, false, namespace.Name))).
+				To(Succeed(), "Failed to create the extension config")
+		}
 
 		By("Creating a workload cluster")
 
@@ -160,7 +159,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			infrastructureProvider = *input.InfrastructureProvider
 		}
 
-		flavor := "upgrades-runtimesdk"
+		flavor := "topology"
 		if input.Flavor != nil {
 			flavor = *input.Flavor
 		}
@@ -245,8 +244,6 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			return forceDeleteClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, objects)
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
 
-		By("Re-creating the workload cluster")
-
 		newManagementClusterProxy = input.BootstrapClusterProxy
 		if input.BeforeAdoption != nil {
 			log.Logf("Calling BeforeAdoption for cluster %s", klog.KObj(clusterResources.Cluster))
@@ -254,6 +251,8 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			newManagementClusterProxy, err = input.BeforeAdoption(ctx, input.BootstrapClusterProxy, clusterResources.Cluster)
 			Expect(err).NotTo(HaveOccurred(), "failed to run BeforeAdoption for cluster %s: %v", klog.KObj(clusterResources.Cluster), err)
 		}
+
+		By("Re-creating the workload cluster")
 
 		log.Logf("Create the Cluster")
 		newCluster := originalCluster.DeepCopy()
@@ -484,7 +483,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 	})
 
 	AfterEach(func() {
-		if newManagementClusterProxy.GetName() != input.BootstrapClusterProxy.GetName() {
+		if newManagementClusterProxy != nil && newManagementClusterProxy.GetName() != input.BootstrapClusterProxy.GetName() {
 			// Dump all the resources in the spec namespace and the workload cluster.
 			framework.DumpAllResourcesAndLogs(ctx, newManagementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, clusterResources.Cluster)
 		}

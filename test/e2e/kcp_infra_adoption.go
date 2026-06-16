@@ -39,6 +39,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -70,6 +71,18 @@ type KCPInfraAdoptionSpecInput struct {
 	// specially crafted with FIXME: describe requirements for the template
 	Flavor *string
 
+	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "kcp-infra-adoption".
+	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
+	// name of the ExtensionConfig into the ClusterClass.
+	ExtensionConfigName string
+
+	// ExtensionServiceNamespace is the namespace where the service for the Runtime SDK is located
+	// and is used to configure in the test-namespace scoped ExtensionConfig.
+	ExtensionServiceNamespace string
+
+	// ExtensionServiceName is the name of the service to configure in the test-namespace scoped ExtensionConfig.
+	ExtensionServiceName string
+
 	// ControlPlaneMachineCount defines the number of control plane machines to be added to the workload cluster.
 	// If not specified, 1 will be used.
 	ControlPlaneMachineCount *int64
@@ -81,17 +94,34 @@ type KCPInfraAdoptionSpecInput struct {
 	// Allows to inject a function to be run after the cluster is paused and before to force delete a cluster and its object (to orphan the corresponding infra).
 	// If not specified, this is a no-op.
 	// Note: the func must be idempotent, because it is called in an Eventually loop.
-	BeforeForceDelete func(managementClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster, objects ClusterObjects) error
+	BeforeForceDelete func(ctx context.Context, managementClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster, objects ClusterObjects) error
+
+	// Allows to inject a function to be run BeforeAdoption of the orphaned infra; the function also allows
+	// to choose which one between the boostrap management cluster and the cluster on the orphaned infra should be used for adoption
+	// by returning the corresponding ClusterProxy.
+	//
+	// In case the cluster on the orphaned infra should be used for adoption, this function must be used to
+	// install the required CAPI providers; as a consequence, once adoption completes, this will become
+	// a self-hosted management cluster.
+	// Note: It is also responsibility of the implementers of this func to set up everything else required for adoption,
+	// e.g. cluster secrets, clusterclass and templates, extensions configs.
+	//
+	// If not specified, this is a no-op and the boostrap management cluster will be used for adoption.
+	BeforeAdoption func(ctx context.Context, managementClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) (framework.ClusterProxy, error)
+
+	// SkipRollout allows to skip the rollout after the Adoption.
+	SkipRollout bool
 }
 
 // KCPInfraAdoptionSpec implements a test that verifies KCP to properly adopt existing control plane Machines.
 func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdoptionSpecInput) {
 	var (
-		specName         = "kcp-infra-adoption"
-		input            KCPInfraAdoptionSpecInput
-		namespace        *corev1.Namespace
-		cancelWatches    context.CancelFunc
-		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
+		specName                  = "kcp-infra-adoption"
+		input                     KCPInfraAdoptionSpecInput
+		namespace                 *corev1.Namespace
+		cancelWatches             context.CancelFunc
+		clusterResources          *clusterctl.ApplyClusterTemplateAndWaitResult
+		newManagementClusterProxy framework.ClusterProxy
 	)
 
 	BeforeEach(func() {
@@ -103,6 +133,12 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			if input.ExtensionConfigName == "" {
+				input.ExtensionConfigName = specName
+			}
+		}
+
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 
@@ -110,6 +146,13 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 	})
 
 	It("Should adopt up-to-date control plane Machines without modification", func() {
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			By("Deploy Test Extension ExtensionConfig")
+			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
+				extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, false, namespace.Name))).
+				To(Succeed(), "Failed to create the extension config")
+		}
+
 		By("Creating a workload cluster")
 
 		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
@@ -132,6 +175,11 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			clusterName = *input.ClusterName
 		}
 
+		variables := map[string]string{
+			// This is used to template the name of the ExtensionConfig into the ClusterClass.
+			"EXTENSION_CONFIG_NAME": input.ExtensionConfigName,
+		}
+
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -145,6 +193,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: controlPlaneMachineCount,
 				WorkerMachineCount:       ptr.To[int64](0),
+				ClusterctlVariables:      variables,
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -179,7 +228,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 
 			if input.BeforeForceDelete != nil {
 				log.Logf("Calling BeforeForceDelete for cluster %s", klog.KObj(clusterResources.Cluster))
-				if err := input.BeforeForceDelete(input.BootstrapClusterProxy, clusterResources.Cluster, objects); err != nil {
+				if err := input.BeforeForceDelete(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, objects); err != nil {
 					return fmt.Errorf("failed to run BeforeForceDelete for cluster %s: %v", klog.KObj(clusterResources.Cluster), err)
 				}
 			}
@@ -195,6 +244,14 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 
 			return forceDeleteClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, objects)
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
+
+		newManagementClusterProxy = input.BootstrapClusterProxy
+		if input.BeforeAdoption != nil {
+			log.Logf("Calling BeforeAdoption for cluster %s", klog.KObj(clusterResources.Cluster))
+			var err error
+			newManagementClusterProxy, err = input.BeforeAdoption(ctx, input.BootstrapClusterProxy, clusterResources.Cluster)
+			Expect(err).NotTo(HaveOccurred(), "failed to run BeforeAdoption for cluster %s: %v", klog.KObj(clusterResources.Cluster), err)
+		}
 
 		By("Re-creating the workload cluster")
 
@@ -212,12 +269,12 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		}
 		newCluster.Spec.Topology.ControlPlane.Metadata.Annotations[clusterv1.PausedAnnotation] = ""
 		newCluster.Spec.Topology.ControlPlane.HealthCheck.Enabled = ptr.To(false)
-		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx, newCluster)).To(Succeed(), "failed to create new Cluster")
+		Expect(newManagementClusterProxy.GetClient().Create(ctx, newCluster)).To(Succeed(), "failed to create new Cluster")
 
 		log.Logf("Wait for the control plane to exist")
 		newKcp := &controlplanev1.KubeadmControlPlane{}
 		Eventually(func(_ Gomega) error {
-			err := input.BootstrapClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(newCluster), newCluster)
+			err := newManagementClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(newCluster), newCluster)
 			if err != nil {
 				return err
 			}
@@ -228,7 +285,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 				return fmt.Errorf("control plane for Cluster %s is not a KubeadmControlPlane", klog.KObj(newCluster))
 			}
 
-			err = input.BootstrapClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKey{Namespace: newCluster.Namespace, Name: newCluster.Spec.ControlPlaneRef.Name}, newKcp)
+			err = newManagementClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKey{Namespace: newCluster.Namespace, Name: newCluster.Spec.ControlPlaneRef.Name}, newKcp)
 			if err != nil {
 				return err
 			}
@@ -257,7 +314,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 				},
 				Type: clusterv1.ClusterSecretType,
 			}
-			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx, newSecret)).To(Succeed(), "failed to create new KubeadmConfig")
+			Expect(newManagementClusterProxy.GetClient().Create(ctx, newSecret)).To(Succeed(), "failed to create new KubeadmConfig")
 			log.Logf(" - Secret, %s", klog.KObj(newSecret))
 
 			// Re-create bootstrap config.
@@ -277,7 +334,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			if newBC.Spec.JoinConfiguration.ControlPlane == nil {
 				newBC.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{}
 			}
-			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx, newBC)).To(Succeed(), "failed to create new KubeadmConfig")
+			Expect(newManagementClusterProxy.GetClient().Create(ctx, newBC)).To(Succeed(), "failed to create new KubeadmConfig")
 			log.Logf(" - KubeadmConfig, %s", klog.KObj(newBC))
 
 			// Re-create infrastructure machine
@@ -292,7 +349,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			newIM.SetOwnerReferences([]metav1.OwnerReference{})
 			newIM.SetFinalizers([]string{})
 			delete(newIM.Object, "status")
-			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx, newIM)).To(Succeed(), "failed to create new InfrastructureMachine")
+			Expect(newManagementClusterProxy.GetClient().Create(ctx, newIM)).To(Succeed(), "failed to create new InfrastructureMachine")
 			log.Logf(" - %s %s", newIM.GetKind(), klog.KObj(newIM))
 
 			newM := m.DeepCopy()
@@ -309,7 +366,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			newM.Spec.Bootstrap.DataSecretName = new(newSecret.Name)
 			newM.Spec.InfrastructureRef.Name = newIM.GetName()
 			newM.Status = clusterv1.MachineStatus{}
-			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx, newM)).To(Succeed(), "failed to create new Machine")
+			Expect(newManagementClusterProxy.GetClient().Create(ctx, newM)).To(Succeed(), "failed to create new Machine")
 
 			newControlPlaneMachinesNames.Insert(newM.Name)
 			newControlPlaneMachines = append(newControlPlaneMachines, newM)
@@ -320,7 +377,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		log.Logf("Wait for Machine -> InfrastructureMachine reconcile")
 		Eventually(func(_ Gomega) error {
 			for _, m := range newControlPlaneMachines {
-				err := input.BootstrapClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(m), m)
+				err := newManagementClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(m), m)
 				if err != nil {
 					return fmt.Errorf("failed to get Machine %s", klog.KObj(m))
 				}
@@ -329,7 +386,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 				}
 
 				im := newInfrastructureMachineByMachine[m.Name].DeepCopy()
-				err = input.BootstrapClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}, im)
+				err = newManagementClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}, im)
 				if err != nil {
 					return fmt.Errorf("failed to get %s %s", im.GetKind(), klog.KObj(m))
 				}
@@ -346,13 +403,13 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		if len(newCluster.Spec.Topology.ControlPlane.Metadata.Annotations) == 0 {
 			newCluster.Spec.Topology.ControlPlane.Metadata.Annotations = nil
 		}
-		err := input.BootstrapClusterProxy.GetClient().Patch(ctx, newCluster, ctrlclient.MergeFrom(clusterBeforePatch))
+		err := newManagementClusterProxy.GetClient().Patch(ctx, newCluster, ctrlclient.MergeFrom(clusterBeforePatch))
 		Expect(err).To(Succeed(), "failed to patch Cluster")
 
 		log.Logf("Wait for KubeadmControlPlane -> Machine reconcile")
 		Eventually(func(_ Gomega) error {
 			for _, m := range newControlPlaneMachines {
-				err := input.BootstrapClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(m), m)
+				err := newManagementClusterProxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(m), m)
 				if err != nil {
 					return fmt.Errorf("failed to get Machine %s", klog.KObj(m))
 				}
@@ -370,27 +427,32 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 
 		By("Verifying there are no unexpected rollouts after adoption")
 		Consistently(func(g Gomega) {
-			machinesAfterUpgrade := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), newCluster)
+			machinesAfterUpgrade := getMachinesByCluster(ctx, newManagementClusterProxy.GetClient(), newCluster)
 			g.Expect(machinesAfterUpgrade.Equal(newControlPlaneMachinesNames)).To(BeTrue(), "Machines must not be replaced after adoption")
 		}, 30*time.Second, 5*time.Second).Should(Succeed())
 
 		Byf("Verify Cluster Available condition is true")
 		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
-			Getter:    input.BootstrapClusterProxy.GetClient(),
+			Getter:    newManagementClusterProxy.GetClient(),
 			Name:      clusterResources.Cluster.Name,
 			Namespace: clusterResources.Cluster.Namespace,
 		})
 
 		Byf("Verify Machines Ready condition is true")
 		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
-			Lister:    input.BootstrapClusterProxy.GetClient(),
+			Lister:    newManagementClusterProxy.GetClient(),
 			Name:      clusterResources.Cluster.Name,
 			Namespace: clusterResources.Cluster.Namespace,
 		})
 
+		if input.SkipRollout {
+			By("PASSED!")
+			return
+		}
+
 		By("Trigger a control plane rollout")
 		modifyControlPlaneViaClusterAndWait(ctx, modifyControlPlaneViaClusterAndWaitInput{
-			ClusterProxy: input.BootstrapClusterProxy,
+			ClusterProxy: newManagementClusterProxy,
 			Cluster:      newCluster,
 			ModifyControlPlaneTopology: func(topology *clusterv1.ControlPlaneTopology) {
 				topology.Rollout.After = metav1.NewTime(time.Now())
@@ -400,20 +462,20 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 
 		Byf("Verify control plane Machines have been rolled out")
 		Eventually(func(g Gomega) {
-			machinesAfterRollout := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), newCluster)
+			machinesAfterRollout := getMachinesByCluster(ctx, newManagementClusterProxy.GetClient(), newCluster)
 			g.Expect(machinesAfterRollout.HasAny(newControlPlaneMachinesNames.UnsortedList()...)).To(BeFalse(), "Machines must be replaced with rollout")
 		}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...).Should(Succeed())
 
 		Byf("Verify control plane Machines Ready condition is true")
 		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
-			Lister:    input.BootstrapClusterProxy.GetClient(),
+			Lister:    newManagementClusterProxy.GetClient(),
 			Name:      clusterResources.Cluster.Name,
 			Namespace: clusterResources.Cluster.Namespace,
 		})
 
 		Byf("Verify Cluster Available condition is true")
 		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
-			Getter:    input.BootstrapClusterProxy.GetClient(),
+			Getter:    newManagementClusterProxy.GetClient(),
 			Name:      clusterResources.Cluster.Name,
 			Namespace: clusterResources.Cluster.Namespace,
 		})
@@ -422,9 +484,23 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 	})
 
 	AfterEach(func() {
+		if newManagementClusterProxy != nil && newManagementClusterProxy.GetName() != input.BootstrapClusterProxy.GetName() {
+			// Dump all the resources in the spec namespace and the workload cluster.
+			// NOTE: In this case cleanup is deferred to the Janitor (otherwise it would require to pivot back to the bootstrap management cluster).
+			framework.DumpAllResourcesAndLogs(ctx, newManagementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, clusterResources.Cluster)
+		}
+
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		cancelWatches()
+
+		if !input.SkipCleanup {
+			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+				Eventually(func() error {
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
+				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
+			}
+		}
 	})
 }
 

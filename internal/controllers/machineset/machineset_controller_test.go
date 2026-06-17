@@ -702,6 +702,9 @@ func TestMachineSetOwnerReference(t *testing.T) {
 			msr := &Reconciler{
 				Client:   c,
 				recorder: record.NewFakeRecorder(32),
+				overrideCleanupOrphanedBootstrapConfigsInfraMachines: func(_ context.Context, _ *scope) error {
+					return nil // Skip calling cleanupOrphanedBootstrapConfigsInfraMachines to avoid a more complicated test setup.
+				},
 			}
 
 			_, err := msr.Reconcile(ctx, tc.request)
@@ -782,6 +785,9 @@ func TestMachineSetReconcile(t *testing.T) {
 		msr := &Reconciler{
 			Client:   c,
 			recorder: rec,
+			overrideCleanupOrphanedBootstrapConfigsInfraMachines: func(_ context.Context, _ *scope) error {
+				return nil // Skip calling cleanupOrphanedBootstrapConfigsInfraMachines to avoid a more complicated test setup.
+			},
 		}
 		_, err := msr.Reconcile(ctx, request)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1155,6 +1161,9 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 	msr := &Reconciler{
 		Client:   fakeClient,
 		recorder: record.NewFakeRecorder(32),
+		overrideCleanupOrphanedBootstrapConfigsInfraMachines: func(_ context.Context, _ *scope) error {
+			return nil // Skip calling cleanupOrphanedBootstrapConfigsInfraMachines to avoid a more complicated test setup.
+		},
 	}
 	_, err := msr.Reconcile(ctx, request)
 	g.Expect(err).To(HaveOccurred())
@@ -2543,6 +2552,9 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 			}
 
 			r := &Reconciler{
+				overrideCleanupOrphanedBootstrapConfigsInfraMachines: func(_ context.Context, _ *scope) error {
+					return nil // Nothing to check in this test.
+				},
 				overrideCreateMachines: func(_ context.Context, _ *scope, machinesToAdd int) (ctrl.Result, error) {
 					g.Expect(tt.expectMachinesToAdd).ToNot(BeNil(), "unexpected call to create machines")
 					g.Expect(machinesToAdd).To(Equal(*tt.expectMachinesToAdd), "call to create machines does not have the expected machinesToAdd number")
@@ -2566,6 +2578,219 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when syncing replicas")
 		})
 	}
+}
+
+func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *testing.T) {
+	machineSet := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machineset1",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachineSetSpec{
+			Replicas:    ptr.To[int32](2),
+			ClusterName: "test-cluster",
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "test-cluster",
+					Version:     "v1.14.2",
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     builder.GenericBootstrapConfigTemplateKind,
+							Name:     "ms-template",
+						},
+					},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     builder.GenericInfrastructureMachineTemplateKind,
+						Name:     "ms-template",
+					},
+				},
+			},
+		},
+	}
+
+	// Create bootstrap template resource.
+	bootstrapResource := map[string]interface{}{
+		"kind":       builder.GenericBootstrapConfigKind,
+		"apiVersion": clusterv1.GroupVersionBootstrap.String(),
+		"metadata": map[string]interface{}{
+			"annotations": map[string]interface{}{
+				"precedence": "GenericBootstrapConfig",
+			},
+		},
+	}
+	bootstrapTmpl := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"template": bootstrapResource,
+			},
+		},
+	}
+	bootstrapTmpl.SetKind(builder.GenericBootstrapConfigTemplateKind)
+	bootstrapTmpl.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
+	bootstrapTmpl.SetName("ms-template")
+	bootstrapTmpl.SetNamespace(metav1.NamespaceDefault)
+	bootstrapList := &unstructured.UnstructuredList{}
+	bootstrapList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   bootstrapTmpl.GetObjectKind().GroupVersionKind().Group,
+		Version: bootstrapTmpl.GetObjectKind().GroupVersionKind().Version,
+		Kind:    strings.TrimSuffix(bootstrapTmpl.GetObjectKind().GroupVersionKind().Kind, clusterv1.TemplateSuffix),
+	})
+
+	// Create infrastructure template resource.
+	infraResource := map[string]interface{}{
+		"kind":       builder.GenericInfrastructureMachineKind,
+		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+		"metadata": map[string]interface{}{
+			"annotations": map[string]interface{}{
+				"precedence": "GenericInfrastructureMachineTemplate",
+			},
+		},
+		"spec": map[string]interface{}{
+			"size": "3xlarge",
+		},
+	}
+	infraTmpl := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"template": infraResource,
+			},
+		},
+	}
+	infraTmpl.SetKind(builder.GenericInfrastructureMachineTemplateKind)
+	infraTmpl.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
+	infraTmpl.SetName("ms-template")
+	infraTmpl.SetNamespace(metav1.NamespaceDefault)
+	infraList := &unstructured.UnstructuredList{}
+	infraList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   infraTmpl.GetObjectKind().GroupVersionKind().Group,
+		Version: infraTmpl.GetObjectKind().GroupVersionKind().Version,
+		Kind:    strings.TrimSuffix(infraTmpl.GetObjectKind().GroupVersionKind().Kind, clusterv1.TemplateSuffix),
+	})
+
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+	applyCounter := 0
+	failDelete := true
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		builder.GenericBootstrapConfigTemplateCRD,
+		builder.GenericBootstrapConfigCRD,
+		builder.GenericInfrastructureMachineTemplateCRD,
+		builder.GenericInfrastructureMachineCRD,
+		machineSet,
+		bootstrapTmpl,
+		infraTmpl,
+	).WithInterceptorFuncs(interceptor.Funcs{
+		Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
+			clientObject, ok := obj.(client.Object)
+			if !ok {
+				return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
+			}
+			if clientObject.GetObjectKind().GroupVersionKind().Kind == "Machine" {
+				applyCounter++
+				if applyCounter == 2 { // Note: fail for the second create machine only
+					return fmt.Errorf("inject error for create Machine")
+				}
+			}
+			return c.Apply(ctx, obj, opts...)
+		},
+		Delete: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+			if failDelete && (obj.GetObjectKind().GroupVersionKind().Kind == "GenericInfrastructureMachine" ||
+				obj.GetObjectKind().GroupVersionKind().Kind == "GenericBootstrapConfig") {
+				return fmt.Errorf("inject error for delete %s", obj.GetObjectKind().GroupVersionKind().Kind)
+			}
+			return c.Delete(ctx, obj, opts...)
+		},
+	}).Build()
+
+	r := &Reconciler{
+		Client:     fakeClient,
+		controller: capicontrollerutil.NewFakeController(),
+		recorder:   record.NewFakeRecorder(32),
+		// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
+		//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
+		disableRemoveManagedFieldsForLabelsAndAnnotations: true,
+	}
+	s := &scope{
+		machineSet: machineSet,
+		machines:   []*clusterv1.Machine{},
+		getAndAdoptMachinesForMachineSetSucceeded: true,
+	}
+
+	// syncReplicas should try to create 2 Machines, second Machine create and subsequent BootstrapConfig/InfraMachine cleanup should fail.
+	res, err := r.syncReplicas(ctx, s)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("failed to apply Machine: inject error for create Machine"))
+	g.Expect(err.Error()).To(ContainSubstring("failed to cleanup GenericInfrastructureMachine default/machineset1-"))
+	g.Expect(err.Error()).To(ContainSubstring("failed to cleanup GenericBootstrapConfig default/machineset1-"))
+	g.Expect(res.IsZero()).To(BeTrue())
+
+	// Verify that we have 1 Machine, 2 InfraMachines and 2 BootstrapConfigs at this time
+	machineList := &clusterv1.MachineList{}
+	g.Expect(r.Client.List(ctx, machineList)).To(Succeed())
+	g.Expect(machineList.Items).To(HaveLen(1))
+	g.Expect(r.Client.List(ctx, bootstrapList)).To(Succeed())
+	g.Expect(bootstrapList.Items).To(HaveLen(2))
+	g.Expect(r.Client.List(ctx, infraList)).To(Succeed())
+	g.Expect(infraList.Items).To(HaveLen(2))
+
+	// Enable Deletions so the cleanup logic can work.
+	failDelete = false
+	s.machines = nil
+	for _, m := range machineList.Items {
+		s.machines = append(s.machines, &m)
+	}
+
+	// syncReplicas should first cleanup previously orphaned BootstrapConfig/InfraMachine and then create a new Machine.
+	res, err = r.syncReplicas(ctx, s)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.IsZero()).To(BeTrue())
+
+	// Verify that we have 2 Machine, 2 InfraMachines, 2 BootstrapConfigs at this time
+	g.Expect(r.Client.List(ctx, machineList)).To(Succeed())
+	g.Expect(machineList.Items).To(HaveLen(2), "Unexpected machine")
+	g.Expect(r.Client.List(ctx, bootstrapList)).To(Succeed())
+	g.Expect(bootstrapList.Items).To(HaveLen(2), "Unexpected bootstrap objects")
+	g.Expect(r.Client.List(ctx, infraList)).To(Succeed())
+	g.Expect(infraList.Items).To(HaveLen(2), "Unexpected infra objects")
+
+	// Verify that objects without MachineSet ownerRef are not deleted during cleanup.
+	// This simulates InfraMachines/BootstrapConfigs taken over by the Machine controller,
+	// which replaces the MachineSet ownerRef with a Machine ownerRef.
+	strayInfraMachine := &unstructured.Unstructured{}
+	strayInfraMachine.SetKind(builder.GenericInfrastructureMachineKind)
+	strayInfraMachine.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
+	strayInfraMachine.SetName("stray-infra")
+	strayInfraMachine.SetNamespace(metav1.NamespaceDefault)
+	g.Expect(r.Client.Create(ctx, strayInfraMachine)).To(Succeed())
+
+	strayBootstrapConfig := &unstructured.Unstructured{}
+	strayBootstrapConfig.SetKind(builder.GenericBootstrapConfigKind)
+	strayBootstrapConfig.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
+	strayBootstrapConfig.SetName("stray-bootstrap")
+	strayBootstrapConfig.SetNamespace(metav1.NamespaceDefault)
+	g.Expect(r.Client.Create(ctx, strayBootstrapConfig)).To(Succeed())
+
+	// syncReplicas should ignore the stray BootstrapConfig/InfraMachine
+	s.machines = nil
+	for _, m := range machineList.Items {
+		s.machines = append(s.machines, &m)
+	}
+	res, err = r.syncReplicas(ctx, s)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.IsZero()).To(BeTrue())
+
+	// Verify that we have 2 Machine, 3 InfraMachines, 3 BootstrapConfigs at this time
+	g.Expect(r.Client.List(ctx, machineList)).To(Succeed())
+	g.Expect(machineList.Items).To(HaveLen(2), "Unexpected machine")
+	g.Expect(r.Client.List(ctx, bootstrapList)).To(Succeed())
+	g.Expect(bootstrapList.Items).To(HaveLen(3), "Unexpected bootstrap objects")
+	g.Expect(r.Client.List(ctx, infraList)).To(Succeed())
+	g.Expect(infraList.Items).To(HaveLen(3), "Unexpected infra objects")
 }
 
 func TestMachineSetReconciler_createMachines_preflightChecks(t *testing.T) {

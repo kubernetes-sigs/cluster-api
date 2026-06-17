@@ -114,9 +114,10 @@ type Reconciler struct {
 	disableRemoveManagedFieldsForLabelsAndAnnotations bool
 
 	// Those fields are only used for test purposes.
-	overrideCreateMachines func(ctx context.Context, s *scope, machinesToAdd int) (ctrl.Result, error)
-	overrideMoveMachines   func(ctx context.Context, s *scope, targetMSName string, machinesToMove int) (ctrl.Result, error)
-	overrideDeleteMachines func(ctx context.Context, s *scope, machinesToDelete int) (ctrl.Result, error)
+	overrideCleanupOrphanedBootstrapConfigsInfraMachines func(ctx context.Context, s *scope) error
+	overrideCreateMachines                               func(ctx context.Context, s *scope, machinesToAdd int) (ctrl.Result, error)
+	overrideMoveMachines                                 func(ctx context.Context, s *scope, targetMSName string, machinesToMove int) (ctrl.Result, error)
+	overrideDeleteMachines                               func(ctx context.Context, s *scope, machinesToDelete int) (ctrl.Result, error)
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -766,6 +767,10 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 	ms := s.machineSet
 	machines := s.machines
 
+	if err := r.cleanupOrphanedBootstrapConfigsInfraMachines(ctx, s); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	log := ctrl.LoggerFrom(ctx)
 	if ms.Spec.Replicas == nil {
 		return ctrl.Result{}, errors.Errorf("the Replicas field in Spec for MachineSet %v is nil, this should not be allowed", ms.Name)
@@ -820,6 +825,105 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) cleanupOrphanedBootstrapConfigsInfraMachines(ctx context.Context, s *scope) error {
+	if r.overrideCleanupOrphanedBootstrapConfigsInfraMachines != nil {
+		return r.overrideCleanupOrphanedBootstrapConfigsInfraMachines(ctx, s)
+	}
+
+	// Get InfraMachines of the MachineSet.
+	infraMachines, err := r.listMSOwnedObjectsFromContractVersionedRef(ctx, s.machineSet.Spec.Template.Spec.InfrastructureRef, s.machineSet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to cleanup orphaned objects")
+	}
+
+	// Get BootstrapConfigs of the MachineSet.
+	bootstrapConfigs := map[string]*unstructured.Unstructured{}
+	if s.machineSet.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
+		bootstrapConfigs, err = r.listMSOwnedObjectsFromContractVersionedRef(ctx, s.machineSet.Spec.Template.Spec.Bootstrap.ConfigRef, s.machineSet)
+		if err != nil {
+			return errors.Wrapf(err, "failed to cleanup orphaned objects")
+		}
+	}
+
+	for _, machine := range s.machines {
+		delete(infraMachines, machine.Spec.InfrastructureRef.Name)
+		if machine.Spec.Bootstrap.ConfigRef.IsDefined() {
+			delete(bootstrapConfigs, machine.Spec.Bootstrap.ConfigRef.Name)
+		}
+	}
+
+	var errs []error
+	for _, infraMachine := range infraMachines {
+		if !infraMachine.GetDeletionTimestamp().IsZero() {
+			continue
+		}
+		if err := r.Client.Delete(ctx, infraMachine); err != nil && !apierrors.IsNotFound(err) {
+			errs = append(errs, errors.Wrapf(err, "failed to delete %s %s", infraMachine.GetKind(), klog.KObj(infraMachine)))
+		}
+	}
+	for _, bootstrapConfig := range bootstrapConfigs {
+		if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
+			continue
+		}
+		if err := r.Client.Delete(ctx, bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
+			errs = append(errs, errors.Wrapf(err, "failed to delete %s %s", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig)))
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to cleanup orphaned objects")
+	}
+
+	return nil
+}
+
+func (r *Reconciler) listMSOwnedObjectsFromContractVersionedRef(ctx context.Context, ref clusterv1.ContractVersionedObjectReference, ms *clusterv1.MachineSet) (map[string]*unstructured.Unstructured, error) {
+	if !ref.IsDefined() {
+		return nil, errors.Errorf("failed to list objects from ref: object reference not set")
+	}
+
+	kind := strings.TrimSuffix(ref.Kind, clusterv1.TemplateSuffix)
+	metadata, err := contract.GetGKMetadata(ctx, r.Client, schema.GroupKind{Group: ref.APIGroup, Kind: kind})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list %s objects", kind)
+	}
+
+	_, latestAPIVersion, err := contract.GetLatestContractAndAPIVersionFromContract(metadata, contract.Version)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list %s objects", kind)
+	}
+
+	selectorMap, err := metav1.LabelSelectorAsMap(&ms.Spec.Selector)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", ms.Name)
+	}
+
+	objList := new(unstructured.UnstructuredList)
+	objList.SetAPIVersion(schema.GroupVersion{Group: ref.APIGroup, Version: latestAPIVersion}.String())
+	objList.SetKind(kind + "List")
+	if err := r.Client.List(ctx, objList, client.InNamespace(ms.Namespace), client.MatchingLabels(selectorMap)); err != nil {
+		return nil, errors.Wrapf(err, "failed to list %s objects", kind)
+	}
+
+	objs := map[string]*unstructured.Unstructured{}
+	for _, obj := range objList.Items {
+		// Note: Only consider objects that are still owned by the current MachineSet.
+		// This ensures that we don't delete objects that have been taken over by the Machine
+		// controller by adding a Machine ownerRef.
+		// Without this check we would delete InfraMachine/BootstrapConfig during in-place update.
+		if util.HasOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "MachineSet",
+			Name:       ms.Name,
+			UID:        ms.UID,
+		}) {
+			objs[obj.GetName()] = &obj
+		}
+	}
+
+	return objs, nil
 }
 
 func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd int) (ctrl.Result, error) {

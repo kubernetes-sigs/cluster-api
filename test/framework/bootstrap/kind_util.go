@@ -61,6 +61,14 @@ type CreateKindBootstrapClusterAndLoadImagesInput struct {
 
 	// CustomNodeImage is the custom node image used for creating the kind node
 	CustomNodeImage string
+
+	// DisableOwnerReferencesPermissionEnforcement can be set to true to disable
+	// the OwnerReferencesPermissionEnforcement admission controller in the cluster.
+	// Some Kubernetes clusters enable this admission plugin by default (e.g. OpenShift),
+	// and even if this plugin isn't enabled by default in Kubernetes/kind, we would
+	// like to support clusters where its enabled.
+	// See https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
+	DisableOwnerReferencesPermissionEnforcement bool
 }
 
 // CreateKindBootstrapClusterAndLoadImages returns a new Kubernetes cluster with pre-loaded images.
@@ -96,6 +104,9 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	}
 	if input.CustomNodeImage != "" {
 		options = append(options, WithNodeImage(input.CustomNodeImage))
+	}
+	if input.DisableOwnerReferencesPermissionEnforcement {
+		options = append(options, WithOwnerReferencesPermissionEnforcementDisabled())
 	}
 	options = append(options, WithExtraPortMappings(input.ExtraPortMappings))
 

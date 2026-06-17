@@ -288,6 +288,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				Images:    input.E2EConfig.Images,
 				IPFamily:  input.E2EConfig.MustGetVariable(IPFamily),
 				LogFolder: filepath.Join(managementClusterLogFolder, "logs-kind"),
+				// Note: Older releases might not have sufficient RBAC to satisfy the OwnerReferencesPermissionEnforcement admission controller.
+				// So for now, we disable it to avoid failing upgrade tests.
+				// TODO: Remove this option to enable OwnerReferencesPermissionEnforcement admission controller in all e2e-tests.
+				DisableOwnerReferencesPermissionEnforcement: true,
 			})
 			Expect(managementClusterProvider).ToNot(BeNil(), "Failed to create a kind cluster")
 

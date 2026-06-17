@@ -128,6 +128,7 @@ func ClusterCacheCacheOptions() clustercache.CacheOptions {
 	)
 
 	return clustercache.CacheOptions{
+		DefaultTransform: cache.TransformStripManagedFields(),
 		// Only cache kubeadm static pods
 		ByObject: map[client.Object]cache.ByObject{
 			&corev1.Pod{}: {

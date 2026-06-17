@@ -146,7 +146,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
@@ -154,7 +154,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 			expectManagedFieldIssueMitigated: false,
 			// managedFields are not changed
@@ -163,7 +163,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationUpdate,
 				APIVersion: clusterv1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
@@ -171,7 +171,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 		},
 		{
@@ -184,10 +184,10 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationUpdate,
 				APIVersion: clusterv1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:name":{}
-}}`))},
+}}`)),
 			}},
 			objectApplies: []objectApply{
 				{
@@ -198,16 +198,16 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 						Operation:  metav1.ManagedFieldsOperationApply,
 						APIVersion: clusterv1.GroupVersion.String(),
 						FieldsType: "FieldsV1",
-						FieldsV1:   &metav1.FieldsV1{Raw: []byte(clusterManagedFieldsAfterApply)},
+						FieldsV1:   metav1.NewFieldsV1(clusterManagedFieldsAfterApply),
 					}, {
 						Manager:    patchManager,
 						Operation:  metav1.ManagedFieldsOperationUpdate,
 						APIVersion: clusterv1.GroupVersion.String(),
 						FieldsType: "FieldsV1",
-						FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+						FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:name":{}
-}}`))},
+}}`)),
 					}},
 				},
 			},
@@ -221,7 +221,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
@@ -229,7 +229,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 			expectManagedFieldIssueMitigated: true,
 			expectedManagedFields: []metav1.ManagedFieldsEntry{{
@@ -237,7 +237,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationUpdate,
 				APIVersion: clusterv1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1:   &metav1.FieldsV1{Raw: []byte(`{"f:metadata":{"f:name":{}}}`)},
+				FieldsV1:   metav1.NewFieldsV1(`{"f:metadata":{"f:name":{}}}`),
 			}},
 		},
 		{
@@ -249,7 +249,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
@@ -257,7 +257,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 			expectManagedFieldIssueMitigated: true,
 			expectedManagedFields: []metav1.ManagedFieldsEntry{{
@@ -265,7 +265,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationUpdate,
 				APIVersion: clusterv1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1:   &metav1.FieldsV1{Raw: []byte(`{"f:metadata":{"f:name":{}}}`)},
+				FieldsV1:   metav1.NewFieldsV1(`{"f:metadata":{"f:name":{}}}`),
 			}},
 		},
 		{
@@ -277,36 +277,36 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
 	}
-}}`))},
+}}`)),
 			}, {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))}}},
+}}`))}},
 			expectManagedFieldIssueMitigated: true,
 			expectedManagedFields: []metav1.ManagedFieldsEntry{{
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 		},
 		{
@@ -318,36 +318,36 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
 	}
-}}`))},
+}}`)),
 			}, {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))}}},
+}}`))}},
 			expectManagedFieldIssueMitigated: true,
 			expectedManagedFields: []metav1.ManagedFieldsEntry{{
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 		},
 		{
@@ -359,49 +359,49 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
 	}
-}}`))},
+}}`)),
 			}, {
 				Manager:    oldClusterSSAManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:finalizers":{
 		".":{},
 		"v:\"test.com/finalizer\"":{}
 	}
-}}`))},
+}}`)),
 			}, {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))}}},
+}}`))}},
 			expectManagedFieldIssueMitigated: true,
 			expectedManagedFields: []metav1.ManagedFieldsEntry{{
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 		},
 	}
@@ -1328,7 +1328,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: controlplanev1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
@@ -1336,7 +1336,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 			expectManagedFieldIssueMitigated: false,
 			// managedFields are not changed
@@ -1345,7 +1345,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
@@ -1353,7 +1353,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 		},
 		{
@@ -1366,10 +1366,10 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:name":{}
-}}`))},
+}}`)),
 			}},
 		},
 		{
@@ -1381,7 +1381,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: controlplanev1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
@@ -1389,7 +1389,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}},
 			expectManagedFieldIssueMitigated: true,
 			expectedManagedFields: []metav1.ManagedFieldsEntry{{
@@ -1397,7 +1397,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneManagedFieldsAfterMitigation)},
+				FieldsV1:   metav1.NewFieldsV1(kubeadmControlPlaneManagedFieldsAfterMitigation),
 			}},
 			objectApplies: []objectApply{{
 				object: kubeadmControlPlaneApply.DeepCopy(),
@@ -1406,7 +1406,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 					Operation:  metav1.ManagedFieldsOperationApply,
 					APIVersion: controlplanev1.GroupVersion.String(),
 					FieldsType: "FieldsV1",
-					FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneManagedFieldsAfterApply)},
+					FieldsV1:   metav1.NewFieldsV1(kubeadmControlPlaneManagedFieldsAfterApply),
 				}}},
 			},
 		},
@@ -1419,42 +1419,42 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: controlplanev1beta1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
 	}
-}}`))},
+}}`)),
 			}, {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1beta1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))}}},
+}}`))}},
 			expectManagedFieldIssueMitigated: true,
 			expectedManagedFields: []metav1.ManagedFieldsEntry{{
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1beta1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}, {
 				Manager:    testFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1beta1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneV1Beta1ManagedFieldsAfterMitigation)},
+				FieldsV1:   metav1.NewFieldsV1(kubeadmControlPlaneV1Beta1ManagedFieldsAfterMitigation),
 			}},
 			objectApplies: []objectApply{
 				{ // Apply v1beta1
@@ -1464,18 +1464,18 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						Operation:  metav1.ManagedFieldsOperationApply,
 						APIVersion: controlplanev1beta1.GroupVersion.String(),
 						FieldsType: "FieldsV1",
-						FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+						FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 					}, {
 						Manager:    testFieldManager,
 						Operation:  metav1.ManagedFieldsOperationApply,
 						APIVersion: controlplanev1beta1.GroupVersion.String(),
 						FieldsType: "FieldsV1",
-						FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneManagedFieldsV1Beta1AfterApply)},
+						FieldsV1:   metav1.NewFieldsV1(kubeadmControlPlaneManagedFieldsV1Beta1AfterApply),
 					}},
 				},
 				{ // Apply v1beta2
@@ -1485,18 +1485,18 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						Operation:  metav1.ManagedFieldsOperationApply,
 						APIVersion: controlplanev1beta1.GroupVersion.String(),
 						FieldsType: "FieldsV1",
-						FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+						FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 					}, {
 						Manager:    testFieldManager,
 						Operation:  metav1.ManagedFieldsOperationApply,
 						APIVersion: controlplanev1.GroupVersion.String(),
 						FieldsType: "FieldsV1",
-						FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneManagedFieldsAfterApply)},
+						FieldsV1:   metav1.NewFieldsV1(kubeadmControlPlaneManagedFieldsAfterApply),
 					}},
 				},
 				{ // Apply v1beta2 again to verify that we can remove extraArgs
@@ -1506,18 +1506,18 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						Operation:  metav1.ManagedFieldsOperationApply,
 						APIVersion: controlplanev1beta1.GroupVersion.String(),
 						FieldsType: "FieldsV1",
-						FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+						FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 					}, {
 						Manager:    testFieldManager,
 						Operation:  metav1.ManagedFieldsOperationApply,
 						APIVersion: controlplanev1.GroupVersion.String(),
 						FieldsType: "FieldsV1",
-						FieldsV1:   &metav1.FieldsV1{Raw: []byte(kubeadmControlPlaneManagedFieldsAfterApplyWithoutSomeExtraArgs)},
+						FieldsV1:   metav1.NewFieldsV1(kubeadmControlPlaneManagedFieldsAfterApplyWithoutSomeExtraArgs),
 					}},
 				},
 			},
@@ -1531,60 +1531,60 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				APIVersion: controlplanev1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{}
 	}
-}}`))},
+}}`)),
 			}, {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))}}, {
+}}`))}, {
 				Manager:    testFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
 				Time:       ptr.To(metav1.Now()),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:finalizers":{
 		".":{},
 		"v:\"test.com/finalizer\"":{}
 	}
-}}`))}}},
+}}`))}},
 			expectManagedFieldIssueMitigated: true,
 			expectedManagedFields: []metav1.ManagedFieldsEntry{{
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:labels":{
 		"f:label-1":{}
 	}
-}}`))},
+}}`)),
 			}, {
 				Manager:    testFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
 				FieldsType: "FieldsV1",
-				FieldsV1: &metav1.FieldsV1{Raw: []byte(trimSpaces(`{
+				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
 	"f:finalizers":{
 		".":{},
 		"v:\"test.com/finalizer\"":{}
 	}
-}}`))}}},
+}}`))}},
 		},
 	}
 

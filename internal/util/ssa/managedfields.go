@@ -187,7 +187,7 @@ func MigrateManagedFields(ctx context.Context, c client.Client, object client.Ob
 		APIVersion: objectGVK.GroupVersion().String(),
 		Time:       ptr.To(metav1.Now()),
 		FieldsType: "FieldsV1",
-		FieldsV1:   &metav1.FieldsV1{Raw: []byte(`{"f:metadata":{"f:name":{}}}`)},
+		FieldsV1:   metav1.NewFieldsV1(`{"f:metadata":{"f:name":{}}}`),
 	})
 
 	object.SetManagedFields(managedFields)

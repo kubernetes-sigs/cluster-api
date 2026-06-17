@@ -475,22 +475,13 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 				//       chances that the managedField entry gets cleaned up. In any case having a minimal entry only
 				//       for metadata.name is better than leaving the old entry that uses an apiVersion that is not
 				//       served anymore (see: https://github.com/kubernetes/kubernetes/issues/111937).
-				fieldV1Map := map[string]interface{}{
-					"f:metadata": map[string]interface{}{
-						"f:name": map[string]interface{}{},
-					},
-				}
-				fieldV1, err := json.Marshal(fieldV1Map)
-				if err != nil {
-					return errors.Wrap(err, "failed to create seeding managedField entry")
-				}
 				managedFields = append(managedFields, metav1.ManagedFieldsEntry{
 					Manager:    obj.GetManagedFields()[0].Manager,
 					Operation:  obj.GetManagedFields()[0].Operation,
 					APIVersion: schema.GroupVersion{Group: crd.Spec.Group, Version: storageVersion}.String(),
 					Time:       ptr.To(metav1.Now()),
 					FieldsType: "FieldsV1",
-					FieldsV1:   &metav1.FieldsV1{Raw: fieldV1},
+					FieldsV1:   metav1.NewFieldsV1(`{"f:metadata":{"f:name":{}}}`),
 				})
 			}
 

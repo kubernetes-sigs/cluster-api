@@ -57,10 +57,11 @@ ARG gcflags
 ARG ldflags
 
 # Do not force rebuild of up-to-date packages (do not use -a) and use the compiler cache folder
+# TODO: Remove fieldsv1string once build tag is switched (https://github.com/kubernetes/kubernetes/issues/137109#issuecomment-4697742098)
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
-    go build -trimpath -gcflags "${gcflags}" -ldflags "${ldflags} -extldflags '-static'" \
+    go build -tags=fieldsv1string -trimpath -gcflags "${gcflags}" -ldflags "${ldflags} -extldflags '-static'" \
     -o manager ${package}
 
 # Production image

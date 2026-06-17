@@ -529,7 +529,7 @@ func runTask(ctx context.Context, wg *sync.WaitGroup, prefix string, f taskFunct
 // makeTask generates a task for invoking a make target.
 func makeTask(name string) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
-		cmd := exec.CommandContext(ctx, "make", name)
+		cmd := exec.CommandContext(ctx, "make", name) //nolint:gosec // No security issue: variable is safe.
 
 		var stderr bytes.Buffer
 		cmd.Dir = rootPath
@@ -681,7 +681,7 @@ func cleanupChartTask(path string) taskFunction {
 // kustomizeTask generates a task for running kustomize build on a path and saving the output on a file.
 func kustomizeTask(path, out string) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
-		cmd := exec.CommandContext(ctx,
+		cmd := exec.CommandContext(ctx, //nolint:gosec // No security issue: variable is safe.
 			kustomizePath,
 			"build",
 			path,

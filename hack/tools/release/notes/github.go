@@ -177,7 +177,7 @@ func (c githubClient) listMergedPRs(after, before time.Time, baseBranches ...str
 }
 
 func (c githubClient) runGHAPICommand(url string, response any) error {
-	cmd := exec.Command("gh", "api", url) //nolint:noctx // No context available in this function.
+	cmd := exec.Command("gh", "api", url) //nolint:noctx,gosec // No context available in this function. No security issue: variable is safe.
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {

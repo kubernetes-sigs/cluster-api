@@ -9,6 +9,7 @@ rules:
   resources:
   - configmaps
   verbs:
+  - delete
   - get
   - list
   - patch

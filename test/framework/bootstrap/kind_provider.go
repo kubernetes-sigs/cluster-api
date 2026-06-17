@@ -88,6 +88,13 @@ func WithExtraPortMappings(mappings []kindv1.PortMapping) KindClusterOption {
 	})
 }
 
+// WithOwnerReferencesPermissionEnforcementDisabled implements a New Option that disables the OwnerReferencesPermissionEnforcement admission controller.
+func WithOwnerReferencesPermissionEnforcementDisabled() KindClusterOption {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
+		k.disableOwnerReferencesPermissionEnforcement = true
+	})
+}
+
 // LogFolder implements a New Option that instruct the kindClusterProvider to dump bootstrap logs in a folder in case of errors.
 func LogFolder(path string) KindClusterOption {
 	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
@@ -117,6 +124,8 @@ type KindClusterProvider struct {
 	ipFamily          kindv1.ClusterIPFamily
 	logFolder         string
 	extraPortMappings []kindv1.PortMapping
+
+	disableOwnerReferencesPermissionEnforcement bool
 }
 
 // Create a Kubernetes cluster using kind.
@@ -141,13 +150,17 @@ func (k *KindClusterProvider) createKindCluster() {
 		kind.CreateWithKubeconfigPath(k.kubeconfigPath),
 	}
 
-	// We enable the OwnerReferencesPermissionEnforcement admission plugin to detect potential
-	// RBAC issues when applying owner references with blockOwnerDeletion.
-	const ownerReferencesPermissionEnforcementPatch = `kind: ClusterConfiguration
+	var kubeadmConfigPatches []string
+	if !k.disableOwnerReferencesPermissionEnforcement {
+		// We enable the OwnerReferencesPermissionEnforcement admission plugin to detect potential
+		// RBAC issues when applying owner references with blockOwnerDeletion.
+		const ownerReferencesPermissionEnforcementPatch = `kind: ClusterConfiguration
 apiServer:
   extraArgs:
     enable-admission-plugins: OwnerReferencesPermissionEnforcement
 `
+		kubeadmConfigPatches = append(kubeadmConfigPatches, ownerReferencesPermissionEnforcementPatch)
+	}
 
 	cfg := &kindv1.Cluster{
 		Nodes: []kindv1.Node{
@@ -156,9 +169,7 @@ apiServer:
 				ExtraPortMappings: k.extraPortMappings,
 			},
 		},
-		KubeadmConfigPatches: []string{
-			ownerReferencesPermissionEnforcementPatch,
-		},
+		KubeadmConfigPatches: kubeadmConfigPatches,
 	}
 
 	if k.ipFamily == kindv1.IPv6Family {

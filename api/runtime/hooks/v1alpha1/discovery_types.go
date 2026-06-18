@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 )
 
 // DefaultHandlersTimeoutSeconds defines the default timeout duration for client calls to ExtensionHandlers.

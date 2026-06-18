@@ -25,6 +25,7 @@ linters:
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
     - godox # block FIXMEs
+    - depguard # blocks dependencies
     - goprintffuncname # printft-like functions should be named with f at the end
     - gosec # potential security problems
     - govet # basically 'go vet'
@@ -55,6 +56,32 @@ linters:
     # TODO: It will be dropped when the prealloc findings are fixed.
     - prealloc
   settings:
+    depguard:
+      rules:
+        api:
+          list-mode: strict
+          files:
+          - "**/cluster-api/api/**/*.go"
+          allow:
+          - $gostd
+          - k8s.io/api/core/v1$
+          - k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1$
+          - k8s.io/apimachinery/pkg/apis/meta/v1$
+          - k8s.io/apimachinery/pkg/conversion$
+          - k8s.io/apimachinery/pkg/runtime$
+          - k8s.io/apimachinery/pkg/runtime/schema$
+          - k8s.io/apimachinery/pkg/types$
+          - k8s.io/apimachinery/pkg/util/intstr$
+          - k8s.io/cluster-bootstrap/token/api$
+          - k8s.io/cluster-bootstrap/token/util$
+          - k8s.io/kube-openapi
+          - sigs.k8s.io/cluster-api/api
+          # TODO: Remove these imports (or at least consider it)
+          - k8s.io/apimachinery/pkg/api/validation$
+          - k8s.io/apimachinery/pkg/apis/meta/v1/validation$
+          - k8s.io/apimachinery/pkg/labels$
+          - k8s.io/apimachinery/pkg/util/naming$
+          - k8s.io/apimachinery/pkg/util/validation/field$
     forbidigo:
       forbid:
         - pattern: ctrl.NewControllerManagedBy
@@ -146,12 +173,12 @@ linters:
           alias: runtimev1alpha1
         - pkg: sigs.k8s.io/cluster-api/api/runtime/v1beta2
           alias: runtimev1
+        - pkg: sigs.k8s.io/cluster-api/api/runtime/catalog
+          alias: runtimecatalog
         - pkg: sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1
           alias: runtimehooksv1
         - pkg: sigs.k8s.io/cluster-api/exp/runtime/controllers
           alias: runtimecontrollers
-        - pkg: sigs.k8s.io/cluster-api/exp/runtime/catalog
-          alias: runtimecatalog
         - pkg: sigs.k8s.io/cluster-api/internal/runtime/client
           alias: internalruntimeclient
         - pkg: sigs.k8s.io/cluster-api/exp/runtime/client
@@ -340,7 +367,7 @@ linters:
         # Disable linters for conversion
       - linters:
           - staticcheck
-        path: .*(api|types)\/.*\/conversion.*\.go$
+        path: api/core/v1beta1/conversion.go|webhooks/conversion/.*\.go
         text: 'SA1019: in.(.+) is deprecated'
       - linters:
           - revive

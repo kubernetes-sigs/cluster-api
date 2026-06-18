@@ -78,6 +78,13 @@ jobs:
           git push origin ${RELEASE_VERSION}
           git push origin test/${RELEASE_VERSION}
           echo "Created tags $RELEASE_VERSION and test/${RELEASE_VERSION}"
+
+          # Push api tag if the API Go module exists (on this branch).
+          if [ -f api/go.mod ]; then
+            git tag api/${RELEASE_VERSION}
+            git push origin api/${RELEASE_VERSION}
+            echo "Created tag api/${RELEASE_VERSION}"
+          fi
   release:
     name: create draft release
     runs-on: ubuntu-latest

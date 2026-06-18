@@ -21,35 +21,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 )
-
-func (src *ExtensionConfig) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*runtimev1.ExtensionConfig)
-
-	return Convert_v1alpha1_ExtensionConfig_To_v1beta2_ExtensionConfig(src, dst, nil)
-}
-
-func (dst *ExtensionConfig) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*runtimev1.ExtensionConfig)
-
-	if err := Convert_v1beta2_ExtensionConfig_To_v1alpha1_ExtensionConfig(src, dst, nil); err != nil {
-		return err
-	}
-
-	dropEmptyStringsExtensionConfig(dst)
-	for i, h := range dst.Status.Handlers {
-		if h.TimeoutSeconds != nil && *h.TimeoutSeconds == 0 {
-			h.TimeoutSeconds = nil
-		}
-		dst.Status.Handlers[i] = h
-	}
-	return nil
-}
 
 func Convert_v1beta2_ExtensionConfigStatus_To_v1alpha1_ExtensionConfigStatus(in *runtimev1.ExtensionConfigStatus, out *ExtensionConfigStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_ExtensionConfigStatus_To_v1alpha1_ExtensionConfigStatus(in, out, s); err != nil {
@@ -132,7 +107,7 @@ func Convert_v1beta2_ExtensionHandler_To_v1alpha1_ExtensionHandler(in *runtimev1
 	}
 
 	if in.FailurePolicy != "" {
-		out.FailurePolicy = ptr.To(FailurePolicy(in.FailurePolicy))
+		out.FailurePolicy = new(FailurePolicy(in.FailurePolicy))
 	}
 	return nil
 }
@@ -162,17 +137,4 @@ func Convert_v1beta2_ClientConfig_To_v1alpha1_ClientConfig(in *runtimev1.ClientC
 		}
 	}
 	return nil
-}
-
-func dropEmptyStringsExtensionConfig(dst *ExtensionConfig) {
-	dropEmptyString(&dst.Spec.ClientConfig.URL)
-	if dst.Spec.ClientConfig.Service != nil {
-		dropEmptyString(&dst.Spec.ClientConfig.Service.Path)
-	}
-}
-
-func dropEmptyString(s **string) {
-	if *s != nil && **s == "" {
-		*s = nil
-	}
 }

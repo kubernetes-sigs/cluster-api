@@ -20,36 +20,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 )
-
-func (src *IPAddress) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*ipamv1.IPAddress)
-
-	return Convert_v1beta1_IPAddress_To_v1beta2_IPAddress(src, dst, nil)
-}
-
-func (dst *IPAddress) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*ipamv1.IPAddress)
-
-	return Convert_v1beta2_IPAddress_To_v1beta1_IPAddress(src, dst, nil)
-}
-
-func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*ipamv1.IPAddressClaim)
-
-	return Convert_v1beta1_IPAddressClaim_To_v1beta2_IPAddressClaim(src, dst, nil)
-}
-
-func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*ipamv1.IPAddressClaim)
-
-	return Convert_v1beta2_IPAddressClaim_To_v1beta1_IPAddressClaim(src, dst, nil)
-}
 
 func Convert_v1beta2_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(in *ipamv1.IPAddressClaimStatus, out *IPAddressClaimStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(in, out, s); err != nil {
@@ -109,7 +83,7 @@ func Convert_v1beta1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(in *IP
 func Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(in *corev1.TypedLocalObjectReference, out *ipamv1.IPPoolReference, _ apimachineryconversion.Scope) error {
 	out.Kind = in.Kind
 	out.Name = in.Name
-	out.APIGroup = ptr.Deref(in.APIGroup, "")
+	out.APIGroup = deref(in.APIGroup, "")
 	return nil
 }
 
@@ -117,7 +91,7 @@ func Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(in *ipamv1.
 	out.Kind = in.Kind
 	out.Name = in.Name
 	if in.APIGroup != "" {
-		out.APIGroup = ptr.To(in.APIGroup)
+		out.APIGroup = new(in.APIGroup)
 	}
 	return nil
 }
@@ -146,7 +120,7 @@ func Convert_v1beta1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, o
 	if err := autoConvert_v1beta1_IPAddressSpec_To_v1beta2_IPAddressSpec(in, out, s); err != nil {
 		return err
 	}
-	out.Prefix = ptr.To(int32(in.Prefix))
+	out.Prefix = new(int32(in.Prefix))
 	return nil
 }
 
@@ -154,7 +128,7 @@ func Convert_v1beta2_IPAddressSpec_To_v1beta1_IPAddressSpec(in *ipamv1.IPAddress
 	if err := autoConvert_v1beta2_IPAddressSpec_To_v1beta1_IPAddressSpec(in, out, s); err != nil {
 		return err
 	}
-	out.Prefix = int(ptr.Deref(in.Prefix, 0))
+	out.Prefix = int(deref(in.Prefix, 0))
 	return nil
 }
 
@@ -166,4 +140,11 @@ func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *cluste
 
 func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
+}
+
+func deref[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }

@@ -17,13 +17,11 @@ limitations under the License.
 package v1beta2
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 )
 
 func TestIsResourceApplied(t *testing.T) {
@@ -44,13 +42,13 @@ func TestIsResourceApplied(t *testing.T) {
 		Resources: []ResourceBinding{
 			{
 				ResourceRef:     resourceRefApplySucceeded,
-				Applied:         ptr.To(true),
+				Applied:         new(true),
 				Hash:            "xyz",
 				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
 			{
 				ResourceRef:     resourceRefApplyFailed,
-				Applied:         ptr.To(false),
+				Applied:         new(false),
 				Hash:            "",
 				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
@@ -85,8 +83,9 @@ func TestIsResourceApplied(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gs := NewWithT(t)
-			gs.Expect(tt.resourceSetBinding.IsApplied(tt.resourceRef)).To(BeEquivalentTo(tt.isApplied))
+			if tt.resourceSetBinding.IsApplied(tt.resourceRef) != tt.isApplied {
+				t.Fatalf("Expected %t to equal %t", tt.resourceSetBinding.IsApplied(tt.resourceRef), tt.isApplied)
+			}
 		})
 	}
 }
@@ -107,7 +106,7 @@ func TestResourceSetBindingGetResourceBinding(t *testing.T) {
 
 	resourceRefApplyFailedBinding := ResourceBinding{
 		ResourceRef:     resourceRefApplyFailed,
-		Applied:         ptr.To(false),
+		Applied:         new(false),
 		Hash:            "",
 		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 	}
@@ -116,7 +115,7 @@ func TestResourceSetBindingGetResourceBinding(t *testing.T) {
 		Resources: []ResourceBinding{
 			{
 				ResourceRef:     resourceRefApplySucceeded,
-				Applied:         ptr.To(true),
+				Applied:         new(true),
 				Hash:            "xyz",
 				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
@@ -145,8 +144,9 @@ func TestResourceSetBindingGetResourceBinding(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gs := NewWithT(t)
-			gs.Expect(tt.resourceSetBinding.GetResource(tt.resourceRef)).To(BeComparableTo(tt.want))
+			if !reflect.DeepEqual(tt.resourceSetBinding.GetResource(tt.resourceRef), tt.want) {
+				t.Fatalf("Expected %+v to equal %+v", tt.resourceSetBinding.GetResource(tt.resourceRef), tt.want)
+			}
 		})
 	}
 }
@@ -162,7 +162,7 @@ func TestSetResourceBinding(t *testing.T) {
 		Resources: []ResourceBinding{
 			{
 				ResourceRef:     resourceRefApplyFailed,
-				Applied:         ptr.To(false),
+				Applied:         new(false),
 				Hash:            "",
 				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
@@ -170,7 +170,7 @@ func TestSetResourceBinding(t *testing.T) {
 	}
 	updateFailedResourceBinding := ResourceBinding{
 		ResourceRef:     resourceRefApplyFailed,
-		Applied:         ptr.To(true),
+		Applied:         new(true),
 		Hash:            "xyz",
 		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 	}
@@ -180,7 +180,7 @@ func TestSetResourceBinding(t *testing.T) {
 			Name: "newBinding",
 			Kind: "Secret",
 		},
-		Applied:         ptr.To(false),
+		Applied:         new(false),
 		Hash:            "xyz",
 		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 	}
@@ -204,16 +204,19 @@ func TestSetResourceBinding(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gs := NewWithT(t)
 			tt.resourceSetBinding.SetBinding(tt.resourceBinding)
 			exist := false
 			for _, b := range tt.resourceSetBinding.Resources {
-				if cmp.Equal(b.ResourceRef, tt.resourceBinding.ResourceRef) {
-					gs.Expect(tt.resourceBinding.Applied).To(BeEquivalentTo(b.Applied))
+				if b.ResourceRef == tt.resourceBinding.ResourceRef {
+					if tt.resourceBinding.Applied != b.Applied {
+						t.Fatalf("Expected %d to equal %d", tt.resourceBinding.Applied, b.Applied)
+					}
 					exist = true
 				}
 			}
-			gs.Expect(exist).To(BeTrue())
+			if !exist {
+				t.Fatalf("Expected %t to be true", exist)
+			}
 		})
 	}
 }

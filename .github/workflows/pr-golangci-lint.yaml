@@ -16,6 +16,7 @@ jobs:
       matrix:
         working-directory:
           - ""
+          - api
           - test
           - hack/tools
     steps:

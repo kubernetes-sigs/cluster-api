@@ -25,11 +25,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/validation"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/conversion"
 )
 
 func (webhook *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &bootstrapv1.KubeadmConfig{}).
 		WithValidator(webhook).
+		WithConverter(conversion.KubeadmConfig).
 		Complete()
 }
 
@@ -42,12 +45,12 @@ var _ admission.Validator[*bootstrapv1.KubeadmConfig] = &KubeadmConfig{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *KubeadmConfig) ValidateCreate(_ context.Context, c *bootstrapv1.KubeadmConfig) (admission.Warnings, error) {
-	return nil, webhook.validate(c.Spec, c.Name)
+	return nil, webhook.validate(&c.Spec, c.Name)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *KubeadmConfig) ValidateUpdate(_ context.Context, _, newC *bootstrapv1.KubeadmConfig) (admission.Warnings, error) {
-	return nil, webhook.validate(newC.Spec, newC.Name)
+	return nil, webhook.validate(&newC.Spec, newC.Name)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
@@ -55,8 +58,8 @@ func (webhook *KubeadmConfig) ValidateDelete(_ context.Context, _ *bootstrapv1.K
 	return nil, nil
 }
 
-func (webhook *KubeadmConfig) validate(c bootstrapv1.KubeadmConfigSpec, name string) error {
-	allErrs := c.Validate(false, field.NewPath("spec"))
+func (webhook *KubeadmConfig) validate(c *bootstrapv1.KubeadmConfigSpec, name string) error {
+	allErrs := validation.Validate(c, false, field.NewPath("spec"))
 
 	if len(allErrs) == 0 {
 		return nil

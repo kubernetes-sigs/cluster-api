@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/version"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -51,6 +52,7 @@ func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachineSet{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.MachineSet).
 		Complete()
 }
 

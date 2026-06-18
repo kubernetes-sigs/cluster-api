@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/version"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 const defaultNodeDeletionTimeoutSeconds = int32(10)
@@ -39,6 +40,7 @@ func (webhook *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.Machine{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.Machine).
 		Complete()
 }
 

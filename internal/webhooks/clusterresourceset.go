@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 // ClusterResourceSet implements a validation and defaulting webhook for ClusterResourceSet.
@@ -36,6 +37,7 @@ func (webhook *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) err
 	return ctrl.NewWebhookManagedBy(mgr, &addonsv1.ClusterResourceSet{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.ClusterResourceSet).
 		Complete()
 }
 

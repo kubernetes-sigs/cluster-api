@@ -56,10 +56,10 @@ import (
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	ipamv1alpha1 "sigs.k8s.io/cluster-api/api/ipam/v1alpha1"
 	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1alpha1 "sigs.k8s.io/cluster-api/api/runtime/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -67,7 +67,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -76,8 +75,10 @@ import (
 	"sigs.k8s.io/cluster-api/internal/setup"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
 	"sigs.k8s.io/cluster-api/util/flags"
+	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 var (
@@ -722,12 +723,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 	return clusterCache
 }
 
-func setupWebhooks(ctx context.Context, mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheReader) {
+func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheReader) {
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
-	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
-	}
-	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
+	})
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled.

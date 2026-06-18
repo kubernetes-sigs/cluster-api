@@ -2,9 +2,11 @@ module sigs.k8s.io/cluster-api/hack/tools
 
 go 1.26.0
 
-replace sigs.k8s.io/cluster-api => ../../
-
-replace sigs.k8s.io/cluster-api/test => ../../test
+replace (
+	sigs.k8s.io/cluster-api => ../../
+	sigs.k8s.io/cluster-api/api => ../../api
+	sigs.k8s.io/cluster-api/test => ../../test
+)
 
 require (
 	cloud.google.com/go/storage v1.62.3
@@ -25,6 +27,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20260427204847-8949caaa1199
 	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api/api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/controller-tools v0.21.0
@@ -177,7 +180,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiserver v0.36.2 // indirect
 	k8s.io/cluster-bootstrap v0.36.2 // indirect
-	k8s.io/component-base v0.36.2 // indirect
 	k8s.io/release v0.16.9
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.17.2 // indirect

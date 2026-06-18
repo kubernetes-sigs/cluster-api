@@ -39,6 +39,7 @@ import (
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/version"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -49,6 +50,7 @@ func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) erro
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachineDeployment{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.MachineDeployment).
 		Complete()
 }
 

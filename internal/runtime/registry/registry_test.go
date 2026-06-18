@@ -25,8 +25,8 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 func TestColdRegistry(t *testing.T) {

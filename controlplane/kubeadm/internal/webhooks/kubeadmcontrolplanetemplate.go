@@ -30,6 +30,8 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/defaulting"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/validation"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
@@ -38,6 +40,7 @@ import (
 func (webhook *KubeadmControlPlaneTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &controlplanev1.KubeadmControlPlaneTemplate{}).
 		WithValidator(webhook).
+		WithConverter(conversion.KubeadmControlPlaneTemplate).
 		Complete()
 }
 
@@ -62,7 +65,7 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateCreate(_ context.Context, k 
 	spec := k.Spec.Template.Spec
 	allErrs := validateKubeadmControlPlaneTemplateResourceSpec(spec, field.NewPath("spec", "template", "spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(nil, &spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
-	allErrs = append(allErrs, spec.KubeadmConfigSpec.Validate(true, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec"))...)
+	allErrs = append(allErrs, validation.Validate(&spec.KubeadmConfigSpec, true, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec"))...)
 	// Validate the metadata of the KubeadmControlPlaneTemplateResource
 	allErrs = append(allErrs, k.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
 	if len(allErrs) > 0 {

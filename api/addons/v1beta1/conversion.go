@@ -21,36 +21,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
-
-func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*addonsv1.ClusterResourceSet)
-
-	return Convert_v1beta1_ClusterResourceSet_To_v1beta2_ClusterResourceSet(src, dst, nil)
-}
-
-func (dst *ClusterResourceSet) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*addonsv1.ClusterResourceSet)
-
-	return Convert_v1beta2_ClusterResourceSet_To_v1beta1_ClusterResourceSet(src, dst, nil)
-}
-
-func (src *ClusterResourceSetBinding) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*addonsv1.ClusterResourceSetBinding)
-
-	return Convert_v1beta1_ClusterResourceSetBinding_To_v1beta2_ClusterResourceSetBinding(src, dst, nil)
-}
-
-func (dst *ClusterResourceSetBinding) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*addonsv1.ClusterResourceSetBinding)
-
-	return Convert_v1beta2_ClusterResourceSetBinding_To_v1beta1_ClusterResourceSetBinding(src, dst, nil)
-}
 
 func Convert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatus(in, out, s); err != nil {
@@ -138,7 +112,7 @@ func Convert_v1beta2_ResourceBinding_To_v1beta1_ResourceBinding(in *addonsv1.Res
 		return err
 	}
 	if !reflect.DeepEqual(in.LastAppliedTime, metav1.Time{}) {
-		out.LastAppliedTime = ptr.To(in.LastAppliedTime)
+		out.LastAppliedTime = new(in.LastAppliedTime)
 	}
 	return nil
 }

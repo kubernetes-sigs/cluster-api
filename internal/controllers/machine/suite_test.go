@@ -33,12 +33,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
+	"sigs.k8s.io/cluster-api/util/index"
 )
 
 const (

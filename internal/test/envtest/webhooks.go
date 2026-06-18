@@ -82,6 +82,9 @@ func initWebhookInstallOptions() envtest.WebhookInstallOptions {
 		ValidatingWebhooks:           validatingWebhooks,
 		MutatingWebhooks:             mutatingWebhooks,
 		LocalServingHostExternalName: os.Getenv("CAPI_WEBHOOK_HOSTNAME"),
+		// Note: Ensure conversion is configured even if the types do not implement ConvertTo/ConvertFrom/Hub,
+		// which is the case for all our CRDs.
+		IgnoreSchemeConvertible: true,
 	}
 }
 

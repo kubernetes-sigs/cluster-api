@@ -25,11 +25,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func (webhook *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &addonsv1.ClusterResourceSetBinding{}).
 		WithValidator(webhook).
+		WithConverter(conversion.ClusterResourceSetBinding).
 		Complete()
 }
 

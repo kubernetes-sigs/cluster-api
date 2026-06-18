@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 )
 
 // CanUpdateMachineRequest is the request of the CanUpdateMachine hook.

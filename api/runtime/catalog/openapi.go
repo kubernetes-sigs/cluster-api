@@ -22,9 +22,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/spec3"
@@ -115,7 +112,7 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, gvh GroupVersi
 	}
 	requestType, ok := c.scheme.AllKnownTypes()[requestGVK]
 	if !ok {
-		return errors.Errorf("type for request GVK %q is unknown", requestGVK)
+		return fmt.Errorf("type for request GVK %q is unknown", requestGVK)
 	}
 	requestTypeName := typeName(requestType, requestGVK)
 	operation.RequestBody = &spec3.RequestBody{
@@ -134,7 +131,7 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, gvh GroupVersi
 	}
 	responseType := c.scheme.AllKnownTypes()[responseGVK]
 	if !ok {
-		return errors.Errorf("type for response GVK %q is unknown", responseGVK)
+		return fmt.Errorf("type for response GVK %q is unknown", responseGVK)
 	}
 	responseTypeName := typeName(responseType, responseGVK)
 	operation.Responses.StatusCodeResponses[http.StatusOK] = &spec3.Response{
@@ -192,7 +189,7 @@ func addTypeToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, typeName string) error
 	}
 
 	if openAPIDefinition == nil {
-		return errors.Errorf("failed to get definition for %v. If you added a new type, you may need to add +k8s:openapi-gen=true to the package or type and run openapi-gen again", typeName)
+		return fmt.Errorf("failed to get definition for %v. If you added a new type, you may need to add +k8s:openapi-gen=true to the package or type and run openapi-gen again", typeName)
 	}
 
 	// Add schema for component to components.
@@ -237,17 +234,17 @@ func componentName(typeName string) string {
 // * listExtensionsV1beta1IngressForAllNamespaces
 // In our case:
 // * hooksRuntimeClusterV1alpha1Discovery.
+// * hooksRuntimeClusterV1alpha1AfterClusterUpgrade.
 func operationID(gvh GroupVersionHook) string {
 	shortAPIGroup := strings.TrimSuffix(gvh.Group, ".x-k8s.io")
 
 	split := strings.Split(shortAPIGroup, ".")
-	title := cases.Title(language.Und)
 
 	res := split[0]
 	for i := 1; i < len(split); i++ {
-		res += title.String(split[i])
+		res += strings.ToTitle(split[i][:1]) + split[i][1:]
 	}
-	res += title.String(gvh.Version) + title.String(gvh.Hook)
+	res += strings.ToTitle(gvh.Version[:1]) + gvh.Version[1:] + strings.ToTitle(gvh.Hook[:1]) + gvh.Hook[1:]
 
 	return res
 }

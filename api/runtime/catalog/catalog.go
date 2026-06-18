@@ -22,7 +22,6 @@ import (
 	goruntime "runtime"
 	"strings"
 
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/naming"
@@ -202,12 +201,12 @@ func (c *Catalog) GroupVersionHook(hookFunc Hook) (GroupVersionHook, error) {
 	// Validate that hookFunc is a func.
 	t := reflect.TypeOf(hookFunc)
 	if t.Kind() != reflect.Func {
-		return emptyGroupVersionHook, errors.Errorf("hook %s is not a func", HookName(hookFunc))
+		return emptyGroupVersionHook, fmt.Errorf("hook %s is not a func", HookName(hookFunc))
 	}
 
 	gvh, ok := c.typeToGVH[t]
 	if !ok {
-		return emptyGroupVersionHook, errors.Errorf("hook %s is not registered in catalog %q", HookName(hookFunc), c.catalogName)
+		return emptyGroupVersionHook, fmt.Errorf("hook %s is not registered in catalog %q", HookName(hookFunc), c.catalogName)
 	}
 	return gvh, nil
 }
@@ -217,11 +216,11 @@ func (c *Catalog) GroupVersionHook(hookFunc Hook) (GroupVersionHook, error) {
 func (c *Catalog) GroupVersionKind(obj runtime.Object) (schema.GroupVersionKind, error) {
 	gvks, _, err := c.scheme.ObjectKinds(obj)
 	if err != nil {
-		return emptyGroupVersionKind, errors.Errorf("failed to get GVK for object: %v", err)
+		return emptyGroupVersionKind, fmt.Errorf("failed to get GVK for object: %v", err)
 	}
 
 	if len(gvks) > 1 {
-		return emptyGroupVersionKind, errors.Errorf("failed to get GVK for object: multiple GVKs: %s", gvks)
+		return emptyGroupVersionKind, fmt.Errorf("failed to get GVK for object: multiple GVKs: %s", gvks)
 	}
 	return gvks[0], nil
 }
@@ -230,7 +229,7 @@ func (c *Catalog) GroupVersionKind(obj runtime.Object) (schema.GroupVersionKind,
 func (c *Catalog) Request(hook GroupVersionHook) (schema.GroupVersionKind, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return emptyGroupVersionKind, errors.Errorf("failed to get request GVK for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
+		return emptyGroupVersionKind, fmt.Errorf("failed to get request GVK for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
 	}
 
 	return descriptor.request, nil
@@ -240,7 +239,7 @@ func (c *Catalog) Request(hook GroupVersionHook) (schema.GroupVersionKind, error
 func (c *Catalog) Response(hook GroupVersionHook) (schema.GroupVersionKind, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return emptyGroupVersionKind, errors.Errorf("failed to get response GVK for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
+		return emptyGroupVersionKind, fmt.Errorf("failed to get response GVK for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
 	}
 
 	return descriptor.response, nil
@@ -250,11 +249,11 @@ func (c *Catalog) Response(hook GroupVersionHook) (schema.GroupVersionKind, erro
 func (c *Catalog) NewRequest(hook GroupVersionHook) (runtime.Object, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return nil, errors.Errorf("failed to create request object for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
+		return nil, fmt.Errorf("failed to create request object for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
 	}
 	obj, err := c.scheme.New(descriptor.request)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create request object for hook %s", hook)
+		return nil, fmt.Errorf("failed to create request object for hook %s: %w", hook, err)
 	}
 	return obj, nil
 }
@@ -263,11 +262,11 @@ func (c *Catalog) NewRequest(hook GroupVersionHook) (runtime.Object, error) {
 func (c *Catalog) NewResponse(hook GroupVersionHook) (runtime.Object, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return nil, errors.Errorf("failed to create response object for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
+		return nil, fmt.Errorf("failed to create response object for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
 	}
 	obj, err := c.scheme.New(descriptor.response)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create response object for hook %s", hook)
+		return nil, fmt.Errorf("failed to create response object for hook %s: %w", hook, err)
 	}
 	return obj, nil
 }
@@ -278,17 +277,17 @@ func (c *Catalog) ValidateRequest(hook GroupVersionHook, obj runtime.Object) err
 	// Get GVK of obj.
 	objGVK, err := c.GroupVersionKind(obj)
 	if err != nil {
-		return errors.Wrapf(err, "failed to validate request for hook %s", hook)
+		return fmt.Errorf("failed to validate request for hook %s: %w", hook, err)
 	}
 
 	// Get request GVK from hook.
 	hookGVK, err := c.Request(hook)
 	if err != nil {
-		return errors.Wrapf(err, "failed to validate request for hook %s", hook)
+		return fmt.Errorf("failed to validate request for hook %s: %w", hook, err)
 	}
 
 	if objGVK != hookGVK {
-		return errors.Errorf("request object of hook %s has invalid GVK %q, expected %q", hook, objGVK, hookGVK)
+		return fmt.Errorf("request object of hook %s has invalid GVK %q, expected %q", hook, objGVK, hookGVK)
 	}
 	return nil
 }
@@ -299,17 +298,17 @@ func (c *Catalog) ValidateResponse(hook GroupVersionHook, obj runtime.Object) er
 	// Get GVK of obj.
 	objGVK, err := c.GroupVersionKind(obj)
 	if err != nil {
-		return errors.Wrapf(err, "failed to validate response for hook %s", hook)
+		return fmt.Errorf("failed to validate response for hook %s: %w", hook, err)
 	}
 
 	// Get response GVK from hook.
 	hookGVK, err := c.Response(hook)
 	if err != nil {
-		return errors.Wrapf(err, "failed to validate response for hook %s", hook)
+		return fmt.Errorf("failed to validate response for hook %s: %w", hook, err)
 	}
 
 	if objGVK != hookGVK {
-		return errors.Errorf("response object of hook %s has invalid GVK %q, expected %q", hook, objGVK, hookGVK)
+		return fmt.Errorf("response object of hook %s has invalid GVK %q, expected %q", hook, objGVK, hookGVK)
 	}
 	return nil
 }

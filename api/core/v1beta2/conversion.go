@@ -21,17 +21,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 )
-
-func (*Cluster) Hub()            {}
-func (*ClusterClass) Hub()       {}
-func (*Machine) Hub()            {}
-func (*MachineSet) Hub()         {}
-func (*MachineDeployment) Hub()  {}
-func (*MachineHealthCheck) Hub() {}
-func (*MachinePool) Hub()        {}
-func (*MachineDrainRule) Hub()   {}
 
 // ConvertToSeconds takes *metav1.Duration and returns a *int32.
 // Durations longer than MaxInt32 are capped.
@@ -42,9 +32,9 @@ func ConvertToSeconds(in *metav1.Duration) *int32 {
 	}
 	seconds := math.Trunc(in.Seconds())
 	if seconds > math.MaxInt32 {
-		return ptr.To[int32](math.MaxInt32)
+		return new(int32(math.MaxInt32))
 	}
-	return ptr.To(int32(seconds))
+	return new(int32(seconds))
 }
 
 // ConvertFromSeconds takes *int32 and returns a *metav1.Duration.
@@ -54,7 +44,7 @@ func ConvertFromSeconds(in *int32) *metav1.Duration {
 	if in == nil {
 		return nil
 	}
-	return ptr.To(metav1.Duration{Duration: time.Duration(*in) * time.Second})
+	return new(metav1.Duration{Duration: time.Duration(*in) * time.Second})
 }
 
 func Convert_bool_To_Pointer_bool(in bool, hasRestored bool, restoredIn *bool, out **bool) {
@@ -62,7 +52,7 @@ func Convert_bool_To_Pointer_bool(in bool, hasRestored bool, restoredIn *bool, o
 	// In all the other cases we do not know if the value was intentionally set to false, so convert to nil.
 	if !in {
 		if hasRestored && restoredIn != nil && !*restoredIn {
-			*out = ptr.To(false)
+			*out = new(false)
 			return
 		}
 		*out = nil
@@ -70,7 +60,7 @@ func Convert_bool_To_Pointer_bool(in bool, hasRestored bool, restoredIn *bool, o
 	}
 
 	// Otherwise, if the value is true, convert to *true.
-	*out = ptr.To(true)
+	*out = new(true)
 }
 
 func Convert_int32_To_Pointer_int32(in int32, hasRestored bool, restoredIn *int32, out **int32) {
@@ -78,7 +68,7 @@ func Convert_int32_To_Pointer_int32(in int32, hasRestored bool, restoredIn *int3
 	// In all the other cases we do not know if the value was intentionally set to 0, so convert to nil.
 	if in == 0 {
 		if hasRestored && restoredIn != nil && *restoredIn == 0 {
-			*out = ptr.To[int32](0)
+			*out = new(int32(0))
 			return
 		}
 		*out = nil
@@ -86,7 +76,7 @@ func Convert_int32_To_Pointer_int32(in int32, hasRestored bool, restoredIn *int3
 	}
 
 	// Otherwise, if the value is not 0, convert to *value.
-	*out = ptr.To(in)
+	*out = new(in)
 }
 
 func Convert_Duration_To_Pointer_int32(in metav1.Duration, hasRestored bool, restoredIn *int32, out **int32) {
@@ -94,7 +84,7 @@ func Convert_Duration_To_Pointer_int32(in metav1.Duration, hasRestored bool, res
 	// In all the other cases we do not know if the value was intentionally set to 0, so convert to nil.
 	if in.Nanoseconds() == 0 {
 		if hasRestored && restoredIn != nil && *restoredIn == 0 {
-			*out = ptr.To[int32](0)
+			*out = new(int32(0))
 			return
 		}
 		*out = nil

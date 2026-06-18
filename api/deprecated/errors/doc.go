@@ -1,5 +1,5 @@
 /*
-Copyright 2025 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
-
-func (*KubeadmControlPlane) Hub()         {}
-func (*KubeadmControlPlaneTemplate) Hub() {}
+// Package errors makes a set of error message handlers available for use by Cluster API Providers.
+//
+// Deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.
+package errors

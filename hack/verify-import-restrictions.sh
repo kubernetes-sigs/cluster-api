@@ -28,8 +28,6 @@ sub_packages=(
   "cmd/clusterctl/api"
   "test/extension"
   "test/infrastructure/docker/api"
-  "test/infrastructure/docker/exp/api"
-  "test/infrastructure/inmemory/pkg/cloud/api"
 )
 
 packages=()

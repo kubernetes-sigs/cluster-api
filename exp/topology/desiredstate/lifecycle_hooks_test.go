@@ -17,6 +17,7 @@ limitations under the License.
 package desiredstate
 
 import (
+	"context"
 	"maps"
 	"reflect"
 	"testing"
@@ -35,17 +36,17 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
+	webhooksconversion "sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
@@ -57,7 +58,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 		},
 	}
 
-	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+	webhooksconversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{
@@ -67,8 +68,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			}
 		}
 		return "", errors.Errorf("unknown GroupVersionKind: %v", gk)
-	}
-	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
+	})
 
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 

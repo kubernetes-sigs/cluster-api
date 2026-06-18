@@ -476,6 +476,13 @@ const (
 	ClusterDeletingInternalErrorReason = InternalErrorReason
 )
 
+// KubeconfigSpec defines options for the kubeconfig Secret generated for this Cluster.
+type KubeconfigSpec struct {
+	// metadata is applied to the generated kubeconfig Secret.
+	// +optional
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
+}
+
 // ClusterSpec defines the desired state of Cluster.
 // +kubebuilder:validation:MinProperties=1
 type ClusterSpec struct {
@@ -518,6 +525,10 @@ type ClusterSpec struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
+
+	// kubeconfig defines options for the kubeconfig Secret generated for this Cluster.
+	// +optional
+	Kubeconfig KubeconfigSpec `json:"kubeconfig,omitempty,omitzero"`
 }
 
 // ConditionPolarity defines the polarity for a metav1.Condition.

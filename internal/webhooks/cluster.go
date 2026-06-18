@@ -214,6 +214,27 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 		allErrs = append(allErrs, topologyErrs...)
 	}
 
+	// Validate spec.kubeconfig.metadata, if set.
+	if len(newCluster.Spec.Kubeconfig.Metadata.Labels) > 0 || len(newCluster.Spec.Kubeconfig.Metadata.Annotations) > 0 {
+		allErrs = append(allErrs, newCluster.Spec.Kubeconfig.Metadata.Validate(specPath.Child("kubeconfig", "metadata"))...)
+		for k := range newCluster.Spec.Kubeconfig.Metadata.Annotations {
+			if strings.HasPrefix(k, "cluster.x-k8s.io/") || strings.HasPrefix(k, "topology.cluster.x-k8s.io/") {
+				allErrs = append(allErrs, field.Forbidden(
+					specPath.Child("kubeconfig", "metadata", "annotations").Key(k),
+					"annotation key uses a reserved CAPI prefix",
+				))
+			}
+		}
+		for k := range newCluster.Spec.Kubeconfig.Metadata.Labels {
+			if strings.HasPrefix(k, "cluster.x-k8s.io/") || strings.HasPrefix(k, "topology.cluster.x-k8s.io/") {
+				allErrs = append(allErrs, field.Forbidden(
+					specPath.Child("kubeconfig", "metadata", "labels").Key(k),
+					"label key uses a reserved CAPI prefix",
+				))
+			}
+		}
+	}
+
 	// On update.
 	if oldCluster != nil {
 		// Error if the update moves the cluster from Managed to Unmanaged i.e. the managed topology is removed on update.

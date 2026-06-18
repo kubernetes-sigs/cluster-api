@@ -5,6 +5,16 @@ New providers should behave accordingly fitting within the following pattern:
 
 ![](../../images/metadata-propagation.jpg)
 
+## KubeConfig
+
+Labels and annotations declared in `spec.kubeconfig.metadata` are propagated to the generated kubeconfig Secret and kept
+in sync on every reconcile (additive merge — keys not present in `spec.kubeconfig.metadata` are not removed).
+- `.spec.kubeconfig.metadata.labels` => `<cluster-name>-kubeconfig Secret .labels`
+- `.spec.kubeconfig.metadata.annotations` => `<cluster-name>-kubeconfig Secret .annotations`
+
+Annotations and labels whose key uses the reserved `cluster.x-k8s.io/` or `topology.cluster.x-k8s.io/` prefixes are
+rejected by the webhook.
+
 ## Cluster Topology
 ControlPlaneTopology labels are labels and annotations are continuously propagated to ControlPlane top-level labels and annotations
 and ControlPlane MachineTemplate labels and annotations.

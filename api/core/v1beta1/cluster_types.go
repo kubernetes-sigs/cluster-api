@@ -458,6 +458,12 @@ const (
 	ClusterDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
+// KubeconfigSpec defines options for the kubeconfig Secret generated for this Cluster.
+type KubeconfigSpec struct {
+	// +optional
+	Metadata ObjectMeta `json:"metadata,omitempty"`
+}
+
 // ClusterSpec defines the desired state of Cluster.
 type ClusterSpec struct {
 	// paused can be used to prevent controllers from processing the Cluster and all its associated objects.
@@ -499,6 +505,10 @@ type ClusterSpec struct {
 	// +listMapKey=conditionType
 	// +kubebuilder:validation:MaxItems=32
 	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
+
+	// kubeconfig defines options for the kubeconfig Secret generated for this Cluster.
+	// +optional
+	Kubeconfig *KubeconfigSpec `json:"kubeconfig,omitempty"`
 }
 
 // ConditionPolarity defines the polarity for a metav1.Condition.

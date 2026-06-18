@@ -1650,6 +1650,47 @@ func TestClusterValidation(t *testing.T) {
 			expectErr:    true,
 			expectErrStr: "spec.infrastructureRef: Forbidden: cannot be removed, spec: Forbidden: one of spec.controlPlaneRef, spec.infrastructureRef or spec.topology must be set",
 		},
+		{
+			name:      "should succeed with valid annotation in spec.kubeconfig.metadata",
+			expectErr: false,
+			in: func() *clusterv1.Cluster {
+				c := builder.Cluster("fooNamespace", "cluster1").
+					WithControlPlane(builder.ControlPlane("fooNamespace", "cp1").Build()).
+					Build()
+				c.Spec.Kubeconfig.Metadata.Annotations = map[string]string{
+					"reflector.v1.k8s.emberstack.com/reflection-allowed": "true",
+				}
+				return c
+			}(),
+		},
+		{
+			name:         "should fail when annotation key uses reserved cluster.x-k8s.io prefix",
+			expectErr:    true,
+			expectErrStr: `spec.kubeconfig.metadata.annotations[cluster.x-k8s.io/foo]: Forbidden: annotation key uses a reserved CAPI prefix`,
+			in: func() *clusterv1.Cluster {
+				c := builder.Cluster("fooNamespace", "cluster1").
+					WithControlPlane(builder.ControlPlane("fooNamespace", "cp1").Build()).
+					Build()
+				c.Spec.Kubeconfig.Metadata.Annotations = map[string]string{
+					"cluster.x-k8s.io/foo": "bar",
+				}
+				return c
+			}(),
+		},
+		{
+			name:         "should fail with invalid label value in spec.kubeconfig.metadata",
+			expectErr:    true,
+			expectErrStr: "spec.kubeconfig.metadata.labels",
+			in: func() *clusterv1.Cluster {
+				c := builder.Cluster("fooNamespace", "cluster1").
+					WithControlPlane(builder.ControlPlane("fooNamespace", "cp1").Build()).
+					Build()
+				c.Spec.Kubeconfig.Metadata.Labels = map[string]string{
+					"valid-key": "this value has spaces which is invalid",
+				}
+				return c
+			}(),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

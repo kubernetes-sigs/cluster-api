@@ -364,7 +364,7 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, s *scope) (ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	_, err := secret.Get(ctx, r.Client, util.ObjectKey(cluster), secret.Kubeconfig)
+	existingSecret, err := secret.Get(ctx, r.Client, util.ObjectKey(cluster), secret.Kubeconfig)
 	switch {
 	case apierrors.IsNotFound(err):
 		if err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != nil {
@@ -376,6 +376,10 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, s *scope) (ctrl.Re
 		}
 	case err != nil:
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
+	default:
+		if err := kubeconfig.ReconcileSecretMetadata(ctx, r.Client, existingSecret, cluster); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to reconcile kubeconfig secret metadata")
+		}
 	}
 
 	return ctrl.Result{}, nil

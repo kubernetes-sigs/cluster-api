@@ -550,12 +550,12 @@ generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversion
 generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 	@mkdir -p ./tmp/sigs.k8s.io; rm -f ./tmp/sigs.k8s.io/cluster-api; ln -s $(ROOT_DIR) ./tmp/sigs.k8s.io/cluster-api; cd ./tmp; \
 	for pkg in "api/core/v1beta2" "api/runtime/hooks/v1alpha1"; do \
-		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
+		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./hack/tools/runtime-openapi-gen/$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \
 		$(OPENAPI_GEN) \
-			--output-dir=../$${pkg} \
+			--output-dir=../hack/tools/runtime-openapi-gen/$${pkg} \
 			--output-file=zz_generated.openapi.go \
-			--output-pkg=sigs.k8s.io/cluster-api/$${pkg} \
+			--output-pkg=sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen/$${pkg} \
 			--go-header-file=../hack/boilerplate/boilerplate.generatego.txt \
 			sigs.k8s.io/cluster-api/$${pkg}; \
 	done; \

@@ -26,9 +26,10 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	clusterv1openapi "sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen/api/core/v1beta2"
+	runtimehooksv1openapi "sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen/api/runtime/hooks/v1alpha1"
 )
 
 var (
@@ -54,10 +55,12 @@ func main() {
 	c := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(c)
 
-	c.AddOpenAPIDefinitions(clusterv1.GetOpenAPIDefinitions)
-	c.AddOpenAPIDefinitions(GetOpenAPIDefinitions)
-
-	openAPI, err := c.OpenAPI(*version)
+	getter := []OpenAPIDefinitionsGetter{
+		clusterv1openapi.GetOpenAPIDefinitions,
+		runtimehooksv1openapi.GetOpenAPIDefinitions,
+		GetOpenAPIDefinitions,
+	}
+	openAPI, err := OpenAPI(c, getter, *version)
 	if err != nil {
 		klog.Exitf("Failed to generate OpenAPI specification: %v", err)
 	}

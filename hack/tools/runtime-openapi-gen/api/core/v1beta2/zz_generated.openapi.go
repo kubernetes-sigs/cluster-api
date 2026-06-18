@@ -24,6 +24,7 @@ package v1beta2
 import (
 	common "k8s.io/kube-openapi/pkg/common"
 	spec "k8s.io/kube-openapi/pkg/validation/spec"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
@@ -7032,7 +7033,7 @@ func schema_cluster_api_api_core_v1beta2_ValidationRule(ref common.ReferenceCall
 					"reason": {
 						SchemaProps: spec.SchemaProps{
 							Description: "reason provides a machine-readable validation failure reason that is returned to the caller when a request fails this validation rule. The currently supported reasons are: \"FieldValueInvalid\", \"FieldValueForbidden\", \"FieldValueRequired\", \"FieldValueDuplicate\". If not set, default to use \"FieldValueInvalid\". All future added reasons must be accepted by clients when reading this value and unknown reasons should be treated as FieldValueInvalid.",
-							Default:     FieldValueInvalid,
+							Default:     corev1beta2.FieldValueInvalid,
 							Type:        []string{"string"},
 							Format:      "",
 						},

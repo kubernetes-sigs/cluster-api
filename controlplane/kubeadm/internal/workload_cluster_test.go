@@ -83,7 +83,7 @@ func TestGetControlPlaneNodes(t *testing.T) {
 			}
 			nodes, err := w.getNodesWithControlPlaneLabel(ctx)
 			g.Expect(err).ToNot(HaveOccurred())
-			actualNodes := make([]string, 0, len(nodes))
+			var actualNodes []string
 			for _, n := range nodes {
 				actualNodes = append(actualNodes, n.Name)
 			}

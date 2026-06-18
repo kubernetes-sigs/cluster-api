@@ -1564,7 +1564,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			objs := make([]client.Object, 0, 2)
+			var objs []client.Object
 			objs = append(objs, testCluster, tt.machine)
 
 			c := fake.NewClientBuilder().WithObjects(objs...).Build()
@@ -1768,7 +1768,7 @@ func TestDrainNode(t *testing.T) {
 			// Making a copy because drainNode will modify the Machine.
 			testMachine := testMachine.DeepCopy()
 
-			objs := make([]client.Object, 0, 2)
+			var objs []client.Object
 			objs = append(objs, testCluster, testMachine)
 			c := fake.NewClientBuilder().
 				WithObjects(objs...).
@@ -1929,14 +1929,13 @@ func TestDrainNode_withCaching(t *testing.T) {
 		},
 	}
 
-	objs := make([]client.Object, 0, 2)
+	var objs []client.Object
 	objs = append(objs, testCluster, testMachine)
 	c := fake.NewClientBuilder().
 		WithObjects(objs...).
 		Build()
 
-	remoteObjs := make([]client.Object, 0, 2+len(pods))
-	remoteObjs = append(remoteObjs, node, ns)
+	remoteObjs := []client.Object{node, ns}
 	for _, p := range pods {
 		remoteObjs = append(remoteObjs, p)
 	}
@@ -2143,7 +2142,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			objs := make([]client.Object, 0, 2)
+			var objs []client.Object
 			objs = append(objs, testCluster, tt.machine)
 
 			c := fake.NewClientBuilder().WithObjects(objs...).Build()

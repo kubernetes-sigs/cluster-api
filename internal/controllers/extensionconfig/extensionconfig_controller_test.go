@@ -507,7 +507,7 @@ func Test_validateExtensionConfig(t *testing.T) {
 }
 
 func discoveryHandler(handlerList ...string) func(http.ResponseWriter, *http.Request) {
-	handlers := make([]runtimehooksv1.ExtensionHandler, 0, len(handlerList))
+	handlers := []runtimehooksv1.ExtensionHandler{}
 	for _, name := range handlerList {
 		handlers = append(handlers, runtimehooksv1.ExtensionHandler{
 			Name: name,

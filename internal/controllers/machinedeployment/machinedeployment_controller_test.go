@@ -661,8 +661,7 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 			},
 		},
 	}
-	machineDeploymentList := make([]client.Object, 0, 3)
-	machineDeploymentList = append(machineDeploymentList, machineDeployment)
+	machineDeploymentList := []client.Object{machineDeployment}
 
 	ms1 := clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{

@@ -795,21 +795,22 @@ func TestMachineSetReconcile(t *testing.T) {
 }
 
 func TestMachineSetToMachines(t *testing.T) {
-	machineSetList := make([]client.Object, 0, 4)
-	machineSetList = append(machineSetList, &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withMatchingLabels",
-			Namespace: metav1.NamespaceDefault,
-		},
-		Spec: clusterv1.MachineSetSpec{
-			Selector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"foo":                      "bar",
-					clusterv1.ClusterNameLabel: testClusterName,
+	machineSetList := []client.Object{
+		&clusterv1.MachineSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "withMatchingLabels",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: clusterv1.MachineSetSpec{
+				Selector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"foo":                      "bar",
+						clusterv1.ClusterNameLabel: testClusterName,
+					},
 				},
 			},
 		},
-	})
+	}
 	controller := true
 	m := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2190,8 +2191,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			},
 		}
 
+		unhealthyMachines := []*clusterv1.Machine{}
 		total := 8
-		unhealthyMachines := make([]*clusterv1.Machine, 0, total+1)
 		for i := range total {
 			unhealthyMachines = append(unhealthyMachines, &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -4322,7 +4323,7 @@ func TestSortMachinesToRemediate(t *testing.T) {
 		})
 	}
 
-	unhealthyMachines := make([]*clusterv1.Machine, 0, 4)
+	unhealthyMachines := []*clusterv1.Machine{}
 	for i := range 4 {
 		unhealthyMachines = append(unhealthyMachines, &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
@@ -4363,7 +4364,7 @@ func TestSortMachinesToRemediate(t *testing.T) {
 	t.Run("remediation machines with annotation should be prioritised over other machines", func(t *testing.T) {
 		g := NewWithT(t)
 
-		machines := make([]*clusterv1.Machine, len(unhealthyMachines), len(unhealthyMachines)+len(unhealthyMachinesWithAnnotations))
+		machines := make([]*clusterv1.Machine, len(unhealthyMachines))
 		copy(machines, unhealthyMachines)
 		machines = append(machines, unhealthyMachinesWithAnnotations...)
 		sortMachinesToRemediate(machines)
@@ -4394,7 +4395,7 @@ type managedFieldEntry struct {
 }
 
 func toManagedFields(managedFields []managedFieldEntry) []metav1.ManagedFieldsEntry {
-	res := make([]metav1.ManagedFieldsEntry, 0, len(managedFields))
+	res := []metav1.ManagedFieldsEntry{}
 	for _, f := range managedFields {
 		res = append(res, metav1.ManagedFieldsEntry{
 			Manager:     f.Manager,

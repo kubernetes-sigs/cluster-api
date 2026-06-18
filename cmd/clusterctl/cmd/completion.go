@@ -21,7 +21,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"os"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -119,11 +121,7 @@ var (
 
 // GetSupportedShells returns a list of supported shells.
 func GetSupportedShells() []string {
-	shells := make([]string, 0, len(completionShells))
-	for s := range completionShells {
-		shells = append(shells, s)
-	}
-	return shells
+	return slices.Collect(maps.Keys(completionShells))
 }
 
 func init() {

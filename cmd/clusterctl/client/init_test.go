@@ -873,8 +873,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 		}).
 		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns4", "test"))
 
-	providerRepositories := make([]*fakeRepositoryClient, 0, 5+len(providers))
-	providerRepositories = append(providerRepositories, repository1, repository2, repository3, repository4, repository5)
+	var providerRepositories = []*fakeRepositoryClient{repository1, repository2, repository3, repository4, repository5}
 
 	for _, provider := range providers {
 		providerRepositories = append(providerRepositories,

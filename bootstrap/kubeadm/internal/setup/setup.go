@@ -100,7 +100,9 @@ func ManagerClientOptions() client.Options {
 
 // ClusterCacheCacheOptions provides clustercache.CacheOptions for the ClusterCache.
 func ClusterCacheCacheOptions() clustercache.CacheOptions {
-	return clustercache.CacheOptions{}
+	return clustercache.CacheOptions{
+		DefaultTransform: cache.TransformStripManagedFields(),
+	}
 }
 
 // ClusterCacheClientOptions provides clustercache.ClientOptions for the ClusterCache.

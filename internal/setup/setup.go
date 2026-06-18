@@ -93,12 +93,8 @@ func ManagerClientOptions() client.Options {
 // ClusterCacheCacheOptions provides clustercache.CacheOptions for the ClusterCache.
 func ClusterCacheCacheOptions() clustercache.CacheOptions {
 	return clustercache.CacheOptions{
-		Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
-		ByObject: map[client.Object]cache.ByObject{
-			&corev1.Node{}: {
-				Transform: cache.TransformStripManagedFields(),
-			},
-		},
+		DefaultTransform: cache.TransformStripManagedFields(),
+		Indexes:          []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
 	}
 }
 

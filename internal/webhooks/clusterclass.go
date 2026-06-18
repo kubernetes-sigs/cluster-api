@@ -113,6 +113,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	// Ensure NamingStrategies are valid.
 	allErrs = append(allErrs, validateNamingStrategies(newClusterClass)...)
 
+	// Ensure MachineNaming is valid.
+	allErrs = append(allErrs, validateMachineNamingStrategies(newClusterClass)...)
+
 	// Ensure Taints are valid.
 	allErrs = append(allErrs, validateTaints(newClusterClass)...)
 
@@ -492,6 +495,49 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 		} else {
 			for _, err := range validation.IsDNS1123Subdomain(name) {
 				allErrs = append(allErrs, field.Invalid(templateFldPath, mp.Naming.Template, err))
+			}
+		}
+	}
+
+	return allErrs
+}
+
+func validateMachineNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
+		if md.MachineNaming.Template == "" {
+			continue
+		}
+		templateFldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("machineNaming", "template")
+
+		// Validate that template contains {{ .random }}
+		if !strings.Contains(md.MachineNaming.Template, "{{ .random }}") {
+			allErrs = append(allErrs,
+				field.Invalid(
+					templateFldPath,
+					md.MachineNaming.Template,
+					"invalid template, {{ .random }} is missing",
+				))
+		}
+
+		// Validate that template can generate valid names
+		name, err := topologynames.MachineSetMachineNameGenerator(md.MachineNaming.Template, "cluster", "machineset").GenerateName()
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					templateFldPath,
+					md.MachineNaming.Template,
+					fmt.Sprintf("invalid MachineDeployment machineNaming template: %v", err),
+				))
+		} else {
+			for _, err := range validation.IsDNS1123Subdomain(name) {
+				allErrs = append(allErrs,
+					field.Invalid(
+						templateFldPath,
+						md.MachineNaming.Template,
+						fmt.Sprintf("invalid template, generated names would not be valid Kubernetes object names: %v", err),
+					))
 			}
 		}
 	}

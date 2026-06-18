@@ -972,6 +972,14 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		taints = machineDeploymentTopology.Taints
 	}
 
+	// Compute machineNaming - topology override takes precedence over class default
+	var machineNaming clusterv1.MachineNamingSpec
+	if machineDeploymentTopology.MachineNaming.Template != "" {
+		machineNaming = machineDeploymentTopology.MachineNaming
+	} else if machineDeploymentClass.MachineNaming.Template != "" {
+		machineNaming = machineDeploymentClass.MachineNaming
+	}
+
 	// Compute the MachineDeployment object.
 	desiredBootstrapTemplateRef := contract.ObjToContractVersionedObjectReference(desiredMachineDeployment.BootstrapTemplate)
 	desiredInfraMachineTemplateRef := contract.ObjToContractVersionedObjectReference(desiredMachineDeployment.InfrastructureMachineTemplate)
@@ -996,8 +1004,9 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 			Namespace: s.Current.Cluster.Namespace,
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			ClusterName: s.Current.Cluster.Name,
-			Rollout:     rollout,
+			ClusterName:   s.Current.Cluster.Name,
+			Rollout:       rollout,
+			MachineNaming: machineNaming,
 			Deletion: clusterv1.MachineDeploymentDeletionSpec{
 				Order: deletionOrder,
 			},

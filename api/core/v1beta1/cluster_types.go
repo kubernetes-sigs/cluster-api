@@ -805,6 +805,12 @@ type MachineDeploymentTopology struct {
 	// +optional
 	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
 
+	// machineNaming allows changing the naming pattern used when creating Machines within this MachineDeployment.
+	// If not defined, the value from the MachineDeploymentClass will be used.
+	// If neither is defined, Machines will use the default naming pattern.
+	// +optional
+	MachineNaming *MachineDeploymentTopologyMachineNamingStrategy `json:"machineNaming,omitempty"`
+
 	// variables can be used to customize the MachineDeployment through patches.
 	// +optional
 	Variables *MachineDeploymentVariables `json:"variables,omitempty"`
@@ -821,6 +827,17 @@ type MachineDeploymentTopologyRolloutSpec struct {
 	// use "2023-03-09T09:00:00Z".
 	// +optional
 	After metav1.Time `json:"after,omitempty,omitzero"`
+}
+
+// MachineDeploymentTopologyMachineNamingStrategy defines the naming strategy for machines within a machine deployment topology.
+type MachineDeploymentTopologyMachineNamingStrategy struct {
+	// template defines the template to use for generating the names of Machine objects.
+	// If not defined, it will fallback to the template defined in MachineDeploymentClass.
+	// The templating mechanism provides the same arguments as MachineDeploymentClassMachineNamingStrategy.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Template *string `json:"template,omitempty"`
 }
 
 // MachineHealthCheckTopology defines a MachineHealthCheck for a group of machines.

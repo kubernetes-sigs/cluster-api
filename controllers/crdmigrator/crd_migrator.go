@@ -394,26 +394,24 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 			continue
 		}
 
-		// Based on: https://github.com/kubernetes/kubernetes/blob/v1.32.0/pkg/controller/storageversionmigrator/storageversionmigrator.go#L275-L284
+		// Based on: https://github.com/kubernetes/kubernetes/blob/v1.36.0/pkg/controller/storageversionmigrator/storageversionmigrator.go#L309-L333
 		u := &unstructured.Unstructured{}
 		u.SetGroupVersionKind(gvk)
 		u.SetNamespace(obj.GetNamespace())
 		u.SetName(obj.GetName())
-		// Set UID so that when a resource gets deleted, we get an "uid mismatch"
-		// conflict error instead of trying to create it.
-		u.SetUID(obj.GetUID())
-		// Set RV so that when a resources gets updated or deleted+recreated, we get an "object has been modified"
-		// conflict error. We do not actually need to do this for the updated case because if RV
-		// was not set, it would just result in no-op request. But for the deleted+recreated case, if RV is
-		// not set but UID is set, we would get an immutable field validation error. Hence we must set both.
 		u.SetResourceVersion(obj.GetResourceVersion())
 
+		data, err := u.MarshalJSON()
+		if err != nil {
+			errs = append(errs, errors.Wrap(err, "failed to marshal object to JSON"))
+			continue
+		}
+
 		log.V(4).Info("Migrating to new storage version", gvk.Kind, klog.KObj(u))
-		var err error
 		if migrationConfig.UseStatusForStorageVersionMigration {
-			err = r.Client.Status().Apply(ctx, client.ApplyConfigurationFromUnstructured(u), client.FieldOwner("crdmigrator"))
+			err = r.Client.Status().Patch(ctx, u, client.RawPatch(types.MergePatchType, data))
 		} else {
-			err = r.Client.Apply(ctx, client.ApplyConfigurationFromUnstructured(u), client.FieldOwner("crdmigrator"))
+			err = r.Client.Patch(ctx, u, client.RawPatch(types.MergePatchType, data))
 		}
 		// If we got a NotFound error, the object no longer exists so no need to update it.
 		// If we got a Conflict error, another client wrote the object already so no need to update it.

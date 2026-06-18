@@ -1244,7 +1244,7 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 	currentMachinePool := s.Current.MachinePools[machinePoolTopology.Name]
 	var currentBootstrapConfigRef clusterv1.ContractVersionedObjectReference
 	if currentMachinePool != nil && currentMachinePool.BootstrapObject != nil {
-		currentBootstrapConfigRef = currentMachinePool.Object.Spec.Template.Spec.Bootstrap.ConfigRef
+		currentBootstrapConfigRef = currentMachinePool.Object.Spec.Bootstrap.ConfigRef
 	}
 	var err error
 	desiredMachinePool.BootstrapObject, err = templateToObject(templateToInput{
@@ -1273,7 +1273,7 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 	// Compute the InfrastructureMachinePool.
 	var currentInfraMachinePoolRef *clusterv1.ContractVersionedObjectReference
 	if currentMachinePool != nil && currentMachinePool.InfrastructureMachinePoolObject != nil {
-		currentInfraMachinePoolRef = &currentMachinePool.Object.Spec.Template.Spec.InfrastructureRef
+		currentInfraMachinePoolRef = &currentMachinePool.Object.Spec.InfrastructureRef
 	}
 	desiredMachinePool.InfrastructureMachinePoolObject, err = templateToObject(templateToInput{
 		template:              machinePoolBlueprint.InfrastructureMachinePoolTemplate,
@@ -1357,8 +1357,16 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 			Namespace: s.Current.Cluster.Namespace,
 		},
 		Spec: clusterv1.MachinePoolSpec{
-			ClusterName:    s.Current.Cluster.Name,
-			FailureDomains: failureDomains,
+			ClusterName:       s.Current.Cluster.Name,
+			Bootstrap:         &clusterv1.Bootstrap{ConfigRef: desiredBootstrapConfigRef},
+			InfrastructureRef: desiredInfraMachinePoolRef,
+			Version:           version,
+			FailureDomains:    failureDomains,
+			Deletion: clusterv1.MachineDeletionSpec{
+				NodeDrainTimeoutSeconds:        nodeDrainTimeout,
+				NodeVolumeDetachTimeoutSeconds: nodeVolumeDetachTimeout,
+				NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       s.Current.Cluster.Name,
@@ -1435,7 +1443,7 @@ func (g *generator) computeMachinePoolVersion(ctx context.Context, s *scope.Scop
 	}
 
 	// Get the current version of the machine pool.
-	currentVersion := currentMPState.Object.Spec.Template.Spec.Version
+	currentVersion := currentMPState.Object.Spec.Version
 
 	// Return early if the currentVersion is already equal to the topologyVersion
 	// no further checks required.

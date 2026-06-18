@@ -1471,6 +1471,7 @@ Bootstrap encapsulates fields to configure the Machine’s bootstrapping mechani
 
 
 _Appears in:_
+- [MachinePoolSpec](#machinepoolspec)
 - [MachineSpec](#machinespec)
 
 | Field | Description | Default | Validation |
@@ -2143,6 +2144,7 @@ _Appears in:_
 - [Bootstrap](#bootstrap)
 - [ClusterSpec](#clusterspec)
 - [KubeadmControlPlaneMachineTemplateSpec](#kubeadmcontrolplanemachinetemplatespec)
+- [MachinePoolSpec](#machinepoolspec)
 - [MachineSpec](#machinespec)
 
 | Field | Description | Default | Validation |
@@ -2712,6 +2714,7 @@ _Validation:_
 - MinProperties: 1
 
 _Appears in:_
+- [MachinePoolSpec](#machinepoolspec)
 - [MachineSpec](#machinespec)
 
 | Field | Description | Default | Validation |
@@ -3981,11 +3984,16 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `bootstrap` _[Bootstrap](#bootstrap)_ | bootstrap is a reference to a local struct which encapsulates<br />fields to configure the Machine’s bootstrapping mechanism.<br />The configuration applies to all machines in the pool. |  | Optional: \{\} <br /> |
 | `clusterName` _string_ | clusterName is the name of the Cluster this object belongs to. |  | MaxLength: 63 <br />MinLength: 1 <br />Required: \{\} <br /> |
+| `infrastructureRef` _[ContractVersionedObjectReference](#contractversionedobjectreference)_ | infrastructureRef is a required reference to a custom resource<br />offered by an infrastructure provider.<br />The custom resource is applied to all machines in the pool. |  | Required: \{\} <br /> |
 | `replicas` _integer_ | replicas is the number of desired machines. Defaults to 1.<br />This is a pointer to distinguish between explicit zero and not specified. |  | Optional: \{\} <br /> |
 | `template` _[MachineTemplateSpec](#machinetemplatespec)_ | template describes the machines that will be created. |  | Required: \{\} <br /> |
+| `version` _string_ | version defines the desired Kubernetes version.<br />This field is meant to be optionally used by bootstrap providers.<br />The version is applied to all machines in the pool. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `providerIDList` _string array_ | providerIDList are the identification IDs of machine instances provided by the provider.<br />This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances. |  | MaxItems: 10000 <br />items:MaxLength: 512 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 | `failureDomains` _string array_ | failureDomains is the list of failure domains this MachinePool should be attached to. |  | MaxItems: 100 <br />items:MaxLength: 256 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
+| `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition<br />for all machines in the pool.<br />This field can be used e.g. by Cluster API control plane providers to extend the semantic of the<br />Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates<br />for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.<br />Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;<br />they can include the status of those components with a new condition and add this condition to ReadinessGates.<br />NOTE: This field is considered only for computing v1beta2 conditions.<br />NOTE: MachinePool is only responsible for worker nodes.<br />ReadinessGates for control plane components are not supported. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
+| `deletion` _[MachineDeletionSpec](#machinedeletionspec)_ | deletion contains configuration options for Machine deletion.<br />Configuration is applied to all machines in the pool. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachinePoolStatus
@@ -4012,6 +4020,8 @@ _Appears in:_
 | `phase` _string_ | phase represents the current phase of cluster actuation. |  | Enum: [Pending Provisioning Provisioned Running ScalingUp ScalingDown Scaling Deleting Failed Unknown] <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
 | `deprecated` _[MachinePoolDeprecatedStatus](#machinepooldeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+
+
 
 
 #### MachinePoolTopology
@@ -4111,6 +4121,7 @@ _Appears in:_
 - [KubeadmControlPlaneMachineTemplateSpec](#kubeadmcontrolplanemachinetemplatespec)
 - [MachineDeploymentClass](#machinedeploymentclass)
 - [MachineDeploymentTopology](#machinedeploymenttopology)
+- [MachinePoolSpec](#machinepoolspec)
 - [MachineSpec](#machinespec)
 
 | Field | Description | Default | Validation |
@@ -4351,6 +4362,7 @@ _Appears in:_
 - [MachineDeploymentClass](#machinedeploymentclass)
 - [MachineDeploymentTopology](#machinedeploymenttopology)
 - [MachinePoolClass](#machinepoolclass)
+- [MachinePoolTemplateSpec](#machinepooltemplatespec)
 - [MachinePoolTopology](#machinepooltopology)
 - [MachineSpec](#machinespec)
 
@@ -4473,6 +4485,7 @@ _Appears in:_
 - [MachineDeploymentClass](#machinedeploymentclass)
 - [MachineDeploymentTopology](#machinedeploymenttopology)
 - [MachinePoolClass](#machinepoolclass)
+- [MachinePoolTemplateSpec](#machinepooltemplatespec)
 - [MachinePoolTopology](#machinepooltopology)
 - [MachineTemplateSpec](#machinetemplatespec)
 

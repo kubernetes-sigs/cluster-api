@@ -799,11 +799,25 @@ func spokeObjectReference(in *corev1.ObjectReference, c randfill.Continue) {
 func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachinePoolStatus,
+		hubMachinePoolSpec,
 		hubMachineSpec,
 		spokeMachinePool,
 		spokeMachinePoolStatus,
 		spokeMachineSpec,
 	}
+}
+
+func hubMachinePoolSpec(in *clusterv1.MachinePoolSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.InfrastructureRef = in.Template.Spec.InfrastructureRef
+	in.Bootstrap = &clusterv1.Bootstrap{
+		ConfigRef:      in.Template.Spec.Bootstrap.ConfigRef,
+		DataSecretName: in.Template.Spec.Bootstrap.DataSecretName,
+	}
+	in.Version = in.Template.Spec.Version
+	in.Deletion = in.Template.Spec.Deletion
+	in.ReadinessGates = in.Template.Spec.ReadinessGates
 }
 
 func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c randfill.Continue) {

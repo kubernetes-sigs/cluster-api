@@ -759,12 +759,94 @@ spec:
           spec:
             description: spec is the desired state of MachinePool.
             properties:
+              bootstrap:
+                description: |-
+                  bootstrap is a reference to a local struct which encapsulates
+                  fields to configure the Machine’s bootstrapping mechanism.
+                  The configuration applies to all machines in the pool.
+                properties:
+                  configRef:
+                    description: |-
+                      configRef is a reference to a bootstrap provider-specific resource
+                      that holds configuration details. The reference is optional to
+                      allow users/operators to specify Bootstrap.DataSecretName without
+                      the need of a controller.
+                    properties:
+                      apiGroup:
+                        description: |-
+                          apiGroup is the group of the resource being referenced.
+                          apiGroup must be fully qualified domain name.
+                          The corresponding version for this reference will be looked up from the contract
+                          labels of the corresponding CRD of the resource being referenced.
+                        maxLength: 253
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                      kind:
+                        description: |-
+                          kind of the resource being referenced.
+                          kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                        maxLength: 63
+                        minLength: 1
+                        pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                        type: string
+                      name:
+                        description: |-
+                          name of the resource being referenced.
+                          name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                        maxLength: 253
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                    required:
+                    - apiGroup
+                    - kind
+                    - name
+                    type: object
+                  dataSecretName:
+                    description: |-
+                      dataSecretName is the name of the secret that stores the bootstrap data script.
+                      If nil, the Machine should remain in the Pending state.
+                    maxLength: 253
+                    minLength: 0
+                    type: string
+                type: object
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
                   to.
                 maxLength: 63
                 minLength: 1
                 type: string
+              deletion:
+                description: |-
+                  deletion contains configuration options for Machine deletion.
+                  Configuration is applied to all machines in the pool.
+                minProperties: 1
+                properties:
+                  nodeDeletionTimeoutSeconds:
+                    description: |-
+                      nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
+                      hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                      Defaults to 10 seconds.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  nodeDrainTimeoutSeconds:
+                    description: |-
+                      nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
+                      The default value is 0, meaning that the node can be drained without any time limitations.
+                      NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  nodeVolumeDetachTimeoutSeconds:
+                    description: |-
+                      nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
+                      to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
               failureDomains:
                 description: failureDomains is the list of failure domains this MachinePool
                   should be attached to.
@@ -775,6 +857,43 @@ spec:
                 maxItems: 100
                 type: array
                 x-kubernetes-list-type: atomic
+              infrastructureRef:
+                description: |-
+                  infrastructureRef is a required reference to a custom resource
+                  offered by an infrastructure provider.
+                  The custom resource is applied to all machines in the pool.
+                properties:
+                  apiGroup:
+                    description: |-
+                      apiGroup is the group of the resource being referenced.
+                      apiGroup must be fully qualified domain name.
+                      The corresponding version for this reference will be looked up from the contract
+                      labels of the corresponding CRD of the resource being referenced.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  kind:
+                    description: |-
+                      kind of the resource being referenced.
+                      kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                    maxLength: 63
+                    minLength: 1
+                    pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                    type: string
+                  name:
+                    description: |-
+                      name of the resource being referenced.
+                      name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                required:
+                - apiGroup
+                - kind
+                - name
+                type: object
               providerIDList:
                 description: |-
                   providerIDList are the identification IDs of machine instances provided by the provider.
@@ -786,6 +905,53 @@ spec:
                 maxItems: 10000
                 type: array
                 x-kubernetes-list-type: atomic
+              readinessGates:
+                description: |-
+                  readinessGates specifies additional conditions to include when evaluating Machine Ready condition
+                  for all machines in the pool.
+
+                  This field can be used e.g. by Cluster API control plane providers to extend the semantic of the
+                  Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates
+                  for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+
+                  Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;
+                  they can include the status of those components with a new condition and add this condition to ReadinessGates.
+
+                  NOTE: This field is considered only for computing v1beta2 conditions.
+                  NOTE: MachinePool is only responsible for worker nodes.
+                  ReadinessGates for control plane components are not supported.
+                items:
+                  description: MachineReadinessGate contains the type of a Machine
+                    condition to be used as a readiness gate.
+                  properties:
+                    conditionType:
+                      description: |-
+                        conditionType refers to a condition with matching type in the Machine's condition list.
+                        If the conditions doesn't exist, it will be treated as unknown.
+                        Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+                      maxLength: 316
+                      minLength: 1
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                    polarity:
+                      description: |-
+                        polarity of the conditionType specified in this readinessGate.
+                        Valid values are Positive, Negative and omitted.
+                        When omitted, the default behaviour will be Positive.
+                        A positive polarity means that the condition should report a true status under normal conditions.
+                        A negative polarity means that the condition should report a false status under normal conditions.
+                      enum:
+                      - Positive
+                      - Negative
+                      type: string
+                  required:
+                  - conditionType
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - conditionType
+                x-kubernetes-list-type: map
               replicas:
                 description: |-
                   replicas is the number of desired machines. Defaults to 1.
@@ -1102,8 +1268,17 @@ spec:
                 required:
                 - spec
                 type: object
+              version:
+                description: |-
+                  version defines the desired Kubernetes version.
+                  This field is meant to be optionally used by bootstrap providers.
+                  The version is applied to all machines in the pool.
+                maxLength: 256
+                minLength: 1
+                type: string
             required:
             - clusterName
+            - infrastructureRef
             - template
             type: object
           status:

@@ -51,7 +51,7 @@ import (
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -637,7 +637,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				tt.cluster.Annotations = map[string]string{}
 			}
 			tt.cluster.Annotations[corev1.LastAppliedConfigAnnotation] = "should be cleaned up"
-			tt.cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
+			tt.cluster.Annotations[conversionutil.DataAnnotation] = "should be cleaned up"
 
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.cluster).Build()
 			fakeRuntimeClient := (fakeruntimeclient.NewRuntimeClientBuilder().
@@ -849,7 +849,7 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 							Annotations: map[string]string{
 								"fizz":                             "buzz",
 								corev1.LastAppliedConfigAnnotation: "should be cleaned up",
-								conversion.DataAnnotation:          "should be cleaned up",
+								conversionutil.DataAnnotation:      "should be cleaned up",
 							},
 						},
 					},
@@ -1872,7 +1872,7 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
 			return errors.New("last-applied-configuration annotation should have been cleaned up")
 		}
-		if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
+		if _, ok := cluster.Annotations[conversionutil.DataAnnotation]; ok {
 			return errors.New("conversion annotation should have been cleaned up")
 		}
 
@@ -1883,7 +1883,7 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		if originalClusterCopy.Annotations != nil {
 			annotations := maps.Clone(cluster.Annotations)
 			delete(annotations, corev1.LastAppliedConfigAnnotation)
-			delete(annotations, conversion.DataAnnotation)
+			delete(annotations, conversionutil.DataAnnotation)
 			originalClusterCopy.Annotations = annotations
 		}
 

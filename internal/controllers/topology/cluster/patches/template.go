@@ -33,7 +33,7 @@ import (
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // unstructuredDecoder is used to decode byte arrays into Unstructured objects.
@@ -102,7 +102,7 @@ func cleanupUnstructured(template *unstructured.Unstructured) {
 	template.SetManagedFields(nil)
 	if annotations := template.GetAnnotations(); annotations != nil {
 		delete(annotations, corev1.LastAppliedConfigAnnotation)
-		delete(annotations, conversion.DataAnnotation)
+		delete(annotations, conversionutil.DataAnnotation)
 		template.SetAnnotations(annotations)
 	}
 }

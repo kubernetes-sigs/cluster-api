@@ -32,7 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 type dryRunSSAPatchInput struct {
@@ -231,7 +231,7 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 			// In case the ClusterClass we are reconciling is using not the latest apiVersion the conversion
 			// annotation might be added to objects. As we don't care about differences in conversion as we
 			// are working on the old apiVersion we want to ignore the annotation when diffing.
-			{"metadata", "annotations", conversion.DataAnnotation},
+			{"metadata", "annotations", conversionutil.DataAnnotation},
 		}),
 	})
 
@@ -265,7 +265,7 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 			Value: fieldsV1,
 			ShouldFilter: ssa.IsPathIgnored([]contract.Path{
 				{"f:metadata", "f:annotations", "f:" + clusterv1.TopologyDryRunAnnotation},
-				{"f:metadata", "f:annotations", "f:" + conversion.DataAnnotation},
+				{"f:metadata", "f:annotations", "f:" + conversionutil.DataAnnotation},
 			}),
 		})
 

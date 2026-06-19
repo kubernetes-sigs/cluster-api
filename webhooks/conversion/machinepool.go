@@ -24,7 +24,7 @@ import (
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // MachinePool is a HubSpokeConverter for the MachinePool API type.
@@ -45,7 +45,7 @@ func ConvertMachinePoolV1Beta1ToHub(_ context.Context, src *clusterv1beta1.Machi
 	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
 	restored := &clusterv1.MachinePool{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -77,5 +77,5 @@ func ConvertMachinePoolHubToV1Beta1(ctx context.Context, src *clusterv1.MachineP
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }

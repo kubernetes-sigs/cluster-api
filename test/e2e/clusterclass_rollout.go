@@ -45,7 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -630,7 +630,7 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 		),
 		// Note: ignoring utilconversion.DataAnnotation so we accept both control plane objects using the latest API version and
 		// control plane objects using older releases (with conversion data).
-		utilconversion.DataAnnotation,
+		conversionutil.DataAnnotation,
 	)
 
 	// ControlPlane.spec.machineTemplate.metadata
@@ -766,7 +766,7 @@ func assertControlPlaneMachines(g Gomega, clusterObjects ClusterObjects, cluster
 			controlPlaneMachineTemplateMetadata.Annotations,
 			// Note: ignoring utilconversion.DataAnnotation so we accept both bootstrap config objects using the latest API version and
 			// control bootstrap config objects using older releases (with conversion data).
-			utilconversion.DataAnnotation,
+			conversionutil.DataAnnotation,
 		)
 
 		// ControlPlane Machine Node.metadata
@@ -896,7 +896,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 			),
 			// Note: ignoring utilconversion.DataAnnotation so we accept both bootstrap config template objects using the latest API version and
 			// bootstrap config template objects using older releases (with conversion data).
-			utilconversion.DataAnnotation,
+			conversionutil.DataAnnotation,
 		)
 		// MachineDeployment BootstrapConfigTemplate.spec.template.metadata
 		expectMapsToBeEquivalent(g, bootstrapConfigTemplateTemplateMetadata.Labels,
@@ -999,7 +999,7 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 			),
 			// Note: ignoring utilconversion.DataAnnotation so we accept both bootstrap config objects using the latest API version and
 			// bootstrap config objects using older releases (with conversion data).
-			utilconversion.DataAnnotation,
+			conversionutil.DataAnnotation,
 		)
 	}
 }
@@ -1153,7 +1153,7 @@ func assertMachineSetsMachines(g Gomega, clusterObjects ClusterObjects, cluster 
 					),
 					// Note: ignoring utilconversion.DataAnnotation so we accept both bootstrap config objects using the latest API version and
 					// bootstrap config objects using older releases (with conversion data).
-					utilconversion.DataAnnotation,
+					conversionutil.DataAnnotation,
 				)
 
 				// MachineDeployment MachineSet Machine Node.metadata

@@ -158,17 +158,17 @@ linters:
           alias: clusterv1beta1
         - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2
           alias: clusterv1
-        # CAPI exp addons
+        # CAPI addons
         - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
           alias: addonsv1beta1
         - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
           alias: addonsv1
-        # CAPI exp IPAM
+        # CAPI IPAM
         - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta1
           alias: ipamv1beta1
         - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta2
           alias: ipamv1
-        # CAPI exp runtime
+        # CAPI runtime
         - pkg: sigs.k8s.io/cluster-api/api/runtime/v1alpha1
           alias: runtimev1alpha1
         - pkg: sigs.k8s.io/cluster-api/api/runtime/v1beta2
@@ -188,6 +188,8 @@ linters:
         - pkg: sigs.k8s.io/cluster-api/internal/webhooks/runtime
           alias: runtimewebhooks
         # CAPI utils
+        - pkg: sigs.k8s.io/cluster-api/util/conversion
+          alias: conversionutil
         - pkg: sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1
           alias: v1beta1conditions
         - pkg: sigs.k8s.io/cluster-api/util/conditions
@@ -197,7 +199,7 @@ linters:
         - pkg: sigs.k8s.io/cluster-api/internal/topology/names
           alias: topologynames
         - pkg: sigs.k8s.io/cluster-api/util/controller
-          alias: "capicontrollerutil"
+          alias: capicontrollerutil
         # CAPD
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1
           alias: infrav1beta1

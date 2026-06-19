@@ -52,7 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // Generator is a generator to generate the desired state.
@@ -1714,7 +1714,7 @@ func cleanupCluster(cluster *clusterv1.Cluster) *clusterv1.Cluster {
 	if cluster.Annotations != nil {
 		annotations := maps.Clone(cluster.Annotations)
 		delete(annotations, corev1.LastAppliedConfigAnnotation)
-		delete(annotations, conversion.DataAnnotation)
+		delete(annotations, conversionutil.DataAnnotation)
 		cluster.Annotations = annotations
 	}
 	cluster.Status = clusterv1.ClusterStatus{}

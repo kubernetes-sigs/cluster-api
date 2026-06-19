@@ -23,7 +23,7 @@ import (
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // MachineDeployment is a HubSpokeConverter for the MachineDeployment API type.
@@ -44,7 +44,7 @@ func ConvertMachineDeploymentV1Beta1ToHub(_ context.Context, src *clusterv1beta1
 	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
 	restored := &clusterv1.MachineDeployment{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -69,5 +69,5 @@ func ConvertMachineDeploymentHubToV1Beta1(ctx context.Context, src *clusterv1.Ma
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }

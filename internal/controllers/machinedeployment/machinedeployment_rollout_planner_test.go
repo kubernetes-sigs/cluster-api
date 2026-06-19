@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func TestComputeDesiredNewMS(t *testing.T) {
@@ -457,7 +457,7 @@ func assertDesiredMS(g *WithT, md *clusterv1.MachineDeployment, actualMS *cluste
 	}
 	// annotations that must not be propagated from MD have been removed.
 	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(corev1.LastAppliedConfigAnnotation))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(conversion.DataAnnotation))
+	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(conversionutil.DataAnnotation))
 
 	// annotations that must be derived from MD have been set.
 	g.Expect(actualMS.Annotations).Should(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, fmt.Sprintf("%d", *md.Spec.Replicas)))

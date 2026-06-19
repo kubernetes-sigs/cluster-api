@@ -39,7 +39,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // MachineSetsByDecreasingReplicas sorts the list of MachineSets in decreasing order of replicas,
@@ -143,7 +143,7 @@ var annotationsToSkip = map[string]bool{
 	// and its linked MachineSets.
 	//
 	// See https://github.com/kubernetes-sigs/cluster-api/pull/3010#issue-413767831 for more details.
-	conversion.DataAnnotation: true,
+	conversionutil.DataAnnotation: true,
 }
 
 // skipCopyAnnotation returns true if we should skip copying the annotation with the given annotation key

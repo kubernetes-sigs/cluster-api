@@ -29,67 +29,67 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
-	t.Run("for DockerCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DockerCluster", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &infrav1.DockerCluster{},
 		Spoke:       &DockerCluster{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerClusterFuzzFunc},
 	}))
 
-	t.Run("for DockerClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DockerClusterTemplate", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &infrav1.DockerClusterTemplate{},
 		Spoke:       &DockerClusterTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerClusterTemplateFuzzFunc},
 	}))
 
-	t.Run("for DockerMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DockerMachine", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &infrav1.DockerMachine{},
 		Spoke:       &DockerMachine{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerMachineFuzzFunc},
 	}))
 
-	t.Run("for DockerMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DockerMachineTemplate", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &infrav1.DockerMachineTemplate{},
 		Spoke:       &DockerMachineTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerMachineTemplateFuzzFunc},
 	}))
 
-	t.Run("for DevCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DevCluster", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &infrav1.DevCluster{},
 		Spoke:       &DevCluster{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DevClusterFuzzFunc},
 	}))
 
-	t.Run("for DevClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DevClusterTemplate", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &infrav1.DevClusterTemplate{},
 		Spoke:       &DevClusterTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DevClusterTemplateFuzzFunc},
 	}))
 
-	t.Run("for DevMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DevMachine", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &infrav1.DevMachine{},
 		Spoke:       &DevMachine{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DevMachineFuzzFunc},
 	}))
 
-	t.Run("for DevMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DevMachineTemplate", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &infrav1.DevMachineTemplate{},
 		Spoke:       &DevMachineTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DevMachineTemplateFuzzFunc},
 	}))
 
-	t.Run("for DockerMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DockerMachinePool", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &infrav1.DockerMachinePool{},
 		Spoke:       &DockerMachinePool{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerMachinePoolFuzzFunc},
 	}))
 
-	t.Run("for DockerMachinePoolTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for DockerMachinePoolTemplate", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:   &infrav1.DockerMachinePoolTemplate{},
 		Spoke: &DockerMachinePoolTemplate{},
 	}))

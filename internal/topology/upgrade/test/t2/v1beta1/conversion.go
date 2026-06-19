@@ -24,7 +24,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	testv1 "sigs.k8s.io/cluster-api/internal/topology/upgrade/test/t2/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *TestResourceTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -40,7 +40,7 @@ func (src *TestResourceTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &testv1.TestResourceTemplate{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (dst *TestResourceTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	if dst.Spec.Template.Spec.PtrStringToString != nil && *dst.Spec.Template.Spec.PtrStringToString == "" {
 		dst.Spec.Template.Spec.PtrStringToString = nil
 	}
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *TestResource) ConvertTo(dstRaw conversion.Hub) error {
@@ -77,7 +77,7 @@ func (src *TestResource) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &testv1.TestResource{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (dst *TestResource) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.PtrStringToString = nil
 	}
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func Convert_v1beta1_TestResourceSpec_To_v1beta2_TestResourceSpec(in *TestResourceSpec, out *testv1.TestResourceSpec, s apimachineryconversion.Scope) error {

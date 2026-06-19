@@ -372,7 +372,7 @@ func (p *rolloutPlanner) getMachineSetDiff(ms *clusterv1.MachineSet) machineSetD
 	// Determine if this is the current MS or an old one.
 	// Note: using "current" for logging instead of "new" to avoid confusion between new/current and new/last created.
 	diff.Type = "old"
-	if ms.Name == p.newMS.Name {
+	if p.newMS != nil && ms.Name == p.newMS.Name {
 		diff.Type = "current"
 	}
 

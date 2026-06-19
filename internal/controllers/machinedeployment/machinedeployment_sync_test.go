@@ -548,6 +548,43 @@ func assertCondition(t *testing.T, from v1beta1conditions.Getter, condition *clu
 	}
 }
 
+// TestCreateOrUpdateMachineSetsNilNewMS verifies that createOrUpdateMachineSetsAndSyncMachineDeploymentRevision
+// does not panic when the rolloutPlanner's newMS is nil (paused MachineDeployment with no matching MachineSet yet).
+func TestCreateOrUpdateMachineSetsNilNewMS(t *testing.T) {
+	g := NewWithT(t)
+
+	md := &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test-md",
+			Namespace:   metav1.NamespaceDefault,
+			Annotations: map[string]string{},
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			Paused: ptr.To(true),
+		},
+	}
+
+	// Simulate the planner state after init() with createNewMSIfNotExist=false and no matching MachineSet:
+	// newMS is nil, oldMSs is empty.
+	planner := &rolloutPlanner{
+		md:           md,
+		newMS:        nil,
+		oldMSs:       nil,
+		scaleIntents: make(map[string]int32),
+		originalMSs:  make(map[string]*clusterv1.MachineSet),
+		notes:        make(map[string][]string),
+	}
+
+	r := &Reconciler{
+		Client:   fake.NewClientBuilder().Build(),
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	// Before the fix this panicked: allMSs contained a nil element and ms.Name dereferenced it.
+	err := r.createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(ctx, planner)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
 func Test_computeNewMachineSetName(t *testing.T) {
 	tests := []struct {
 		base       string

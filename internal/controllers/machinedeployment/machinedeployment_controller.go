@@ -353,8 +353,13 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(ctx context.Context, p *rolloutPlanner) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Note: newMS goes first so in the logs we will have first create/scale up newMS, then scale down oldMSs
-	allMSs := append([]*clusterv1.MachineSet{p.newMS}, p.oldMSs...)
+	// Note: newMS goes first so in the logs we will have first create/scale up newMS, then scale down oldMSs.
+	// p.newMS may be nil when paused and no MachineSet for the new template exists yet.
+	var allMSs []*clusterv1.MachineSet
+	if p.newMS != nil {
+		allMSs = append(allMSs, p.newMS)
+	}
+	allMSs = append(allMSs, p.oldMSs...)
 
 	// Get all the diff introduced by the rollout planner.
 	// Note: collect all the diff first, so for each change we can add an overview of all the MachineSets

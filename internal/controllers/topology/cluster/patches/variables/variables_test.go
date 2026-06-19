@@ -31,7 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -74,7 +74,7 @@ func TestGlobal(t *testing.T) {
 					Annotations: map[string]string{
 						"fizz":                             "buzz",
 						corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
-						conversion.DataAnnotation:          "should not be copied to builtin variables",
+						conversionutil.DataAnnotation:      "should not be copied to builtin variables",
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
@@ -470,7 +470,7 @@ func TestControlPlane(t *testing.T) {
 				WithAnnotations(map[string]string{
 					"fizz":                             "buzz",
 					corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
-					conversion.DataAnnotation:          "should not be copied to builtin variables",
+					conversionutil.DataAnnotation:      "should not be copied to builtin variables",
 				}).
 				Build(),
 			want: []runtimehooksv1.Variable{
@@ -702,7 +702,7 @@ func TestMachineDeployment(t *testing.T) {
 				WithAnnotations(map[string]string{
 					"fizz":                             "buzz",
 					corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
-					conversion.DataAnnotation:          "should not be copied to builtin variables",
+					conversionutil.DataAnnotation:      "should not be copied to builtin variables",
 				}).
 				Build(),
 			want: []runtimehooksv1.Variable{
@@ -1058,7 +1058,7 @@ func TestMachinePool(t *testing.T) {
 				WithAnnotations(map[string]string{
 					"fizz":                             "buzz",
 					corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
-					conversion.DataAnnotation:          "should not be copied to builtin variables",
+					conversionutil.DataAnnotation:      "should not be copied to builtin variables",
 				}).
 				Build(),
 			want: []runtimehooksv1.Variable{

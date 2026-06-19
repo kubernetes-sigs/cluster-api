@@ -24,7 +24,7 @@ import (
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // Cluster is a HubSpokeConverter for the Cluster API type.
@@ -55,7 +55,7 @@ func ConvertClusterV1Beta1ToHub(_ context.Context, src *clusterv1beta1.Cluster, 
 	}
 
 	restored := &clusterv1.Cluster{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func ConvertClusterHubToV1Beta1(ctx context.Context, src *clusterv1.Cluster, dst
 
 	dropEmptyStringsCluster(dst)
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func dropEmptyStringsCluster(dst *clusterv1beta1.Cluster) {

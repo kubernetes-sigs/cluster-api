@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func Test_cleanupManagedFieldsAndAnnotation(t *testing.T) {
@@ -56,7 +56,7 @@ func Test_cleanupManagedFieldsAndAnnotation(t *testing.T) {
 		{
 			name: "filter out conversion annotation",
 			obj: newObjectBuilder().
-				WithAnnotation(conversion.DataAnnotation, "").
+				WithAnnotation(conversionutil.DataAnnotation, "").
 				Build(),
 			wantErr: false,
 			want: newObjectBuilder().

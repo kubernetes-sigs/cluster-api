@@ -30,7 +30,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
@@ -41,7 +41,7 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	restored := &infrav1.DockerCluster{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -87,7 +87,7 @@ func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	restored := &infrav1.DockerMachine{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.ProviderID = nil
 	}
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -129,7 +129,7 @@ func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &infrav1.DockerMachineTemplate{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *DevCluster) ConvertTo(dstRaw conversion.Hub) error {
@@ -164,7 +164,7 @@ func (src *DevCluster) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &infrav1.DevCluster{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (dst *DevCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *DevClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -211,7 +211,7 @@ func (src *DevMachine) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &infrav1.DevMachine{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func (dst *DevMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.ProviderID = nil
 	}
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *DevMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -253,7 +253,7 @@ func (src *DevMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &infrav1.DevMachineTemplate{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -276,7 +276,7 @@ func (dst *DevMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(in *clusterv1beta1.ObjectMeta, out *clusterv1.ObjectMeta, s apiconversion.Scope) error {
@@ -682,7 +682,7 @@ func (src *DockerMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	restored := &infrav1.DockerMachinePool{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	if ok, err := conversionutil.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
 
@@ -703,7 +703,7 @@ func (dst *DockerMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 		clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
 	}
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *DockerMachinePoolTemplate) ConvertTo(dstRaw conversion.Hub) error {

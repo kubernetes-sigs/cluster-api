@@ -46,7 +46,7 @@ import (
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	runtimev1alpha1 "sigs.k8s.io/cluster-api/api/runtime/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
@@ -64,106 +64,106 @@ func TestFuzzyConversion(t *testing.T) {
 		return "", fmt.Errorf("failed to map GroupKind %s to version", gk.String())
 	})
 
-	t.Run("for Cluster (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*clusterv1.Cluster, *clusterv1beta1.Cluster]{
+	t.Run("for Cluster (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*clusterv1.Cluster, *clusterv1beta1.Cluster]{
 			ConvertSpokeToHubFunc: ConvertClusterV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertClusterHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{ClusterFuzzFuncs},
 		}),
 	)
-	t.Run("for ClusterClass (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*clusterv1.ClusterClass, *clusterv1beta1.ClusterClass]{
+	t.Run("for ClusterClass (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*clusterv1.ClusterClass, *clusterv1beta1.ClusterClass]{
 			ConvertSpokeToHubFunc: ConvertClusterClassV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertClusterClassHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{ClusterClassFuzzFuncs},
 		}),
 	)
-	t.Run("for Machine (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*clusterv1.Machine, *clusterv1beta1.Machine]{
+	t.Run("for Machine (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*clusterv1.Machine, *clusterv1beta1.Machine]{
 			ConvertSpokeToHubFunc: ConvertMachineV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertMachineHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{MachineFuzzFuncs},
 		}),
 	)
-	t.Run("for MachineSet (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*clusterv1.MachineSet, *clusterv1beta1.MachineSet]{
+	t.Run("for MachineSet (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*clusterv1.MachineSet, *clusterv1beta1.MachineSet]{
 			ConvertSpokeToHubFunc: ConvertMachineSetV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertMachineSetHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{MachineSetFuzzFuncs},
 		}),
 	)
-	t.Run("for MachineDeployment (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*clusterv1.MachineDeployment, *clusterv1beta1.MachineDeployment]{
+	t.Run("for MachineDeployment (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*clusterv1.MachineDeployment, *clusterv1beta1.MachineDeployment]{
 			ConvertSpokeToHubFunc: ConvertMachineDeploymentV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertMachineDeploymentHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{MachineDeploymentFuzzFuncs},
 		}),
 	)
-	t.Run("for MachineHealthCheck (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*clusterv1.MachineHealthCheck, *clusterv1beta1.MachineHealthCheck]{
+	t.Run("for MachineHealthCheck (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*clusterv1.MachineHealthCheck, *clusterv1beta1.MachineHealthCheck]{
 			ConvertSpokeToHubFunc: ConvertMachineHealthCheckV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertMachineHealthCheckHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{MachineHealthCheckFuzzFuncs},
 		}),
 	)
-	t.Run("for MachinePool (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*clusterv1.MachinePool, *clusterv1beta1.MachinePool]{
+	t.Run("for MachinePool (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*clusterv1.MachinePool, *clusterv1beta1.MachinePool]{
 			ConvertSpokeToHubFunc: ConvertMachinePoolV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertMachinePoolHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{MachinePoolFuzzFuncs},
 		}),
 	)
-	t.Run("for MachineDrainRule (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*clusterv1.MachineDrainRule, *clusterv1beta1.MachineDrainRule]{
+	t.Run("for MachineDrainRule (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*clusterv1.MachineDrainRule, *clusterv1beta1.MachineDrainRule]{
 			ConvertSpokeToHubFunc: ConvertMachineDrainRuleV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertMachineDrainRuleHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{},
 		}),
 	)
-	t.Run("for ClusterResourceSet (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*addonsv1.ClusterResourceSet, *addonsv1beta1.ClusterResourceSet]{
+	t.Run("for ClusterResourceSet (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*addonsv1.ClusterResourceSet, *addonsv1beta1.ClusterResourceSet]{
 			ConvertSpokeToHubFunc: ConvertClusterResourceSetV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertClusterResourceSetHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{ClusterResourceSetFuzzFuncs},
 		}),
 	)
-	t.Run("for ClusterResourceSetBinding (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*addonsv1.ClusterResourceSetBinding, *addonsv1beta1.ClusterResourceSetBinding]{
+	t.Run("for ClusterResourceSetBinding (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*addonsv1.ClusterResourceSetBinding, *addonsv1beta1.ClusterResourceSetBinding]{
 			ConvertSpokeToHubFunc: ConvertClusterResourceSetBindingV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertClusterResourceSetBindingHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{ClusterResourceSetBindingFuzzFuncs},
 		}),
 	)
-	t.Run("for IPAddress (v1alpha1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*ipamv1.IPAddress, *ipamv1alpha1.IPAddress]{
+	t.Run("for IPAddress (v1alpha1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*ipamv1.IPAddress, *ipamv1alpha1.IPAddress]{
 			ConvertSpokeToHubFunc: ConvertIPAddressV1Alpha1ToHub,
 			ConvertHubToSpokeFunc: ConvertIPAddressHubToV1Alpha1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{IPAddressFuzzFuncs},
 		}),
 	)
-	t.Run("for IPAddress (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*ipamv1.IPAddress, *ipamv1beta1.IPAddress]{
+	t.Run("for IPAddress (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*ipamv1.IPAddress, *ipamv1beta1.IPAddress]{
 			ConvertSpokeToHubFunc: ConvertIPAddressV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertIPAddressHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{IPAddressFuzzFuncs},
 		}),
 	)
-	t.Run("for IPAddressClaim (v1alpha1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*ipamv1.IPAddressClaim, *ipamv1alpha1.IPAddressClaim]{
+	t.Run("for IPAddressClaim (v1alpha1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*ipamv1.IPAddressClaim, *ipamv1alpha1.IPAddressClaim]{
 			ConvertSpokeToHubFunc: ConvertIPAddressClaimV1Alpha1ToHub,
 			ConvertHubToSpokeFunc: ConvertIPAddressClaimHubToV1Alpha1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{IPAddressClaimFuzzFuncs},
 		}),
 	)
-	t.Run("for IPAddressClaim (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*ipamv1.IPAddressClaim, *ipamv1beta1.IPAddressClaim]{
+	t.Run("for IPAddressClaim (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*ipamv1.IPAddressClaim, *ipamv1beta1.IPAddressClaim]{
 			ConvertSpokeToHubFunc: ConvertIPAddressClaimV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertIPAddressClaimHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{IPAddressClaimFuzzFuncs},
 		}),
 	)
-	t.Run("for ExtensionConfig (v1alpha1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*runtimev1.ExtensionConfig, *runtimev1alpha1.ExtensionConfig]{
+	t.Run("for ExtensionConfig (v1alpha1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*runtimev1.ExtensionConfig, *runtimev1alpha1.ExtensionConfig]{
 			ConvertSpokeToHubFunc: ConvertExtensionConfigV1Alpha1ToHub,
 			ConvertHubToSpokeFunc: ConvertExtensionConfigHubToV1Alpha1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{ExtensionConfigFuzzFuncs},

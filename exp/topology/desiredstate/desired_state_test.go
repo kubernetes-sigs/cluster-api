@@ -55,9 +55,9 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
-	webhooksconversion "sigs.k8s.io/cluster-api/webhooks/conversion"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 var (
@@ -1094,7 +1094,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 		},
 	}
 
-	webhooksconversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
+	conversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{
@@ -1656,7 +1656,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 							Annotations: map[string]string{
 								"fizz":                             "buzz",
 								corev1.LastAppliedConfigAnnotation: "should be cleaned up",
-								conversion.DataAnnotation:          "should be cleaned up",
+								conversionutil.DataAnnotation:      "should be cleaned up",
 							},
 						},
 						// Add some more fields to check that conversion implemented when calling RuntimeExtension are properly handled.

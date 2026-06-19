@@ -30,7 +30,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -60,7 +60,7 @@ func TestRequestItemBuilder(t *testing.T) {
 				u.SetAnnotations(map[string]string{
 					"fizz":                             "buzz",
 					corev1.LastAppliedConfigAnnotation: "should be cleaned up",
-					conversion.DataAnnotation:          "should be cleaned up",
+					conversionutil.DataAnnotation:      "should be cleaned up",
 				})
 				return u
 			}(),

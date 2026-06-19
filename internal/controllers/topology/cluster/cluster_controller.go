@@ -60,7 +60,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -618,7 +618,7 @@ func cleanupCluster(cluster *clusterv1.Cluster) *clusterv1.Cluster {
 	if cluster.Annotations != nil {
 		annotations := maps.Clone(cluster.Annotations)
 		delete(annotations, corev1.LastAppliedConfigAnnotation)
-		delete(annotations, conversion.DataAnnotation)
+		delete(annotations, conversionutil.DataAnnotation)
 		cluster.Annotations = annotations
 	}
 	cluster.Status = clusterv1.ClusterStatus{}

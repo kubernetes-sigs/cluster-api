@@ -33,7 +33,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamhub"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 const (
@@ -48,7 +48,7 @@ func TestFuzzyConversion(t *testing.T) {
 	scheme := runtime.NewScheme()
 	g.Expect(bootstrapv1.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for ClusterConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for ClusterConfiguration", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Scheme: scheme,
 		Hub:    &upstreamhub.ClusterConfiguration{},
 		Spoke:  &ClusterConfiguration{},
@@ -56,7 +56,7 @@ func TestFuzzyConversion(t *testing.T) {
 		SkipSpokeAnnotationCleanup: true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs, clusterConfigurationFuzzFuncs},
 	}))
-	t.Run("for InitConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for InitConfiguration", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Scheme: scheme,
 		Hub:    &upstreamhub.InitConfiguration{},
 		Spoke:  &InitConfiguration{},
@@ -64,7 +64,7 @@ func TestFuzzyConversion(t *testing.T) {
 		SkipSpokeAnnotationCleanup: true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs, initConfigurationFuzzFuncs},
 	}))
-	t.Run("for JoinConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for JoinConfiguration", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Scheme: scheme,
 		Hub:    &upstreamhub.JoinConfiguration{},
 		Spoke:  &JoinConfiguration{},

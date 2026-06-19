@@ -26,7 +26,7 @@ import (
 	ipamv1alpha1 "sigs.k8s.io/cluster-api/api/ipam/v1alpha1"
 	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // IPAddressClaim is a HubSpokeConverter for the IPAddressClaim API type.
@@ -66,7 +66,7 @@ func ConvertIPAddressClaimV1Alpha1ToHub(_ context.Context, src *ipamv1alpha1.IPA
 
 	// Manually restore data.
 	restored := &ipamv1.IPAddressClaim{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	if ok, err := conversionutil.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
 	dst.Status.Conditions = restored.Status.Conditions
@@ -107,7 +107,7 @@ func ConvertIPAddressClaimHubToV1Alpha1(_ context.Context, src *ipamv1.IPAddress
 	}
 
 	// Preserve Hub data on down-conversion except for metadata
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 // ConvertIPAddressClaimV1Beta1ToHub converts a v1beta1 IPAddressClaim to a hub IPAddressClaim.

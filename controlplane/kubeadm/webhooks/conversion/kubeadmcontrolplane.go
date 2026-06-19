@@ -30,7 +30,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bootstrapconversion "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/conversion"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // KubeadmControlPlane is a HubSpokeConverter for the KubeadmControlPlane API type.
@@ -52,7 +52,7 @@ func ConvertKubeadmControlPlaneV1Beta1ToHub(ctx context.Context, src *controlpla
 
 	// Manually restore data.
 	restored := &controlplanev1.KubeadmControlPlane{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func ConvertKubeadmControlPlaneHubToV1Beta1(ctx context.Context, src *controlpla
 	dropEmptyStringsKubeadmControlPlaneStatus(&dst.Status)
 
 	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (*clusterv1.ContractVersionedObjectReference, error) {

@@ -23,7 +23,7 @@ import (
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // MachineHealthCheck is a HubSpokeConverter for the MachineHealthCheck API type.
@@ -39,7 +39,7 @@ func ConvertMachineHealthCheckV1Beta1ToHub(_ context.Context, src *clusterv1beta
 
 	// Manually restore data.
 	restored := &clusterv1.MachineHealthCheck{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -61,5 +61,5 @@ func ConvertMachineHealthCheckHubToV1Beta1(_ context.Context, src *clusterv1.Mac
 		dst.Spec.RemediationTemplate.Namespace = src.Namespace
 	}
 
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }

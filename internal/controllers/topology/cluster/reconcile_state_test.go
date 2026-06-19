@@ -66,9 +66,9 @@ import (
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/cache"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
-	webhooksconversion "sigs.k8s.io/cluster-api/webhooks/conversion"
+	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 var IgnoreNameGenerated = IgnorePaths{
@@ -305,7 +305,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 		},
 	}
 
-	webhooksconversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
+	conversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{
@@ -514,7 +514,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 				tt.cluster.Annotations = map[string]string{}
 			}
 			tt.cluster.Annotations[corev1.LastAppliedConfigAnnotation] = "should be cleaned up"
-			tt.cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
+			tt.cluster.Annotations[conversionutil.DataAnnotation] = "should be cleaned up"
 
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
@@ -1291,7 +1291,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				tt.s.Current.Cluster.Annotations = map[string]string{}
 			}
 			tt.s.Current.Cluster.Annotations[corev1.LastAppliedConfigAnnotation] = "should be cleaned up"
-			tt.s.Current.Cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
+			tt.s.Current.Cluster.Annotations[conversionutil.DataAnnotation] = "should be cleaned up"
 
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{

@@ -31,7 +31,7 @@ import (
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 const (
@@ -42,15 +42,15 @@ const (
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
-	t.Run("for KubeadmConfig (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*bootstrapv1.KubeadmConfig, *bootstrapv1beta1.KubeadmConfig]{
+	t.Run("for KubeadmConfig (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*bootstrapv1.KubeadmConfig, *bootstrapv1beta1.KubeadmConfig]{
 			ConvertSpokeToHubFunc: ConvertKubeadmConfigV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertKubeadmConfigHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{KubeadmConfigFuzzFuncs},
 		}),
 	)
-	t.Run("for KubeadmConfigTemplate (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*bootstrapv1.KubeadmConfigTemplate, *bootstrapv1beta1.KubeadmConfigTemplate]{
+	t.Run("for KubeadmConfigTemplate (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*bootstrapv1.KubeadmConfigTemplate, *bootstrapv1beta1.KubeadmConfigTemplate]{
 			ConvertSpokeToHubFunc: ConvertKubeadmConfigTemplateV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertKubeadmConfigTemplateHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{KubeadmConfigTemplateFuzzFuncs},

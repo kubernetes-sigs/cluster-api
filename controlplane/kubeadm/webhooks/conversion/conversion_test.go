@@ -36,7 +36,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 const (
@@ -59,15 +59,15 @@ func TestFuzzyConversion(t *testing.T) {
 		return "", fmt.Errorf("failed to map GroupKind %s to version", gk.String())
 	})
 
-	t.Run("for KubeadmControlPlane (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*controlplanev1.KubeadmControlPlane, *controlplanev1beta1.KubeadmControlPlane]{
+	t.Run("for KubeadmControlPlane (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*controlplanev1.KubeadmControlPlane, *controlplanev1beta1.KubeadmControlPlane]{
 			ConvertSpokeToHubFunc: ConvertKubeadmControlPlaneV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertKubeadmControlPlaneHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{KubeadmControlPlaneFuzzFuncs},
 		}),
 	)
-	t.Run("for KubeadmControlPlaneTemplate (v1beta1)", utilconversion.SpokeConverterFuzzTestFunc(
-		utilconversion.SpokeConverterFuzzTestFuncInput[*controlplanev1.KubeadmControlPlaneTemplate, *controlplanev1beta1.KubeadmControlPlaneTemplate]{
+	t.Run("for KubeadmControlPlaneTemplate (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
+		conversionutil.SpokeConverterFuzzTestFuncInput[*controlplanev1.KubeadmControlPlaneTemplate, *controlplanev1beta1.KubeadmControlPlaneTemplate]{
 			ConvertSpokeToHubFunc: ConvertKubeadmControlPlaneTemplateV1Beta1ToHub,
 			ConvertHubToSpokeFunc: ConvertKubeadmControlPlaneTemplateHubToV1Beta1,
 			FuzzerFuncs:           []fuzzer.FuzzerFuncs{KubeadmControlPlaneTemplateFuzzFuncs},

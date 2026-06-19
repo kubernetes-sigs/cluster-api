@@ -34,7 +34,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 var (
@@ -1066,7 +1066,7 @@ func TestMachineSetAnnotationsFromMachineDeployment(t *testing.T) {
 		revisionHistoryAnnotation:           "foo",
 		clusterv1.DesiredReplicasAnnotation: "foo",
 		clusterv1.MaxReplicasAnnotation:     "foo",
-		conversion.DataAnnotation:           "foo",
+		conversionutil.DataAnnotation:       "foo",
 
 		// annotations to preserve
 		"bar": "bar",

@@ -30,7 +30,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // Global returns variables that apply to all the templates, including user provided variables
@@ -291,6 +291,6 @@ func cleanupAnnotations(annotations map[string]string) map[string]string {
 	// Optimize size of GeneratePatchesRequest and ValidateTopologyRequest by not sending the last-applied annotation.
 	annotations = maps.Clone(annotations)
 	delete(annotations, corev1.LastAppliedConfigAnnotation)
-	delete(annotations, conversion.DataAnnotation)
+	delete(annotations, conversionutil.DataAnnotation)
 	return annotations
 }

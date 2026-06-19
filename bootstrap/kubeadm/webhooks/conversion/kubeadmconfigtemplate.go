@@ -23,7 +23,7 @@ import (
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // KubeadmConfigTemplate is a HubSpokeConverter for the KubeadmConfigTemplate API type.
@@ -39,7 +39,7 @@ func ConvertKubeadmConfigTemplateV1Beta1ToHub(ctx context.Context, src *bootstra
 
 	// Manually restore data.
 	restored := &bootstrapv1.KubeadmConfigTemplate{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
+	ok, err := conversionutil.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -70,5 +70,5 @@ func ConvertKubeadmConfigTemplateHubToV1Beta1(ctx context.Context, src *bootstra
 	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.Template.Spec)
 
 	// Preserve Hub data on down-conversion except for metadata.
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
+	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }

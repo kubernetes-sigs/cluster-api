@@ -192,32 +192,6 @@ func (c *ControlPlaneContract) Selector() *String {
 	}
 }
 
-// FailureReason provides access to the status.failureReason field in an ControlPlane object. Note that this field is optional.
-//
-// Deprecated: This function is deprecated and is going to be removed. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-func (c *ControlPlaneContract) FailureReason() *String {
-	return &String{
-		path: []string{"status", "failureReason"},
-	}
-}
-
-// FailureMessage provides access to the status.failureMessage field in an ControlPlane object. Note that this field is optional.
-//
-// Deprecated: This function is deprecated and is going to be removed. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-func (c *ControlPlaneContract) FailureMessage() *String {
-	return &String{
-		path: []string{"status", "failureMessage"},
-	}
-}
-
-// ExternalManagedControlPlane provides access to the status.externalManagedControlPlane field in an ControlPlane object.
-// Note that this field is optional.
-func (c *ControlPlaneContract) ExternalManagedControlPlane() *Bool {
-	return &Bool{
-		path: []string{"status", "externalManagedControlPlane"},
-	}
-}
-
 // IsProvisioning returns true if the control plane is being created for the first time.
 // Returns false, if the control plane was already previously provisioned.
 func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (bool, error) {

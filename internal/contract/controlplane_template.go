@@ -62,24 +62,3 @@ func (c *ControlPlaneTemplateMachineTemplate) Metadata() *Metadata {
 		path: Path{"spec", "template", "spec", "machineTemplate", "metadata"},
 	}
 }
-
-// NodeDrainTimeout provides access to the nodeDrainTimeout of a MachineTemplate.
-func (c *ControlPlaneTemplateMachineTemplate) NodeDrainTimeout() *Duration {
-	return &Duration{
-		path: Path{"spec", "template", "spec", "machineTemplate", "nodeDrainTimeout"},
-	}
-}
-
-// NodeVolumeDetachTimeout provides access to the nodeVolumeDetachTimeout of a MachineTemplate.
-func (c *ControlPlaneTemplateMachineTemplate) NodeVolumeDetachTimeout() *Duration {
-	return &Duration{
-		path: Path{"spec", "template", "spec", "machineTemplate", "nodeVolumeDetachTimeout"},
-	}
-}
-
-// NodeDeletionTimeout provides access to the nodeDeletionTimeout of a MachineTemplate.
-func (c *ControlPlaneTemplateMachineTemplate) NodeDeletionTimeout() *Duration {
-	return &Duration{
-		path: Path{"spec", "template", "spec", "machineTemplate", "nodeDeletionTimeout"},
-	}
-}

@@ -25,10 +25,10 @@ import (
 
 func TestHasMachinePoolMachines(t *testing.T) {
 	tests := []struct {
-		name          string
-		infraPool     *unstructured.Unstructured
-		want          bool
-		wantErr       bool
+		name      string
+		infraPool *unstructured.Unstructured
+		want      bool
+		wantErr   bool
 	}{
 		{
 			name:    "returns error when infraMachinePool is nil",

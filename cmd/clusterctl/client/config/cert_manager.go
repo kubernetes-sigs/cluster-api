@@ -30,7 +30,7 @@ type CertManager interface {
 	// If empty, 10m will be used.
 	Timeout() string
 
-	// WaitForCertManagerDuration returns the duration to
+	// WaitForCertManager returns the true/false to be used when clusterctl init is initialized.
 	// wait before creating cert-manager resources.
 	WaitForCertManager() string
 }

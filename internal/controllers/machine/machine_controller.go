@@ -679,18 +679,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	return ctrl.Result{}, nil
 }
 
-const (
-	// KubeadmControlPlanePreTerminateHookCleanupAnnotation inlined from KCP (we want to avoid importing the KCP API package).
-	KubeadmControlPlanePreTerminateHookCleanupAnnotation = clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/kcp-cleanup"
-)
-
 func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine, infraMachine *unstructured.Unstructured) bool {
-	if util.IsControlPlaneMachine(m) && util.HasOwner(m.GetOwnerReferences(), clusterv1.GroupVersionControlPlane.String(), []string{"KubeadmControlPlane"}) {
-		if _, exists := m.Annotations[KubeadmControlPlanePreTerminateHookCleanupAnnotation]; !exists {
-			return false
-		}
-	}
-
 	if _, exists := m.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; exists {
 		return false
 	}
@@ -713,12 +702,6 @@ func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine, infraMachine *unst
 // isNodeVolumeDetachingAllowed returns False if either ExcludeWaitForNodeVolumeDetachAnnotation annotation is set OR
 // nodeVolumeDetachTimeoutExceeded timeout is exceeded, otherwise returns True.
 func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine, infraMachine *unstructured.Unstructured) bool {
-	if util.IsControlPlaneMachine(m) && util.HasOwner(m.GetOwnerReferences(), clusterv1.GroupVersionControlPlane.String(), []string{"KubeadmControlPlane"}) {
-		if _, exists := m.Annotations[KubeadmControlPlanePreTerminateHookCleanupAnnotation]; !exists {
-			return false
-		}
-	}
-
 	if _, exists := m.Annotations[clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation]; exists {
 		return false
 	}

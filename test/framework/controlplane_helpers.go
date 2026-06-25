@@ -188,7 +188,7 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 		}
 
 		return true, nil
-	}, intervals...).Should(BeTrue(), PrettyPrint(controlplane)+"\n")
+	}, intervals...).Should(BeTrue(), func() string { return PrettyPrint(controlplane) + "\n" })
 }
 
 // AssertControlPlaneFailureDomainsInput is the input for AssertControlPlaneFailureDomains.

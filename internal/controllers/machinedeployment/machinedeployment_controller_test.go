@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -37,7 +38,9 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -642,6 +645,216 @@ func TestMachineSetToDeployments(t *testing.T) {
 	for _, tc := range testsCases {
 		got := r.MachineSetToDeployments(ctx, tc.mapObject)
 		g.Expect(got).To(BeComparableTo(tc.expected))
+	}
+}
+
+func TestMachineDeploymentReconcileObservedGenerationDoesNotAdvanceBeforeRolloutStatus(t *testing.T) {
+	g := NewWithT(t)
+
+	const (
+		namespace   = "default"
+		clusterName = "test-cluster"
+		mdName      = "md"
+	)
+
+	labels := map[string]string{
+		clusterv1.ClusterNameLabel: clusterName,
+	}
+	replicas := int32(1)
+
+	infrastructureTemplate := genericInfrastructureMachineTemplate(namespace, "md-template", "3xlarge")
+	oldBootstrapTemplate := genericBootstrapConfigTemplate(namespace, "old-md-bootstrap-template", "cloud-init")
+	newBootstrapTemplate := genericBootstrapConfigTemplate(namespace, "new-md-bootstrap-template", "ignition")
+
+	md := builder.MachineDeployment(namespace, mdName).
+		WithClusterName(clusterName).
+		WithInfrastructureTemplate(infrastructureTemplate).
+		WithBootstrapTemplate(newBootstrapTemplate).
+		WithReplicas(replicas).
+		WithGeneration(3).
+		WithStatus(clusterv1.MachineDeploymentStatus{
+			ObservedGeneration: 2,
+			ReadyReplicas:      ptr.To(replicas),
+			AvailableReplicas:  ptr.To(replicas),
+			UpToDateReplicas:   ptr.To(replicas),
+			Conditions: []metav1.Condition{
+				{
+					Type:               clusterv1.MachineDeploymentAvailableCondition,
+					Status:             metav1.ConditionTrue,
+					Reason:             clusterv1.MachineDeploymentAvailableReason,
+					ObservedGeneration: 2,
+				},
+				{
+					Type:               clusterv1.MachineDeploymentMachinesReadyCondition,
+					Status:             metav1.ConditionTrue,
+					Reason:             clusterv1.MachineDeploymentMachinesReadyReason,
+					ObservedGeneration: 2,
+				},
+				{
+					Type:               clusterv1.MachineDeploymentMachinesUpToDateCondition,
+					Status:             metav1.ConditionTrue,
+					Reason:             clusterv1.MachineDeploymentMachinesUpToDateReason,
+					ObservedGeneration: 2,
+				},
+				{
+					Type:               clusterv1.MachineDeploymentRollingOutCondition,
+					Status:             metav1.ConditionFalse,
+					Reason:             clusterv1.MachineDeploymentNotRollingOutReason,
+					ObservedGeneration: 2,
+				},
+			},
+		}).
+		Build()
+	md.UID = "md-uid"
+	md.Finalizers = []string{clusterv1.MachineDeploymentFinalizer}
+	md.Spec.Rollout.Strategy.Type = clusterv1.RollingUpdateMachineDeploymentStrategyType
+	md.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = ptr.To(intstr.FromInt32(1))
+	md.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable = ptr.To(intstr.FromInt32(0))
+
+	cluster := builder.Cluster(namespace, clusterName).Build()
+	cluster.UID = "cluster-uid"
+
+	oldMS := builder.MachineSet(namespace, "old-ms").
+		WithClusterName(clusterName).
+		WithInfrastructureTemplate(infrastructureTemplate).
+		WithBootstrapTemplate(oldBootstrapTemplate).
+		WithLabels(labels).
+		WithReplicas(ptr.To(replicas)).
+		WithOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(md, machineDeploymentKind)}).
+		Build()
+	oldMS.Status = clusterv1.MachineSetStatus{
+		ObservedGeneration: 1,
+		Replicas:           ptr.To(replicas),
+		ReadyReplicas:      ptr.To(replicas),
+		AvailableReplicas:  ptr.To(replicas),
+		UpToDateReplicas:   ptr.To(replicas),
+	}
+
+	machine := builder.Machine(namespace, "old-machine").
+		WithClusterName(clusterName).
+		WithLabels(labels).
+		Build()
+	machine.Labels[clusterv1.MachineDeploymentNameLabel] = md.Name
+	machine.Labels[clusterv1.MachineSetNameLabel] = oldMS.Name
+	machine.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(oldMS, clusterv1.GroupVersion.WithKind("MachineSet"))}
+	machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+		APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+		Kind:     "GenericInfrastructureMachine",
+		Name:     "old-machine",
+	}
+	machine.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{
+		APIGroup: clusterv1.GroupVersionBootstrap.Group,
+		Kind:     "GenericBootstrapConfig",
+		Name:     "old-machine",
+	}
+	machine.Status.Conditions = []metav1.Condition{
+		{
+			Type:   clusterv1.MachineReadyCondition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachineReadyReason,
+		},
+		{
+			Type:   clusterv1.MachineAvailableCondition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachineAvailableReason,
+		},
+		{
+			Type:   clusterv1.MachineUpToDateCondition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachineUpToDateReason,
+		},
+	}
+
+	c := fake.NewClientBuilder().
+		WithScheme(fakeScheme).
+		WithStatusSubresource(&clusterv1.MachineDeployment{}, &clusterv1.MachineSet{}, &clusterv1.Machine{}).
+		WithObjects(cluster, md, oldMS, machine, infrastructureTemplate, oldBootstrapTemplate, newBootstrapTemplate).
+		Build()
+	r := &Reconciler{
+		Client:     c,
+		controller: capicontrollerutil.NewFakeController(),
+		recorder:   record.NewFakeRecorder(32),
+		ssaCache:   ssa.NewCache("machinedeployment"),
+	}
+
+	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(md)})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	msList := &clusterv1.MachineSetList{}
+	g.Expect(c.List(ctx, msList, client.InNamespace(namespace))).To(Succeed())
+	g.Expect(msList.Items).To(HaveLen(2))
+	g.Expect(msList.Items).To(ContainElement(WithTransform(func(ms clusterv1.MachineSet) string {
+		return ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name
+	}, Equal(newBootstrapTemplate.GetName()))), "reconcile should create a new MachineSet for the new bootstrap template")
+
+	got := &clusterv1.MachineDeployment{}
+	g.Expect(c.Get(ctx, client.ObjectKeyFromObject(md), got)).To(Succeed())
+
+	rollingOut := conditions.Get(got, clusterv1.MachineDeploymentRollingOutCondition)
+	machinesUpToDate := conditions.Get(got, clusterv1.MachineDeploymentMachinesUpToDateCondition)
+	g.Expect(rollingOut).ToNot(BeNil())
+	g.Expect(machinesUpToDate).ToNot(BeNil())
+
+	staleRolloutStatus := rollingOut.Status == metav1.ConditionFalse &&
+		machinesUpToDate.Status == metav1.ConditionTrue &&
+		ptr.Deref(got.Status.UpToDateReplicas, 0) == replicas
+	if staleRolloutStatus {
+		g.Expect(got.Status.ObservedGeneration).To(Equal(int64(2)),
+			"MachineDeployment must not advance observedGeneration while rollout-related status still reflects the previous bootstrap template")
+		return
+	}
+
+	g.Expect(got.Status.ObservedGeneration).To(Equal(got.Generation))
+	g.Expect(rollingOut.Status).To(Equal(metav1.ConditionTrue))
+	g.Expect(rollingOut.Reason).To(Equal(clusterv1.MachineDeploymentRollingOutReason))
+	g.Expect(machinesUpToDate.Status).To(Equal(metav1.ConditionFalse))
+	g.Expect(machinesUpToDate.Reason).To(Equal(clusterv1.MachineDeploymentMachinesNotUpToDateReason))
+	g.Expect(ptr.Deref(got.Status.UpToDateReplicas, 0)).To(Equal(int32(0)))
+}
+
+func genericInfrastructureMachineTemplate(namespace, name, size string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericInfrastructureMachineTemplate",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+			"metadata": map[string]interface{}{
+				"name":      name,
+				"namespace": namespace,
+			},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"kind":       "GenericInfrastructureMachine",
+					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+					"metadata":   map[string]interface{}{},
+					"spec": map[string]interface{}{
+						"size": size,
+					},
+				},
+			},
+		},
+	}
+}
+
+func genericBootstrapConfigTemplate(namespace, name, format string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericBootstrapConfigTemplate",
+			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
+			"metadata": map[string]interface{}{
+				"name":      name,
+				"namespace": namespace,
+			},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"kind":       "GenericBootstrapConfig",
+					"apiVersion": clusterv1.GroupVersionBootstrap.String(),
+					"metadata":   map[string]interface{}{},
+					"spec": map[string]interface{}{
+						"format": format,
+					},
+				},
+			},
+		},
 	}
 }
 

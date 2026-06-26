@@ -992,8 +992,9 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					},
 				},
 			},
-			Cluster:  &clusterv1.Cluster{},
-			Machines: collections.FromMachines(m1, m2),
+			Cluster:    &clusterv1.Cluster{},
+			Machines:   collections.FromMachines(m1, m2),
+			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
@@ -1049,8 +1050,9 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					},
 				},
 			},
-			Cluster:  &clusterv1.Cluster{},
-			Machines: collections.FromMachines(m1, m2, m3),
+			Cluster:    &clusterv1.Cluster{},
+			Machines:   collections.FromMachines(m1, m2, m3),
+			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
@@ -1106,8 +1108,9 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					},
 				},
 			},
-			Cluster:  &clusterv1.Cluster{},
-			Machines: collections.FromMachines(m1, m2, m3),
+			Cluster:    &clusterv1.Cluster{},
+			Machines:   collections.FromMachines(m1, m2, m3),
+			EtcdLeader: &etcd.Member{Name: m2.Status.NodeRef.Name},
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
@@ -1164,8 +1167,9 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					},
 				},
 			},
-			Cluster:  &clusterv1.Cluster{},
-			Machines: collections.FromMachines(m1, m2, m3, m4),
+			Cluster:    &clusterv1.Cluster{},
+			Machines:   collections.FromMachines(m1, m2, m3, m4),
+			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
@@ -1222,8 +1226,9 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					},
 				},
 			},
-			Cluster:  &clusterv1.Cluster{},
-			Machines: collections.FromMachines(m1, m2, m3, m4),
+			Cluster:    &clusterv1.Cluster{},
+			Machines:   collections.FromMachines(m1, m2, m3, m4),
+			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
@@ -1256,51 +1261,6 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(m1.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
-
-		removeFinalizer(g, m1)
-		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4)).To(Succeed())
-	})
-	t.Run("Remediation fails gracefully if no healthy Control Planes are available to become etcd leader", func(t *testing.T) {
-		g := NewWithT(t)
-
-		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
-		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember(), withHealthyK8sControlPlane())
-		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember(), withHealthyK8sControlPlane())
-		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember(), withHealthyK8sControlPlane())
-
-		controlPlane := &internal.ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](4),
-					Version:  "v1.19.1",
-				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
-				},
-			},
-			Cluster:  &clusterv1.Cluster{},
-			Machines: collections.FromMachines(m1, m2, m3, m4),
-		}
-		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
-
-		r := &KubeadmControlPlaneReconciler{
-			Client:            env.GetClient(),
-			recorder:          record.NewFakeRecorder(32),
-			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
-		}
-		controlPlane.InjectTestManagementCluster(r.managementCluster)
-
-		_, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
-
-		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.RemediationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning,
-			"A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to. Skipping remediation")
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
-			"KubeadmControlPlane can't remediate this Machine because there is no healthy Machine to forward etcd leadership to")
 
 		removeFinalizer(g, m1)
 		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4)).To(Succeed())
@@ -1546,8 +1506,9 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 					},
 				},
 			},
-			Cluster:  &clusterv1.Cluster{},
-			Machines: collections.FromMachines(m1, m2),
+			Cluster:    &clusterv1.Cluster{},
+			Machines:   collections.FromMachines(m1, m2),
+			EtcdLeader: &etcd.Member{Name: m1.Name},
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
@@ -1564,8 +1525,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
@@ -1662,8 +1623,9 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 					},
 				},
 			},
-			Cluster:  &clusterv1.Cluster{},
-			Machines: collections.FromMachines(m1, m2, m3),
+			Cluster:    &clusterv1.Cluster{},
+			Machines:   collections.FromMachines(m1, m2, m3),
+			EtcdLeader: &etcd.Member{Name: m1.Name},
 		}
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
@@ -2740,7 +2702,6 @@ func withWaitBeforeDeleteFinalizer() machineOption {
 		machine.Finalizers = []string{"wait-before-delete"}
 	}
 }
-
 func getMachine(namespace, name string, options ...machineOption) *clusterv1.Machine {
 	m := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{

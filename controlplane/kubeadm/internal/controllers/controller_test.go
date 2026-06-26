@@ -3232,6 +3232,212 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 	}
 }
 
+func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
+	now := time.Now()
+	m := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "m",
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{Name: "m"},
+		},
+	}
+	mWithoutNode := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "m-without-node",
+		},
+	}
+	mWithDeletionTimestamp := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "m-with-deletion-timestamp",
+			DeletionTimestamp: new(metav1.Now()),
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{Name: "m-with-deletion-timestamp"},
+		},
+	}
+	mNewest := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "m-newest",
+			CreationTimestamp: metav1.Time{Time: now},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{Name: "m-newest"},
+			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionTrue},
+			},
+		},
+	}
+	mEtcdUnhealthy := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "m-etcd-unhealthy",
+			CreationTimestamp: metav1.Time{Time: now},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{Name: "m-etcd-unhealthy"},
+			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse},
+				{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionTrue},
+			},
+		},
+	}
+	mMHCUnhealthy := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "m-mhc-unhealthy",
+			CreationTimestamp: metav1.Time{Time: now},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{Name: "m-mhc-unhealthy"},
+			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionFalse},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionTrue},
+			},
+		},
+	}
+	mNotUpToDate := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "m-not-up-to-date",
+			CreationTimestamp: metav1.Time{Time: now},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{Name: "m-not-up-to-date"},
+			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
+			},
+		},
+	}
+	mOldest := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "m-oldest",
+			CreationTimestamp: metav1.Time{Time: now.Add(-time.Hour)},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{Name: "m-oldest"},
+			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionTrue},
+			},
+		},
+	}
+
+	r := &KubeadmControlPlaneReconciler{}
+
+	tests := []struct {
+		name              string
+		controlPlane      *internal.ControlPlane
+		deletingMachine   *clusterv1.Machine
+		moveLeaderError   error
+		wantErrMessage    string
+		wantTryCandidates []string
+	}{
+		{
+			name: "fails to forward leadership if etcd leader is not set",
+			controlPlane: &internal.ControlPlane{
+				EtcdLeader: nil,
+			},
+			deletingMachine: m,
+			wantErrMessage:  "unable to move leadership, control plane has no etcd leader",
+		},
+		{
+			name: "no op if deleting machine does not have a node",
+			controlPlane: &internal.ControlPlane{
+				EtcdLeader: &etcd.Member{Name: m.Status.NodeRef.Name},
+			},
+			deletingMachine: mWithoutNode,
+		},
+		{
+			name: "no op if deleting machine is not the current leader",
+			controlPlane: &internal.ControlPlane{
+				EtcdLeader: &etcd.Member{Name: m.Status.NodeRef.Name},
+			},
+			deletingMachine: mNewest,
+		},
+		{
+			name: "fails if no candidate nodes are found",
+			controlPlane: &internal.ControlPlane{
+				Machines: collections.FromMachines(
+					m,
+					mWithoutNode,
+					mWithDeletionTimestamp,
+				),
+				EtcdLeader: &etcd.Member{Name: m.Status.NodeRef.Name},
+			},
+			deletingMachine: m,
+			wantErrMessage:  "unable to move leadership, no candidate machines found",
+		},
+		{
+			name: "tries candidate machines in the expected order",
+			controlPlane: &internal.ControlPlane{
+				Machines: collections.FromMachines(
+					m,
+					mWithoutNode,
+					mWithDeletionTimestamp,
+					mNewest,
+					mEtcdUnhealthy,
+					mMHCUnhealthy,
+					mNotUpToDate,
+					mOldest,
+				),
+				EtcdLeader: &etcd.Member{Name: m.Status.NodeRef.Name},
+			},
+			moveLeaderError: errors.New("failed to forward leadership"),
+			deletingMachine: m,
+			wantTryCandidates: []string{
+				"m-newest",         // etcd heathy, mhc healthy, up-to-date, newest machine
+				"m-oldest",         // etcd heathy, mhc healthy, up-to-date, oldest machine
+				"m-not-up-to-date", // etcd heathy, mhc healthy, not up-to-date
+				"m-mhc-unhealthy",  // etcd heathy, mhc unhealthy
+				"m-etcd-unhealthy", // etcd unhealthy
+			},
+			wantErrMessage: "failed to move leadership",
+		},
+		{
+			name: "forward leadership",
+			controlPlane: &internal.ControlPlane{
+				Machines: collections.FromMachines(
+					m,
+					mNewest,
+					mOldest,
+				),
+				EtcdLeader: &etcd.Member{Name: m.Status.NodeRef.Name},
+			},
+			deletingMachine: m,
+			wantTryCandidates: []string{
+				"m-newest", // etcd heathy, mhc healthy, up-to-date, newest machine
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var tryCandidates []string
+			w := &fakeWorkloadCluster{
+				OverrideForwardEtcdLeadership: func(_ context.Context, _, leaderCandidate string) error {
+					tryCandidates = append(tryCandidates, leaderCandidate)
+					return tt.moveLeaderError
+				},
+			}
+			err := r.forwardEtcdLeadership(t.Context(), w, tt.controlPlane, tt.deletingMachine)
+			g.Expect(tryCandidates).To(Equal(tt.wantTryCandidates))
+			if tt.wantErrMessage != "" {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(Equal(tt.wantErrMessage))
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
 type fakeClusterCache struct {
 	clustercache.ClusterCache
 	lastProbeSuccessTime time.Time
@@ -3751,6 +3957,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 						return m
 					}(),
 				},
+				EtcdLeader: &etcd.Member{Name: deletingMachineWithKCPPreTerminateHook.Status.NodeRef.Name},
 			},
 			wantForwardEtcdLeadershipCalled: 1,
 			wantRemoveEtcdMemberCalled:      1,
@@ -3821,7 +4028,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 			},
 		},
 		{
-			name: "Skip forward etcd leadership (no other non-deleting Machine), remove member and remove pre-terminate hook if > 1 CP Machines && Etcd is managed",
+			name: "Fails if no candidate for forwarding etcd leadership exists",
 			controlPlane: &internal.ControlPlane{
 				Cluster: cluster,
 				KCP: &controlplanev1.KubeadmControlPlane{
@@ -3846,12 +4053,11 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 						return m
 					}(),
 				},
+				EtcdLeader: &etcd.Member{Name: deletingMachineWithKCPPreTerminateHook.Status.NodeRef.Name},
 			},
-			wantForwardEtcdLeadershipCalled: 0, // skipped as there is no non-deleting Machine to forward to.
-			wantRemoveEtcdMemberCalled:      1,
-			wantResult:                      ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantErr: "failed to move leadership to candidate machines: unable to move leadership, no candidate machines found",
 			wantMachineAnnotations: map[string]map[string]string{
-				deletingMachineWithKCPPreTerminateHook.Name:        nil,                                                // pre-terminate hook has been removed
+				deletingMachineWithKCPPreTerminateHook.Name:        deletingMachineWithKCPPreTerminateHook.Annotations, // unchanged
 				deletingMachineWithKCPPreTerminateHook.Name + "-2": deletingMachineWithKCPPreTerminateHook.Annotations, // unchanged
 			},
 		},

@@ -40,6 +40,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -177,6 +178,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 		setMachineHealthy(&bothMachines.Items[i])
 	}
 	controlPlane.Machines = collections.FromMachineList(bothMachines)
+	controlPlane.EtcdLeader = &etcd.Member{Name: controlPlane.Machines.UnsortedList()[0].Name}
 
 	machinesRequireUpgrade := collections.Machines{}
 	for i := range bothMachines.Items {
@@ -280,6 +282,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	// run upgrade, expect we scale down
 	needingUpgrade := collections.FromMachineList(machineList)
 	controlPlane.Machines = needingUpgrade
+	controlPlane.EtcdLeader = &etcd.Member{Name: controlPlane.Machines.UnsortedList()[0].Name}
 	machinesUpToDateResults := map[string]internal.UpToDateResult{}
 	for _, m := range needingUpgrade {
 		machinesUpToDateResults[m.Name] = internal.UpToDateResult{EligibleForInPlaceUpdate: false}

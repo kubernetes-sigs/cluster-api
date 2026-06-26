@@ -22,14 +22,12 @@ import (
 	"github.com/pkg/errors"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
 )
 
 type etcdClientFor interface {
 	forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error)
-	forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error)
 }
 
 // UpdateEtcdLocalInKubeadmConfigMap sets etcd local configuration in the kubeadm config map.
@@ -93,22 +91,10 @@ func (w *Workload) RemoveEtcdMember(ctx context.Context, m *etcd.Member, nodes [
 }
 
 // ForwardEtcdLeadership forwards etcd leadership to the first follower.
-func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine, nodes []*Node) error {
-	if machine == nil || !machine.Status.NodeRef.IsDefined() {
-		return nil
-	}
-	if leaderCandidate == nil {
-		return errors.New("leader candidate cannot be nil")
-	}
-	if !leaderCandidate.Status.NodeRef.IsDefined() {
-		return errors.New("leader candidate has no node reference")
-	}
-
-	nodeNames := make([]string, 0, len(nodes))
-	for _, node := range nodes {
-		nodeNames = append(nodeNames, node.Name)
-	}
-	etcdClient, err := w.etcdClientGenerator.forLeader(ctx, nodeNames)
+func (w *Workload) ForwardEtcdLeadership(ctx context.Context, fromMember, toMember string) error {
+	// Move etcd member has to be called on the current etcd leader, so create a client on the corresponding node.
+	// Note: This works on the assumption that member name is equal to the node name (kubeadm).
+	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{fromMember})
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd client")
 	}
@@ -119,19 +105,19 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 		return errors.Wrap(err, "failed to list etcd members using etcd client")
 	}
 
-	currentMember := etcdutil.MemberForName(members, machine.Status.NodeRef.Name)
+	currentMember := etcdutil.MemberForName(members, fromMember)
 	if currentMember == nil || currentMember.ID != etcdClient.LeaderID {
-		// nothing to do, this is not the etcd leader
+		// nothing to do, member is not the leader
 		return nil
 	}
 
 	// Move the leader to the provided candidate.
-	nextLeader := etcdutil.MemberForName(members, leaderCandidate.Status.NodeRef.Name)
+	nextLeader := etcdutil.MemberForName(members, toMember)
 	if nextLeader == nil {
-		return errors.Errorf("failed to get etcd member from node %q", leaderCandidate.Status.NodeRef.Name)
+		return errors.Errorf("failed to get etcd member for leader candidate %q", toMember)
 	}
 	if err := etcdClient.MoveLeader(ctx, nextLeader.ID); err != nil {
-		return errors.Wrapf(err, "failed to move leader")
+		return errors.Wrap(err, "failed to move leader")
 	}
 	return nil
 }

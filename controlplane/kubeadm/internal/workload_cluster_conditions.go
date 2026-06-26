@@ -91,8 +91,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 	}
 
 	// Update etcd member healthy conditions for provisioning machines (machines without a node yet, and thus without a matching etcd member).
-	provisioningMachines := controlPlane.Machines.Filter(collections.Not(collections.HasNode()))
-	for _, machine := range provisioningMachines {
+	for _, machine := range controlPlane.Machines.Filter(collections.Not(collections.HasNode())) {
 		var msg string
 		if machine.Spec.ProviderID != "" {
 			// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
@@ -125,10 +124,11 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 	// Update etcd member healthy conditions for machines not provisioning or deleting.
 	// This is implemented by reading info about members and alarms from etcd.
 	machinesNotProvisioningOrDeleting := controlPlane.Machines.Filter(collections.And(collections.HasNode(), collections.Not(collections.HasDeletionTimestamp)))
-	currentMembers, alarms, err := w.getCurrentEtcdMembersAndAlarms(ctx, machinesNotProvisioningOrDeleting, controlPlane.Nodes)
+	currentMembers, etcdLeader, alarms, err := w.getCurrentEtcdMembersAndAlarms(ctx, machinesNotProvisioningOrDeleting, controlPlane.Nodes)
 	if err == nil {
 		controlPlane.EtcdMembers = currentMembers
 		controlPlane.EtcdMembersAlarms = alarms
+		controlPlane.EtcdLeader = etcdLeader
 
 		for _, machine := range machinesNotProvisioningOrDeleting {
 			// Retrieve the member hosted on the machine.
@@ -242,12 +242,12 @@ func unwrapAll(err error) error {
 // getCurrentEtcdMembersAndAlarms returns the current list of etcd member and alarms.
 // Considering that the underlying etcd SDK calls (MemberList and AlarmList) requires quorum across all etcd members, it is possible
 // to run those calls towards any etcd Pod hosting an etcd member.
-func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines collections.Machines, nodes []*Node) ([]*etcd.Member, []etcd.MemberAlarm, error) {
+func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines collections.Machines, nodes []*Node) ([]*etcd.Member, *etcd.Member, []etcd.MemberAlarm, error) {
 	// Get the list of nodes hosting an etcd member sorted by the last known etcd health,
 	// so the client generator in the following line will try to connect first to nodes with higher chance to answer.
 	nodeNames := getNodeNamesSortedByLastKnownEtcdHealth(nodes, machines)
 	if len(nodeNames) == 0 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	// Create the etcd Client for one of the etcd Pods running on the given nodes.
@@ -263,7 +263,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 				Message: fmt.Sprintf("Failed to connect to etcd: %s", unwrapAll(err)),
 			})
 		}
-		return nil, nil, errors.Wrapf(err, "failed to get an etcd client for %s Nodes", strings.Join(nodeNames, ","))
+		return nil, nil, nil, errors.Wrapf(err, "failed to get an etcd client for %s Nodes", strings.Join(nodeNames, ","))
 	}
 	defer etcdClient.Close()
 
@@ -279,7 +279,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 				Message: fmt.Sprintf("Etcd endpoint %s reports errors: %s", etcdClient.Endpoint, strings.Join(etcdClient.Errors, ", ")),
 			})
 		}
-		return nil, nil, errors.Errorf("etcd endpoint %s reports errors: %s", etcdClient.Endpoint, strings.Join(etcdClient.Errors, ", "))
+		return nil, nil, nil, errors.Errorf("etcd endpoint %s reports errors: %s", etcdClient.Endpoint, strings.Join(etcdClient.Errors, ", "))
 	}
 
 	// Gets the list of etcd members in the cluster.
@@ -295,7 +295,18 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 				Message: fmt.Sprintf("Failed to get etcd members: %s", unwrapAll(err)),
 			})
 		}
-		return nil, nil, errors.Wrapf(err, "failed to get etcd members")
+		return nil, nil, nil, errors.Wrapf(err, "failed to get etcd members")
+	}
+
+	var etcdLeader *etcd.Member
+	for _, m := range currentMembers {
+		if m.ID == etcdClient.LeaderID {
+			etcdLeader = m
+			break
+		}
+	}
+	if etcdLeader == nil {
+		return nil, nil, nil, errors.Errorf("failed to get etcd leader")
 	}
 
 	// Gets the list of etcd alarms.
@@ -311,10 +322,10 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 				Message: fmt.Sprintf("Failed to get etcd alarms: %s", unwrapAll(err)),
 			})
 		}
-		return nil, nil, errors.Wrapf(err, "failed to get etcd alarms")
+		return nil, nil, nil, errors.Wrapf(err, "failed to get etcd alarms")
 	}
 
-	return currentMembers, alarms, nil
+	return currentMembers, etcdLeader, alarms, nil
 }
 
 // getNodeNamesSortedByLastKnownEtcdHealth return the list of nodes hosting an etcd member sorted by the last known etcd health.

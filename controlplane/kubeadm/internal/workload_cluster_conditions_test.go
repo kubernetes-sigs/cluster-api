@@ -68,7 +68,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(_ []string) (*etcd.Client, error) {
+				clientFunc: func(_ []string) (*etcd.Client, error) {
 					callCount++
 					return nil, errors.New("fake error")
 				},
@@ -89,7 +89,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(_ []string) (*etcd.Client, error) {
+				clientFunc: func(_ []string) (*etcd.Client, error) {
 					callCount++
 					return nil, errors.New("fake error")
 				},
@@ -110,7 +110,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(_ []string) (*etcd.Client, error) {
+				clientFunc: func(_ []string) (*etcd.Client, error) {
 					callCount++
 					return &etcd.Client{
 						EtcdClient: &fake2.FakeEtcdClient{
@@ -171,6 +171,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 		expectedMachineConditions                 map[string][]metav1.Condition
 		expectedEtcdMembers                       []string
 		expectedEtcdMembersAndMachinesAreMatching bool
+		expectedEtcdLeader                        *etcd.Member
 	}{
 		{
 			name: "if list nodes return an error should report all the conditions Unknown",
@@ -196,6 +197,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				},
 			},
 			expectedEtcdMembersAndMachinesAreMatching: false, // without reading nodes, we can not make assumptions.
+			expectedEtcdLeader:                        nil,   // without reading nodes, we can not make assumptions.
 		},
 		{
 			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2 (without providerID)",
@@ -222,6 +224,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				},
 			},
 			expectedEtcdMembersAndMachinesAreMatching: true, // there is a single provisioning machine, member list not yet available (too early to say members and machines do not match).
+			expectedEtcdLeader:                        nil,  // there is a single provisioning machine, member list not yet available.
 		},
 		{
 			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2 (with providerID)",
@@ -248,6 +251,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				},
 			},
 			expectedEtcdMembersAndMachinesAreMatching: true,
+			expectedEtcdLeader:                        nil, // there is a single provisioning machine, member list not yet available.
 		},
 		{
 			name: "failure creating the etcd client should report unknown condition",
@@ -258,7 +262,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesErr: errors.New("something went wrong"),
+				err: errors.New("something went wrong"),
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.UnknownCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterUnknownV1Beta1Reason, "Following Machines are reporting unknown etcd member status: m1"),
 			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
@@ -279,6 +283,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				},
 			},
 			expectedEtcdMembersAndMachinesAreMatching: false, // failure in reading members, we can not make assumptions.
+			expectedEtcdLeader:                        nil,   // failure in reading members, we can not make assumptions.
 		},
 		{
 			name: "etcd client reporting status errors should be reflected into a false condition",
@@ -289,7 +294,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClient: &etcd.Client{
+				client: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						EtcdEndpoints: []string{},
 					},
@@ -316,6 +321,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				},
 			},
 			expectedEtcdMembersAndMachinesAreMatching: false, // without reading members, we can not make assumptions.
+			expectedEtcdLeader:                        nil,   // without reading members, we can not make assumptions.
 		},
 		{
 			name: "failure listing members should report false condition in v1beta1, unknown in v1beta2",
@@ -326,7 +332,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClient: &etcd.Client{
+				client: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						EtcdEndpoints:   []string{},
 						MemberListError: errors.New("something went wrong"),
@@ -352,6 +358,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				},
 			},
 			expectedEtcdMembersAndMachinesAreMatching: false, // without reading members, we can not make assumptions.
+			expectedEtcdLeader:                        nil,   // without reading members, we can not make assumptions.
 		},
 		{
 			name: "an etcd member in learner mode should be reported",
@@ -362,7 +369,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClient: &etcd.Client{
+				client: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						EtcdEndpoints: []string{},
 						MemberListResponse: &clientv3.MemberListResponse{
@@ -374,6 +381,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 							Alarms: []*pb.AlarmMember{},
 						},
 					},
+					LeaderID: uint64(1),
 				},
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
@@ -396,6 +404,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			},
 			expectedEtcdMembers:                       []string{"n1"},
 			expectedEtcdMembersAndMachinesAreMatching: true,
+			expectedEtcdLeader:                        &etcd.Member{ID: uint64(1), Name: "n1", IsLearner: true},
 		},
 		{
 			name: "an etcd member with alarms should report false condition",
@@ -406,7 +415,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClient: &etcd.Client{
+				client: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						EtcdEndpoints: []string{},
 						MemberListResponse: &clientv3.MemberListResponse{
@@ -420,6 +429,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 							},
 						},
 					},
+					LeaderID: uint64(1),
 				},
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
@@ -442,6 +452,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			},
 			expectedEtcdMembers:                       []string{"n1"},
 			expectedEtcdMembersAndMachinesAreMatching: true,
+			expectedEtcdLeader:                        &etcd.Member{ID: uint64(1), Name: "n1"},
 		},
 		{
 			name: "a machine without a member should report false condition",
@@ -454,7 +465,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeNode("n2"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(nodeNames []string) (*etcd.Client, error) {
+				clientFunc: func(nodeNames []string) (*etcd.Client, error) {
 					var errs []error
 					for _, n := range nodeNames {
 						switch n {
@@ -475,6 +486,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 										Alarms: []*pb.AlarmMember{},
 									},
 								},
+								LeaderID: uint64(1),
 							}, nil
 						default:
 							errs = append(errs, errors.New("no client for this node"))
@@ -509,6 +521,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			},
 			expectedEtcdMembers:                       []string{"n1"},
 			expectedEtcdMembersAndMachinesAreMatching: false,
+			expectedEtcdLeader:                        &etcd.Member{ClusterID: 1, ID: uint64(1), Name: "n1"},
 		},
 		{
 			name: "healthy etcd members should report true",
@@ -521,7 +534,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeNode("n2"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(nodeNames []string) (*etcd.Client, error) {
+				clientFunc: func(nodeNames []string) (*etcd.Client, error) {
 					var errs []error
 					for _, n := range nodeNames {
 						switch n {
@@ -542,6 +555,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 										Alarms: []*pb.AlarmMember{},
 									},
 								},
+								LeaderID: uint64(1),
 							}, nil
 						case "n2":
 							return &etcd.Client{
@@ -560,6 +574,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 										Alarms: []*pb.AlarmMember{},
 									},
 								},
+								LeaderID: uint64(1),
 							}, nil
 						default:
 							errs = append(errs, errors.New("no client for this node"))
@@ -592,6 +607,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			},
 			expectedEtcdMembers:                       []string{"n1", "n2"},
 			expectedEtcdMembersAndMachinesAreMatching: true,
+			expectedEtcdLeader:                        &etcd.Member{ClusterID: 1, ID: uint64(1), Name: "n1"},
 		},
 		{
 			name: "etcd members without a name when there are no provisioning machines should be reported",
@@ -604,7 +620,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeNode("n2"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				forNodesClientFunc: func(nodeNames []string) (*etcd.Client, error) {
+				clientFunc: func(nodeNames []string) (*etcd.Client, error) {
 					var errs []error
 					for _, n := range nodeNames {
 						switch n {
@@ -626,6 +642,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 										Alarms: []*pb.AlarmMember{},
 									},
 								},
+								LeaderID: uint64(1),
 							}, nil
 						case "n2":
 							return &etcd.Client{
@@ -645,6 +662,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 										Alarms: []*pb.AlarmMember{},
 									},
 								},
+								LeaderID: uint64(1),
 							}, nil
 						default:
 							errs = append(errs, errors.New("no client for this node"))
@@ -678,6 +696,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			},
 			expectedEtcdMembers:                       []string{"n1", "n2", ""},
 			expectedEtcdMembersAndMachinesAreMatching: false,
+			expectedEtcdLeader:                        &etcd.Member{ClusterID: 1, ID: uint64(1), Name: "n1"},
 		},
 	}
 	for _, tt := range tests {
@@ -713,6 +732,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			}
 
 			g.Expect(controlPane.EtcdMembersAndMachinesAreMatching).To(Equal(tt.expectedEtcdMembersAndMachinesAreMatching), "EtcdMembersAndMachinesAreMatching does not match")
+			g.Expect(controlPane.EtcdLeader).To(Equal(tt.expectedEtcdLeader), "EtcdLeader does not match")
 
 			var membersNames []string
 			for _, m := range controlPane.EtcdMembers {

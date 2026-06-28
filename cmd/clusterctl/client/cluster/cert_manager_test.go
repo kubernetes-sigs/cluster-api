@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -207,6 +208,15 @@ func Test_GetTimeout(t *testing.T) {
 }
 
 func Test_shouldUpgrade(t *testing.T) {
+	g := NewWithT(t)
+	certManagerObjs, err := utilyaml.ToUnstructured(certManagerDeploymentYaml)
+	g.Expect(err).ToNot(HaveOccurred())
+	certManagerObjs = addCerManagerAnnotations(certManagerObjs, config.CertManagerDefaultVersion)
+
+	overriddenCertManagerObjs, err := utilyaml.ToUnstructured([]byte(strings.ReplaceAll(string(certManagerDeploymentYaml), "quay.io/jetstack/cert-manager:v1.1.0", "myorg.io/local-repo/cert-manager:v1.1.0")))
+	g.Expect(err).ToNot(HaveOccurred())
+	overriddenCertManagerObjs = addCerManagerAnnotations(overriddenCertManagerObjs, config.CertManagerDefaultVersion)
+
 	type args struct {
 		objs []unstructured.Unstructured
 	}
@@ -216,6 +226,7 @@ func Test_shouldUpgrade(t *testing.T) {
 		args               args
 		wantFromVersion    string
 		hasDiffInstallObjs bool
+		installObjs        []unstructured.Unstructured
 		want               bool
 		wantErr            bool
 	}{
@@ -375,6 +386,17 @@ func Test_shouldUpgrade(t *testing.T) {
 			wantErr:            false,
 		},
 		{
+			name:          "Version is equal, but should upgrade because images differ",
+			configVersion: config.CertManagerDefaultVersion,
+			args: args{
+				objs: certManagerObjs,
+			},
+			wantFromVersion: config.CertManagerDefaultVersion,
+			installObjs:     overriddenCertManagerObjs,
+			want:            true,
+			wantErr:         false,
+		},
+		{
 			name:          "Version is older, should upgrade",
 			configVersion: config.CertManagerDefaultVersion,
 			args: args{
@@ -455,6 +477,9 @@ func Test_shouldUpgrade(t *testing.T) {
 				installObjs = make([]unstructured.Unstructured, len(tt.args.objs))
 				copy(installObjs, tt.args.objs)
 				installObjs = append(installObjs, unstructured.Unstructured{})
+			}
+			if tt.installObjs != nil {
+				installObjs = tt.installObjs
 			}
 
 			fromVersion, got, err := cm.shouldUpgrade(tt.configVersion, tt.args.objs, installObjs)

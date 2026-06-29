@@ -303,8 +303,11 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:   "v1.33.0",
-			WorkloadKubernetesVersion:   "v1.33.0",
+			// Note: Using v1.34.0 instead of v1.33.0 because we are getting the following error with containerd with the
+			//       v1.33.0 image and then afterward kubelet cannot communicate with containerd anymore:
+			//       > Jun 24 23:17:18.106114 clusterctl-upgrade-workload-2mklrf-lg6pq-tskhm systemd[1]: containerd.service: Main process exited, code=dumped, status=11/SEGV
+			InitWithKubernetesVersion:   "v1.34.0",
+			WorkloadKubernetesVersion:   "v1.34.0",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: false, // Using false for one test case to ensure this code path of the test keeps working.

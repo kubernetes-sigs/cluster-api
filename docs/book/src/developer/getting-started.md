@@ -65,7 +65,7 @@ You'll need to [install `kubebuilder`][kubebuilder].
 
 ### Envsubst
 
-You'll need [`envsubst`][envsubst] to handle variable substitution in manifests. 
+You'll need [`envsubst`][envsubst] to handle variable substitution in manifests.
 
 The GNU `gettext` version of `envsubst` does not support default values, so you must use the `drone/envsubst` version.
 
@@ -80,7 +80,7 @@ go install github.com/drone/envsubst/v2/cmd/envsubst@latest
 You'll need to deploy [cert-manager] components on your [management cluster][mcluster], using `kubectl`
 
 ```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.2/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.3/cert-manager.yaml
 ```
 
 Ensure the cert-manager webhook service is ready before creating the Cluster API components.

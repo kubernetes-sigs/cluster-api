@@ -707,9 +707,10 @@ func (p *clusterProxy) isInMemoryCluster(ctx context.Context, namespace, name st
 		Name:      name,
 		Namespace: namespace,
 	}
-	if err := cl.Get(ctx, key, cluster); err != nil {
-		return false
-	}
+
+	Eventually(func() error {
+		return cl.Get(ctx, key, cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
 
 	if !cluster.Spec.InfrastructureRef.IsDefined() || cluster.Spec.InfrastructureRef.Kind != "DevCluster" {
 		return false
@@ -793,7 +794,11 @@ func (d *inMemoryDialer) DialContext(ctx context.Context, addr string) (net.Conn
 		return nil, fmt.Errorf("no capd-controller-manager pod found on the management cluster")
 	}
 
-	// Use the first manager pod
+	// We assume exactly one CAPD controller manager pod.
+	if len(podList.Items) > 1 {
+		return nil, fmt.Errorf("expected exactly 1 capd-controller-manager pod, got %d", len(podList.Items))
+	}
+
 	capdevPod := podList.Items[0]
 
 	log.Logf("Port-forwarding to CAPDev pod %s in namespace %s on port %d", capdevPod.Name, capdevPod.Namespace, apiPort)

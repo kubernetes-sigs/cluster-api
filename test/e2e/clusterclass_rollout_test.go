@@ -21,6 +21,9 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", Label("ClusterClass"), func() {
@@ -38,6 +41,15 @@ var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", Label("Clu
 			// the actual service.
 			ExtensionServiceNamespace: "test-extension-system",
 			ExtensionServiceName:      "test-extension-webhook-service",
+			FilterMetadataBeforeValidation: func(object client.Object) clusterv1.ObjectMeta {
+				annotations := object.GetAnnotations()
+				delete(annotations, "inmemorycluster.infrastructure.cluster.x-k8s.io/listener")
+				delete(annotations, "machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped")
+				return clusterv1.ObjectMeta{
+					Labels:      object.GetLabels(),
+					Annotations: annotations,
+				}
+			},
 		}
 	})
 })

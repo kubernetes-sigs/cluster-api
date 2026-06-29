@@ -583,7 +583,7 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 
 		// InfrastructureCluster
 		By("Checking InfrastructureCluster object has the right labels, annotations and selectors")
-		assertInfrastructureCluster(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
+		assertInfrastructureCluster(g, clusterClassObjects, clusterObjects, cluster, clusterClass, filterMetadataBeforeValidation)
 
 		// ControlPlane
 		controlPlaneContractVersion, err := contract.GetContractVersionForVersion(ctx, clusterProxy.GetClient(), clusterObjects.ControlPlane.GroupVersionKind().GroupKind(), clusterObjects.ControlPlane.GroupVersionKind().Version)
@@ -609,11 +609,12 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 	}, 30*time.Second, 1*time.Second).Should(Succeed())
 }
 
-func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass, filterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta) {
 	ccInfrastructureClusterTemplateTemplateMetadata := mustMetadata(contract.InfrastructureClusterTemplate().Template().Metadata().Get(clusterClassObjects.InfrastructureClusterTemplate))
+	infraClusterMetadata := filterMetadataBeforeValidation(clusterObjects.InfrastructureCluster)
 
 	// InfrastructureCluster.metadata
-	expectMapsToBeEquivalent(g, clusterObjects.InfrastructureCluster.GetLabels(),
+	expectMapsToBeEquivalent(g, infraClusterMetadata.Labels,
 		union(
 			map[string]string{
 				clusterv1.ClusterNameLabel:          cluster.Name,
@@ -622,7 +623,7 @@ func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjec
 			ccInfrastructureClusterTemplateTemplateMetadata.Labels,
 		),
 	)
-	expectMapsToBeEquivalent(g, clusterObjects.InfrastructureCluster.GetAnnotations(),
+	expectMapsToBeEquivalent(g, infraClusterMetadata.Annotations,
 		union(
 			map[string]string{
 				clusterv1.TemplateClonedFromGroupKindAnnotation: clusterClass.Spec.Infrastructure.TemplateRef.GroupVersionKind().GroupKind().String(),
@@ -630,8 +631,6 @@ func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjec
 			},
 			ccInfrastructureClusterTemplateTemplateMetadata.Annotations,
 		),
-		// Ignore InMemory listener annotation.
-		"inmemorycluster.infrastructure.cluster.x-k8s.io/listener",
 	)
 }
 
@@ -741,8 +740,6 @@ func assertControlPlaneMachines(g Gomega, clusterObjects ClusterObjects, cluster
 				machineMetadata.Annotations,
 			).without(g, controlplanev1.PreTerminateHookCleanupAnnotation),
 			controlPlaneMachineTemplateMetadata.Annotations,
-			// Ignore InMemory specific annotations.
-			"machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped",
 		)
 
 		// ControlPlane Machine InfrastructureMachine.metadata
@@ -781,8 +778,6 @@ func assertControlPlaneMachines(g Gomega, clusterObjects ClusterObjects, cluster
 				controlPlaneMachineTemplateMetadata.Annotations,
 				controlPlaneInfrastructureMachineTemplateTemplateMetadata.Annotations,
 			),
-			// Ignore InMemory specific annotations.
-			"machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped",
 		)
 
 		// ControlPlane Machine BootstrapConfig.metadata
@@ -1135,8 +1130,6 @@ func assertMachineSetsMachines(g Gomega, clusterObjects ClusterObjects, cluster 
 				)
 				expectMapsToBeEquivalent(g, machineMetadata.Annotations,
 					machineSet.Spec.Template.Annotations,
-					// Ignore InMemory specific annotations.
-					"machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped",
 				)
 
 				// MachineDeployment MachineSet Machine InfrastructureMachine.metadata
@@ -1165,8 +1158,6 @@ func assertMachineSetsMachines(g Gomega, clusterObjects ClusterObjects, cluster 
 						machineSet.Spec.Template.Annotations,
 						infrastructureMachineTemplateTemplateMetadata.Annotations,
 					),
-					// Ignore InMemory specific annotations.
-					"machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped",
 				)
 
 				// MachineDeployment MachineSet Machine BootstrapConfig.metadata

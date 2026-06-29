@@ -108,16 +108,20 @@ func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Si
 // CreateSecret creates the Kubeconfig secret for the given cluster.
 func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, options ...KubeConfigOption) error {
 	name := util.ObjectKey(cluster)
+	var metadata *clusterv1.ObjectMeta
+	if cluster.Spec.Kubeconfig != nil {
+		metadata = &cluster.Spec.Kubeconfig.Metadata
+	}
 	return CreateSecretWithOwner(ctx, c, name, cluster.Spec.ControlPlaneEndpoint.String(), metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
-	}, options...)
+	}, metadata, options...)
 }
 
 // CreateSecretWithOwner creates the Kubeconfig secret for the given cluster name, namespace, endpoint, and owner reference.
-func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, owner metav1.OwnerReference, options ...KubeConfigOption) error {
+func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, owner metav1.OwnerReference, metadata *clusterv1.ObjectMeta, options ...KubeConfigOption) error {
 	server, err := url.JoinPath("https://", endpoint)
 	if err != nil {
 		return err
@@ -127,23 +131,27 @@ func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName cli
 		return err
 	}
 
-	return c.Create(ctx, GenerateSecretWithOwner(clusterName, out, owner))
+	return c.Create(ctx, GenerateSecretWithOwner(clusterName, out, owner, metadata))
 }
 
 // GenerateSecret returns a Kubernetes secret for the given Cluster and kubeconfig data.
 func GenerateSecret(cluster *clusterv1.Cluster, data []byte) *corev1.Secret {
 	name := util.ObjectKey(cluster)
+	var metadata *clusterv1.ObjectMeta
+	if cluster.Spec.Kubeconfig != nil {
+		metadata = &cluster.Spec.Kubeconfig.Metadata
+	}
 	return GenerateSecretWithOwner(name, data, metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
-	})
+	}, metadata)
 }
 
 // GenerateSecretWithOwner returns a Kubernetes secret for the given Cluster name, namespace, kubeconfig data, and ownerReference.
-func GenerateSecretWithOwner(clusterName client.ObjectKey, data []byte, owner metav1.OwnerReference) *corev1.Secret {
-	return &corev1.Secret{
+func GenerateSecretWithOwner(clusterName client.ObjectKey, data []byte, owner metav1.OwnerReference, metadata *clusterv1.ObjectMeta) *corev1.Secret {
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 			Namespace: clusterName.Namespace,
@@ -159,6 +167,28 @@ func GenerateSecretWithOwner(clusterName client.ObjectKey, data []byte, owner me
 		},
 		Type: clusterv1.ClusterSecretType,
 	}
+
+	// Apply custom metadata if provided
+	if metadata != nil {
+		if metadata.Labels != nil {
+			if secret.Labels == nil {
+				secret.Labels = make(map[string]string)
+			}
+			for k, v := range metadata.Labels {
+				secret.Labels[k] = v
+			}
+		}
+		if metadata.Annotations != nil {
+			if secret.Annotations == nil {
+				secret.Annotations = make(map[string]string)
+			}
+			for k, v := range metadata.Annotations {
+				secret.Annotations[k] = v
+			}
+		}
+	}
+
+	return secret
 }
 
 // NeedsClientCertRotation returns whether any of the Kubeconfig secret's client certificates will expire before the given threshold.

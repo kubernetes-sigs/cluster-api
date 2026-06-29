@@ -196,6 +196,47 @@ func TestGenerateSecretWithOwner(t *testing.T) {
 		},
 		[]byte(validKubeConfig),
 		owner,
+		nil,
+	)
+
+	g.Expect(kubeconfigSecret).NotTo(BeNil())
+	g.Expect(kubeconfigSecret).To(BeComparableTo(expectedSecret))
+}
+
+func TestGenerateSecretWithOwnerWithMetadata(t *testing.T) {
+	g := NewWithT(t)
+
+	owner := metav1.OwnerReference{
+		Name:       "test1",
+		Kind:       "Cluster",
+		APIVersion: clusterv1.GroupVersion.String(),
+	}
+
+	metadata := &clusterv1.ObjectMeta{
+		Labels: map[string]string{
+			"custom-label": "custom-value",
+		},
+		Annotations: map[string]string{
+			"custom-annotation": "custom-value",
+		},
+	}
+
+	expectedSecret := validSecret.DeepCopy()
+	expectedSecret.SetOwnerReferences([]metav1.OwnerReference{owner})
+	expectedSecret.Labels["custom-label"] = "custom-value"
+	expectedSecret.Labels[clusterv1.ClusterNameLabel] = "test1" // Ensure cluster name label is preserved
+	expectedSecret.Annotations = map[string]string{
+		"custom-annotation": "custom-value",
+	}
+
+	kubeconfigSecret := GenerateSecretWithOwner(
+		client.ObjectKey{
+			Name:      "test1",
+			Namespace: "test",
+		},
+		[]byte(validKubeConfig),
+		owner,
+		metadata,
 	)
 
 	g.Expect(kubeconfigSecret).NotTo(BeNil())
@@ -266,6 +307,7 @@ func TestCreateSecretWithOwner(t *testing.T) {
 		},
 		"localhost:6443",
 		owner,
+		nil,
 	)
 
 	g.Expect(err).ToNot(HaveOccurred())
@@ -321,6 +363,7 @@ func TestCreateSecretWithOwnerHasEndpointPrefixIsSlush(t *testing.T) {
 		},
 		"/localhost:6443",
 		owner,
+		nil,
 	)
 
 	g.Expect(err).ToNot(HaveOccurred())

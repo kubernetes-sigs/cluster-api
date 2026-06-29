@@ -61,6 +61,11 @@ type Helper struct {
 	// DeletionTimeStamp > N seconds. This can be used e.g. when a Node is unreachable
 	// and the Pods won't drain because of that.
 	SkipWaitForDeleteTimeoutSeconds int
+
+	// DisableEviction forces the drain to use Pod deletion instead of the Eviction API.
+	// This bypasses PodDisruptionBudgets. This should be used when a Node is unreachable
+	// and Pods are not actually running, so PDB protection is not meaningful.
+	DisableEviction bool
 }
 
 // CordonNode cordons a Node.
@@ -431,11 +436,17 @@ func minDrainOrderOfPodsToDrain(pds []PodDelete) int32 {
 }
 
 // evictPod evicts the given Pod, or return an error if it couldn't.
+// When DisableEviction is set, it uses direct Pod deletion instead of the
+// Eviction API, bypassing PodDisruptionBudgets.
 func (d *Helper) evictPod(ctx context.Context, pod *corev1.Pod) error {
 	delOpts := metav1.DeleteOptions{}
 	if d.GracePeriodSeconds >= 0 {
 		gracePeriodSeconds := int64(d.GracePeriodSeconds)
 		delOpts.GracePeriodSeconds = &gracePeriodSeconds
+	}
+
+	if d.DisableEviction {
+		return d.RemoteClient.Delete(ctx, pod, &client.DeleteOptions{Raw: &delOpts})
 	}
 
 	eviction := &policyv1.Eviction{

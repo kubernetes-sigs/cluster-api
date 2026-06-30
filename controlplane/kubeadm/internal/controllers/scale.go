@@ -145,9 +145,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 			return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable to forward etcd leadership")
 		}
 
-		etcdLeaderCandidate := controlPlane.Machines.Newest()
-		if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToDelete, etcdLeaderCandidate, controlPlane.Nodes); err != nil {
-			log.Error(err, "Failed to move leadership to candidate machine", "candidate", etcdLeaderCandidate.Name)
+		if err := r.forwardEtcdLeadership(ctx, workloadCluster, controlPlane, machineToDelete); err != nil {
 			return ctrl.Result{}, err
 		}
 

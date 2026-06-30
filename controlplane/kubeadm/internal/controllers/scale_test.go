@@ -38,6 +38,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -266,9 +267,11 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		machines := map[string]*clusterv1.Machine{
 			"one": machine("one"),
+			"two": machine("two"),
 		}
 		setMachineHealthy(machines["one"])
-		fakeClient := newFakeClient(machines["one"])
+		setMachineHealthy(machines["two"])
+		fakeClient := newFakeClient(machines["one"], machines["two"])
 
 		r := &KubeadmControlPlaneReconciler{
 			controller:                      capicontrollerutil.NewFakeController(),
@@ -289,9 +292,10 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		}
 		setKCPHealthy(kcp)
 		controlPlane := &internal.ControlPlane{
-			KCP:      kcp,
-			Cluster:  cluster,
-			Machines: machines,
+			KCP:        kcp,
+			Cluster:    cluster,
+			Machines:   machines,
+			EtcdLeader: &etcd.Member{Name: "one"},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
@@ -303,7 +307,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
-		g.Expect(controlPlaneMachines.Items).To(BeEmpty())
+		g.Expect(controlPlaneMachines.Items).To(HaveLen(1))
 	})
 	t.Run("deletes the oldest control plane Machine even if preflight checks fails", func(t *testing.T) {
 		g := NewWithT(t)
@@ -342,9 +346,10 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			},
 		}
 		controlPlane := &internal.ControlPlane{
-			KCP:      kcp,
-			Cluster:  cluster,
-			Machines: machines,
+			KCP:        kcp,
+			Cluster:    cluster,
+			Machines:   machines,
+			EtcdLeader: &etcd.Member{Name: "one"},
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 

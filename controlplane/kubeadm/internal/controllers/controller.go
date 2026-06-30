@@ -1490,13 +1490,8 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	// Note: In regular deletion cases (remediation, scale down) the leader should have been already moved.
 	// We're doing this again here in case the Machine became leader again or the Machine deletion was
 	// triggered in another way (e.g. a user running kubectl delete machine)
-	etcdLeaderCandidate := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp)).Newest()
-	if etcdLeaderCandidate != nil {
-		if err := workloadCluster.ForwardEtcdLeadership(ctx, deletingMachine, etcdLeaderCandidate, controlPlane.Nodes); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to move leadership to candidate Machine %s", etcdLeaderCandidate.Name)
-		}
-	} else {
-		log.Info("Skip forwarding etcd leadership, there is no other control plane Machine without a deletionTimestamp")
+	if err := r.forwardEtcdLeadership(ctx, workloadCluster, controlPlane, deletingMachine); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// Note: Removing the etcd member will lead to the etcd and the kube-apiserver Pod on the Machine shutting down.
@@ -1521,6 +1516,97 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 
 	log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+}
+
+func (r *KubeadmControlPlaneReconciler) forwardEtcdLeadership(ctx context.Context, workloadCluster internal.WorkloadCluster, controlPlane *internal.ControlPlane, deletingMachine *clusterv1.Machine) error {
+	log := ctrl.LoggerFrom(ctx)
+	if controlPlane.EtcdLeader == nil {
+		return errors.New("unable to move etcd leadership, failed to detect etcd leader")
+	}
+
+	// No-op if the deleting machine not yet provisioned (we cannot infer the etcd member name yet).
+	if deletingMachine.Status.NodeRef.Name == "" {
+		return nil
+	}
+
+	// No-op if the deleting machine is not the current etcd leader.
+	// Note: This works on the assumption that member name is equal to the node name (kubeadm).
+	if deletingMachine.Status.NodeRef.Name != controlPlane.EtcdLeader.Name {
+		return nil
+	}
+
+	// Get candidate machines
+	candidateMachines := getCandidatesForEtcdLeadership(controlPlane.Machines, deletingMachine)
+	if len(candidateMachines) == 0 {
+		return errors.New("unable to move etcd leadership, no candidate machines for etcd leadership found")
+	}
+
+	// Try to move leadership to one of the candidateMachines.
+	for _, m := range candidateMachines {
+		if err := workloadCluster.ForwardEtcdLeadership(ctx, deletingMachine.Status.NodeRef.Name, m.Status.NodeRef.Name); err != nil {
+			log.Error(err, "Failed to move etcd leadership", "currentLeaderMachine", klog.KObj(deletingMachine), "candidateLeaderMachine", klog.KObj(m))
+			continue
+		}
+		log.Info("Moved etcd leadership", "previousLeaderMachine", klog.KObj(deletingMachine), "newLeaderMachine", klog.KObj(m))
+		return nil
+	}
+	return errors.New("failed to move etcd leadership")
+}
+
+func getCandidatesForEtcdLeadership(machines collections.Machines, deletingMachine *clusterv1.Machine) []*clusterv1.Machine {
+	// Pick candidate machines to be used as a target to forward leadership to.
+	candidateMachines := machines.Filter(collections.And(
+		// Machines with a Node (core requirement to reach etcd)
+		collections.HasNode(),
+		// Machines not deleting (the corresponding etcd member might go away any moment)
+		// Note: When this function is called, there should never be a machine with deletion timestamp set other than the deletingMachine
+		// unless a manual deletion on a Machine has been performed.
+		collections.Not(collections.HasDeletionTimestamp)),
+		// The deletingMachine must be excluded from the list
+		collections.Not(func(machine *clusterv1.Machine) bool {
+			if machine == nil {
+				return true
+			}
+			return machine.Name == deletingMachine.Name && machine.Namespace == deletingMachine.Namespace
+		}),
+	).UnsortedList()
+
+	// Sort candidates so we can get the "most reliable" candidate first.
+	sort.Slice(candidateMachines, func(i, j int) bool {
+		// If one of the machine's etcd member is unhealthy, it should go last (forward leadership might fail).
+		etcdHealthyI := conditions.IsTrue(candidateMachines[i], controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition)
+		etcdHealthyJ := conditions.IsTrue(candidateMachines[j], controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition)
+		if etcdHealthyI && !etcdHealthyJ {
+			return true
+		}
+		if !etcdHealthyI && etcdHealthyJ {
+			return false
+		}
+
+		// If both machine's etcd member are in the same state, if one of the machine's is marked unhealthy by MHC, it should go last (it will be remediated soon).
+		mhcHealthyI := conditions.IsTrue(candidateMachines[i], clusterv1.MachineHealthCheckSucceededCondition)
+		mhcHealthyJ := conditions.IsTrue(candidateMachines[j], clusterv1.MachineHealthCheckSucceededCondition)
+		if mhcHealthyI && !mhcHealthyJ {
+			return true
+		}
+		if !mhcHealthyI && mhcHealthyJ {
+			return false
+		}
+
+		// If both machine's etcd member and unhealthy by MHC are in the same state, if one of the machine's is not up-to-date, it should go last (it will be rolled out soon).
+		upToDateI := conditions.IsTrue(candidateMachines[i], clusterv1.MachineUpToDateCondition)
+		upToDateJ := conditions.IsTrue(candidateMachines[j], clusterv1.MachineUpToDateCondition)
+		if upToDateI && !upToDateJ {
+			return true
+		}
+		if !upToDateI && upToDateJ {
+			return false
+		}
+
+		// If both machine's etcd member, unhealthy by MHC and UpToDate conditions are in the same state, pick the newest machine first.
+		return candidateMachines[j].CreationTimestamp.Before(&candidateMachines[i].CreationTimestamp)
+	})
+	return candidateMachines
 }
 
 func machineHasOtherPreTerminateHooks(machine *clusterv1.Machine) bool {

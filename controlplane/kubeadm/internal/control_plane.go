@@ -92,6 +92,7 @@ type ControlPlane struct {
 	EtcdMembers                       []*etcd.Member
 	EtcdMembersAndMachinesAreMatching bool
 	EtcdMembersAlarms                 []etcd.MemberAlarm
+	EtcdLeader                        *etcd.Member
 
 	managementCluster ManagementCluster
 	workloadCluster   WorkloadCluster

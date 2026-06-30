@@ -302,44 +302,21 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			return ctrl.Result{}, nil
 		}
 
-		// Start remediating the unhealthy control plane machine by deleting it.
-		// A new machine will come up completing the operation as part of the regular reconcile.
-
-		// If the control plane is initialized, before deleting the machine:
-		// - if the machine hosts the etcd leader, forward etcd leadership to another machine.
-		// - delete the etcd member hosted on the machine being deleted.
-		// - remove the etcd member from the kubeadm config map (only for kubernetes version older than v1.22.0)
-		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
-		if err != nil {
-			log.Error(err, "Failed to create client to workload cluster")
-			return ctrl.Result{}, errors.Wrapf(err, "failed to create client to workload cluster")
-		}
-
 		// If the machine that is about to be deleted is the etcd leader, move it to the newest member available.
 		if controlPlane.IsEtcdManaged() {
-			etcdLeaderCandidate := controlPlane.HealthyMachines().Newest()
-			if etcdLeaderCandidate == nil {
-				log.Info("A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to")
-				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.RemediationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning,
-					"A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to. Skipping remediation")
-
-				conditions.Set(machineToBeRemediated, metav1.Condition{
-					Type:    clusterv1.MachineOwnerRemediatedCondition,
-					Status:  metav1.ConditionFalse,
-					Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
-					Message: "KubeadmControlPlane can't remediate this Machine because there is no healthy Machine to forward etcd leadership to",
-				})
-				return ctrl.Result{}, nil
+			workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
+			if err != nil {
+				log.Error(err, "Failed to create client to workload cluster")
+				return ctrl.Result{}, errors.Wrapf(err, "failed to create client to workload cluster")
 			}
-			if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToBeRemediated, etcdLeaderCandidate, controlPlane.Nodes); err != nil {
-				log.Error(err, "Failed to move etcd leadership to candidate machine", "candidate", klog.KObj(etcdLeaderCandidate))
+			if err := r.forwardEtcdLeadership(ctx, workloadCluster, controlPlane, machineToBeRemediated); err != nil {
 				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.RemediationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 
 				conditions.Set(machineToBeRemediated, metav1.Condition{
 					Type:    clusterv1.MachineOwnerRemediatedCondition,
 					Status:  metav1.ConditionFalse,
-					Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationInternalErrorReason,
-					Message: "Please check controller logs for errors",
+					Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
+					Message: err.Error(),
 				})
 				return ctrl.Result{}, err
 			}
@@ -348,7 +325,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		}
 	}
 
-	// Delete the machine (waiting for cache to observe the deletion at the end of this func, so everything in between is always executed)
+	// Start remediating the unhealthy control plane machine by deleting it.
+	// A new machine will come up completing the operation as part of the regular reconcile.
 	if deletedMachine, err := r.machineClientWithDeleteResponse.Delete(ctx, machineToBeRemediated); err != nil {
 		v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.RemediationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 

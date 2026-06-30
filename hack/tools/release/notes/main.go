@@ -66,7 +66,6 @@ type notesCmdConfig struct {
 	previousReleaseVersion      string
 	prefixAreaLabel             bool
 	deprecation                 bool
-	skipConsistencyCheck        bool
 	addKubernetesVersionSupport bool
 }
 
@@ -84,7 +83,6 @@ func readCmdConfig() *notesCmdConfig {
 	flag.BoolVar(&config.prefixAreaLabel, "prefix-area-label", true, "If enabled, will prefix the area label.")
 	flag.BoolVar(&config.deprecation, "deprecation", true, "If enabled, will add a templated deprecation warning header.")
 	flag.BoolVar(&config.addKubernetesVersionSupport, "add-kubernetes-version-support", true, "If enabled, will add the Kubernetes version support header.")
-	flag.BoolVar(&config.skipConsistencyCheck, "skip-consistency-check", false, "If enabled, the tool will skip the check about consistency between PRs and commits from the git diff.")
 
 	flag.Parse()
 
@@ -129,7 +127,7 @@ func (cmd *notesCmd) run() error {
 	printer.printKubernetesSupport = cmd.config.addKubernetesVersionSupport
 
 	generator := newNotesGenerator(
-		newGithubFromToPRLister(cmd.config.repo, from, to, cmd.config.branch, cmd.config.skipConsistencyCheck),
+		newGithubFromToPRLister(cmd.config.repo, from, to, cmd.config.branch),
 		newPREntryProcessor(cmd.config.prefixAreaLabel),
 		printer,
 		newDependenciesProcessor(cmd.config.repo, from.value, to.value),

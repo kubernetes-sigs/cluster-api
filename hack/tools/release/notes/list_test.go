@@ -79,11 +79,12 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 
 func Test_githubFromToPRLister_listPRs(t *testing.T) {
 	tests := []struct {
-		name    string
-		lister  *githubFromToPRLister
-		args    ref
-		want    []pr
-		wantErr bool
+		name                 string
+		lister               *githubFromToPRLister
+		args                 ref
+		want                 []pr
+		wantConsistencyError []string
+		wantErr              bool
 	}{
 		{
 			name: "Successful PR Listing",
@@ -181,16 +182,33 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name: "Successful PR Listing",
+			lister: newGithubFromToPRListerWithClient(
+				newMockGithubClientWithConsistencyErrors(),
+				ref{reType: "tags", value: "v0.26.0"},
+				ref{reType: "tags", value: "v0.27.0"},
+				"main",
+			),
+			args: ref{
+				reType: "tags",
+				value:  "v0.26.0",
+			},
+			want:                 []pr{},
+			wantConsistencyError: []string{"PR number 1234 identified from commits, not found in the PR list"},
+			wantErr:              false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got, err := tt.lister.listPRs(tt.args)
+			got, gotConsistencyError, err := tt.lister.listPRs(tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("githubFromToPRLister.listPRs() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			g.Expect(got).To(Equal(tt.want))
+			g.Expect(gotConsistencyError).To(Equal(tt.wantConsistencyError))
 		})
 	}
 }

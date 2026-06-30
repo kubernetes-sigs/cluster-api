@@ -60,7 +60,7 @@ func newReleaseNotesPrinter(repo, fromTag string) *releaseNotesPrinter {
 }
 
 // print outputs to stdout the release notes.
-func (p *releaseNotesPrinter) print(entries []notesEntry, commitsInRelease int, dependencies string, previousReleaseRef ref) {
+func (p *releaseNotesPrinter) print(entries []notesEntry, commitsInRelease int, dependencies string, previousReleaseRef ref, consistencyErrors []string) {
 	merges := map[string][]string{
 		release.Features:      {},
 		release.Bugs:          {},
@@ -81,6 +81,14 @@ func (p *releaseNotesPrinter) print(entries []notesEntry, commitsInRelease int, 
 	if p.releaseType != "" && !isPreReleasePrinted {
 		fmt.Printf("🚨 This is a %s. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/%s/issues/new).\n", p.releaseType, p.repo)
 		isPreReleasePrinted = true
+	}
+
+	if len(consistencyErrors) > 0 {
+		fmt.Println("## FIXME: Consistency errors!")
+		for _, err := range consistencyErrors {
+			fmt.Println(err)
+		}
+		fmt.Println()
 	}
 
 	if p.releaseType != "" && previousReleaseRef.value == "" {

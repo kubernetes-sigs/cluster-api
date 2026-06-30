@@ -77,7 +77,7 @@ type healthCheckTarget struct {
 //
 // Returns true if remediation is needed, and a duration indicating when to recheck if remediation
 // is not immediately required. The target should be requeued after this duration.
-func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachineToHaveNode metav1.Duration) (bool, time.Duration) {
+func (t *healthCheckTarget) needsRemediation(logger logr.Logger, reconciliationTime time.Time, timeoutForMachineToHaveNode metav1.Duration) (bool, time.Duration) {
 	if annotations.HasRemediateMachine(t.Machine) {
 		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.HasRemediateMachineAnnotationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Marked for remediation via remediate-machine annotation")
 		logger.V(3).Info("Target is marked for remediation via remediate-machine annotation")
@@ -107,10 +107,10 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	}
 
 	// Check machine conditions
-	unhealthyMachineMessages, nextMachineCheck := t.machineChecks(logger)
+	unhealthyMachineMessages, nextMachineCheck := t.machineChecks(logger, reconciliationTime)
 
 	// Check node conditions
-	nodeConditionReason, nodeV1beta1ConditionReason, unhealthyNodeMessages, nextNodeCheck := t.nodeChecks(logger, timeoutForMachineToHaveNode)
+	nodeConditionReason, nodeV1beta1ConditionReason, unhealthyNodeMessages, nextNodeCheck := t.nodeChecks(logger, reconciliationTime, timeoutForMachineToHaveNode)
 
 	// Combine results
 	if len(unhealthyMachineMessages) == 0 && len(unhealthyNodeMessages) == 0 {
@@ -163,10 +163,9 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	return true, time.Duration(0)
 }
 
-func (t *healthCheckTarget) machineChecks(logger logr.Logger) ([]string, time.Duration) {
+func (t *healthCheckTarget) machineChecks(logger logr.Logger, reconciliationTime time.Time) ([]string, time.Duration) {
 	var unhealthyMachineMessages []string
 	var nextCheckTimes []time.Duration
-	now := time.Now()
 
 	// Always check machine conditions first, regardless of node state
 	for _, c := range t.MHC.Spec.Checks.UnhealthyMachineConditions {
@@ -182,7 +181,7 @@ func (t *healthCheckTarget) machineChecks(logger logr.Logger) ([]string, time.Du
 		// timeout, mark as unhealthy and collect the message.
 		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
 
-		if machineCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
+		if machineCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(reconciliationTime) {
 			unhealthyMachineMessages = append(unhealthyMachineMessages, fmt.Sprintf("Condition %s on Machine is reporting status %s with reason %s for more than %s",
 				c.Type, c.Status, machineCondition.Reason, timeoutSecondsDuration.String()))
 			logger.V(3).Info(fmt.Sprintf("Target is unhealthy: Machine condition is in unhealthy state more than %s", timeoutSecondsDuration.String()),
@@ -190,7 +189,7 @@ func (t *healthCheckTarget) machineChecks(logger logr.Logger) ([]string, time.Du
 			continue
 		}
 
-		durationUnhealthy := now.Sub(machineCondition.LastTransitionTime.Time)
+		durationUnhealthy := reconciliationTime.Sub(machineCondition.LastTransitionTime.Time)
 		nextCheck := timeoutSecondsDuration - durationUnhealthy + time.Second
 		if nextCheck > 0 {
 			nextCheckTimes = append(nextCheckTimes, nextCheck)
@@ -203,9 +202,8 @@ func (t *healthCheckTarget) machineChecks(logger logr.Logger) ([]string, time.Du
 	return nil, minDuration(nextCheckTimes)
 }
 
-func (t *healthCheckTarget) nodeChecks(logger logr.Logger, timeoutForMachineToHaveNode metav1.Duration) (string, string, []string, time.Duration) {
+func (t *healthCheckTarget) nodeChecks(logger logr.Logger, reconciliationTime time.Time, timeoutForMachineToHaveNode metav1.Duration) (string, string, []string, time.Duration) {
 	var nextCheckTimes []time.Duration
-	now := time.Now()
 
 	// Machine has Status.NodeRef set, although we couldn't find the node in the workload cluster.
 	if t.nodeMissing {
@@ -247,13 +245,13 @@ func (t *healthCheckTarget) nodeChecks(logger logr.Logger, timeoutForMachineToHa
 		logger.V(5).Info("Using comparison time", "time", comparisonTime)
 
 		timeoutDuration := timeoutForMachineToHaveNode.Duration
-		if comparisonTime.Add(timeoutForMachineToHaveNode.Duration).Before(now) {
+		if comparisonTime.Add(timeoutForMachineToHaveNode.Duration).Before(reconciliationTime) {
 			logger.V(3).Info("Target is unhealthy: machine has no node", "duration", timeoutDuration)
 			nodeTimeoutMessage := fmt.Sprintf("Node failed to report startup in %s", timeoutDuration)
 			return clusterv1.MachineHealthCheckNodeStartupTimeoutReason, clusterv1.NodeStartupTimeoutV1Beta1Reason, []string{nodeTimeoutMessage}, time.Duration(0)
 		}
 
-		durationUnhealthy := now.Sub(comparisonTime)
+		durationUnhealthy := reconciliationTime.Sub(comparisonTime)
 		nextCheck := timeoutDuration - durationUnhealthy + time.Second
 		return "", "", nil, nextCheck
 	}
@@ -273,7 +271,7 @@ func (t *healthCheckTarget) nodeChecks(logger logr.Logger, timeoutForMachineToHa
 		// timeout, mark as unhealthy and collect the message.
 		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
 
-		if nodeCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
+		if nodeCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(reconciliationTime) {
 			unhealthyNodeMessages = append(unhealthyNodeMessages, fmt.Sprintf("Condition %s on Node is reporting status %s with reason %s for more than %s",
 				c.Type, c.Status, nodeCondition.Reason, timeoutSecondsDuration.String()))
 			logger.V(3).Info(fmt.Sprintf("Target is unhealthy: Node condition is in unhealthy state more than %s", timeoutSecondsDuration.String()),
@@ -281,7 +279,7 @@ func (t *healthCheckTarget) nodeChecks(logger logr.Logger, timeoutForMachineToHa
 			continue
 		}
 
-		durationUnhealthy := now.Sub(nodeCondition.LastTransitionTime.Time)
+		durationUnhealthy := reconciliationTime.Sub(nodeCondition.LastTransitionTime.Time)
 		nextCheck := timeoutSecondsDuration - durationUnhealthy + time.Second
 		if nextCheck > 0 {
 			nextCheckTimes = append(nextCheckTimes, nextCheck)
@@ -384,7 +382,7 @@ func (r *Reconciler) getNodeFromMachine(ctx context.Context, clusterClient clien
 
 // healthCheckTargets health checks a slice of targets
 // and gives a data to measure the average health.
-func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, timeoutForMachineToHaveNode metav1.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration) {
+func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, reconciliationTime time.Time, timeoutForMachineToHaveNode metav1.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration) {
 	var nextCheckTimes []time.Duration
 	var unhealthy []healthCheckTarget
 	var healthy []healthCheckTarget
@@ -392,7 +390,7 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 	for _, t := range targets {
 		logger := logger.WithValues("Machine", klog.KObj(t.Machine), "Node", klog.KObj(t.Node))
 		logger.V(3).Info("Health checking target")
-		needsRemediation, nextCheck := t.needsRemediation(logger, timeoutForMachineToHaveNode)
+		needsRemediation, nextCheck := t.needsRemediation(logger, reconciliationTime, timeoutForMachineToHaveNode)
 
 		if needsRemediation {
 			unhealthy = append(unhealthy, t)

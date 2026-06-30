@@ -156,3 +156,10 @@ func newMockGithubClientForInvalidRef() *mockGithubClient {
 	mock.diffError = fmt.Errorf("invalid ref")
 	return mock
 }
+
+// newMockGithubClientWithConsistencyErrors creates a mock client that simulates consistency errors.
+func newMockGithubClientWithConsistencyErrors() *mockGithubClient {
+	mock := newMockGithubClient()
+	mock.prsResponse = nil
+	return mock
+}

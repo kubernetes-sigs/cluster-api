@@ -24,8 +24,6 @@ import (
 	"log"
 	"regexp"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // githubFromToPRLister lists PRs from GitHub contained between two refs.
@@ -34,17 +32,15 @@ type githubFromToPRLister struct {
 	fromRef, toRef ref
 	// branch is optional. It helps optimize the PR query by restricting
 	// the results to PRs merged in the selected branch and in main
-	branch               string
-	skipConsistencyCheck bool
+	branch string
 }
 
-func newGithubFromToPRLister(repo string, fromRef, toRef ref, branch string, skipConsistencyCheck bool) *githubFromToPRLister {
+func newGithubFromToPRLister(repo string, fromRef, toRef ref, branch string) *githubFromToPRLister {
 	return &githubFromToPRLister{
-		client:               &githubClient{repo: repo},
-		fromRef:              fromRef,
-		toRef:                toRef,
-		branch:               branch,
-		skipConsistencyCheck: skipConsistencyCheck,
+		client:  &githubClient{repo: repo},
+		fromRef: fromRef,
+		toRef:   toRef,
+		branch:  branch,
 	}
 }
 
@@ -56,7 +52,7 @@ func newGithubFromToPRLister(repo string, fromRef, toRef ref, branch string, ski
 // between fromRef and toRef, discarding any PR not seeing in the commits list.
 // This ensures we don't include any PR merged in the same date range that
 // doesn't belong to our git timeline.
-func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, error) {
+func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, []string, error) {
 	var (
 		diff *githubDiff
 		err  error
@@ -69,13 +65,13 @@ func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, error) {
 		diff, err = l.client.getDiffAllCommits(l.fromRef.value, l.toRef.value)
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Printf("Reading ref %s for upper limit", l.toRef)
 	toRef, err := l.client.getRef(l.toRef.String())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var toCommitSHA string
@@ -83,7 +79,7 @@ func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, error) {
 		log.Printf("Reading tag info %s for upper limit", toRef.Object.SHA)
 		toTag, err := l.client.getTag(toRef.Object.SHA)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		toCommitSHA = toTag.Object.SHA
 	} else {
@@ -93,7 +89,7 @@ func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, error) {
 	log.Printf("Reading commit %s for upper limit", toCommitSHA)
 	toCommit, err := l.client.getCommit(toCommitSHA)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	fromDate := diff.MergeBaseCommit.Commit.Committer.Date
@@ -109,7 +105,7 @@ func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, error) {
 	// need the PRs from other release branches.
 	gPRs, err := l.client.listMergedPRs(fromDate, toDate, l.branch, "main")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Printf("Found %d PRs in github", len(gPRs))
@@ -136,20 +132,18 @@ func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, error) {
 	}
 
 	// Report consistency problems
+	var consistencyErrors []string
 	for sp, found := range selectedPRNumbers {
 		if found {
 			continue
 		}
+		consistencyErrors = append(consistencyErrors, fmt.Sprintf("PR number %s identified from commits, not found in the PR list", sp))
 		log.Printf("PR number %s identified from commits, not found in the PR list", sp)
 	}
 
 	log.Printf("%d PRs match the commits from the git diff", len(prs))
 
-	if len(prs) != len(selectedPRNumbers) && !l.skipConsistencyCheck {
-		return nil, errors.Errorf("expected %d PRs from commit list but only found %d", len(selectedPRNumbers), len(prs))
-	}
-
-	return prs, nil
+	return prs, consistencyErrors, nil
 }
 
 var (

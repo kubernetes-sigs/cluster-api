@@ -1504,6 +1504,7 @@ clusterctl generate cluster --infrastructure vcd --list-variables capi-quickstar
 ```bash
 export CLUSTER_NAME=kind
 export CLUSTER_NAMESPACE=vcluster
+export VCLUSTER_YAML=""
 export KUBERNETES_VERSION=1.23.4
 export HELM_VALUES="service:\n  type: NodePort"
 ```
@@ -1605,6 +1606,7 @@ Note: If you want to use MachinePools use flavor `development-mp`.
 ```bash
 export CLUSTER_NAME=kind
 export CLUSTER_NAMESPACE=vcluster
+export VCLUSTER_YAML=""
 export KUBERNETES_VERSION=1.31.2
 export HELM_VALUES="service:\n  type: NodePort"
 
@@ -1612,7 +1614,7 @@ kubectl create namespace ${CLUSTER_NAMESPACE}
 clusterctl generate cluster ${CLUSTER_NAME} \
     --infrastructure vcluster \
     --kubernetes-version ${KUBERNETES_VERSION} \
-    --target-namespace ${CLUSTER_NAMESPACE} | kubectl apply -f -
+    --target-namespace ${CLUSTER_NAMESPACE} > capi-quickstart.yaml
 ```
 
 {{#/tab }}

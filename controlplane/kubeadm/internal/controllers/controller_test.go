@@ -3343,7 +3343,7 @@ func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
 				EtcdLeader: nil,
 			},
 			deletingMachine: m,
-			wantErrMessage:  "unable to move leadership, control plane has no etcd leader",
+			wantErrMessage:  "unable to move etcd leadership, failed to detect etcd leader",
 		},
 		{
 			name: "no op if deleting machine does not have a node",
@@ -3370,7 +3370,7 @@ func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
 				EtcdLeader: &etcd.Member{Name: m.Status.NodeRef.Name},
 			},
 			deletingMachine: m,
-			wantErrMessage:  "unable to move leadership, no candidate machines found",
+			wantErrMessage:  "unable to move etcd leadership, no candidate machines for etcd leadership found",
 		},
 		{
 			name: "tries candidate machines in the expected order",
@@ -3396,7 +3396,7 @@ func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
 				"m-mhc-unhealthy",  // etcd heathy, mhc unhealthy
 				"m-etcd-unhealthy", // etcd unhealthy
 			},
-			wantErrMessage: "failed to move leadership",
+			wantErrMessage: "failed to move etcd leadership",
 		},
 		{
 			name: "forward leadership",

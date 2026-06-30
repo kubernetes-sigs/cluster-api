@@ -1521,7 +1521,7 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 func (r *KubeadmControlPlaneReconciler) forwardEtcdLeadership(ctx context.Context, workloadCluster internal.WorkloadCluster, controlPlane *internal.ControlPlane, deletingMachine *clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	if controlPlane.EtcdLeader == nil {
-		return errors.New("unable to move leadership, control plane has no etcd leader")
+		return errors.New("unable to move etcd leadership, failed to detect etcd leader")
 	}
 
 	// No-op if the deleting machine not yet provisioned (we cannot infer the etcd member name yet).
@@ -1538,7 +1538,7 @@ func (r *KubeadmControlPlaneReconciler) forwardEtcdLeadership(ctx context.Contex
 	// Get candidate machines
 	candidateMachines := getCandidatesForEtcdLeadership(controlPlane.Machines, deletingMachine)
 	if len(candidateMachines) == 0 {
-		return errors.New("unable to move leadership, no candidate machines found")
+		return errors.New("unable to move etcd leadership, no candidate machines for etcd leadership found")
 	}
 
 	// Try to move leadership to one of the candidateMachines.
@@ -1547,10 +1547,10 @@ func (r *KubeadmControlPlaneReconciler) forwardEtcdLeadership(ctx context.Contex
 			log.Error(err, "Failed to move etcd leadership", "currentLeaderMachine", klog.KObj(deletingMachine), "candidateLeaderMachine", klog.KObj(m))
 			continue
 		}
-		log.Info("Moved etcd leadership", "currentLeaderMachine", klog.KObj(deletingMachine), "candidateLeaderMachine", klog.KObj(m))
+		log.Info("Moved etcd leadership", "previousLeaderMachine", klog.KObj(deletingMachine), "newLeaderMachine", klog.KObj(m))
 		return nil
 	}
-	return errors.New("failed to move leadership")
+	return errors.New("failed to move etcd leadership")
 }
 
 func getCandidatesForEtcdLeadership(machines collections.Machines, deletingMachine *clusterv1.Machine) []*clusterv1.Machine {
@@ -1565,7 +1565,7 @@ func getCandidatesForEtcdLeadership(machines collections.Machines, deletingMachi
 		// The deletingMachine must be excluded from the list
 		collections.Not(func(machine *clusterv1.Machine) bool {
 			if machine == nil {
-				return false
+				return true
 			}
 			return machine.Name == deletingMachine.Name && machine.Namespace == deletingMachine.Namespace
 		}),

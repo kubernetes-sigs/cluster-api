@@ -265,9 +265,13 @@ func TestHealthCheckTargets(t *testing.T) {
 		},
 	}
 
+	// Truncating with 1s because e.g. conditions.Set also truncates to 1s. So truncating here makes the test cases
+	// below easier to reason through.
+	now := time.Now().Truncate(1 * time.Second)
+
 	testMachine := newTestMachine("machine1", namespace, clusterName, "node1", mhcSelector)
 	testMachineWithInfraReady := testMachine.DeepCopy()
-	testMachineWithInfraReady.CreationTimestamp = metav1.NewTime(time.Now().Add(-100 * time.Second))
+	testMachineWithInfraReady.CreationTimestamp = metav1.NewTime(now.Add(-100 * time.Second))
 	conditions.Set(testMachineWithInfraReady, metav1.Condition{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionTrue, LastTransitionTime: metav1.NewTime(testMachineWithInfraReady.CreationTimestamp.Add(50 * time.Second))})
 
 	nodeNotYetStartedTargetAndInfraReady := healthCheckTarget{
@@ -279,7 +283,7 @@ func TestHealthCheckTargets(t *testing.T) {
 
 	// Targets for when the node has not yet been seen by the Machine controller
 	testMachineCreated1200s := testMachine.DeepCopy()
-	nowMinus1200s := metav1.NewTime(time.Now().Add(-1200 * time.Second))
+	nowMinus1200s := metav1.NewTime(now.Add(-1200 * time.Second))
 	testMachineCreated1200s.CreationTimestamp = nowMinus1200s
 
 	nodeNotYetStartedTarget1200s := healthCheckTarget{
@@ -292,7 +296,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	nodeNotYetStartedTarget1200sV1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckNodeStartupTimeoutReason, "Health check failed:\n  * Node failed to report startup in %s", timeoutForMachineToHaveNode)
 
 	testMachineCreated400s := testMachine.DeepCopy()
-	nowMinus400s := metav1.NewTime(time.Now().Add(-400 * time.Second))
+	nowMinus400s := metav1.NewTime(now.Add(-400 * time.Second))
 	testMachineCreated400s.CreationTimestamp = nowMinus400s
 
 	nodeNotYetStartedTarget400s := healthCheckTarget{
@@ -362,7 +366,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 
 	// Target for when the node has been in an unknown state for shorter than the timeout
-	testNodeUnknown200 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, "NodeStatusUnknown", 200*time.Second)
+	testNodeUnknown200 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, "NodeStatusUnknown", now, 200*time.Second)
 	nodeUnknown200 := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
@@ -372,7 +376,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 
 	// Second Target for when the node has been in an unknown state for shorter than the timeout
-	testNodeUnknown100 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, "NodeStatusUnknown", 100*time.Second)
+	testNodeUnknown100 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, "NodeStatusUnknown", now, 100*time.Second)
 	nodeUnknown100 := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
@@ -382,7 +386,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 
 	// Target for when the node has been in an unknown state for longer than the timeout
-	testNodeUnknown400 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, "NodeStatusUnknown", 400*time.Second)
+	testNodeUnknown400 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, "NodeStatusUnknown", now, 400*time.Second)
 	nodeUnknown400 := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
@@ -405,7 +409,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 
 	// Machine unhealthy for shorter than timeout
-	testMachineUnhealthy200 := newTestUnhealthyMachine("machine1", namespace, clusterName, "node1", mhcSelector, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachinePodFailedReason, 200*time.Second)
+	testMachineUnhealthy200 := newTestUnhealthyMachine("machine1", namespace, clusterName, "node1", mhcSelector, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachinePodFailedReason, now, 200*time.Second)
 	machineUnhealthy200 := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
@@ -415,7 +419,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 
 	// Machine unhealthy for longer than timeout
-	testMachineUnhealthy400 := newTestUnhealthyMachine("machine1", namespace, clusterName, "node1", mhcSelector, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachinePodFailedReason, 400*time.Second)
+	testMachineUnhealthy400 := newTestUnhealthyMachine("machine1", namespace, clusterName, "node1", mhcSelector, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachinePodFailedReason, now, 400*time.Second)
 	machineUnhealthy400 := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
@@ -463,14 +467,14 @@ func TestHealthCheckTargets(t *testing.T) {
 			targets:                  []healthCheckTarget{nodeNotYetStartedTarget400s},
 			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{},
-			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode - 400*time.Second},
+			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode - 400*time.Second + 1*time.Second},
 		},
 		{
 			desc:                     "when the node has not yet started for shorter than the timeout, and infra is ready",
 			targets:                  []healthCheckTarget{nodeNotYetStartedTargetAndInfraReady},
 			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{},
-			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode - 50*time.Second},
+			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode - 50*time.Second + 1*time.Second},
 		},
 		{
 			desc:                                     "when the node has not yet started for longer than the timeout",
@@ -495,7 +499,7 @@ func TestHealthCheckTargets(t *testing.T) {
 			targets:                  []healthCheckTarget{nodeUnknown200},
 			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{},
-			expectedNextCheckTimes:   []time.Duration{100 * time.Second},
+			expectedNextCheckTimes:   []time.Duration{100*time.Second + 1*time.Second},
 		},
 		{
 			desc:                                     "when the node has been in an unknown state for longer than the timeout",
@@ -511,7 +515,7 @@ func TestHealthCheckTargets(t *testing.T) {
 			targets:                  []healthCheckTarget{machineUnhealthy200},
 			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{},
-			expectedNextCheckTimes:   []time.Duration{100 * time.Second}, // 300s timeout - 200s elapsed = 100s remaining
+			expectedNextCheckTimes:   []time.Duration{100*time.Second + 1*time.Second}, // 300s timeout - 200s elapsed + 1s = 100s remaining
 		},
 		{
 			desc:                                     "when the machine condition has been unhealthy for longer than the timeout",
@@ -536,7 +540,7 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediation:                 []healthCheckTarget{nodeUnknown400},
 			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeUnknown400Condition},
 			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeUnknown400V1Beta2Condition},
-			expectedNextCheckTimes:                   []time.Duration{200 * time.Second, 100 * time.Second},
+			expectedNextCheckTimes:                   []time.Duration{200*time.Second + 1*time.Second, 100*time.Second + 1*time.Second},
 		},
 		{
 			desc:                        "when the node has not started for a long time but the startup timeout is disabled",
@@ -589,17 +593,7 @@ func TestHealthCheckTargets(t *testing.T) {
 				timeout.Duration = *tc.timeoutForMachineToHaveNode
 			}
 
-			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), timeout)
-
-			// Round durations down to nearest second account for minute differences
-			// in timing when running tests
-			roundDurations := func(in []time.Duration) []time.Duration {
-				out := []time.Duration{}
-				for _, d := range in {
-					out = append(out, d.Truncate(time.Second))
-				}
-				return out
-			}
+			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), now, timeout)
 
 			// Remove the last transition time of the given conditions. Used for comparison with expected conditions.
 			removeLastTransitionTimes := func(in clusterv1.Conditions) clusterv1.Conditions {
@@ -624,7 +618,7 @@ func TestHealthCheckTargets(t *testing.T) {
 
 			gs.Expect(healthy).To(ConsistOf(tc.expectedHealthy))
 			gs.Expect(unhealthy).To(ConsistOf(tc.expectedNeedsRemediation))
-			gs.Expect(nextCheckTimes).To(WithTransform(roundDurations, ConsistOf(tc.expectedNextCheckTimes)))
+			gs.Expect(nextCheckTimes).To(ConsistOf(tc.expectedNextCheckTimes))
 			for i, expectedMachineCondition := range tc.expectedNeedsRemediationCondition {
 				actualConditions := unhealthy[i].Machine.GetV1Beta1Conditions()
 				conditionsMatcher := WithTransform(removeLastTransitionTimes, ContainElements(expectedMachineCondition))
@@ -681,7 +675,7 @@ func newTestNode(name string) *corev1.Node {
 	}
 }
 
-func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, status corev1.ConditionStatus, reason string, unhealthyDuration time.Duration) *corev1.Node {
+func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, status corev1.ConditionStatus, reason string, now time.Time, unhealthyDuration time.Duration) *corev1.Node {
 	return &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -693,14 +687,14 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 					Type:               condition,
 					Status:             status,
 					Reason:             reason,
-					LastTransitionTime: metav1.NewTime(time.Now().Add(-unhealthyDuration)),
+					LastTransitionTime: metav1.NewTime(now.Add(-unhealthyDuration)),
 				},
 			},
 		},
 	}
 }
 
-func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labels map[string]string, condition string, status metav1.ConditionStatus, reason string, unhealthyDuration time.Duration) *clusterv1.Machine {
+func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labels map[string]string, condition string, status metav1.ConditionStatus, reason string, now time.Time, unhealthyDuration time.Duration) *clusterv1.Machine {
 	// Copy the labels so that the map is unique to each test Machine
 	l := make(map[string]string)
 	for k, v := range labels {
@@ -727,7 +721,7 @@ func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labe
 					Type:               condition,
 					Status:             status,
 					Reason:             reason,
-					LastTransitionTime: metav1.NewTime(time.Now().Add(-unhealthyDuration)),
+					LastTransitionTime: metav1.NewTime(now.Add(-unhealthyDuration)),
 				},
 			},
 			Initialization: clusterv1.MachineInitializationStatus{

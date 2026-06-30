@@ -280,7 +280,8 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	}
 
 	// health check all targets and reconcile mhc status
-	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, metav1.Duration{Duration: time.Duration(*nodeStartupTimeout) * time.Second})
+	reconciliationTime := time.Now()
+	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, reconciliationTime, metav1.Duration{Duration: time.Duration(*nodeStartupTimeout) * time.Second})
 	m.Status.CurrentHealthy = ptr.To(int32(len(healthy)))
 
 	// check MHC current health against UnhealthyLessThanOrEqualTo

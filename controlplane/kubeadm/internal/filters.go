@@ -35,10 +35,18 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
+const (
+	// CertificateExpiryRolloutLogMessage is the log message used when a machine is marked for rollout due to certificate expiry.
+	CertificateExpiryRolloutLogMessage = "certificates will expire soon, rolloutBefore expired"
+)
+
 // UpToDateResult is the result of calling the UpToDate func for a Machine.
 type UpToDateResult struct {
 	LogMessages              []string
 	ConditionMessages        []string
+	// CertificateExpiryRollout is true if the machine is marked for rollout because its certificates are about to expire
+	// (i.e. rollout.before applies).
+	CertificateExpiryRollout bool
 	EligibleForInPlaceUpdate bool
 	DesiredMachine           *clusterv1.Machine
 	CurrentInfraMachine      *unstructured.Unstructured
@@ -77,7 +85,8 @@ func UpToDate(
 
 	// Machines whose certificates are about to expire.
 	if collections.ShouldRolloutBefore(reconciliationTime, kcp.Spec.Rollout.Before)(machine) {
-		res.LogMessages = append(res.LogMessages, "certificates will expire soon, rolloutBefore expired")
+		res.CertificateExpiryRollout = true
+		res.LogMessages = append(res.LogMessages, CertificateExpiryRolloutLogMessage)
 		res.ConditionMessages = append(res.ConditionMessages, "Certificates will expire soon")
 		res.EligibleForInPlaceUpdate = false
 	}

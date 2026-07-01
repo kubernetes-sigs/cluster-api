@@ -286,44 +286,6 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			expectedEtcdLeader:                        nil,   // failure in reading members, we can not make assumptions.
 		},
 		{
-			name: "etcd client reporting status errors should be reflected into a false condition",
-			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withNodeRef("n1")),
-			},
-			nodes: []*Node{
-				fakeNode("n1"),
-			},
-			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				client: &etcd.Client{
-					EtcdClient: &fake2.FakeEtcdClient{
-						EtcdEndpoints: []string{},
-					},
-					Endpoint: "n1",
-					Errors:   []string{"something went wrong"},
-				},
-			},
-			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
-			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
-				"m1": {
-					*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Etcd endpoint n1 reports errors: %s", "something went wrong"),
-				},
-			},
-			expectedKCPCondition: &metav1.Condition{
-				Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
-				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneEtcdClusterNotHealthyReason,
-				Message: "* Machine m1:\n" +
-					"  * EtcdMemberHealthy: Etcd endpoint n1 reports errors: something went wrong",
-			},
-			expectedMachineConditions: map[string][]metav1.Condition{
-				"m1": {
-					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyReason, Message: "Etcd endpoint n1 reports errors: something went wrong"},
-				},
-			},
-			expectedEtcdMembersAndMachinesAreMatching: false, // without reading members, we can not make assumptions.
-			expectedEtcdLeader:                        nil,   // without reading members, we can not make assumptions.
-		},
-		{
 			name: "failure listing members should report false condition in v1beta1, unknown in v1beta2",
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withProviderID("n1"), withNodeRef("n1")),

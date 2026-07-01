@@ -52,7 +52,6 @@ type Client struct {
 	EtcdClient  etcd
 	Endpoint    string
 	LeaderID    uint64
-	Errors      []string
 	CallTimeout time.Duration
 }
 
@@ -189,11 +188,13 @@ func newEtcdClient(ctx context.Context, etcdClient etcd, callTimeout time.Durati
 		return nil, errors.Wrap(err, "failed to get etcd status")
 	}
 
+	// We don't need to read or handle StatusResponse.Errors here. They
+	// are intended for human consumption, not for programmatic processing.
+	// KCP should rely only on alarms.
 	return &Client{
 		Endpoint:    endpoints[0],
 		EtcdClient:  etcdClient,
 		LeaderID:    status.Leader,
-		Errors:      status.Errors,
 		CallTimeout: callTimeout,
 	}, nil
 }

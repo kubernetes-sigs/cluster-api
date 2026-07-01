@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
@@ -45,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -1157,6 +1159,57 @@ func TestMachinePoolConditions(t *testing.T) {
 				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 			},
 		},
+		{
+			name:                "MachinesUpToDate condition set when infrastructure ready",
+			dataSecretCreated:   true,
+			infrastructureReady: true,
+			beforeFunc: func(_, _ *unstructured.Unstructured, mp *clusterv1.MachinePool, _ *corev1.NodeList) {
+				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
+				mp.Status.NodeRefs = []corev1.ObjectReference{
+					{Name: "node-1"},
+					{Name: "azure-node-4"},
+				}
+				mp.Status.Replicas = ptr.To(int32(2))
+			},
+			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
+				t.Helper()
+				g := NewWithT(t)
+
+				// Check that MachinesUpToDate condition is set (v1beta2 condition)
+				mp, ok := getter.(*clusterv1.MachinePool)
+				g.Expect(ok).To(BeTrue())
+				machinesUpToDateCondition := conditions.Get(mp, clusterv1.MachinesUpToDateCondition)
+				g.Expect(machinesUpToDateCondition).ToNot(BeNil())
+				g.Expect(machinesUpToDateCondition.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(machinesUpToDateCondition.Reason).To(Equal(clusterv1.UpToDateReason))
+			},
+		},
+		{
+			name:                "MachinesUpToDate condition is false when infrastructure not ready",
+			dataSecretCreated:   true,
+			infrastructureReady: false,
+			beforeFunc: func(_, _ *unstructured.Unstructured, mp *clusterv1.MachinePool, _ *corev1.NodeList) {
+				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
+				mp.Status.NodeRefs = []corev1.ObjectReference{
+					{Name: "node-1"},
+					{Name: "azure-node-4"},
+				}
+				mp.Status.Replicas = ptr.To(int32(2))
+			},
+			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
+				t.Helper()
+				g := NewWithT(t)
+
+				// Check that MachinesUpToDate condition is False when infrastructure is not ready
+				mp, ok := getter.(*clusterv1.MachinePool)
+				g.Expect(ok).To(BeTrue())
+				machinesUpToDateCondition := conditions.Get(mp, clusterv1.MachinesUpToDateCondition)
+				g.Expect(machinesUpToDateCondition).ToNot(BeNil())
+				g.Expect(machinesUpToDateCondition.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(machinesUpToDateCondition.Reason).To(Equal(clusterv1.NotUpToDateReason))
+				g.Expect(machinesUpToDateCondition.Message).To(Equal("Infrastructure is not yet provisioned"))
+			},
+		},
 	}
 
 	for _, tt := range testcases {
@@ -1187,6 +1240,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				Client:       clientFake,
 				APIReader:    clientFake,
 				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				recorder:     record.NewFakeRecorder(32),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},

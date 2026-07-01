@@ -73,7 +73,7 @@ Those two requests from Cluster API’s users are two sides of the same coin, a 
 “evolve responsibly” by ensuring upgrade paths and avoiding (or at least minimizing) disruptions for users.
 
 The Cluster API project will continue to “evolve responsibly” by abiding to the same guarantees that Kubernetes offers
-for its own API resources, and by defining in a clean way the guarantee offered for the public go modules and packages.
+for its own API resources, and by cleanly defining the guarantees offered for the public go modules and packages.
 
 Also ensuring a continuous and obsessive focus on CI signal, test coverage and test flakes, a predictable release calendar,
 and clear documentation of the release support policies and of the compatibility matrix for each release 

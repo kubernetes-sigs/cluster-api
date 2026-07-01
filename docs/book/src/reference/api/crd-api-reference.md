@@ -1826,6 +1826,7 @@ _Appears in:_
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date control plane machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the total number of ready control plane machines in this cluster. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the total number of available control plane machines in this cluster. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this control plane. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 #### ClusterDeprecatedStatus
@@ -3169,6 +3170,7 @@ _Appears in:_
 | `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachineDeployment. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the number of available replicas for this MachineDeployment. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this MachineDeployment. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `phase` _string_ | phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown). |  | Enum: [ScalingUp ScalingDown Running Failed Unknown] <br />Optional: \{\} <br /> |
 | `deprecated` _[MachineDeploymentDeprecatedStatus](#machinedeploymentdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
 
@@ -4009,6 +4011,7 @@ _Appears in:_
 | `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date replicas targeted by this MachinePool. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this MachinePool. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `phase` _string_ | phase represents the current phase of cluster actuation. |  | Enum: [Pending Provisioning Provisioned Running ScalingUp ScalingDown Scaling Deleting Failed Unknown] <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
 | `deprecated` _[MachinePoolDeprecatedStatus](#machinepooldeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
@@ -4257,6 +4260,7 @@ _Appears in:_
 | `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the number of available replicas for this MachineSet. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date replicas for this MachineSet. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this MachineSet. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration reflects the generation of the most recently observed MachineSet. |  | Minimum: 1 <br />Optional: \{\} <br /> |
 | `deprecated` _[MachineSetDeprecatedStatus](#machinesetdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
 
@@ -4577,6 +4581,28 @@ _Appears in:_
 | `names` _string array_ | names selects templates by class names. |  | MaxItems: 100 <br />items:MaxLength: 256 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 
 
+#### StatusVersion
+
+
+
+StatusVersion groups version-related status information.
+
+
+
+_Appears in:_
+- [ClusterControlPlaneStatus](#clustercontrolplanestatus)
+- [KubeadmControlPlaneStatus](#kubeadmcontrolplanestatus)
+- [MachineDeploymentStatus](#machinedeploymentstatus)
+- [MachinePoolStatus](#machinepoolstatus)
+- [MachineSetStatus](#machinesetstatus)
+- [WorkersStatus](#workersstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `version` _string_ | version is the Kubernetes version. |  | MaxLength: 256 <br />MinLength: 1 <br />Required: \{\} <br /> |
+| `replicas` _integer_ | replicas is the number of replicas at this version. |  | Minimum: 1 <br />Required: \{\} <br /> |
+
+
 #### Topology
 
 
@@ -4715,6 +4741,7 @@ _Appears in:_
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date worker machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the total number of ready worker machines in this cluster. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the total number of available worker machines in this cluster. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in cluster workers. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 #### WorkersTopology
@@ -5031,7 +5058,8 @@ _Appears in:_
 | `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this KubeadmControlPlane. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the number of available replicas targeted by this KubeadmControlPlane. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date replicas targeted by this KubeadmControlPlane. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
-| `version` _string_ | version represents the minimum Kubernetes version for the control plane machines<br />in the cluster. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this KubeadmControlPlane. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `version` _string_ | version represents the minimum Kubernetes version for the control plane machines<br />in the cluster.<br />Deprecated: This field is deprecated and is going to be removed in a future API version. Please use status.versions instead. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
 | `lastRemediation` _[LastRemediationStatus](#lastremediationstatus)_ | lastRemediation stores info about last remediation performed. |  | Optional: \{\} <br /> |
 | `deprecated` _[KubeadmControlPlaneDeprecatedStatus](#kubeadmcontrolplanedeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |

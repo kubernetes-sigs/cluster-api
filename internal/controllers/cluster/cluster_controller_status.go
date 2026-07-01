@@ -35,6 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -56,10 +57,9 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 		}
 	}
 
-	// TODO: "expv1.MachinePoolList{}" below should be replaced through "s.descendants.machinePools" once replica counters
-	// and Available, ScalingUp and ScalingDown conditions have been implemented for MachinePools.
-
-	// TODO: This should be removed once the UpToDate condition has been implemented for MachinePool Machines
+	// TODO: "clusterv1.MachinePoolList{}" in condition calls below should be replaced through "s.descendants.machinePools"
+	// once Available, RollingOut, ScalingUp and ScalingDown conditions have been implemented for MachinePools.
+	// TODO: This should be removed once the UpToDate condition has been implemented for MachinePool Machines.
 	isMachinePoolMachine := func(machine *clusterv1.Machine) bool {
 		_, isMachinePoolMachine := machine.Labels[clusterv1.MachinePoolNameLabel]
 		return isMachinePoolMachine
@@ -71,7 +71,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 
 	// replica counters
 	setControlPlaneReplicas(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
-	setWorkersReplicas(ctx, s.cluster, clusterv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, workerMachines, s.getDescendantsSucceeded)
+	setWorkersReplicas(ctx, s.cluster, s.descendants.machinePools, s.descendants.machineDeployments, s.descendants.machineSets, workerMachines, s.getDescendantsSucceeded)
 
 	// conditions
 	healthCheckingState := r.ClusterCache.GetHealthCheckingState(ctx, client.ObjectKeyFromObject(s.cluster))
@@ -134,6 +134,7 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 			cluster.Status.ControlPlane.AvailableReplicas = nil
 			cluster.Status.ControlPlane.UpToDateReplicas = nil
 			cluster.Status.ControlPlane.DesiredReplicas = nil
+			cluster.Status.ControlPlane.Versions = nil
 			return
 		}
 
@@ -165,6 +166,11 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 		if replicas, err := contract.ControlPlane().UpToDateReplicas(controlPlaneContractVersion).Get(controlPlane); err == nil && replicas != nil {
 			cluster.Status.ControlPlane.UpToDateReplicas = replicas
 		}
+		if versions, err := contract.ControlPlane().StatusVersions().Get(controlPlane); err == nil {
+			cluster.Status.ControlPlane.Versions = versions
+		} else if errors.Is(err, contract.ErrFieldNotFound) {
+			cluster.Status.ControlPlane.Versions = nil
+		}
 		return
 	}
 
@@ -192,6 +198,7 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 	cluster.Status.ControlPlane.ReadyReplicas = readyReplicas
 	cluster.Status.ControlPlane.AvailableReplicas = availableReplicas
 	cluster.Status.ControlPlane.UpToDateReplicas = upToDateReplicas
+	cluster.Status.ControlPlane.Versions = internalversion.VersionsFromMachines(controlPlaneMachines.UnsortedList())
 
 	// There is no concept of desired replicas for stand-alone machines, but for sake of consistency
 	// we consider the fact that the machine has been creates as equivalent to the intent to have one replica.
@@ -209,6 +216,8 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 	}
 
 	var desiredReplicas, currentReplicas, readyReplicas, availableReplicas, upToDateReplicas *int32
+	workerVersions := []clusterv1.StatusVersion{}
+	standaloneWorkerMachines := []*clusterv1.Machine{}
 	for _, mp := range machinePools.Items {
 		if mp.Spec.Replicas != nil {
 			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *mp.Spec.Replicas)
@@ -225,6 +234,7 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 		if mp.Status.UpToDateReplicas != nil {
 			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *mp.Status.UpToDateReplicas)
 		}
+		workerVersions = append(workerVersions, mp.Status.Versions...)
 	}
 
 	for _, md := range machineDeployments.Items {
@@ -243,6 +253,7 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 		if md.Status.UpToDateReplicas != nil {
 			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *md.Status.UpToDateReplicas)
 		}
+		workerVersions = append(workerVersions, md.Status.Versions...)
 	}
 
 	for _, ms := range machineSets.Items {
@@ -264,12 +275,14 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 		if ms.Status.UpToDateReplicas != nil {
 			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *ms.Status.UpToDateReplicas)
 		}
+		workerVersions = append(workerVersions, ms.Status.Versions...)
 	}
 
 	for _, m := range workerMachines.UnsortedList() {
 		if !util.IsOwnedByObject(m, cluster, clusterv1.GroupVersion.WithKind("Cluster").GroupKind()) {
 			continue
 		}
+		standaloneWorkerMachines = append(standaloneWorkerMachines, m)
 		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + 1)
 		if conditions.IsTrue(m, clusterv1.MachineReadyCondition) {
 			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + 1)
@@ -285,12 +298,14 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 		// we consider the fact that the machine has been creates as equivalent to the intent to have one replica.
 		desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + 1)
 	}
+	workerVersions = append(workerVersions, internalversion.VersionsFromMachines(standaloneWorkerMachines)...)
 
 	cluster.Status.Workers.DesiredReplicas = desiredReplicas
 	cluster.Status.Workers.Replicas = currentReplicas
 	cluster.Status.Workers.ReadyReplicas = readyReplicas
 	cluster.Status.Workers.AvailableReplicas = availableReplicas
 	cluster.Status.Workers.UpToDateReplicas = upToDateReplicas
+	cluster.Status.Workers.Versions = internalversion.AggregateStatusVersions(workerVersions)
 }
 
 func setRemoteConnectionProbeCondition(_ context.Context, cluster *clusterv1.Cluster, healthCheckingState clustercache.HealthCheckingState, remoteConnectionGracePeriod time.Duration) {

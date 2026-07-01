@@ -173,6 +173,14 @@ type MachinePoolStatus struct {
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 
+	// versions is the aggregated Kubernetes versions in this MachinePool.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
+
 	// v1beta2 groups all the fields that will be added or modified in MachinePool's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *MachinePoolV1Beta2Status `json:"v1beta2,omitempty"`

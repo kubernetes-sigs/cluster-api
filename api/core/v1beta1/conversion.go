@@ -717,6 +717,10 @@ func Convert_v1beta1_ClusterClassStatus_To_v1beta2_ClusterClassStatus(in *Cluste
 	return nil
 }
 
+func Convert_v1beta2_ClusterControlPlaneStatus_To_v1beta1_ClusterControlPlaneStatus(in *clusterv1.ClusterControlPlaneStatus, out *ClusterControlPlaneStatus, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_ClusterControlPlaneStatus_To_v1beta1_ClusterControlPlaneStatus(in, out, s)
+}
+
 func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in, out, s); err != nil {
 		return err
@@ -763,6 +767,7 @@ func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.Cluste
 			UpToDateReplicas:  in.ControlPlane.UpToDateReplicas,
 			ReadyReplicas:     in.ControlPlane.ReadyReplicas,
 			AvailableReplicas: in.ControlPlane.AvailableReplicas,
+			Versions:          statusVersionsFromV1Beta2(in.ControlPlane.Versions),
 		}
 	}
 	if in.Workers != nil {
@@ -772,6 +777,7 @@ func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.Cluste
 			UpToDateReplicas:  in.Workers.UpToDateReplicas,
 			ReadyReplicas:     in.Workers.ReadyReplicas,
 			AvailableReplicas: in.Workers.AvailableReplicas,
+			Versions:          statusVersionsFromV1Beta2(in.Workers.Versions),
 		}
 	}
 	return nil
@@ -810,6 +816,7 @@ func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, o
 				UpToDateReplicas:  in.V1Beta2.ControlPlane.UpToDateReplicas,
 				ReadyReplicas:     in.V1Beta2.ControlPlane.ReadyReplicas,
 				AvailableReplicas: in.V1Beta2.ControlPlane.AvailableReplicas,
+				Versions:          statusVersionsToV1Beta2(in.V1Beta2.ControlPlane.Versions),
 			}
 		}
 		if in.V1Beta2.Workers != nil {
@@ -819,6 +826,7 @@ func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, o
 				UpToDateReplicas:  in.V1Beta2.Workers.UpToDateReplicas,
 				ReadyReplicas:     in.V1Beta2.Workers.ReadyReplicas,
 				AvailableReplicas: in.V1Beta2.Workers.AvailableReplicas,
+				Versions:          statusVersionsToV1Beta2(in.V1Beta2.Workers.Versions),
 			}
 		}
 	}
@@ -872,6 +880,10 @@ func Convert_v1beta2_Topology_To_v1beta1_Topology(in *clusterv1.Topology, out *T
 	out.Class = in.ClassRef.Name
 	out.ClassNamespace = in.ClassRef.Namespace
 	return nil
+}
+
+func Convert_v1beta2_WorkersStatus_To_v1beta1_WorkersStatus(in *clusterv1.WorkersStatus, out *WorkersStatus, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_WorkersStatus_To_v1beta1_WorkersStatus(in, out, s)
 }
 
 func Convert_v1beta2_MachineDeploymentStatus_To_v1beta1_MachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apimachineryconversion.Scope) error {
@@ -1813,4 +1825,32 @@ func deref[T any](ptr *T, def T) T {
 		return *ptr
 	}
 	return def
+}
+
+func statusVersionsFromV1Beta2(in []clusterv1.StatusVersion) []StatusVersion {
+	if in == nil {
+		return nil
+	}
+	out := make([]StatusVersion, 0, len(in))
+	for _, v := range in {
+		out = append(out, StatusVersion{
+			Version:  v.Version,
+			Replicas: v.Replicas,
+		})
+	}
+	return out
+}
+
+func statusVersionsToV1Beta2(in []StatusVersion) []clusterv1.StatusVersion {
+	if in == nil {
+		return nil
+	}
+	out := make([]clusterv1.StatusVersion, 0, len(in))
+	for _, v := range in {
+		out = append(out, clusterv1.StatusVersion{
+			Version:  v.Version,
+			Replicas: v.Replicas,
+		})
+	}
+	return out
 }

@@ -1671,6 +1671,7 @@ _Appears in:_
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date control plane machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the total number of ready control plane machines in this cluster. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the total number of available control plane machines in this cluster. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this control plane. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 
@@ -2457,6 +2458,7 @@ _Appears in:_
 | `unavailableReplicas` _integer_ | unavailableReplicas is the total number of unavailable machines targeted by this deployment.<br />This is the total number of machines that are still required for<br />the deployment to have 100% available capacity. They may either<br />be machines that are running but not yet available or machines<br />that still have not been created.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 | `phase` _string_ | phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown). |  | Enum: [ScalingUp ScalingDown Running Failed Unknown] <br />Optional: \{\} <br /> |
 | `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the MachineDeployment. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this MachineDeployment. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `v1beta2` _[MachineDeploymentV1Beta2Status](#machinedeploymentv1beta2status)_ | v1beta2 groups all the fields that will be added or modified in MachineDeployment's status with the V1Beta2 version. |  | Optional: \{\} <br /> |
 
 
@@ -3037,6 +3039,7 @@ _Appears in:_
 | `infrastructureReady` _boolean_ | infrastructureReady is the state of the infrastructure provider. |  | Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Optional: \{\} <br /> |
 | `conditions` _[Conditions](#conditions)_ | conditions define the current service state of the MachinePool. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this MachinePool. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `v1beta2` _[MachinePoolV1Beta2Status](#machinepoolv1beta2status)_ | v1beta2 groups all the fields that will be added or modified in MachinePool's status with the V1Beta2 version. |  | Optional: \{\} <br /> |
 
 
@@ -3224,6 +3227,7 @@ _Appears in:_
 | `failureReason` _[MachineSetStatusError](#machinesetstatuserror)_ | failureReason will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a succinct value suitable<br />for machine interpretation.<br />In the event that there is a terminal problem reconciling the<br />replicas, both FailureReason and FailureMessage will be set. FailureReason<br />will be populated with a succinct value suitable for machine<br />interpretation, while FailureMessage will contain a more verbose<br />string suitable for logging and human consumption.<br />These fields should not be set for transitive errors that a<br />controller faces that are expected to be fixed automatically over<br />time (like service outages), but instead indicate that something is<br />fundamentally wrong with the MachineTemplate's spec or the configuration of<br />the machine controller, and that manual intervention is required. Examples<br />of terminal errors would be invalid combinations of settings in the<br />spec, values that are unsupported by the machine controller, or the<br />responsible machine controller itself being critically misconfigured.<br />Any transient errors that occur during the reconciliation of Machines<br />can be added as events to the MachineSet object and/or logged in the<br />controller's output.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 | `failureMessage` _string_ | failureMessage will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a more verbose string suitable<br />for logging and human consumption.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the MachineSet. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this MachineSet. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `v1beta2` _[MachineSetV1Beta2Status](#machinesetv1beta2status)_ | v1beta2 groups all the fields that will be added or modified in MachineSet's status with the V1Beta2 version. |  | Optional: \{\} <br /> |
 
 
@@ -3552,6 +3556,28 @@ _Appears in:_
 
 
 
+#### StatusVersion
+
+
+
+StatusVersion groups version-related status information.
+
+
+
+_Appears in:_
+- [ClusterControlPlaneStatus](#clustercontrolplanestatus)
+- [KubeadmControlPlaneStatus](#kubeadmcontrolplanestatus)
+- [MachineDeploymentStatus](#machinedeploymentstatus)
+- [MachinePoolStatus](#machinepoolstatus)
+- [MachineSetStatus](#machinesetstatus)
+- [WorkersStatus](#workersstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `version` _string_ | version is the Kubernetes version. |  | MaxLength: 256 <br />MinLength: 1 <br />Required: \{\} <br /> |
+| `replicas` _integer_ | replicas is the number of replicas at this version. |  | Minimum: 1 <br />Required: \{\} <br /> |
+
+
 #### Topology
 
 
@@ -3673,6 +3699,7 @@ _Appears in:_
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date worker machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the total number of ready worker machines in this cluster. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the total number of available worker machines in this cluster. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in these workers. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 #### WorkersTopology
@@ -3817,6 +3844,7 @@ _Appears in:_
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Optional: \{\} <br /> |
 | `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the KubeadmControlPlane. |  | Optional: \{\} <br /> |
 | `lastRemediation` _[LastRemediationStatus](#lastremediationstatus)_ | lastRemediation stores info about last remediation performed. |  | Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this KubeadmControlPlane. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `v1beta2` _[KubeadmControlPlaneV1Beta2Status](#kubeadmcontrolplanev1beta2status)_ | v1beta2 groups all the fields that will be added or modified in KubeadmControlPlane's status with the V1Beta2 version. |  | Optional: \{\} <br /> |
 
 

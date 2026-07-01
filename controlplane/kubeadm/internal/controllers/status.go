@@ -35,6 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
+	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -143,10 +144,13 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	selector := collections.ControlPlaneSelectorForCluster(controlPlane.Cluster.Name)
 	controlPlane.KCP.Status.Selector = selector.String()
 
-	// Set status.version with the lowest K8s version from CP machines.
-	lowestVersion := controlPlane.Machines.LowestVersion()
-	if lowestVersion != "" {
-		controlPlane.KCP.Status.Version = lowestVersion
+	// Surface status.versions by aggregating existing machine spec versions.
+	controlPlane.KCP.Status.Versions = internalversion.VersionsFromMachines(controlPlane.Machines.UnsortedList())
+
+	// Keep status.version as a deprecated fallback by reporting the lowest version.
+	// status.versions entries are ordered from older to newer, so the first entry is the value to backfill.
+	if len(controlPlane.KCP.Status.Versions) > 0 {
+		controlPlane.KCP.Status.Version = controlPlane.KCP.Status.Versions[0].Version //nolint:staticcheck // status.version is intentionally backfilled for backward compatibility until the deprecated field is removed.
 	}
 
 	allErrors := []error{}

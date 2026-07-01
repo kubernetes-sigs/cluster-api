@@ -74,6 +74,22 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal("1.2.3"))
 	})
+	t.Run("Manages status.versions", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(ControlPlane().StatusVersions().Path()).To(Equal(Path{"status", "versions"}))
+
+		value := []clusterv1.StatusVersion{
+			{Version: "v1.2.2", Replicas: 1},
+			{Version: "v1.2.3", Replicas: 2},
+		}
+		err := ControlPlane().StatusVersions().Set(obj, value)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().StatusVersions().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).To(Equal(value))
+	})
 	t.Run("Manages status.initialization.controlPlaneInitialized", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -717,6 +733,7 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		name          string
 		obj           *unstructured.Unstructured
 		wantUpgrading bool
+		wantErr       bool
 	}{
 		{
 			name: "should return false if status is not set on control plane",
@@ -738,7 +755,7 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 			wantUpgrading: false,
 		},
 		{
-			name: "should return false if status.version is equal to spec.version",
+			name: "should return false if status.versions is not set and status.version is equal to spec.version",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{
 					"version": "v1.2.3",
@@ -750,7 +767,83 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 			wantUpgrading: false,
 		},
 		{
-			name: "should return true if status.version is less than spec.version",
+			name: "should return false if status.versions has current spec.version",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version":  "v1.2.3",
+							"replicas": int64(1),
+						},
+					},
+				},
+			}},
+			wantUpgrading: false,
+		},
+		{
+			name: "should return true if status.versions lowest version is less than spec.version",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version":  "v1.2.2",
+							"replicas": int64(1),
+						},
+						map[string]interface{}{
+							"version":  "v1.2.3",
+							"replicas": int64(2),
+						},
+					},
+				},
+			}},
+			wantUpgrading: true,
+		},
+		{
+			name: "should return false if status.versions entry not at spec.version has zero replicas",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version":  "v1.2.2",
+							"replicas": int64(0),
+						},
+						map[string]interface{}{
+							"version":  "v1.2.3",
+							"replicas": int64(3),
+						},
+					},
+				},
+			}},
+			wantUpgrading: false,
+		},
+		{
+			name: "should return false if status.versions entry is newer than spec.version",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.2",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version":  "v1.2.3",
+							"replicas": int64(1),
+						},
+					},
+				},
+			}},
+			wantUpgrading: false,
+		},
+		{
+			name: "should use status.version as fallback when status.versions is not set",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{
 					"version": "v1.2.3",
@@ -762,23 +855,108 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 			wantUpgrading: true,
 		},
 		{
-			name: "should return false if status.version is greater than spec.version",
+			name: "should return error if first status.versions entry is not a valid semantic version",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{
-					"version": "v1.2.2",
-				},
-				"status": map[string]interface{}{
 					"version": "v1.2.3",
 				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version":  "not-a-version",
+							"replicas": int64(1),
+						},
+					},
+				},
 			}},
-			wantUpgrading: false,
+			wantErr: true,
+		},
+		{
+			name: "should return error if status.versions entries are not ordered",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version":  "v1.2.3",
+							"replicas": int64(1),
+						},
+						map[string]interface{}{
+							"version":  "v1.2.2",
+							"replicas": int64(1),
+						},
+					},
+				},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "should not return error if status.versions entries cannot be ordered",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3+ccc",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version":  "v1.2.3+aaa",
+							"replicas": int64(1),
+						},
+						map[string]interface{}{
+							"version":  "v1.2.3+bbb",
+							"replicas": int64(1),
+						},
+					},
+				},
+			}},
+			wantUpgrading: true,
+		},
+		{
+			name: "should return error if status.versions replicas is missing",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version": "v1.2.3",
+						},
+					},
+				},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "should return error if status.versions replicas is negative",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version":  "v1.2.3",
+							"replicas": int64(-1),
+						},
+					},
+				},
+			}},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			actual, _ := ControlPlane().IsUpgrading(tt.obj)
+			actual, err := ControlPlane().IsUpgrading(tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(actual).To(Equal(tt.wantUpgrading))
 		})
 	}

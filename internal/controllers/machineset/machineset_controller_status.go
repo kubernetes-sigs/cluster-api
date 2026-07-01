@@ -32,6 +32,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
+	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	clog "sigs.k8s.io/cluster-api/util/log"
@@ -104,6 +105,7 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 	ms.Status.ReadyReplicas = ptr.To(readyReplicas)
 	ms.Status.AvailableReplicas = ptr.To(availableReplicas)
 	ms.Status.UpToDateReplicas = ptr.To(upToDateReplicas)
+	ms.Status.Versions = internalversion.VersionsFromMachines(machines)
 }
 
 func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool, scaleUpPreflightCheckErrMessages []string) {

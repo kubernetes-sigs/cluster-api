@@ -82,6 +82,58 @@ linters:
           - k8s.io/apimachinery/pkg/labels$
           - k8s.io/apimachinery/pkg/util/naming$
           - k8s.io/apimachinery/pkg/util/validation/field$
+        cmd_clusterctl_api:
+          list-mode: strict
+          files:
+            - "**/cluster-api/cmd/clusterctl/api/**/*.go"
+          allow:
+            - $gostd
+            - github.com/blang/semver/v4$
+            - github.com/onsi/gomega$
+            - k8s.io/apimachinery/pkg/apis/meta/v1$
+            - k8s.io/apimachinery/pkg/runtime$
+            - k8s.io/apimachinery/pkg/runtime/schema$
+            - k8s.io/apimachinery/pkg/types$
+            - k8s.io/apimachinery/pkg/util/version$
+        test_extension:
+          list-mode: strict
+          files:
+            - "**/cluster-api/test/extension/**/*.go"
+          allow:
+            - $gostd
+            - github.com/blang/semver/v4$
+            - github.com/onsi/gomega$
+            - github.com/pkg/errors$
+            - gomodules.xyz/jsonpatch/v2$
+            - k8s.io/api/core/v1$
+            - k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1$
+            - k8s.io/apimachinery
+            - k8s.io/client-go
+            - k8s.io/component-base
+            - k8s.io/klog
+            - k8s.io/utils
+            - sigs.k8s.io/cluster-api/api
+            - sigs.k8s.io/cluster-api/controllers$
+            - sigs.k8s.io/cluster-api/controllers/clustercache$
+            - sigs.k8s.io/cluster-api/controllers/remote$
+            - sigs.k8s.io/cluster-api/exp/runtime/client$
+            - sigs.k8s.io/cluster-api/exp/runtime/server$
+            - sigs.k8s.io/cluster-api/exp/runtime/topologymutation$
+            - sigs.k8s.io/cluster-api/exp/topology/desiredstate$
+            - sigs.k8s.io/cluster-api/exp/topology/scope$
+            - sigs.k8s.io/cluster-api/feature$
+            - sigs.k8s.io/cluster-api/test/extension
+            - sigs.k8s.io/cluster-api/test/infrastructure/docker/api
+            - sigs.k8s.io/cluster-api/test/infrastructure/kind$
+            - sigs.k8s.io/cluster-api/util/cache$
+            - sigs.k8s.io/cluster-api/util/conditions$
+            - sigs.k8s.io/cluster-api/util/contract$
+            - sigs.k8s.io/cluster-api/util/flags$
+            - sigs.k8s.io/cluster-api/util/util$
+            - sigs.k8s.io/cluster-api/version$
+            - sigs.k8s.io/cluster-api/webhooks$
+            - sigs.k8s.io/controller-runtime
+            - sigs.k8s.io/yaml
     forbidigo:
       forbid:
         - pattern: ctrl.NewControllerManagedBy

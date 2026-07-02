@@ -208,6 +208,7 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 			clusterv1.PausedCondition,
 			runtimev1.ExtensionConfigDiscoveredCondition,
 		}},
+		patch.WithStatusObservedGeneration{},
 	)
 	return patchHelper.Patch(ctx, modified, options...)
 }

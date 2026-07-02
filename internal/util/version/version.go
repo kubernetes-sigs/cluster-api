@@ -84,17 +84,27 @@ func VersionsFromMachines(machines []*clusterv1.Machine) []clusterv1.StatusVersi
 	versionIndexes := map[string]int{}
 	versions := []orderedStatusVersion{}
 	for _, machine := range sortedMachines {
-		if machine == nil || machine.Spec.Version == "" {
+		if machine == nil {
 			continue
 		}
-		if index, ok := versionIndexes[machine.Spec.Version]; ok {
+
+		version := machine.Spec.Version
+		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" {
+			version = machine.Status.NodeInfo.KubeletVersion
+		}
+
+		if version == "" {
+			continue
+		}
+
+		if index, ok := versionIndexes[version]; ok {
 			versions[index].Replicas++
 			continue
 		}
-		versionIndexes[machine.Spec.Version] = len(versions)
+		versionIndexes[version] = len(versions)
 		versions = append(versions, orderedStatusVersion{
 			StatusVersion: clusterv1.StatusVersion{
-				Version:  machine.Spec.Version,
+				Version:  version,
 				Replicas: 1,
 			},
 			order: len(versions),

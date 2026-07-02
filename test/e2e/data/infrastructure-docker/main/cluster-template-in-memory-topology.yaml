@@ -28,6 +28,15 @@ spec:
           Cluster.topology.controlPlane.label: Cluster.topology.controlPlane.labelValue
           Cluster.topology.controlPlane.label.node.cluster.x-k8s.io: Cluster.topology.controlPlane.nodeLabelValue
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+      taints:
+      - effect: PreferNoSchedule
+        key: pre-existing-on-initialization-taint
+        propagation: OnInitialization
+        value: on-initialization-value
+      - effect: PreferNoSchedule
+        key: pre-existing-always-taint
+        propagation: Always
+        value: always-value
     version: ${KUBERNETES_VERSION}
     workers:
       machineDeployments:
@@ -45,6 +54,15 @@ spec:
         minReadySeconds: 5
         name: md-0
         replicas: ${WORKER_MACHINE_COUNT}
+        taints:
+        - effect: PreferNoSchedule
+          key: pre-existing-on-initialization-taint
+          propagation: OnInitialization
+          value: on-initialization-value
+        - effect: PreferNoSchedule
+          key: pre-existing-always-taint
+          propagation: Always
+          value: always-value
         rollout:
           strategy:
             rollingUpdate:

@@ -195,11 +195,6 @@ CRANE_VER := v0.20.7
 CRANE := $(abspath $(TOOLS_BIN_DIR)/$(CRANE_BIN)-$(CRANE_VER))
 CRANE_PKG := github.com/google/go-containerregistry/cmd/crane
 
-IMPORT_BOSS_BIN := import-boss
-IMPORT_BOSS_VER := v0.28.1
-IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
-IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
-
 CRD_REF_DOCS_VER := v0.3.0
 CRD_REF_DOCS_BIN := crd-ref-docs
 CRD_REF_DOCS := $(abspath $(TOOLS_BIN_DIR)/$(CRD_REF_DOCS_BIN)-$(CRD_REF_DOCS_VER))
@@ -697,7 +692,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen crd-docs conversions doctoc capi-book-summary diagrams import-restrictions go-directive
+ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen crd-docs conversions doctoc capi-book-summary diagrams go-directive
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
@@ -792,10 +787,6 @@ verify-security: ## Verify code and images for vulnerabilities
 	  echo "Check for vulnerabilities failed! There are vulnerabilities to be fixed"; \
 		exit 1; \
 	fi
-
-.PHONY: verify-import-restrictions
-verify-import-restrictions: $(IMPORT_BOSS) ## Verify import restrictions with import-boss
-	./hack/verify-import-restrictions.sh
 
 ## --------------------------------------
 ## Binaries
@@ -1464,9 +1455,6 @@ $(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
 .PHONY: $(CRANE_BIN)
 $(CRANE_BIN): $(CRANE) ## Build a local copy of crane.
 
-.PHONY: $(IMPORT_BOSS_BIN)
-$(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
-
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
 
@@ -1527,9 +1515,6 @@ $(GOLANGCI_LINT_KAL): $(GOLANGCI_LINT) # Build golangci-lint-kal from custom con
 
 $(CRANE): # Build crane.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CRANE_PKG) $(CRANE_BIN) $(CRANE_VER)
-
-$(IMPORT_BOSS): # Build import-boss
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(IMPORT_BOSS_PKG) $(IMPORT_BOSS_BIN) $(IMPORT_BOSS_VER)
 
 ## --------------------------------------
 ## govulncheck

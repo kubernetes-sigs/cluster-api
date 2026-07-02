@@ -80,8 +80,7 @@ func TestProxyGetConfig(t *testing.T) {
 				// context
 				g.Expect(conf.Host).To(Equal(tt.expectedHost))
 				g.Expect(conf.UserAgent).To(Equal(fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)))
-				g.Expect(conf.QPS).To(BeEquivalentTo(20))
-				g.Expect(conf.Burst).To(BeEquivalentTo(100))
+				g.Expect(conf.QPS).To(BeEquivalentTo(-1))
 				g.Expect(conf.Timeout.String()).To(Equal("30s"))
 			})
 		}

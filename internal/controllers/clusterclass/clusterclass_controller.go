@@ -208,6 +208,7 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 	clusterClass := s.clusterClass
 
 	// Collect all the reference from the ClusterClass to templates.
+	//nolint:prealloc // As the number of references is expected to be low and readability is preferred here.
 	refs := []clusterv1.ClusterClassTemplateReference{
 		clusterClass.Spec.Infrastructure.TemplateRef,
 		clusterClass.Spec.ControlPlane.TemplateRef,

@@ -263,7 +263,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 // discoveryHandler generates a discovery handler based on a list of handlers.
 func discoveryHandler(handlers map[string]ExtensionHandler) func(context.Context, *runtimehooksv1.DiscoveryRequest, *runtimehooksv1.DiscoveryResponse) {
-	cachedHandlers := []runtimehooksv1.ExtensionHandler{}
+	cachedHandlers := make([]runtimehooksv1.ExtensionHandler, 0, len(handlers))
 	for _, handler := range handlers {
 		cachedHandlers = append(cachedHandlers, runtimehooksv1.ExtensionHandler{
 			Name: handler.Name,

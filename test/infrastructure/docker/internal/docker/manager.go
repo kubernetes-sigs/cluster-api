@@ -198,7 +198,7 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 }
 
 func generateMountInfo(mounts []v1alpha4.Mount) []container.Mount {
-	mountInfo := []container.Mount{}
+	mountInfo := make([]container.Mount, 0, len(mounts)+1)
 	for _, mount := range mounts {
 		mountInfo = append(mountInfo, container.Mount{
 			Source:   mount.HostPath,

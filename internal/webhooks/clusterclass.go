@@ -378,7 +378,7 @@ func getClusterClassVariablesMapWithReverseIndex(clusterClassVariables []cluster
 }
 
 func validateClusterClassRollout(clusterClass *clusterv1.ClusterClass) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 
 	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("rollout")
@@ -502,7 +502,7 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 }
 
 func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 	allErrs = append(allErrs, clusterClass.Spec.ControlPlane.Metadata.Validate(field.NewPath("spec", "controlPlane", "metadata"))...)
 	for _, m := range clusterClass.Spec.Workers.MachineDeployments {
 		allErrs = append(allErrs, m.Metadata.Validate(field.NewPath("spec", "workers", "machineDeployments").Key(m.Class).Child("template", "metadata"))...)
@@ -514,7 +514,7 @@ func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.Er
 }
 
 func validateTaints(clusterClass *clusterv1.ClusterClass) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 
 	allErrs = append(allErrs, taints.ValidateMachineTaints(clusterClass.Spec.ControlPlane.Taints, field.NewPath("spec", "controlPlane", "taints"))...)
 
@@ -534,7 +534,7 @@ func validateTaints(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 // validateAutoscalerAnnotationsForClusterClass iterates over a list of Clusters that use a ClusterClass and returns
 // errors if the ClusterClass contains autoscaler annotations while a Cluster has worker replicas.
 func validateAutoscalerAnnotationsForClusterClass(clusters []clusterv1.Cluster, newClusterClass *clusterv1.ClusterClass) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 	for _, c := range clusters {
 		allErrs = append(allErrs, validateAutoscalerAnnotationsForCluster(&c, newClusterClass)...)
 	}

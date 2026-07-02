@@ -1344,7 +1344,7 @@ func createErrorWithoutObjectName(ctx context.Context, err error, obj client.Obj
 	if errors.As(err, &statusError) {
 		var msg string
 		if statusError.Status().Details != nil {
-			var causes []string
+			causes := make([]string, 0, len(statusError.Status().Details.Causes))
 			for _, cause := range statusError.Status().Details.Causes {
 				causes = append(causes, fmt.Sprintf("%s: %s: %s", cause.Type, cause.Field, cause.Message))
 			}

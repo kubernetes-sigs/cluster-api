@@ -712,7 +712,7 @@ func kustomizeTask(path, out string) taskFunction {
 // and adding the workload resource mimicking what clusterctl init does.
 func workloadTask(name, workloadType, binaryName, containerName string, liveReloadDeps []string, debugConfig *tiltSettingsDebugConfig, extraArgs tiltSettingsExtraArgs, hardCodedProvider bool, path string, options []string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
-		args := []string{"build"}
+		args := []string{"build"} //nolint:prealloc
 		args = append(args, options...)
 		args = append(args, path)
 		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, args...)

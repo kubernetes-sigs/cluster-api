@@ -464,7 +464,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 }
 
 func machineSetNames(machineSets []*clusterv1.MachineSet) []string {
-	names := []string{}
+	names := make([]string, 0, len(machineSets))
 	for _, ms := range machineSets {
 		names = append(names, ms.Name)
 	}

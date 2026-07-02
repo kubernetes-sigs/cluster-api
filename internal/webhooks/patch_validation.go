@@ -36,7 +36,7 @@ import (
 
 // validatePatches returns errors if the Patches in the ClusterClass violate any validation rules.
 func validatePatches(clusterClass *clusterv1.ClusterClass) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 	names := sets.Set[string]{}
 	for i, patch := range clusterClass.Spec.Patches {
 		allErrs = append(
@@ -49,7 +49,7 @@ func validatePatches(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 }
 
 func validatePatch(patch clusterv1.ClusterClassPatch, names sets.Set[string], clusterClass *clusterv1.ClusterClass, path *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 	allErrs = append(allErrs,
 		validatePatchName(patch, names, path)...,
 	)

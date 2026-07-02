@@ -1209,7 +1209,7 @@ func (o *objectMover) restoreTargetObject(ctx context.Context, nodeToCreate *nod
 // Recreate all the OwnerReferences using the newUID of the owner nodes.
 func (o *objectMover) buildOwnerChain(obj *unstructured.Unstructured, n *node) {
 	if len(n.owners) > 0 {
-		ownerRefs := []metav1.OwnerReference{}
+		ownerRefs := make([]metav1.OwnerReference, 0, len(n.owners))
 		for ownerNode := range n.owners {
 			ownerRef := metav1.OwnerReference{
 				APIVersion: ownerNode.identity.APIVersion,

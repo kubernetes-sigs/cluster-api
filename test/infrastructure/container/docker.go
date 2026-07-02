@@ -608,7 +608,7 @@ func ownerAndGroup(crc *RunContainerInput) string {
 
 // environmentVariables gets the collection of environment variables for the container.
 func environmentVariables(crc *RunContainerInput) []string {
-	envVars := []string{}
+	envVars := make([]string, 0, len(crc.EnvironmentVars))
 	for key, val := range crc.EnvironmentVars {
 		envVars = append(envVars, fmt.Sprintf("%s=%s", key, val))
 	}

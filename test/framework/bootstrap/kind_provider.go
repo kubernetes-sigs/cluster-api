@@ -146,7 +146,7 @@ func (k *KindClusterProvider) Create(ctx context.Context) {
 // - use a dedicated kubeconfig file (test should not alter the user environment)
 // - if required, mount /var/run/docker.sock.
 func (k *KindClusterProvider) createKindCluster() {
-	kindCreateOptions := []kind.CreateOption{
+	kindCreateOptions := []kind.CreateOption{ //nolint:prealloc // Not all paths append
 		kind.CreateWithKubeconfigPath(k.kubeconfigPath),
 	}
 

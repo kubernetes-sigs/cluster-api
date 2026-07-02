@@ -353,7 +353,7 @@ type fileVariable struct {
 }
 
 func convertToKubeadmConfigV1Beta1Files(files []fileVariable) []bootstrapv1beta1.File {
-	kubeadmConfigV1Beta1Files := []bootstrapv1beta1.File{}
+	kubeadmConfigV1Beta1Files := make([]bootstrapv1beta1.File, 0, len(files))
 	for _, f := range files {
 		kubeadmConfigV1Beta1Files = append(kubeadmConfigV1Beta1Files,
 			bootstrapv1beta1.File{
@@ -369,7 +369,7 @@ func convertToKubeadmConfigV1Beta1Files(files []fileVariable) []bootstrapv1beta1
 }
 
 func convertToKubeadmConfigFiles(files []fileVariable) []bootstrapv1.File {
-	kubeadmConfigFiles := []bootstrapv1.File{}
+	kubeadmConfigFiles := make([]bootstrapv1.File, 0, len(files))
 	for _, f := range files {
 		kubeadmConfigFiles = append(kubeadmConfigFiles,
 			bootstrapv1.File{

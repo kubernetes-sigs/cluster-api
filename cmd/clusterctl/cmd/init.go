@@ -84,7 +84,7 @@ var initCmd = &cobra.Command{
 
 		# Initialize a management cluster with a custom target namespace for the provider resources.
 		clusterctl init --infrastructure aws --target-namespace foo`),
-	Args: cobra.NoArgs,
+	Args: helpOnErrorArgs(cobra.NoArgs),
 	RunE: func(*cobra.Command, []string) error {
 		return runInit()
 	},

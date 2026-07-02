@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -49,12 +48,7 @@ var getKubeconfigCmd = &cobra.Command{
 		# Get the workload cluster's kubeconfig in a particular namespace.
 		clusterctl get kubeconfig <name of workload cluster> --namespace foo`),
 
-	Args: func(_ *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return errors.New("please specify a workload cluster name")
-		}
-		return nil
-	},
+	Args: exactArgsWithMessage(1, "please specify a workload cluster name"),
 	RunE: func(_ *cobra.Command, args []string) error {
 		return runGetKubeconfig(args[0])
 	},

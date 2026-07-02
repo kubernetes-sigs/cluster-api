@@ -293,7 +293,7 @@ func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (b
 	// time by looking at controlplane.status.versions (or status.version as fallback). If the version in status is set to a valid
 	// value then the control plane was already provisioned at a previous time. If not, we can
 	// assume that the control plane is being created for the first time.
-	statusVersion, err := c.currentStatusVersion(obj)
+	statusVersion, err := c.CurrentStatusVersion(obj)
 	if err != nil {
 		if errors.Is(err, ErrFieldNotFound) {
 			return true, nil
@@ -364,7 +364,8 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 	return version.Compare(specV, statusV, version.WithBuildTags()) >= 1, nil
 }
 
-func (c *ControlPlaneContract) currentStatusVersion(obj *unstructured.Unstructured) (*string, error) {
+// CurrentStatusVersion provides access to the .status.version(s) fields in a ControlPlane object status, if any.
+func (c *ControlPlaneContract) CurrentStatusVersion(obj *unstructured.Unstructured) (*string, error) {
 	statusVersions, err := c.StatusVersions().Get(obj)
 	if err != nil && !errors.Is(err, ErrFieldNotFound) {
 		return nil, err

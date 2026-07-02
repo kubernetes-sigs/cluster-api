@@ -1202,34 +1202,28 @@ func clusterConditionShowsHookBlocking(cluster *clusterv1.Cluster, hookName stri
 func waitControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals []interface{}) {
 	Byf("Waiting for control plane to have version %s", version)
 
-	Eventually(func(_ Gomega) bool {
+	Eventually(func(g Gomega) bool {
 		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
-		if err != nil {
-			return false
-		}
+		g.Expect(err).ToNot(HaveOccurred())
+
 		v, err := contract.ControlPlane().Version().Get(controlPlane)
-		if err != nil {
-			return false
-		}
+		g.Expect(err).ToNot(HaveOccurred())
 		if *v != version {
 			return false
 		}
 
-		sv, err := contract.ControlPlane().StatusVersion().Get(controlPlane)
-		if err != nil {
-			return false
-		}
+		sv, err := contract.ControlPlane().CurrentStatusVersion(controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
 		if *sv != version {
 			return false
 		}
 
 		machineList := &clusterv1.MachineList{}
-		if err := c.List(ctx, machineList, client.InNamespace(cluster.Namespace), client.MatchingLabels{
+		err = c.List(ctx, machineList, client.InNamespace(cluster.Namespace), client.MatchingLabels{
 			clusterv1.ClusterNameLabel:         cluster.Name,
 			clusterv1.MachineControlPlaneLabel: "",
-		}); err != nil {
-			return false
-		}
+		})
+		g.Expect(err).ToNot(HaveOccurred())
 
 		for i := range machineList.Items {
 			machine := &machineList.Items[i]

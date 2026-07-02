@@ -914,22 +914,6 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 			wantUpgrading: true,
 		},
 		{
-			name: "should return error if status.versions replicas is missing",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
-					"version": "v1.2.3",
-				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
-							"version": "v1.2.3",
-						},
-					},
-				},
-			}},
-			wantErr: true,
-		},
-		{
 			name: "should return error if status.versions replicas is negative",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{

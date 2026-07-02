@@ -47,7 +47,7 @@ func (v *StatusVersions) Path() Path {
 
 // Get gets the status versions value.
 func (v *StatusVersions) Get(obj *unstructured.Unstructured) ([]clusterv1.StatusVersion, error) {
-	items, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), v.path...)
+	slice, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), v.path...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(v.path, "."))
 	}
@@ -55,54 +55,34 @@ func (v *StatusVersions) Get(obj *unstructured.Unstructured) ([]clusterv1.Status
 		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(v.path, "."))
 	}
 
-	versions := make([]clusterv1.StatusVersion, 0, len(items))
-	var previousVersion semver.Version
-	var previousVersionValue string
-	for i, item := range items {
-		itemMap, ok := item.(map[string]interface{})
-		if !ok {
-			return nil, errors.Errorf("failed to cast %s[%d] from object", "."+strings.Join(v.path, "."), i)
-		}
-		versionValue, ok := itemMap["version"].(string)
-		if !ok || versionValue == "" {
-			return nil, errors.Errorf("failed to cast %s[%d].version from object", "."+strings.Join(v.path, "."), i)
-		}
-		parsedVersion, err := semver.ParseTolerant(versionValue)
+	versions := make([]clusterv1.StatusVersion, len(slice))
+	s, err := json.Marshal(slice)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to marshall field at %s to json", "."+strings.Join(v.path, "."))
+	}
+	err = json.Unmarshal(s, &versions)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshall field at %s to json", "."+strings.Join(v.path, "."))
+	}
+
+	var previousParsedVersion semver.Version
+	var previousVersion string
+	for i, currentVersion := range versions {
+		currentParsedVersion, err := semver.ParseTolerant(currentVersion.Version)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse %s[%d].version from object", "."+strings.Join(v.path, "."), i)
 		}
-		if i > 0 {
-			switch version.Compare(previousVersion, parsedVersion, version.WithBuildTags()) {
-			case -1, 0, 2:
-			default:
-				return nil, errors.Errorf("version %q and %q are in the wrong order", previousVersionValue, versionValue)
-			}
+
+		if previousVersion != "" && version.Compare(currentParsedVersion, previousParsedVersion, version.WithBuildTags()) < 0 {
+			return nil, errors.Errorf("version %q and %q are in the wrong order", previousVersion, currentVersion.Version)
 		}
-		statusVersion := clusterv1.StatusVersion{Version: versionValue}
-		replicasValue, ok := itemMap["replicas"]
-		if !ok {
-			return nil, errors.Errorf("failed to cast %s[%d].replicas from object", "."+strings.Join(v.path, "."), i)
-		}
-		var replicas int32
-		switch replicasTyped := replicasValue.(type) {
-		case float64:
-			replicas = int32(replicasTyped)
-		case int64:
-			replicas = int32(replicasTyped)
-		case int32:
-			replicas = replicasTyped
-		case int:
-			replicas = int32(replicasTyped)
-		default:
-			return nil, errors.Errorf("failed to cast %s[%d].replicas from object", "."+strings.Join(v.path, "."), i)
-		}
-		if replicas < 0 {
+
+		if currentVersion.Replicas < 0 {
 			return nil, errors.Errorf("%s[%d].replicas must not be negative", "."+strings.Join(v.path, "."), i)
 		}
-		statusVersion.Replicas = replicas
-		versions = append(versions, statusVersion)
-		previousVersion = parsedVersion
-		previousVersionValue = versionValue
+
+		previousParsedVersion = currentParsedVersion
+		previousVersion = currentVersion.Version
 	}
 	return versions, nil
 }

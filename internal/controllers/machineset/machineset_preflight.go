@@ -149,7 +149,7 @@ func shouldRun(preflightChecks, skippedPreflightChecks sets.Set[clusterv1.Machin
 func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured.Unstructured, cluster *clusterv1.Cluster, controlPlaneVersion string) (preflightCheckErrorMessage, error) {
 	cpKlogRef := klog.KRef(controlPlane.GetNamespace(), controlPlane.GetName())
 
-	if feature.Gates.Enabled(feature.ClusterTopology) {
+	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
 		// Block when we expect an upgrade to be propagated to the control plane for topology clusters.
 		// NOTE: in case the cluster is performing an upgrade, allow creation of machines for the current step.
 		hasSameVersionOfCurrentUpgradeStep := false
@@ -157,7 +157,7 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 			hasSameVersionOfCurrentUpgradeStep = version == controlPlaneVersion
 		}
 
-		if cluster.Spec.Topology.IsDefined() && cluster.Spec.Topology.Version != controlPlaneVersion && !hasSameVersionOfCurrentUpgradeStep {
+		if cluster.Spec.Topology.Version != controlPlaneVersion && !hasSameVersionOfCurrentUpgradeStep {
 			v := cluster.Spec.Topology.Version
 			if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok && version != "" {
 				v = version

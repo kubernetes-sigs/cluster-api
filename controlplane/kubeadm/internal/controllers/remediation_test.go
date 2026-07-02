@@ -1358,6 +1358,76 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(env.CleanupAndWait(ctx, m2, m3)).To(Succeed())
 	})
+	t.Run("Remediation happens when the CP is at intermediate steps of an upgrade sequence", func(t *testing.T) {
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
+		g := NewWithT(t)
+
+		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember(), withHealthyK8sControlPlane())
+
+		controlPlane := &internal.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas: utilptr.To[int32](3),
+					Version:  "v1.19.1",
+				},
+				Status: controlplanev1.KubeadmControlPlaneStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+						ControlPlaneInitialized: utilptr.To(true),
+					},
+				},
+			},
+			Cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.19.1",
+					},
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: clusterv1.Topology{
+						Version: "v1.20.1",
+					},
+				},
+			},
+			Machines:   collections.FromMachines(m1, m2, m3),
+			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
+		}
+		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
+
+		r := &KubeadmControlPlaneReconciler{
+			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
+		}
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
+		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
+
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
+		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(remediationData.Machine).To(Equal(m1.Name))
+		g.Expect(remediationData.RetryCount).To(Equal(0))
+
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.RemediationInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingReason, "Machine is deleting")
+
+		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(m1.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
+
+		removeFinalizer(g, m1)
+		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
+	})
 }
 
 func TestReconcileUnhealthyMachinesSequences(t *testing.T) {

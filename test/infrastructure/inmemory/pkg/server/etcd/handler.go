@@ -112,8 +112,63 @@ func (m *maintenanceServer) Status(ctx context.Context, _ *pb.StatusRequest) (*p
 	return statusResponse, nil
 }
 
-func (m *maintenanceServer) Defragment(_ context.Context, _ *pb.DefragmentRequest) (*pb.DefragmentResponse, error) {
-	return nil, fmt.Errorf("not implemented: Defragment")
+func (m *maintenanceServer) Defragment(ctx context.Context, _ *pb.DefragmentRequest) (*pb.DefragmentResponse, error) {
+	var resourceGroup string
+	start := time.Now()
+	defer func() {
+		requestLatency.WithLabelValues("Defragment", resourceGroup).Observe(time.Since(start).Seconds())
+	}()
+
+	var etcdMember string
+	var err error
+	resourceGroup, etcdMember, err = m.getResourceGroupAndMember(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	m.log.V(4).Info("Etcd: Defragment", "resourceGroup", resourceGroup, "etcdMember", etcdMember)
+
+	inmemoryClient := m.manager.GetResourceGroup(resourceGroup).GetClient()
+
+	// Find the etcd pod for this member and increment the defrag-count annotation so that
+	// e2e tests can assert that defragmentation was actually invoked.
+	podName := fmt.Sprintf("etcd-%s", etcdMember)
+	etcdPods := &corev1.PodList{}
+	if err := inmemoryClient.List(ctx, etcdPods,
+		client.InNamespace(metav1.NamespaceSystem),
+		client.MatchingLabels{
+			"component": "etcd",
+			"tier":      "control-plane",
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "failed to list etcd pods for defragmentation")
+	}
+
+	for i := range etcdPods.Items {
+		pod := &etcdPods.Items[i]
+		if pod.Name != podName {
+			continue
+		}
+		updatedPod := pod.DeepCopy()
+		annotations := updatedPod.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		count := 0
+		if v, ok := annotations[cloudv1.EtcdDefragCountAnnotationName]; ok {
+			count, _ = strconv.Atoi(v)
+		}
+		annotations[cloudv1.EtcdDefragCountAnnotationName] = strconv.Itoa(count + 1)
+		updatedPod.SetAnnotations(annotations)
+		if err := inmemoryClient.Patch(ctx, updatedPod, client.MergeFrom(pod)); err != nil {
+			return nil, errors.Wrapf(err, "failed to update defrag-count annotation on etcd pod %s", podName)
+		}
+		return &pb.DefragmentResponse{}, nil
+	}
+
+	// Pod not found — still return success so that callers are not blocked.
+	m.log.V(4).Info("Etcd: Defragment — etcd pod not found, treating as no-op", "pod", podName)
+	return &pb.DefragmentResponse{}, nil
 }
 
 func (m *maintenanceServer) Hash(_ context.Context, _ *pb.HashRequest) (*pb.HashResponse, error) {

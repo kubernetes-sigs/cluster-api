@@ -81,6 +81,9 @@ type WorkloadCluster interface {
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMember(ctx context.Context, m *etcd.Member, nodes []*Node) error
 	ForwardEtcdLeadership(ctx context.Context, fromMember, toMember string) error
+	EtcdMemberStatus(ctx context.Context, nodeName string) (*etcd.MemberStatus, error)
+	DefragEtcdMember(ctx context.Context, nodeName string) error
+	DisarmEtcdMemberNoSpaceAlarm(ctx context.Context, nodeName string, memberID uint64) error
 	EnsureKubeadmPermissions(ctx context.Context, version semver.Version) error
 	UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error
 }

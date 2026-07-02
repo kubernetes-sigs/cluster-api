@@ -39,7 +39,9 @@ type GRPCDial func(ctx context.Context, addr string) (net.Conn, error)
 // This interface is implemented by both the clientv3 package and the backoff adapter that adds retries to the client.
 type etcd interface {
 	AlarmList(ctx context.Context) (*clientv3.AlarmResponse, error)
+	AlarmDisarm(ctx context.Context, m *clientv3.AlarmMember) (*clientv3.AlarmResponse, error)
 	Close() error
+	Defragment(ctx context.Context, endpoint string) (*clientv3.DefragmentResponse, error)
 	Endpoints() []string
 	MemberList(ctx context.Context, opts ...clientv3.OpOption) (*clientv3.MemberListResponse, error)
 	MemberRemove(ctx context.Context, id uint64) (*clientv3.MemberRemoveResponse, error)
@@ -81,6 +83,19 @@ const (
 // DefaultCallTimeout represents the duration that the etcd client waits at most
 // for read and write operations to etcd.
 const DefaultCallTimeout = 15 * time.Second
+
+// defragCallTimeout is the timeout used for etcd defragmentation calls.
+// Defragmentation is a write-heavy, long-running operation that can take significantly
+// longer than regular read/write calls, so it uses a dedicated larger timeout.
+// The effective deadline is the minimum of defragCallTimeout and any deadline already
+// set on the parent context (e.g. the reconciliation timeout).
+//
+// Note: if the client-side context expires before the server acknowledges completion,
+// the client will receive a deadline-exceeded error, but the etcd server will continue
+// and finish the defragmentation regardless, because the server-side operation is not
+// interruptible. A timeout error here therefore means the result is unknown, not that
+// defragmentation failed.
+const defragCallTimeout = 60 * time.Second
 
 // AlarmTypeName provides a text translation for AlarmType codes.
 var AlarmTypeName = map[AlarmType]string{
@@ -241,6 +256,98 @@ func (c *Client) RemoveMember(ctx context.Context, id uint64) error {
 
 	_, err := c.EtcdClient.MemberRemove(ctx, id)
 	return errors.Wrapf(err, "failed to remove etcd member: %v", id)
+}
+
+// MemberStatus holds per-member status information derived from the etcd Status RPC.
+// It mirrors the non-protobuf fields of clientv3.StatusResponse (which is pb.StatusResponse),
+// omitting Header and DowngradeInfo (both protobuf types) and exposing Header.MemberId as ID.
+// Callers can determine leadership by comparing ID == Leader.
+type MemberStatus struct {
+	// ID is the member ID of this member, taken from Header.MemberId in the Status response.
+	ID uint64
+
+	// Version is the cluster protocol version used by this member.
+	Version string
+
+	// StorageVersion is the version of the db file on this member.
+	StorageVersion string
+
+	// DbSize is the total size of the etcd database file, in bytes.
+	DbSize int64
+
+	// DbSizeInUse is the total size actually in use in the etcd database, in bytes.
+	DbSizeInUse int64
+
+	// DbSizeQuota is the configured etcd storage quota in bytes, populated from the
+	// etcd Status response on etcd v3.6+. On etcd v3.5 this field is always 0.
+	DbSizeQuota int64
+
+	// RaftIndex is the current raft committed index of this member.
+	RaftIndex uint64
+
+	// RaftTerm is the current raft term of this member.
+	RaftTerm uint64
+
+	// RaftAppliedIndex is the current raft applied index of this member.
+	RaftAppliedIndex uint64
+
+	// Leader is the member ID that this member believes is the current leader.
+	Leader uint64
+
+	// IsLearner indicates whether this member is a raft learner.
+	IsLearner bool
+
+	// Errors contains alarm/health information reported by this member.
+	Errors []string
+}
+
+// MemberStatus fetches a fresh status for this client's endpoint and returns database
+// size metrics and leadership information.
+func (c *Client) MemberStatus(ctx context.Context) (*MemberStatus, error) {
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
+	defer cancel()
+
+	resp, err := c.EtcdClient.Status(ctx, c.Endpoint)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get etcd member status")
+	}
+	return &MemberStatus{
+		ID:               resp.Header.GetMemberId(),
+		Version:          resp.Version,
+		StorageVersion:   resp.StorageVersion,
+		DbSize:           resp.DbSize,
+		DbSizeInUse:      resp.DbSizeInUse,
+		DbSizeQuota:      resp.DbSizeQuota,
+		RaftIndex:        resp.RaftIndex,
+		RaftTerm:         resp.RaftTerm,
+		RaftAppliedIndex: resp.RaftAppliedIndex,
+		Leader:           resp.Leader,
+		IsLearner:        resp.IsLearner,
+		Errors:           resp.Errors,
+	}, nil
+}
+
+// Defragment defragments this client's etcd member, reclaiming space freed by prior compactions.
+// This is a blocking, write-heavy operation; it uses defragCallTimeout rather than the
+// standard CallTimeout to accommodate large databases.
+func (c *Client) Defragment(ctx context.Context) error {
+	ctx, cancel := context.WithTimeoutCause(ctx, defragCallTimeout, errors.New("defrag call timeout expired"))
+	defer cancel()
+
+	_, err := c.EtcdClient.Defragment(ctx, c.Endpoint)
+	return errors.Wrapf(err, "failed to defragment etcd member %s", c.Endpoint)
+}
+
+// DisarmNoSpaceAlarm clears the NOSPACE alarm on the given etcd member.
+func (c *Client) DisarmNoSpaceAlarm(ctx context.Context, memberID uint64) error {
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
+	defer cancel()
+
+	_, err := c.EtcdClient.AlarmDisarm(ctx, &clientv3.AlarmMember{
+		MemberID: memberID,
+		Alarm:    etcdserverpb.AlarmType_NOSPACE,
+	})
+	return errors.Wrapf(err, "failed to disarm NOSPACE alarm on etcd member %d", memberID)
 }
 
 // Alarms retrieves all alarms on a cluster.

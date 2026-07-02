@@ -1,0 +1,2 @@
+resources:
+- cluster-with-kcp.yaml

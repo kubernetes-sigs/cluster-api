@@ -754,14 +754,11 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 	// NOTE: to detect if we are upgrading, we check if the intent to call the AfterClusterUpgrade is already tracked;
 	//	as a temporary fallback to handle cases when RuntimeSDK feature gate is not enabled yet, we also check the upgrade plan not being empty.
 	// NOTE, it is required to surface intermediate steps of the upgrade plan to allow creation of machines in KCP/MS.
-	// TODO: consider if we want to surface the upgrade plan (or the list of desired versions) in cluster status;
-	//   TBD if the semantic of the new field can replace this annotation.
 	if cluster.Annotations == nil {
 		cluster.Annotations = map[string]string{}
 	}
 	if (feature.Gates.Enabled(feature.RuntimeSDK) && hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)) ||
 		(!feature.Gates.Enabled(feature.RuntimeSDK) && (len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 || len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 || len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0)) {
-		// NOTE: to detect if we are at the beginning of an upgrade, we check if the intent to call the AfterClusterUpgrade is already tracked.
 		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting control plane version")

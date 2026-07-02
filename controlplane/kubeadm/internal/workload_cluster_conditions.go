@@ -267,21 +267,6 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 	}
 	defer etcdClient.Close()
 
-	// While creating a new client, forFirstAvailableNode also reads the status for the endpoint we are connected to; check if the endpoint has errors.
-	if len(etcdClient.Errors) > 0 {
-		for _, m := range machines {
-			v1beta1conditions.MarkFalse(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Etcd endpoint %s reports errors: %s", etcdClient.Endpoint, strings.Join(etcdClient.Errors, ", "))
-
-			conditions.Set(m, metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyReason,
-				Message: fmt.Sprintf("Etcd endpoint %s reports errors: %s", etcdClient.Endpoint, strings.Join(etcdClient.Errors, ", ")),
-			})
-		}
-		return nil, nil, nil, errors.Errorf("etcd endpoint %s reports errors: %s", etcdClient.Endpoint, strings.Join(etcdClient.Errors, ", "))
-	}
-
 	// Gets the list of etcd members in the cluster.
 	currentMembers, err := etcdClient.Members(ctx)
 	if err != nil {

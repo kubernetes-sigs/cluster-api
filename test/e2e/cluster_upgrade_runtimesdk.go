@@ -177,7 +177,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		}
 
 		if input.WorkerMachineCount == nil {
-			workerMachineCount = 2
+			workerMachineCount = 1
 		} else {
 			workerMachineCount = *input.WorkerMachineCount
 		}

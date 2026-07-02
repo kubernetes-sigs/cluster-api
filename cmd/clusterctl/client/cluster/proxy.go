@@ -152,9 +152,11 @@ func (k *proxy) GetConfig() (*rest.Config, error) {
 	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
-	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go doesn't generate throttling log messages
-	restConfig.QPS = 20
-	restConfig.Burst = 100
+	// Set QPS and Burst high enough that clusterctl doesn't get throttled when it enumerates large
+	// resource sets such as many CRDs, while still relying on API Priority and Fairness for
+	// server-side protection.
+	restConfig.QPS = 500
+	restConfig.Burst = 1000
 
 	restConfig.WarningHandler = k.warningHandler
 

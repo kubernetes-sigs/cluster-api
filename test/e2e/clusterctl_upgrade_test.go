@@ -66,7 +66,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>cu
 			InitWithKubernetesVersion:   "v1.34.0",
 			WorkloadKubernetesVersion:   "v1.34.0",
 			MgmtFlavor:                  "topology",
-			WorkloadFlavor:              "topology",
+			WorkloadFlavor:              "in-memory-topology",
 			UseKindForManagementCluster: true,
 		}
 	})
@@ -107,7 +107,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>cu
 			InitWithKubernetesVersion:   "v1.35.0",
 			WorkloadKubernetesVersion:   "v1.35.0",
 			MgmtFlavor:                  "topology",
-			WorkloadFlavor:              "topology",
+			WorkloadFlavor:              "in-memory-topology",
 			UseKindForManagementCluster: true,
 		}
 	})
@@ -142,7 +142,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.13=>cu
 			InitWithKubernetesVersion:   "v1.36.1",
 			WorkloadKubernetesVersion:   "v1.36.1",
 			MgmtFlavor:                  "topology",
-			WorkloadFlavor:              "topology",
+			WorkloadFlavor:              "in-memory-topology",
 			UseKindForManagementCluster: false, // Using false for one test case to ensure this code path of the test keeps working.
 		}
 	})
@@ -180,7 +180,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.13=>cu
 			InitWithKubernetesVersion:   initKubernetesVersion,
 			WorkloadKubernetesVersion:   "v1.36.1",
 			MgmtFlavor:                  "topology",
-			WorkloadFlavor:              "topology",
+			WorkloadFlavor:              "in-memory-topology",
 			UseKindForManagementCluster: true,
 		}
 	})

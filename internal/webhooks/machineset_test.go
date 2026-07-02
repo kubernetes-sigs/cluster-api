@@ -503,7 +503,7 @@ func TestMachineSetVersionValidation(t *testing.T) {
 		},
 		{
 			name:      "should return error when given an invalid semantic version",
-			version:   "1",
+			version:   "v1.17.2++",
 			expectErr: true,
 		},
 		{

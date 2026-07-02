@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +33,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/util/version"
 	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
@@ -160,7 +160,10 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 	}
 
 	if newObj.Spec.Template.Spec.Version != "" {
-		if !version.KubeSemver.MatchString(newObj.Spec.Template.Spec.Version) {
+		if !strings.HasPrefix(newObj.Spec.Template.Spec.Version, "v") {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), newObj.Spec.Template.Spec.Version, "must start with v"))
+		}
+		if _, err := semver.Parse(strings.TrimPrefix(newObj.Spec.Template.Spec.Version, "v")); err != nil {
 			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), newObj.Spec.Template.Spec.Version, "must be a valid semantic version"))
 		}
 	}

@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,7 +39,6 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
-	"sigs.k8s.io/cluster-api/util/version"
 	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
@@ -227,7 +227,10 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 	allErrs = append(allErrs, validateRemediationMaxInFlight(specPath.Child("remediation"), newMD.Spec.Remediation.MaxInFlight)...)
 
 	if newMD.Spec.Template.Spec.Version != "" {
-		if !version.KubeSemver.MatchString(newMD.Spec.Template.Spec.Version) {
+		if !strings.HasPrefix(newMD.Spec.Template.Spec.Version, "v") {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), newMD.Spec.Template.Spec.Version, "must start with v"))
+		}
+		if _, err := semver.Parse(strings.TrimPrefix(newMD.Spec.Template.Spec.Version, "v")); err != nil {
 			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), newMD.Spec.Template.Spec.Version, "must be a valid semantic version"))
 		}
 	}

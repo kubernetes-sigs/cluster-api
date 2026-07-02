@@ -29,13 +29,18 @@ type CertManager interface {
 	// Timeout returns the timeout for cert-manager to start.
 	// If empty, 10m will be used.
 	Timeout() string
+
+	// WaitForCertManager returns the true/false to be used when clusterctl init is initialized.
+	// wait before creating cert-manager resources.
+	WaitForCertManager() string
 }
 
 // certManager implements CertManager.
 type certManager struct {
-	url     string
-	version string
-	timeout string
+	url                string
+	version            string
+	timeout            string
+	waitForCertManager string
 }
 
 // ensure certManager implements CertManager.
@@ -53,11 +58,16 @@ func (p *certManager) Timeout() string {
 	return p.timeout
 }
 
+func (p *certManager) WaitForCertManager() string {
+	return p.waitForCertManager
+}
+
 // NewCertManager creates a new CertManager with the given configuration.
-func NewCertManager(url, version, timeout string) CertManager {
+func NewCertManager(url, version, timeout, waitForCertManager string) CertManager {
 	return &certManager{
-		url:     url,
-		version: version,
-		timeout: timeout,
+		url:                url,
+		version:            version,
+		timeout:            timeout,
+		waitForCertManager: waitForCertManager,
 	}
 }

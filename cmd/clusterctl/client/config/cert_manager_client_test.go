@@ -40,34 +40,42 @@ func TestCertManagerGet(t *testing.T) {
 			fields: fields{
 				reader: test.NewFakeReader(),
 			},
-			want:    NewCertManager(CertManagerDefaultURL, CertManagerDefaultVersion, CertManagerDefaultTimeout.String()),
+			want:    NewCertManager(CertManagerDefaultURL, CertManagerDefaultVersion, CertManagerDefaultTimeout.String(), "false"),
 			wantErr: false,
 		},
 		{
 			name: "return custom url if defined",
 			fields: fields{
-				reader: test.NewFakeReader().WithCertManager("foo-url", "vX.Y.Z", ""),
+				reader: test.NewFakeReader().WithCertManager("foo-url", "vX.Y.Z", "", "false"),
 			},
-			want:    NewCertManager("foo-url", "vX.Y.Z", CertManagerDefaultTimeout.String()),
+			want:    NewCertManager("foo-url", "vX.Y.Z", CertManagerDefaultTimeout.String(), "false"),
 			wantErr: false,
 		},
 		{
 			name: "return custom url with evaluated env vars if defined",
 			fields: fields{
-				reader: test.NewFakeReader().WithCertManager("${TEST_REPO_PATH}/foo-url", "vX.Y.Z", ""),
+				reader: test.NewFakeReader().WithCertManager("${TEST_REPO_PATH}/foo-url", "vX.Y.Z", "", "false"),
 			},
 			envVars: map[string]string{
 				"TEST_REPO_PATH": "/tmp/test",
 			},
-			want:    NewCertManager("/tmp/test/foo-url", "vX.Y.Z", CertManagerDefaultTimeout.String()),
+			want:    NewCertManager("/tmp/test/foo-url", "vX.Y.Z", CertManagerDefaultTimeout.String(), "false"),
 			wantErr: false,
 		},
 		{
 			name: "return timeout if defined",
 			fields: fields{
-				reader: test.NewFakeReader().WithCertManager("", "", "5m"),
+				reader: test.NewFakeReader().WithCertManager("", "", "5m", "false"),
 			},
-			want:    NewCertManager(CertManagerDefaultURL, CertManagerDefaultVersion, "5m"),
+			want:    NewCertManager(CertManagerDefaultURL, CertManagerDefaultVersion, "5m", "false"),
+			wantErr: false,
+		},
+		{
+			name: "return waitForCertManager if defined",
+			fields: fields{
+				reader: test.NewFakeReader().WithCertManager("", "", "5m", "true"),
+			},
+			want:    NewCertManager(CertManagerDefaultURL, CertManagerDefaultVersion, "5m", "true"),
 			wantErr: false,
 		},
 	}

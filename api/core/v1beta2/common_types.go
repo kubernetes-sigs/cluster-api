@@ -276,7 +276,7 @@ type StatusVersion struct {
 	Version string `json:"version,omitempty"`
 
 	// replicas is the number of replicas at this version.
-	// +required
+	// +optional
 	// +kubebuilder:validation:Minimum=1
 	Replicas int32 `json:"replicas,omitempty"`
 }

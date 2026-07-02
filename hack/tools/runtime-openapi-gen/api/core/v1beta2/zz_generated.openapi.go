@@ -6991,7 +6991,7 @@ func schema_cluster_api_api_core_v1beta2_StatusVersion(ref common.ReferenceCallb
 						},
 					},
 				},
-				Required: []string{"version", "replicas"},
+				Required: []string{"version"},
 			},
 		},
 	}

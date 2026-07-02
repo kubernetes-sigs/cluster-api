@@ -2538,6 +2538,95 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 		},
 		{
+			name: "Machines.spec.version out of sync with kubeletVersion, machine not up-to-date date",
+			controlPlane: func() *internal.ControlPlane {
+				controlPlane, err := internal.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+					func() *clusterv1.Machine {
+						m := defaultMachine1.DeepCopy()
+						m.Status.NodeInfo = &corev1.NodeSystemInfo{KubeletVersion: "v1.30.0"}
+						return m
+					}(),
+				))
+				if err != nil {
+					panic(err)
+				}
+				return controlPlane
+			}(),
+			managementCluster: &fakeManagementCluster{
+				Workload: &fakeWorkloadCluster{
+					Workload: &internal.Workload{
+						Client: fake.NewClientBuilder().Build(),
+					},
+				},
+			},
+			lastProbeSuccessTime: now.Add(-3 * time.Minute),
+			expectKCPConditions: []metav1.Condition{
+				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedReason,
+				},
+				{
+					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownReason,
+					Message: "* Machine machine1-test:\n" +
+						"  * EtcdMemberHealthy: Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownReason,
+					Message: "* Machine machine1-test:\n" +
+						"  * Control plane components: Waiting for a Node with spec.providerID foo to exist",
+				},
+			},
+			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineUpToDateUpdatingReason,
+					Message: "* Node.status.nodeInfo.kubeletVersion v1.30.0, v1.31.0 required",
+				},
+			},
+		},
+		{
 			name: "Machines not up to date",
 			controlPlane: func() *internal.ControlPlane {
 				controlPlane, err := internal.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(

@@ -1146,6 +1146,17 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 			continue
 		}
 
+		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" && machine.Status.NodeInfo.KubeletVersion != machine.Spec.Version {
+			conditions.Set(machine, metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineUpToDateUpdatingReason,
+				Message: fmt.Sprintf("* Node.status.nodeInfo.kubeletVersion %s, %s required",
+					machine.Status.NodeInfo.KubeletVersion, machine.Spec.Version),
+			})
+			continue
+		}
+
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionTrue,

@@ -805,7 +805,7 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 			wantUpgrading: true,
 		},
 		{
-			name: "should return false if status.versions entry not at spec.version has zero replicas",
+			name: "should return true if status.versions entry not at spec.version has zero replicas",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{
 					"version": "v1.2.3",
@@ -823,7 +823,26 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 					},
 				},
 			}},
-			wantUpgrading: false,
+			wantUpgrading: true,
+		},
+		{
+			name: "should return true if status.versions entry not at spec.version without replicas set",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"version": "v1.2.3",
+				},
+				"status": map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"version": "v1.2.2",
+						},
+						map[string]interface{}{
+							"version": "v1.2.3",
+						},
+					},
+				},
+			}},
+			wantUpgrading: true,
 		},
 		{
 			name: "should return false if status.versions entry is newer than spec.version",
@@ -912,22 +931,6 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 				},
 			}},
 			wantUpgrading: true,
-		},
-		{
-			name: "should return error if status.versions replicas is missing",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
-					"version": "v1.2.3",
-				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
-							"version": "v1.2.3",
-						},
-					},
-				},
-			}},
-			wantErr: true,
 		},
 		{
 			name: "should return error if status.versions replicas is negative",

@@ -3575,7 +3575,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `version` _string_ | version is the Kubernetes version. |  | MaxLength: 256 <br />MinLength: 1 <br />Required: \{\} <br /> |
-| `replicas` _integer_ | replicas is the number of replicas at this version. |  | Minimum: 1 <br />Required: \{\} <br /> |
+| `replicas` _integer_ | replicas is the number of replicas at this version. |  | Minimum: 1 <br />Optional: \{\} <br /> |
 
 
 #### Topology

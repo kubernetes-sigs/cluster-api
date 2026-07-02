@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
@@ -391,4 +392,77 @@ func (f *fakeClient) Update(_ context.Context, _ client.Object, _ ...client.Upda
 		return f.updateErr
 	}
 	return nil
+}
+
+func TestVerifyEtcdServerCertificate(t *testing.T) {
+	mkCA := func(cn string) (*x509.Certificate, *rsa.PrivateKey) {
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tmpl := &x509.Certificate{
+			SerialNumber:          big.NewInt(1),
+			Subject:               pkix.Name{CommonName: cn},
+			NotBefore:             time.Now().Add(-time.Hour),
+			NotAfter:              time.Now().Add(time.Hour),
+			IsCA:                  true,
+			KeyUsage:              x509.KeyUsageCertSign,
+			BasicConstraintsValid: true,
+		}
+		der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		caCert, err := x509.ParseCertificate(der)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return caCert, key
+	}
+
+	mkServerCert := func(ca *x509.Certificate, caKey *rsa.PrivateKey) *x509.Certificate {
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tmpl := &x509.Certificate{
+			SerialNumber: big.NewInt(2),
+			// Intentionally use a CN/SAN that does not match the dial endpoint to
+			// mirror how etcd serving certificates look when reached via the proxy.
+			Subject:     pkix.Name{CommonName: "etcd-server"},
+			NotBefore:   time.Now().Add(-time.Hour),
+			NotAfter:    time.Now().Add(time.Hour),
+			KeyUsage:    x509.KeyUsageDigitalSignature,
+			ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		}
+		der, err := x509.CreateCertificate(rand.Reader, tmpl, ca, &key.PublicKey, caKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cert, err := x509.ParseCertificate(der)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return cert
+	}
+
+	g := NewWithT(t)
+
+	etcdCA, etcdCAKey := mkCA("etcd-ca")
+	otherCA, otherCAKey := mkCA("other-ca")
+
+	roots := x509.NewCertPool()
+	roots.AddCert(etcdCA)
+	verify := verifyEtcdServerCertificate(roots)
+
+	// A certificate signed by the etcd CA is accepted even though its host name is not checked.
+	trusted := mkServerCert(etcdCA, etcdCAKey)
+	g.Expect(verify(tls.ConnectionState{PeerCertificates: []*x509.Certificate{trusted}})).To(Succeed())
+
+	// A certificate signed by a different CA is rejected.
+	impostor := mkServerCert(otherCA, otherCAKey)
+	g.Expect(verify(tls.ConnectionState{PeerCertificates: []*x509.Certificate{impostor}})).ToNot(Succeed())
+
+	// No certificate at all is rejected.
+	g.Expect(verify(tls.ConnectionState{})).ToNot(Succeed())
 }

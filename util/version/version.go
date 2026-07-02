@@ -18,16 +18,10 @@ limitations under the License.
 package version
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/blang/semver/v4"
-)
-
-var (
-	// KubeSemver is the regex for Kubernetes versions. It requires the "v" prefix.
-	KubeSemver = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
 )
 
 // MajorMinorPatch returns a version that only has Major / Minor / Patch fields set.

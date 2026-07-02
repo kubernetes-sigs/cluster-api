@@ -320,7 +320,10 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 	// Validate the metadata of the MachineTemplate
 	allErrs = append(allErrs, s.MachineTemplate.ObjectMeta.Validate(pathPrefix.Child("machineTemplate", "metadata"))...)
 
-	if !version.KubeSemver.MatchString(s.Version) {
+	if !strings.HasPrefix(s.Version, "v") {
+		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must start with v"))
+	}
+	if _, err := semver.Parse(strings.TrimPrefix(s.Version, "v")); err != nil {
 		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must be a valid semantic version"))
 	}
 

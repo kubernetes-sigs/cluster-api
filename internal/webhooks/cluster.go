@@ -263,7 +263,17 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	}
 
 	// version should be valid.
-	if !version.KubeSemver.MatchString(newCluster.Spec.Topology.Version) {
+	if !strings.HasPrefix(newCluster.Spec.Topology.Version, "v") {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				fldPath.Child("version"),
+				newCluster.Spec.Topology.Version,
+				"must start with v",
+			),
+		)
+	}
+	if _, err := semver.Parse(strings.TrimPrefix(newCluster.Spec.Topology.Version, "v")); err != nil {
 		allErrs = append(
 			allErrs,
 			field.Invalid(

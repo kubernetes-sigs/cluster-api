@@ -146,6 +146,9 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	invalidVersion2 := valid.DeepCopy()
 	invalidVersion2.Spec.Version = "1.16.6"
 
+	invalidVersion3 := valid.DeepCopy()
+	invalidVersion3.Spec.Version = "v1"
+
 	invalidCoreDNSVersion := valid.DeepCopy()
 	invalidCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag = "1-7" // not a valid semantic version
 
@@ -234,6 +237,11 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			name:      "should return error when given an invalid semantic version",
 			expectErr: true,
 			kcp:       invalidVersion1,
+		},
+		{
+			name:      "should return error when given an invalid semantic version",
+			expectErr: true,
+			kcp:       invalidVersion3,
 		},
 		{
 			name:      "should return error when given an invalid semantic CoreDNS version",

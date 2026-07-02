@@ -410,9 +410,14 @@ func TestMachinePoolVersionValidation(t *testing.T) {
 			version:   "v1.19.0-alpha.1",
 		},
 		{
-			name:      "should fail if version is not a valid semver",
+			name:      "should return error when given an invalid semantic version",
+			version:   "v1.17.2++",
 			expectErr: true,
-			version:   "v1.1",
+		},
+		{
+			name:      "should return error when given an invalid semantic version",
+			version:   "v1",
+			expectErr: true,
 		},
 		{
 			name:      "should fail if version is missing a v prefix",

@@ -412,7 +412,8 @@ at least one of the following fields.
 
 `status.versions` is the preferred source of truth for surfacing control plane versions.
 Entries in this list MUST be ordered from the older to the newer version.
-Each entry MUST include a valid semantic version and the number of replicas at that version.
+Each entry MUST include a valid semantic version and if control of the number of replicas is supported
+the number of replicas at that version must be set as well.
 
 ```go
 type FooControlPlaneStatus struct {

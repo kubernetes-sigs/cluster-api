@@ -1739,7 +1739,6 @@ spec:
                               minLength: 1
                               type: string
                           required:
-                          - replicas
                           - version
                           type: object
                         maxItems: 100
@@ -1801,7 +1800,6 @@ spec:
                               minLength: 1
                               type: string
                           required:
-                          - replicas
                           - version
                           type: object
                         maxItems: 100
@@ -3570,7 +3568,6 @@ spec:
                           minLength: 1
                           type: string
                       required:
-                      - replicas
                       - version
                       type: object
                     maxItems: 100
@@ -3786,7 +3783,6 @@ spec:
                           minLength: 1
                           type: string
                       required:
-                      - replicas
                       - version
                       type: object
                     maxItems: 100

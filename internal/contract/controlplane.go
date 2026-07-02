@@ -91,6 +91,12 @@ func (v *StatusVersions) Get(obj *unstructured.Unstructured) ([]clusterv1.Status
 func (v *StatusVersions) Set(obj *unstructured.Unstructured, value []clusterv1.StatusVersion) error {
 	interfaces := make([]interface{}, 0, len(value))
 	for _, statusVersion := range value {
+		if statusVersion.Replicas == 0 {
+			interfaces = append(interfaces, map[string]interface{}{
+				"version": statusVersion.Version,
+			})
+			continue
+		}
 		interfaces = append(interfaces, map[string]interface{}{
 			"version":  statusVersion.Version,
 			"replicas": int64(statusVersion.Replicas),
@@ -291,6 +297,9 @@ func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (b
 // - at least one status.versions entry is not at spec.version.
 // - if status.versions does not exist, spec.version is greater than status.version.
 // Note: A control plane is considered not upgrading if the status or status.versions/status.version is not set.
+// Note: status.versions are computed by Machine.status.nodeInfo.kubeletVersion and Machine.spec.version. kubeletVersion
+// has the higher priority and accordingly during in-place upgrades IsUpgrading returns true until the kubelet also reports
+// the new version.
 func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool, error) {
 	specVersion, err := c.Version().Get(obj)
 	if err != nil {
@@ -307,9 +316,8 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 	}
 	if err == nil && len(statusVersions) > 0 {
 		for _, statusVersion := range statusVersions {
-			if statusVersion.Replicas == 0 {
-				continue
-			}
+			// Note: IsUpgrading should return true even if no replicas are reported, because
+			// not all control plane providers support replicas.
 			statusV, err := semver.ParseTolerant(statusVersion.Version)
 			if err != nil {
 				return false, errors.Wrap(err, "failed to parse control plane status version")

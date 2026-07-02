@@ -166,8 +166,14 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 				// TODO: we can also relax this and tolerate the absence of the bootstrap ref way before, e.g. after node ref is set
 				return ctrl.Result{}, nil
 			}
+
+			if m.Status.NodeRef.IsDefined() {
+				// If the node ref is already set, it means that the machine has been already provisioned and the bootstrap object
+				// is not needed anymore. Tolerate bootstrap config not found in this case.
+				return ctrl.Result{}, nil
+			}
+
 			log.Info("Could not find bootstrap config object, requeuing", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
-			// TODO: we can make this smarter and requeue only if we are before node ref is set
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 		}
 		return ctrl.Result{}, err

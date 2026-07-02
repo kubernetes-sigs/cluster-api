@@ -298,3 +298,16 @@ If you do not want to use the flag every time you issue a command you can set th
 ## Skip checking for updates
 
 `clusterctl` automatically checks for new versions every time it is used. If you do not want `clusterctl` to check for new updates you can set the environment variable `CLUSTERCTL_DISABLE_VERSIONCHECK` to `"true"` or set the variable in the `clusterctl` config file located by default at `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`.
+
+## Tuning the management cluster client rate limiter
+
+When `clusterctl` talks to the management cluster it uses a client-side rate limiter. The defaults (QPS `20`, Burst `100`) are sufficient for most clusters, but operations such as `clusterctl move` and `clusterctl upgrade` enumerate every API resource on the cluster. On management clusters with a very large number of CRDs (for example when using [Azure Service Operator](https://azure.github.io/azure-service-operator/)) this can exhaust the rate limiter and fail with `client rate limiter Wait returned an error: context deadline exceeded`.
+
+You can raise the limits with the `CLUSTERCTL_KUBE_API_QPS` and `CLUSTERCTL_KUBE_API_BURST` environment variables:
+
+```bash
+export CLUSTERCTL_KUBE_API_QPS=50
+export CLUSTERCTL_KUBE_API_BURST=250
+```
+
+Invalid or non-positive values are ignored and the defaults are used.

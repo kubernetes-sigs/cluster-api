@@ -47,6 +47,18 @@ var (
 	localScheme = scheme.Scheme
 )
 
+const (
+	// defaultKubeAPIQPS is the default QPS for the clusterctl management cluster client.
+	defaultKubeAPIQPS = 20
+	// defaultKubeAPIBurst is the default Burst for the clusterctl management cluster client.
+	defaultKubeAPIBurst = 100
+
+	// KubeAPIQPSEnvVar is the environment variable used to override the QPS of the clusterctl management cluster client.
+	KubeAPIQPSEnvVar = "CLUSTERCTL_KUBE_API_QPS"
+	// KubeAPIBurstEnvVar is the environment variable used to override the Burst of the clusterctl management cluster client.
+	KubeAPIBurstEnvVar = "CLUSTERCTL_KUBE_API_BURST"
+)
+
 // Proxy defines a client proxy interface.
 type Proxy interface {
 	// GetConfig returns the rest.Config
@@ -152,9 +164,18 @@ func (k *proxy) GetConfig() (*rest.Config, error) {
 	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
-	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go doesn't generate throttling log messages
-	restConfig.QPS = 20
-	restConfig.Burst = 100
+	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go doesn't generate throttling log messages.
+	// The defaults can be overridden via the CLUSTERCTL_KUBE_API_QPS and CLUSTERCTL_KUBE_API_BURST environment variables. This is
+	// useful for management clusters with a large number of CRDs (for example Azure Service Operator), where clusterctl move and
+	// upgrade would otherwise exhaust the client-side rate limiter while enumerating API resources.
+	restConfig.QPS = defaultKubeAPIQPS
+	if qps, err := strconv.ParseFloat(os.Getenv(KubeAPIQPSEnvVar), 32); err == nil && qps > 0 {
+		restConfig.QPS = float32(qps)
+	}
+	restConfig.Burst = defaultKubeAPIBurst
+	if burst, err := strconv.Atoi(os.Getenv(KubeAPIBurstEnvVar)); err == nil && burst > 0 {
+		restConfig.Burst = burst
+	}
 
 	restConfig.WarningHandler = k.warningHandler
 

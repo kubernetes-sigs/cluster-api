@@ -127,6 +127,40 @@ func TestProxyGetConfig(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("configure QPS and Burst via env vars", func(t *testing.T) {
+		g := NewWithT(t)
+		t.Setenv(KubeAPIQPSEnvVar, "50")
+		t.Setenv(KubeAPIBurstEnvVar, "250")
+
+		dir := t.TempDir()
+		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
+		g.Expect(os.WriteFile(configFile, []byte(kubeconfig("management", "default")), 0600)).To(Succeed())
+
+		proxy := NewProxy(Kubeconfig{Path: configFile, Context: "management"})
+		conf, err := proxy.GetConfig()
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(conf).ToNot(BeNil())
+		g.Expect(conf.QPS).To(BeEquivalentTo(50))
+		g.Expect(conf.Burst).To(BeEquivalentTo(250))
+	})
+
+	t.Run("falls back to defaults when QPS and Burst env vars are invalid", func(t *testing.T) {
+		g := NewWithT(t)
+		t.Setenv(KubeAPIQPSEnvVar, "not-a-number")
+		t.Setenv(KubeAPIBurstEnvVar, "-1")
+
+		dir := t.TempDir()
+		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
+		g.Expect(os.WriteFile(configFile, []byte(kubeconfig("management", "default")), 0600)).To(Succeed())
+
+		proxy := NewProxy(Kubeconfig{Path: configFile, Context: "management"})
+		conf, err := proxy.GetConfig()
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(conf).ToNot(BeNil())
+		g.Expect(conf.QPS).To(BeEquivalentTo(20))
+		g.Expect(conf.Burst).To(BeEquivalentTo(100))
+	})
 }
 
 // These tests are emulating the files passed in via KUBECONFIG env var by

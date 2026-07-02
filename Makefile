@@ -150,6 +150,11 @@ GO_APIDIFF_BIN := go-apidiff
 GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
 GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
+DEADCODE_VER := v0.45.0
+DEADCODE_BIN := deadcode
+DEADCODE := $(abspath $(TOOLS_BIN_DIR)/$(DEADCODE_BIN)-$(DEADCODE_VER))
+DEADCODE_PKG := golang.org/x/tools/cmd/deadcode
+
 HADOLINT_VER := v2.12.0
 HADOLINT_FAILURE_THRESHOLD = warning
 
@@ -697,7 +702,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen crd-docs conversions doctoc capi-book-summary diagrams import-restrictions go-directive
+ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen crd-docs conversions doctoc capi-book-summary diagrams import-restrictions go-directive deadcode
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
@@ -766,6 +771,10 @@ verify-container-images: ## Verify container images
 .PHONY: verify-licenses
 verify-licenses: ## Verify licenses
 	TRACE=$(TRACE) ./hack/verify-licenses.sh $(TRIVY_VER)
+
+.PHONY: verify-deadcode
+verify-deadcode: $(DEADCODE) ## Verify there are no dead (unreachable) functions under internal/
+	TRACE=$(TRACE) ./hack/verify-deadcode.sh $(DEADCODE)
 
 .PHONY: verify-govulncheck
 verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
@@ -1461,6 +1470,9 @@ $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 .PHONY: $(GOVULNCHECK_BIN)
 $(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
 
+.PHONY: $(DEADCODE_BIN)
+$(DEADCODE_BIN): $(DEADCODE) ## Build a local copy of deadcode.
+
 .PHONY: $(CRANE_BIN)
 $(CRANE_BIN): $(CRANE) ## Build a local copy of crane.
 
@@ -1500,6 +1512,9 @@ $(GOTESTSUM): # Build gotestsum from tools folder.
 
 $(GO_APIDIFF): # Build go-apidiff from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GO_APIDIFF_PKG) $(GO_APIDIFF_BIN) $(GO_APIDIFF_VER)
+
+$(DEADCODE): # Build deadcode from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(DEADCODE_PKG) $(DEADCODE_BIN) $(DEADCODE_VER)
 
 $(KUSTOMIZE): # Build kustomize from tools folder.
 	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)

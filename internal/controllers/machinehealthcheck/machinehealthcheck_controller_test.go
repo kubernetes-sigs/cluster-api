@@ -37,6 +37,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -2967,4 +2968,65 @@ func TestPatchTargets(t *testing.T) {
 
 	// Target with wrong patch helper will fail but the other one will be patched.
 	g.Expect(r.patchHealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, mhc)).ToNot(BeEmpty())
+}
+
+func TestNodeIsChangedPredicate(t *testing.T) {
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		},
+	}
+
+	nodeWithChangedConditions := node.DeepCopy()
+	nodeWithChangedConditions.Status.Conditions[0].Status = corev1.ConditionFalse
+
+	nodeDeleting := node.DeepCopy()
+	nodeDeleting.DeletionTimestamp = ptr.To(metav1.Now())
+	nodeDeleting.Finalizers = []string{"test.example.com/finalizer"}
+
+	nodeWithChangedLabels := node.DeepCopy()
+	nodeWithChangedLabels.Labels = map[string]string{"foo": "bar"}
+
+	testCases := []struct {
+		name     string
+		oldNode  *corev1.Node
+		newNode  *corev1.Node
+		expected bool
+	}{
+		{
+			name:     "when the node conditions changed",
+			oldNode:  node,
+			newNode:  nodeWithChangedConditions,
+			expected: true,
+		},
+		{
+			name:     "when the node is being deleted",
+			oldNode:  node,
+			newNode:  nodeDeleting,
+			expected: true,
+		},
+		{
+			name:     "when neither the node conditions changed nor the node is being deleted",
+			oldNode:  node,
+			newNode:  nodeWithChangedLabels,
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			predicate := nodeIsChangedPredicate()
+			g.Expect(predicate.Update(event.UpdateEvent{ObjectOld: tc.oldNode, ObjectNew: tc.newNode})).To(Equal(tc.expected))
+		})
+	}
 }

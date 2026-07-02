@@ -69,6 +69,7 @@ type healthCheckTarget struct {
 // - Any condition on the machine matches the configured checks and exceeds the timeout
 // - The Machine did not get a node before `timeoutForMachineToHaveNode` elapses
 // - The Node has been deleted but the Machine still references it
+// - The Node is being deleted for longer than the configured timeout (if checks.nodeDeleting is set)
 // - Any condition on the node matches the configured checks and exceeds the timeout
 //
 // Machine conditions are always evaluated first and consistently across all scenarios
@@ -254,6 +255,24 @@ func (t *healthCheckTarget) nodeChecks(logger logr.Logger, reconciliationTime ti
 		durationUnhealthy := reconciliationTime.Sub(comparisonTime)
 		nextCheck := timeoutDuration - durationUnhealthy + time.Second
 		return "", "", nil, nextCheck
+	}
+
+	// If the node is being deleted and the nodeDeleting check is configured, mark the
+	// machine as unhealthy after the node has been deleting for longer than the timeout.
+	if t.MHC.Spec.Checks.NodeDeleting.TimeoutSeconds != nil && !t.Node.DeletionTimestamp.IsZero() {
+		timeoutSecondsDuration := time.Duration(*t.MHC.Spec.Checks.NodeDeleting.TimeoutSeconds) * time.Second
+
+		if t.Node.DeletionTimestamp.Add(timeoutSecondsDuration).Before(reconciliationTime) {
+			nodeDeletingMessage := fmt.Sprintf("Node %s has been deleting for more than %s", t.Node.Name, timeoutSecondsDuration.String())
+			logger.V(3).Info(fmt.Sprintf("Target is unhealthy: Node has been deleting for more than %s", timeoutSecondsDuration.String()))
+			return clusterv1.MachineHealthCheckNodeDeletingReason, clusterv1.NodeDeletingV1Beta1Reason, []string{nodeDeletingMessage}, time.Duration(0)
+		}
+
+		durationDeleting := reconciliationTime.Sub(t.Node.DeletionTimestamp.Time)
+		nextCheck := timeoutSecondsDuration - durationDeleting + time.Second
+		if nextCheck > 0 {
+			nextCheckTimes = append(nextCheckTimes, nextCheck)
+		}
 	}
 
 	// check node conditions (only when node is available)

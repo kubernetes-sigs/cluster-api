@@ -169,6 +169,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec":                                      schema_cluster_api_api_core_v1beta2_MachineTemplateSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineV1Beta1DeprecatedStatus":                           schema_cluster_api_api_core_v1beta2_MachineV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges":                                            schema_cluster_api_api_core_v1beta2_NetworkRanges(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck":                                        schema_cluster_api_api_core_v1beta2_NodeDeletingCheck(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta":                                               schema_cluster_api_api_core_v1beta2_ObjectMeta(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchDefinition":                                          schema_cluster_api_api_core_v1beta2_PatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelector":                                            schema_cluster_api_api_core_v1beta2_PatchSelector(ref),
@@ -1720,6 +1721,13 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassHealthCheckChecks(ref 
 							Format:      "int32",
 						},
 					},
+					"nodeDeleting": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeleting allows to configure the MachineHealthCheck to consider a Machine unhealthy if its Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least the configured timeout. This allows to trigger the regular remediation process, and thus a graceful removal of the corresponding Machine, by deleting a Node in the workload cluster. Note: this check only applies as long as the Node object exists, i.e. it is kept around by a finalizer; Machines whose Node has been deleted are always considered unhealthy, independent of this configuration. If this field is not set, a Node that is being deleted does not cause the Machine to be considered unhealthy.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck"),
+						},
+					},
 					"unhealthyNodeConditions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
@@ -1762,7 +1770,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassHealthCheckChecks(ref 
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -2052,6 +2060,13 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckChecks(r
 							Format:      "int32",
 						},
 					},
+					"nodeDeleting": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeleting allows to configure the MachineHealthCheck to consider a Machine unhealthy if its Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least the configured timeout. This allows to trigger the regular remediation process, and thus a graceful removal of the corresponding Machine, by deleting a Node in the workload cluster. Note: this check only applies as long as the Node object exists, i.e. it is kept around by a finalizer; Machines whose Node has been deleted are always considered unhealthy, independent of this configuration. If this field is not set, a Node that is being deleted does not cause the Machine to be considered unhealthy.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck"),
+						},
+					},
 					"unhealthyNodeConditions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
@@ -2094,7 +2109,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckChecks(r
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3148,6 +3163,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassHealthCheckChecks
 							Format:      "int32",
 						},
 					},
+					"nodeDeleting": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeleting allows to configure the MachineHealthCheck to consider a Machine unhealthy if its Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least the configured timeout. This allows to trigger the regular remediation process, and thus a graceful removal of the corresponding Machine, by deleting a Node in the workload cluster. Note: this check only applies as long as the Node object exists, i.e. it is kept around by a finalizer; Machines whose Node has been deleted are always considered unhealthy, independent of this configuration. If this field is not set, a Node that is being deleted does not cause the Machine to be considered unhealthy.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck"),
+						},
+					},
 					"unhealthyNodeConditions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
@@ -3190,7 +3212,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassHealthCheckChecks
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3992,6 +4014,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckChe
 							Format:      "int32",
 						},
 					},
+					"nodeDeleting": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeleting allows to configure the MachineHealthCheck to consider a Machine unhealthy if its Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least the configured timeout. This allows to trigger the regular remediation process, and thus a graceful removal of the corresponding Machine, by deleting a Node in the workload cluster. Note: this check only applies as long as the Node object exists, i.e. it is kept around by a finalizer; Machines whose Node has been deleted are always considered unhealthy, independent of this configuration. If this field is not set, a Node that is being deleted does not cause the Machine to be considered unhealthy.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck"),
+						},
+					},
 					"unhealthyNodeConditions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
@@ -4034,7 +4063,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckChe
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -4649,6 +4678,13 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckChecks(ref common.Ref
 							Format:      "int32",
 						},
 					},
+					"nodeDeleting": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeleting allows to configure the MachineHealthCheck to consider a Machine unhealthy if its Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least the configured timeout. This allows to trigger the regular remediation process, and thus a graceful removal of the corresponding Machine, by deleting a Node in the workload cluster. Note: this check only applies as long as the Node object exists, i.e. it is kept around by a finalizer; Machines whose Node has been deleted are always considered unhealthy, independent of this configuration. If this field is not set, a Node that is being deleted does not cause the Machine to be considered unhealthy.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck"),
+						},
+					},
 					"unhealthyNodeConditions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
@@ -4691,7 +4727,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckChecks(ref common.Ref
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.NodeDeletingCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -6733,6 +6769,27 @@ func schema_cluster_api_api_core_v1beta2_NetworkRanges(ref common.ReferenceCallb
 					},
 				},
 				Required: []string{"cidrBlocks"},
+			},
+		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_NodeDeletingCheck(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NodeDeletingCheck configures if Machines whose Node is being deleted are considered unhealthy.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"timeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "timeoutSeconds is the duration for which a Node must be deleting, i.e. have a deletionTimestamp set, after which the corresponding Machine is considered unhealthy. For example, with a value of \"300\", the Node must be deleting for at least 5 minutes before the Machine is considered unhealthy. Set to 0 to consider the Machine unhealthy as soon as the Node is being deleted.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"timeoutSeconds"},
 			},
 		},
 	}

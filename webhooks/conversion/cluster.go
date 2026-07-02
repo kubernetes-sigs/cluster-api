@@ -63,6 +63,19 @@ func ConvertClusterV1Beta1ToHub(_ context.Context, src *clusterv1beta1.Cluster, 
 	// Recover intent for bool values converted to *bool.
 	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Paused, ok, restored.Spec.Paused, &dst.Spec.Paused)
 
+	if ok {
+		// Restore fields of the topology health checks that do not exist in v1beta1.
+		dst.Spec.Topology.ControlPlane.HealthCheck.Checks.NodeDeleting = restored.Spec.Topology.ControlPlane.HealthCheck.Checks.NodeDeleting
+		for i, md := range dst.Spec.Topology.Workers.MachineDeployments {
+			for _, restoredMD := range restored.Spec.Topology.Workers.MachineDeployments {
+				if restoredMD.Name == md.Name {
+					dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck.Checks.NodeDeleting = restoredMD.HealthCheck.Checks.NodeDeleting
+					break
+				}
+			}
+		}
+	}
+
 	initialization := clusterv1.ClusterInitializationStatus{}
 	restoredControlPlaneInitialized := restored.Status.Initialization.ControlPlaneInitialized
 	restoredInfrastructureProvisioned := restored.Status.Initialization.InfrastructureProvisioned

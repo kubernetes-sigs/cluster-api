@@ -51,6 +51,13 @@ spec:
       # Machine health.
       nodeStartupTimeoutSeconds: 600
     
+      # (Optional) nodeDeleting makes the MachineHealthCheck consider a Machine unhealthy if its
+      # Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least timeoutSeconds.
+      # If this field is not set, a Node that is being deleted does not cause the Machine to be
+      # considered unhealthy.
+      nodeDeleting:
+        timeoutSeconds: 0
+
       # Conditions to check on Nodes for matched Machines, if any condition is matched for the duration of its timeout, the Machine is considered unhealthy
       unhealthyNodeConditions:
       - type: Ready
@@ -231,6 +238,30 @@ There are scenarios where remediation for a machine may be undesirable (eg. duri
 - the Machine has the `cluster.x-k8s.io/paused` annotation
 - the MachineHealthCheck has the `cluster.x-k8s.io/paused` annotation
 - the Cluster has `.spec.paused` set to `true`
+
+## Triggering remediation by deleting a Node
+
+By configuring `checks.nodeDeleting`, a MachineHealthCheck considers a Machine unhealthy if the corresponding
+Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least `timeoutSeconds`.
+This makes it possible to trigger the regular remediation process, and thus a graceful removal of the
+corresponding Machine (respecting drain and Machine deletion settings), directly from a workload cluster:
+
+```yaml
+  checks:
+    nodeDeleting:
+      # Set to 0 to consider the Machine unhealthy as soon as the Node is being deleted,
+      # or to a higher value to only remediate Nodes that are stuck in deletion.
+      timeoutSeconds: 0
+```
+
+This is useful in environments where the operator of a workload cluster does not have access to the
+management cluster, but should still be able to safely remove a misbehaving Node, e.g. via `kubectl delete node`.
+
+Please note that this check only applies as long as the Node object exists, which requires a finalizer on
+the Node, because a Node without finalizers is removed from the API server immediately after the deletion
+has been requested. Machines whose Node has been removed are always considered unhealthy and remediated
+immediately, independent of this configuration, but in this case the kubelet might race with remediation
+by re-creating the Node object.
 
 ## Limitations and Caveats of a MachineHealthCheck
 

@@ -119,6 +119,7 @@ func (b *ClusterBlueprint) ControlPlaneMachineHealthCheckClass() (clusterv1.Mach
 	if b.Topology.ControlPlane.HealthCheck.IsDefined() {
 		return clusterv1.MachineHealthCheckChecks{
 				NodeStartupTimeoutSeconds:  b.Topology.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
+				NodeDeleting:               b.Topology.ControlPlane.HealthCheck.Checks.NodeDeleting,
 				UnhealthyNodeConditions:    b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
 				UnhealthyMachineConditions: b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions,
 			}, clusterv1.MachineHealthCheckRemediation{
@@ -132,6 +133,7 @@ func (b *ClusterBlueprint) ControlPlaneMachineHealthCheckClass() (clusterv1.Mach
 
 	return clusterv1.MachineHealthCheckChecks{
 			NodeStartupTimeoutSeconds:  b.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
+			NodeDeleting:               b.ControlPlane.HealthCheck.Checks.NodeDeleting,
 			UnhealthyNodeConditions:    b.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
 			UnhealthyMachineConditions: b.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions,
 		}, clusterv1.MachineHealthCheckRemediation{
@@ -168,6 +170,7 @@ func (b *ClusterBlueprint) MachineDeploymentMachineHealthCheckClass(md *clusterv
 	if md.HealthCheck.IsDefined() {
 		return clusterv1.MachineHealthCheckChecks{
 				NodeStartupTimeoutSeconds:  md.HealthCheck.Checks.NodeStartupTimeoutSeconds,
+				NodeDeleting:               md.HealthCheck.Checks.NodeDeleting,
 				UnhealthyNodeConditions:    md.HealthCheck.Checks.UnhealthyNodeConditions,
 				UnhealthyMachineConditions: md.HealthCheck.Checks.UnhealthyMachineConditions,
 			}, clusterv1.MachineHealthCheckRemediation{
@@ -181,6 +184,7 @@ func (b *ClusterBlueprint) MachineDeploymentMachineHealthCheckClass(md *clusterv
 
 	return clusterv1.MachineHealthCheckChecks{
 			NodeStartupTimeoutSeconds:  b.MachineDeployments[md.Class].HealthCheck.Checks.NodeStartupTimeoutSeconds,
+			NodeDeleting:               b.MachineDeployments[md.Class].HealthCheck.Checks.NodeDeleting,
 			UnhealthyNodeConditions:    b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyNodeConditions,
 			UnhealthyMachineConditions: b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyMachineConditions,
 		}, clusterv1.MachineHealthCheckRemediation{

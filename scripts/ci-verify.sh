@@ -14,12 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Alias kept for backward compatibility with external callers; the script now lives at
+# hack/scripts/ci/ci-verify.sh.
+
 set -o errexit
 set -o nounset
 set -o pipefail
 
-REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
-cd "${REPO_ROOT}" || exit 1
-
-echo "*** Verifying Cluster API ***"
-make verify
+exec "$(dirname "${BASH_SOURCE[0]}")/../hack/scripts/ci/ci-verify.sh" "$@"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 The Kubernetes Authors.
+# Copyright 2022 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +14,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Alias kept for backward compatibility with external callers; the script now lives at
-# hack/scripts/ci/ci-apidiff.sh.
+# This script verifies that the book's SUMMARY.md is in sync with its source docs.
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-exec "$(dirname "${BASH_SOURCE[0]}")/../hack/scripts/ci/ci-apidiff.sh" "$@"
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
+RESULT=0
+SUMMARY=$(cat ./docs/book/src/SUMMARY.md)
+
+pushd ./docs/book/src > /dev/null
+FILES=$(find -- * -name "*.md" ! -name "SUMMARY.md")
+while read -r file; do
+  if ! [[ $SUMMARY == *"${file}"* ]]; then
+    RESULT=1
+    echo "Didn't find $file in SUMMARY.md"
+  fi
+done <<< "${FILES}"
+popd > /dev/null
+
+exit ${RESULT}

@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Copyright 2020 The Kubernetes Authors.
+# Copyright 2026 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Alias kept for backward compatibility with external callers; the script now lives at
-# hack/scripts/ci/ci-apidiff.sh.
+# This script computes the Go GC flags used by the build, printed to stdout for consumption by the Makefile.
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-exec "$(dirname "${BASH_SOURCE[0]}")/../hack/scripts/ci/ci-apidiff.sh" "$@"
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
+version::gcflags() {
+    if [[ "${DBG:-}" == 1 ]]; then
+        echo "all=-N -l"
+    else
+        echo ""
+    fi
+}
+
+version::gcflags

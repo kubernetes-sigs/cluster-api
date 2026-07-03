@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Alias kept for backward compatibility with external callers; the script now lives at
+# hack/scripts/ci/ci-build.sh.
+
 set -o errexit
 set -o nounset
 set -o pipefail
 
-REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
-
-# Core Cluster API and Docker provider
-cd "${REPO_ROOT}" && make managers clusterctl e2e-framework build-book
+exec "$(dirname "${BASH_SOURCE[0]}")/../hack/scripts/ci/ci-build.sh" "$@"

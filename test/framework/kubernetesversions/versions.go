@@ -71,7 +71,7 @@ func PreviousMinorRelease(searchVersion string) (string, error) {
 // * v1.28.0 => will return the same version for convenience
 // * stable-1.28 => will return the latest patch release for v1.28, e.g. v1.28.5
 // * ci/latest-1.28 => will return the latest built version from the release branch, e.g. v1.28.5-26+72feddd3acde14
-// This implementation mirrors what is implemented in ci-e2e-lib.sh k8s::resolveVersion().
+// This implementation mirrors what is implemented in hack/scripts/ci/ci-e2e-lib.sh k8s::resolveVersion().
 func ResolveVersion(ctx context.Context, version string) (string, error) {
 	if strings.HasPrefix(version, "v") {
 		// version is already a version

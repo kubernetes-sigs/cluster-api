@@ -41,7 +41,7 @@ import (
 
 var (
 	// gitVersionRegEx matches git versions of style 0.3.7-45-c1aeccb679cd56
-	// see ./hack/version.sh for more info.
+	// see ./hack/scripts/release/version.sh for more info.
 	gitVersionRegEx = regexp.MustCompile(`(.*)-(\d+)-([0-9,a-f]{14})`)
 )
 

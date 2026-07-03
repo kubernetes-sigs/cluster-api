@@ -14,24 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Alias kept for backward compatibility with external callers; the script now lives at
+# hack/scripts/ci/ci-test.sh.
+
 set -o errexit
 set -o nounset
 set -o pipefail
 
-REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
-cd "${REPO_ROOT}" || exit 1
-
-# shellcheck source=./hack/ensure-go.sh
-source "${REPO_ROOT}/hack/ensure-go.sh"
-
-echo "*** Testing Cluster API ***"
-make test-junit
-
-echo -e "\n*** Testing test/infrastructure folder ***\n"
-make test-infrastructure-junit
-
-echo -e "\n*** Testing Cluster API Runtime SDK test extension ***\n"
-make test-test-extension-junit
-
-echo -e "\n*** Testing Cluster API testing framework ***\n"
-make test-framework-junit
+exec "$(dirname "${BASH_SOURCE[0]}")/../hack/scripts/ci/ci-test.sh" "$@"

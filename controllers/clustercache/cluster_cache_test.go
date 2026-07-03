@@ -22,17 +22,24 @@ import (
 	"math"
 	"math/rand/v2"
 	"net/http"
+	"net/url"
 	"sync"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/rest/fake"
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -49,6 +56,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -242,6 +250,208 @@ func TestReconcile(t *testing.T) {
 	// Verify Cluster queue.
 	g.Expect(clusterQueue.Len()).To(Equal(1))
 	g.Expect(clusterQueue.Get()).To(Equal(reconcile.Request{NamespacedName: clusterKey}))
+}
+
+func TestReconcileSyncKubeconfigServerChange(t *testing.T) {
+	g := NewWithT(t)
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster-kubeconfig-sync",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				"cluster.x-k8s.io/included-in-clustercache-tests": "true",
+			},
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
+			},
+		},
+	}
+	clusterKey := client.ObjectKeyFromObject(testCluster)
+	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
+	defer func() { g.Expect(client.IgnoreNotFound(env.CleanupAndWait(ctx, testCluster))).To(Succeed()) }()
+
+	patch := client.MergeFrom(testCluster.DeepCopy())
+	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
+
+	kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+	g.Expect(env.CreateAndWait(ctx, kubeconfigSecret)).To(Succeed())
+	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
+
+	accessorConfig := buildClusterAccessorConfig(env.GetScheme(), Options{
+		SecretClient: env.GetClient(),
+		Client: ClientOptions{
+			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+			Timeout:   10 * time.Second,
+		},
+	}, nil)
+	cc := &clusterCache{
+		client:                env.GetAPIReader(),
+		clusterAccessorConfig: accessorConfig,
+		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
+		cacheCtx:              context.Background(),
+		clusterFilter: func(cluster *clusterv1.Cluster) bool {
+			return cluster.ObjectMeta.Labels["cluster.x-k8s.io/included-in-clustercache-tests"] == "true"
+		},
+	}
+
+	res, err := cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.RequeueAfter >= accessorConfig.HealthProbe.Interval-2*time.Second).To(BeTrue())
+	g.Expect(res.RequeueAfter <= accessorConfig.HealthProbe.Interval).To(BeTrue())
+	accessor := cc.getClusterAccessor(clusterKey)
+	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+	oldCache := accessor.lockedState.connection.cache
+
+	updateKubeconfigSecretServer(g, testCluster)
+
+	// The kubeconfig sync is rate-limited, so a Reconcile right after the connect
+	// doesn't pick up the change yet.
+	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.RequeueAfter).To(BeNumerically(">", 0))
+	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+	g.Expect(accessor.lockedState.connection.cache).To(BeIdenticalTo(oldCache))
+
+	rewindLastKubeconfigSyncTime(accessor, accessorConfig)
+
+	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res).To(Equal(reconcile.Result{RequeueAfter: 1 * time.Millisecond}))
+	g.Expect(accessor.Connected(ctx)).To(BeFalse())
+	g.Expect(oldCache.stopped).To(BeTrue())
+
+	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.RequeueAfter >= accessorConfig.HealthProbe.Interval-2*time.Second).To(BeTrue())
+	g.Expect(res.RequeueAfter <= accessorConfig.HealthProbe.Interval).To(BeTrue())
+	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+	g.Expect(accessor.lockedState.connection.cache).ToNot(BeIdenticalTo(oldCache))
+}
+
+func TestReconcileSyncKubeconfigTokenRotation(t *testing.T) {
+	g := NewWithT(t)
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster-token-rotation",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				"cluster.x-k8s.io/included-in-clustercache-tests": "true",
+			},
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
+			},
+		},
+	}
+	clusterKey := client.ObjectKeyFromObject(testCluster)
+	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
+	defer func() { g.Expect(client.IgnoreNotFound(env.CleanupAndWait(ctx, testCluster))).To(Succeed()) }()
+
+	patch := client.MergeFrom(testCluster.DeepCopy())
+	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
+
+	// ServiceAccount the kubeconfig tokens are requested for, with the permission required
+	// for connection creation and the health probe (GET "/").
+	serviceAccount := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{Name: "token-rotation", Namespace: metav1.NamespaceDefault},
+	}
+	g.Expect(env.CreateAndWait(ctx, serviceAccount)).To(Succeed())
+	defer func() { g.Expect(env.CleanupAndWait(ctx, serviceAccount)).To(Succeed()) }()
+
+	clusterRole := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: "token-rotation-health-probe"},
+		Rules: []rbacv1.PolicyRule{{
+			NonResourceURLs: []string{"/"},
+			Verbs:           []string{"get"},
+		}},
+	}
+	g.Expect(env.CreateAndWait(ctx, clusterRole)).To(Succeed())
+	defer func() { g.Expect(env.CleanupAndWait(ctx, clusterRole)).To(Succeed()) }()
+
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "token-rotation-health-probe"},
+		RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: clusterRole.Name},
+		Subjects: []rbacv1.Subject{{
+			Kind:      rbacv1.ServiceAccountKind,
+			Name:      serviceAccount.Name,
+			Namespace: serviceAccount.Namespace,
+		}},
+	}
+	g.Expect(env.CreateAndWait(ctx, clusterRoleBinding)).To(Succeed())
+	defer func() { g.Expect(env.CleanupAndWait(ctx, clusterRoleBinding)).To(Succeed()) }()
+
+	oldToken := requestServiceAccountToken(g, serviceAccount)
+	kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, newTokenKubeconfig(testCluster.Name, env.Config.Host, oldToken, env.Config.CAData))
+	g.Expect(env.CreateAndWait(ctx, kubeconfigSecret)).To(Succeed())
+	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
+
+	accessorConfig := buildClusterAccessorConfig(env.GetScheme(), Options{
+		SecretClient: env.GetClient(),
+		Client: ClientOptions{
+			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+			Timeout:   10 * time.Second,
+		},
+	}, nil)
+	cc := &clusterCache{
+		client:                env.GetAPIReader(),
+		clusterAccessorConfig: accessorConfig,
+		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
+		cacheCtx:              context.Background(),
+		clusterFilter: func(cluster *clusterv1.Cluster) bool {
+			return cluster.ObjectMeta.Labels["cluster.x-k8s.io/included-in-clustercache-tests"] == "true"
+		},
+	}
+
+	// Connection creation already exercises the token against the apiserver (it probes "/").
+	_, err := cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	accessor := cc.getClusterAccessor(clusterKey)
+	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+	oldCache := accessor.lockedState.connection.cache
+
+	// Invalidate the old token by re-creating the ServiceAccount (tokens are bound to the
+	// ServiceAccount UID) and rotate the kubeconfig Secret to a token of the new ServiceAccount.
+	g.Expect(env.CleanupAndWait(ctx, serviceAccount)).To(Succeed())
+	serviceAccount = &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{Name: serviceAccount.Name, Namespace: serviceAccount.Namespace},
+	}
+	g.Expect(env.CreateAndWait(ctx, serviceAccount)).To(Succeed())
+	newToken := requestServiceAccountToken(g, serviceAccount)
+	updateKubeconfigSecret(g, testCluster, newTokenKubeconfig(testCluster.Name, env.Config.Host, newToken, env.Config.CAData))
+
+	// Wait until the apiserver rejects the old token, so the health probe below can only
+	// succeed with the rotated token.
+	// Note: This can take a bit because the apiserver caches successful token authentications.
+	g.Eventually(func(g Gomega) {
+		g.Expect(apierrors.IsUnauthorized(probeWithToken(oldToken))).To(BeTrue())
+	}, 30*time.Second, 250*time.Millisecond).Should(Succeed())
+
+	rewindLastKubeconfigSyncTime(accessor, accessorConfig)
+
+	res, err := cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	// The token-only change is applied in place, the connection is not re-created.
+	g.Expect(res.RequeueAfter).ToNot(Equal(1 * time.Millisecond))
+	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+	g.Expect(accessor.lockedState.connection.cache).To(BeIdenticalTo(oldCache))
+	g.Expect(accessor.lockedState.connection.tokenHolder.token()).To(Equal(newToken))
+	g.Expect(accessor.lockedState.connection.restConfig.BearerToken).To(Equal(newToken))
+
+	// The existing connection uses the rotated token, so the health probe succeeds.
+	tooManyConsecutiveFailures, unauthorizedErrorOccurred := accessor.HealthCheck(ctx)
+	g.Expect(tooManyConsecutiveFailures).To(BeFalse())
+	g.Expect(unauthorizedErrorOccurred).To(BeFalse())
 }
 
 func TestShouldRequeue(t *testing.T) {
@@ -834,6 +1044,98 @@ func createCluster(g Gomega, testCluster testCluster) {
 	patch := client.MergeFrom(cluster.DeepCopy())
 	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
+}
+
+func updateKubeconfigSecretServer(g Gomega, cluster *clusterv1.Cluster) {
+	secretKey := client.ObjectKey{
+		Name:      secret.Name(cluster.Name, secret.Kubeconfig),
+		Namespace: cluster.Namespace,
+	}
+	kubeconfigSecret := &corev1.Secret{}
+	g.Expect(env.GetAPIReader().Get(ctx, secretKey, kubeconfigSecret)).To(Succeed())
+	oldResourceVersion := kubeconfigSecret.ResourceVersion
+
+	cmdConfig, err := clientcmd.Load(kubeconfigSecret.Data[secret.KubeconfigDataName])
+	g.Expect(err).ToNot(HaveOccurred())
+	parsedServer, err := url.Parse(cmdConfig.Clusters[cluster.Name].Server)
+	g.Expect(err).ToNot(HaveOccurred())
+	cmdConfig.Clusters[cluster.Name].Server = "https://localhost:" + parsedServer.Port()
+	cmdConfig.Clusters[cluster.Name].TLSServerName = parsedServer.Hostname()
+	kubeconfigBytes, err := clientcmd.Write(*cmdConfig)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	patch := client.MergeFrom(kubeconfigSecret.DeepCopy())
+	kubeconfigSecret.Data[secret.KubeconfigDataName] = kubeconfigBytes
+	g.Expect(env.Patch(ctx, kubeconfigSecret, patch)).To(Succeed())
+
+	g.Eventually(func(g Gomega) {
+		cachedSecret := &corev1.Secret{}
+		g.Expect(env.Get(ctx, secretKey, cachedSecret)).To(Succeed())
+		g.Expect(cachedSecret.ResourceVersion).ToNot(Equal(oldResourceVersion))
+		g.Expect(cachedSecret.Data[secret.KubeconfigDataName]).To(Equal(kubeconfigBytes))
+	}, 10*time.Second, 100*time.Millisecond).Should(Succeed())
+}
+
+func updateKubeconfigSecret(g Gomega, cluster *clusterv1.Cluster, kubeconfigBytes []byte) {
+	secretKey := client.ObjectKey{
+		Name:      secret.Name(cluster.Name, secret.Kubeconfig),
+		Namespace: cluster.Namespace,
+	}
+	kubeconfigSecret := &corev1.Secret{}
+	g.Expect(env.GetAPIReader().Get(ctx, secretKey, kubeconfigSecret)).To(Succeed())
+
+	patch := client.MergeFrom(kubeconfigSecret.DeepCopy())
+	kubeconfigSecret.Data[secret.KubeconfigDataName] = kubeconfigBytes
+	g.Expect(env.Patch(ctx, kubeconfigSecret, patch)).To(Succeed())
+
+	g.Eventually(func(g Gomega) {
+		cachedSecret := &corev1.Secret{}
+		g.Expect(env.Get(ctx, secretKey, cachedSecret)).To(Succeed())
+		g.Expect(cachedSecret.Data[secret.KubeconfigDataName]).To(Equal(kubeconfigBytes))
+	}, 10*time.Second, 100*time.Millisecond).Should(Succeed())
+}
+
+// rewindLastKubeconfigSyncTime makes the rate-limited kubeconfig sync run again on the next Reconcile.
+func rewindLastKubeconfigSyncTime(accessor *clusterAccessor, accessorConfig *clusterAccessorConfig) {
+	accessor.lock(ctx)
+	defer accessor.unlock(ctx)
+	accessor.lockedState.connection.lastKubeconfigSyncTime = time.Now().Add(-(accessorConfig.HealthProbe.Interval + time.Second))
+}
+
+func requestServiceAccountToken(g Gomega, serviceAccount *corev1.ServiceAccount) string {
+	clientSet, err := kubernetes.NewForConfig(env.Config)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	tokenRequest := &authenticationv1.TokenRequest{
+		Spec: authenticationv1.TokenRequestSpec{
+			// 10 minutes is the minimum the TokenRequest API allows.
+			ExpirationSeconds: ptr.To[int64](10 * 60),
+		},
+	}
+	tokenRequest, err = clientSet.CoreV1().ServiceAccounts(serviceAccount.Namespace).
+		CreateToken(ctx, serviceAccount.Name, tokenRequest, metav1.CreateOptions{})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(tokenRequest.Status.Token).ToNot(BeEmpty())
+	return tokenRequest.Status.Token
+}
+
+func probeWithToken(token string) error {
+	restClientConfig := &rest.Config{
+		Host: env.Config.Host,
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData: env.Config.CAData,
+		},
+		BearerToken: token,
+	}
+	restClientConfig.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{
+		Serializer: runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()},
+	})
+	restClient, err := rest.UnversionedRESTClientFor(restClientConfig)
+	if err != nil {
+		return err
+	}
+	_, err = restClient.Get().AbsPath("/").DoRaw(ctx)
+	return err
 }
 
 func getCounterMetric(metricFamilyName, controllerName string) (float64, error) {

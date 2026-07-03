@@ -1703,6 +1703,24 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 		},
 		{
+			name:      "should return error when topology does not have valid version",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("1.17.2").Build()).
+				Build(),
+		},
+		{
+			name:      "should return error when topology does not have valid version",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1").Build()).
+				Build(),
+		},
+		{
 			name:      "should return error when downgrading topology version - major",
 			expectErr: true,
 			old: builder.Cluster("fooboo", "cluster1").

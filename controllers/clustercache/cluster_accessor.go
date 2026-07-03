@@ -17,18 +17,22 @@ limitations under the License.
 package clustercache
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	toolscache "k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -177,6 +181,24 @@ type clusterAccessorLockedConnectionState struct {
 	// restConfig to communicate with the workload cluster.
 	restConfig *rest.Config
 
+	// kubeconfigResourceVersion is the ResourceVersion of the kubeconfig Secret
+	// as of the last successful load.
+	kubeconfigResourceVersion string
+
+	// kubeconfig is the raw kubeconfig as of the last successful load.
+	kubeconfig []byte
+
+	// lastKubeconfigSyncTime is the time when the kubeconfig Secret was last read, either at
+	// connection creation or by SyncKubeconfig. The ClusterCache reconciler uses it to rate-limit syncs.
+	lastKubeconfigSyncTime time.Time
+
+	// tokenHolder holds the dynamic bearer token for static bearer-token kubeconfigs.
+	tokenHolder *tokenHolder
+
+	// runningOnCluster is true if the controller is running on the workload cluster.
+	// In this case the server and CA from the kubeconfig are replaced with in-cluster values.
+	runningOnCluster bool
+
 	// restClient to communicate with the workload cluster.
 	restClient RESTClient
 
@@ -286,12 +308,17 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 		consecutiveFailures:  0,
 	}
 	ca.lockedState.connection = &clusterAccessorLockedConnectionState{
-		restConfig:     connection.RESTConfig,
-		restClient:     connection.RESTClient,
-		cachedClient:   connection.CachedClient,
-		uncachedClient: connection.UncachedClient,
-		cache:          connection.Cache,
-		watches:        sets.Set[string]{},
+		restConfig:                connection.RESTConfig,
+		kubeconfigResourceVersion: connection.KubeconfigResourceVersion,
+		kubeconfig:                connection.Kubeconfig,
+		lastKubeconfigSyncTime:    now,
+		tokenHolder:               connection.TokenHolder,
+		runningOnCluster:          connection.RunningOnCluster,
+		restClient:                connection.RESTClient,
+		cachedClient:              connection.CachedClient,
+		uncachedClient:            connection.UncachedClient,
+		cache:                     connection.Cache,
+		watches:                   sets.Set[string]{},
 	}
 
 	return nil
@@ -373,6 +400,209 @@ func (ca *clusterAccessor) HealthCheck(ctx context.Context) (bool, bool) {
 
 	tooManyConsecutiveFailures := ca.lockedState.healthChecking.consecutiveFailures >= ca.config.HealthProbe.FailureThreshold
 	return tooManyConsecutiveFailures, unauthorizedErrorOccurred
+}
+
+// SyncKubeconfig checks if the kubeconfig Secret changed and updates the connection accordingly:
+//   - If only the bearer token changed, the token is updated in place, i.e. without re-creating the
+//     connection (client, cache, etc.): all transports created for the connection get the current
+//     token from the tokenHolder on every request.
+//   - If the controller is running on the workload cluster, changes to the server URL and CA are ignored
+//     because those fields are replaced with in-cluster values when the connection is created.
+//   - For all other changes, true is returned and the caller is expected to re-create the connection
+//     (i.e. call Disconnect and Connect).
+//
+// Note: Errors when reading or parsing the kubeconfig Secret intentionally never lead to a reconnect,
+// a working connection should not be torn down because of them (the health probe remains the fallback).
+func (ca *clusterAccessor) SyncKubeconfig(ctx context.Context) bool {
+	log := ctrl.LoggerFrom(ctx)
+
+	ca.lock(ctx)
+	if ca.lockedState.connection == nil {
+		ca.unlock(ctx)
+		log.V(6).Info("Skipping kubeconfig sync, not connected")
+		return false
+	}
+	// Record the sync independent of its outcome, also failed Secret reads should not be
+	// retried on every Reconcile.
+	ca.lockedState.connection.lastKubeconfigSyncTime = time.Now()
+	oldKubeconfigResourceVersion := ca.lockedState.connection.kubeconfigResourceVersion
+	oldKubeconfig := ca.lockedState.connection.kubeconfig
+	runningOnCluster := ca.lockedState.connection.runningOnCluster
+	ca.unlock(ctx)
+
+	kubeconfigSecret, kubeconfig, err := getKubeconfigSecret(ctx, ca.config.SecretClient, ca.cluster)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			log.V(6).Info("Skipping kubeconfig sync, kubeconfig Secret does not exist")
+		} else {
+			log.Error(err, "Failed to sync kubeconfig, keeping current connection")
+		}
+		return false
+	}
+
+	if kubeconfigSecret.ResourceVersion == oldKubeconfigResourceVersion {
+		return false
+	}
+
+	// Only store the new resourceVersion if the kubeconfig itself didn't change,
+	// e.g. because another entry of the kubeconfig Secret changed.
+	if bytes.Equal(kubeconfig, oldKubeconfig) {
+		ca.storeKubeconfig(ctx, oldKubeconfigResourceVersion, kubeconfigSecret.ResourceVersion, kubeconfig)
+		return false
+	}
+
+	onlyTokenOrIgnoredChanges, oldToken, newToken, err := kubeconfigChangesOnlyInTokensAndIgnoredFields(oldKubeconfig, kubeconfig, runningOnCluster)
+	if err != nil {
+		log.Error(err, "Failed to sync kubeconfig, keeping current connection")
+		return false
+	}
+
+	// If the effective kubeconfig did not change, only store the new kubeconfig state.
+	// This avoids reporting a token rotation for e.g. changes to tokens of unused AuthInfos.
+	if onlyTokenOrIgnoredChanges && oldToken == newToken {
+		ca.storeKubeconfig(ctx, oldKubeconfigResourceVersion, kubeconfigSecret.ResourceVersion, kubeconfig)
+		return false
+	}
+
+	if onlyTokenOrIgnoredChanges && newToken != "" {
+		switch ca.refreshToken(ctx, oldKubeconfigResourceVersion, kubeconfigSecret.ResourceVersion, kubeconfig, newToken) {
+		case tokenRefreshed:
+			log.Info("Bearer token in kubeconfig Secret was rotated, updated token in existing connection")
+			kubeconfigSyncTotal.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace, "token_refreshed").Inc()
+			return false
+		case tokenRefreshOutdated:
+			return false
+		case tokenRefreshNeedsReconnect:
+			// Re-create the connection below.
+		}
+	}
+
+	log.Info("Kubeconfig Secret was updated, re-creating the connection")
+	kubeconfigSyncTotal.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace, "reconnect").Inc()
+	return true
+}
+
+func (ca *clusterAccessor) storeKubeconfig(ctx context.Context, oldKubeconfigResourceVersion, kubeconfigResourceVersion string, kubeconfig []byte) {
+	ca.lock(ctx)
+	defer ca.unlock(ctx)
+
+	// Return early if the connection or the kubeconfig state changed in the meantime.
+	if ca.lockedState.connection == nil || ca.lockedState.connection.kubeconfigResourceVersion != oldKubeconfigResourceVersion {
+		return
+	}
+
+	ca.lockedState.connection.kubeconfigResourceVersion = kubeconfigResourceVersion
+	ca.lockedState.connection.kubeconfig = kubeconfig
+}
+
+type tokenRefreshResult int
+
+const (
+	// tokenRefreshed means the bearer token of the connection was updated in place.
+	tokenRefreshed tokenRefreshResult = iota
+
+	// tokenRefreshNeedsReconnect means the connection doesn't use a static bearer token and
+	// accordingly a reconnect is required to pick up the new kubeconfig.
+	tokenRefreshNeedsReconnect
+
+	// tokenRefreshOutdated means the connection or the kubeconfig state changed since the
+	// kubeconfig was read, so the refresh was skipped as it was based on outdated state.
+	tokenRefreshOutdated
+)
+
+// refreshToken updates the bearer token of the connection in place.
+func (ca *clusterAccessor) refreshToken(ctx context.Context, oldKubeconfigResourceVersion, kubeconfigResourceVersion string, kubeconfig []byte, token string) tokenRefreshResult {
+	ca.lock(ctx)
+	defer ca.unlock(ctx)
+
+	// Return early if the connection or the kubeconfig state changed in the meantime.
+	if ca.lockedState.connection == nil || ca.lockedState.connection.kubeconfigResourceVersion != oldKubeconfigResourceVersion {
+		return tokenRefreshOutdated
+	}
+
+	// The connection doesn't use a static bearer token, e.g. because a token was added to a
+	// kubeconfig that previously used another authentication method.
+	if ca.lockedState.connection.tokenHolder == nil {
+		return tokenRefreshNeedsReconnect
+	}
+
+	ca.lockedState.connection.tokenHolder.store(token)
+
+	// Replace restConfig with a copy that contains the new token instead of modifying it in place,
+	// as the restConfig is shared with consumers of the ClusterCache via GetRESTConfig.
+	restConfig := rest.CopyConfig(ca.lockedState.connection.restConfig)
+	restConfig.BearerToken = token
+	ca.lockedState.connection.tokenHolder.setConfigWrapTransport(restConfig)
+	ca.lockedState.connection.restConfig = restConfig
+	ca.lockedState.connection.kubeconfigResourceVersion = kubeconfigResourceVersion
+	ca.lockedState.connection.kubeconfig = kubeconfig
+	return tokenRefreshed
+}
+
+// kubeconfigChangesOnlyInTokensAndIgnoredFields returns true if the two kubeconfigs are identical except for
+// the bearer tokens of their AuthInfos. If runningOnCluster is true, changes to the server and CA of the current
+// cluster are also ignored because those fields are replaced with in-cluster values.
+// The current bearer tokens from both kubeconfigs are returned as well.
+func kubeconfigChangesOnlyInTokensAndIgnoredFields(oldKubeconfig, newKubeconfig []byte, runningOnCluster bool) (bool, string, string, error) {
+	oldConfig, err := clientcmd.Load(oldKubeconfig)
+	if err != nil {
+		return false, "", "", pkgerrors.WithMessage(err, "error parsing previous kubeconfig")
+	}
+
+	newConfig, err := clientcmd.Load(newKubeconfig)
+	if err != nil {
+		return false, "", "", pkgerrors.WithMessage(err, "error parsing new kubeconfig")
+	}
+
+	oldToken := currentAuthInfoToken(oldConfig)
+	newToken := currentAuthInfoToken(newConfig)
+
+	oldConfigWithoutTokens := oldConfig.DeepCopy()
+	newConfigWithoutTokens := newConfig.DeepCopy()
+	clearAuthInfoTokens(oldConfigWithoutTokens)
+	clearAuthInfoTokens(newConfigWithoutTokens)
+	if runningOnCluster {
+		clearCurrentClusterServerAndCA(oldConfigWithoutTokens)
+		clearCurrentClusterServerAndCA(newConfigWithoutTokens)
+	}
+
+	return apiequality.Semantic.DeepEqual(oldConfigWithoutTokens, newConfigWithoutTokens), oldToken, newToken, nil
+}
+
+func clearAuthInfoTokens(config *clientcmdapi.Config) {
+	for _, authInfo := range config.AuthInfos {
+		authInfo.Token = ""
+	}
+}
+
+func clearCurrentClusterServerAndCA(config *clientcmdapi.Config) {
+	currentContext, ok := config.Contexts[config.CurrentContext]
+	if !ok {
+		return
+	}
+
+	cluster, ok := config.Clusters[currentContext.Cluster]
+	if !ok {
+		return
+	}
+
+	cluster.Server = ""
+	cluster.CertificateAuthority = ""
+	cluster.CertificateAuthorityData = nil
+}
+
+func currentAuthInfoToken(config *clientcmdapi.Config) string {
+	currentContext := config.Contexts[config.CurrentContext]
+	if currentContext == nil {
+		return ""
+	}
+
+	authInfo := config.AuthInfos[currentContext.AuthInfo]
+	if authInfo == nil {
+		return ""
+	}
+
+	return authInfo.Token
 }
 
 func (ca *clusterAccessor) GetClient(ctx context.Context) (client.Client, error) {
@@ -477,6 +707,18 @@ func (ca *clusterAccessor) GetLastConnectionCreationErrorTime(ctx context.Contex
 	defer ca.rUnlock(ctx)
 
 	return ca.lockedState.lastConnectionCreationErrorTime
+}
+
+// GetLastKubeconfigSyncTime returns the time when the kubeconfig Secret was last read for the
+// current connection, or the zero time if there is no connection.
+func (ca *clusterAccessor) GetLastKubeconfigSyncTime(ctx context.Context) time.Time {
+	ca.rLock(ctx)
+	defer ca.rUnlock(ctx)
+
+	if ca.lockedState.connection == nil {
+		return time.Time{}
+	}
+	return ca.lockedState.connection.lastKubeconfigSyncTime
 }
 
 func (ca *clusterAccessor) rLock(ctx context.Context) {

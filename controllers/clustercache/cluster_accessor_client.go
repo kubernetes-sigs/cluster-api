@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
@@ -30,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -38,15 +40,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
-	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 type createConnectionResult struct {
-	RESTConfig     *rest.Config
-	RESTClient     *rest.RESTClient
-	CachedClient   client.Client
-	UncachedClient client.Client
-	Cache          *stoppableCache
+	RESTConfig                *rest.Config
+	KubeconfigResourceVersion string
+	Kubeconfig                []byte
+	TokenHolder               *tokenHolder
+	RunningOnCluster          bool
+	RESTClient                *rest.RESTClient
+	CachedClient              client.Client
+	UncachedClient            client.Client
+	Cache                     *stoppableCache
 }
 
 func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnectionResult, error) {
@@ -54,7 +60,7 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 	log.V(6).Info("Creating connection")
 
 	log.V(6).Info("Creating REST config")
-	restConfig, err := createRESTConfig(ctx, ca.config.Client, ca.config.SecretClient, ca.cluster)
+	restConfig, kubeconfigResourceVersion, kubeconfig, tokenHolder, err := createRESTConfig(ctx, ca.config.Client, ca.config.SecretClient, ca.cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -113,33 +119,44 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 	}
 
 	return &createConnectionResult{
-		RESTConfig:     restConfig,
-		RESTClient:     restClient,
-		CachedClient:   cachedClient,
-		UncachedClient: uncachedClient,
-		Cache:          cache,
+		RESTConfig:                restConfig,
+		KubeconfigResourceVersion: kubeconfigResourceVersion,
+		Kubeconfig:                kubeconfig,
+		TokenHolder:               tokenHolder,
+		RunningOnCluster:          runningOnCluster,
+		RESTClient:                restClient,
+		CachedClient:              cachedClient,
+		UncachedClient:            uncachedClient,
+		Cache:                     cache,
 	}, nil
 }
 
 // createRESTConfig returns a REST config created based on the kubeconfig Secret.
-func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientConfig, c client.Reader, cluster client.ObjectKey) (*rest.Config, error) {
-	kubeConfig, err := kcfg.FromSecret(ctx, c, cluster)
+func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientConfig, c client.Reader, cluster client.ObjectKey) (*rest.Config, string, []byte, *tokenHolder, error) {
+	kubeconfigSecret, kubeConfig, err := getKubeconfigSecret(ctx, c, cluster)
 	if err != nil {
-		return nil, pkgerrors.WithMessage(err, "error creating REST config: error getting kubeconfig secret")
+		return nil, "", nil, nil, pkgerrors.WithMessage(err, "error creating REST config: error getting kubeconfig secret")
 	}
 
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
 	if err != nil {
-		return nil, pkgerrors.WithMessage(err, "error creating REST config: error parsing kubeconfig")
+		return nil, "", nil, nil, pkgerrors.WithMessage(err, "error creating REST config: error parsing kubeconfig")
+	}
+
+	var holder *tokenHolder
+	if usesStaticBearerToken(restConfig) {
+		holder = newTokenHolder(restConfig.BearerToken)
+		holder.originalWrapTransport = restConfig.WrapTransport
+		holder.setConfigWrapTransport(restConfig)
 	}
 
 	// Note: Using ExecProvider is not supported in ClusterCache as we don't want our controllers to exec.
 	if restConfig.ExecProvider != nil {
-		return nil, pkgerrors.New("ExecProvider is not supported in ClusterCache")
+		return nil, "", nil, nil, pkgerrors.New("ExecProvider is not supported in ClusterCache")
 	}
 	// Note: Using AuthProvider is not supported as we are not registering plugins like e.g. oidc in Cluster API.
 	if restConfig.AuthProvider != nil {
-		return nil, pkgerrors.New("AuthProvider is not supported in ClusterCache")
+		return nil, "", nil, nil, pkgerrors.New("AuthProvider is not supported in ClusterCache")
 	}
 
 	restConfig.UserAgent = clientConfig.UserAgent
@@ -147,7 +164,107 @@ func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientCo
 	restConfig.QPS = clientConfig.QPS
 	restConfig.Burst = clientConfig.Burst
 
-	return restConfig, nil
+	return restConfig, kubeconfigSecret.ResourceVersion, kubeConfig, holder, nil
+}
+
+func getKubeconfigSecret(ctx context.Context, c client.Reader, cluster client.ObjectKey) (*corev1.Secret, []byte, error) {
+	kubeconfigSecret, err := secret.Get(ctx, c, cluster, secret.Kubeconfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	kubeConfig, ok := kubeconfigSecret.Data[secret.KubeconfigDataName]
+	if !ok {
+		return nil, nil, pkgerrors.Errorf("missing key %q in secret data", secret.KubeconfigDataName)
+	}
+
+	return kubeconfigSecret, kubeConfig, nil
+}
+
+// usesStaticBearerToken returns true if the rest.Config authenticates via a static bearer token,
+// i.e. a token that client-go cannot refresh on its own (as opposed to e.g. a token file or exec plugin).
+func usesStaticBearerToken(config *rest.Config) bool {
+	return config.BearerToken != "" &&
+		config.BearerTokenFile == "" &&
+		config.ExecProvider == nil &&
+		config.AuthProvider == nil
+}
+
+// tokenHolder holds the current bearer token and the original transport wrapper so the
+// rest.Config wrapper can be rebuilt after a token rotation without stacking wrappers.
+type tokenHolder struct {
+	// value is the current bearer token used by all transports created for the connection.
+	value atomic.Pointer[string]
+
+	// originalWrapTransport is preserved when rebuilding the dynamic bearer-token wrapper after a token rotation.
+	originalWrapTransport func(http.RoundTripper) http.RoundTripper
+}
+
+func newTokenHolder(token string) *tokenHolder {
+	holder := &tokenHolder{}
+	holder.store(token)
+	return holder
+}
+
+func (h *tokenHolder) store(token string) {
+	h.value.Store(&token)
+}
+
+func (h *tokenHolder) token() string {
+	token := h.value.Load()
+	if token == nil {
+		return ""
+	}
+	return *token
+}
+
+// setConfigWrapTransport configures the rest.Config to replace its static bearer token with the current
+// token from the tokenHolder while preserving request-specific Authorization headers.
+func (h *tokenHolder) setConfigWrapTransport(config *rest.Config) {
+	configuredToken := config.BearerToken
+	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		if h.originalWrapTransport != nil {
+			rt = h.originalWrapTransport(rt)
+		}
+		return &dynamicBearerTokenRoundTripper{
+			holder:          h,
+			configuredToken: configuredToken,
+			rt:              rt,
+		}
+	}
+}
+
+// dynamicBearerTokenRoundTripper replaces the static bearer token configured for the transport
+// with the current token from the tokenHolder, so a rotated token is picked up without re-creating
+// transports. Request-specific Authorization headers are preserved.
+type dynamicBearerTokenRoundTripper struct {
+	holder *tokenHolder
+
+	// configuredToken is the static token client-go adds to requests for this transport.
+	// Only this token is replaced so request-specific Authorization headers are preserved.
+	configuredToken string
+
+	rt http.RoundTripper
+}
+
+var _ utilnet.RoundTripperWrapper = &dynamicBearerTokenRoundTripper{}
+
+func (rt *dynamicBearerTokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	authorizationHeader := req.Header.Get("Authorization")
+	if authorizationHeader != "" && authorizationHeader != "Bearer "+rt.configuredToken {
+		return rt.rt.RoundTrip(req)
+	}
+
+	token := rt.holder.token()
+	if token != "" {
+		req = utilnet.CloneRequest(req)
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	return rt.rt.RoundTrip(req)
+}
+
+func (rt *dynamicBearerTokenRoundTripper) WrappedRoundTripper() http.RoundTripper {
+	return rt.rt
 }
 
 // runningOnWorkloadCluster detects if the current controller runs on the workload cluster.

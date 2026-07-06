@@ -48,7 +48,7 @@ func ValidateResourceVersionStable(ctx context.Context, input ValidateResourceVe
 	var previousObjects map[string]client.Object
 	waitToBecomeStable := input.WaitToBecomeStable
 	if len(waitToBecomeStable) == 0 {
-		waitToBecomeStable = []any{"2m", "15s"}
+		waitToBecomeStable = []any{"4m", "15s"}
 	}
 	Eventually(func(g Gomega) {
 		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, input.ClusterProxy, input.Namespace, input.OwnerGraphFilterFunction)

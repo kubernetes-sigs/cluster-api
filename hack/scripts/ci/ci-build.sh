@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 The Kubernetes Authors.
+# Copyright 2018 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Alias kept for backward compatibility with external callers; the script now lives at
-# hack/scripts/ci/ci-apidiff.sh.
+# This script builds targets for CI.
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-exec "$(dirname "${BASH_SOURCE[0]}")/../hack/scripts/ci/ci-apidiff.sh" "$@"
+REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/../../..
+
+cd "${REPO_ROOT}" && make managers clusterctl e2e-framework build-book

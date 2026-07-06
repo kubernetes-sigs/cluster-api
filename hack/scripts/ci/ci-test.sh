@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 The Kubernetes Authors.
+# Copyright 2018 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +14,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Alias kept for backward compatibility with external callers; the script now lives at
-# hack/scripts/ci/ci-apidiff.sh.
+# This script runs test targets for CI.
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-exec "$(dirname "${BASH_SOURCE[0]}")/../hack/scripts/ci/ci-apidiff.sh" "$@"
+REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/../../..
+cd "${REPO_ROOT}" || exit 1
+
+# shellcheck source=./hack/scripts/ensure/ensure-go.sh
+source "${REPO_ROOT}/hack/scripts/ensure/ensure-go.sh"
+
+echo "*** Testing Cluster API ***"
+make test-junit
+
+echo -e "\n*** Testing test/infrastructure folder ***\n"
+make test-infrastructure-junit
+
+echo -e "\n*** Testing Cluster API Runtime SDK test extension ***\n"
+make test-test-extension-junit
+
+echo -e "\n*** Testing Cluster API testing framework ***\n"
+make test-framework-junit

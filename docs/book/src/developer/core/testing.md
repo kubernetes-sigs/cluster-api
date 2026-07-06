@@ -103,7 +103,7 @@ Integration tests use the [envtest](https://github.com/kubernetes-sigs/controlle
 
 When testing individual packages, you can speed up the test execution by running the tests with a local kind cluster.
 This avoids spinning up a testenv with each test execution. It also makes it easier to debug, because it's straightforward
-to access a kind cluster with kubectl during test execution. For further instructions, run: `./hack/setup-envtest-with-kind.sh`.
+to access a kind cluster with kubectl during test execution. For further instructions, run: `./hack/scripts/dev/kind-create-for-envtest.sh`.
 
 When running individual tests, it could happen that a testenv is started if this is required by the `suite_test.go` file.
 However, if the tests you are running don't require testenv (i.e. they are only using fake client), you can skip the testenv

@@ -68,7 +68,7 @@ E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
 CAPIM_DIR := $(TEST_DIR)/infrastructure/inmemory
 TEST_EXTENSION_DIR := $(TEST_DIR)/extension
-GO_INSTALL := ./scripts/go_install.sh
+GO_INSTALL := ./hack/scripts/ensure/go_install.sh
 OBSERVABILITY_DIR := hack/observability
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -79,11 +79,11 @@ export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 export DBG ?= 0
 
 # Set build time variables including version details
-LDFLAGS := $(shell hack/version.sh)
-GCFLAGS := $(shell hack/gogcflags.sh)
+LDFLAGS := $(shell hack/scripts/release/version.sh)
+GCFLAGS := $(shell hack/scripts/release/gogcflags.sh)
 
 # Check if LDFLAGS was able to identify a Semantic Version tag in the repository, or not;
-# avoid building if that's true (see hack/version.sh for more information).
+# avoid building if that's true (see hack/scripts/release/version.sh for more information).
 SEMVER_CHECK = $(findstring GIT_VERSION should be a valid Semantic Version, $(LDFLAGS))
 ifneq ($(SEMVER_CHECK),)
     $(warning SEMVER_CHECK: $(LDFLAGS))
@@ -409,7 +409,7 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./api/runtime/hooks"
 	$(CONTROLLER_GEN) \
-		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		object:headerFile=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		paths=./api/addons/... \
 		paths=./api/core/... \
 		paths=./api/ipam/... \
@@ -426,7 +426,7 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 generate-go-deepcopy-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate deepcopy go code for kubeadm bootstrap
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/bootstrap/kubeadm,./bootstrap/kubeadm/types"
 	$(CONTROLLER_GEN) \
-		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		object:headerFile=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		paths=./api/bootstrap/kubeadm/... \
 		paths=./bootstrap/kubeadm/types/...
 
@@ -434,21 +434,21 @@ generate-go-deepcopy-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate deepcopy g
 generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepcopy go code for kubeadm control plane
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/controlplane/kubeadm"
 	$(CONTROLLER_GEN) \
-		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		object:headerFile=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		paths=./api/controlplane/kubeadm/...
 
 .PHONY: generate-go-deepcopy-docker-infrastructure
 generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) generate-go-deepcopy-in-memory-infrastructure ## Generate deepcopy go code for docker infrastructure provider
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPD_DIR)/api"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
-		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \
+		object:headerFile=../../../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		paths=./api/...
 
 .PHONY: generate-go-deepcopy-in-memory-infrastructure
 generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for in-memory cloud resources
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPIM_DIR)/pkg/cloud/api"
 	cd $(CAPIM_DIR); $(CONTROLLER_GEN) \
-		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \
+		object:headerFile=../../../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
         paths=./pkg/cloud/api/...
 
 .PHONY: generate-go-deepcopy-test-extension
@@ -470,11 +470,11 @@ generate-go-conversions-core-api: $(CONVERSION_GEN) ## Generate conversions go c
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/core/v1beta1,./internal/topology/upgrade/test/t2/v1beta1"
 	cd api; $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./../hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=./../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./core/v1beta1
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./internal/topology/upgrade/test/t2/v1beta1
 
 .PHONY: generate-go-conversions-addons-api
@@ -482,7 +482,7 @@ generate-go-conversions-addons-api: $(CONVERSION_GEN) ## Generate conversions go
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/addons/v1beta1"
 	cd api; $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./../hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=./../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./addons/v1beta1
 
 .PHONY: generate-go-conversions-core-ipam
@@ -490,7 +490,7 @@ generate-go-conversions-core-ipam: $(CONVERSION_GEN) ## Generate conversions go 
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/ipam/v1beta1,./api/ipam/v1alpha1"
 	cd api; $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./../hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=./../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./ipam/v1alpha1 \
 		./ipam/v1beta1
 
@@ -499,13 +499,13 @@ generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions 
 	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/runtime/test/v1alpha1,./internal/runtime/test/v1alpha2"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./internal/runtime/test/v1alpha1 \
 		./internal/runtime/test/v1alpha2
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/runtime/v1alpha1"
 	cd api; $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./../hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=./../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./runtime/v1alpha1
 
 .PHONY: generate-go-conversions-kubeadm-bootstrap
@@ -513,12 +513,12 @@ generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate convers
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/bootstrap/kubeadm/v1beta1"
 	cd api; $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./../hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=./../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./bootstrap/kubeadm/v1beta1
 	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/types/upstreamv1beta3,./bootstrap/kubeadm/types/upstreamv1beta4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./bootstrap/kubeadm/types/upstreamv1beta3 \
 		./bootstrap/kubeadm/types/upstreamv1beta4
 
@@ -527,14 +527,14 @@ generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate con
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/controlplane/kubeadm/v1beta1"
 	cd api; $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./../hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=./../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./controlplane/kubeadm/v1beta1
 
 .PHONY: generate-go-conversions-docker-infrastructure
 generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate conversions go code for docker infrastructure provider
 	cd $(CAPD_DIR); $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=../../../hack/boilerplate/boilerplate.generatego.txt \
+		--go-header-file=../../../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./api/v1beta1
 
 .PHONY: generate-go-conversions-test-extension
@@ -551,7 +551,7 @@ generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 			--output-dir=../hack/tools/runtime-openapi-gen/$${pkg} \
 			--output-file=zz_generated.openapi.go \
 			--output-pkg=sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen/$${pkg} \
-			--go-header-file=../hack/boilerplate/boilerplate.generatego.txt \
+			--go-header-file=../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 			sigs.k8s.io/cluster-api/$${pkg}; \
 	done; \
 	rm sigs.k8s.io/cluster-api
@@ -565,7 +565,7 @@ generate-modules: ## Run go mod tidy to ensure modules are up to date
 
 .PHONY: generate-doctoc
 generate-doctoc:
-	TRACE=$(TRACE) ./hack/generate-doctoc.sh
+	TRACE=$(TRACE) ./hack/scripts/docs/generate-doctoc.sh
 
 .PHONY: generate-crd-docs
 generate-crd-docs: $(CRD_REF_DOCS) ## Generate CRD API reference documentation using crd-ref-docs
@@ -663,12 +663,12 @@ lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint the codebase
 	cd api; $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	./scripts/lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+	./hack/scripts/verify/verify-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 	cd api; $(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yml $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-dockerfiles
 lint-dockerfiles:
-	./scripts/lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+	./hack/scripts/verify/verify-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
@@ -684,7 +684,7 @@ lint-api-fix: $(GOLANGCI_LINT_KAL)
 
 .PHONY: tiltfile-fix
 tiltfile-fix: ## Format the Tiltfile
-	TRACE=$(TRACE) ./hack/verify-starlark.sh fix
+	TRACE=$(TRACE) ./hack/scripts/verify/verify-starlark.sh fix
 
 APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 
@@ -699,7 +699,7 @@ verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all ve
 
 .PHONY: verify-go-directive
 verify-go-directive:
-	TRACE=$(TRACE) ./hack/verify-go-directive.sh -g $(GO_DIRECTIVE_VERSION)
+	TRACE=$(TRACE) ./hack/scripts/verify/verify-go-directive.sh -g $(GO_DIRECTIVE_VERSION)
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
@@ -740,27 +740,27 @@ verify-doctoc: generate-doctoc
 
 .PHONY: verify-capi-book-summary
 verify-capi-book-summary:
-	TRACE=$(TRACE) ./hack/verify-capi-book-summary.sh
+	TRACE=$(TRACE) ./hack/scripts/verify/verify-capi-book-summary.sh
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate text exists in each file
-	TRACE=$(TRACE) ./hack/verify-boilerplate.sh
+	TRACE=$(TRACE) ./hack/scripts/verify/verify-boilerplate.sh
 
 .PHONY: verify-shellcheck
 verify-shellcheck: ## Verify shell files
-	TRACE=$(TRACE) ./hack/verify-shellcheck.sh $(SHELLCHECK_VER)
+	TRACE=$(TRACE) ./hack/scripts/verify/verify-shellcheck.sh $(SHELLCHECK_VER)
 
 .PHONY: verify-tiltfile
 verify-tiltfile: ## Verify Tiltfile format
-	TRACE=$(TRACE) ./hack/verify-starlark.sh
+	TRACE=$(TRACE) ./hack/scripts/verify/verify-starlark.sh
 
 .PHONY: verify-container-images
 verify-container-images: ## Verify container images
-	TRACE=$(TRACE) ./hack/verify-container-images.sh $(TRIVY_VER)
+	TRACE=$(TRACE) ./hack/scripts/verify/verify-container-images.sh $(TRIVY_VER)
 
 .PHONY: verify-licenses
 verify-licenses: ## Verify licenses
-	TRACE=$(TRACE) ./hack/verify-licenses.sh $(TRIVY_VER)
+	TRACE=$(TRACE) ./hack/scripts/verify/verify-licenses.sh $(TRIVY_VER)
 
 .PHONY: verify-govulncheck
 verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
@@ -843,7 +843,7 @@ ALL_DOCKER_BUILD_E2E = core kubeadm-bootstrap kubeadm-control-plane docker-infra
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Run docker-build-* targets for all the images with settings to be used for the e2e tests
     # please ensure the generated image name matches image names used in the E2E_CONF_FILE;
-    # also the same settings must exist in ci-e2e-lib.sh, capi:buildDockerImage func.
+    # also the same settings must exist in hack/scripts/ci/ci-e2e-lib.sh, capi:buildDockerImage func.
 	$(MAKE) REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent TAG=dev $(addprefix docker-build-,$(ALL_DOCKER_BUILD_E2E))
 
 .PHONY: docker-build-core
@@ -1019,15 +1019,15 @@ test-e2e: $(GINKGO) generate-e2e-templates ## Run the end-to-end tests
 
 .PHONY: kind-cluster
 kind-cluster: ## Create a new kind cluster designed for development with Tilt
-	hack/kind-install-for-capd.sh
+	hack/scripts/dev/kind-create-for-capd.sh
 
 .PHONY: kind-cluster-kubevirt
 kind-cluster-kubevirt: ## Create a new kind cluster with KubeVirt designed for development with Tilt
-	hack/kind-install-for-capk.sh
+	hack/scripts/dev/kind-create-for-capk.sh
 
 .PHONY: tilt-e2e-prerequisites
 tilt-e2e-prerequisites: ## Build the corresponding kindest/node images required for e2e testing and generate the e2e templates
-	scripts/build-kind.sh
+	hack/scripts/dev/kind-build-images.sh
 	$(MAKE) generate-e2e-templates
 
 .PHONY: tilt-up
@@ -1054,7 +1054,7 @@ USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4) # only wo
 ifeq ($(USER_FORK),)
 USER_FORK := $(shell git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1) # for git@github.com:<username>/cluster-api.git style URLs
 endif
-IMAGE_REVIEWERS ?= $(shell ./hack/get-project-maintainers.sh)
+IMAGE_REVIEWERS ?= $(shell ./hack/scripts/release/get-project-maintainers.sh)
 
 .PHONY: $(RELEASE_DIR)
 $(RELEASE_DIR):
@@ -1240,7 +1240,7 @@ promote-images: $(KPROMO)
 
 .PHONY: docker-image-verify
 docker-image-verify: ## Verifies all built images to contain the correct binary in the expected arch
-	ALL_ARCH="$(ALL_ARCH)" TAG="$(TAG)" ./hack/docker-image-verify.sh
+	ALL_ARCH="$(ALL_ARCH)" TAG="$(TAG)" ./hack/scripts/verify/verify-docker-images-arch.sh
 
 .PHONY: docker-push-all
 docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests

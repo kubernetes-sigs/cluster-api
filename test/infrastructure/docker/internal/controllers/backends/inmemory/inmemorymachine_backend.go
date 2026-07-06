@@ -48,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -974,7 +975,7 @@ func (r *MachineBackendReconciler) reconcileNormalKubeProxy(ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "kube-proxy",
-							Image: fmt.Sprintf("registry.k8s.io/kube-proxy:%s", machine.Spec.Version),
+							Image: fmt.Sprintf("registry.k8s.io/kube-proxy:%s", containerutil.SemverToOCIImageTag(machine.Spec.Version)),
 						},
 					},
 				},

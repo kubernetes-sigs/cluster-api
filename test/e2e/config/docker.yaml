@@ -147,8 +147,8 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.11/metadata.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.11/cluster-template-topology.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.11/clusterclass-quick-start.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.11/cluster-template-in-memory-topology.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.11/clusterclass-in-memory.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/infrastructure-components-development.yaml"
     type: "url"
@@ -158,8 +158,8 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.12/metadata.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.12/cluster-template-topology.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.12/clusterclass-quick-start.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.12/cluster-template-in-memory-topology.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.12/clusterclass-in-memory.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.13}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.13}/infrastructure-components-development.yaml"
     type: "url"
@@ -169,8 +169,8 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.13/metadata.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.13/cluster-template-topology.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.13/clusterclass-quick-start.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.13/cluster-template-in-memory-topology.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.13/clusterclass-in-memory.yaml"
   - name: v1.14.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     files:

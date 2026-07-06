@@ -552,7 +552,7 @@ func paths(path []string, diff map[string]interface{}) [][]string {
 		if !ok {
 			// We have to use a copy of path, because otherwise the slice we append to
 			// allPaths would be overwritten in another iteration.
-			tmp := make([]string, len(path))
+			tmp := make([]string, len(path), len(path)+1)
 			copy(tmp, path)
 			allPaths = append(allPaths, append(tmp, key))
 			continue

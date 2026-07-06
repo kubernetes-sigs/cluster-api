@@ -78,7 +78,7 @@ func JoinYaml(yamls ...[]byte) []byte {
 	var yamlSeparator = []byte("---")
 
 	var cr = []byte("\n")
-	var b [][]byte
+	var b [][]byte //nolint:prealloc
 	for _, y := range yamls {
 		if !bytes.HasPrefix(y, cr) {
 			y = append(cr, y...)

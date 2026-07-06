@@ -172,7 +172,7 @@ func Run(ctx context.Context, input RunInput) error {
 	}
 
 	// Formulate our command arguments
-	var args []string
+	var args []string //nolint:prealloc // Not all paths append
 	args = append(args, ginkgoArgs...)
 	args = append(
 		args,

@@ -71,7 +71,7 @@ func newDefinitionsIndex(fldPath *field.Path, definitions []clusterv1.ClusterCla
 		definitionsMap[definition.Name] = &definition
 	}
 	if len(errs) > 0 {
-		var definitionStrings []string
+		definitionStrings := make([]string, 0, len(definitions))
 		for _, d := range definitions {
 			definitionStrings = append(definitionStrings, fmt.Sprintf("Name: %s", d.Name))
 		}

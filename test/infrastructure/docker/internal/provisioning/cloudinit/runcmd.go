@@ -46,7 +46,7 @@ func (a *runCmd) Unmarshal(userData []byte, _ kind.Mapping) error {
 
 // Commands returns a list of commands to run on the node.
 func (a *runCmd) Commands() ([]provisioning.Cmd, error) {
-	cmds := make([]provisioning.Cmd, 0)
+	cmds := make([]provisioning.Cmd, 0, len(a.Cmds))
 	for _, c := range a.Cmds {
 		// kubeadm in docker requires to ignore some errors, and this requires to modify the cmd generate by CABPK by default...
 		c = hackKubeadmIgnoreErrors(c)

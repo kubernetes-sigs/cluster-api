@@ -299,7 +299,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		By("Create stand-alone control plane machines")
 
 		newControlPlaneMachinesNames := sets.New[string]()
-		newControlPlaneMachines := []*clusterv1.Machine{}
+		newControlPlaneMachines := []*clusterv1.Machine{} //nolint:prealloc
 		newInfrastructureMachineByMachine := map[string]*unstructured.Unstructured{}
 		for _, m := range originalControlPlaneMachines {
 			// Re-create a bootstrap data secret.

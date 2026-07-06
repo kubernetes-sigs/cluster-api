@@ -53,8 +53,6 @@ linters:
   disable:
     # TODO: It will be dropped when the Go version migration is done.
     - usetesting
-    # TODO: It will be dropped when the prealloc findings are fixed.
-    - prealloc
   settings:
     depguard:
       rules:
@@ -496,6 +494,10 @@ linters:
           - gosec
         path: _test\.go
         text: 'G101:'
+        # Preallocating slices in test files is not worth the readability cost.
+      - linters:
+          - prealloc
+        path: _test\.go
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

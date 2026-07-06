@@ -219,7 +219,7 @@ func machineDrainRuleAppliesToMachine(mdr *clusterv1.MachineDrainRule, machine *
 }
 
 func filterPods(ctx context.Context, allPods []*corev1.Pod, filters []PodFilter) *PodDeleteList {
-	pods := []PodDelete{}
+	pods := make([]PodDelete, 0, len(allPods))
 	for _, pod := range allPods {
 		var status PodDeleteStatus
 		// Collect warnings for the case where we are going to delete the Pod.

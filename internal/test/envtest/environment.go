@@ -281,11 +281,12 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
 
-	crdDirectoryPaths := []string{
+	crdDirectoryPaths := make([]string, 0, 3+len(additionalCRDDirectoryPaths))
+	crdDirectoryPaths = append(crdDirectoryPaths,
 		filepath.Join(root, "config", "crd", "bases"),
 		filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
 		filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
-	}
+	)
 	for _, path := range additionalCRDDirectoryPaths {
 		crdDirectoryPaths = append(crdDirectoryPaths, filepath.Join(root, path))
 	}

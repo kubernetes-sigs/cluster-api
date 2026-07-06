@@ -158,7 +158,7 @@ func (h *apiServerHandler) globalLogging(req *restful.Request, resp *restful.Res
 		scope := metrics.CleanScope(requestInfo)
 		verb := metrics.CleanVerb(metrics.CanonicalVerb(strings.ToUpper(req.Request.Method), scope), req.Request, requestInfo)
 		component := metrics.APIServerComponent
-		baseLabelValues := []string{verb, dryRun, requestInfo.APIGroup, requestInfo.APIVersion, requestInfo.Resource, requestInfo.Subresource, scope, component}
+		baseLabelValues := []string{verb, dryRun, requestInfo.APIGroup, requestInfo.APIVersion, requestInfo.Resource, requestInfo.Subresource, scope, component} //nolint:prealloc // Not all paths append
 		requestTotalLabelValues := append(baseLabelValues, strconv.Itoa(resp.StatusCode()))
 		requestLatencyLabelValues := baseLabelValues
 

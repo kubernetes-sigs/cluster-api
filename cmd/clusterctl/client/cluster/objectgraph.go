@@ -20,6 +20,8 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -655,11 +657,7 @@ func (o *objectGraph) getSecrets() []*node {
 
 // getNodes returns the list of nodes existing in the object graph.
 func (o *objectGraph) getNodes() []*node {
-	nodes := []*node{}
-	for _, node := range o.uidToNode {
-		nodes = append(nodes, node)
-	}
-	return nodes
+	return slices.Collect(maps.Values(o.uidToNode))
 }
 
 // getCRSs returns the list of ClusterResourceSet existing in the object graph.

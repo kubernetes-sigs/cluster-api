@@ -85,7 +85,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling CreateRepository")
 	Expect(os.MkdirAll(input.RepositoryFolder, 0750)).To(Succeed(), "Failed to create the clusterctl local repository folder %s", input.RepositoryFolder)
 
-	providers := []providerConfig{}
+	providers := make([]providerConfig, 0, len(input.E2EConfig.Providers))
 	for _, provider := range input.E2EConfig.Providers {
 		providerLabel := clusterctlv1.ManifestLabel(provider.Name, clusterctlv1.ProviderType(provider.Type))
 		providerURL := filepath.Join(input.RepositoryFolder, providerLabel, "latest", "components.yaml")

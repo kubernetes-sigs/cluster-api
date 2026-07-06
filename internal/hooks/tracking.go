@@ -34,7 +34,7 @@ import (
 // MarkAsPending adds to the object's PendingHooksAnnotation the intent to execute a hook after an operation completes.
 // Usually this function is called when an operation is starting in order to track the intent to call an After<operation> hook later in the process.
 func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, updateResourceVersionOnObject bool, hooks ...runtimecatalog.Hook) error {
-	hookNames := []string{}
+	hookNames := make([]string, 0, len(hooks))
 	for _, hook := range hooks {
 		hookNames = append(hookNames, runtimecatalog.HookName(hook))
 	}
@@ -60,7 +60,7 @@ func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, upda
 // MarkObjectAsPending adds to the object's PendingHooksAnnotation the intent to execute a hook after an operation completes.
 // Usually this function is called when an operation is starting in order to track the intent to call an After<operation> hook later in the process.
 func MarkObjectAsPending(obj client.Object, hooks ...runtimecatalog.Hook) (changed bool) {
-	hookNames := []string{}
+	hookNames := make([]string, 0, len(hooks))
 	for _, hook := range hooks {
 		hookNames = append(hookNames, runtimecatalog.HookName(hook))
 	}

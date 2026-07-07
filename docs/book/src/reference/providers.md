@@ -40,6 +40,7 @@ source of inspiration and ideas for others.
 
 ## Infrastructure
 - [Akamai (Linode)](https://linode.github.io/cluster-api-provider-linode/)
+- [Alibaba Cloud (unofficial)](https://github.com/SammZhu/openshift-capi-alicloud)
 - [AWS](https://cluster-api-aws.sigs.k8s.io/)
 - [Azure](https://github.com/kubernetes-sigs/cluster-api-provider-azure)
 - [Azure Stack HCI](https://github.com/microsoft/cluster-api-provider-azurestackhci)

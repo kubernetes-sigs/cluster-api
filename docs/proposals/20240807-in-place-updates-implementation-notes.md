@@ -33,14 +33,14 @@ Workflow #1: MD controller detects an in-place update is possible and it informs
 ```mermaid
 sequenceDiagram
     autonumber
-    participant MD Controller
+    participant MDController as MD controller
     participant RX
     participant MS1 (OldMS)
     participant MS2 (NewMS)
-    MD Controller-->>+RX: Can you update in-place from MS1 (OldMS) to MS2 (NewMS)?
-    RX-->>-MD Controller: Yes!
-    MD Controller->>MS1 (OldMS): Apply annotation ".../move-machines-to-machineset": "MS2"
-    MD Controller->>MS2 (NewMS): Apply annotation ".../receive-machines-from-machinesets": "MS1"
+    MDController-->>+RX: Can you update in-place from MS1 (OldMS) to MS2 (NewMS)?
+    RX-->>-MDController: Yes!
+    MDController->>MS1 (OldMS): Apply annotation ".../move-machines-to-machineset": "MS2"
+    MDController->>MS2 (NewMS): Apply annotation ".../receive-machines-from-machinesets": "MS1"
 ```
 
 Workflow #2: MS controller, when reconciling oldMS, move machines to the newMS.
@@ -48,17 +48,17 @@ Workflow #2: MS controller, when reconciling oldMS, move machines to the newMS.
 ```mermaid
 sequenceDiagram
     autonumber
-    participant MS Controller as MS Controller<br/>when reconciling<br/>MS1 (OldMS)
+    participant MSController as MS Controller<br/>when reconciling<br/>MS1 (OldMS)
     participant MS1 (OldMS)
     participant MS2 (NewMS)
     participant M1 as M1<br/>controlled by<br/>MS1 (OldMS),<br/>selected to be moved to MS2 (NewMS)
-    MS Controller-->>MS1 (OldMS): Are you scaling down?
-    MS1 (OldMS)-->>MS Controller: Yes!
-    MS Controller-->>MS1 (OldMS): Do you have the ".../move-machines-to-machineset" annotation?
-    MS1 (OldMS)-->>MS Controller: Yes, I'm instructed to move machines to MS2!
-    MS Controller-->>MS2 (NewMS): Do you have ".../receive-machines-from-machinesets" annotation?
-    MS2 (NewMS)-->>MS Controller: Yes, I'm instructed to receive machines MS1!
-    MS Controller->>M1: Move M1 to MS2 (NewMS)<br/>Apply annotation ".../pending-acknowledge-move": ""<br/>Apply annotation ".../update-in-progress": ""
+    MSController-->>MS1 (OldMS): Are you scaling down?
+    MS1 (OldMS)-->>MSController: Yes!
+    MSController-->>MS1 (OldMS): Do you have the ".../move-machines-to-machineset" annotation?
+    MS1 (OldMS)-->>MSController: Yes, I'm instructed to move machines to MS2!
+    MSController-->>MS2 (NewMS): Do you have ".../receive-machines-from-machinesets" annotation?
+    MS2 (NewMS)-->>MSController: Yes, I'm instructed to receive machines MS1!
+    MSController->>M1: Move M1 to MS2 (NewMS)<br/>Apply annotation ".../pending-acknowledge-move": ""<br/>Apply annotation ".../update-in-progress": ""
 ```
 
 MD controller recognizes that a Machine has been moved to the new MachineSet and scales up the new MachineSet to acknowledge the operation.
@@ -66,12 +66,12 @@ MD controller recognizes that a Machine has been moved to the new MachineSet and
 ```mermaid
 sequenceDiagram
     autonumber
-    participant MD Controller
+    participant MDController as MD controller
     participant MS2 (NewMS)
     participant M1 as M1<br/>now controlled by<br/>MS2 (NewMS)
-    MD Controller-->>M1: Are you pending acknowledge?
-    M1-->>MD Controller: Yes!
-    MD Controller->>MS2 (NewMS): Scale up to acknowledge receipt of M1<br/>Apply annotation ".../acknowledged-move": "M1"
+    MDController-->>M1: Are you pending acknowledge?
+    M1-->>MDController: Yes!
+    MDController->>MS2 (NewMS): Scale up to acknowledge receipt of M1<br/>Apply annotation ".../acknowledged-move": "M1"
 ```
 
 Workflow #4: MS controller, when reconciling newMS, detects that a machine has been acknowledged; it cleans up annotations on the machine, allowing the in-place update to begin.
@@ -79,12 +79,12 @@ Workflow #4: MS controller, when reconciling newMS, detects that a machine has b
 ```mermaid
 sequenceDiagram
     autonumber
-    participant MS Controller as MS Controller<br/>when reconciling<br/>MS2 (NewMS)
+    participant MSController as MS Controller<br/>when reconciling<br/>MS2 (NewMS)
     participant MS2 (NewMS)
     participant M1 as M1<br/>now controlled by<br/>MS2 (NewMS)
-    MS Controller-->>MS2 (NewMS): Is there some newly acknowledged replicas?
-    MS2 (NewMS)-->>MS Controller: Yes, M1!
-    MS Controller->>M1: Remove annotation ".../pending-acknowledge-move": ""
+    MSController-->>MS2 (NewMS): Is there some newly acknowledged replicas?
+    MS2 (NewMS)-->>MSController: Yes, M1!
+    MSController->>M1: Remove annotation ".../pending-acknowledge-move": ""
 ```
 
 ## Notes about in-place update implementation for KubeadmControlPlane

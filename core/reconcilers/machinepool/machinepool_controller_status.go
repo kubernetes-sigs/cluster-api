@@ -31,6 +31,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -39,35 +40,72 @@ import (
 )
 
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
-	log := ctrl.LoggerFrom(ctx)
-
-	if s.infraMachinePool == nil {
-		log.V(4).Info("infra machine pool isn't set, skipping setting status")
-		return nil
+	var retErr error
+	machinePoolMachinesState := machinePoolMachinesStateUnknown
+	if s.infraMachinePool != nil {
+		var err error
+		machinePoolMachinesState, err = s.machinePoolMachinesState()
+		if err != nil {
+			retErr = fmt.Errorf("determining if there are machine pool machines: %w", err)
+		}
 	}
-	hasMachinePoolMachines, err := s.hasMachinePoolMachines()
-	if err != nil {
-		return fmt.Errorf("determining if there are machine pool machines: %w", err)
+
+	// Existing Machines prove this is a machine-backed pool even if the infrastructure object could not be read.
+	if machinePoolMachinesState == machinePoolMachinesStateUnknown &&
+		s.getMachinesForMachinePoolSucceeded && len(s.machines) > 0 {
+		machinePoolMachinesState = machinePoolMachinesStateSupported
 	}
 
-	setReplicas(s.machinePool, hasMachinePoolMachines, s.machines, s.nodeRefMap)
+	replicaCountersObserved := false
+	switch machinePoolMachinesState {
+	case machinePoolMachinesStateNotSupported:
+		if s.nodeRefMapObserved && s.infrastructureProviderIDListObserved {
+			setReplicas(s.machinePool, false, nil, s.nodeRefMap)
+			replicaCountersObserved = true
+		}
+	case machinePoolMachinesStateSupported:
+		if s.getMachinesForMachinePoolSucceeded {
+			setReplicas(s.machinePool, true, s.machines, s.nodeRefMap)
+			replicaCountersObserved = true
+		}
+	}
+
+	replicasObserved := s.infrastructureReplicasObserved
 
 	setBootstrapConfigReadyCondition(ctx, s.machinePool, s.bootstrapConfig, s.bootstrapConfigIsNotFound)
 	setInfrastructureReadyCondition(ctx, s.machinePool, s.infraMachinePool, s.infraMachinePoolIsNotFound)
-	setMachinesReadyCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines)
-	setMachinesUpToDateCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines)
-	setRollingOutCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines)
-	setRemediatingCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines)
+	setMachinesReadyCondition(ctx, s.machinePool, s.machines, machinePoolMachinesState, s.getMachinesForMachinePoolSucceeded)
+	setMachinesUpToDateCondition(ctx, s.machinePool, s.machines, machinePoolMachinesState, s.getMachinesForMachinePoolSucceeded)
+	setRollingOutCondition(ctx, s.machinePool, s.machines, machinePoolMachinesState, s.getMachinesForMachinePoolSucceeded)
+	setScalingUpCondition(ctx, s.machinePool, replicasObserved)
+	setScalingDownCondition(ctx, s.machinePool, s.machines, s.getMachinesForMachinePoolSucceeded, replicasObserved)
+	setRemediatingCondition(ctx, s.machinePool, s.machines, machinePoolMachinesState, s.getMachinesForMachinePoolSucceeded)
+	setDeletingCondition(ctx, s.machinePool, s.machines, s.getMachinesForMachinePoolSucceeded)
+	setAvailableCondition(ctx, s.machinePool, replicaCountersObserved)
 
-	return nil
+	return retErr
 }
 
 func setReplicas(mp *clusterv1.MachinePool, hasMachinePoolMachines bool, machines []*clusterv1.Machine, nodeRefMap map[string]*corev1.Node) {
 	if !hasMachinePoolMachines {
-		// If we don't have machinepool machine then calculate the values differently
-		mp.Status.ReadyReplicas = mp.Status.Replicas
-		mp.Status.AvailableReplicas = mp.Status.Replicas
-		mp.Status.UpToDateReplicas = mp.Spec.Replicas
+		var readyReplicas, availableReplicas int32
+		minReadySeconds := ptr.Deref(mp.Spec.Template.Spec.MinReadySeconds, 0)
+		now := metav1.Now()
+		for _, providerID := range mp.Spec.ProviderIDList {
+			node := nodeRefMap[providerID]
+			if node == nil || !noderefutil.IsNodeReady(node) {
+				continue
+			}
+			readyReplicas++
+			if noderefutil.IsNodeAvailable(node, minReadySeconds, now) {
+				availableReplicas++
+			}
+		}
+
+		mp.Status.ReadyReplicas = ptr.To(readyReplicas)
+		mp.Status.AvailableReplicas = ptr.To(availableReplicas)
+		// UpToDateReplicas is not reported for MachinePools without Machines.
+		mp.Status.UpToDateReplicas = nil
 		mp.Status.Versions = versionsFromNodeRefs(mp.Status.NodeRefs, nodeRefMap)
 
 		return
@@ -160,6 +198,12 @@ func setBootstrapConfigReadyCondition(_ context.Context, mp *clusterv1.MachinePo
 		return
 	}
 
+	// The bootstrap config is not re-read while the MachinePool is deleting (reconcileBootstrap does not
+	// run in the delete reconcile), so leave the condition unchanged.
+	if !mp.DeletionTimestamp.IsZero() {
+		return
+	}
+
 	// If we got unexpected errors in reading the bootstrap config (this should happen rarely), surface them.
 	if !bootstrapConfigIsNotFound {
 		conditions.Set(mp, metav1.Condition{
@@ -171,8 +215,8 @@ func setBootstrapConfigReadyCondition(_ context.Context, mp *clusterv1.MachinePo
 		return
 	}
 
-	// Bootstrap config missing when the MachinePool is deleting and we know that the BootstrapConfig actually existed.
-	if !mp.DeletionTimestamp.IsZero() && ptr.Deref(mp.Status.Initialization.BootstrapDataSecretCreated, false) {
+	// The bootstrap config does not exist. If it existed before, surface that it has been deleted.
+	if ptr.Deref(mp.Status.Initialization.BootstrapDataSecretCreated, false) {
 		conditions.Set(mp, metav1.Condition{
 			Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
 			Status:  metav1.ConditionFalse,
@@ -221,6 +265,12 @@ func setInfrastructureReadyCondition(_ context.Context, mp *clusterv1.MachinePoo
 		return
 	}
 
+	// The infrastructure object is not re-read while the MachinePool is deleting (reconcileInfrastructure
+	// does not run in the delete reconcile), so leave the condition unchanged.
+	if !mp.DeletionTimestamp.IsZero() {
+		return
+	}
+
 	// If we got errors in reading the infra machine pool (this should happen rarely), surface them.
 	if !infraMachinePoolIsNotFound {
 		conditions.Set(mp, metav1.Condition{
@@ -265,11 +315,53 @@ func objectReadyFallbackMessage(kind, field string, ready bool) string {
 	return fmt.Sprintf("%s %s is %t", kind, field, ready)
 }
 
-func setMachinesReadyCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, hasMachinePoolMachines bool) {
+func machinePoolMachineConditionCanBeSet(mp *clusterv1.MachinePool, conditionType, internalErrorReason string, machinePoolMachinesState machinePoolMachinesState, getMachinesSucceeded bool) bool {
+	switch machinePoolMachinesState {
+	case machinePoolMachinesStateNotSupported:
+		conditions.Delete(mp, conditionType)
+		return false
+	case machinePoolMachinesStateUnknown:
+		if !getMachinesSucceeded {
+			conditions.Set(mp, metav1.Condition{
+				Type:    conditionType,
+				Status:  metav1.ConditionUnknown,
+				Reason:  internalErrorReason,
+				Message: "Please check controller logs for errors",
+			})
+			return false
+		}
+		conditions.Set(mp, metav1.Condition{
+			Type:    conditionType,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolMachineSupportUnknownReason,
+			Message: "Machine support could not be determined",
+		})
+		return false
+	case machinePoolMachinesStateSupported:
+		if !getMachinesSucceeded {
+			conditions.Set(mp, metav1.Condition{
+				Type:    conditionType,
+				Status:  metav1.ConditionUnknown,
+				Reason:  internalErrorReason,
+				Message: "Please check controller logs for errors",
+			})
+			return false
+		}
+	}
+
+	return true
+}
+
+func setMachinesReadyCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, machinePoolMachinesState machinePoolMachinesState, getMachinesSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// If the MachinePool doesn't have Machines (e.g. managed pools), we cannot compute this aggregate condition.
-	if !hasMachinePoolMachines {
+	if !machinePoolMachineConditionCanBeSet(
+		mp,
+		clusterv1.MachinePoolMachinesReadyCondition,
+		clusterv1.MachinePoolMachinesReadyInternalErrorReason,
+		machinePoolMachinesState,
+		getMachinesSucceeded,
+	) {
 		return
 	}
 
@@ -310,11 +402,16 @@ func setMachinesReadyCondition(ctx context.Context, mp *clusterv1.MachinePool, m
 	conditions.Set(mp, *readyCondition)
 }
 
-func setMachinesUpToDateCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, hasMachinePoolMachines bool) {
+func setMachinesUpToDateCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, machinePoolMachinesState machinePoolMachinesState, getMachinesSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// If the MachinePool doesn't have Machines (e.g. managed pools), we cannot compute this aggregate condition.
-	if !hasMachinePoolMachines {
+	if !machinePoolMachineConditionCanBeSet(
+		mp,
+		clusterv1.MachinePoolMachinesUpToDateCondition,
+		clusterv1.MachinePoolMachinesUpToDateInternalErrorReason,
+		machinePoolMachinesState,
+		getMachinesSucceeded,
+	) {
 		return
 	}
 
@@ -365,9 +462,14 @@ func setMachinesUpToDateCondition(ctx context.Context, mp *clusterv1.MachinePool
 	conditions.Set(mp, *upToDateCondition)
 }
 
-func setRollingOutCondition(_ context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, hasMachinePoolMachines bool) {
-	// If the MachinePool doesn't have Machines (e.g. managed pools), we cannot compute this aggregate condition.
-	if !hasMachinePoolMachines {
+func setRollingOutCondition(_ context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, machinePoolMachinesState machinePoolMachinesState, getMachinesSucceeded bool) {
+	if !machinePoolMachineConditionCanBeSet(
+		mp,
+		clusterv1.MachinePoolRollingOutCondition,
+		clusterv1.MachinePoolRollingOutInternalErrorReason,
+		machinePoolMachinesState,
+		getMachinesSucceeded,
+	) {
 		return
 	}
 
@@ -421,9 +523,14 @@ func setRollingOutCondition(_ context.Context, mp *clusterv1.MachinePool, machin
 	})
 }
 
-func setRemediatingCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, hasMachinePoolMachines bool) {
-	// If the MachinePool doesn't have Machines (e.g. managed pools), we cannot compute this aggregate condition.
-	if !hasMachinePoolMachines {
+func setRemediatingCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, machinePoolMachinesState machinePoolMachinesState, getMachinesSucceeded bool) {
+	if !machinePoolMachineConditionCanBeSet(
+		mp,
+		clusterv1.MachinePoolRemediatingCondition,
+		clusterv1.MachinePoolRemediatingInternalErrorReason,
+		machinePoolMachinesState,
+		getMachinesSucceeded,
+	) {
 		return
 	}
 
@@ -494,4 +601,276 @@ func aggregateUnhealthyMachines(machines collections.Machines) string {
 	message += "not healthy (not to be remediated by MachinePool)"
 
 	return message
+}
+
+func aggregateStaleMachines(machines []*clusterv1.Machine) string {
+	if len(machines) == 0 {
+		return ""
+	}
+
+	machineNames := []string{}
+	delayReasons := sets.Set[string]{}
+	for _, machine := range machines {
+		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > 15*time.Minute {
+			machineNames = append(machineNames, machine.GetName())
+
+			deletingCondition := conditions.Get(machine, clusterv1.MachineDeletingCondition)
+			if deletingCondition != nil &&
+				deletingCondition.Status == metav1.ConditionTrue &&
+				deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeReason &&
+				machine.Status.Deletion != nil &&
+				!machine.Status.Deletion.NodeDrainStartTime.Time.IsZero() &&
+				time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
+				if strings.Contains(deletingCondition.Message, "cannot evict pod as it would violate the pod's disruption budget.") {
+					delayReasons.Insert("PodDisruptionBudgets")
+				}
+				if strings.Contains(deletingCondition.Message, "deletionTimestamp set, but still not removed from the Node") {
+					delayReasons.Insert("Pods not terminating")
+				}
+				if strings.Contains(deletingCondition.Message, "failed to evict Pod") {
+					delayReasons.Insert("Pod eviction errors")
+				}
+				if strings.Contains(deletingCondition.Message, "waiting for completion") {
+					delayReasons.Insert("Pods not completed yet")
+				}
+			}
+		}
+	}
+
+	if len(machineNames) == 0 {
+		return ""
+	}
+
+	message := "Machine"
+	if len(machineNames) > 1 {
+		message += "s"
+	}
+
+	sort.Strings(machineNames)
+	message += " " + clog.ListToString(machineNames, func(s string) string { return s }, 3)
+
+	if len(machineNames) == 1 {
+		message += " is "
+	} else {
+		message += " are "
+	}
+	message += "in deletion since more than 15m"
+	if len(delayReasons) > 0 {
+		reasonList := []string{}
+		for _, r := range []string{"PodDisruptionBudgets", "Pods not terminating", "Pod eviction errors", "Pods not completed yet"} {
+			if delayReasons.Has(r) {
+				reasonList = append(reasonList, r)
+			}
+		}
+		message += fmt.Sprintf(", delay likely due to %s", strings.Join(reasonList, ", "))
+	}
+
+	return message
+}
+
+func setScalingUpCondition(_ context.Context, mp *clusterv1.MachinePool, replicasObserved bool) {
+	if !replicasObserved {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolScalingUpCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolScalingUpReplicasNotObservedReason,
+			Message: "status.replicas was not observed",
+		})
+		return
+	}
+
+	// Surface if .spec.replicas is not yet set (this should never happen).
+	if mp.Spec.Replicas == nil {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolScalingUpCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolScalingUpWaitingForReplicasSetReason,
+			Message: "Waiting for spec.replicas set",
+		})
+		return
+	}
+
+	desiredReplicas := *mp.Spec.Replicas
+	if !mp.DeletionTimestamp.IsZero() {
+		desiredReplicas = 0
+	}
+	currentReplicas := ptr.Deref(mp.Status.Replicas, 0)
+
+	if currentReplicas >= desiredReplicas {
+		conditions.Set(mp, metav1.Condition{
+			Type:   clusterv1.MachinePoolScalingUpCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachinePoolNotScalingUpReason,
+		})
+		return
+	}
+
+	conditions.Set(mp, metav1.Condition{
+		Type:    clusterv1.MachinePoolScalingUpCondition,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachinePoolScalingUpReason,
+		Message: fmt.Sprintf("Scaling up from %d to %d replicas", currentReplicas, desiredReplicas),
+	})
+}
+
+func setScalingDownCondition(_ context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, getMachinesSucceeded, replicasObserved bool) {
+	if !replicasObserved {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolScalingDownCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolScalingDownReplicasNotObservedReason,
+			Message: "status.replicas was not observed",
+		})
+		return
+	}
+
+	// Surface if .spec.replicas is not yet set (this should never happen).
+	if mp.Spec.Replicas == nil {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolScalingDownCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolScalingDownWaitingForReplicasSetReason,
+			Message: "Waiting for spec.replicas set",
+		})
+		return
+	}
+
+	desiredReplicas := *mp.Spec.Replicas
+	if !mp.DeletionTimestamp.IsZero() {
+		desiredReplicas = 0
+	}
+	currentReplicas := ptr.Deref(mp.Status.Replicas, 0)
+
+	if currentReplicas > desiredReplicas {
+		message := fmt.Sprintf("Scaling down from %d to %d replicas", currentReplicas, desiredReplicas)
+		if getMachinesSucceeded {
+			staleMessage := aggregateStaleMachines(machines)
+			if staleMessage != "" {
+				message += fmt.Sprintf("\n* %s", staleMessage)
+			}
+		}
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolScalingDownCondition,
+			Status:  metav1.ConditionTrue,
+			Reason:  clusterv1.MachinePoolScalingDownReason,
+			Message: message,
+		})
+		return
+	}
+
+	conditions.Set(mp, metav1.Condition{
+		Type:   clusterv1.MachinePoolScalingDownCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.MachinePoolNotScalingDownReason,
+	})
+}
+
+func setDeletingCondition(_ context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, getMachinesSucceeded bool) {
+	if mp.DeletionTimestamp.IsZero() {
+		conditions.Set(mp, metav1.Condition{
+			Type:   clusterv1.MachinePoolDeletingCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachinePoolNotDeletingReason,
+		})
+		return
+	}
+
+	if !getMachinesSucceeded {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolDeletingCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolDeletingInternalErrorReason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	message := "Deletion in progress"
+	if len(machines) > 0 {
+		if len(machines) == 1 {
+			message = fmt.Sprintf("Deleting %d Machine", len(machines))
+		} else {
+			message = fmt.Sprintf("Deleting %d Machines", len(machines))
+		}
+		staleMessage := aggregateStaleMachines(machines)
+		if staleMessage != "" {
+			message += fmt.Sprintf("\n* %s", staleMessage)
+		}
+	} else if len(mp.Status.NodeRefs) > 0 {
+		if len(mp.Status.NodeRefs) == 1 {
+			message = "Deleting 1 Node"
+		} else {
+			message = fmt.Sprintf("Deleting %d Nodes", len(mp.Status.NodeRefs))
+		}
+	}
+	conditions.Set(mp, metav1.Condition{
+		Type:    clusterv1.MachinePoolDeletingCondition,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachinePoolDeletingReason,
+		Message: message,
+	})
+}
+
+func setAvailableCondition(_ context.Context, mp *clusterv1.MachinePool, replicaCountersObserved bool) {
+	// Surface if .spec.replicas is not yet set (this should never happen).
+	if mp.Spec.Replicas == nil {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolAvailableCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolAvailableWaitingForReplicasSetReason,
+			Message: "Waiting for spec.replicas set",
+		})
+		return
+	}
+
+	if !replicaCountersObserved {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolAvailableCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolAvailableReplicaCountersNotObservedReason,
+			Message: "Replica counters were not observed",
+		})
+		return
+	}
+
+	// Surface if .status.availableReplicas is not yet set.
+	if mp.Status.AvailableReplicas == nil {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolAvailableCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolAvailableWaitingForAvailableReplicasSetReason,
+			Message: "Waiting for status.availableReplicas set",
+		})
+		return
+	}
+
+	if !conditions.IsTrue(mp, clusterv1.MachinePoolInfrastructureReadyCondition) {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachinePoolNotAvailableReason,
+			Message: "Infrastructure not ready",
+		})
+		return
+	}
+
+	if *mp.Status.AvailableReplicas >= *mp.Spec.Replicas {
+		conditions.Set(mp, metav1.Condition{
+			Type:   clusterv1.MachinePoolAvailableCondition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachinePoolAvailableReason,
+		})
+		return
+	}
+
+	message := fmt.Sprintf("%d available replicas, at least %d required", *mp.Status.AvailableReplicas, *mp.Spec.Replicas)
+	if !mp.DeletionTimestamp.IsZero() {
+		message = "Deletion in progress"
+	}
+	conditions.Set(mp, metav1.Condition{
+		Type:    clusterv1.MachinePoolAvailableCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  clusterv1.MachinePoolNotAvailableReason,
+		Message: message,
+	})
 }

@@ -50,23 +50,51 @@ type scope struct {
 	// bootstrapConfigIsNotFound is true if getting the bootstrap config object failed with a NotFound error.
 	bootstrapConfigIsNotFound bool
 
-	// nodeRefMapResult is a map of providerIDs to Nodes that are associated with the Cluster.
+	// nodeRefMap is a map of providerIDs to Nodes that are associated with the Cluster.
 	// It is set after reconcileInfrastructure is called.
 	nodeRefMap map[string]*corev1.Node
 
+	// nodeRefMapObserved is true if Nodes were successfully listed during this reconcile.
+	nodeRefMapObserved bool
+
+	// infrastructureProviderIDListObserved is true if spec.providerIDList was successfully read from the
+	// infrastructure MachinePool during this reconcile.
+	infrastructureProviderIDListObserved bool
+
+	// infrastructureReplicasObserved is true if status.replicas was successfully read from the
+	// infrastructure MachinePool during this reconcile.
+	infrastructureReplicasObserved bool
+
 	// machines holds a list of the machines associated with this machine pool.
 	machines []*clusterv1.Machine
+
+	// getMachinesForMachinePoolSucceeded is true if the machines associated with this machine pool
+	// were successfully listed. It is used to avoid surfacing misleading aggregate conditions when
+	// the machines could not be read.
+	getMachinesForMachinePoolSucceeded bool
 }
 
-func (s *scope) hasMachinePoolMachines() (bool, error) {
+type machinePoolMachinesState int
+
+const (
+	machinePoolMachinesStateUnknown machinePoolMachinesState = iota
+	machinePoolMachinesStateNotSupported
+	machinePoolMachinesStateSupported
+)
+
+func (s *scope) machinePoolMachinesState() (machinePoolMachinesState, error) {
 	if s.infraMachinePool == nil {
-		return false, errors.New("infra machine pool not set on scope")
+		return machinePoolMachinesStateUnknown, errors.New("infra machine pool not set on scope")
 	}
 
 	machineKind, found, err := unstructured.NestedString(s.infraMachinePool.Object, "status", "infrastructureMachineKind")
 	if err != nil {
-		return false, fmt.Errorf("failed to lookup infrastructureMachineKind: %w", err)
+		return machinePoolMachinesStateUnknown, fmt.Errorf("failed to lookup infrastructureMachineKind: %w", err)
 	}
 
-	return found && (machineKind != ""), nil
+	if !found || machineKind == "" {
+		return machinePoolMachinesStateNotSupported, nil
+	}
+
+	return machinePoolMachinesStateSupported, nil
 }

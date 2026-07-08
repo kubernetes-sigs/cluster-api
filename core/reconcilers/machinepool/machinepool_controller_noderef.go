@@ -92,7 +92,7 @@ func (r *Reconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Resu
 
 			if validNodeRefs {
 				v1beta1conditions.MarkTrue(mp, clusterv1.ReplicasReadyV1Beta1Condition)
-				return ctrl.Result{}, nil
+				return shouldRequeueForMinReadySeconds(s), nil
 			}
 		} else {
 			// If nodeRefMap is nil, we can't validate UIDs, so proceed with reconciliation
@@ -159,7 +159,47 @@ func (r *Reconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Resu
 
 	// At this point, the required number of replicas are ready
 	v1beta1conditions.MarkTrue(mp, clusterv1.ReplicasReadyV1Beta1Condition)
-	return ctrl.Result{}, nil
+	return shouldRequeueForMinReadySeconds(s), nil
+}
+
+func shouldRequeueForMinReadySeconds(s *scope) ctrl.Result {
+	minReadySeconds := ptr.Deref(s.machinePool.Spec.Template.Spec.MinReadySeconds, 0)
+	if minReadySeconds == 0 || !s.nodeRefMapObserved || !s.infrastructureProviderIDListObserved {
+		return ctrl.Result{}
+	}
+
+	machinePoolMachinesState, err := s.machinePoolMachinesState()
+	if err != nil || machinePoolMachinesState != machinePoolMachinesStateNotSupported {
+		return ctrl.Result{}
+	}
+
+	now := time.Now()
+	minReadyDuration := time.Duration(minReadySeconds) * time.Second
+	var requeueAfter time.Duration
+	for _, providerID := range s.machinePool.Spec.ProviderIDList {
+		node := s.nodeRefMap[providerID]
+		if !noderefutil.IsNodeReady(node) || noderefutil.IsNodeAvailable(node, minReadySeconds, metav1.NewTime(now)) {
+			continue
+		}
+
+		readyCondition := noderefutil.GetReadyCondition(&node.Status)
+		if readyCondition == nil {
+			continue
+		}
+
+		remaining := readyCondition.LastTransitionTime.Add(minReadyDuration).Sub(now)
+		switch {
+		case remaining <= 0:
+			remaining = time.Second
+		case remaining > minReadyDuration:
+			remaining = minReadyDuration
+		}
+		if requeueAfter == 0 || remaining < requeueAfter {
+			requeueAfter = remaining
+		}
+	}
+
+	return ctrl.Result{RequeueAfter: requeueAfter}
 }
 
 // deleteRetiredNodes deletes nodes that don't have a corresponding ProviderID in Spec.ProviderIDList.

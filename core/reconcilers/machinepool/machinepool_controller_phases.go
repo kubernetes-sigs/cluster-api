@@ -307,6 +307,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	var getNodeRefsErr error
 	// Get the nodeRefsMap from the cluster.
 	s.nodeRefMap, getNodeRefsErr = r.getNodeRefMap(ctx, clusterClient)
+	if getNodeRefsErr == nil {
+		s.nodeRefMapObserved = true
+	}
 
 	err = r.reconcileMachines(ctx, s, infraConfig)
 
@@ -324,13 +327,14 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if err := util.UnstructuredUnmarshalField(infraConfig, &providerIDList, "spec", "providerIDList"); err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve data from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
-
 	// Get and set Status.Replicas from the infrastructure provider.
 	err = util.UnstructuredUnmarshalField(infraConfig, &mp.Status.Replicas, "status", "replicas")
 	if err != nil {
 		if !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve replicas from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 		}
+	} else if mp.Status.Replicas != nil {
+		s.infrastructureReplicasObserved = true
 	}
 
 	if len(providerIDList) == 0 && ptr.Deref(mp.Status.Replicas, 0) != 0 {
@@ -350,6 +354,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		mp.Status.Deprecated.V1Beta1.AvailableReplicas = 0
 		mp.Status.Deprecated.V1Beta1.UnavailableReplicas = ptr.Deref(mp.Status.Replicas, 0)
 	}
+	s.infrastructureProviderIDListObserved = true
 
 	return ctrl.Result{}, nil
 }

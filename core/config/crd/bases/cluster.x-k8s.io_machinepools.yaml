@@ -606,7 +606,7 @@ spec:
                     description: |-
                       conditions represents the observations of a MachinePool's current state.
                       Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,
-                      ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+                      RollingOut, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.
@@ -1136,16 +1136,16 @@ spec:
             minProperties: 1
             properties:
               availableReplicas:
-                description: availableReplicas is the number of available replicas
-                  for this MachinePool. A machine is considered available when Machine's
-                  Available condition is true.
+                description: |-
+                  availableReplicas is the number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true.
+                  For MachinePools without Machines, this is the number of corresponding Nodes that are ready for at least minReadySeconds.
                 format: int32
                 type: integer
               conditions:
                 description: |-
                   conditions represents the observations of a MachinePool's current state.
                   Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,
-                  ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+                  RollingOut, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -1404,9 +1404,9 @@ spec:
                 - Unknown
                 type: string
               readyReplicas:
-                description: readyReplicas is the number of ready replicas for this
-                  MachinePool. A machine is considered ready when Machine's Ready
-                  condition is true.
+                description: |-
+                  readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true.
+                  For MachinePools without Machines, this is the number of corresponding Nodes with the Ready condition true.
                 format: int32
                 type: integer
               replicas:
@@ -1414,9 +1414,9 @@ spec:
                 format: int32
                 type: integer
               upToDateReplicas:
-                description: upToDateReplicas is the number of up-to-date replicas
-                  targeted by this MachinePool. A machine is considered up-to-date
-                  when Machine's UpToDate condition is true.
+                description: |-
+                  upToDateReplicas is the number of up-to-date replicas targeted by this MachinePool. A machine is considered up-to-date when Machine's UpToDate condition is true.
+                  This field is not reported for MachinePools without Machines.
                 format: int32
                 type: integer
               versions:

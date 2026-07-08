@@ -28,41 +28,225 @@ const (
 	MachinePoolFinalizer = "machinepool.cluster.x-k8s.io"
 )
 
-/*
-NOTE: we are commenting const for MachinePool's V1Beta2 conditions and reasons because not yet implemented for the 1.9 CAPI release.
-However, we are keeping the v1beta2 struct in the MachinePool struct because the code that will collect conditions and replica
-counters at cluster level is already implemented.
-
-// Conditions that will be used for the MachinePool object in v1Beta2 API version.
+// MachinePool's Available condition and corresponding reasons.
 const (
 	// MachinePoolAvailableCondition is true when InfrastructureReady and available replicas >= desired replicas.
-	MachinePoolAvailableCondition = clusterv1.AvailableCondition
+	MachinePoolAvailableCondition = AvailableCondition
 
-	// MachinePoolBootstrapConfigReadyCondition mirrors the corresponding condition from the MachinePool's BootstrapConfig resource.
-	MachinePoolBootstrapConfigReadyCondition = clusterv1.BootstrapConfigReadyCondition
+	// MachinePoolAvailableWaitingForReplicasSetReason surfaces when the .spec.replicas
+	// field of the MachinePool is not set.
+	MachinePoolAvailableWaitingForReplicasSetReason = WaitingForReplicasSetReason
 
-	// MachinePoolInfrastructureReadyCondition mirrors the corresponding condition from the MachinePool's Infrastructure resource.
-	MachinePoolInfrastructureReadyCondition = clusterv1.InfrastructureReadyCondition
+	// MachinePoolAvailableWaitingForAvailableReplicasSetReason surfaces when the .status.availableReplicas
+	// field of the MachinePool is not set.
+	MachinePoolAvailableWaitingForAvailableReplicasSetReason = "WaitingForAvailableReplicasSet"
 
+	// MachinePoolAvailableReason surfaces when a MachinePool is available.
+	MachinePoolAvailableReason = AvailableReason
+
+	// MachinePoolNotAvailableReason surfaces when a MachinePool is not available.
+	MachinePoolNotAvailableReason = NotAvailableReason
+
+	// MachinePoolAvailableReplicaCountersNotObservedReason surfaces when the replica counters required to compute
+	// the Available condition were not observed during the current reconcile.
+	MachinePoolAvailableReplicaCountersNotObservedReason = "ReplicaCountersNotObserved"
+
+	// MachinePoolAvailableInternalErrorReason surfaces unexpected failures when computing the Available condition.
+	MachinePoolAvailableInternalErrorReason = InternalErrorReason
+)
+
+// MachinePool's BootstrapConfigReady condition and corresponding reasons.
+const (
+	// MachinePoolBootstrapConfigReadyCondition mirrors the corresponding Ready condition from the MachinePool's BootstrapConfig resource.
+	MachinePoolBootstrapConfigReadyCondition = BootstrapConfigReadyCondition
+
+	// MachinePoolBootstrapConfigReadyReason surfaces when the MachinePool bootstrap config is ready.
+	MachinePoolBootstrapConfigReadyReason = ReadyReason
+
+	// MachinePoolBootstrapConfigNotReadyReason surfaces when the MachinePool bootstrap config is not ready.
+	MachinePoolBootstrapConfigNotReadyReason = NotReadyReason
+
+	// MachinePoolBootstrapConfigInvalidConditionReportedReason surfaces a BootstrapConfig Ready condition (read from a bootstrap config object) which is invalid.
+	MachinePoolBootstrapConfigInvalidConditionReportedReason = InvalidConditionReportedReason
+
+	// MachinePoolBootstrapConfigInternalErrorReason surfaces unexpected failures when reading a BootstrapConfig object.
+	MachinePoolBootstrapConfigInternalErrorReason = InternalErrorReason
+
+	// MachinePoolBootstrapConfigDoesNotExistReason surfaces when a referenced bootstrap config object does not exist.
+	MachinePoolBootstrapConfigDoesNotExistReason = ObjectDoesNotExistReason
+
+	// MachinePoolBootstrapConfigDeletedReason surfaces when a referenced bootstrap config object has been deleted.
+	MachinePoolBootstrapConfigDeletedReason = ObjectDeletedReason
+)
+
+// MachinePool's InfrastructureReady condition and corresponding reasons.
+const (
+	// MachinePoolInfrastructureReadyCondition mirrors the corresponding Ready condition from the MachinePool's Infrastructure resource.
+	MachinePoolInfrastructureReadyCondition = InfrastructureReadyCondition
+
+	// MachinePoolInfrastructureReadyReason surfaces when the MachinePool infrastructure is ready.
+	MachinePoolInfrastructureReadyReason = ReadyReason
+
+	// MachinePoolInfrastructureNotReadyReason surfaces when the MachinePool infrastructure is not ready.
+	MachinePoolInfrastructureNotReadyReason = NotReadyReason
+
+	// MachinePoolInfrastructureInvalidConditionReportedReason surfaces an infrastructure Ready condition (read from an infra machine pool object) which is invalid.
+	MachinePoolInfrastructureInvalidConditionReportedReason = InvalidConditionReportedReason
+
+	// MachinePoolInfrastructureInternalErrorReason surfaces unexpected failures when reading an infra machine pool object.
+	MachinePoolInfrastructureInternalErrorReason = InternalErrorReason
+
+	// MachinePoolInfrastructureDoesNotExistReason surfaces when a referenced infrastructure object does not exist.
+	MachinePoolInfrastructureDoesNotExistReason = ObjectDoesNotExistReason
+
+	// MachinePoolInfrastructureDeletedReason surfaces when a referenced infrastructure object has been deleted.
+	MachinePoolInfrastructureDeletedReason = ObjectDeletedReason
+)
+
+// MachinePoolMachineSupportUnknownReason surfaces when the controller cannot determine if a MachinePool uses per-instance Machines.
+const MachinePoolMachineSupportUnknownReason = "MachineSupportUnknown"
+
+// MachinePool's MachinesReady condition and corresponding reasons.
+const (
 	// MachinePoolMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
-	MachinePoolMachinesReadyCondition = clusterv1.MachinesReadyCondition
+	MachinePoolMachinesReadyCondition = MachinesReadyCondition
 
+	// MachinePoolMachinesReadyReason surfaces when all the controlled machine's Ready conditions are true.
+	MachinePoolMachinesReadyReason = ReadyReason
+
+	// MachinePoolMachinesNotReadyReason surfaces when at least one of the controlled machine's Ready conditions is false.
+	MachinePoolMachinesNotReadyReason = NotReadyReason
+
+	// MachinePoolMachinesReadyUnknownReason surfaces when at least one of the controlled machine's Ready conditions is unknown
+	// and none of the controlled machine's Ready conditions is false.
+	MachinePoolMachinesReadyUnknownReason = ReadyUnknownReason
+
+	// MachinePoolMachinesReadyNoReplicasReason surfaces when no machines exist for the MachinePool.
+	MachinePoolMachinesReadyNoReplicasReason = NoReplicasReason
+
+	// MachinePoolMachinesReadyInternalErrorReason surfaces unexpected failures when listing machines
+	// or aggregating machine's conditions.
+	MachinePoolMachinesReadyInternalErrorReason = InternalErrorReason
+)
+
+// MachinePool's MachinesUpToDate condition and corresponding reasons.
+const (
 	// MachinePoolMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
-	MachinePoolMachinesUpToDateCondition = clusterv1.MachinesUpToDateCondition
+	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
+	MachinePoolMachinesUpToDateCondition = MachinesUpToDateCondition
 
-	// MachinePoolScalingUpCondition is true if available replicas < desired replicas.
-	MachinePoolScalingUpCondition = clusterv1.ScalingUpCondition
+	// MachinePoolMachinesUpToDateReason surfaces when all the controlled machine's UpToDate conditions are true.
+	MachinePoolMachinesUpToDateReason = UpToDateReason
 
-	// MachinePoolScalingDownCondition is true if replicas > desired replicas.
-	MachinePoolScalingDownCondition = clusterv1.ScalingDownCondition
+	// MachinePoolMachinesNotUpToDateReason surfaces when at least one of the controlled machine's UpToDate conditions is false.
+	MachinePoolMachinesNotUpToDateReason = NotUpToDateReason
 
+	// MachinePoolMachinesUpToDateUnknownReason surfaces when at least one of the controlled machine's UpToDate conditions is unknown
+	// and none of the controlled machine's UpToDate conditions is false.
+	MachinePoolMachinesUpToDateUnknownReason = UpToDateUnknownReason
+
+	// MachinePoolMachinesUpToDateNoReplicasReason surfaces when no machines exist for the MachinePool.
+	MachinePoolMachinesUpToDateNoReplicasReason = NoReplicasReason
+
+	// MachinePoolMachinesUpToDateInternalErrorReason surfaces unexpected failures when listing machines
+	// or aggregating status.
+	MachinePoolMachinesUpToDateInternalErrorReason = InternalErrorReason
+)
+
+// MachinePool's RollingOut condition and corresponding reasons.
+const (
+	// MachinePoolRollingOutCondition is true if there is at least one machine not up-to-date.
+	MachinePoolRollingOutCondition = RollingOutCondition
+
+	// MachinePoolRollingOutReason surfaces when there is at least one machine not up-to-date.
+	MachinePoolRollingOutReason = RollingOutReason
+
+	// MachinePoolNotRollingOutReason surfaces when all the machines are up-to-date.
+	MachinePoolNotRollingOutReason = NotRollingOutReason
+
+	// MachinePoolRollingOutInternalErrorReason surfaces unexpected failures when listing machines.
+	MachinePoolRollingOutInternalErrorReason = InternalErrorReason
+)
+
+// MachinePool's ScalingUp condition and corresponding reasons.
+const (
+	// MachinePoolScalingUpCondition is true if actual replicas < desired replicas.
+	MachinePoolScalingUpCondition = ScalingUpCondition
+
+	// MachinePoolScalingUpReason surfaces when actual replicas < desired replicas.
+	MachinePoolScalingUpReason = ScalingUpReason
+
+	// MachinePoolNotScalingUpReason surfaces when actual replicas >= desired replicas.
+	MachinePoolNotScalingUpReason = NotScalingUpReason
+
+	// MachinePoolScalingUpReplicasNotObservedReason surfaces when the provider replica count was not observed
+	// during the current reconcile.
+	MachinePoolScalingUpReplicasNotObservedReason = "ReplicasNotObserved"
+
+	// MachinePoolScalingUpInternalErrorReason surfaces unexpected failures when listing machines.
+	MachinePoolScalingUpInternalErrorReason = InternalErrorReason
+
+	// MachinePoolScalingUpWaitingForReplicasSetReason surfaces when the .spec.replicas
+	// field of the MachinePool is not set.
+	MachinePoolScalingUpWaitingForReplicasSetReason = WaitingForReplicasSetReason
+)
+
+// MachinePool's ScalingDown condition and corresponding reasons.
+const (
+	// MachinePoolScalingDownCondition is true if actual replicas > desired replicas.
+	MachinePoolScalingDownCondition = ScalingDownCondition
+
+	// MachinePoolScalingDownReason surfaces when actual replicas > desired replicas.
+	MachinePoolScalingDownReason = ScalingDownReason
+
+	// MachinePoolNotScalingDownReason surfaces when actual replicas <= desired replicas.
+	MachinePoolNotScalingDownReason = NotScalingDownReason
+
+	// MachinePoolScalingDownReplicasNotObservedReason surfaces when the provider replica count was not observed
+	// during the current reconcile.
+	MachinePoolScalingDownReplicasNotObservedReason = "ReplicasNotObserved"
+
+	// MachinePoolScalingDownInternalErrorReason surfaces unexpected failures when listing machines.
+	MachinePoolScalingDownInternalErrorReason = InternalErrorReason
+
+	// MachinePoolScalingDownWaitingForReplicasSetReason surfaces when the .spec.replicas
+	// field of the MachinePool is not set.
+	MachinePoolScalingDownWaitingForReplicasSetReason = WaitingForReplicasSetReason
+)
+
+// MachinePool's Remediating condition and corresponding reasons.
+const (
 	// MachinePoolRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
-	MachinePoolRemediatingCondition = clusterv1.RemediatingCondition
+	MachinePoolRemediatingCondition = RemediatingCondition
 
+	// MachinePoolRemediatingReason surfaces when the MachinePool has at least one machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	MachinePoolRemediatingReason = RemediatingReason
+
+	// MachinePoolNotRemediatingReason surfaces when the MachinePool does not have any machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	MachinePoolNotRemediatingReason = NotRemediatingReason
+
+	// MachinePoolRemediatingInternalErrorReason surfaces unexpected failures when computing the Remediating condition.
+	MachinePoolRemediatingInternalErrorReason = InternalErrorReason
+)
+
+// MachinePool's Deleting condition and corresponding reasons.
+const (
 	// MachinePoolDeletingCondition surfaces details about ongoing deletion of the controlled machines.
-	MachinePoolDeletingCondition = clusterv1.DeletingCondition
-).
-*/
+	MachinePoolDeletingCondition = DeletingCondition
+
+	// MachinePoolNotDeletingReason surfaces when the MachinePool is not deleting because the
+	// DeletionTimestamp is not set.
+	MachinePoolNotDeletingReason = NotDeletingReason
+
+	// MachinePoolDeletingReason surfaces when the MachinePool is deleting because the
+	// DeletionTimestamp is set.
+	MachinePoolDeletingReason = DeletingReason
+
+	// MachinePoolDeletingInternalErrorReason surfaces unexpected failures when deleting a MachinePool.
+	MachinePoolDeletingInternalErrorReason = InternalErrorReason
+)
 
 // MachinePoolSpec defines the desired state of MachinePool.
 type MachinePoolSpec struct {
@@ -104,7 +288,7 @@ type MachinePoolSpec struct {
 type MachinePoolStatus struct {
 	// conditions represents the observations of a MachinePool's current state.
 	// Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,
-	// ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// RollingOut, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type
@@ -127,14 +311,17 @@ type MachinePoolStatus struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true.
+	// For MachinePools without Machines, this is the number of corresponding Nodes with the Ready condition true.
 	// +optional
 	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
 	// availableReplicas is the number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true.
+	// For MachinePools without Machines, this is the number of corresponding Nodes that are ready for at least minReadySeconds.
 	// +optional
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 
 	// upToDateReplicas is the number of up-to-date replicas targeted by this MachinePool. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// This field is not reported for MachinePools without Machines.
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 

@@ -3084,7 +3084,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a MachinePool's current state.<br />Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,<br />ScalingUp, ScalingDown, Remediating, Deleting, Paused. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a MachinePool's current state.<br />Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,<br />RollingOut, ScalingUp, ScalingDown, Remediating, Deleting, Paused. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date replicas targeted by this MachinePool. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |

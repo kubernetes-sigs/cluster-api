@@ -191,7 +191,7 @@ type MachinePoolStatus struct {
 type MachinePoolV1Beta2Status struct {
 	// conditions represents the observations of a MachinePool's current state.
 	// Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,
-	// ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// RollingOut, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

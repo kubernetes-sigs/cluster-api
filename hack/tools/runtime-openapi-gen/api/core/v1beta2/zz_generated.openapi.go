@@ -5594,7 +5594,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceC
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a MachinePool's current state. Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.",
+							Description: "conditions represents the observations of a MachinePool's current state. Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate, RollingOut, ScalingUp, ScalingDown, Remediating, Deleting, Paused.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -5641,21 +5641,21 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceC
 					},
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true.",
+							Description: "readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true. For MachinePools without Machines, this is the number of corresponding Nodes with the Ready condition true.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "availableReplicas is the number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true.",
+							Description: "availableReplicas is the number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true. For MachinePools without Machines, this is the number of corresponding Nodes that are ready for at least minReadySeconds.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"upToDateReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "upToDateReplicas is the number of up-to-date replicas targeted by this MachinePool. A machine is considered up-to-date when Machine's UpToDate condition is true.",
+							Description: "upToDateReplicas is the number of up-to-date replicas targeted by this MachinePool. A machine is considered up-to-date when Machine's UpToDate condition is true. This field is not reported for MachinePools without Machines.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

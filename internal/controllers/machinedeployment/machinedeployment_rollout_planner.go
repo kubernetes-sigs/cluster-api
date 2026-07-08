@@ -267,10 +267,6 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 
 	// Construct the basic MachineSet.
 	desiredMS := &clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: deployment.Namespace,

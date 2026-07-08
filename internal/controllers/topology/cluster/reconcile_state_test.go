@@ -1568,7 +1568,7 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 
 			if tt.original != nil {
 				// NOTE: it is required to use server side apply to create the object in order to ensure consistency with the topology controller behaviour.
-				g.Expect(env.PatchAndWait(ctx, tt.original.DeepCopy(), client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, tt.original.DeepCopy(), structuredmerge.TopologyManagerName)).To(Succeed())
 				// NOTE: it is required to apply instance specific changes with a "plain" Patch operation to simulate a different manger.
 				if tt.externalChanges != "" {
 					g.Expect(env.Patch(ctx, tt.original.DeepCopy(), client.RawPatch(types.MergePatchType, []byte(tt.externalChanges)))).To(Succeed())
@@ -1858,7 +1858,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 			if tt.original != nil {
 				if tt.original.InfrastructureMachineTemplate != nil {
 					// NOTE: it is required to use server side apply to create the object in order to ensure consistency with the topology controller behaviour.
-					g.Expect(env.PatchAndWait(ctx, tt.original.InfrastructureMachineTemplate.DeepCopy(), client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, tt.original.InfrastructureMachineTemplate.DeepCopy(), structuredmerge.TopologyManagerName)).To(Succeed())
 					// NOTE: it is required to apply instance specific changes with a "plain" Patch operation to simulate a different manger.
 					if tt.machineInfrastructureExternalChanges != "" {
 						g.Expect(env.Patch(ctx, tt.original.InfrastructureMachineTemplate.DeepCopy(), client.RawPatch(types.MergePatchType, []byte(tt.machineInfrastructureExternalChanges)))).To(Succeed())
@@ -1870,7 +1870,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 				}
 				if tt.original.Object != nil {
 					// NOTE: it is required to use server side apply to create the object in order to ensure consistency with the topology controller behaviour.
-					g.Expect(env.PatchAndWait(ctx, tt.original.Object.DeepCopy(), client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, tt.original.Object.DeepCopy(), structuredmerge.TopologyManagerName)).To(Succeed())
 					// NOTE: it is required to apply instance specific changes with a "plain" Patch operation to simulate a different manger.
 					if tt.controlPlaneExternalChanges != "" {
 						g.Expect(env.Patch(ctx, tt.original.Object.DeepCopy(), client.RawPatch(types.MergePatchType, []byte(tt.controlPlaneExternalChanges)))).To(Succeed())
@@ -2214,13 +2214,13 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			if tt.current != nil {
 				s.Current.ControlPlane = tt.current
 				if tt.current.Object != nil {
-					g.Expect(env.PatchAndWait(ctx, tt.current.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, tt.current.Object, structuredmerge.TopologyManagerName)).To(Succeed())
 				}
 				if tt.current.InfrastructureMachineTemplate != nil {
-					g.Expect(env.PatchAndWait(ctx, tt.current.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, tt.current.InfrastructureMachineTemplate, structuredmerge.TopologyManagerName)).To(Succeed())
 				}
 				if tt.current.MachineHealthCheck != nil {
-					g.Expect(env.PatchAndWait(ctx, tt.current.MachineHealthCheck, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, tt.current.MachineHealthCheck, structuredmerge.TopologyManagerName)).To(Succeed())
 				}
 			}
 
@@ -2502,9 +2502,9 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			}
 
 			for _, s := range tt.current {
-				g.Expect(env.PatchAndWait(ctx, s.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, s.BootstrapTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, s.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.InfrastructureMachineTemplate, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.BootstrapTemplate, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.Object, structuredmerge.TopologyManagerName)).To(Succeed())
 			}
 
 			currentMachineDeploymentStates := toMachineDeploymentTopologyStateMap(tt.current)
@@ -2516,9 +2516,9 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			for _, s := range tt.currentOnlyAPIServer {
 				mdState := prepareMachineDeploymentState(s, namespace.GetName())
 
-				g.Expect(env.PatchAndWait(ctx, mdState.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, mdState.BootstrapTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, mdState.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdState.InfrastructureMachineTemplate, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdState.BootstrapTemplate, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdState.Object, structuredmerge.TopologyManagerName)).To(Succeed())
 			}
 
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
@@ -2910,9 +2910,9 @@ func TestReconcileMachinePools(t *testing.T) {
 			}
 
 			for _, s := range tt.current {
-				g.Expect(env.PatchAndWait(ctx, s.InfrastructureMachinePoolObject, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, s.BootstrapObject, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, s.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.InfrastructureMachinePoolObject, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.BootstrapObject, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.Object, structuredmerge.TopologyManagerName)).To(Succeed())
 			}
 
 			currentMachinePoolStates := toMachinePoolTopologyStateMap(tt.current)
@@ -2924,9 +2924,9 @@ func TestReconcileMachinePools(t *testing.T) {
 			for _, s := range tt.currentOnlyAPIServer {
 				mpState := prepareMachinePoolState(s, namespace.GetName())
 
-				g.Expect(env.PatchAndWait(ctx, mpState.InfrastructureMachinePoolObject, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, mpState.BootstrapObject, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, mpState.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mpState.InfrastructureMachinePoolObject, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mpState.BootstrapObject, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mpState.Object, structuredmerge.TopologyManagerName)).To(Succeed())
 			}
 
 			s.Desired = &scope.ClusterState{MachinePools: toMachinePoolTopologyStateMap(tt.desired)}
@@ -3513,7 +3513,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 							"spec": step.object.spec,
 						},
 					}
-					err := env.PatchAndWait(ctx, obj, client.FieldOwner("other-controller"), client.ForceOwnership)
+					err := env.PatchAndWait(ctx, obj, "other-controller")
 					g.Expect(err).ToNot(HaveOccurred())
 					continue
 				}
@@ -3722,9 +3722,9 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			uidsByName := map[string]types.UID{}
 
 			for _, mdts := range tt.current {
-				g.Expect(env.PatchAndWait(ctx, mdts.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, mdts.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				g.Expect(env.PatchAndWait(ctx, mdts.BootstrapTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdts.Object, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdts.InfrastructureMachineTemplate, structuredmerge.TopologyManagerName)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdts.BootstrapTemplate, structuredmerge.TopologyManagerName)).To(Succeed())
 
 				uidsByName[mdts.Object.Name] = mdts.Object.GetUID()
 
@@ -3733,7 +3733,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 						ref.UID = mdts.Object.GetUID()
 						mdts.MachineHealthCheck.OwnerReferences[i] = ref
 					}
-					g.Expect(env.PatchAndWait(ctx, mdts.MachineHealthCheck, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, mdts.MachineHealthCheck, structuredmerge.TopologyManagerName)).To(Succeed())
 				}
 			}
 

@@ -251,8 +251,6 @@ func filterPods(ctx context.Context, allPods []*corev1.Pod, filters []PodFilter)
 		// Add the pod to PodDeleteList no matter what PodDeleteStatus is,
 		// those pods whose PodDeleteStatus is false like DaemonSet will
 		// be caught by list.errors()
-		pod.Kind = "Pod" //nolint:goconst
-		pod.APIVersion = "v1"
 		pods = append(pods, PodDelete{
 			Pod:    pod,
 			Status: status,

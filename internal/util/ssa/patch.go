@@ -80,7 +80,7 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 	// Convert the object to unstructured and filter out fields we don't
 	// want to set (e.g. metadata creationTimestamp).
 	// Note: This is necessary to avoid continuous reconciles.
-	modifiedUnstructured, err := prepareModified(c.Scheme(), modified)
+	modifiedUnstructured, err := PrepareModified(c.Scheme(), modified)
 	if err != nil {
 		return err
 	}
@@ -151,8 +151,8 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 	return nil
 }
 
-// prepareModified converts obj into an Unstructured and filters out undesired fields.
-func prepareModified(scheme *runtime.Scheme, obj client.Object) (*unstructured.Unstructured, error) {
+// PrepareModified converts obj into an Unstructured and filters out undesired fields.
+func PrepareModified(scheme *runtime.Scheme, obj client.Object) (*unstructured.Unstructured, error) {
 	u := &unstructured.Unstructured{}
 	switch obj.(type) {
 	case *unstructured.Unstructured:

@@ -272,8 +272,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 		return ctrl.Result{}, err
 	}
-	cluster.APIVersion = clusterv1.GroupVersion.String()
-	cluster.Kind = "Cluster"
 
 	// Return early, if the Cluster does not use a managed topology.
 	// NOTE: We're already filtering events, but this is a safeguard for cases like e.g. when

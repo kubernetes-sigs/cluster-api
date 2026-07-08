@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ssa
+package test
 
 import (
 	"context"
@@ -35,7 +35,16 @@ import (
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/test/builder"
+)
+
+const (
+	beforeFirstApplyManager = "before-first-apply"
+
+	oldClusterSSAManager = "capi-topology"
+
+	patchManager = "manager"
 )
 
 func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
@@ -43,11 +52,6 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 	otherFieldManager := "other-manager"
 
 	cluster := &clusterv1.Cluster{
-		// Have to set TypeMeta explicitly when using SSA with typed objects.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster-1",
 			Namespace: "default",
@@ -72,11 +76,6 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 		},
 	}
 	clusterApply := &clusterv1.Cluster{
-		// Have to set TypeMeta explicitly when using SSA with typed objects.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster-1",
 			Namespace: "default",
@@ -441,14 +440,14 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 			}
 
 			// Run mitigation code and verify managedFields are as expected afterward.
-			managedFieldIssueMitigated, err := MigrateClusterAndMitigateManagedFieldsIssue(ctx, env.GetClient(), tt.object)
+			managedFieldIssueMitigated, err := ssa.MigrateClusterAndMitigateManagedFieldsIssue(ctx, env.GetClient(), tt.object)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(managedFieldIssueMitigated).To(Equal(tt.expectManagedFieldIssueMitigated))
 			g.Expect(cleanupTime(tt.object.GetManagedFields())).To(BeComparableTo(tt.expectedManagedFields))
 
 			for _, apply := range tt.objectApplies {
 				// Apply object and verify managedFields are as expected afterward.
-				g.Expect(Patch(ctx, env.GetClient(), testFieldManager, apply.object)).To(Succeed())
+				g.Expect(ssa.Patch(ctx, env.GetClient(), testFieldManager, apply.object)).To(Succeed())
 				g.Expect(cleanupTime(apply.object.GetManagedFields())).To(BeComparableTo(apply.expectedManagedFields))
 
 				// Verify spec is as expected
@@ -473,11 +472,6 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	otherFieldManager := "other-manager"
 
 	machineDeployment := &clusterv1.MachineDeployment{
-		// Have to set TypeMeta explicitly when using SSA with typed objects.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineDeployment",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "md-1",
 			Namespace: "default",
@@ -507,11 +501,6 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	}
 
 	kubeadmControlPlane := &controlplanev1.KubeadmControlPlane{
-		// Have to set TypeMeta explicitly when using SSA with typed objects.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: controlplanev1.GroupVersion.String(),
-			Kind:       "KubeadmControlPlane",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kcp-1",
 			Namespace: "default",
@@ -697,11 +686,6 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	}
 }}`)
 	kubeadmControlPlaneApply := &controlplanev1.KubeadmControlPlane{
-		// Have to set TypeMeta explicitly when using SSA with typed objects.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: controlplanev1.GroupVersion.String(),
-			Kind:       "KubeadmControlPlane",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kcp-1",
 			Namespace: "default",
@@ -1032,11 +1016,6 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 }}`)
 
 	kubeadmControlPlaneV1Beta1 := &controlplanev1beta1.KubeadmControlPlane{
-		// Have to set TypeMeta explicitly when using SSA with typed objects.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: controlplanev1.GroupVersion.String(),
-			Kind:       "KubeadmControlPlane",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kcp-1",
 			Namespace: "default",
@@ -1151,11 +1130,6 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	}
 }}`)
 	kubeadmControlPlaneV1Beta1Apply := &controlplanev1beta1.KubeadmControlPlane{
-		// Have to set TypeMeta explicitly when using SSA with typed objects.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: controlplanev1.GroupVersion.String(),
-			Kind:       "KubeadmControlPlane",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kcp-1",
 			Namespace: "default",
@@ -1623,7 +1597,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 			}
 
 			// Run mitigation code and verify managedFields are as expected afterward.
-			managedFieldIssueMitigated, err := MitigateManagedFieldsIssue(ctx, env.GetClient(), tt.object, testFieldManager)
+			managedFieldIssueMitigated, err := ssa.MitigateManagedFieldsIssue(ctx, env.GetClient(), tt.object, testFieldManager)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(managedFieldIssueMitigated).To(Equal(tt.expectManagedFieldIssueMitigated))
 			g.Expect(cleanupTime(tt.object.GetManagedFields())).To(BeComparableTo(tt.expectedManagedFields))
@@ -1632,7 +1606,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				origObject := apply.object.DeepCopyObject()
 
 				// Apply object and verify managedFields are as expected afterward.
-				g.Expect(Patch(ctx, env.GetClient(), testFieldManager, apply.object)).To(Succeed())
+				g.Expect(ssa.Patch(ctx, env.GetClient(), testFieldManager, apply.object)).To(Succeed())
 				g.Expect(cleanupTime(apply.object.GetManagedFields())).To(BeComparableTo(apply.expectedManagedFields))
 
 				// Verify spec is as expected

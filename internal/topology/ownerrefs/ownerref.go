@@ -36,9 +36,9 @@ func OwnerReferenceTo(obj client.Object, gvk schema.GroupVersionKind) *metav1.Ow
 }
 
 // HasOwnerReferenceFrom checks if obj has an ownerRef pointing to owner.
-func HasOwnerReferenceFrom(obj, owner client.Object) bool {
+func HasOwnerReferenceFrom(obj, owner client.Object, ownerGVK schema.GroupVersionKind) bool {
 	for _, o := range obj.GetOwnerReferences() {
-		if o.Kind == owner.GetObjectKind().GroupVersionKind().Kind && o.Name == owner.GetName() {
+		if o.Kind == ownerGVK.Kind && o.Name == owner.GetName() {
 			return true
 		}
 	}

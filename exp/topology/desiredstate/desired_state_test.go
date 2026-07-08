@@ -182,7 +182,7 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		obj, err := computeInfrastructureCluster(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
-		g.Expect(ownerrefs.HasOwnerReferenceFrom(obj, shim)).To(BeTrue())
+		g.Expect(ownerrefs.HasOwnerReferenceFrom(obj, shim, corev1.SchemeGroupVersion.WithKind("Secret"))).To(BeTrue())
 	})
 }
 
@@ -1081,7 +1081,7 @@ func TestComputeControlPlane(t *testing.T) {
 		obj, err := (&generator{Client: clientWithV1Beta2ContractCRD}).computeControlPlane(ctx, s, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
-		g.Expect(ownerrefs.HasOwnerReferenceFrom(obj, shim)).To(BeTrue())
+		g.Expect(ownerrefs.HasOwnerReferenceFrom(obj, shim, corev1.SchemeGroupVersion.WithKind("Secret"))).To(BeTrue())
 	})
 }
 
@@ -1757,10 +1757,6 @@ func TestComputeCluster(t *testing.T) {
 	obj, err := computeCluster(ctx, s, infrastructureCluster, controlPlane)
 	g.Expect(obj).ToNot(BeNil())
 	g.Expect(err).ToNot(HaveOccurred())
-
-	// TypeMeta
-	g.Expect(obj.APIVersion).To(Equal(cluster.APIVersion))
-	g.Expect(obj.Kind).To(Equal(cluster.Kind))
 
 	// ObjectMeta
 	g.Expect(obj.Name).To(Equal(cluster.Name))
@@ -3782,10 +3778,6 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	healthCheckTarget := builder.MachineDeployment("ns1", "md1").Build()
 	cluster := builder.Cluster("ns1", "cluster1").Build()
 	want := &clusterv1.MachineHealthCheck{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineHealthCheck",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "md1",
 			Namespace: "ns1",

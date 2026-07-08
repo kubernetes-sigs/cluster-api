@@ -262,7 +262,7 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 	// NOTE: this prevents to the ownerRef to be deleted by server side apply.
 	if s.Current.InfrastructureCluster != nil {
 		shim := clustershim.New(s.Current.Cluster)
-		if ref := getOwnerReferenceFrom(s.Current.InfrastructureCluster, shim); ref != nil {
+		if ref := getOwnerReferenceFrom(s.Current.InfrastructureCluster, shim, corev1.SchemeGroupVersion.WithKind("Secret")); ref != nil {
 			infrastructureCluster.SetOwnerReferences([]metav1.OwnerReference{*ref})
 		}
 	}
@@ -362,7 +362,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	// NOTE: this prevents to the ownerRef to be deleted by server side apply.
 	if s.Current.ControlPlane != nil && s.Current.ControlPlane.Object != nil {
 		shim := clustershim.New(s.Current.Cluster)
-		if ref := getOwnerReferenceFrom(s.Current.ControlPlane.Object, shim); ref != nil {
+		if ref := getOwnerReferenceFrom(s.Current.ControlPlane.Object, shim, corev1.SchemeGroupVersion.WithKind("Secret")); ref != nil {
 			controlPlane.SetOwnerReferences([]metav1.OwnerReference{*ref})
 		}
 	}
@@ -984,10 +984,6 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 
 	desiredMachineDeploymentObj := &clusterv1.MachineDeployment{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineDeployment",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: s.Current.Cluster.Namespace,
@@ -1345,10 +1341,6 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 	}
 
 	desiredMachinePoolObj := &clusterv1.MachinePool{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachinePool",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: s.Current.Cluster.Namespace,
@@ -1658,10 +1650,6 @@ func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) 
 func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Object, selector *metav1.LabelSelector, cluster *clusterv1.Cluster, mhcChecks clusterv1.MachineHealthCheckChecks, mhcRemediation clusterv1.MachineHealthCheckRemediation) *clusterv1.MachineHealthCheck {
 	// Create a MachineHealthCheck with the spec given in the ClusterClass.
 	mhc := &clusterv1.MachineHealthCheck{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineHealthCheck",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      healthCheckTarget.GetName(),
 			Namespace: healthCheckTarget.GetNamespace(),
@@ -1691,9 +1679,9 @@ func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Obj
 	return mhc
 }
 
-func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
+func getOwnerReferenceFrom(obj, owner client.Object, ownerGVK schema.GroupVersionKind) *metav1.OwnerReference {
 	for _, o := range obj.GetOwnerReferences() {
-		if o.Kind == owner.GetObjectKind().GroupVersionKind().Kind && o.Name == owner.GetName() {
+		if o.Kind == ownerGVK.Kind && o.Name == owner.GetName() {
 			return &o
 		}
 	}

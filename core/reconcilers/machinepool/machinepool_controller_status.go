@@ -19,8 +19,10 @@ package machinepool
 import (
 	"context"
 	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -43,7 +45,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 
 	setReplicas(s.machinePool, hasMachinePoolMachines, s.machines, s.nodeRefMap)
 
-	// TODO: in future add setting conditions here
+	setMachinesUpToDateCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines)
 
 	return nil
 }
@@ -104,4 +106,59 @@ func versionsFromNodeRefs(nodeRefs []corev1.ObjectReference, nodeRefMap map[stri
 	}
 
 	return internalversion.AggregateStatusVersions(versions)
+}
+
+func setMachinesUpToDateCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, hasMachinePoolMachines bool) {
+	log := ctrl.LoggerFrom(ctx)
+
+	// If the MachinePool doesn't have Machines (e.g. managed pools), we cannot compute this aggregate condition.
+	if !hasMachinePoolMachines {
+		return
+	}
+
+	// Only consider Machines that have an UpToDate condition or are older than 10s.
+	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
+	// because it can take a bit until the UpToDate condition is set on a new Machine.
+	upToDateMachines := make([]*clusterv1.Machine, 0, len(machines))
+	for _, machine := range machines {
+		if conditions.Has(machine, clusterv1.MachineUpToDateCondition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second {
+			upToDateMachines = append(upToDateMachines, machine)
+		}
+	}
+
+	if len(upToDateMachines) == 0 {
+		conditions.Set(mp, metav1.Condition{
+			Type:   clusterv1.MachinePoolMachinesUpToDateCondition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachinePoolMachinesUpToDateNoReplicasReason,
+		})
+		return
+	}
+
+	upToDateCondition, err := conditions.NewAggregateCondition(
+		upToDateMachines, clusterv1.MachineUpToDateCondition,
+		conditions.TargetConditionType(clusterv1.MachinePoolMachinesUpToDateCondition),
+		// Using a custom merge strategy to override reasons applied during merge.
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.MachinePoolMachinesNotUpToDateReason,
+					clusterv1.MachinePoolMachinesUpToDateUnknownReason,
+					clusterv1.MachinePoolMachinesUpToDateReason,
+				)),
+			),
+		},
+	)
+	if err != nil {
+		log.Error(err, "Failed to aggregate Machine's UpToDate conditions")
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolMachinesUpToDateCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolMachinesUpToDateInternalErrorReason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	conditions.Set(mp, *upToDateCondition)
 }

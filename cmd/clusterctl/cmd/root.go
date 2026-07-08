@@ -110,7 +110,7 @@ var RootCmd = &cobra.Command{
 func Execute() {
 	handlePlugins()
 
-	if err := RootCmd.Execute(); err != nil {
+	if err := executeRoot(RootCmd); err != nil {
 		if verbosity != nil && *verbosity >= 5 {
 			if err, ok := err.(stackTracer); ok {
 				for _, f := range err.StackTrace() {
@@ -118,9 +118,17 @@ func Execute() {
 				}
 			}
 		}
-		// TODO: print cmd help if validation error
 		os.Exit(1)
 	}
+}
+
+func executeRoot(rootCmd *cobra.Command) error {
+	cmd, err := rootCmd.ExecuteC()
+	if err != nil && cmd != nil && isHelpError(err) {
+		_, _ = cmd.ErrOrStderr().Write([]byte("\n"))
+		_ = cmd.Help()
+	}
+	return err
 }
 
 func init() {

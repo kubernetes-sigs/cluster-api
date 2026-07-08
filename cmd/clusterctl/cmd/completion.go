@@ -25,7 +25,6 @@ import (
 	"os"
 	"slices"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,12 +99,7 @@ var (
 				return nil
 			}
 		},
-		Args: func(_ *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return errors.New("please specify a shell")
-			}
-			return nil
-		},
+		Args: exactArgsWithMessage(1, "please specify a shell"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCompletion(os.Stdout, cmd, args[0])
 		},

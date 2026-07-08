@@ -42,7 +42,7 @@ var versionCmd = &cobra.Command{
 	Use:     "version",
 	GroupID: groupOther,
 	Short:   "Print clusterctl version",
-	Args:    cobra.NoArgs,
+	Args:    helpOnErrorArgs(cobra.NoArgs),
 	RunE: func(*cobra.Command, []string) error {
 		return runVersion()
 	},

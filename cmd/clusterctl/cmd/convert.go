@@ -62,7 +62,7 @@ Examples:
   # Explicitly specify target <VERSION>
   clusterctl convert cluster.yaml --to-version <VERSION> --output converted-cluster.yaml`,
 
-	Args: cobra.MaximumNArgs(1),
+	Args: helpOnErrorArgs(cobra.MaximumNArgs(1)),
 	RunE: func(_ *cobra.Command, args []string) error {
 		return runConvert(args)
 	},

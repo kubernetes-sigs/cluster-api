@@ -128,3 +128,6 @@ spec:
       external:
         generatePatchesExtension: generate-patches.${EXTENSION_CONFIG_NAME:-"scale"}
         discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:-"scale"}
+  upgrade:
+    external:
+      generateUpgradePlanExtension: generate-upgrade-plan.${EXTENSION_CONFIG_NAME:-"scale"}

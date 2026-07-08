@@ -329,6 +329,9 @@ func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, clus
 			ProviderID: calculateProviderID(inMemoryMachine),
 		},
 		Status: corev1.NodeStatus{
+			NodeInfo: corev1.NodeSystemInfo{
+				KubeletVersion: machine.Spec.Version,
+			},
 			Conditions: []corev1.NodeCondition{
 				{
 					LastTransitionTime: metav1.Now(),

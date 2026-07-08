@@ -1175,6 +1175,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		expectChanged      bool
 		expectRequeueAfter bool
 		expected           func(g *WithT, m *clusterv1.MachinePool)
+		expectedScope      func(g *WithT, s *scope)
 	}{
 		{
 			name: "new machinepool, infrastructure config ready",
@@ -1208,6 +1209,51 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			expectChanged: true,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
 				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+			},
+		},
+		{
+			name: "does not observe an empty providerIDList while replicas are non-zero",
+			machinepool: &clusterv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machinepool-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachinePoolSpec{
+					Replicas:       ptr.To[int32](1),
+					ProviderIDList: []string{"test://old-id"},
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								APIGroup: builder.InfrastructureGroupVersion.Group,
+								Kind:     builder.TestInfrastructureMachineTemplateKind,
+								Name:     "infra-config1",
+							},
+						},
+					},
+				},
+			},
+			infraConfig: map[string]interface{}{
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{},
+				},
+				"status": map[string]interface{}{
+					"ready":    true,
+					"replicas": int64(1),
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(m.Spec.ProviderIDList).To(Equal([]string{"test://old-id"}))
+				g.Expect(m.Status.Replicas).To(Equal(ptr.To[int32](1)))
+			},
+			expectedScope: func(g *WithT, s *scope) {
+				g.Expect(s.infrastructureProviderIDListObserved).To(BeFalse())
+				g.Expect(s.infrastructureReplicasObserved).To(BeTrue())
 			},
 		},
 		{
@@ -1338,6 +1384,9 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 
 			if tc.expected != nil {
 				tc.expected(g, tc.machinepool)
+			}
+			if tc.expectedScope != nil {
+				tc.expectedScope(g, scope)
 			}
 		})
 	}

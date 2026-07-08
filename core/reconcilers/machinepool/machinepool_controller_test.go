@@ -844,7 +844,8 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 
-			ok, err := r.reconcileDeleteExternal(ctx, machinePool)
+			s := &scope{machinePool: machinePool}
+			ok, err := r.reconcileDeleteExternal(ctx, s)
 			g.Expect(ok).To(Equal(tc.expected))
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
@@ -853,6 +854,175 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestObserveInfrastructureForDeletion(t *testing.T) {
+	t.Run("observes current replicas", func(t *testing.T) {
+		g := NewWithT(t)
+		mp := &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{Name: "machine-pool", Namespace: metav1.NamespaceDefault},
+			Spec: clusterv1.MachinePoolSpec{
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.InfrastructureGroupVersion.Group,
+							Kind:     builder.TestInfrastructureMachinePoolKind,
+							Name:     "infra-machine-pool",
+						},
+					},
+				},
+			},
+		}
+		infraMachinePool := &unstructured.Unstructured{Object: map[string]interface{}{
+			"apiVersion": builder.InfrastructureGroupVersion.String(),
+			"kind":       builder.TestInfrastructureMachinePoolKind,
+			"metadata": map[string]interface{}{
+				"name":      "infra-machine-pool",
+				"namespace": metav1.NamespaceDefault,
+			},
+			"status": map[string]interface{}{
+				"replicas": int64(2),
+			},
+		}}
+		s := &scope{machinePool: mp}
+
+		observeInfrastructureForDeletion(ctx, s, infraMachinePool)
+		g.Expect(s.infraMachinePool).ToNot(BeNil())
+		g.Expect(s.infrastructureReplicasObserved).To(BeTrue())
+		g.Expect(mp.Status.Replicas).To(Equal(ptr.To[int32](2)))
+	})
+
+	t.Run("does not treat persisted replicas as observed after infrastructure deletion", func(t *testing.T) {
+		g := NewWithT(t)
+		mp := &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{Name: "machine-pool", Namespace: metav1.NamespaceDefault},
+			Spec: clusterv1.MachinePoolSpec{
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.InfrastructureGroupVersion.Group,
+							Kind:     builder.TestInfrastructureMachinePoolKind,
+							Name:     "missing-infra-machine-pool",
+						},
+					},
+				},
+			},
+			Status: clusterv1.MachinePoolStatus{Replicas: ptr.To[int32](3)},
+		}
+		r := &Reconciler{
+			Client: fake.NewClientBuilder().WithObjects(builder.TestInfrastructureMachinePoolCRD).Build(),
+		}
+		s := &scope{machinePool: mp}
+
+		cleanupComplete, err := r.reconcileDeleteExternal(ctx, s)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cleanupComplete).To(BeTrue())
+		g.Expect(s.infraMachinePoolIsNotFound).To(BeTrue())
+		g.Expect(s.infrastructureReplicasObserved).To(BeFalse())
+		g.Expect(mp.Status.Replicas).To(Equal(ptr.To[int32](3)))
+	})
+}
+
+func TestReconcileDeleteStatusObservationErrors(t *testing.T) {
+	newMachinePool := func(infraName string) *clusterv1.MachinePool {
+		deletionTimestamp := metav1.Now()
+		return &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "machine-pool",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &deletionTimestamp,
+				Finalizers:        []string{clusterv1.MachinePoolFinalizer},
+			},
+			Spec: clusterv1.MachinePoolSpec{
+				ClusterName: "test-cluster",
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.InfrastructureGroupVersion.Group,
+							Kind:     builder.TestInfrastructureMachinePoolKind,
+							Name:     infraName,
+						},
+					},
+				},
+			},
+		}
+	}
+
+	t.Run("continues external cleanup after Machine list failure", func(t *testing.T) {
+		g := NewWithT(t)
+		mp := newMachinePool("infra-machine-pool")
+		infraMachinePool := &unstructured.Unstructured{Object: map[string]interface{}{
+			"apiVersion": builder.InfrastructureGroupVersion.String(),
+			"kind":       builder.TestInfrastructureMachinePoolKind,
+			"metadata": map[string]interface{}{
+				"name":      "infra-machine-pool",
+				"namespace": metav1.NamespaceDefault,
+			},
+		}}
+		var externalDeleteCalled bool
+		clientFake := fake.NewClientBuilder().
+			WithObjects(builder.TestInfrastructureMachinePoolCRD, infraMachinePool).
+			WithInterceptorFuncs(interceptor.Funcs{
+				List: func(ctx context.Context, c client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+					if _, ok := list.(*clusterv1.MachineList); ok {
+						return fmt.Errorf("machine list failed")
+					}
+					return c.List(ctx, list, opts...)
+				},
+				Delete: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+					if obj.GetName() == infraMachinePool.GetName() {
+						externalDeleteCalled = true
+					}
+					return c.Delete(ctx, obj, opts...)
+				},
+			}).Build()
+		r := &Reconciler{Client: clientFake}
+
+		_, err := r.reconcileDelete(ctx, &scope{machinePool: mp})
+		g.Expect(err).To(MatchError(ContainSubstring("failed to get Machines for MachinePool")))
+		g.Expect(externalDeleteCalled).To(BeTrue())
+		g.Expect(mp.Finalizers).To(ContainElement(clusterv1.MachinePoolFinalizer))
+	})
+
+	t.Run("ignores Machine list failure after required cleanup is complete", func(t *testing.T) {
+		g := NewWithT(t)
+		mp := newMachinePool("missing-infra-machine-pool")
+		clientFake := fake.NewClientBuilder().
+			WithObjects(builder.TestInfrastructureMachinePoolCRD).
+			WithInterceptorFuncs(interceptor.Funcs{
+				List: func(_ context.Context, _ client.WithWatch, list client.ObjectList, _ ...client.ListOption) error {
+					if _, ok := list.(*clusterv1.MachineList); ok {
+						return fmt.Errorf("machine list failed")
+					}
+					return nil
+				},
+			}).Build()
+		r := &Reconciler{Client: clientFake}
+
+		_, err := r.reconcileDelete(ctx, &scope{machinePool: mp})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(mp.Finalizers).ToNot(ContainElement(clusterv1.MachinePoolFinalizer))
+	})
+
+	t.Run("keeps finalizer when required external cleanup cannot be observed", func(t *testing.T) {
+		g := NewWithT(t)
+		mp := newMachinePool("infra-machine-pool")
+		clientFake := fake.NewClientBuilder().
+			WithObjects(builder.TestInfrastructureMachinePoolCRD).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if key.Name == "infra-machine-pool" {
+						return fmt.Errorf("infrastructure get failed")
+					}
+					return c.Get(ctx, key, obj, opts...)
+				},
+			}).Build()
+		r := &Reconciler{Client: clientFake}
+
+		_, err := r.reconcileDelete(ctx, &scope{machinePool: mp})
+		g.Expect(err).To(MatchError(ContainSubstring("failed deleting external references")))
+		g.Expect(mp.Finalizers).To(ContainElement(clusterv1.MachinePoolFinalizer))
+	})
 }
 
 func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {

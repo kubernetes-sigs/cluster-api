@@ -18,11 +18,14 @@ package machinepool
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -302,6 +305,67 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestShouldRequeueForMinReadySeconds(t *testing.T) {
+	newScope := func(readySince time.Time) *scope {
+		const providerID = "test://node-1"
+		return &scope{
+			machinePool: &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
+					ProviderIDList: []string{providerID},
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{MinReadySeconds: ptr.To[int32](30)},
+					},
+				},
+			},
+			infraMachinePool: &unstructured.Unstructured{Object: map[string]interface{}{
+				"status": map[string]interface{}{},
+			}},
+			nodeRefMap: map[string]*corev1.Node{
+				providerID: {
+					Status: corev1.NodeStatus{Conditions: []corev1.NodeCondition{{
+						Type:               corev1.NodeReady,
+						Status:             corev1.ConditionTrue,
+						LastTransitionTime: metav1.NewTime(readySince),
+					}}},
+				},
+			},
+			nodeRefMapObserved:                   true,
+			infrastructureProviderIDListObserved: true,
+		}
+	}
+
+	t.Run("requeues until a Node becomes available", func(t *testing.T) {
+		g := NewWithT(t)
+		s := newScope(time.Now().Add(-10 * time.Second))
+
+		result := shouldRequeueForMinReadySeconds(s)
+
+		g.Expect(result.RequeueAfter).To(BeNumerically(">", 0))
+		g.Expect(result.RequeueAfter).To(BeNumerically("<=", 20*time.Second))
+	})
+
+	t.Run("does not requeue after a Node becomes available", func(t *testing.T) {
+		g := NewWithT(t)
+		s := newScope(time.Now().Add(-31 * time.Second))
+
+		result := shouldRequeueForMinReadySeconds(s)
+
+		g.Expect(result.RequeueAfter).To(BeZero())
+	})
+
+	t.Run("does not requeue for a Machine-backed pool", func(t *testing.T) {
+		g := NewWithT(t)
+		s := newScope(time.Now().Add(-10 * time.Second))
+		s.infraMachinePool.Object["status"] = map[string]interface{}{
+			"infrastructureMachineKind": "TestMachine",
+		}
+
+		result := shouldRequeueForMinReadySeconds(s)
+
+		g.Expect(result.RequeueAfter).To(BeZero())
+	})
 }
 
 func TestMachinePoolPatchNodes(t *testing.T) {

@@ -202,6 +202,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			}},
 			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedCondition,
+				clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				clusterv1.MachinePoolInfrastructureReadyCondition,
 				clusterv1.MachinePoolMachinesUpToDateCondition,
 			}},
 		}

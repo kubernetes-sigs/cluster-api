@@ -63,6 +63,10 @@ const (
 	// MachinePoolBootstrapConfigReadyReason surfaces when the MachinePool bootstrap config is ready.
 	MachinePoolBootstrapConfigReadyReason = ReadyReason
 
+	// MachinePoolBootstrapDataSecretProvidedReason surfaces when a bootstrap data secret is provided (not originated
+	// from a BootstrapConfig object referenced from the MachinePool).
+	MachinePoolBootstrapDataSecretProvidedReason = "DataSecretProvided"
+
 	// MachinePoolBootstrapConfigNotReadyReason surfaces when the MachinePool bootstrap config is not ready.
 	MachinePoolBootstrapConfigNotReadyReason = NotReadyReason
 

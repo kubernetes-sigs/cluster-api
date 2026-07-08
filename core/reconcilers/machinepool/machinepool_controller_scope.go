@@ -40,6 +40,16 @@ type scope struct {
 	// the reconcile infrastructure phase.
 	infraMachinePool *unstructured.Unstructured
 
+	// infraMachinePoolIsNotFound is true if getting the infra machinepool object failed with a NotFound error.
+	infraMachinePoolIsNotFound bool
+
+	// bootstrapConfig is the bootstrap config object referenced by the MachinePool.
+	// It is set during the reconcile bootstrap phase.
+	bootstrapConfig *unstructured.Unstructured
+
+	// bootstrapConfigIsNotFound is true if getting the bootstrap config object failed with a NotFound error.
+	bootstrapConfigIsNotFound bool
+
 	// nodeRefMapResult is a map of providerIDs to Nodes that are associated with the Cluster.
 	// It is set after reconcileInfrastructure is called.
 	nodeRefMap map[string]*corev1.Node

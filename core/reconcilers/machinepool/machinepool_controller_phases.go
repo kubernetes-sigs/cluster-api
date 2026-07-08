@@ -186,9 +186,13 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapReconcileResult, err := r.reconcileExternal(ctx, m, m.Spec.Template.Spec.Bootstrap.ConfigRef)
 		if err != nil {
+			if apierrors.IsNotFound(errors.Cause(err)) {
+				s.bootstrapConfigIsNotFound = true
+			}
 			return ctrl.Result{}, err
 		}
 		bootstrapConfig = bootstrapReconcileResult.Result
+		s.bootstrapConfig = bootstrapConfig
 
 		// If the bootstrap config is being deleted, return early.
 		if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
@@ -256,6 +260,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	infraReconcileResult, err := r.reconcileExternal(ctx, mp, mp.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
+			s.infraMachinePoolIsNotFound = true
 			log.Error(err, "infrastructure reference could not be found")
 			if ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 				// Infra object went missing after the machine pool was up and running

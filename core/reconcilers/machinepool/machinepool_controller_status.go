@@ -19,18 +19,23 @@ package machinepool
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
@@ -49,7 +54,10 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 
 	setBootstrapConfigReadyCondition(ctx, s.machinePool, s.bootstrapConfig, s.bootstrapConfigIsNotFound)
 	setInfrastructureReadyCondition(ctx, s.machinePool, s.infraMachinePool, s.infraMachinePoolIsNotFound)
+	setMachinesReadyCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines)
 	setMachinesUpToDateCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines)
+	setRollingOutCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines)
+	setRemediatingCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines)
 
 	return nil
 }
@@ -257,6 +265,51 @@ func objectReadyFallbackMessage(kind, field string, ready bool) string {
 	return fmt.Sprintf("%s %s is %t", kind, field, ready)
 }
 
+func setMachinesReadyCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, hasMachinePoolMachines bool) {
+	log := ctrl.LoggerFrom(ctx)
+
+	// If the MachinePool doesn't have Machines (e.g. managed pools), we cannot compute this aggregate condition.
+	if !hasMachinePoolMachines {
+		return
+	}
+
+	if len(machines) == 0 {
+		conditions.Set(mp, metav1.Condition{
+			Type:   clusterv1.MachinePoolMachinesReadyCondition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachinePoolMachinesReadyNoReplicasReason,
+		})
+		return
+	}
+
+	readyCondition, err := conditions.NewAggregateCondition(
+		machines, clusterv1.MachineReadyCondition,
+		conditions.TargetConditionType(clusterv1.MachinePoolMachinesReadyCondition),
+		// Using a custom merge strategy to override reasons applied during merge.
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.MachinePoolMachinesNotReadyReason,
+					clusterv1.MachinePoolMachinesReadyUnknownReason,
+					clusterv1.MachinePoolMachinesReadyReason,
+				)),
+			),
+		},
+	)
+	if err != nil {
+		log.Error(err, "Failed to aggregate Machine's Ready conditions")
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolMachinesReadyCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolMachinesReadyInternalErrorReason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	conditions.Set(mp, *readyCondition)
+}
+
 func setMachinesUpToDateCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, hasMachinePoolMachines bool) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -310,4 +363,135 @@ func setMachinesUpToDateCondition(ctx context.Context, mp *clusterv1.MachinePool
 	}
 
 	conditions.Set(mp, *upToDateCondition)
+}
+
+func setRollingOutCondition(_ context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, hasMachinePoolMachines bool) {
+	// If the MachinePool doesn't have Machines (e.g. managed pools), we cannot compute this aggregate condition.
+	if !hasMachinePoolMachines {
+		return
+	}
+
+	// Count machines rolling out and collect reasons why a rollout is happening.
+	// Note: The code below collects all the reasons for which at least a machine is rolling out; under normal circumstances
+	// all the machines are rolling out for the same reasons, however, in case of changes to the MachinePool before a
+	// previous change is fully rolled out, there could be machines rolling out for different reasons.
+	rollingOutReplicas := 0
+	rolloutReasons := sets.Set[string]{}
+	for _, machine := range machines {
+		upToDateCondition := conditions.Get(machine, clusterv1.MachineUpToDateCondition)
+		if upToDateCondition == nil || upToDateCondition.Status != metav1.ConditionFalse {
+			continue
+		}
+		rollingOutReplicas++
+		if upToDateCondition.Message != "" {
+			rolloutReasons.Insert(strings.Split(upToDateCondition.Message, "\n")...)
+		}
+	}
+
+	if rollingOutReplicas == 0 {
+		conditions.Set(mp, metav1.Condition{
+			Type:   clusterv1.MachinePoolRollingOutCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachinePoolNotRollingOutReason,
+		})
+		return
+	}
+
+	// Rolling out.
+	message := fmt.Sprintf("Rolling out %d not up-to-date replicas", rollingOutReplicas)
+	if rolloutReasons.Len() > 0 {
+		// Surface rollout reasons ensuring that if there is a version change, it goes first.
+		reasons := rolloutReasons.UnsortedList()
+		sort.Slice(reasons, func(i, j int) bool {
+			if strings.HasPrefix(reasons[i], "* Version") && !strings.HasPrefix(reasons[j], "* Version") {
+				return true
+			}
+			if !strings.HasPrefix(reasons[i], "* Version") && strings.HasPrefix(reasons[j], "* Version") {
+				return false
+			}
+			return reasons[i] < reasons[j]
+		})
+		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
+	}
+	conditions.Set(mp, metav1.Condition{
+		Type:    clusterv1.MachinePoolRollingOutCondition,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachinePoolRollingOutReason,
+		Message: message,
+	})
+}
+
+func setRemediatingCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, hasMachinePoolMachines bool) {
+	// If the MachinePool doesn't have Machines (e.g. managed pools), we cannot compute this aggregate condition.
+	if !hasMachinePoolMachines {
+		return
+	}
+
+	allMachines := collections.FromMachines(machines...)
+	machinesToBeRemediated := allMachines.Filter(collections.IsUnhealthyAndOwnerRemediated)
+	unhealthyMachines := allMachines.Filter(collections.IsUnhealthy)
+
+	if len(machinesToBeRemediated) == 0 {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolRemediatingCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachinePoolNotRemediatingReason,
+			Message: aggregateUnhealthyMachines(unhealthyMachines),
+		})
+		return
+	}
+
+	remediatingCondition, err := conditions.NewAggregateCondition(
+		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedCondition,
+		conditions.TargetConditionType(clusterv1.MachinePoolRemediatingCondition),
+		// Note: in case of the remediating conditions it is not required to use a CustomMergeStrategy/ComputeReasonFunc
+		// because we are considering only machinesToBeRemediated (and we can pin the reason when we set the condition).
+	)
+	if err != nil {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolRemediatingCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolRemediatingInternalErrorReason,
+			Message: "Please check controller logs for errors",
+		})
+
+		log := ctrl.LoggerFrom(ctx)
+		log.Error(err, fmt.Sprintf("Failed to aggregate Machine's %s conditions", clusterv1.MachineOwnerRemediatedCondition))
+		return
+	}
+
+	conditions.Set(mp, metav1.Condition{
+		Type:    remediatingCondition.Type,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachinePoolRemediatingReason,
+		Message: remediatingCondition.Message,
+	})
+}
+
+func aggregateUnhealthyMachines(machines collections.Machines) string {
+	if len(machines) == 0 {
+		return ""
+	}
+
+	machineNames := machines.Names()
+	if len(machineNames) == 0 {
+		return ""
+	}
+
+	message := "Machine"
+	if len(machineNames) > 1 {
+		message += "s"
+	}
+
+	sort.Strings(machineNames)
+	message += " " + clog.ListToString(machineNames, func(s string) string { return s }, 3)
+
+	if len(machineNames) == 1 {
+		message += " is "
+	} else {
+		message += " are "
+	}
+	message += "not healthy (not to be remediated by MachinePool)"
+
+	return message
 }

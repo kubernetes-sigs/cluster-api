@@ -101,6 +101,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 	c, err := capicontrollerutil.NewControllerManagedBy(mgr, *r.predicateLog).
 		For(&clusterv1.MachinePool{}).
+		Owns(&clusterv1.Machine{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), *r.predicateLog, r.WatchFilterValue)).
 		Watches(
@@ -204,7 +205,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 				clusterv1.PausedCondition,
 				clusterv1.MachinePoolBootstrapConfigReadyCondition,
 				clusterv1.MachinePoolInfrastructureReadyCondition,
+				clusterv1.MachinePoolMachinesReadyCondition,
 				clusterv1.MachinePoolMachinesUpToDateCondition,
+				clusterv1.MachinePoolRollingOutCondition,
+				clusterv1.MachinePoolRemediatingCondition,
 			}},
 		}
 		if reterr == nil {

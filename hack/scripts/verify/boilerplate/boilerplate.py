@@ -115,22 +115,11 @@ def file_passes(filename, refs, regexs):
     # trim our file to the same number of lines as the reference file
     data = data[:len(ref)]
 
-    p = regexs["year"]
-    for d in data:
-        if p.search(d):
-            if generated:
-                print('File %s has the YEAR field, but it should not be in generated file' %
-                      filename, file=verbose_out)
-            else:
-                print('File %s has the YEAR field, but missing the year of date' %
-                      filename, file=verbose_out)
-            return False
-
     if not generated:
-        # Replace all occurrences of the regex "2014|2015|2016|2017|2018" with "YEAR"
+        # Remove all occurrences of the year (regex "Copyright (2014|2015|2016|2017|2018) ")
         p = regexs["date"]
         for i, d in enumerate(data):
-            (data[i], found) = p.subn('YEAR', d)
+            (data[i], found) = p.subn('Copyright ', d)
             if found != 0:
                 break
 
@@ -201,16 +190,17 @@ def get_files(extensions):
     return outfiles
 
 def get_dates():
-    years = datetime.datetime.now().year
-    return '(%s)' % '|'.join((str(year) for year in range(2014, years+1)))
+    # After 2026, we no longer allow new files to include the year in the copyright header.
+    final_year = 2026
+    return " (%s) " % "|".join(str(year) for year in range(2014, final_year + 1))
 
 def get_regexs():
     regexs = {}
     # Search for "YEAR" which exists in the boilerplate, but shouldn't in the real thing
     regexs["year"] = re.compile('YEAR')
-    # get_dates return 2014, 2015, 2016, 2017, or 2018 until the current year as a regex like: "(2014|2015|2016|2017|2018)";
-    # company holder names can be anything
-    regexs["date"] = re.compile(get_dates())
+    # get_dates return 2014, 2015, 2016, 2017, ..., 2026
+    # as a regex like: "(2014|2015|2016|2017|2018|...|2026)";
+    regexs["date"] = re.compile("Copyright" + get_dates())
     # strip the following build constraints/tags:
     # //go:build
     # // +build \n\n

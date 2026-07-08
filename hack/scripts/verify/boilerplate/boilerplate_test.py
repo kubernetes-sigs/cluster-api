@@ -49,4 +49,4 @@ class TestBoilerplate(unittest.TestCase):
     sys.stdout = old_stdout
 
     self.assertEquals(
-        output, ['././fail.go', '././fail.py'])
+        output, ['././fail.go', '././fail.py', '././fail_2027.go'])

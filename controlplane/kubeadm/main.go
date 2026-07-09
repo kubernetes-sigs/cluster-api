@@ -58,9 +58,9 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/setup"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers/kubeadmcontrolplane"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/setup"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
@@ -424,7 +424,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		}
 	}
 
-	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
+	if err := (&kubeadmcontrolplane.Reconciler{
 		Client:                      mgr.GetClient(),
 		APIReader:                   mgr.GetAPIReader(),
 		SecretCachingClient:         secretCachingClient,

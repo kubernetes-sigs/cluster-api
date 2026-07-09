@@ -1,0 +1,719 @@
+/*
+Copyright 2020 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package pkg
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
+	"sigs.k8s.io/cluster-api/util/collections"
+)
+
+func TestControlPlane(t *testing.T) {
+	t.Run("Failure domains", func(t *testing.T) {
+		controlPlane := &ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{},
+			Cluster: &clusterv1.Cluster{
+				Status: clusterv1.ClusterStatus{
+					FailureDomains: []clusterv1.FailureDomain{
+						failureDomain("one", true),
+						failureDomain("two", true),
+						failureDomain("three", true),
+						failureDomain("four", false),
+					},
+				},
+			},
+			Machines: collections.Machines{
+				"machine-1": machine("machine-1", withFailureDomain("one")),
+				"machine-2": machine("machine-2", withFailureDomain("two")),
+				"machine-3": machine("machine-3", withFailureDomain("two")),
+			},
+		}
+
+		t.Run("With all machines in known failure domain, should return the FD with most number of machines", func(*testing.T) {
+			g := NewWithT(t)
+			g.Expect(controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("two"))
+		})
+
+		t.Run("With some machines in non defined failure domains", func(*testing.T) {
+			g := NewWithT(t)
+			controlPlane.Machines.Insert(machine("machine-5", withFailureDomain("unknown")))
+			g.Expect(controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("unknown"))
+		})
+	})
+
+	t.Run("MachinesUpToDate", func(t *testing.T) {
+		g := NewWithT(t)
+		cluster := &clusterv1.Cluster{
+			Status: clusterv1.ClusterStatus{
+				FailureDomains: []clusterv1.FailureDomain{
+					failureDomain("one", true),
+					failureDomain("two", true),
+					failureDomain("three", true),
+				},
+			},
+		}
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.31.0",
+			},
+		}
+		machines := collections.Machines{
+			"machine-1": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Spec: clusterv1.MachineSpec{
+					Version:           "v1.31.0", // up-to-date
+					FailureDomain:     "one",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m1"},
+				}},
+			"machine-2": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m2"},
+				Spec: clusterv1.MachineSpec{
+					Version:           "v1.29.0", // not up-to-date
+					FailureDomain:     "two",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m2"},
+				}},
+			"machine-3": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m3", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
+				Spec: clusterv1.MachineSpec{
+					Version:           "v1.29.3", // not up-to-date
+					FailureDomain:     "three",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m3"},
+				}},
+			"machine-4": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m4", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
+				Spec: clusterv1.MachineSpec{
+					Version:           "v1.31.0", // up-to-date
+					FailureDomain:     "two",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m4"},
+				}},
+			"machine-5": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m5"},
+				Spec: clusterv1.MachineSpec{
+					Version:           "v1.31.0", // up-to-date
+					FailureDomain:     "three",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m5"},
+				}},
+		}
+		controlPlane, err := NewControlPlane(ctx, nil, env.GetClient(), cluster, kcp, machines)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		g.Expect(controlPlane.Machines).To(HaveLen(5))
+
+		machinesNotUptoDate, machinesUpToDateResults := controlPlane.NotUpToDateMachines()
+		g.Expect(machinesNotUptoDate.Names()).To(ConsistOf("m2", "m3"))
+		// machinesUpToDateResults contains results for all Machines (including up-to-date Machines).
+		g.Expect(machinesUpToDateResults).To(HaveLen(5))
+		g.Expect(machinesUpToDateResults["m2"].ConditionMessages).To(Equal([]string{"Version v1.29.0, v1.31.0 required"}))
+		g.Expect(machinesUpToDateResults["m3"].ConditionMessages).To(Equal([]string{"Version v1.29.3, v1.31.0 required"}))
+
+		machinesNeedingRollout, machinesUpToDateResults := controlPlane.MachinesNeedingRollout()
+		g.Expect(machinesNeedingRollout.Names()).To(ConsistOf("m2"))
+		// machinesUpToDateResults contains results for all Machines (including up-to-date Machines).
+		g.Expect(machinesUpToDateResults).To(HaveLen(5))
+		g.Expect(machinesUpToDateResults["m2"].LogMessages).To(Equal([]string{"Machine version \"v1.29.0\" is not equal to KCP version \"v1.31.0\""}))
+		g.Expect(machinesUpToDateResults["m3"].LogMessages).To(Equal([]string{"Machine version \"v1.29.3\" is not equal to KCP version \"v1.31.0\""}))
+
+		upToDateMachines := controlPlane.UpToDateMachines()
+		g.Expect(upToDateMachines).To(HaveLen(3))
+		g.Expect(upToDateMachines.Names()).To(ConsistOf("m1", "m4", "m5"))
+
+		fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(fd).To(Equal("two")) // deleted up-to-date machines (m4) should not be counted when picking the next failure domain for scale up
+	})
+}
+
+func TestHasMachinesToBeRemediated(t *testing.T) {
+	// healthy machine (without MachineHealthCheckSucceded condition)
+	healthyMachineNotProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine1"}}
+	// healthy machine (with MachineHealthCheckSucceded == true)
+	healthyMachineProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine2"}, Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node1"}}}
+	healthyMachineProvisioned.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionTrue,
+		},
+	})
+	// unhealthy machine NOT eligible for KCP remediation (with MachineHealthCheckSucceded == False, but without MachineOwnerRemediated condition)
+	unhealthyMachineNOTOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineNOTOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node2"}}}
+	unhealthyMachineNOTOwnerRemediated.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		},
+	})
+	// unhealthy machine eligible for KCP remediation (with MachineHealthCheckSucceded == False, with MachineOwnerRemediated condition)
+	unhealthyMachineOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node3"}}}
+	unhealthyMachineOwnerRemediated.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		},
+		{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+		},
+	})
+
+	t.Run("One unhealthy machine to be remediated by KCP", func(t *testing.T) {
+		c := ControlPlane{
+			Machines: collections.FromMachines(
+				healthyMachineNotProvisioned,       // healthy machine, should be ignored
+				healthyMachineProvisioned,          // healthy machine, should be ignored (the MachineHealthCheckSucceededCondition is true)
+				unhealthyMachineNOTOwnerRemediated, // unhealthy machine, but KCP should not remediate it, should be ignored.
+				unhealthyMachineOwnerRemediated,
+			),
+		}
+
+		g := NewWithT(t)
+		g.Expect(c.MachinesToBeRemediatedByKCP()).To(ConsistOf(unhealthyMachineOwnerRemediated))
+		g.Expect(c.UnhealthyMachines()).To(ConsistOf(unhealthyMachineOwnerRemediated, unhealthyMachineNOTOwnerRemediated))
+		g.Expect(c.HealthyMachines()).To(ConsistOf(healthyMachineNotProvisioned, healthyMachineProvisioned))
+		g.Expect(c.HasHealthyMachineStillProvisioning()).To(BeTrue())
+	})
+
+	t.Run("No unhealthy machine to be remediated by KCP", func(t *testing.T) {
+		c := ControlPlane{
+			Machines: collections.FromMachines(
+				healthyMachineNotProvisioned,       // healthy machine, should be ignored
+				healthyMachineProvisioned,          // healthy machine, should be ignored (the MachineHealthCheckSucceededCondition is true)
+				unhealthyMachineNOTOwnerRemediated, // unhealthy machine, but KCP should not remediate it, should be ignored.
+			),
+		}
+
+		g := NewWithT(t)
+		g.Expect(c.MachinesToBeRemediatedByKCP()).To(BeEmpty())
+		g.Expect(c.UnhealthyMachines()).To(ConsistOf(unhealthyMachineNOTOwnerRemediated))
+		g.Expect(c.HealthyMachines()).To(ConsistOf(healthyMachineNotProvisioned, healthyMachineProvisioned))
+		g.Expect(c.HasHealthyMachineStillProvisioning()).To(BeTrue())
+	})
+
+	t.Run("No unhealthy machine to be remediated by KCP", func(t *testing.T) {
+		c := ControlPlane{
+			Machines: collections.FromMachines(
+				healthyMachineProvisioned,          // healthy machine, should be ignored (the MachineHealthCheckSucceededCondition is true)
+				unhealthyMachineNOTOwnerRemediated, // unhealthy machine, but KCP should not remediate it, should be ignored.
+			),
+		}
+
+		g := NewWithT(t)
+		g.Expect(c.MachinesToBeRemediatedByKCP()).To(BeEmpty())
+		g.Expect(c.UnhealthyMachines()).To(ConsistOf(unhealthyMachineNOTOwnerRemediated))
+		g.Expect(c.HealthyMachines()).To(ConsistOf(healthyMachineProvisioned))
+		g.Expect(c.HasHealthyMachineStillProvisioning()).To(BeFalse())
+	})
+}
+
+func TestHasHealthyMachineStillProvisioning(t *testing.T) {
+	// healthy machine (without MachineHealthCheckSucceded condition) still provisioning (without NodeRef)
+	healthyMachineStillProvisioning1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachineStillProvisioning1"}}
+
+	// healthy machine (without MachineHealthCheckSucceded condition) provisioned (with NodeRef)
+	healthyMachineProvisioned1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachineProvisioned1"}}
+	healthyMachineProvisioned1.Status.NodeRef = clusterv1.MachineNodeReference{
+		Name: "healthyMachine",
+	}
+
+	// unhealthy machine (with MachineHealthCheckSucceded condition) still provisioning (without NodeRef)
+	unhealthyMachineStillProvisioning1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineStillProvisioning1"}}
+	unhealthyMachineStillProvisioning1.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		},
+		{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+		},
+	})
+
+	// unhealthy machine (with MachineHealthCheckSucceded condition) provisioned (with NodeRef)
+	unhealthyMachineProvisioned1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineProvisioned1"}}
+	unhealthyMachineProvisioned1.Status.NodeRef = clusterv1.MachineNodeReference{
+		Name: "unhealthyMachine",
+	}
+	unhealthyMachineProvisioned1.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		},
+		{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+		},
+	})
+
+	t.Run("Healthy machine still provisioning", func(t *testing.T) {
+		c := ControlPlane{
+			Machines: collections.FromMachines(
+				healthyMachineStillProvisioning1,
+				unhealthyMachineStillProvisioning1, // unhealthy, should be ignored
+				healthyMachineProvisioned1,         // already provisioned, should be ignored
+				unhealthyMachineProvisioned1,       // unhealthy and already provisioned, should be ignored
+			),
+		}
+
+		g := NewWithT(t)
+		g.Expect(c.HasHealthyMachineStillProvisioning()).To(BeTrue())
+	})
+	t.Run("No machines still provisioning", func(t *testing.T) {
+		c := ControlPlane{
+			Machines: collections.FromMachines(
+				unhealthyMachineStillProvisioning1, // unhealthy, should be ignored
+				healthyMachineProvisioned1,         // already provisioned, should be ignored
+				unhealthyMachineProvisioned1,       // unhealthy and already provisioned, should be ignored
+			),
+		}
+
+		g := NewWithT(t)
+		g.Expect(c.HasHealthyMachineStillProvisioning()).To(BeFalse())
+	})
+}
+
+func TestMachinesToCompleteTriggerInPlaceUpdate(t *testing.T) {
+	machineWithoutAnnotations := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithoutAnnotations",
+		},
+	}
+	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithUpdateInProgressAnnotation",
+			Annotations: map[string]string{
+				clusterv1.UpdateInProgressAnnotation: "",
+			},
+		},
+	}
+	machineWithPendingHooksAnnotation := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithPendingHooksAnnotation",
+			Annotations: map[string]string{
+				runtimev1.PendingHooksAnnotation: "UpdateMachine",
+			},
+		},
+	}
+	machineWithBothAnnotations := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithBothAnnotations",
+			Annotations: map[string]string{
+				clusterv1.UpdateInProgressAnnotation: "",
+				runtimev1.PendingHooksAnnotation:     "UpdateMachine",
+			},
+		},
+	}
+
+	tests := []struct {
+		name                         string
+		machine                      *clusterv1.Machine
+		completeTriggerInPlaceUpdate bool
+	}{
+		{
+			name:                         "machineWithoutAnnotations => false",
+			machine:                      machineWithoutAnnotations,
+			completeTriggerInPlaceUpdate: false,
+		},
+		{
+			name:                         "machineWithUpdateInProgressAnnotation => true",
+			machine:                      machineWithUpdateInProgressAnnotation,
+			completeTriggerInPlaceUpdate: true,
+		},
+		{
+			name:                         "machineWithPendingHooksAnnotation => false",
+			machine:                      machineWithPendingHooksAnnotation,
+			completeTriggerInPlaceUpdate: false,
+		},
+		{
+			name:                         "machineWithBothAnnotations => false",
+			machine:                      machineWithBothAnnotations,
+			completeTriggerInPlaceUpdate: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := ControlPlane{
+				Machines: collections.FromMachines(tt.machine),
+			}
+
+			if tt.completeTriggerInPlaceUpdate {
+				g.Expect(c.MachinesToCompleteTriggerInPlaceUpdate().Len()).To(Equal(1))
+				g.Expect(c.MachinesToCompleteTriggerInPlaceUpdate().Has(tt.machine)).To(BeTrue())
+			} else {
+				g.Expect(c.MachinesToCompleteTriggerInPlaceUpdate().Len()).To(Equal(0))
+			}
+		})
+	}
+}
+
+func TestMachinesToCompleteInPlaceUpdate(t *testing.T) {
+	machineWithoutAnnotations := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithoutAnnotations",
+		},
+	}
+	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithUpdateInProgressAnnotation",
+			Annotations: map[string]string{
+				clusterv1.UpdateInProgressAnnotation: "",
+			},
+		},
+	}
+	machineWithPendingHooksAnnotation := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithPendingHooksAnnotation",
+			Annotations: map[string]string{
+				runtimev1.PendingHooksAnnotation: "UpdateMachine",
+			},
+		},
+	}
+	machineWithBothAnnotations := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithBothAnnotations",
+			Annotations: map[string]string{
+				clusterv1.UpdateInProgressAnnotation: "",
+				runtimev1.PendingHooksAnnotation:     "UpdateMachine",
+			},
+		},
+	}
+
+	tests := []struct {
+		name                  string
+		machine               *clusterv1.Machine
+		completeInPlaceUpdate bool
+	}{
+		{
+			name:                  "machineWithoutAnnotations => false",
+			machine:               machineWithoutAnnotations,
+			completeInPlaceUpdate: false,
+		},
+		{
+			name:                  "machineWithUpdateInProgressAnnotation => true",
+			machine:               machineWithUpdateInProgressAnnotation,
+			completeInPlaceUpdate: true,
+		},
+		{
+			name:                  "machineWithPendingHooksAnnotation => true",
+			machine:               machineWithPendingHooksAnnotation,
+			completeInPlaceUpdate: true,
+		},
+		{
+			name:                  "machineWithBothAnnotations => true",
+			machine:               machineWithBothAnnotations,
+			completeInPlaceUpdate: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := ControlPlane{
+				Machines: collections.FromMachines(tt.machine),
+			}
+
+			if tt.completeInPlaceUpdate {
+				g.Expect(c.MachinesToCompleteInPlaceUpdate().Len()).To(Equal(1))
+				g.Expect(c.MachinesToCompleteInPlaceUpdate().Has(tt.machine)).To(BeTrue())
+			} else {
+				g.Expect(c.MachinesToCompleteInPlaceUpdate().Len()).To(Equal(0))
+			}
+		})
+	}
+}
+
+func TestStatusToLogKeyAndValues(t *testing.T) {
+	healthyMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{Name: "healthy"},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{Name: "healthy-node"},
+			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition, Status: metav1.ConditionTrue},
+				{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
+			},
+		},
+	}
+
+	machineWithoutNode := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{Name: "without-node"},
+		Status: clusterv1.MachineStatus{
+			// NodeRef is not set
+			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition, Status: metav1.ConditionUnknown},
+				{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionUnknown},
+				{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionUnknown},
+				{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionUnknown},
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionUnknown},
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse}, // not a real use case, but used to test a code branch.
+			},
+		},
+	}
+
+	machineJustCreated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "just-created"}}
+
+	machineJustDeleted := healthyMachine.DeepCopy()
+	machineJustDeleted.Name = "just-deleted"
+
+	machineNotUpToDate := healthyMachine.DeepCopy()
+	machineNotUpToDate.Name = "not-up-to-date"
+
+	machineMarkedForRemediation := healthyMachine.DeepCopy()
+	machineMarkedForRemediation.Name = "marked-for-remediation"
+	machineMarkedForRemediation.Status.Conditions = append(machineMarkedForRemediation.Status.Conditions,
+		metav1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionFalse},
+		metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse},
+	)
+
+	g := NewWithT(t)
+	c := &ControlPlane{
+		KCP:                 &controlplanev1.KubeadmControlPlane{},
+		Machines:            collections.FromMachines(healthyMachine, machineWithoutNode, machineJustDeleted, machineNotUpToDate, machineMarkedForRemediation),
+		MachinesNotUpToDate: collections.FromMachines(machineNotUpToDate),
+		EtcdMembers:         []*etcd.Member{{Name: "m1"}, {Name: "m2"}, {Name: "m3"}},
+	}
+
+	got := c.StatusToLogKeyAndValues(machineJustCreated, machineJustDeleted)
+
+	g.Expect(got).To(HaveLen(4))
+	g.Expect(got[0]).To(Equal("machines"))
+	machines := strings.Join([]string{
+		"healthy",
+		"just-created (just created)",
+		"just-deleted (just deleted)",
+		"marked-for-remediation (marked for remediation)",
+		"not-up-to-date (not up-to-date)",
+		"without-node (status.nodeRef not set, kubeadm labels and taints unknown, APIServerPod health unknown, ControllerManagerPod health unknown, SchedulerPod health unknown, EtcdPod health unknown, EtcdMember not healthy)",
+	}, ", ")
+	g.Expect(got[1]).To(Equal(machines), cmp.Diff(got[1], machines))
+	g.Expect(got[2]).To(Equal("etcdMembers"))
+	g.Expect(got[3]).To(Equal("m1, m2, m3"))
+}
+
+func TestDefaultTaintIsMissing(t *testing.T) {
+	tests := []struct {
+		name          string
+		machine       *clusterv1.Machine
+		kubeadmConfig *bootstrapv1.KubeadmConfig
+		node          *Node
+		want          bool
+	}{
+		{
+			name: "taint exists",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+			},
+			kubeadmConfig: &bootstrapv1.KubeadmConfig{},
+			node: &Node{
+				Spec: NodeSpec{
+					Taints: []corev1.Taint{
+						{
+							Key:    labelNodeRoleControlPlane,
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "taint is missing if defined at machine level, but not present on the node",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Spec: clusterv1.MachineSpec{
+					Taints: []clusterv1.MachineTaint{
+						{
+							Key:    labelNodeRoleControlPlane,
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
+				},
+			},
+			kubeadmConfig: &bootstrapv1.KubeadmConfig{},
+			node:          &Node{},
+			want:          true,
+		},
+		{
+			name: "taint is missing if kubeadm default taints must be applied on init (taint not set), but not present on the node",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+			},
+			kubeadmConfig: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					// if join configuration is not defined, init configuration is used.
+				},
+			},
+			node: &Node{},
+			want: true,
+		},
+		{
+			name: "taint is missing if kubeadm default taints must be applied on join (taint not set), but not present on the node",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+			},
+			kubeadmConfig: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						ControlPlane: &bootstrapv1.JoinControlPlane{},
+					},
+				},
+			},
+			node: &Node{},
+			want: true,
+		},
+		{
+			name: "taint is missing if kubeadm init taints includes the default taint, but not present on the node",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+			},
+			kubeadmConfig: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: bootstrapv1.InitConfiguration{
+						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+							Taints: &[]corev1.Taint{
+								{
+									Key:    labelNodeRoleControlPlane,
+									Effect: corev1.TaintEffectNoSchedule,
+								},
+							},
+						},
+					},
+				},
+			},
+			node: &Node{},
+			want: true,
+		},
+		{
+			name: "taint is missing if kubeadm join taints includes the default taint, but not present on the node",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+			},
+			kubeadmConfig: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						ControlPlane: &bootstrapv1.JoinControlPlane{},
+						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+							Taints: &[]corev1.Taint{
+								{
+									Key:    labelNodeRoleControlPlane,
+									Effect: corev1.TaintEffectNoSchedule,
+								},
+							},
+						},
+					},
+				},
+			},
+			node: &Node{},
+			want: true,
+		},
+		{
+			name: "taint is not missing if kubeadm init taints does not include the default taint",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+			},
+			kubeadmConfig: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: bootstrapv1.InitConfiguration{
+						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+							Taints: &[]corev1.Taint{},
+						},
+					},
+				},
+			},
+			node: &Node{},
+			want: false,
+		},
+		{
+			name: "taint is not missing if kubeadm join taints does not include the default taint",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+			},
+			kubeadmConfig: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						ControlPlane: &bootstrapv1.JoinControlPlane{},
+						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+							Taints: &[]corev1.Taint{},
+						},
+					},
+				},
+			},
+			node: &Node{},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := ControlPlane{
+				Machines: collections.FromMachines(tt.machine),
+				KubeadmConfigs: map[string]*bootstrapv1.KubeadmConfig{
+					tt.machine.Name: tt.kubeadmConfig,
+				},
+			}
+
+			got := c.DefaultTaintIsMissing(tt.machine, tt.node)
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
+type machineOpt func(*clusterv1.Machine)
+
+func failureDomain(name string, controlPlane bool) clusterv1.FailureDomain {
+	return clusterv1.FailureDomain{
+		Name:         name,
+		ControlPlane: ptr.To(controlPlane),
+	}
+}
+
+func withFailureDomain(fd string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Spec.FailureDomain = fd
+	}
+}
+
+func machine(name string, opts ...machineOpt) *clusterv1.Machine {
+	m := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}

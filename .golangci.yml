@@ -347,7 +347,7 @@ linters:
       - linters:
           - revive
         text: 'var-naming: avoid meaningless package names'
-        path: test/infrastructure/docker/internal/docker/types/.*\.go$|bootstrap/kubeadm/pkg/types/.*\.go$|internal/webhooks/util/.*\.go$|util/.*\.go$|exp/util/.*\.go$|controlplane/kubeadm/internal/etcd/util/.*\.go$|cmd/clusterctl/internal/util/.*\.go$|bootstrap/util/.*\.go$
+        path: test/infrastructure/docker/internal/docker/types/.*\.go$|bootstrap/kubeadm/pkg/types/.*\.go$|internal/webhooks/util/.*\.go$|util/.*\.go$|exp/util/.*\.go$|controlplane/kubeadm/pkg/etcd/util/.*\.go$|cmd/clusterctl/internal/util/.*\.go$|bootstrap/util/.*\.go$
       - linters:
           - errcheck
         text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked

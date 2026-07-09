@@ -371,8 +371,8 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 	$(CONTROLLER_GEN) \
 		paths=./api/controlplane/kubeadm/... \
 		paths=./controlplane/kubeadm \
-		paths=./controlplane/kubeadm/internal/controllers/... \
-		paths=./controlplane/kubeadm/internal/webhooks/... \
+		paths=./controlplane/kubeadm/controllers/... \
+		paths=./controlplane/kubeadm/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \

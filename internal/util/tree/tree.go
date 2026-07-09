@@ -141,7 +141,11 @@ func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) error {
 // PrintObjectTreeV1Beta1 prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
 func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) error {
-	tbl := createObjectTreeV1Beta1(os.Stdin)
+	return printObjectTreeV1Beta1ToWriter(tree, os.Stdout)
+}
+
+func printObjectTreeV1Beta1ToWriter(tree *tree.ObjectTree, w io.Writer) error {
+	tbl := createObjectTreeV1Beta1(w)
 	tbl.Header([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
 
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.

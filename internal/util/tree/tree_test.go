@@ -19,6 +19,8 @@ package tree
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -675,4 +677,40 @@ func Test_formatParagraph(t *testing.T) {
 			g.Expect("\n" + formatParagraph(tt.text, tt.maxWidth)).To(BeEquivalentTo("\n" + tt.want))
 		})
 	}
+}
+
+func TestPrintObjectTreeV1Beta1_WritesToStdout(t *testing.T) {
+	g := NewWithT(t)
+
+	root := fakeObject("root", withV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)))
+	objectTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{V1Beta1: true})
+
+	originalStdout := os.Stdout
+	originalStdin := os.Stdin
+
+	readOnlyFile, err := os.CreateTemp(t.TempDir(), "stdin")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(readOnlyFile.Close()).To(Succeed())
+	readOnlyFile, err = os.Open(readOnlyFile.Name())
+	g.Expect(err).ToNot(HaveOccurred())
+
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	os.Stdin = readOnlyFile
+	os.Stdout = stdoutWriter
+	t.Cleanup(func() {
+		os.Stdin = originalStdin
+		os.Stdout = originalStdout
+		_ = readOnlyFile.Close()
+		_ = stdoutReader.Close()
+	})
+
+	err = PrintObjectTreeV1Beta1(objectTree)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(stdoutWriter.Close()).To(Succeed())
+
+	out, err := io.ReadAll(stdoutReader)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(string(out)).To(ContainSubstring("Object ns/root"))
 }

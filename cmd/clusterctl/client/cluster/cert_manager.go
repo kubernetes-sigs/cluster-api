@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	_ "embed"
+	"slices"
 	"time"
 
 	"github.com/blang/semver/v4"
@@ -370,10 +371,16 @@ func (cm *certManagerClient) shouldUpgrade(desiredVersion string, objs, installO
 			currentVersion = objVersion
 			needUpgrade = true
 		case c == 0:
-			// The installed version is equal to the desired version. Upgrade is required only if the number
-			// of available objects and objects to install differ. This would act as a re-install.
+			// The installed version is equal to the desired version. Upgrade is required if the number
+			// of available objects and objects to install differ or if the images differ. This would act as a re-install.
 			currentVersion = objVersion
 			needUpgrade = len(relevantObjs) != len(installObjs)
+			if !needUpgrade {
+				needUpgrade, err = certManagerImagesDiffer(relevantObjs, installObjs)
+				if err != nil {
+					return "", false, err
+				}
+			}
 		case c > 0:
 			// The installed version is greater than the desired version. Upgrade is not required.
 			currentVersion = objVersion
@@ -384,6 +391,28 @@ func (cm *certManagerClient) shouldUpgrade(desiredVersion string, objs, installO
 		}
 	}
 	return currentVersion, needUpgrade, nil
+}
+
+func certManagerImagesDiffer(objs, installObjs []unstructured.Unstructured) (bool, error) {
+	currentImages, err := util.InspectImages(objs)
+	if err != nil {
+		return false, err
+	}
+	desiredImages, err := util.InspectImages(installObjs)
+	if err != nil {
+		return false, err
+	}
+
+	slices.Sort(currentImages)
+	slices.Sort(desiredImages)
+
+	if len(currentImages) == 0 && len(desiredImages) == 0 {
+		return false, nil
+	}
+	if len(currentImages) != len(desiredImages) {
+		return true, nil
+	}
+	return !slices.Equal(currentImages, desiredImages), nil
 }
 
 func (cm *certManagerClient) getWaitTimeout() time.Duration {

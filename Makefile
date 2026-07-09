@@ -298,19 +298,20 @@ generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## 
 
 .PHONY: generate-manifests-core
 generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.g. CRD, RBAC etc. for core
-	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases,./config/webhook/manifests.yaml"
+	$(MAKE) clean-generated-yaml SRC_DIRS="./core/config/crd/bases,./core/config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
-		paths=./ \
 		paths=./api/addons/... \
 		paths=./api/core/... \
 		paths=./api/ipam/... \
 		paths=./api/runtime/... \
-		paths=./internal/controllers/... \
-		paths=./internal/webhooks/... \
+		paths=./core \
+		paths=./core/controllers/... \
+		paths=./core/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
-		output:crd:dir=./config/crd/bases \
-		output:webhook:dir=./config/webhook \
+		output:crd:dir=./core/config/crd/bases \
+		output:rbac:dir=./core/config/rbac \
+		output:webhook:dir=./core/config/webhook \
 		webhook
 	$(CONTROLLER_GEN) \
 		paths=./cmd/clusterctl/api/... \
@@ -792,7 +793,7 @@ managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
 
 .PHONY: manager-core
 manager-core: ## Build the core manager binary into the ./bin folder
-	go build -trimpath -gcflags "$(GCFLAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api
+	go build -trimpath -gcflags "$(GCFLAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api/core
 
 .PHONY: manager-kubeadm-bootstrap
 manager-kubeadm-bootstrap: ## Build the kubeadm bootstrap manager binary into the ./bin folder
@@ -836,9 +837,9 @@ docker-build-e2e: ## Run docker-build-* targets for all the images with settings
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for core controller manager
 ## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
-	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg gcflags="$(GCFLAGS)" --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./core --build-arg gcflags="$(GCFLAGS)" --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./core/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./core/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-kubeadm-bootstrap
 docker-build-kubeadm-bootstrap: ## Build the docker image for kubeadm bootstrap controller manager
@@ -1078,14 +1079,14 @@ release-manifests-all: # Set the manifest images to the staging/production bucke
 manifest-modification: # Set the manifest images to the staging/production bucket.
 	$(MAKE) set-manifest-image \
 		MANIFEST_IMG=$(REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-		TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
+		TARGET_RESOURCE="./core/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-image \
 		MANIFEST_IMG=$(REGISTRY)/$(KUBEADM_BOOTSTRAP_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-image \
 		MANIFEST_IMG=$(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./core/config/default/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
@@ -1104,7 +1105,7 @@ manifest-modification-dev: # Set the manifest images to the staging bucket.
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) $(RUNTIME_OPENAPI_GEN) ## Build the manifests to publish with a release
 	# Build core-components.
-	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/core-components.yaml
+	$(KUSTOMIZE) build core/config/default > $(RELEASE_DIR)/core-components.yaml
 	# Build bootstrap-components.
 	$(KUSTOMIZE) build bootstrap/kubeadm/config/default > $(RELEASE_DIR)/bootstrap-components.yaml
 	# Build control-plane-components.
@@ -1248,8 +1249,8 @@ docker-push-manifest-core: ## Push the multiarch manifest for the core docker im
 	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge $(CONTROLLER_IMG):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./core/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./core/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-push-kubeadm-bootstrap
 docker-push-kubeadm-bootstrap: ## Push the kubeadm bootstrap docker image
@@ -1363,7 +1364,7 @@ clean-release: ## Remove the release folder
 .PHONY: clean-manifests ## Reset manifests in config directories back to main
 clean-manifests:
 	@read -p "WARNING: This will reset all config directories to local main. Press [ENTER] to continue."
-	git checkout main config bootstrap/kubeadm/config controlplane/kubeadm/config $(CAPD_DIR)/config
+	git checkout main core/config bootstrap/kubeadm/config controlplane/kubeadm/config $(CAPD_DIR)/config
 
 .PHONY: clean-release-git
 clean-release-git: ## Restores the git files usually modified during a release

@@ -33,9 +33,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/internal/controllers/clusterclass"
+	"sigs.k8s.io/cluster-api/core/controllers/clusterclass"
+	topologycluster "sigs.k8s.io/cluster-api/core/controllers/topology/cluster"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
@@ -84,7 +84,7 @@ func TestMain(m *testing.M) {
 			clusterCache.(interface{ Shutdown() }).Shutdown()
 		}()
 
-		if err := (&controllers.ClusterTopologyReconciler{
+		if err := (&topologycluster.Reconciler{
 			Client:        mgr.GetClient(),
 			APIReader:     mgr.GetAPIReader(),
 			ClusterCache:  clusterCache,

@@ -77,7 +77,7 @@ var (
 	// which is containing "hard-coded" tilt-provider.yaml files for the providers managed in the Cluster API repository.
 	providers = map[string]tiltProviderConfig{
 		"core": {
-			Context:           ptr.To("."),
+			Context:           ptr.To("core"),
 			hardCodedProvider: true,
 		},
 		"kubeadm-bootstrap": {

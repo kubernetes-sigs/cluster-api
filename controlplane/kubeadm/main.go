@@ -54,7 +54,6 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -63,6 +62,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/setup"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
+	"sigs.k8s.io/cluster-api/core/controllers/extensionconfig"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -412,7 +412,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			}
 		}
 
-		if err = (&controllers.ExtensionConfigReconciler{
+		if err = (&extensionconfig.Reconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			RuntimeClient:    runtimeClient,

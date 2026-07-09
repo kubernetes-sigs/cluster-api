@@ -24,7 +24,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
+	patchvariables "sigs.k8s.io/cluster-api/core/controllers/topology/cluster/patches/variables"
 )
 
 // TODO: Add func for validating received variables are of the expected types.

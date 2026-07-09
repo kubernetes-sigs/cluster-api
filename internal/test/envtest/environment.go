@@ -81,15 +81,14 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	controlplaneconversion "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
+	"sigs.k8s.io/cluster-api/core/webhooks"
+	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
-	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 	"sigs.k8s.io/cluster-api/version"
-	"sigs.k8s.io/cluster-api/webhooks"
-	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func init() {
@@ -284,7 +283,7 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 
 	crdDirectoryPaths := make([]string, 0, 3+len(additionalCRDDirectoryPaths))
 	crdDirectoryPaths = append(crdDirectoryPaths,
-		filepath.Join(root, "config", "crd", "bases"),
+		filepath.Join(root, "core", "config", "crd", "bases"),
 		filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
 		filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
 	)
@@ -400,7 +399,7 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 	}
 
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
-	internalwebhooks.SetMinNodeStartupTimeoutSeconds(0)
+	webhooks.SetMinNodeStartupTimeoutSeconds(0)
 
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
 	controlplaneconversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {

@@ -58,21 +58,20 @@ default_enable_providers = [core_provider_name]
 
 providers = {
     core_provider_name: {
-        "context": ".",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
+        "context": "core",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
         "live_reload_deps": [
-            "main.go",
-            "go.mod",
-            "go.sum",
             "api",
             "cmd",
-            "controllers",
-            "errors",
+            "core/main.go",
+            "core/controllers",
+            "core/webhooks",
             "exp",
             "feature",
             "internal",
             "util",
-            "webhooks",
+            "go.mod",
+            "go.sum",
         ],
         "label": "CAPI",
     },

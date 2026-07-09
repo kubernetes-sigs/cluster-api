@@ -217,7 +217,7 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 	// Note: We are intentionally not actually applying any in-place changes we are just faking them,
 	// which is good enough for test purposes.
 	if firstTimeCalled, ok := h.state.Load(key); ok {
-		if time.Since(firstTimeCalled.(time.Time)) > time.Duration(30+rand.Intn(10))*time.Second {
+		if time.Since(firstTimeCalled.(time.Time)) > time.Duration(15+rand.Intn(5))*time.Second {
 			h.state.Delete(key)
 			resp.Status = runtimehooksv1.ResponseStatusSuccess
 			resp.Message = "Extension completed updating Machine"
@@ -230,7 +230,7 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
 	resp.Message = "Extension is updating Machine"
-	resp.RetryAfterSeconds = 15
+	resp.RetryAfterSeconds = 5
 }
 
 func (h *ExtensionHandlers) getObjectsFromCanUpdateMachineRequest(req *runtimehooksv1.CanUpdateMachineRequest) (*clusterv1.Machine, *clusterv1.Machine, runtime.Object, runtime.Object, runtime.Object, runtime.Object, error) { //nolint:gocritic // accepting high number of return parameters for now

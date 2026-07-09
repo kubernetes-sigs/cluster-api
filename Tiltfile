@@ -80,11 +80,11 @@ providers = {
         "context": "bootstrap/kubeadm",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller",
         "live_reload_deps": [
-            "main.go",
-            "api",
             "controllers",
-            "internal",
-            "types",
+            "pkg",
+            "webhooks",
+            "main.go",
+            "../../api/bootstrap/kubeadm",
             "../../go.mod",
             "../../go.sum",
         ],

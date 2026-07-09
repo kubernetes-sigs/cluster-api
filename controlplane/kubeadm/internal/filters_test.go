@@ -34,8 +34,8 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
+	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types/upstream"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )

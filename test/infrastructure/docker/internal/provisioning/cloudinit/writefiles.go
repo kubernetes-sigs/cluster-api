@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
+	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )

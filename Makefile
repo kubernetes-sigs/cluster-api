@@ -356,8 +356,8 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 	$(CONTROLLER_GEN) \
 		paths=./api/bootstrap/kubeadm/... \
 		paths=./bootstrap/kubeadm \
-		paths=./bootstrap/kubeadm/internal/controllers/... \
-		paths=./bootstrap/kubeadm/internal/webhooks/... \
+		paths=./bootstrap/kubeadm/controllers/... \
+		paths=./bootstrap/kubeadm/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
@@ -424,11 +424,11 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 
 .PHONY: generate-go-deepcopy-kubeadm-bootstrap
 generate-go-deepcopy-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate deepcopy go code for kubeadm bootstrap
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/bootstrap/kubeadm,./bootstrap/kubeadm/types"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/bootstrap/kubeadm,./bootstrap/kubeadm/pkg/types"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		paths=./api/bootstrap/kubeadm/... \
-		paths=./bootstrap/kubeadm/types/...
+		paths=./bootstrap/kubeadm/pkg/types/...
 
 .PHONY: generate-go-deepcopy-kubeadm-control-plane
 generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepcopy go code for kubeadm control plane
@@ -515,12 +515,12 @@ generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate convers
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./bootstrap/kubeadm/v1beta1
-	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/types/upstreamv1beta3,./bootstrap/kubeadm/types/upstreamv1beta4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/pkg/types/upstreamv1beta3,./bootstrap/kubeadm/pkg/types/upstreamv1beta4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
-		./bootstrap/kubeadm/types/upstreamv1beta3 \
-		./bootstrap/kubeadm/types/upstreamv1beta4
+		./bootstrap/kubeadm/pkg/types/upstreamv1beta3 \
+		./bootstrap/kubeadm/pkg/types/upstreamv1beta4
 
 .PHONY: generate-go-conversions-kubeadm-control-plane
 generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm control plane

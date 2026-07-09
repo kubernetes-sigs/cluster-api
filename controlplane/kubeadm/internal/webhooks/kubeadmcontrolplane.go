@@ -37,7 +37,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	bootstrapvalidation "sigs.k8s.io/cluster-api/bootstrap/kubeadm/validation"
+	bootstrapvalidation "sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/validation"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/taints"

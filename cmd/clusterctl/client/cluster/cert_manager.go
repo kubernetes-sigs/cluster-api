@@ -406,8 +406,11 @@ func certManagerImagesDiffer(objs, installObjs []unstructured.Unstructured) (boo
 	slices.Sort(currentImages)
 	slices.Sort(desiredImages)
 
-	if len(currentImages) == 0 || len(currentImages) != len(desiredImages) {
+	if len(currentImages) == 0 && len(desiredImages) == 0 {
 		return false, nil
+	}
+	if len(currentImages) != len(desiredImages) {
+		return true, nil
 	}
 	return !slices.Equal(currentImages, desiredImages), nil
 }

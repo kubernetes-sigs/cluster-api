@@ -724,6 +724,16 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: config.CertManagerDefaultVersion},
 					},
+					Spec: appsv1.DeploymentSpec{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
+								Containers: []corev1.Container{{
+									Name:  "manager",
+									Image: "quay.io/jetstack/cert-manager:v1.1.0",
+								}},
+							},
+						},
+					},
 				},
 			},
 			expectErr: false,

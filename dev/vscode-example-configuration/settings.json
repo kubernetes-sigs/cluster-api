@@ -1,3 +1,0 @@
-{
-    "go.testEnvFile": "${workspaceFolder}/.vscode/test.env"
-}

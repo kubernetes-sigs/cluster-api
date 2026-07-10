@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
@@ -74,7 +75,12 @@ var describeClusterClusterCmd = &cobra.Command{
 		# also when their status is the same as the status of the corresponding machine object.
 		clusterctl describe cluster test-1 --echo`),
 
-	Args: exactArgsWithMessage(1, "please specify a cluster name"),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if err := exactArgsWithMessage(1, "please specify a cluster name")(cmd, args); err != nil {
+			return err
+		}
+		return validateShowConditions(dc.showOtherConditions)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runDescribeCluster(cmd, args[0])
 	},
@@ -117,6 +123,15 @@ func init() {
 	)
 
 	describeCmd.AddCommand(describeClusterClusterCmd)
+}
+
+func validateShowConditions(showConditions string) error {
+	for _, filter := range strings.Split(showConditions, ",") {
+		if strings.TrimSpace(filter) != filter {
+			return errors.Errorf("invalid --show-conditions value %q: whitespace is not allowed", showConditions)
+		}
+	}
+	return nil
 }
 
 func runDescribeCluster(cmd *cobra.Command, name string) error {

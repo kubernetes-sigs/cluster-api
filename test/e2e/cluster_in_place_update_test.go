@@ -32,13 +32,22 @@ var _ = Describe("When in-place updating a workload cluster using ClusterClass",
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology-in-place"),
+			Flavor:                ptr.To("in-memory-topology"),
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
 			// The below values are used when creating the cluster-wide ExtensionConfig to refer
 			// the actual service.
 			ExtensionServiceNamespace: "test-extension-system",
 			ExtensionServiceName:      "test-extension-webhook-service",
+			ClusterctlVariables: map[string]string{
+				// MaxSurge=0 on KCP: uses scale-in rollout so no new CP machine is
+				// created when the files variable changes.
+				"KUBEADM_CONTROL_PLANE_MAX_SURGE": "0",
+				// MaxSurge=1, MaxUnavailable=1 on the MD: with MaxUnavailable=1 we
+				// should be able to only do in-place updates without any Machine re-creations.
+				"MD_MAX_SURGE":       "1",
+				"MD_MAX_UNAVAILABLE": "1",
+			},
 		}
 	})
 })

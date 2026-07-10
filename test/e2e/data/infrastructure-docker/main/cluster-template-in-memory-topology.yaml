@@ -66,9 +66,11 @@ spec:
         rollout:
           strategy:
             rollingUpdate:
-              maxSurge: 20%
-              maxUnavailable: 0
+              maxSurge: ${MD_MAX_SURGE:-20%}
+              maxUnavailable: ${MD_MAX_UNAVAILABLE:-0}
             type: RollingUpdate
     variables:
+      - name: kubeadmControlPlaneMaxSurge
+        value: "${KUBEADM_CONTROL_PLANE_MAX_SURGE:-1}"
       - name: imageRepository
         value: "kindest"

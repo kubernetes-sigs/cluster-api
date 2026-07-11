@@ -180,7 +180,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 
 	// If Cluster is updating surface it.
 	// Note: intentionally checking all the signal about upgrade in progress to make sure to avoid edge cases.
-	if s.UpgradeTracker.ControlPlane.IsPendingUpgrade ||
+	isUpgrading := s.UpgradeTracker.ControlPlane.IsPendingUpgrade ||
 		s.UpgradeTracker.ControlPlane.IsStartingUpgrade ||
 		s.UpgradeTracker.ControlPlane.IsUpgrading ||
 		s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade() ||
@@ -191,88 +191,101 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		s.UpgradeTracker.MachinePools.IsAnyUpgrading() ||
 		s.UpgradeTracker.MachinePools.IsAnyUpgradeDeferred() ||
 		s.UpgradeTracker.MachinePools.IsAnyPendingCreate() ||
-		hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, cluster) {
-		// Start building the condition message showing upgrade progress.
+		hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, cluster)
+	isRolloutPending := s.UpgradeTracker.MachineDeployments.IsAnyPendingRollout()
+	if isUpgrading || isRolloutPending {
 		msgBuilder := &strings.Builder{}
-		fmt.Fprintf(msgBuilder, "Cluster is upgrading to %s", cluster.Spec.Topology.Version)
 
 		// Setting condition reasons showing upgrade is progress; this will be overridden only
 		// when users are blocking upgrade to make further progress, e.g. deferred upgrades
 		reason := clusterv1.ClusterTopologyReconciledClusterUpgradingReason
 		v1Beta1Reason := clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason
 
-		cpVersion, err := contract.ControlPlane().Version().Get(s.Desired.ControlPlane.Object)
-		if err != nil {
-			return errors.Wrap(err, "failed to get control plane spec version")
-		}
+		if isUpgrading {
+			// Start building the condition message showing upgrade progress.
+			fmt.Fprintf(msgBuilder, "Cluster is upgrading to %s", cluster.Spec.Topology.Version)
 
-		// If any of the lifecycle hooks are blocking the upgrade surface it as a first detail.
-		if s.HookResponseTracker.IsAnyBlocking() {
-			fmt.Fprintf(msgBuilder, "\n  * %s", s.HookResponseTracker.AggregateMessage("upgrade"))
-		}
-
-		// If control plane is upgrading surface it, otherwise surface the pending upgrade plan.
-		if s.UpgradeTracker.ControlPlane.IsStartingUpgrade || s.UpgradeTracker.ControlPlane.IsUpgrading {
-			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s%s", s.Current.ControlPlane.Object.GetKind(), *cpVersion, pendingVersions(s.UpgradeTracker.ControlPlane.UpgradePlan, *cpVersion))
-		} else if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", s.Current.ControlPlane.Object.GetKind(), strings.Join(s.UpgradeTracker.ControlPlane.UpgradePlan, ", "))
-		}
-
-		// If MachineDeployments are upgrading surface it, if MachineDeployments are pending upgrades then surface the upgrade plans.
-		upgradingMachineDeploymentNames, pendingMachineDeploymentNames, deferredMachineDeploymentNames := dedupNames(s.UpgradeTracker.MachineDeployments)
-		if len(upgradingMachineDeploymentNames) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s%s", nameList("MachineDeployment", "MachineDeployments", upgradingMachineDeploymentNames), *cpVersion, pendingVersions(s.UpgradeTracker.MachineDeployments.UpgradePlan, *cpVersion))
-		}
-
-		if len(pendingMachineDeploymentNames) > 0 && len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", nameList("MachineDeployment", "MachineDeployments", pendingMachineDeploymentNames), strings.Join(s.UpgradeTracker.MachineDeployments.UpgradePlan, ", "))
-		}
-
-		// If MachineDeployments has been deferred or put on hold, surface it.
-		if len(deferredMachineDeploymentNames) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s upgrade to version %s deferred using defer-upgrade or hold-upgrade-sequence annotations", nameList("MachineDeployment", "MachineDeployments", deferredMachineDeploymentNames), *cpVersion)
-			// If Deferred upgrades are blocking an upgrade, surface it.
-			// Note: Hook blocking takes the precedence on this signal.
-			if !s.HookResponseTracker.IsAnyBlocking() &&
-				(!s.UpgradeTracker.ControlPlane.IsStartingUpgrade && !s.UpgradeTracker.ControlPlane.IsUpgrading) &&
-				!s.UpgradeTracker.MachineDeployments.IsAnyUpgrading() && len(pendingMachineDeploymentNames) == 0 {
-				reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason
-				v1Beta1Reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason
+			cpVersion, err := contract.ControlPlane().Version().Get(s.Desired.ControlPlane.Object)
+			if err != nil {
+				return errors.Wrap(err, "failed to get control plane spec version")
 			}
-		}
 
-		// If creation of MachineDeployments has been deferred due to control plane upgrade in progress, surface it.
-		if s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() {
-			fmt.Fprintf(msgBuilder, "\n  * %s creation deferred while control plane upgrade is in progress", nameList("MachineDeployment", "MachineDeployments", s.UpgradeTracker.MachineDeployments.PendingCreateTopologyNames()))
-		}
-
-		// If MachinePools are upgrading surface it, if MachinePools are pending upgrades then surface the upgrade plans.
-		upgradingMachinePoolNames, pendingMachinePoolNames, deferredMachinePoolNames := dedupNames(s.UpgradeTracker.MachinePools)
-		if len(upgradingMachinePoolNames) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s%s", nameList("MachinePool", "MachinePools", upgradingMachinePoolNames), *cpVersion, pendingVersions(s.UpgradeTracker.MachinePools.UpgradePlan, *cpVersion))
-		}
-
-		if len(pendingMachinePoolNames) > 0 && len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", nameList("MachinePool", "MachinePools", pendingMachinePoolNames), strings.Join(s.UpgradeTracker.MachinePools.UpgradePlan, ", "))
-		}
-
-		// If MachinePools has been deferred or put on hold, surface it.
-		if len(deferredMachinePoolNames) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s upgrade to version %s deferred using topology.cluster.x-k8s.io/defer-upgrade or hold-upgrade-sequence annotations", nameList("MachinePool", "MachinePools", deferredMachinePoolNames), *cpVersion)
-			// If Deferred upgrades are blocking an upgrade, surface it.
-			// Note: Hook blocking takes the precedence on this signal.
-			if !s.HookResponseTracker.IsAnyBlocking() &&
-				(!s.UpgradeTracker.ControlPlane.IsStartingUpgrade && !s.UpgradeTracker.ControlPlane.IsUpgrading) &&
-				!s.UpgradeTracker.MachinePools.IsAnyUpgrading() && len(pendingMachinePoolNames) == 0 &&
-				reason != clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason {
-				reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradeDeferredReason
-				v1Beta1Reason = clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredV1Beta1Reason
+			// If any of the lifecycle hooks are blocking the upgrade surface it as a first detail.
+			if s.HookResponseTracker.IsAnyBlocking() {
+				fmt.Fprintf(msgBuilder, "\n  * %s", s.HookResponseTracker.AggregateMessage("upgrade"))
 			}
+
+			// If control plane is upgrading surface it, otherwise surface the pending upgrade plan.
+			if s.UpgradeTracker.ControlPlane.IsStartingUpgrade || s.UpgradeTracker.ControlPlane.IsUpgrading {
+				fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s%s", s.Current.ControlPlane.Object.GetKind(), *cpVersion, pendingVersions(s.UpgradeTracker.ControlPlane.UpgradePlan, *cpVersion))
+			} else if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
+				fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", s.Current.ControlPlane.Object.GetKind(), strings.Join(s.UpgradeTracker.ControlPlane.UpgradePlan, ", "))
+			}
+
+			// If MachineDeployments are upgrading surface it, if MachineDeployments are pending upgrades then surface the upgrade plans.
+			upgradingMachineDeploymentNames, pendingMachineDeploymentNames, deferredMachineDeploymentNames := dedupNames(s.UpgradeTracker.MachineDeployments)
+			if len(upgradingMachineDeploymentNames) > 0 {
+				fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s%s", nameList("MachineDeployment", "MachineDeployments", upgradingMachineDeploymentNames), *cpVersion, pendingVersions(s.UpgradeTracker.MachineDeployments.UpgradePlan, *cpVersion))
+			}
+
+			if len(pendingMachineDeploymentNames) > 0 && len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 {
+				fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", nameList("MachineDeployment", "MachineDeployments", pendingMachineDeploymentNames), strings.Join(s.UpgradeTracker.MachineDeployments.UpgradePlan, ", "))
+			}
+
+			// If MachineDeployments has been deferred or put on hold, surface it.
+			if len(deferredMachineDeploymentNames) > 0 {
+				fmt.Fprintf(msgBuilder, "\n  * %s upgrade to version %s deferred using defer-upgrade or hold-upgrade-sequence annotations", nameList("MachineDeployment", "MachineDeployments", deferredMachineDeploymentNames), *cpVersion)
+				// If Deferred upgrades are blocking an upgrade, surface it.
+				// Note: Hook blocking takes the precedence on this signal.
+				if !s.HookResponseTracker.IsAnyBlocking() &&
+					(!s.UpgradeTracker.ControlPlane.IsStartingUpgrade && !s.UpgradeTracker.ControlPlane.IsUpgrading) &&
+					!s.UpgradeTracker.MachineDeployments.IsAnyUpgrading() && len(pendingMachineDeploymentNames) == 0 {
+					reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason
+					v1Beta1Reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason
+				}
+			}
+
+			// If creation of MachineDeployments has been deferred due to control plane upgrade in progress, surface it.
+			if s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() {
+				fmt.Fprintf(msgBuilder, "\n  * %s creation deferred while control plane upgrade is in progress", nameList("MachineDeployment", "MachineDeployments", s.UpgradeTracker.MachineDeployments.PendingCreateTopologyNames()))
+			}
+
+			// If MachinePools are upgrading surface it, if MachinePools are pending upgrades then surface the upgrade plans.
+			upgradingMachinePoolNames, pendingMachinePoolNames, deferredMachinePoolNames := dedupNames(s.UpgradeTracker.MachinePools)
+			if len(upgradingMachinePoolNames) > 0 {
+				fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s%s", nameList("MachinePool", "MachinePools", upgradingMachinePoolNames), *cpVersion, pendingVersions(s.UpgradeTracker.MachinePools.UpgradePlan, *cpVersion))
+			}
+
+			if len(pendingMachinePoolNames) > 0 && len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 {
+				fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", nameList("MachinePool", "MachinePools", pendingMachinePoolNames), strings.Join(s.UpgradeTracker.MachinePools.UpgradePlan, ", "))
+			}
+
+			// If MachinePools has been deferred or put on hold, surface it.
+			if len(deferredMachinePoolNames) > 0 {
+				fmt.Fprintf(msgBuilder, "\n  * %s upgrade to version %s deferred using topology.cluster.x-k8s.io/defer-upgrade or hold-upgrade-sequence annotations", nameList("MachinePool", "MachinePools", deferredMachinePoolNames), *cpVersion)
+				// If Deferred upgrades are blocking an upgrade, surface it.
+				// Note: Hook blocking takes the precedence on this signal.
+				if !s.HookResponseTracker.IsAnyBlocking() &&
+					(!s.UpgradeTracker.ControlPlane.IsStartingUpgrade && !s.UpgradeTracker.ControlPlane.IsUpgrading) &&
+					!s.UpgradeTracker.MachinePools.IsAnyUpgrading() && len(pendingMachinePoolNames) == 0 &&
+					reason != clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason {
+					reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradeDeferredReason
+					v1Beta1Reason = clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredV1Beta1Reason
+				}
+			}
+
+			// If creation of MachinePools has been deferred due to control plane upgrade in progress, surface it.
+			if s.UpgradeTracker.MachinePools.IsAnyPendingCreate() {
+				fmt.Fprintf(msgBuilder, "\n  * %s creation deferred while control plane upgrade is in progress", nameList("MachinePool", "MachinePools", s.UpgradeTracker.MachinePools.PendingCreateTopologyNames()))
+			}
+		} else {
+			fmt.Fprint(msgBuilder, "Cluster topology rollout is pending")
+			reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsRolloutPendingReason
+			v1Beta1Reason = clusterv1.TopologyReconciledMachineDeploymentsRolloutPendingV1Beta1Reason
 		}
 
-		// If creation of MachinePools has been deferred due to control plane upgrade in progress, surface it.
-		if s.UpgradeTracker.MachinePools.IsAnyPendingCreate() {
-			fmt.Fprintf(msgBuilder, "\n  * %s creation deferred while control plane upgrade is in progress", nameList("MachinePool", "MachinePools", s.UpgradeTracker.MachinePools.PendingCreateTopologyNames()))
+		if isRolloutPending {
+			fmt.Fprintf(msgBuilder, "\n  * %s rollout pending because a rollout concurrency limit has been reached", nameList("MachineDeployment", "MachineDeployments", s.UpgradeTracker.MachineDeployments.PendingRolloutNames()))
 		}
 
 		v1beta1conditions.Set(cluster,

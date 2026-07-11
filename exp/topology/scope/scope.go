@@ -17,7 +17,10 @@ limitations under the License.
 package scope
 
 import (
+	"context"
 	"strconv"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -56,6 +59,12 @@ func New(cluster *clusterv1.Cluster) *Scope {
 		maxMDUpgradeConcurrency, _ = strconv.Atoi(concurrency)
 		maxMPUpgradeConcurrency, _ = strconv.Atoi(concurrency)
 	}
+
+	// Determine the overall maximum rollout concurrency from the Cluster topology.
+	// Note: If not set, MaxConcurrency is 0 and there is no overall limit. Rollout group limits are configured
+	// after the current MachineDeployments and their generated names have been discovered.
+	maxMDRolloutConcurrency := int(cluster.Spec.Topology.Workers.Rollout.MaxConcurrency)
+
 	return &Scope{
 		Blueprint: &ClusterBlueprint{},
 		Current: &ClusterState{
@@ -64,7 +73,36 @@ func New(cluster *clusterv1.Cluster) *Scope {
 		UpgradeTracker: NewUpgradeTracker(
 			MaxMDUpgradeConcurrency(maxMDUpgradeConcurrency),
 			MaxMPUpgradeConcurrency(maxMPUpgradeConcurrency),
+			MaxMDRolloutConcurrency(maxMDRolloutConcurrency),
 		),
 		HookResponseTracker: NewHookResponseTracker(),
 	}
+}
+
+// InitializeMachineDeploymentRolloutTracking configures rollout groups and records MachineDeployments that are already
+// rolling out. It must be called after the current state and blueprint have been discovered and before upgrade or rollout
+// concurrency decisions are made. Calling it more than once is safe because the tracker uses sets and stable mappings.
+// It is a no-op when the Cluster topology does not configure workers.rollout, so the default path does not pay for
+// listing MachineSets.
+func (s *Scope) InitializeMachineDeploymentRolloutTracking(ctx context.Context, c client.Reader) error {
+	rollout := s.Blueprint.Topology.Workers.Rollout
+	// The rollout policy can already be enabled on the tracker via the MaxMDRolloutConcurrency option.
+	if !s.UpgradeTracker.MachineDeployments.rolloutPolicyEnabled && rollout.MaxConcurrency == 0 && len(rollout.Groups) == 0 {
+		return nil
+	}
+	s.UpgradeTracker.MachineDeployments.rolloutPolicyEnabled = true
+
+	for _, group := range rollout.Groups {
+		for _, mdTopologyName := range group.MachineDeployments {
+			if currentMD, ok := s.Current.MachineDeployments[mdTopologyName]; ok {
+				s.UpgradeTracker.MachineDeployments.AddToRolloutGroup(currentMD.Object.Name, group.Name, int(group.MaxConcurrency))
+			}
+		}
+	}
+	rollingOutNames, err := s.Current.MachineDeployments.RollingOut(ctx, c)
+	if err != nil {
+		return err
+	}
+	s.UpgradeTracker.MachineDeployments.MarkRollingOut(rollingOutNames...)
+	return nil
 }

@@ -57,4 +57,40 @@ func TestNew(t *testing.T) {
 			g.Expect(s.UpgradeTracker.MachinePools.maxUpgradeConcurrency).To(Equal(tt.want))
 		}
 	})
+
+	t.Run("should set the right maxRolloutConcurrency in UpgradeTracker from the cluster topology", func(t *testing.T) {
+		tests := []struct {
+			name    string
+			cluster *clusterv1.Cluster
+			wantMD  int
+		}{
+			{
+				name:    "if maxConcurrency is not set rollout sequencing should be disabled",
+				cluster: &clusterv1.Cluster{},
+				wantMD:  0,
+			},
+			{
+				name: "if maxConcurrency is set it should set the MachineDeployment rollout concurrency value",
+				cluster: &clusterv1.Cluster{
+					Spec: clusterv1.ClusterSpec{
+						Topology: clusterv1.Topology{
+							Workers: clusterv1.WorkersTopology{
+								Rollout: clusterv1.WorkersTopologyRolloutSpec{
+									MaxConcurrency: 2,
+								},
+							},
+						},
+					},
+				},
+				wantMD: 2,
+			},
+		}
+
+		for _, tt := range tests {
+			g := NewWithT(t)
+			s := New(tt.cluster)
+			g.Expect(s.UpgradeTracker.MachineDeployments.maxRolloutConcurrency).To(Equal(tt.wantMD))
+			g.Expect(s.UpgradeTracker.MachinePools.maxRolloutConcurrency).To(Equal(0))
+		}
+	})
 }

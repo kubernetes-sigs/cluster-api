@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -112,6 +113,131 @@ func TestIsMachineDeploymentUpgrading(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(got).To(Equal(tt.want))
 			}
+		})
+	}
+}
+
+func TestIsMachineDeploymentRollingOut(t *testing.T) {
+	newMD := func(generation, observedGeneration int64, rollingOut metav1.ConditionStatus) *clusterv1.MachineDeployment {
+		md := builder.MachineDeployment("ns", "md1").
+			WithClusterName("cluster1").
+			WithVersion("v1.2.3").
+			WithGeneration(generation).
+			WithStatus(clusterv1.MachineDeploymentStatus{
+				ObservedGeneration: observedGeneration,
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineDeploymentRollingOutCondition,
+						Status: rollingOut,
+					},
+				},
+			}).
+			Build()
+		md.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = "md1-topology"
+		md.Spec.Template.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = "md1-topology"
+		return md
+	}
+	newMS := func(name, version string, replicas int32) *clusterv1.MachineSet {
+		ms := builder.MachineSet("ns", name).
+			WithClusterName("cluster1").
+			WithLabels(map[string]string{
+				clusterv1.ClusterNameLabel:                          "cluster1",
+				clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md1-topology",
+			}).
+			WithReplicas(ptr.To(replicas)).
+			Build()
+		ms.Spec.Template.Spec.Version = version
+		return ms
+	}
+	otherMS := newMS("other-ms-old", "v1.2.2", 1)
+	otherMS.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = "other-topology"
+
+	tests := []struct {
+		name        string
+		md          *clusterv1.MachineDeployment
+		machineSets []*clusterv1.MachineSet
+		want        bool
+	}{
+		{
+			name: "should return true if the RollingOut condition is true",
+			md:   newMD(1, 1, metav1.ConditionTrue),
+			machineSets: []*clusterv1.MachineSet{
+				newMS("ms-new", "v1.2.3", 1),
+			},
+			want: true,
+		},
+		{
+			name: "should return true if the controller has not observed the latest generation",
+			md:   newMD(2, 1, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{
+				newMS("ms-new", "v1.2.3", 1),
+			},
+			want: true,
+		},
+		{
+			name: "should return true if a MachineSet not matching the MachineDeployment template still has replicas",
+			// Regression test for the window in which the MachineDeployment controller already observed a template
+			// change but the Machines' UpToDate conditions, and thus the RollingOut condition, are not updated yet.
+			md: newMD(2, 2, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{
+				newMS("ms-new", "v1.2.3", 1),
+				newMS("ms-old", "v1.2.2", 1),
+			},
+			want: true,
+		},
+		{
+			name: "should return false if the only MachineSet matches the MachineDeployment template",
+			md:   newMD(2, 2, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{
+				newMS("ms-new", "v1.2.3", 1),
+			},
+			want: false,
+		},
+		{
+			name: "should ignore MachineSets not selected by the MachineDeployment",
+			md:   newMD(2, 2, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{
+				newMS("ms-new", "v1.2.3", 1),
+				otherMS,
+			},
+			want: false,
+		},
+		{
+			name: "should return false if MachineSets not matching the MachineDeployment template are fully scaled down",
+			md:   newMD(2, 2, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{
+				newMS("ms-new", "v1.2.3", 1),
+				newMS("ms-old", "v1.2.2", 0),
+			},
+			want: false,
+		},
+		{
+			name: "should return true if no MachineSet matches the MachineDeployment template",
+			md:   newMD(2, 2, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{
+				newMS("ms-old", "v1.2.2", 0),
+			},
+			want: true,
+		},
+		{
+			name:        "should return true if the MachineDeployment has no MachineSets yet",
+			md:          newMD(1, 1, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{},
+			want:        true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			machineSets := make([]clusterv1.MachineSet, 0, len(tt.machineSets))
+			for _, ms := range tt.machineSets {
+				machineSets = append(machineSets, *ms)
+			}
+
+			got, err := IsMachineDeploymentRollingOut(tt.md, machineSets)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

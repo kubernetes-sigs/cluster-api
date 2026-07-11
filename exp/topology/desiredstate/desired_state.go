@@ -1125,8 +1125,8 @@ func (g *generator) computeMachineDeploymentVersion(ctx context.Context, s *scop
 		return currentVersion, nil
 	}
 
-	// Return early if the upgrade concurrency is reached.
-	if s.UpgradeTracker.MachineDeployments.UpgradeConcurrencyReached() {
+	// Return early if the upgrade concurrency or the rollout policy concurrency is reached.
+	if s.UpgradeTracker.MachineDeployments.UpgradeConcurrencyReached(currentMDState.Object.Name) {
 		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil
 	}
@@ -1460,7 +1460,7 @@ func (g *generator) computeMachinePoolVersion(ctx context.Context, s *scope.Scop
 	}
 
 	// Return early if the upgrade concurrency is reached.
-	if s.UpgradeTracker.MachinePools.UpgradeConcurrencyReached() {
+	if s.UpgradeTracker.MachinePools.UpgradeConcurrencyReached(currentMPState.Object.Name) {
 		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
 		return currentVersion, nil
 	}

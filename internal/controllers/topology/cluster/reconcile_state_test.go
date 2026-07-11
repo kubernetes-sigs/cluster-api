@@ -22,6 +22,7 @@ import (
 	"maps"
 	"net/http"
 	"regexp"
+	"slices"
 	"testing"
 	"time"
 
@@ -2358,15 +2359,106 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Template.Labels = map[string]string{"foo": "bar"}
 	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Selector.MatchLabels = map[string]string{"foo": "bar"}
 
+	infrastructureMachineTemplateRolloutFirst := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-first").Build()
+	bootstrapTemplateRolloutFirst := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-first").Build()
+	mdRolloutFirst := newFakeMachineDeploymentTopologyState("md-rollout-first", infrastructureMachineTemplateRolloutFirst, bootstrapTemplateRolloutFirst, nil)
+	infrastructureMachineTemplateRolloutFirstWithChanges := infrastructureMachineTemplateRolloutFirst.DeepCopy()
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplateRolloutFirstWithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
+	mdRolloutFirstWithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-rollout-first", infrastructureMachineTemplateRolloutFirstWithChanges, bootstrapTemplateRolloutFirst, nil)
+
+	infrastructureMachineTemplateRolloutSecond := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-second").Build()
+	bootstrapTemplateRolloutSecond := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-second").Build()
+	mdRolloutSecond := newFakeMachineDeploymentTopologyState("md-rollout-second", infrastructureMachineTemplateRolloutSecond, bootstrapTemplateRolloutSecond, nil)
+	infrastructureMachineTemplateRolloutSecondWithChanges := infrastructureMachineTemplateRolloutSecond.DeepCopy()
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplateRolloutSecondWithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
+	mdRolloutSecondWithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-rollout-second", infrastructureMachineTemplateRolloutSecondWithChanges, bootstrapTemplateRolloutSecond, nil)
+
+	infrastructureMachineTemplateRolloutRunning := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-running").Build()
+	bootstrapTemplateRolloutRunning := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-running").Build()
+	mdRolloutRunning := newFakeMachineDeploymentTopologyState("md-rollout-running", infrastructureMachineTemplateRolloutRunning, bootstrapTemplateRolloutRunning, nil)
+	mdRolloutRunning.Object.Status.ObservedGeneration = mdRolloutRunning.Object.Generation
+	mdRolloutRunning.Object.Status.Conditions = []metav1.Condition{
+		{
+			Type:   clusterv1.MachineDeploymentRollingOutCondition,
+			Status: metav1.ConditionTrue,
+			Reason: "RollingOut",
+		},
+	}
+
+	infrastructureMachineTemplateRolloutFinished := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-finished").Build()
+	bootstrapTemplateRolloutFinished := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-finished").Build()
+	mdRolloutFinished := newFakeMachineDeploymentTopologyState("md-rollout-finished", infrastructureMachineTemplateRolloutFinished, bootstrapTemplateRolloutFinished, nil)
+	mdRolloutFinished.Object.Status.ObservedGeneration = mdRolloutFinished.Object.Generation
+	mdRolloutFinished.Object.Status.Conditions = []metav1.Condition{
+		{
+			Type:   clusterv1.MachineDeploymentRollingOutCondition,
+			Status: metav1.ConditionFalse,
+			Reason: "RolloutComplete",
+		},
+	}
+
+	infrastructureMachineTemplateRolloutBlocked := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-blocked").Build()
+	bootstrapTemplateRolloutBlocked := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-blocked").Build()
+	mdRolloutBlocked := newFakeMachineDeploymentTopologyState("md-rollout-blocked", infrastructureMachineTemplateRolloutBlocked, bootstrapTemplateRolloutBlocked, nil)
+	infrastructureMachineTemplateRolloutBlockedWithChanges := infrastructureMachineTemplateRolloutBlocked.DeepCopy()
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplateRolloutBlockedWithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
+	mdRolloutBlockedWithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-rollout-blocked", infrastructureMachineTemplateRolloutBlockedWithChanges, bootstrapTemplateRolloutBlocked, nil)
+
+	infrastructureMachineTemplateRolloutMetadata := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-metadata").Build()
+	bootstrapTemplateRolloutMetadata := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-metadata").Build()
+	mdRolloutMetadata := newFakeMachineDeploymentTopologyState("md-rollout-metadata", infrastructureMachineTemplateRolloutMetadata, bootstrapTemplateRolloutMetadata, nil)
+	infrastructureMachineTemplateRolloutMetadataWithChanges := infrastructureMachineTemplateRolloutMetadata.DeepCopy()
+	infrastructureMachineTemplateRolloutMetadataWithChanges.SetLabels(map[string]string{"foo": "bar"})
+	bootstrapTemplateRolloutMetadataWithChanges := bootstrapTemplateRolloutMetadata.DeepCopy()
+	bootstrapTemplateRolloutMetadataWithChanges.SetLabels(map[string]string{"foo": "bar"})
+	mdRolloutMetadataWithInPlaceUpdatedTemplates := newFakeMachineDeploymentTopologyState("md-rollout-metadata", infrastructureMachineTemplateRolloutMetadataWithChanges, bootstrapTemplateRolloutMetadataWithChanges, nil)
+
+	infrastructureMachineTemplateRolloutPendingUpgrade := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-pending-upgrade").Build()
+	bootstrapTemplateRolloutPendingUpgrade := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-pending-upgrade").Build()
+	mdRolloutPendingUpgrade := newFakeMachineDeploymentTopologyState("md-rollout-pending-upgrade", infrastructureMachineTemplateRolloutPendingUpgrade, bootstrapTemplateRolloutPendingUpgrade, nil)
+	infrastructureMachineTemplateRolloutPendingUpgradeWithChanges := infrastructureMachineTemplateRolloutPendingUpgrade.DeepCopy()
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplateRolloutPendingUpgradeWithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
+	mdRolloutPendingUpgradeWithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-rollout-pending-upgrade", infrastructureMachineTemplateRolloutPendingUpgradeWithChanges, bootstrapTemplateRolloutPendingUpgrade, nil)
+	upgradeTrackerWithRolloutPendingUpgrade := scope.NewUpgradeTracker(scope.MaxMDRolloutConcurrency(1))
+	upgradeTrackerWithRolloutPendingUpgrade.MachineDeployments.MarkPendingUpgrade("md-rollout-pending-upgrade")
+
+	infrastructureMachineTemplateRolloutGap := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-gap").Build()
+	bootstrapTemplateRolloutGap := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-gap").Build()
+	mdRolloutGap := newFakeMachineDeploymentTopologyState("md-rollout-gap", infrastructureMachineTemplateRolloutGap, bootstrapTemplateRolloutGap, nil)
+	mdRolloutGap.Object.Status.ObservedGeneration = mdRolloutGap.Object.Generation
+	mdRolloutGap.Object.Status.Conditions = []metav1.Condition{
+		{
+			Type:   clusterv1.MachineDeploymentRollingOutCondition,
+			Status: metav1.ConditionFalse,
+			Reason: "RolloutComplete",
+		},
+	}
+
+	infrastructureMachineTemplateRolloutUpgrading := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-upgrading").Build()
+	bootstrapTemplateRolloutUpgrading := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-upgrading").Build()
+	mdRolloutUpgrading := newFakeMachineDeploymentTopologyState("md-rollout-upgrading", infrastructureMachineTemplateRolloutUpgrading, bootstrapTemplateRolloutUpgrading, nil)
+	infrastructureMachineTemplateRolloutHeld := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-rollout-held").Build()
+	bootstrapTemplateRolloutHeld := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-rollout-held").Build()
+	mdRolloutHeld := newFakeMachineDeploymentTopologyState("md-rollout-held", infrastructureMachineTemplateRolloutHeld, bootstrapTemplateRolloutHeld, nil)
+	infrastructureMachineTemplateRolloutHeldWithChanges := infrastructureMachineTemplateRolloutHeld.DeepCopy()
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplateRolloutHeldWithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
+	mdRolloutHeldWithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-rollout-held", infrastructureMachineTemplateRolloutHeldWithChanges, bootstrapTemplateRolloutHeld, nil)
+	upgradeTrackerWithRolloutUpgrading := scope.NewUpgradeTracker(scope.MaxMDRolloutConcurrency(1))
+	upgradeTrackerWithRolloutUpgrading.MachineDeployments.MarkUpgrading("md-rollout-upgrading")
+
 	tests := []struct {
 		name                                      string
 		current                                   []*scope.MachineDeploymentState
 		currentOnlyAPIServer                      []*scope.MachineDeploymentState
 		desired                                   []*scope.MachineDeploymentState
 		upgradeTracker                            *scope.UpgradeTracker
+		machineDeploymentTopologyOrder            []string
+		rolloutGroups                             []clusterv1.MachineDeploymentRolloutGroup
+		oldMachineSetsFor                         []string
 		want                                      []*scope.MachineDeploymentState
 		wantInfrastructureMachineTemplateRotation map[string]bool
 		wantBootstrapTemplateRotation             map[string]bool
+		wantPendingRolloutNames                   []string
 		wantErr                                   bool
 	}{
 		{
@@ -2406,6 +2498,145 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			want:    []*scope.MachineDeploymentState{md2WithRotatedInfrastructureMachineTemplate},
 			wantInfrastructureMachineTemplateRotation: map[string]bool{"md-2": true},
 			wantErr: false,
+		},
+		{
+			name:    "Should update MachineDeployments with rollout-triggering changes in parallel if rollout concurrency is unset",
+			current: []*scope.MachineDeploymentState{mdRolloutFirst, mdRolloutSecond},
+			desired: []*scope.MachineDeploymentState{mdRolloutFirstWithRotatedInfrastructureMachineTemplate, mdRolloutSecondWithRotatedInfrastructureMachineTemplate},
+			want:    []*scope.MachineDeploymentState{mdRolloutFirstWithRotatedInfrastructureMachineTemplate, mdRolloutSecondWithRotatedInfrastructureMachineTemplate},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-first":  true,
+				"md-rollout-second": true,
+			},
+			wantErr: false,
+		},
+		{
+			name:                           "Should defer rollout-triggering changes after reaching rollout concurrency in topology order",
+			current:                        []*scope.MachineDeploymentState{mdRolloutFirst, mdRolloutSecond},
+			desired:                        []*scope.MachineDeploymentState{mdRolloutFirstWithRotatedInfrastructureMachineTemplate, mdRolloutSecondWithRotatedInfrastructureMachineTemplate},
+			upgradeTracker:                 scope.NewUpgradeTracker(scope.MaxMDRolloutConcurrency(1)),
+			machineDeploymentTopologyOrder: []string{"md-rollout-second-topology", "md-rollout-first-topology"},
+			want:                           []*scope.MachineDeploymentState{mdRolloutFirst, mdRolloutSecondWithRotatedInfrastructureMachineTemplate},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-first":  false,
+				"md-rollout-second": true,
+			},
+			wantPendingRolloutNames: []string{"md-rollout-first"},
+			wantErr:                 false,
+		},
+		{
+			name:                           "Should roll out groups in parallel and MachineDeployments within each group in topology order",
+			current:                        []*scope.MachineDeploymentState{mdRolloutFirst, mdRolloutSecond, mdRolloutBlocked, mdRolloutHeld},
+			desired:                        []*scope.MachineDeploymentState{mdRolloutFirstWithRotatedInfrastructureMachineTemplate, mdRolloutSecondWithRotatedInfrastructureMachineTemplate, mdRolloutBlockedWithRotatedInfrastructureMachineTemplate, mdRolloutHeldWithRotatedInfrastructureMachineTemplate},
+			machineDeploymentTopologyOrder: []string{"md-rollout-second-topology", "md-rollout-first-topology", "md-rollout-held-topology", "md-rollout-blocked-topology"},
+			rolloutGroups: []clusterv1.MachineDeploymentRolloutGroup{
+				{Name: "database", MachineDeployments: []string{"md-rollout-first-topology", "md-rollout-second-topology"}, MaxConcurrency: 1},
+				{Name: "applications", MachineDeployments: []string{"md-rollout-blocked-topology", "md-rollout-held-topology"}, MaxConcurrency: 1},
+			},
+			want: []*scope.MachineDeploymentState{mdRolloutFirst, mdRolloutSecondWithRotatedInfrastructureMachineTemplate, mdRolloutBlocked, mdRolloutHeldWithRotatedInfrastructureMachineTemplate},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-first":   false,
+				"md-rollout-second":  true,
+				"md-rollout-blocked": false,
+				"md-rollout-held":    true,
+			},
+			wantPendingRolloutNames: []string{"md-rollout-first", "md-rollout-blocked"},
+			wantErr:                 false,
+		},
+		{
+			name:                           "Should enforce overall rollout concurrency across rollout groups",
+			current:                        []*scope.MachineDeploymentState{mdRolloutFirst, mdRolloutSecond, mdRolloutBlocked, mdRolloutHeld},
+			desired:                        []*scope.MachineDeploymentState{mdRolloutFirstWithRotatedInfrastructureMachineTemplate, mdRolloutSecondWithRotatedInfrastructureMachineTemplate, mdRolloutBlockedWithRotatedInfrastructureMachineTemplate, mdRolloutHeldWithRotatedInfrastructureMachineTemplate},
+			upgradeTracker:                 scope.NewUpgradeTracker(scope.MaxMDRolloutConcurrency(1)),
+			machineDeploymentTopologyOrder: []string{"md-rollout-second-topology", "md-rollout-first-topology", "md-rollout-held-topology", "md-rollout-blocked-topology"},
+			rolloutGroups: []clusterv1.MachineDeploymentRolloutGroup{
+				{Name: "database", MachineDeployments: []string{"md-rollout-first-topology", "md-rollout-second-topology"}, MaxConcurrency: 1},
+				{Name: "applications", MachineDeployments: []string{"md-rollout-blocked-topology", "md-rollout-held-topology"}, MaxConcurrency: 1},
+			},
+			want: []*scope.MachineDeploymentState{mdRolloutFirst, mdRolloutSecondWithRotatedInfrastructureMachineTemplate, mdRolloutBlocked, mdRolloutHeld},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-first":   false,
+				"md-rollout-second":  true,
+				"md-rollout-blocked": false,
+				"md-rollout-held":    false,
+			},
+			wantPendingRolloutNames: []string{"md-rollout-first", "md-rollout-blocked", "md-rollout-held"},
+			wantErr:                 false,
+		},
+		{
+			name:           "Should defer rollout-triggering changes if another MachineDeployment is already rolling out",
+			current:        []*scope.MachineDeploymentState{mdRolloutRunning, mdRolloutBlocked},
+			desired:        []*scope.MachineDeploymentState{mdRolloutRunning, mdRolloutBlockedWithRotatedInfrastructureMachineTemplate},
+			upgradeTracker: scope.NewUpgradeTracker(scope.MaxMDRolloutConcurrency(1)),
+			want:           []*scope.MachineDeploymentState{mdRolloutRunning, mdRolloutBlocked},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-blocked": false,
+			},
+			wantPendingRolloutNames: []string{"md-rollout-blocked"},
+			wantErr:                 false,
+		},
+		{
+			name:           "Should allow rollout-triggering changes after previous rollout finished",
+			current:        []*scope.MachineDeploymentState{mdRolloutFinished, mdRolloutBlocked},
+			desired:        []*scope.MachineDeploymentState{mdRolloutFinished, mdRolloutBlockedWithRotatedInfrastructureMachineTemplate},
+			upgradeTracker: scope.NewUpgradeTracker(scope.MaxMDRolloutConcurrency(1)),
+			want:           []*scope.MachineDeploymentState{mdRolloutFinished, mdRolloutBlockedWithRotatedInfrastructureMachineTemplate},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-blocked": true,
+			},
+			wantErr: false,
+		},
+		{
+			name:           "Should update template metadata-only changes without rollout gating",
+			current:        []*scope.MachineDeploymentState{mdRolloutRunning, mdRolloutMetadata},
+			desired:        []*scope.MachineDeploymentState{mdRolloutRunning, mdRolloutMetadataWithInPlaceUpdatedTemplates},
+			upgradeTracker: scope.NewUpgradeTracker(scope.MaxMDRolloutConcurrency(1)),
+			want:           []*scope.MachineDeploymentState{mdRolloutRunning, mdRolloutMetadataWithInPlaceUpdatedTemplates},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-metadata": false,
+			},
+			wantBootstrapTemplateRotation: map[string]bool{
+				"md-rollout-metadata": false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Should count a MachineDeployment with an old MachineSet against rollout concurrency even if RollingOut condition is false",
+			// Regression test for the window in which the MachineDeployment controller already observed a template
+			// change but the Machines' UpToDate conditions, and thus the RollingOut condition, are not updated yet.
+			current:           []*scope.MachineDeploymentState{mdRolloutGap, mdRolloutBlocked},
+			desired:           []*scope.MachineDeploymentState{mdRolloutGap, mdRolloutBlockedWithRotatedInfrastructureMachineTemplate},
+			upgradeTracker:    scope.NewUpgradeTracker(scope.MaxMDRolloutConcurrency(1)),
+			oldMachineSetsFor: []string{"md-rollout-gap"},
+			want:              []*scope.MachineDeploymentState{mdRolloutGap, mdRolloutBlocked},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-blocked": false,
+			},
+			wantPendingRolloutNames: []string{"md-rollout-blocked"},
+			wantErr:                 false,
+		},
+		{
+			name:           "Should not mark pending rollout if MachineDeployment is pending upgrade",
+			current:        []*scope.MachineDeploymentState{mdRolloutPendingUpgrade},
+			desired:        []*scope.MachineDeploymentState{mdRolloutPendingUpgradeWithRotatedInfrastructureMachineTemplate},
+			upgradeTracker: upgradeTrackerWithRolloutPendingUpgrade,
+			want:           []*scope.MachineDeploymentState{mdRolloutPendingUpgrade},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-pending-upgrade": false,
+			},
+			wantErr: false,
+		},
+		{
+			name:           "Should count upgrading MachineDeployments against rollout concurrency",
+			current:        []*scope.MachineDeploymentState{mdRolloutUpgrading, mdRolloutHeld},
+			desired:        []*scope.MachineDeploymentState{mdRolloutUpgrading, mdRolloutHeldWithRotatedInfrastructureMachineTemplate},
+			upgradeTracker: upgradeTrackerWithRolloutUpgrading,
+			want:           []*scope.MachineDeploymentState{mdRolloutUpgrading, mdRolloutHeld},
+			wantInfrastructureMachineTemplateRotation: map[string]bool{
+				"md-rollout-held": false,
+			},
+			wantPendingRolloutNames: []string{"md-rollout-held"},
+			wantErr:                 false,
 		},
 		{
 			name:           "Should not update MachineDeployment if MachineDeployment is pending upgrade",
@@ -2504,12 +2735,35 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			for _, s := range tt.current {
 				g.Expect(env.PatchAndWait(ctx, s.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				g.Expect(env.PatchAndWait(ctx, s.BootstrapTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				status := s.Object.Status
 				g.Expect(env.PatchAndWait(ctx, s.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				// env.PatchAndWait overwrites the in-memory MachineDeployment with the server response.
+				// Restore status and make observedGeneration current so MachineDeploymentState.IsRollingOut
+				// only treats fixtures with explicit rollout signals as rolling out.
+				s.Object.Status = status
+				s.Object.Status.ObservedGeneration = s.Object.Generation
+
+				// Create a MachineSet matching the MachineDeployment machine template so the MachineSet-based
+				// rolling out detection does not consider fixtures without explicit rollout signals as rolling out.
+				ms := newFakeMachineSetForMachineDeployment(s.Object, s.Object.Name+"-ms")
+				g.Expect(env.PatchAndWait(ctx, ms, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+
+				// An additional MachineSet not matching the MachineDeployment machine template that still has
+				// replicas marks the MachineDeployment as rolling out.
+				if slices.Contains(tt.oldMachineSetsFor, s.Object.Name) {
+					oldMS := newFakeMachineSetForMachineDeployment(s.Object, s.Object.Name+"-ms-old")
+					oldMS.Spec.Template.Spec.InfrastructureRef.Name = s.Object.Name + "-old-infra"
+					g.Expect(env.PatchAndWait(ctx, oldMS, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				}
 			}
 
 			currentMachineDeploymentStates := toMachineDeploymentTopologyStateMap(tt.current)
 			s := scope.New(builder.Cluster(namespace.GetName(), "cluster-1").Build())
 			s.Current.MachineDeployments = currentMachineDeploymentStates
+			s.Blueprint.Topology.Workers.Rollout.Groups = tt.rolloutGroups
+			for _, mdTopologyName := range tt.machineDeploymentTopologyOrder {
+				s.Blueprint.Topology.Workers.MachineDeployments = append(s.Blueprint.Topology.Workers.MachineDeployments, clusterv1.MachineDeploymentTopology{Name: mdTopologyName})
+			}
 
 			// currentOnlyAPIServer MDs only exist in the APIserver but are not part of s.Current.
 			// This simulates that getCurrentMachineDeploymentState in current_state.go read a stale MD list.
@@ -2526,6 +2780,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			if tt.upgradeTracker != nil {
 				s.UpgradeTracker = tt.upgradeTracker
 			}
+			// In production this is called by the main reconcile loop after the current state has been discovered.
+			g.Expect(s.InitializeMachineDeploymentRolloutTracking(ctx, env.GetAPIReader())).To(Succeed())
 
 			r := Reconciler{
 				Client:     env.GetClient(),
@@ -2540,6 +2796,11 @@ func TestReconcileMachineDeployments(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
+			if len(tt.wantPendingRolloutNames) == 0 {
+				g.Expect(s.UpgradeTracker.MachineDeployments.PendingRolloutNames()).To(BeEmpty())
+			} else {
+				g.Expect(s.UpgradeTracker.MachineDeployments.PendingRolloutNames()).To(ConsistOf(tt.wantPendingRolloutNames))
+			}
 
 			var gotMachineDeploymentList clusterv1.MachineDeploymentList
 			g.Expect(env.GetAPIReader().List(ctx, &gotMachineDeploymentList, &client.ListOptions{Namespace: namespace.GetName()})).To(Succeed())
@@ -4015,6 +4276,19 @@ func TestReconcileState(t *testing.T) {
 	})
 }
 
+// newFakeMachineSetForMachineDeployment returns a MachineSet matching the MachineDeployment machine template and
+// selector, like the MachineSet the MachineDeployment controller would create for it.
+func newFakeMachineSetForMachineDeployment(md *clusterv1.MachineDeployment, name string) *clusterv1.MachineSet {
+	ms := builder.MachineSet(md.Namespace, name).
+		WithClusterName(md.Spec.ClusterName).
+		WithLabels(md.Spec.Selector.DeepCopy().MatchLabels).
+		WithReplicas(ptr.To[int32](1)).
+		Build()
+	ms.Spec.Selector = *md.Spec.Selector.DeepCopy()
+	ms.Spec.Template = *md.Spec.Template.DeepCopy()
+	return ms
+}
+
 func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured, machineHealthCheck *clusterv1.MachineHealthCheck) *scope.MachineDeploymentState {
 	mdState := &scope.MachineDeploymentState{
 		Object: builder.MachineDeployment(metav1.NamespaceDefault, name).
@@ -4032,6 +4306,12 @@ func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTem
 		BootstrapTemplate:             bootstrapTemplate.DeepCopy(),
 		MachineHealthCheck:            machineHealthCheck.DeepCopy(),
 	}
+
+	// Make the selector unique per MachineDeployment like the selector computed for topology-managed
+	// MachineDeployments in desired state computation, so that MachineSets of different MachineDeployments
+	// do not match each other's selector.
+	mdState.Object.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = name + "-topology"
+	mdState.Object.Spec.Template.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = name + "-topology"
 
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)

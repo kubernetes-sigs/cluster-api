@@ -107,6 +107,11 @@ const (
 	// not yet completed because the upgrade for at least one of the MachineDeployments has been deferred.
 	ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason = "MachineDeploymentsUpgradeDeferred"
 
+	// ClusterTopologyReconciledMachineDeploymentsRolloutPendingReason documents reconciliation of a Cluster topology
+	// not yet completed because the rollout of at least one of the MachineDeployments has been held back
+	// to respect a configured rollout concurrency limit.
+	ClusterTopologyReconciledMachineDeploymentsRolloutPendingReason = "MachineDeploymentsRolloutPending"
+
 	// ClusterTopologyReconciledMachinePoolsUpgradePendingReason documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachinePools is not yet updated to match the desired topology spec.
 	//
@@ -872,6 +877,61 @@ type WorkersTopology struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=2000
 	MachinePools []MachinePoolTopology `json:"machinePools,omitempty"`
+
+	// rollout allows you to configure the behavior of rolling updates to the MachineDeployments
+	// of the Cluster topology.
+	// +optional
+	Rollout WorkersTopologyRolloutSpec `json:"rollout,omitempty,omitzero"`
+}
+
+// WorkersTopologyRolloutSpec defines the rollout behavior for the workers of a Cluster topology.
+// +kubebuilder:validation:MinProperties=1
+type WorkersTopologyRolloutSpec struct {
+	// maxConcurrency is the maximum number of MachineDeployments that can roll out concurrently
+	// across all rollout groups due to changes to the Cluster topology (e.g. rotation of a referenced template).
+	// MachineDeployments performing a Kubernetes version upgrade count against this limit.
+	// If not set, there is no overall concurrency limit. Limits configured for rollout groups still apply.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	MaxConcurrency int32 `json:"maxConcurrency,omitempty"`
+
+	// groups define independent concurrency limits for sets of MachineDeployments.
+	// A MachineDeployment can belong to at most one group. MachineDeployments not included in a group
+	// are only subject to maxConcurrency. Groups are reconciled in parallel, while MachineDeployments
+	// within each group are rolled out in the order in which they are defined in workers.machineDeployments.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=2000
+	Groups []MachineDeploymentRolloutGroup `json:"groups,omitempty"`
+}
+
+// MachineDeploymentRolloutGroup defines a concurrency limit for a set of MachineDeployments in a Cluster topology.
+type MachineDeploymentRolloutGroup struct {
+	// name is the unique identifier for this rollout group.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	Name string `json:"name,omitempty"`
+
+	// machineDeployments is the set of MachineDeployment topology names that belong to this rollout group.
+	// Each name must match a MachineDeployment defined in workers.machineDeployments and can occur in only one group.
+	// +required
+	// +listType=set
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=2000
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=63
+	// +kubebuilder:validation:items:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	MachineDeployments []string `json:"machineDeployments,omitempty"`
+
+	// maxConcurrency is the maximum number of MachineDeployments in this group that can roll out concurrently.
+	// MachineDeployments in the group that are performing a Kubernetes version upgrade count against this limit.
+	// +required
+	// +kubebuilder:validation:Minimum=1
+	MaxConcurrency int32 `json:"maxConcurrency,omitempty"`
 }
 
 // MachineDeploymentTopology specifies the different parameters for a set of worker nodes in the topology.

@@ -103,6 +103,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeprecatedStatus":                        schema_cluster_api_api_core_v1beta2_MachineDeploymentDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentList":                                    schema_cluster_api_api_core_v1beta2_MachineDeploymentList(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRemediationSpec":                         schema_cluster_api_api_core_v1beta2_MachineDeploymentRemediationSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutGroup":                            schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutGroup(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutSpec":                             schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutStrategy":                         schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutStrategyRollingUpdate":            schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate(ref),
@@ -185,6 +186,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersClass":                                             schema_cluster_api_api_core_v1beta2_WorkersClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersStatus":                                            schema_cluster_api_api_core_v1beta2_WorkersStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopology":                                          schema_cluster_api_api_core_v1beta2_WorkersTopology(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopologyRolloutSpec":                               schema_cluster_api_api_core_v1beta2_WorkersTopologyRolloutSpec(ref),
 	}
 }
 
@@ -3530,6 +3532,54 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentRemediationSpec(ref co
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutGroup(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentRolloutGroup defines a concurrency limit for a set of MachineDeployments in a Cluster topology.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the unique identifier for this rollout group.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"machineDeployments": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "set",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "machineDeployments is the set of MachineDeployment topology names that belong to this rollout group. Each name must match a MachineDeployment defined in workers.machineDeployments and can occur in only one group.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"maxConcurrency": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxConcurrency is the maximum number of MachineDeployments in this group that can roll out concurrently. MachineDeployments in the group that are performing a Kubernetes version upgrade count against this limit.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"name", "machineDeployments", "maxConcurrency"},
+			},
+		},
 	}
 }
 
@@ -7433,10 +7483,61 @@ func schema_cluster_api_api_core_v1beta2_WorkersTopology(ref common.ReferenceCal
 							},
 						},
 					},
+					"rollout": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rollout allows you to configure the behavior of rolling updates to the MachineDeployments of the Cluster topology.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopologyRolloutSpec"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopology"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopologyRolloutSpec"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_WorkersTopologyRolloutSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkersTopologyRolloutSpec defines the rollout behavior for the workers of a Cluster topology.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"maxConcurrency": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxConcurrency is the maximum number of MachineDeployments that can roll out concurrently across all rollout groups due to changes to the Cluster topology (e.g. rotation of a referenced template). MachineDeployments performing a Kubernetes version upgrade count against this limit. If not set, there is no overall concurrency limit. Limits configured for rollout groups still apply.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"groups": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"name",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "groups define independent concurrency limits for sets of MachineDeployments. A MachineDeployment can belong to at most one group. MachineDeployments not included in a group are only subject to maxConcurrency. Groups are reconciled in parallel, while MachineDeployments within each group are rolled out in the order in which they are defined in workers.machineDeployments.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutGroup"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutGroup"},
 	}
 }

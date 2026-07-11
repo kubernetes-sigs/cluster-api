@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,6 +48,59 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
+
+func TestValidateTopologyRolloutGroups(t *testing.T) {
+	tests := []struct {
+		name           string
+		groups         []clusterv1.MachineDeploymentRolloutGroup
+		wantErrorTypes []field.ErrorType
+	}{
+		{
+			name: "should allow independent rollout groups",
+			groups: []clusterv1.MachineDeploymentRolloutGroup{
+				{Name: "database", MachineDeployments: []string{"db-a", "db-b"}, MaxConcurrency: 1},
+				{Name: "applications", MachineDeployments: []string{"app-a"}, MaxConcurrency: 1},
+			},
+		},
+		{
+			name: "should reject a MachineDeployment topology that does not exist",
+			groups: []clusterv1.MachineDeploymentRolloutGroup{
+				{Name: "database", MachineDeployments: []string{"missing"}, MaxConcurrency: 1},
+			},
+			wantErrorTypes: []field.ErrorType{field.ErrorTypeNotFound},
+		},
+		{
+			name: "should reject a MachineDeployment topology in multiple groups",
+			groups: []clusterv1.MachineDeploymentRolloutGroup{
+				{Name: "database", MachineDeployments: []string{"db-a"}, MaxConcurrency: 1},
+				{Name: "applications", MachineDeployments: []string{"db-a"}, MaxConcurrency: 1},
+			},
+			wantErrorTypes: []field.ErrorType{field.ErrorTypeInvalid},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			topology := clusterv1.Topology{
+				Workers: clusterv1.WorkersTopology{
+					MachineDeployments: []clusterv1.MachineDeploymentTopology{
+						{Name: "db-a"},
+						{Name: "db-b"},
+						{Name: "app-a"},
+					},
+					Rollout: clusterv1.WorkersTopologyRolloutSpec{Groups: tt.groups},
+				},
+			}
+
+			errs := validateTopologyRollout(topology, field.NewPath("spec", "topology"))
+			g.Expect(errs).To(HaveLen(len(tt.wantErrorTypes)))
+			for i, errorType := range tt.wantErrorTypes {
+				g.Expect(errs[i].Type).To(Equal(errorType))
+			}
+		})
+	}
+}
 
 func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.

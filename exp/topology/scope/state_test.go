@@ -22,7 +22,9 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -69,6 +71,105 @@ func TestMDUpgrading(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).To(BeComparableTo(want))
 	})
+}
+
+func TestMDRollingOut(t *testing.T) {
+	scheme := runtime.NewScheme()
+	NewWithT(t).Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+	newMD := func(name string, generation, observedGeneration int64, rollingOut metav1.ConditionStatus) *clusterv1.MachineDeployment {
+		return builder.MachineDeployment("ns", name).
+			WithClusterName("cluster1").
+			WithVersion("v1.2.3").
+			WithGeneration(generation).
+			WithStatus(clusterv1.MachineDeploymentStatus{
+				ObservedGeneration: observedGeneration,
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineDeploymentRollingOutCondition,
+						Status: rollingOut,
+					},
+				},
+			}).
+			Build()
+	}
+	newMS := func(name, version string, replicas int32) *clusterv1.MachineSet {
+		ms := builder.MachineSet("ns", name).
+			WithClusterName("cluster1").
+			// Labels must match the MachineDeployment selector defaulted from the cluster name.
+			WithLabels(map[string]string{clusterv1.ClusterNameLabel: "cluster1"}).
+			WithReplicas(ptr.To(replicas)).
+			Build()
+		ms.Spec.Template.Spec.Version = version
+		return ms
+	}
+
+	tests := []struct {
+		name        string
+		md          *clusterv1.MachineDeployment
+		machineSets []*clusterv1.MachineSet
+		want        bool
+	}{
+		{
+			name:        "should return true if RollingOut condition is true",
+			md:          newMD("md-1", 1, 1, metav1.ConditionTrue),
+			machineSets: []*clusterv1.MachineSet{newMS("md-1-ms", "v1.2.3", 1)},
+			want:        true,
+		},
+		{
+			name:        "should return false if RollingOut condition is false and the MachineSets match the MachineDeployment template",
+			md:          newMD("md-2", 1, 1, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{newMS("md-2-ms", "v1.2.3", 1)},
+			want:        false,
+		},
+		{
+			name:        "should return true if observedGeneration is stale",
+			md:          newMD("md-3", 2, 1, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{newMS("md-3-ms", "v1.2.3", 1)},
+			want:        true,
+		},
+		{
+			name: "should return true if a MachineSet not matching the MachineDeployment template still has replicas even if RollingOut condition is false",
+			md:   newMD("md-4", 2, 2, metav1.ConditionFalse),
+			machineSets: []*clusterv1.MachineSet{
+				newMS("md-4-ms-new", "v1.2.3", 1),
+				newMS("md-4-ms-old", "v1.2.2", 1),
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ctx := context.Background()
+
+			objs := []client.Object{tt.md}
+			machineSets := make([]clusterv1.MachineSet, 0, len(tt.machineSets))
+			for _, ms := range tt.machineSets {
+				objs = append(objs, ms)
+				machineSets = append(machineSets, *ms)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+
+			mdsStateMap := MachineDeploymentsStateMap{
+				tt.md.Name: {Object: tt.md},
+			}
+
+			rollingOut, err := (&MachineDeploymentState{Object: tt.md}).IsRollingOut(machineSets)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(rollingOut).To(Equal(tt.want))
+
+			rollingOutNames, err := mdsStateMap.RollingOut(ctx, fakeClient)
+			g.Expect(err).ToNot(HaveOccurred())
+			if tt.want {
+				g.Expect(rollingOutNames).To(ConsistOf(tt.md.Name))
+			} else {
+				g.Expect(rollingOutNames).To(BeEmpty())
+			}
+		})
+	}
 }
 
 func TestMPUpgrading(t *testing.T) {

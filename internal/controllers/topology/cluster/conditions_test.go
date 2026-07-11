@@ -1138,6 +1138,75 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 		},
 
 		{
+			name:         "should report MachineDeployment rollout pending when rollout concurrency is reached",
+			reconcileErr: nil,
+			s: &scope.Scope{
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						Spec: clusterv1.ClusterSpec{
+							ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{Name: "controlplane1"},
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "infra1"},
+							Topology: clusterv1.Topology{
+								Version: "v1.22.0",
+							},
+						},
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.MachineDeployments.MarkPendingRollout("md-rollout")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledMachineDeploymentsRolloutPendingV1Beta1Reason,
+			wantV1Beta1ConditionMessage: "Cluster topology rollout is pending\n" +
+				"  * MachineDeployment md-rollout rollout pending because a rollout concurrency limit has been reached",
+			wantConditionStatus: metav1.ConditionFalse,
+			wantConditionReason: clusterv1.ClusterTopologyReconciledMachineDeploymentsRolloutPendingReason,
+			wantConditionMessage: "Cluster topology rollout is pending\n" +
+				"  * MachineDeployment md-rollout rollout pending because a rollout concurrency limit has been reached",
+		},
+		{
+			name:         "should report MachineDeployment rollout pending while cluster is upgrading",
+			reconcileErr: nil,
+			s: &scope.Scope{
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						Spec: clusterv1.ClusterSpec{
+							ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{Name: "controlplane1"},
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "infra1"},
+							Topology: clusterv1.Topology{
+								Version: "v1.22.0",
+							},
+						},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").WithVersion("v1.22.0").Build(),
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.IsUpgrading = true
+					ut.MachineDeployments.MarkPendingRollout("md-rollout")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
+				"  * GenericControlPlane upgrading to version v1.22.0\n" +
+				"  * MachineDeployment md-rollout rollout pending because a rollout concurrency limit has been reached",
+			wantConditionStatus: metav1.ConditionFalse,
+			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
+			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
+				"  * GenericControlPlane upgrading to version v1.22.0\n" +
+				"  * MachineDeployment md-rollout rollout pending because a rollout concurrency limit has been reached",
+		},
+
+		{
 			name:         "should set the condition to true if cluster is not upgrading",
 			reconcileErr: nil,
 			s: &scope.Scope{

@@ -882,6 +882,12 @@ func Convert_v1beta2_Topology_To_v1beta1_Topology(in *clusterv1.Topology, out *T
 	return nil
 }
 
+func Convert_v1beta2_WorkersTopology_To_v1beta1_WorkersTopology(in *clusterv1.WorkersTopology, out *WorkersTopology, s apimachineryconversion.Scope) error {
+	// NOTE: rollout does not exist in v1beta1; it is preserved via the conversion annotation
+	// (see ConvertClusterV1Beta1ToHub).
+	return autoConvert_v1beta2_WorkersTopology_To_v1beta1_WorkersTopology(in, out, s)
+}
+
 func Convert_v1beta2_WorkersStatus_To_v1beta1_WorkersStatus(in *clusterv1.WorkersStatus, out *WorkersStatus, s apimachineryconversion.Scope) error {
 	return autoConvert_v1beta2_WorkersStatus_To_v1beta1_WorkersStatus(in, out, s)
 }

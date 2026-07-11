@@ -23,9 +23,13 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // IsMachineDeploymentUpgrading determines if the MachineDeployment is upgrading.
@@ -57,6 +61,52 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 		}
 	}
 	return false, nil
+}
+
+// IsMachineDeploymentRollingOut determines if the MachineDeployment is rolling out based on the given MachineSets.
+// A MachineDeployment is considered rolling out if any of the following is true:
+//   - its RollingOut condition is true;
+//   - the MachineDeployment controller has not observed the latest generation yet;
+//   - one of its MachineSets does not match the MachineDeployment machine template and still has replicas,
+//     or no MachineSet matches the MachineDeployment machine template.
+//
+// The MachineSet-based check is required because the RollingOut condition is derived from the Machines'
+// UpToDate conditions, which the Machine controller stamps asynchronously: right after the MachineDeployment
+// controller observes a template change there is a window where observedGeneration is current but RollingOut
+// is still false. Comparing the MachineSets against the MachineDeployment machine template is the same
+// synchronous signal the MachineDeployment rollout planner acts on.
+func IsMachineDeploymentRollingOut(md *clusterv1.MachineDeployment, machineSets []clusterv1.MachineSet) (bool, error) {
+	if conditions.IsTrue(md, clusterv1.MachineDeploymentRollingOutCondition) {
+		return true, nil
+	}
+	if md.Status.ObservedGeneration < md.Generation {
+		return true, nil
+	}
+
+	selector, err := metav1.LabelSelectorAsSelector(&md.Spec.Selector)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to check if MachineDeployment %s is rolling out: failed to convert label selector", md.Name)
+	}
+
+	upToDateMachineSetExists := false
+	for i := range machineSets {
+		ms := &machineSets[i]
+		if ms.Namespace != md.Namespace || !selector.Matches(labels.Set(ms.Labels)) {
+			continue
+		}
+		if upToDate, _ := mdutil.MachineTemplateUpToDate(&ms.Spec.Template, &md.Spec.Template); upToDate {
+			upToDateMachineSetExists = true
+			continue
+		}
+		// A MachineSet not matching the MachineDeployment machine template that still owns or is scheduled to own
+		// machines means the rollout replacing those machines is not complete yet.
+		if ptr.Deref(ms.Spec.Replicas, 0) > 0 || ptr.Deref(ms.Status.Replicas, 0) > 0 {
+			return true, nil
+		}
+	}
+	// Without a MachineSet matching the MachineDeployment machine template the rollout has not been picked up yet;
+	// conservatively consider the MachineDeployment rolling out until the MachineDeployment controller creates it.
+	return !upToDateMachineSetExists, nil
 }
 
 // IsMachinePoolUpgrading determines if the MachinePool is upgrading.

@@ -327,6 +327,11 @@ const (
 	// not yet completed because the upgrade for at least one of the MachineDeployments has been deferred.
 	TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason = "MachineDeploymentsUpgradeDeferred"
 
+	// TopologyReconciledMachineDeploymentsRolloutPendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because the rollout of at least one of the MachineDeployments has been held back
+	// to respect a configured rollout concurrency limit.
+	TopologyReconciledMachineDeploymentsRolloutPendingV1Beta1Reason = "MachineDeploymentsRolloutPending"
+
 	// TopologyReconciledMachinePoolsUpgradePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachinePools is not yet updated to match the desired topology spec.
 	//

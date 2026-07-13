@@ -19,5 +19,5 @@ limitations under the License.
 // +groupName=infrastructure.cluster.x-k8s.io
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2
 //
-// Deprecated: This package will be removed in one of the next releases.
+// Deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.
 package v1beta1

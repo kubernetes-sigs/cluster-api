@@ -30,10 +30,6 @@ import (
 // New creates a new clustershim.
 func New(c *clusterv1.Cluster) *corev1.Secret {
 	shim := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: corev1.SchemeGroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-shim", c.Name),
 			Namespace: c.Namespace,

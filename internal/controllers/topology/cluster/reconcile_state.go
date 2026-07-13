@@ -137,10 +137,6 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 			}
 		}
 
-		// Enforce type meta back given that it gets blanked out by Get.
-		shim.Kind = "Secret"
-		shim.APIVersion = corev1.SchemeGroupVersion.String()
-
 		// Add the shim as a temporary owner for the InfrastructureCluster.
 		s.Desired.InfrastructureCluster.SetOwnerReferences(
 			util.EnsureOwnerRef(s.Desired.InfrastructureCluster.GetOwnerReferences(),
@@ -163,10 +159,10 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 	// When the Cluster and the shim object are both owners,
 	// it's safe for us to remove the shim and garbage collect any potential orphaned resource.
 	if s.Current.InfrastructureCluster != nil && s.Current.ControlPlane.Object != nil {
-		clusterOwnsAll := ownerrefs.HasOwnerReferenceFrom(s.Current.InfrastructureCluster, s.Current.Cluster) &&
-			ownerrefs.HasOwnerReferenceFrom(s.Current.ControlPlane.Object, s.Current.Cluster)
-		shimOwnsAtLeastOne := ownerrefs.HasOwnerReferenceFrom(s.Current.InfrastructureCluster, shim) ||
-			ownerrefs.HasOwnerReferenceFrom(s.Current.ControlPlane.Object, shim)
+		clusterOwnsAll := ownerrefs.HasOwnerReferenceFrom(s.Current.InfrastructureCluster, s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")) &&
+			ownerrefs.HasOwnerReferenceFrom(s.Current.ControlPlane.Object, s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster"))
+		shimOwnsAtLeastOne := ownerrefs.HasOwnerReferenceFrom(s.Current.InfrastructureCluster, shim, corev1.SchemeGroupVersion.WithKind("Secret")) ||
+			ownerrefs.HasOwnerReferenceFrom(s.Current.ControlPlane.Object, shim, corev1.SchemeGroupVersion.WithKind("Secret"))
 
 		if clusterOwnsAll && shimOwnsAtLeastOne {
 			if err := r.Client.Delete(ctx, shim); err != nil {
@@ -635,7 +631,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 		desired: md.InfrastructureMachineTemplate,
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to create %s", md.Object.Kind)
+		return errors.Wrap(err, "failed to create MachineDeployment")
 	}
 
 	if createdInfra {
@@ -658,7 +654,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 	if err != nil {
 		// Best effort cleanup of the InfrastructureMachineTemplate (only on creation).
 		infrastructureMachineCleanupFunc()
-		return errors.Wrapf(err, "failed to create %s", md.Object.Kind)
+		return errors.Wrap(err, "failed to create MachineDeployment")
 	}
 
 	if createdBootstrap {
@@ -948,7 +944,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 		desired: mp.InfrastructureMachinePoolObject,
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to create MachinePool %s", klog.KObj(mp.Object))
+		return errors.Wrap(err, "failed to create MachinePool")
 	}
 
 	if createdInfrastructureMachinePool {
@@ -971,7 +967,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 	if err != nil {
 		// Best effort cleanup of the InfrastructureMachinePool (only on creation).
 		infrastructureMachineMachinePoolCleanupFunc()
-		return errors.Wrapf(err, "failed to create MachinePool %s", mp.Object.Kind)
+		return errors.Wrap(err, "failed to create MachinePool")
 	}
 
 	if createdBootstrap {

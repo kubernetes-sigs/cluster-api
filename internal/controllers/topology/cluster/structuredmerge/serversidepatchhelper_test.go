@@ -562,7 +562,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj2.DeepCopy()
 
 		// Create the object using server side apply
-		g.Expect(env.PatchAndWait(ctx, original, client.FieldOwner(TopologyManagerName))).To(Succeed())
+		g.Expect(env.PatchAndWait(ctx, original, TopologyManagerName)).To(Succeed())
 		// Get created object to have managed fields
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 

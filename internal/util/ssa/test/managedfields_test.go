@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // Package ssa contains utils related to ssa.
-package ssa
+package test
 
 import (
 	"context"
@@ -30,16 +30,14 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
+
+const classicManager = "manager"
 
 func TestRemoveManagedFieldsForLabelsAndAnnotations(t *testing.T) {
 	testFieldManager := "ssa-manager"
 	kubeadmConfig := &bootstrapv1.KubeadmConfig{
-		// Have to set TypeMeta explicitly when using SSA with typed objects.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: bootstrapv1.GroupVersion.String(),
-			Kind:       "KubeadmConfig",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "kubeadmconfig-1",
 			Namespace:  "default",
@@ -254,7 +252,7 @@ func TestRemoveManagedFieldsForLabelsAndAnnotations(t *testing.T) {
 			g := NewWithT(t)
 
 			// Note: This func is called exactly the same way as it is called when creating BootstrapConfig/InfraMachine in KCP/MS.
-			g.Expect(Patch(ctx, env.Client, testFieldManager, tt.kubeadmConfig)).To(Succeed())
+			g.Expect(ssa.Patch(ctx, env.Client, testFieldManager, tt.kubeadmConfig)).To(Succeed())
 			t.Cleanup(func() {
 				ctx := context.Background()
 				objWithoutFinalizer := tt.kubeadmConfig.DeepCopyObject().(client.Object)
@@ -275,7 +273,7 @@ func TestRemoveManagedFieldsForLabelsAndAnnotations(t *testing.T) {
 			}
 
 			// Note: This func is called exactly the same way as it is called when creating BootstrapConfig/InfraMachine in KCP/MS.
-			g.Expect(RemoveManagedFieldsForLabelsAndAnnotations(ctx, env.Client, env.GetAPIReader(), tt.kubeadmConfig, testFieldManager)).To(Succeed())
+			g.Expect(ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, env.Client, env.GetAPIReader(), tt.kubeadmConfig, testFieldManager)).To(Succeed())
 			g.Expect(cleanupTime(tt.kubeadmConfig.GetManagedFields())).To(BeComparableTo(toManagedFields(tt.expectedManagedFieldsAfterRemoval)))
 		})
 	}
@@ -285,11 +283,6 @@ func TestMigrateManagedFields(t *testing.T) {
 	testFieldManager := "ssa-manager"
 	testMetadataFieldManager := "ssa-manager-metadata"
 	kubeadmConfig := &bootstrapv1.KubeadmConfig{
-		// Have to set TypeMeta explicitly when using SSA with typed objects.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: bootstrapv1.GroupVersion.String(),
-			Kind:       "KubeadmConfig",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "kubeadmconfig-1",
 			Namespace:  "default",
@@ -537,7 +530,7 @@ func TestMigrateManagedFields(t *testing.T) {
 			updatedObject.SetUID(tt.kubeadmConfig.GetUID())
 			updatedObject.SetLabels(tt.labels)
 			updatedObject.SetAnnotations(tt.annotations)
-			g.Expect(Patch(ctx, env.Client, testFieldManager, updatedObject)).To(Succeed())
+			g.Expect(ssa.Patch(ctx, env.Client, testFieldManager, updatedObject)).To(Succeed())
 			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.kubeadmConfig), tt.kubeadmConfig)).To(Succeed())
 			g.Expect(cleanupTime(tt.kubeadmConfig.GetManagedFields())).To(BeComparableTo(toManagedFields(tt.expectedManagedFieldsAfterCreate)))
 
@@ -549,7 +542,7 @@ func TestMigrateManagedFields(t *testing.T) {
 			}
 
 			// Note: This func is called exactly the same way as it is called in syncMachines in KCP/MS.
-			g.Expect(MigrateManagedFields(ctx, env.Client, tt.kubeadmConfig, testFieldManager, testMetadataFieldManager)).To(Succeed())
+			g.Expect(ssa.MigrateManagedFields(ctx, env.Client, tt.kubeadmConfig, testFieldManager, testMetadataFieldManager)).To(Succeed())
 			g.Expect(cleanupTime(tt.kubeadmConfig.GetManagedFields())).To(BeComparableTo(toManagedFields(tt.expectedManagedFieldsAfterMigration)))
 
 			if tt.updateLabelsAndAnnotationsAfterMigration {
@@ -561,7 +554,7 @@ func TestMigrateManagedFields(t *testing.T) {
 				updatedObject.SetUID(tt.kubeadmConfig.GetUID())
 				updatedObject.SetLabels(tt.labels)
 				updatedObject.SetAnnotations(tt.annotations)
-				g.Expect(Patch(ctx, env.Client, testMetadataFieldManager, updatedObject)).To(Succeed())
+				g.Expect(ssa.Patch(ctx, env.Client, testMetadataFieldManager, updatedObject)).To(Succeed())
 				g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.kubeadmConfig), tt.kubeadmConfig)).To(Succeed())
 				g.Expect(cleanupTime(tt.kubeadmConfig.GetManagedFields())).To(BeComparableTo(toManagedFields(tt.expectedManagedFieldsAfterUpdatingLabelsAndAnnotations)))
 			}

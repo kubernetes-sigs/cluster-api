@@ -39,10 +39,10 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/resourceversion"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -83,6 +83,7 @@ import (
 	controlplaneconversion "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -655,61 +656,39 @@ func (e *Environment) DeleteAndWait(ctx context.Context, obj client.Object, opts
 // PatchAndWait creates or updates the given object using server-side apply and waits for the cache to be updated accordingly.
 //
 // NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
-func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts ...client.ApplyOption) error {
+func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, fieldManager string) error {
 	objGVK, err := apiutil.GVKForObject(obj, e.Scheme())
 	if err != nil {
 		return errors.Wrapf(err, "failed to get GVK to set GVK on object")
 	}
-	// Ensure that GVK is explicitly set because e.Patch below uses json.Marshal
-	// to serialize the object and the apiserver would complain if GVK is not sent.
-	obj.GetObjectKind().SetGroupVersionKind(objGVK)
 
-	key := client.ObjectKeyFromObject(obj)
-	objCopy := obj.DeepCopyObject().(client.Object)
-	if err := e.GetAPIReader().Get(ctx, key, objCopy); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return err
-		}
-	}
-	// Store old resource version, empty string if not found.
-	oldResourceVersion := objCopy.GetResourceVersion()
-
-	// Convert to Unstructured because Apply only works with ApplyConfigurations and Unstructured.
-	objUnstructured := &unstructured.Unstructured{}
-	switch obj.(type) {
-	case *unstructured.Unstructured:
-		objUnstructured = obj.DeepCopyObject().(*unstructured.Unstructured)
-	default:
-		if err := e.Scheme().Convert(obj, objUnstructured, nil); err != nil {
-			return errors.Wrap(err, "failed to convert object to Unstructured")
-		}
-	}
-
-	if err := e.Apply(ctx, client.ApplyConfigurationFromUnstructured(objUnstructured), opts...); err != nil {
+	if err := ssa.Patch(ctx, e.Client, fieldManager, obj); err != nil {
 		return err
-	}
-
-	// Write back the modified object so callers can access the patched object.
-	if err := e.Scheme().Convert(objUnstructured, obj, ctx); err != nil {
-		return errors.Wrapf(err, "failed to write object")
 	}
 
 	// Makes sure the cache is updated with the new object
 	if err := wait.ExponentialBackoff(
 		cacheSyncBackoff,
 		func() (done bool, err error) {
-			if err := e.Get(ctx, key, objCopy); err != nil {
+			objFromCache := obj.DeepCopyObject().(client.Object)
+			if err := e.Get(ctx, client.ObjectKeyFromObject(obj), objFromCache); err != nil {
 				if apierrors.IsNotFound(err) {
 					return false, nil
 				}
 				return false, err
 			}
-			if objCopy.GetResourceVersion() == oldResourceVersion {
+
+			i, err := resourceversion.CompareResourceVersion(obj.GetResourceVersion(), objFromCache.GetResourceVersion())
+			if err != nil {
+				return false, err
+			}
+
+			if i > 0 {
 				return false, nil
 			}
 			return true, nil
 		}); err != nil {
-		return errors.Wrapf(err, "object %s, %s is not being added to or did not get updated in the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+		return errors.Wrapf(err, "%s %s is not being added to or did not get updated in the testenv client cache", objGVK.Kind, klog.KObj(obj))
 	}
 	return nil
 }

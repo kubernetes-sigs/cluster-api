@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ssa
+package test
 
 import (
 	"context"
@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -60,7 +61,7 @@ func TestPatch(t *testing.T) {
 		}).Build()
 
 		fieldManager := "test-manager"
-		ssaCache := NewCache("test-controller")
+		ssaCache := ssa.NewCache("test-controller")
 
 		// Wrap the client with an interceptor to count API calls
 		var applyCallCount int
@@ -73,7 +74,7 @@ func TestPatch(t *testing.T) {
 
 		// 1. Create the object
 		createObject := initialObject.DeepCopy()
-		g.Expect(Patch(ctx, countingClient, fieldManager, createObject)).To(Succeed())
+		g.Expect(ssa.Patch(ctx, countingClient, fieldManager, createObject)).To(Succeed())
 		g.Expect(applyCallCount).To(Equal(1), "Expected 1 API call for create")
 
 		// 2. Update the object and verify that the request was not cached with the old identifier,
@@ -85,15 +86,15 @@ func TestPatch(t *testing.T) {
 		modifiedObject := initialObject.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modifiedObject.Object, "baz", "spec", "foo")).To(Succeed())
 		// Compute request identifier before the update, so we can later verify that the update call was not cached with this identifier.
-		modifiedUnstructured, err := prepareModified(env.Scheme(), modifiedObject)
+		modifiedUnstructured, err := ssa.PrepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
-		oldRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
+		oldRequestIdentifier, err := ssa.ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Save a copy of modifiedUnstructured before apply to compute the new identifier later
 		modifiedUnstructuredBeforeApply := modifiedUnstructured.DeepCopy()
 		// Update the object
 		applyCallCount = 0
-		g.Expect(Patch(ctx, countingClient, fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
+		g.Expect(ssa.Patch(ctx, countingClient, fieldManager, modifiedObject, ssa.WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		g.Expect(applyCallCount).To(Equal(1), "Expected 1 API call for first update (object changed)")
 		// Verify that request was not cached with the old identifier (as it changed the object)
 		g.Expect(ssaCache.Has(oldRequestIdentifier, initialObject.GetKind())).To(BeFalse())
@@ -101,7 +102,7 @@ func TestPatch(t *testing.T) {
 		objectAfterApply := initialObject.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(objectAfterApply), objectAfterApply)).To(Succeed())
 		// Compute the new request identifier (after apply)
-		newRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), objectAfterApply.GetResourceVersion(), modifiedUnstructuredBeforeApply)
+		newRequestIdentifier, err := ssa.ComputeRequestIdentifier(env.GetScheme(), objectAfterApply.GetResourceVersion(), modifiedUnstructuredBeforeApply)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Verify that request was cached with the new identifier (after apply)
 		g.Expect(ssaCache.Has(newRequestIdentifier, initialObject.GetKind())).To(BeTrue())
@@ -114,13 +115,13 @@ func TestPatch(t *testing.T) {
 		modifiedObject = initialObject.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modifiedObject.Object, "baz", "spec", "foo")).To(Succeed())
 		// Compute request identifier, so we can later verify that the update call was cached.
-		modifiedUnstructured, err = prepareModified(env.Scheme(), modifiedObject)
+		modifiedUnstructured, err = ssa.PrepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
-		requestIdentifierNoOp, err := ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
+		requestIdentifierNoOp, err := ssa.ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Update the object
 		applyCallCount = 0
-		g.Expect(Patch(ctx, countingClient, fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
+		g.Expect(ssa.Patch(ctx, countingClient, fieldManager, modifiedObject, ssa.WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		g.Expect(applyCallCount).To(Equal(0), "Expected 0 API calls for repeat update (should hit cache)")
 		// Verify that request was cached (as it did not change the object)
 		g.Expect(ssaCache.Has(requestIdentifierNoOp, initialObject.GetKind())).To(BeTrue())
@@ -129,10 +130,6 @@ func TestPatch(t *testing.T) {
 	t.Run("Test patch with Machine", func(*testing.T) {
 		// Build the test object to work with.
 		initialObject := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterv1.GroupVersion.String(),
-				Kind:       "Machine",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "machine-1",
 				Namespace: ns.Name,
@@ -160,7 +157,7 @@ func TestPatch(t *testing.T) {
 			},
 		}
 		fieldManager := "test-manager"
-		ssaCache := NewCache("test-controller")
+		ssaCache := ssa.NewCache("test-controller")
 
 		// Wrap the client with an interceptor to count API calls
 		var applyCallCount int
@@ -173,10 +170,8 @@ func TestPatch(t *testing.T) {
 
 		// 1. Create the object
 		createObject := initialObject.DeepCopy()
-		g.Expect(Patch(ctx, countingClient, fieldManager, createObject)).To(Succeed())
+		g.Expect(ssa.Patch(ctx, countingClient, fieldManager, createObject)).To(Succeed())
 		g.Expect(applyCallCount).To(Equal(1), "Expected 1 API call for create")
-		// Verify that gvk is still set
-		g.Expect(createObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 
 		// 2. Update the object and verify that the request was not cached with the old identifier,
 		// but is cached with a new identifier (after apply).
@@ -187,25 +182,23 @@ func TestPatch(t *testing.T) {
 		modifiedObject := initialObject.DeepCopy()
 		modifiedObject.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(5))
 		// Compute request identifier before the update, so we can later verify that the update call was not cached with this identifier.
-		modifiedUnstructured, err := prepareModified(env.Scheme(), modifiedObject)
+		modifiedUnstructured, err := ssa.PrepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
-		oldRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
+		oldRequestIdentifier, err := ssa.ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Save a copy of modifiedUnstructured before apply to compute the new identifier later
 		modifiedUnstructuredBeforeApply := modifiedUnstructured.DeepCopy()
 		// Update the object
 		applyCallCount = 0
-		g.Expect(Patch(ctx, countingClient, fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
+		g.Expect(ssa.Patch(ctx, countingClient, fieldManager, modifiedObject, ssa.WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		g.Expect(applyCallCount).To(Equal(1), "Expected 1 API call for first update (object changed)")
-		// Verify that gvk is still set
-		g.Expect(modifiedObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 		// Verify that request was not cached with the old identifier (as it changed the object)
 		g.Expect(ssaCache.Has(oldRequestIdentifier, initialObject.GetObjectKind().GroupVersionKind().Kind)).To(BeFalse())
 		// Get the actual object from server after apply to compute the new request identifier
 		objectAfterApply := initialObject.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(objectAfterApply), objectAfterApply)).To(Succeed())
 		// Compute the new request identifier (after apply)
-		newRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), objectAfterApply.GetResourceVersion(), modifiedUnstructuredBeforeApply)
+		newRequestIdentifier, err := ssa.ComputeRequestIdentifier(env.GetScheme(), objectAfterApply.GetResourceVersion(), modifiedUnstructuredBeforeApply)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Verify that request was cached with the new identifier (after apply)
 		g.Expect(ssaCache.Has(newRequestIdentifier, initialObject.GetObjectKind().GroupVersionKind().Kind)).To(BeTrue())
@@ -226,17 +219,15 @@ func TestPatch(t *testing.T) {
 		modifiedObject = initialObject.DeepCopy()
 		modifiedObject.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(5))
 		// Compute request identifier, so we can later verify that the update call was cached.
-		modifiedUnstructured, err = prepareModified(env.Scheme(), modifiedObject)
+		modifiedUnstructured, err = ssa.PrepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
-		requestIdentifierNoOp, err := ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
+		requestIdentifierNoOp, err := ssa.ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Update the object
 		applyCallCount = 0
-		g.Expect(Patch(ctx, countingClient, fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
+		g.Expect(ssa.Patch(ctx, countingClient, fieldManager, modifiedObject, ssa.WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		g.Expect(applyCallCount).To(Equal(0), "Expected 0 API calls for repeat update (should hit cache)")
 		// Verify that request was cached (as it did not change the object)
 		g.Expect(ssaCache.Has(requestIdentifierNoOp, initialObject.GetObjectKind().GroupVersionKind().Kind)).To(BeTrue())
-		// Verify that gvk is still set
-		g.Expect(modifiedObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 	})
 }

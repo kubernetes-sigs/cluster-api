@@ -170,7 +170,7 @@ For example to run [pull-cluster-api-e2e-main](https://github.com/kubernetes/tes
 just execute:
 
 ```bash
-GINKGO_LABEL_FILTER="PR-Blocking" ./scripts/ci-e2e.sh
+GINKGO_LABEL_FILTER="PR-Blocking" ./hack/scripts/ci/ci-e2e.sh
 ```
 
 ### Test execution via make test-e2e
@@ -190,7 +190,7 @@ kind images). This can be done by executing the `./scripts/ci-e2e.sh` script.
 # Notes:
 # * You can cancel the script as soon as it starts the actual test execution via `make test-e2e`.
 # * If you want to run other tests (e.g. upgrade tests), make sure all required env variables are set (see the Prow Job config).
-GINKGO_LABEL_FILTER="PR-Blocking" ./scripts/ci-e2e.sh
+GINKGO_LABEL_FILTER="PR-Blocking" ./hack/scripts/ci/ci-e2e.sh
 ```
 
 Now, the tests can be run in an IDE. The following describes how this can be done in IntelliJ IDEA and VS Code. It should work

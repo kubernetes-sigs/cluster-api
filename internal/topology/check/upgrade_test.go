@@ -82,6 +82,31 @@ func TestIsMachineDeploymentUpgrading(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "should return true if at least one of the machines of MachineDeployment has a different kubeletVersion",
+			md: builder.MachineDeployment("ns", "md1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				Build(),
+			machines: []*clusterv1.Machine{
+				builder.Machine("ns", "machine1").
+					WithClusterName("cluster1").
+					WithVersion("v1.2.3").
+					Build(),
+				func() *clusterv1.Machine {
+					m := builder.Machine("ns", "machine2").
+						WithClusterName("cluster1").
+						WithVersion("v1.2.3").
+						Build()
+					m.Status.NodeInfo = &corev1.NodeSystemInfo{
+						KubeletVersion: "v1.2.2",
+					}
+					return m
+				}(),
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
 			name: "should return false if the MachineDeployment has no machines (creation phase)",
 			md: builder.MachineDeployment("ns", "md1").
 				WithClusterName("cluster1").

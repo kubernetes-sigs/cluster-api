@@ -644,11 +644,33 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 }
 
 func validateTopologyRollout(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
+	var allErrs field.ErrorList
+	machineDeploymentNames := make(map[string]struct{}, len(topology.Workers.MachineDeployments))
 
 	for _, md := range topology.Workers.MachineDeployments {
+		machineDeploymentNames[md.Name] = struct{}{}
 		fldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("rollout")
 		allErrs = append(allErrs, validateRolloutStrategy(fldPath.Child("strategy"), md.Rollout.Strategy.RollingUpdate.MaxUnavailable, md.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+	}
+
+	// A rollout group is useful only if all its members resolve to MachineDeployment topologies, and allowing a
+	// MachineDeployment in multiple groups would make the applicable group concurrency limit ambiguous.
+	groupMembership := map[string]string{}
+	groupsPath := fldPath.Child("workers", "rollout", "groups")
+	for _, group := range topology.Workers.Rollout.Groups {
+		groupPath := groupsPath.Key(group.Name)
+		for i, machineDeploymentName := range group.MachineDeployments {
+			machineDeploymentPath := groupPath.Child("machineDeployments").Index(i)
+			if _, ok := machineDeploymentNames[machineDeploymentName]; !ok {
+				allErrs = append(allErrs, field.NotFound(machineDeploymentPath, machineDeploymentName))
+				continue
+			}
+			if existingGroup, ok := groupMembership[machineDeploymentName]; ok {
+				allErrs = append(allErrs, field.Invalid(machineDeploymentPath, machineDeploymentName, fmt.Sprintf("MachineDeployment is already in rollout group %q", existingGroup)))
+				continue
+			}
+			groupMembership[machineDeploymentName] = group.Name
+		}
 	}
 
 	return allErrs

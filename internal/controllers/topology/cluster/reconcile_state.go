@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"sort"
 	"strings"
 	"time"
 
@@ -43,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
@@ -535,6 +537,24 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.Scope) error {
 	diff := calculateMachineDeploymentDiff(s.Current.MachineDeployments, s.Desired.MachineDeployments)
 
+	topologyOrder := map[string]int{}
+	for i, md := range s.Blueprint.Topology.Workers.MachineDeployments {
+		topologyOrder[md.Name] = i
+	}
+	// Sort so that rollout sequencing is deterministic and follows the same ordering semantics
+	// as version upgrades.
+	sort.Slice(diff.toUpdate, func(i, j int) bool {
+		iOrder, iKnown := topologyOrder[diff.toUpdate[i]]
+		jOrder, jKnown := topologyOrder[diff.toUpdate[j]]
+		if iKnown && jKnown && iOrder != jOrder {
+			return iOrder < jOrder
+		}
+		if iKnown != jKnown {
+			return iKnown
+		}
+		return diff.toUpdate[i] < diff.toUpdate[j]
+	})
+
 	// Create MachineDeployments.
 	if len(diff.toCreate) > 0 {
 		// In current state we only got the MD list via a cached call.
@@ -727,6 +747,36 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 	cluster := s.Current.Cluster
 	infraLog := log.WithValues(desiredMD.InfrastructureMachineTemplate.GetKind(), klog.KObj(desiredMD.InfrastructureMachineTemplate))
 	infraCtx := ctrl.LoggerInto(ctx, infraLog)
+	bootstrapLog := log.WithValues(desiredMD.BootstrapTemplate.GetKind(), klog.KObj(desiredMD.BootstrapTemplate))
+	bootstrapCtx := ctrl.LoggerInto(ctx, bootstrapLog)
+
+	// Build the template patch helpers up front so they can be used both to detect rollout triggers
+	// and to avoid computing the same SSA dry-run twice when reconciling the templates.
+	infraHelper, err := structuredmerge.NewServerSidePatchHelper(infraCtx, currentMD.InfrastructureMachineTemplate, desiredMD.InfrastructureMachineTemplate, r.Client, r.ssaCache)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create patch helper for %s %s", currentMD.InfrastructureMachineTemplate.GetKind(), klog.KObj(currentMD.InfrastructureMachineTemplate))
+	}
+	bootstrapHelper, err := structuredmerge.NewServerSidePatchHelper(bootstrapCtx, currentMD.BootstrapTemplate, desiredMD.BootstrapTemplate, r.Client, r.ssaCache)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create patch helper for %s %s", currentMD.BootstrapTemplate.GetKind(), klog.KObj(currentMD.BootstrapTemplate))
+	}
+
+	templateUpToDate, _ := mdutil.MachineTemplateUpToDate(&currentMD.Object.Spec.Template, &desiredMD.Object.Spec.Template)
+	// A MachineDeployment rollout is triggered by infrastructure template spec changes, bootstrap template spec changes,
+	// or MachineDeployment template changes. In-place propagated fields like metadata-only template changes do not count.
+	wouldTriggerRollout := infraHelper.HasSpecChanges() || bootstrapHelper.HasSpecChanges() || !templateUpToDate
+	// Hold back all MachineDeployment changes while the rollout concurrency limit is reached, like the pending-upgrade gate
+	// above, to avoid a double rollout. MachineDeployments that are already rolling out or upgrading are never held back.
+	if wouldTriggerRollout && !s.UpgradeTracker.MachineDeployments.IsRollingOut(currentMD.Object.Name) {
+		if s.UpgradeTracker.MachineDeployments.RolloutConcurrencyReached(currentMD.Object.Name) {
+			s.UpgradeTracker.MachineDeployments.MarkPendingRollout(currentMD.Object.Name)
+			return nil
+		}
+		// This MachineDeployment is going to start a rollout in the current reconcile loop;
+		// count it against the rollout concurrency limit for subsequent MachineDeployments.
+		s.UpgradeTracker.MachineDeployments.MarkRollingOut(currentMD.Object.Name)
+	}
+
 	infrastructureMachineCleanupFunc := func() {}
 	createdInfra, err := r.reconcileReferencedTemplate(infraCtx, reconcileReferencedTemplateInput{
 		cluster:              cluster,
@@ -735,6 +785,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		desired:              desiredMD.InfrastructureMachineTemplate,
 		templateNamePrefix:   topologynames.InfrastructureMachineTemplateNamePrefix(cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreCompatible,
+		patchHelper:          infraHelper,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to reconcile MachineDeployment %s", klog.KObj(currentMD.Object))
@@ -750,8 +801,6 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		}
 	}
 
-	bootstrapLog := log.WithValues(desiredMD.BootstrapTemplate.GetKind(), klog.KObj(desiredMD.BootstrapTemplate))
-	bootstrapCtx := ctrl.LoggerInto(ctx, bootstrapLog)
 	bootstrapCleanupFunc := func() {}
 	createdBootstrap, err := r.reconcileReferencedTemplate(bootstrapCtx, reconcileReferencedTemplateInput{
 		cluster:              cluster,
@@ -760,6 +809,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		desired:              desiredMD.BootstrapTemplate,
 		templateNamePrefix:   topologynames.BootstrapTemplateNamePrefix(cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
+		patchHelper:          bootstrapHelper,
 	})
 	if err != nil {
 		// Best effort cleanup of the InfrastructureMachineTemplate (only on template rotation).
@@ -1229,6 +1279,8 @@ type reconcileReferencedTemplateInput struct {
 	desired              *unstructured.Unstructured
 	templateNamePrefix   string
 	compatibilityChecker func(current, desired client.Object) field.ErrorList
+	// patchHelper is a pre-built helper used to avoid duplicate SSA dry-runs.
+	patchHelper structuredmerge.PatchHelper
 }
 
 // reconcileReferencedTemplate reconciles the desired state of a referenced Template.
@@ -1246,9 +1298,13 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	// If there is no current object, create the desired object.
 	if in.current == nil {
 		log.Info(fmt.Sprintf("Creating %s", in.desired.GetKind()), in.desired.GetKind(), klog.KObj(in.desired))
-		helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, in.desired, r.Client, r.ssaCache)
-		if err != nil {
-			return false, errors.Wrap(createErrorWithoutObjectName(ctx, err, in.desired), "failed to create patch helper")
+		helper := in.patchHelper
+		if helper == nil {
+			var err error
+			helper, err = structuredmerge.NewServerSidePatchHelper(ctx, nil, in.desired, r.Client, r.ssaCache)
+			if err != nil {
+				return false, errors.Wrap(createErrorWithoutObjectName(ctx, err, in.desired), "failed to create patch helper")
+			}
 		}
 		if _, err := helper.Patch(ctx); err != nil {
 			return false, createErrorWithoutObjectName(ctx, err, in.desired)
@@ -1270,9 +1326,13 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Check differences between current and desired objects, and if there are changes eventually start the template rotation.
-	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, in.current, in.desired, r.Client, r.ssaCache)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to create patch helper for %s %s", in.current.GetKind(), klog.KObj(in.current))
+	patchHelper := in.patchHelper
+	if patchHelper == nil {
+		var err error
+		patchHelper, err = structuredmerge.NewServerSidePatchHelper(ctx, in.current, in.desired, r.Client, r.ssaCache)
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to create patch helper for %s %s", in.current.GetKind(), klog.KObj(in.current))
+		}
 	}
 
 	// Return if no changes are detected.

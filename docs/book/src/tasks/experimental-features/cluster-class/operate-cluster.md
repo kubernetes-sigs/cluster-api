@@ -65,6 +65,75 @@ NAME                                                                            
 machinedeployment.cluster.x-k8s.io/clusterclass-quickstart-linux-workers-XXXX    clusterclass-quickstart   1          1       1         0             Running   7m29s   v1.22.0
 ```
 
+## Coordinate rollouts of MachineDeployments
+
+By default, changes to the Cluster topology that trigger a MachineDeployment rollout (e.g. a change to a referenced
+bootstrap or infrastructure machine template) are applied to all MachineDeployments in parallel. Kubernetes version
+upgrades continue to use the upgrade concurrency configured by the
+`topology.cluster.x-k8s.io/upgrade-concurrency` annotation, which defaults to one.
+
+To use one policy for all MachineDeployment rollouts, including Kubernetes version upgrades, set
+`spec.topology.workers.rollout` on the Cluster. For example, the following configuration allows only one
+MachineDeployment to roll out at a time:
+
+```yaml
+spec:
+  topology:
+    workers:
+      rollout:
+        maxConcurrency: 1
+```
+
+When `spec.topology.workers.rollout` is set, it supersedes the upgrade concurrency annotation for MachineDeployments.
+The annotation continues to apply to MachinePools.
+
+Named rollout groups support more complex strategies. Each group has an independent limit, while
+`maxConcurrency` limits the total number of MachineDeployments rolling out across all groups. For example, this
+configuration rolls out database MachineDeployments serially and application MachineDeployments serially, while
+allowing the two groups to progress in parallel:
+
+```yaml
+spec:
+  topology:
+    workers:
+      rollout:
+        maxConcurrency: 2
+        groups:
+        - name: database
+          maxConcurrency: 1
+          machineDeployments:
+          - database-zone-a
+          - database-zone-b
+          - database-zone-c
+        - name: applications
+          maxConcurrency: 1
+          machineDeployments:
+          - applications-zone-a
+          - applications-zone-b
+          - applications-zone-c
+      machineDeployments:
+      - name: database-zone-a
+        # ...
+      - name: database-zone-b
+        # ...
+      - name: database-zone-c
+        # ...
+      - name: applications-zone-a
+        # ...
+      - name: applications-zone-b
+        # ...
+      - name: applications-zone-c
+        # ...
+```
+
+A MachineDeployment can belong to at most one group. MachineDeployments not assigned to a group are subject only to
+the overall `maxConcurrency` limit. Omitting the overall limit allows all groups and ungrouped MachineDeployments to
+progress independently.
+
+MachineDeployments are selected in the order they are defined in `spec.topology.workers.machineDeployments`.
+Rollouts already in progress, including version upgrades, consume the applicable overall and group limits.
+MachineDeployments waiting for their turn are surfaced in the Cluster's `TopologyReconciled` condition.
+
 ## Scale a MachineDeployment
 When using a managed topology scaling of MachineDeployments, both up and down, should be done through the Cluster topology.
 

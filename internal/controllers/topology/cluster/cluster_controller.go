@@ -373,6 +373,9 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error reading current state of the Cluster topology")
 	}
+	if err := s.InitializeMachineDeploymentRolloutTracking(ctx, r.APIReader); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "error initializing rollout tracking for the MachineDeployments of the Cluster topology")
+	}
 
 	// The cluster topology is yet to be created. Call the BeforeClusterCreate hook before proceeding.
 	if feature.Gates.Enabled(feature.RuntimeSDK) {

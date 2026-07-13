@@ -2836,7 +2836,9 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		machineDeploymentTopology            clusterv1.MachineDeploymentTopology
 		currentMachineDeploymentState        *scope.MachineDeploymentState
 		upgradingMachineDeployments          []string
+		rollingOutMachineDeployments         []string
 		upgradeConcurrency                   int
+		rolloutGroups                        map[string]string
 		controlPlanePendingUpgrade           bool
 		controlPlaneWaitingForWorkersUpgrade bool
 		controlPlaneStartingUpgrade          bool
@@ -3000,6 +3002,32 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			expectedVersion:               "v1.2.2",
 			expectPendingUpgrade:          true,
 		},
+		{
+			name:                          "should allow upgrades in parallel rollout groups",
+			currentMachineDeploymentState: currentMachineDeploymentState,
+			upgradingMachineDeployments:   []string{"upgrading-md1"},
+			rolloutGroups: map[string]string{
+				"upgrading-md1": "database",
+				mdName:          "applications",
+			},
+			topologyVersion:      "v1.2.3",
+			upgradePlan:          []string{"v1.2.3"},
+			expectedVersion:      "v1.2.3",
+			expectPendingUpgrade: false,
+		},
+		{
+			name:                          "should hold upgrade if another MachineDeployment is rolling out in the same group",
+			currentMachineDeploymentState: currentMachineDeploymentState,
+			rollingOutMachineDeployments:  []string{"rolling-md1"},
+			rolloutGroups: map[string]string{
+				"rolling-md1": "database",
+				mdName:        "database",
+			},
+			topologyVersion:      "v1.2.3",
+			upgradePlan:          []string{"v1.2.3"},
+			expectedVersion:      "v1.2.2",
+			expectPendingUpgrade: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -3042,7 +3070,11 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			s.UpgradeTracker.ControlPlane.IsProvisioning = tt.controlPlaneProvisioning
 			s.UpgradeTracker.ControlPlane.IsPendingUpgrade = tt.controlPlanePendingUpgrade
 			s.UpgradeTracker.ControlPlane.IsWaitingForWorkersUpgrade = tt.controlPlaneWaitingForWorkersUpgrade
+			for name, group := range tt.rolloutGroups {
+				s.UpgradeTracker.MachineDeployments.AddToRolloutGroup(name, group, 1)
+			}
 			s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
+			s.UpgradeTracker.MachineDeployments.MarkRollingOut(tt.rollingOutMachineDeployments...)
 
 			e := generator{}
 

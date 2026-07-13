@@ -79,6 +79,36 @@ func (mds MachineDeploymentsStateMap) Upgrading(ctx context.Context, c client.Re
 	return names, nil
 }
 
+// RollingOut returns the list of the machine deployments that are rolling out.
+// The reader must provide uncached reads so MachineDeployment completion events are not evaluated against stale
+// MachineSet state. The topology controller does not watch MachineSets and thus would not reconcile when the cache catches up.
+func (mds MachineDeploymentsStateMap) RollingOut(ctx context.Context, c client.Reader) ([]string, error) {
+	machineSets := &clusterv1.MachineSetList{}
+	for _, md := range mds {
+		// All MachineDeployments in this map belong to the same Cluster, so one list provides the
+		// consistent MachineSet snapshot required to evaluate rollout progress for all of them.
+		if err := c.List(ctx, machineSets,
+			client.InNamespace(md.Object.Namespace),
+			client.MatchingLabels{clusterv1.ClusterNameLabel: md.Object.Spec.ClusterName},
+		); err != nil {
+			return nil, errors.Wrap(err, "failed to list MachineSets to determine rolling out MachineDeployments")
+		}
+		break
+	}
+
+	names := []string{}
+	for _, md := range mds {
+		rollingOut, err := md.IsRollingOut(machineSets.Items)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to determine rolling out MachineDeployments")
+		}
+		if rollingOut {
+			names = append(names, md.Object.Name)
+		}
+	}
+	return names, nil
+}
+
 // MachineDeploymentState holds all the objects representing the state of a managed deployment.
 type MachineDeploymentState struct {
 	// Object holds the MachineDeployment object.
@@ -100,6 +130,15 @@ type MachineDeploymentState struct {
 // MachineDeployment has a different version.
 func (md *MachineDeploymentState) IsUpgrading(ctx context.Context, c client.Reader) (bool, error) {
 	return check.IsMachineDeploymentUpgrading(ctx, c, md.Object)
+}
+
+// IsRollingOut determines if the MachineDeployment is rolling out based on the given MachineSets.
+// A MachineDeployment is considered rolling out if its RollingOut condition is true, if the controller has not
+// observed the latest generation, or if one of its MachineSets does not match the MachineDeployment machine
+// template while still having replicas. The MachineSet-based signal is required because the RollingOut condition
+// is propagated asynchronously through the Machines' UpToDate conditions.
+func (md *MachineDeploymentState) IsRollingOut(machineSets []clusterv1.MachineSet) (bool, error) {
+	return check.IsMachineDeploymentRollingOut(md.Object, machineSets)
 }
 
 // MachinePoolsStateMap holds a collection of MachinePool states.

@@ -71,6 +71,11 @@ func ConvertClusterV1Beta1ToHub(_ context.Context, src *clusterv1beta1.Cluster, 
 	if !reflect.DeepEqual(initialization, clusterv1.ClusterInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}
+
+	// Recover other values.
+	if ok {
+		dst.Spec.Topology.Workers.Rollout = restored.Spec.Topology.Workers.Rollout
+	}
 	return nil
 }
 

@@ -121,12 +121,43 @@ type WorkerUpgradeTracker struct {
 	// upgrading state. This includes the MachineDeployments/MachinePools that are currently upgrading and the
 	// MachineDeployments/MachinePools that will start the upgrade after the current reconcile loop.
 	maxUpgradeConcurrency int
+
+	// rollingOutNames is the set of MachineDeployment/MachinePool names that are rolling out. This set contains the
+	// names of MachineDeployments/MachinePools that are currently rolling out and the names of MachineDeployments/MachinePools
+	// that will start a rollout in the current reconcile loop.
+	rollingOutNames sets.Set[string]
+
+	// pendingRolloutNames is the set of MachineDeployment/MachinePool names that are not going to roll out in the
+	// current reconcile loop because the rollout concurrency limit is reached.
+	// By marking a MachineDeployment/MachinePool as pendingRollout we skip reconciling the MachineDeployment/MachinePool.
+	pendingRolloutNames sets.Set[string]
+
+	// maxRolloutConcurrency defines the maximum number of MachineDeployments/MachinePools across all groups that should be in a
+	// rolling out state. This includes the MachineDeployments/MachinePools that are currently rolling out and the
+	// MachineDeployments/MachinePools that will start the rollout after the current reconcile loop.
+	// 0 means there is no overall rollout concurrency limit.
+	maxRolloutConcurrency int
+
+	// rolloutGroupNames maps MachineDeployment/MachinePool names to the rollout group they belong to.
+	// MachineDeployments/MachinePools without an entry are only subject to maxRolloutConcurrency.
+	rolloutGroupNames map[string]string
+
+	// maxRolloutGroupConcurrency defines the maximum number of MachineDeployments/MachinePools that should be rolling out
+	// in each rollout group. MachineDeployments/MachinePools in different groups can roll out concurrently.
+	maxRolloutGroupConcurrency map[string]int
+
+	// rolloutPolicyEnabled is true when the Cluster defines workers.rollout.
+	// When true, the rollout policy coordinates version upgrades as well as other rollout-triggering changes and supersedes
+	// maxUpgradeConcurrency for MachineDeployments.
+	// Note: workers.rollout is only configurable for MachineDeployments; the MachinePools tracker never enables it.
+	rolloutPolicyEnabled bool
 }
 
 // UpgradeTrackerOptions contains the options for NewUpgradeTracker.
 type UpgradeTrackerOptions struct {
 	maxMDUpgradeConcurrency int
 	maxMPUpgradeConcurrency int
+	maxMDRolloutConcurrency int
 }
 
 // UpgradeTrackerOption returns an option for the NewUpgradeTracker function.
@@ -152,6 +183,15 @@ func (m MaxMPUpgradeConcurrency) ApplyToUpgradeTracker(options *UpgradeTrackerOp
 	options.maxMPUpgradeConcurrency = int(m)
 }
 
+// MaxMDRolloutConcurrency sets the upper limit for the number of MachineDeployments that can roll out
+// concurrently.
+type MaxMDRolloutConcurrency int
+
+// ApplyToUpgradeTracker applies the given UpgradeTrackerOptions.
+func (m MaxMDRolloutConcurrency) ApplyToUpgradeTracker(options *UpgradeTrackerOptions) {
+	options.maxMDRolloutConcurrency = int(m)
+}
+
 // NewUpgradeTracker returns an upgrade tracker with empty tracking information.
 func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 	options := &UpgradeTrackerOptions{}
@@ -166,6 +206,11 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 		// The concurrency should be at least 1.
 		options.maxMPUpgradeConcurrency = 1
 	}
+	mdRolloutPolicyEnabled := options.maxMDRolloutConcurrency > 0
+	if options.maxMDRolloutConcurrency < 1 {
+		// Rollout sequencing is disabled unless a concurrency >= 1 is set.
+		options.maxMDRolloutConcurrency = 0
+	}
 	return &UpgradeTracker{
 		MachineDeployments: WorkerUpgradeTracker{
 			pendingCreateTopologyNames: sets.Set[string]{},
@@ -173,6 +218,12 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 			deferredNames:              sets.Set[string]{},
 			upgradingNames:             sets.Set[string]{},
 			maxUpgradeConcurrency:      options.maxMDUpgradeConcurrency,
+			rollingOutNames:            sets.Set[string]{},
+			pendingRolloutNames:        sets.Set[string]{},
+			maxRolloutConcurrency:      options.maxMDRolloutConcurrency,
+			rolloutGroupNames:          map[string]string{},
+			maxRolloutGroupConcurrency: map[string]int{},
+			rolloutPolicyEnabled:       mdRolloutPolicyEnabled,
 		},
 		MachinePools: WorkerUpgradeTracker{
 			pendingCreateTopologyNames: sets.Set[string]{},
@@ -180,6 +231,12 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 			deferredNames:              sets.Set[string]{},
 			upgradingNames:             sets.Set[string]{},
 			maxUpgradeConcurrency:      options.maxMPUpgradeConcurrency,
+			rollingOutNames:            sets.Set[string]{},
+			pendingRolloutNames:        sets.Set[string]{},
+			maxRolloutConcurrency:      0,
+			rolloutGroupNames:          map[string]string{},
+			maxRolloutGroupConcurrency: map[string]int{},
+			rolloutPolicyEnabled:       false,
 		},
 	}
 }
@@ -258,8 +315,66 @@ func (m *WorkerUpgradeTracker) IsAnyUpgrading() bool {
 }
 
 // UpgradeConcurrencyReached returns true if the number of MachineDeployments/MachinePools upgrading is at the concurrency limit.
-func (m *WorkerUpgradeTracker) UpgradeConcurrencyReached() bool {
+// If a rollout policy is enabled, it supersedes the upgrade concurrency limit and coordinates version upgrades with all
+// other rollouts through the overall and group rollout concurrency limits.
+func (m *WorkerUpgradeTracker) UpgradeConcurrencyReached(name string) bool {
+	if m.rolloutPolicyEnabled {
+		return m.RolloutConcurrencyReached(name)
+	}
 	return m.upgradingNames.Len() >= m.maxUpgradeConcurrency
+}
+
+// MarkRollingOut marks a MachineDeployment/MachinePool as currently rolling out or about to roll out.
+func (m *WorkerUpgradeTracker) MarkRollingOut(names ...string) {
+	for _, name := range names {
+		m.rollingOutNames.Insert(name)
+	}
+}
+
+// RollingOutNames returns the list of machine deployments that are rolling out or
+// are about to roll out.
+func (m *WorkerUpgradeTracker) RollingOutNames() []string {
+	return sets.List(m.rollingOutNames)
+}
+
+// IsRollingOut returns true if the MachineDeployment/MachinePool is currently rolling out or upgrading.
+func (m *WorkerUpgradeTracker) IsRollingOut(name string) bool {
+	return m.rollingOutNames.Has(name) || m.upgradingNames.Has(name)
+}
+
+// AddToRolloutGroup associates a MachineDeployment/MachinePool with a rollout group and configures the group's concurrency limit.
+// MachineDeployments/MachinePools in different groups can roll out concurrently, subject to the overall rollout concurrency limit.
+// Adding a MachineDeployment/MachinePool to a group enables the rollout policy for this tracker.
+// A maxConcurrency of 0 means the group has no concurrency limit of its own.
+func (m *WorkerUpgradeTracker) AddToRolloutGroup(name, group string, maxConcurrency int) {
+	m.rolloutPolicyEnabled = true
+	m.rolloutGroupNames[name] = group
+	m.maxRolloutGroupConcurrency[group] = maxConcurrency
+}
+
+// RolloutConcurrencyReached returns true if the number of MachineDeployments/MachinePools rolling out has reached the
+// overall concurrency limit or the concurrency limit of the rollout group containing name.
+// MachineDeployments/MachinePools that are upgrading or about to upgrade count against the limit, so the limit caps the
+// total number of concurrent rollouts regardless of the cause.
+// Returns false if neither an overall limit nor a group limit applies to name.
+func (m *WorkerUpgradeTracker) RolloutConcurrencyReached(name string) bool {
+	rollingOutNames := m.rollingOutNames.Union(m.upgradingNames)
+	if m.maxRolloutConcurrency > 0 && rollingOutNames.Len() >= m.maxRolloutConcurrency {
+		return true
+	}
+
+	group, ok := m.rolloutGroupNames[name]
+	if !ok {
+		return false
+	}
+	maxGroupConcurrency := m.maxRolloutGroupConcurrency[group]
+	rollingOutInGroup := 0
+	for rollingOutName := range rollingOutNames {
+		if m.rolloutGroupNames[rollingOutName] == group {
+			rollingOutInGroup++
+		}
+	}
+	return maxGroupConcurrency > 0 && rollingOutInGroup >= maxGroupConcurrency
 }
 
 // MarkPendingCreate marks a machine deployment topology that is pending to be created.
@@ -308,6 +423,30 @@ func (m *WorkerUpgradeTracker) IsAnyPendingUpgrade() bool {
 // are pending an upgrade.
 func (m *WorkerUpgradeTracker) PendingUpgradeNames() []string {
 	return sets.List(m.pendingUpgradeNames)
+}
+
+// MarkPendingRollout marks a machine deployment as in need of a rollout.
+// This is generally used to capture machine deployments that have not yet
+// picked up topology changes that trigger a rollout.
+func (m *WorkerUpgradeTracker) MarkPendingRollout(name string) {
+	m.pendingRolloutNames.Insert(name)
+}
+
+// IsPendingRollout returns true if the MachineDeployment/MachinePool is marked as pending rollout.
+func (m *WorkerUpgradeTracker) IsPendingRollout(name string) bool {
+	return m.pendingRolloutNames.Has(name)
+}
+
+// IsAnyPendingRollout returns true if any of the machine deployments are pending
+// a rollout. Returns false, otherwise.
+func (m *WorkerUpgradeTracker) IsAnyPendingRollout() bool {
+	return len(m.pendingRolloutNames) != 0
+}
+
+// PendingRolloutNames returns the list of machine deployment names that
+// are pending a rollout.
+func (m *WorkerUpgradeTracker) PendingRolloutNames() []string {
+	return sets.List(m.pendingRolloutNames)
 }
 
 // MarkDeferredUpgrade marks that the upgrade for a MachineDeployment/MachinePool

@@ -3442,6 +3442,71 @@ spec:
                         x-kubernetes-list-map-keys:
                         - name
                         x-kubernetes-list-type: map
+                      rollout:
+                        description: |-
+                          rollout allows you to configure the behavior of rolling updates to the MachineDeployments
+                          of the Cluster topology.
+                        minProperties: 1
+                        properties:
+                          groups:
+                            description: |-
+                              groups define independent concurrency limits for sets of MachineDeployments.
+                              A MachineDeployment can belong to at most one group. MachineDeployments not included in a group
+                              are only subject to maxConcurrency. Groups are reconciled in parallel, while MachineDeployments
+                              within each group are rolled out in the order in which they are defined in workers.machineDeployments.
+                            items:
+                              description: MachineDeploymentRolloutGroup defines a
+                                concurrency limit for a set of MachineDeployments
+                                in a Cluster topology.
+                              properties:
+                                machineDeployments:
+                                  description: |-
+                                    machineDeployments is the set of MachineDeployment topology names that belong to this rollout group.
+                                    Each name must match a MachineDeployment defined in workers.machineDeployments and can occur in only one group.
+                                  items:
+                                    maxLength: 63
+                                    minLength: 1
+                                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                    type: string
+                                  maxItems: 2000
+                                  minItems: 1
+                                  type: array
+                                  x-kubernetes-list-type: set
+                                maxConcurrency:
+                                  description: |-
+                                    maxConcurrency is the maximum number of MachineDeployments in this group that can roll out concurrently.
+                                    MachineDeployments in the group that are performing a Kubernetes version upgrade count against this limit.
+                                  format: int32
+                                  minimum: 1
+                                  type: integer
+                                name:
+                                  description: name is the unique identifier for this
+                                    rollout group.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              required:
+                              - machineDeployments
+                              - maxConcurrency
+                              - name
+                              type: object
+                            maxItems: 2000
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          maxConcurrency:
+                            description: |-
+                              maxConcurrency is the maximum number of MachineDeployments that can roll out concurrently
+                              across all rollout groups due to changes to the Cluster topology (e.g. rotation of a referenced template).
+                              MachineDeployments performing a Kubernetes version upgrade count against this limit.
+                              If not set, there is no overall concurrency limit. Limits configured for rollout groups still apply.
+                            format: int32
+                            minimum: 1
+                            type: integer
+                        type: object
                     type: object
                 required:
                 - classRef

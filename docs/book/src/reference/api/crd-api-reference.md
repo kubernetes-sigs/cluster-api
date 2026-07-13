@@ -3051,6 +3051,24 @@ _Appears in:_
 | `maxInFlight` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#intorstring-intstr-util)_ | maxInFlight determines how many in flight remediations should happen at the same time.<br />Remediation only happens on the MachineSet with the most current revision, while<br />older MachineSets (usually present during rollout operations) aren't allowed to remediate.<br />Note: In general (independent of remediations), unhealthy machines are always<br />prioritized during scale down operations over healthy ones.<br />MaxInFlight can be set to a fixed number or a percentage.<br />Example: when this is set to 20%, the MachineSet controller deletes at most 20% of<br />the desired replicas.<br />If not set, remediation is limited to all machines (bounded by replicas)<br />under the active MachineSet's management. |  | Optional: \{\} <br /> |
 
 
+#### MachineDeploymentRolloutGroup
+
+
+
+MachineDeploymentRolloutGroup defines a concurrency limit for a set of MachineDeployments in a Cluster topology.
+
+
+
+_Appears in:_
+- [WorkersTopologyRolloutSpec](#workerstopologyrolloutspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | name is the unique identifier for this rollout group. |  | MaxLength: 63 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
+| `machineDeployments` _string array_ | machineDeployments is the set of MachineDeployment topology names that belong to this rollout group.<br />Each name must match a MachineDeployment defined in workers.machineDeployments and can occur in only one group. |  | MaxItems: 2000 <br />MinItems: 1 <br />items:MaxLength: 63 <br />items:MinLength: 1 <br />items:Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
+| `maxConcurrency` _integer_ | maxConcurrency is the maximum number of MachineDeployments in this group that can roll out concurrently.<br />MachineDeployments in the group that are performing a Kubernetes version upgrade count against this limit. |  | Minimum: 1 <br />Required: \{\} <br /> |
+
+
 #### MachineDeploymentRolloutSpec
 
 
@@ -4760,6 +4778,25 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `machineDeployments` _[MachineDeploymentTopology](#machinedeploymenttopology) array_ | machineDeployments is a list of machine deployments in the cluster. |  | MaxItems: 2000 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `machinePools` _[MachinePoolTopology](#machinepooltopology) array_ | machinePools is a list of machine pools in the cluster. |  | MaxItems: 2000 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `rollout` _[WorkersTopologyRolloutSpec](#workerstopologyrolloutspec)_ | rollout allows you to configure the behavior of rolling updates to the MachineDeployments<br />of the Cluster topology. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+
+
+#### WorkersTopologyRolloutSpec
+
+
+
+WorkersTopologyRolloutSpec defines the rollout behavior for the workers of a Cluster topology.
+
+_Validation:_
+- MinProperties: 1
+
+_Appears in:_
+- [WorkersTopology](#workerstopology)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `maxConcurrency` _integer_ | maxConcurrency is the maximum number of MachineDeployments that can roll out concurrently<br />across all rollout groups due to changes to the Cluster topology (e.g. rotation of a referenced template).<br />MachineDeployments performing a Kubernetes version upgrade count against this limit.<br />If not set, there is no overall concurrency limit. Limits configured for rollout groups still apply. |  | Minimum: 1 <br />Optional: \{\} <br /> |
+| `groups` _[MachineDeploymentRolloutGroup](#machinedeploymentrolloutgroup) array_ | groups define independent concurrency limits for sets of MachineDeployments.<br />A MachineDeployment can belong to at most one group. MachineDeployments not included in a group<br />are only subject to maxConcurrency. Groups are reconciled in parallel, while MachineDeployments<br />within each group are rolled out in the order in which they are defined in workers.machineDeployments. |  | MaxItems: 2000 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 

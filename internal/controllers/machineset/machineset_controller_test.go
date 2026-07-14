@@ -2957,18 +2957,21 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 		sort.Strings(msMachines)
 		return msMachines
 	}
+	healthCheckNotSucceeded := metav1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineHealthCheckNodeStartupTimeoutReason, Message: "Health check failed:\n      * Node failed to report startup in 1h0m0s"}
+	ownerRemediated := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineCannotBeRemediatedReason, Message: "Machine won't be remediated because it is pending removal due to rollout"}
 
 	tests := []struct {
-		name                 string
-		ms                   *clusterv1.MachineSet
-		targetMS             *clusterv1.MachineSet
-		machines             []*clusterv1.Machine
-		machinesToMove       int
-		interceptorFuncs     interceptor.Funcs
-		wantMachinesNotMoved []string
-		wantMovedMachines    []string
-		wantErr              bool
-		wantErrorMessage     string
+		name                              string
+		ms                                *clusterv1.MachineSet
+		targetMS                          *clusterv1.MachineSet
+		machines                          []*clusterv1.Machine
+		machinesToMove                    int
+		interceptorFuncs                  interceptor.Funcs
+		wantMachinesNotMoved              []string
+		wantMovedMachines                 []string
+		wantMachinesWithDeletionTimestamp []string
+		wantErr                           bool
+		wantErrorMessage                  string
 	}{
 		{
 			name: "should fail when taget ms cannot be found",
@@ -3054,6 +3057,28 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			wantErr:              false,
 		},
 		{
+			name: "should delete unhealthy Machines with OwnerRemediated set",
+			ms: newMachineSet("ms1", "cluster1", 2,
+				withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder),
+				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"}),
+			),
+			targetMS: newMachineSet("ms2", "cluster1", 2,
+				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "456"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms1,ms3"}),
+			),
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withCondition(healthCheckNotSucceeded), withCondition(ownerRemediated)),
+				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute))),
+			},
+			machinesToMove:                    2,
+			interceptorFuncs:                  interceptor.Funcs{},
+			wantMachinesNotMoved:              []string{"m1", "m2"},
+			wantMovedMachines:                 []string{},
+			wantMachinesWithDeletionTimestamp: []string{"m1"},
+			wantErr:                           false,
+		},
+		{
 			name: "should not move machines not yet provisioned",
 			ms: newMachineSet("ms1", "cluster1", 2,
 				withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder),
@@ -3091,11 +3116,12 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
 				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode(), withDeletionTimestamp()), // newest
 			},
-			machinesToMove:       2,
-			interceptorFuncs:     interceptor.Funcs{},
-			wantMachinesNotMoved: []string{"m1", "m2", "m4"},
-			wantMovedMachines:    []string{"m3"}, // newest machines moved first with NewestMachineSetDeletionOrder, but m4 is deleting so don't touch it
-			wantErr:              false,
+			machinesToMove:                    2,
+			interceptorFuncs:                  interceptor.Funcs{},
+			wantMachinesNotMoved:              []string{"m1", "m2", "m4"},
+			wantMovedMachines:                 []string{"m3"}, // newest machines moved first with NewestMachineSetDeletionOrder, but m4 is deleting so don't touch it
+			wantMachinesWithDeletionTimestamp: []string{"m4"},
+			wantErr:                           false,
 		},
 		{
 			name: "should not move more machines that are already updating in place, pick another machine instead",
@@ -3196,6 +3222,14 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 					}
 				}
 			}
+
+			var machinesWithDeletionTimestamp []string
+			for _, m := range machines.Items {
+				if !m.DeletionTimestamp.IsZero() {
+					machinesWithDeletionTimestamp = append(machinesWithDeletionTimestamp, m.Name)
+				}
+			}
+			g.Expect(machinesWithDeletionTimestamp).To(ConsistOf(tt.wantMachinesWithDeletionTimestamp))
 		})
 	}
 }

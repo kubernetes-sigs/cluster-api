@@ -1006,12 +1006,36 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 
 	errs := []error{}
 	machinesMoved := []*clusterv1.Machine{}
+	machinesDeleted := []*clusterv1.Machine{}
 	for _, machine := range machinesToMoveByPriority {
 		if machinesToMove <= 0 {
 			break
 		}
 
 		log := log.WithValues("Machine", klog.KObj(machine))
+
+		// Note: Using the same logic to determine if a Machine should be remediated as in reconcileUnhealthyMachines.
+		//       But remediation will happen here by deleting the Machine and another Machine will be eventually
+		//       created for the new MachineSet (remediation means usually re-creating a Machine on the same MachineSet).
+		if collections.IsUnhealthyAndOwnerRemediated(machine) && machine.DeletionTimestamp.IsZero() {
+			machinesToMove--
+
+			if err := r.Client.Delete(ctx, machine); err != nil {
+				errs = append(errs, errors.Wrapf(err, "failed to delete Machine %s (tried to delete the Machine instead of moving it to MachineSet %s because Machine is marked for remediation)", klog.KObj(machine), klog.KObj(targetMS)))
+				continue
+			}
+			machinesDeleted = append(machinesDeleted, machine)
+
+			log.Info(fmt.Sprintf("Machine %s deleting (deleting the Machine instead of moving it to MachineSet %s because Machine is marked for remediation)", klog.KObj(machine), targetMS.Name))
+			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
+			continue
+		}
+
+		// If there are machines already deleting, wait for them to go away before further scaling down with move.
+		if !machine.DeletionTimestamp.IsZero() {
+			machinesToMove--
+			continue
+		}
 
 		// Make sure we are not moving machines still updating in place from a previous move (this includes also machines still pending AcknowledgeMove).
 		if inplace.IsUpdateInProgress(machine) {
@@ -1024,16 +1048,9 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 		}
 
 		// Note. Machines with the DeleteMachineAnnotation are going to be moved and the new MS
-		//       will take care of fulfilling this intent as soon as it scales down.
-		// Note. Also Machines marked as unhealthy by MHC are going to be moved, because otherwise
-		//       remediation will not complete as the Machine is owned by an old MS.
+		//       will take care of fulfilling this intent/prioritization as soon as it scales down.
 
 		machinesToMove--
-
-		// If there are machines already deleting, wait for them to go away before further scaling down with move.
-		if !machine.DeletionTimestamp.IsZero() {
-			continue
-		}
 
 		log.Info(fmt.Sprintf("Triggering in-place update for Machine %s (by moving to MachineSet %s)", machine.Name, targetMS.Name))
 
@@ -1082,6 +1099,9 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 
 	// Wait for cache update to ensure following reconcile gets latest change.
 	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "moving Machines", machinesMoved...); err != nil {
+		errs = append(errs, err)
+	}
+	if err := clientutil.WaitForObjectsToBeDeletedFromTheCache(ctx, r.Client, "Machine deletion (fallback for Machines marked for remediation)", machinesDeleted...); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
@@ -1556,6 +1576,9 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	if isDeploymentChild(ms) {
 		if owner.Annotations[clusterv1.RevisionAnnotation] != ms.Annotations[clusterv1.RevisionAnnotation] {
 			// MachineSet is part of a MachineDeployment but isn't the current revision, no remediations allowed.
+			// Note: While remediation won't delete these Machines deleteMachines or startMoveMachines will delete
+			// them as part of the rollout. After that deletion the MD controller will scale up the new MS and then
+			// a new Machine will be created accordingly.
 			if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedCondition,
 				Status:  metav1.ConditionFalse,

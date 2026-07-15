@@ -48,6 +48,10 @@ func ConvertMachineHealthCheckV1Beta1ToHub(_ context.Context, src *clusterv1beta
 	clusterv1.Convert_int32_To_Pointer_int32(src.Status.CurrentHealthy, ok, restored.Status.CurrentHealthy, &dst.Status.CurrentHealthy)
 	clusterv1.Convert_int32_To_Pointer_int32(src.Status.RemediationsAllowed, ok, restored.Status.RemediationsAllowed, &dst.Status.RemediationsAllowed)
 
+	if ok {
+		dst.Spec.Checks.NodeDeleting = restored.Spec.Checks.NodeDeleting
+	}
+
 	return nil
 }
 

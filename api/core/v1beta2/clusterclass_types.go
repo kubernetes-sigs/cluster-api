@@ -289,6 +289,19 @@ type ControlPlaneClassHealthCheckChecks struct {
 	// +kubebuilder:validation:Minimum=0
 	NodeStartupTimeoutSeconds *int32 `json:"nodeStartupTimeoutSeconds,omitempty"`
 
+	// nodeDeleting allows to configure the MachineHealthCheck to consider a Machine unhealthy
+	// if its Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least
+	// the configured timeout.
+	// This allows to trigger the regular remediation process, and thus a graceful removal
+	// of the corresponding Machine, by deleting a Node in the workload cluster.
+	// Note: this check only applies as long as the Node object exists, i.e. it is kept
+	// around by a finalizer; Machines whose Node has been deleted are always considered
+	// unhealthy, independent of this configuration.
+	// If this field is not set, a Node that is being deleted does not cause the Machine
+	// to be considered unhealthy.
+	// +optional
+	NodeDeleting NodeDeletingCheck `json:"nodeDeleting,omitempty,omitzero"`
+
 	// unhealthyNodeConditions contains a list of conditions that determine
 	// whether a node is considered unhealthy. The conditions are combined in a
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
@@ -576,6 +589,19 @@ type MachineDeploymentClassHealthCheckChecks struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	NodeStartupTimeoutSeconds *int32 `json:"nodeStartupTimeoutSeconds,omitempty"`
+
+	// nodeDeleting allows to configure the MachineHealthCheck to consider a Machine unhealthy
+	// if its Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least
+	// the configured timeout.
+	// This allows to trigger the regular remediation process, and thus a graceful removal
+	// of the corresponding Machine, by deleting a Node in the workload cluster.
+	// Note: this check only applies as long as the Node object exists, i.e. it is kept
+	// around by a finalizer; Machines whose Node has been deleted are always considered
+	// unhealthy, independent of this configuration.
+	// If this field is not set, a Node that is being deleted does not cause the Machine
+	// to be considered unhealthy.
+	// +optional
+	NodeDeleting NodeDeletingCheck `json:"nodeDeleting,omitempty,omitzero"`
 
 	// unhealthyNodeConditions contains a list of conditions that determine
 	// whether a node is considered unhealthy. The conditions are combined in a

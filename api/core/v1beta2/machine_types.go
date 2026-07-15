@@ -321,6 +321,11 @@ const (
 	// machine has been deleted while the Machine is still running.
 	MachineHealthCheckNodeDeletedReason = "NodeDeleted"
 
+	// MachineHealthCheckNodeDeletingReason surfaces when a MachineHealthCheck detects that the node hosted on the
+	// machine is being deleted and the MachineHealthCheck is configured to consider this as unhealthy
+	// via checks.nodeDeleting.
+	MachineHealthCheckNodeDeletingReason = "NodeDeleting"
+
 	// MachineHealthCheckHasRemediateAnnotationReason surfaces when a MachineHealthCheck detects that a Machine was
 	// marked for remediation via the `cluster.x-k8s.io/remediate-machine` annotation.
 	MachineHealthCheckHasRemediateAnnotationReason = "HasRemediateAnnotation"

@@ -102,6 +102,19 @@ type MachineHealthCheckChecks struct {
 	// +kubebuilder:validation:Minimum=0
 	NodeStartupTimeoutSeconds *int32 `json:"nodeStartupTimeoutSeconds,omitempty"`
 
+	// nodeDeleting allows to configure the MachineHealthCheck to consider a Machine unhealthy
+	// if its Node is being deleted, i.e. the Node has a deletionTimestamp set, for at least
+	// the configured timeout.
+	// This allows to trigger the regular remediation process, and thus a graceful removal
+	// of the corresponding Machine, by deleting a Node in the workload cluster.
+	// Note: this check only applies as long as the Node object exists, i.e. it is kept
+	// around by a finalizer; Machines whose Node has been deleted are always considered
+	// unhealthy, independent of this configuration.
+	// If this field is not set, a Node that is being deleted does not cause the Machine
+	// to be considered unhealthy.
+	// +optional
+	NodeDeleting NodeDeletingCheck `json:"nodeDeleting,omitempty,omitzero"`
+
 	// unhealthyNodeConditions contains a list of conditions that determine
 	// whether a node is considered unhealthy. The conditions are combined in a
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
@@ -121,6 +134,19 @@ type MachineHealthCheckChecks struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
+}
+
+// NodeDeletingCheck configures if Machines whose Node is being deleted are considered unhealthy.
+// +kubebuilder:validation:MinProperties=1
+type NodeDeletingCheck struct {
+	// timeoutSeconds is the duration for which a Node must be deleting, i.e. have a
+	// deletionTimestamp set, after which the corresponding Machine is considered unhealthy.
+	// For example, with a value of "300", the Node must be deleting for at least
+	// 5 minutes before the Machine is considered unhealthy.
+	// Set to 0 to consider the Machine unhealthy as soon as the Node is being deleted.
+	// +required
+	// +kubebuilder:validation:Minimum=0
+	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 }
 
 // MachineHealthCheckRemediation configures if and how remediations are triggered if a Machine is unhealthy.

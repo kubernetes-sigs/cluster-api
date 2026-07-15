@@ -408,6 +408,55 @@ func TestHealthCheckTargets(t *testing.T) {
 		nodeMissing: false,
 	}
 
+	// MHCs and targets for when the node is being deleted
+	timeoutForNodeDeleting := int32(5 * 60)
+	testMHCNodeDeleting := testMHC.DeepCopy()
+	testMHCNodeDeleting.Spec.Checks.NodeDeleting = clusterv1.NodeDeletingCheck{TimeoutSeconds: ptr.To(timeoutForNodeDeleting)}
+	testMHCNodeDeletingImmediately := testMHC.DeepCopy()
+	testMHCNodeDeletingImmediately.Spec.Checks.NodeDeleting = clusterv1.NodeDeletingCheck{TimeoutSeconds: ptr.To[int32](0)}
+
+	newTestDeletingNode := func(name string, deletingDuration time.Duration) *corev1.Node {
+		node := newTestNode(name)
+		node.DeletionTimestamp = ptr.To(metav1.NewTime(now.Add(-deletingDuration)))
+		return node
+	}
+
+	// Target for when the node has been deleting for shorter than the nodeDeleting timeout
+	nodeDeleting200 := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCNodeDeleting,
+		Machine: testMachine.DeepCopy(),
+		Node:    newTestDeletingNode("node1", 200*time.Second),
+	}
+
+	// Target for when the node has been deleting for longer than the nodeDeleting timeout
+	nodeDeleting400 := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCNodeDeleting,
+		Machine: testMachine.DeepCopy(),
+		Node:    newTestDeletingNode("node1", 400*time.Second),
+	}
+	nodeDeleting400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.NodeDeletingV1Beta1Reason, "Node node1 has been deleting for more than %s", (time.Duration(timeoutForNodeDeleting) * time.Second).String())
+	nodeDeleting400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckNodeDeletingReason, "Health check failed:\n  * Node node1 has been deleting for more than %s", (time.Duration(timeoutForNodeDeleting) * time.Second).String())
+
+	// Target for when the node is being deleted and timeoutSeconds is set to 0
+	nodeDeletingImmediately := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCNodeDeletingImmediately,
+		Machine: testMachine.DeepCopy(),
+		Node:    newTestDeletingNode("node1", 200*time.Second),
+	}
+	nodeDeletingImmediatelyCondition := newFailedHealthCheckV1Beta1Condition(clusterv1.NodeDeletingV1Beta1Reason, "Node node1 has been deleting for more than 0s")
+	nodeDeletingImmediatelyV1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckNodeDeletingReason, "Health check failed:\n  * Node node1 has been deleting for more than 0s")
+
+	// Target for when the node is being deleted but the nodeDeleting check is not configured
+	nodeDeletingNotConfigured := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHC,
+		Machine: testMachine.DeepCopy(),
+		Node:    newTestDeletingNode("node1", 400*time.Second),
+	}
+
 	// Machine unhealthy for shorter than timeout
 	testMachineUnhealthy200 := newTestUnhealthyMachine("machine1", namespace, clusterName, "node1", mhcSelector, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachinePodFailedReason, now, 200*time.Second)
 	machineUnhealthy200 := healthCheckTarget{
@@ -541,6 +590,38 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeUnknown400Condition},
 			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeUnknown400V1Beta2Condition},
 			expectedNextCheckTimes:                   []time.Duration{200*time.Second + 1*time.Second, 100*time.Second + 1*time.Second},
+		},
+		{
+			desc:                     "when the node is being deleted but the nodeDeleting check is not configured",
+			targets:                  []healthCheckTarget{nodeDeletingNotConfigured},
+			expectedHealthy:          []healthCheckTarget{nodeDeletingNotConfigured},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{},
+		},
+		{
+			desc:                     "when the node has been deleting for shorter than the nodeDeleting timeout",
+			targets:                  []healthCheckTarget{nodeDeleting200},
+			expectedHealthy:          []healthCheckTarget{},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{100*time.Second + 1*time.Second},
+		},
+		{
+			desc:                                     "when the node has been deleting for longer than the nodeDeleting timeout",
+			targets:                                  []healthCheckTarget{nodeDeleting400},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{nodeDeleting400},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeDeleting400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeDeleting400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
+		},
+		{
+			desc:                                     "when the node is being deleted and the nodeDeleting timeout is 0",
+			targets:                                  []healthCheckTarget{nodeDeletingImmediately},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{nodeDeletingImmediately},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeDeletingImmediatelyCondition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeDeletingImmediatelyV1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
 		},
 		{
 			desc:                        "when the node has not started for a long time but the startup timeout is disabled",

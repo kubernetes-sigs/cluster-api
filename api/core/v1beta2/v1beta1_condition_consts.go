@@ -158,6 +158,10 @@ const (
 	// UnhealthyNodeConditionV1Beta1Reason is the reason used when a machine's node has one of the MachineHealthCheck's unhealthy conditions.
 	UnhealthyNodeConditionV1Beta1Reason = "UnhealthyNode"
 
+	// NodeDeletingV1Beta1Reason is the reason used when a machine's node is being deleted and the
+	// MachineHealthCheck is configured to consider this as unhealthy via checks.nodeDeleting.
+	NodeDeletingV1Beta1Reason = "NodeDeleting"
+
 	// UnhealthyMachineConditionV1Beta1Reason is the reason used when a machine has one of the MachineHealthCheck's unhealthy conditions.
 	// When both machine and node issues are detected, this reason takes precedence over node-related reasons
 	// (NodeNotFoundV1Beta1Reason, NodeStartupTimeoutV1Beta1Reason, UnhealthyNodeConditionV1Beta1Reason).

@@ -677,8 +677,9 @@ func nodeIsChangedPredicate() predicate.Funcs {
 				return false
 			}
 
-			// MHC only cares about changes on Node conditions.
-			return !reflect.DeepEqual(nNew.Status.Conditions, nOld.Status.Conditions)
+			// MHC only cares about changes on Node conditions and about Nodes starting to be deleted.
+			return !reflect.DeepEqual(nNew.Status.Conditions, nOld.Status.Conditions) ||
+				!nNew.DeletionTimestamp.Equal(nOld.DeletionTimestamp)
 		},
 		CreateFunc: func(_ event.CreateEvent) bool {
 			return true

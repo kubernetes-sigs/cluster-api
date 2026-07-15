@@ -44,6 +44,19 @@ func ConvertClusterClassV1Beta1ToHub(_ context.Context, src *clusterv1beta1.Clus
 		return err
 	}
 
+	if ok {
+		// Restore fields of the health checks that do not exist in v1beta1.
+		dst.Spec.ControlPlane.HealthCheck.Checks.NodeDeleting = restored.Spec.ControlPlane.HealthCheck.Checks.NodeDeleting
+		for i, md := range dst.Spec.Workers.MachineDeployments {
+			for _, restoredMD := range restored.Spec.Workers.MachineDeployments {
+				if restoredMD.Class == md.Class {
+					dst.Spec.Workers.MachineDeployments[i].HealthCheck.Checks.NodeDeleting = restoredMD.HealthCheck.Checks.NodeDeleting
+					break
+				}
+			}
+		}
+	}
+
 	// Recover intent for bool values converted to *bool.
 	for i, patch := range dst.Spec.Patches {
 		for j, definition := range patch.Definitions {

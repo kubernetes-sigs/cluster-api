@@ -589,13 +589,13 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 		controlPlaneContractVersion, err := contract.GetContractVersionForVersion(ctx, clusterProxy.GetClient(), clusterObjects.ControlPlane.GroupVersionKind().GroupKind(), clusterObjects.ControlPlane.GroupVersionKind().Version)
 		g.Expect(err).ToNot(HaveOccurred())
 		By("Checking ControlPlane object has the right labels, annotations and selectors")
-		assertControlPlane(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
+		assertControlPlane(g, clusterClassObjects, clusterObjects, cluster, clusterClass, filterMetadataBeforeValidation)
 		By("Checking ControlPlane machines objects have the right labels, annotations and selectors")
 		assertControlPlaneMachines(g, clusterObjects, cluster, controlPlaneContractVersion, filterMetadataBeforeValidation)
 
 		// MachineDeployments
 		By("Checking MachineDeployments objects have the right labels, annotations and selectors")
-		assertMachineDeployments(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
+		assertMachineDeployments(g, clusterClassObjects, clusterObjects, cluster, clusterClass, filterMetadataBeforeValidation)
 		By("Checking MachineSets objects have the right labels, annotations and selectors")
 		assertMachineSets(g, clusterObjects, cluster)
 		By("Checking MachineSets machines objects have the right labels, annotations and selectors")
@@ -603,7 +603,7 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 
 		// MachinePools
 		By("Checking MachinePools objects have the right labels, annotations and selectors")
-		assertMachinePools(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
+		assertMachinePools(g, clusterClassObjects, clusterObjects, cluster, clusterClass, filterMetadataBeforeValidation)
 
 		By("All cluster objects have the right labels, annotations and selectors")
 	}, 30*time.Second, 1*time.Second).Should(Succeed())
@@ -634,7 +634,7 @@ func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjec
 	)
 }
 
-func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass, filterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta) {
 	ccControlPlaneTemplateTemplateMetadata := mustMetadata(contract.ControlPlaneTemplate().Template().Metadata().Get(clusterClassObjects.ControlPlaneTemplate))
 	ccControlPlaneTemplateMachineTemplateMetadata := mustMetadata(contract.ControlPlaneTemplate().Template().MachineTemplate().Metadata().Get(clusterClassObjects.ControlPlaneTemplate))
 	ccControlPlaneInfrastructureMachineTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachineTemplate().Template().Metadata().Get(clusterClassObjects.ControlPlaneInfrastructureMachineTemplate))
@@ -642,7 +642,8 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 	controlPlaneInfrastructureMachineTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachineTemplate().Template().Metadata().Get(clusterObjects.ControlPlaneInfrastructureMachineTemplate))
 
 	// ControlPlane.metadata
-	expectMapsToBeEquivalent(g, clusterObjects.ControlPlane.GetLabels(),
+	controlPlaneMetadata := filterMetadataBeforeValidation(clusterObjects.ControlPlane)
+	expectMapsToBeEquivalent(g, controlPlaneMetadata.Labels,
 		union(
 			map[string]string{
 				clusterv1.ClusterNameLabel:          cluster.Name,
@@ -653,7 +654,7 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 			ccControlPlaneTemplateTemplateMetadata.Labels,
 		),
 	)
-	expectMapsToBeEquivalent(g, clusterObjects.ControlPlane.GetAnnotations(),
+	expectMapsToBeEquivalent(g, controlPlaneMetadata.Annotations,
 		union(
 			map[string]string{
 				clusterv1.TemplateClonedFromGroupKindAnnotation: clusterClass.Spec.ControlPlane.TemplateRef.GroupVersionKind().GroupKind().String(),
@@ -689,7 +690,8 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 	)
 
 	// ControlPlane InfrastructureMachineTemplate.metadata
-	expectMapsToBeEquivalent(g, clusterObjects.ControlPlaneInfrastructureMachineTemplate.GetLabels(),
+	controlPlaneInfrastructureMachineTemplateMetadata := filterMetadataBeforeValidation(clusterObjects.ControlPlaneInfrastructureMachineTemplate)
+	expectMapsToBeEquivalent(g, controlPlaneInfrastructureMachineTemplateMetadata.Labels,
 		union(
 			map[string]string{
 				clusterv1.ClusterNameLabel:          cluster.Name,
@@ -698,7 +700,7 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 			clusterClassObjects.ControlPlaneInfrastructureMachineTemplate.GetLabels(),
 		),
 	)
-	expectMapsToBeEquivalent(g, clusterObjects.ControlPlaneInfrastructureMachineTemplate.GetAnnotations(),
+	expectMapsToBeEquivalent(g, controlPlaneInfrastructureMachineTemplateMetadata.Annotations,
 		union(
 			map[string]string{
 				clusterv1.TemplateClonedFromGroupKindAnnotation: clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.GroupVersionKind().GroupKind().String(),
@@ -818,7 +820,7 @@ func assertControlPlaneMachines(g Gomega, clusterObjects ClusterObjects, cluster
 	}
 }
 
-func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass, filterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta) {
 	for _, machineDeployment := range clusterObjects.MachineDeployments {
 		mdTopology := getMDTopology(cluster, machineDeployment)
 		mdClass := getMDClass(cluster, clusterClass, machineDeployment)
@@ -879,7 +881,8 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 		ccInfrastructureMachineTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachineTemplate().Template().Metadata().Get(ccInfrastructureMachineTemplate))
 		infrastructureMachineTemplate := clusterObjects.InfrastructureMachineTemplateByMachineDeployment[machineDeployment.Name]
 		infrastructureMachineTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachineTemplate().Template().Metadata().Get(infrastructureMachineTemplate))
-		expectMapsToBeEquivalent(g, infrastructureMachineTemplate.GetLabels(),
+		infrastructureMachineTemplateMetadata := filterMetadataBeforeValidation(infrastructureMachineTemplate)
+		expectMapsToBeEquivalent(g, infrastructureMachineTemplateMetadata.Labels,
 			union(
 				map[string]string{
 					clusterv1.ClusterNameLabel:                          cluster.Name,
@@ -889,7 +892,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 				ccInfrastructureMachineTemplate.GetLabels(),
 			),
 		)
-		expectMapsToBeEquivalent(g, infrastructureMachineTemplate.GetAnnotations(),
+		expectMapsToBeEquivalent(g, infrastructureMachineTemplateMetadata.Annotations,
 			union(
 				map[string]string{
 					clusterv1.TemplateClonedFromGroupKindAnnotation: mdClass.Infrastructure.TemplateRef.GroupVersionKind().GroupKind().String(),
@@ -911,7 +914,8 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 		ccBootstrapConfigTemplateTemplateMetadata := mustMetadata(contract.BootstrapConfigTemplate().Template().Metadata().Get(ccBootstrapConfigTemplate))
 		bootstrapConfigTemplate := clusterObjects.BootstrapConfigTemplateByMachineDeployment[machineDeployment.Name]
 		bootstrapConfigTemplateTemplateMetadata := mustMetadata(contract.BootstrapConfigTemplate().Template().Metadata().Get(bootstrapConfigTemplate))
-		expectMapsToBeEquivalent(g, bootstrapConfigTemplate.GetLabels(),
+		bootstrapConfigTemplateMetadata := filterMetadataBeforeValidation(bootstrapConfigTemplate)
+		expectMapsToBeEquivalent(g, bootstrapConfigTemplateMetadata.Labels,
 			union(
 				map[string]string{
 					clusterv1.ClusterNameLabel:                          cluster.Name,
@@ -921,7 +925,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 				ccBootstrapConfigTemplate.GetLabels(),
 			),
 		)
-		expectMapsToBeEquivalent(g, bootstrapConfigTemplate.GetAnnotations(),
+		expectMapsToBeEquivalent(g, bootstrapConfigTemplateMetadata.Annotations,
 			union(
 				map[string]string{
 					clusterv1.TemplateClonedFromGroupKindAnnotation: mdClass.Bootstrap.TemplateRef.GroupVersionKind().GroupKind().String(),
@@ -943,7 +947,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 	}
 }
 
-func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects ClusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass, filterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta) {
 	for _, machinePool := range clusterObjects.MachinePools {
 		mpTopology := getMPTopology(cluster, machinePool)
 		mpClass := getMPClass(cluster, clusterClass, machinePool)
@@ -990,7 +994,8 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 		ccInfrastructureMachinePoolTemplate := clusterClassObjects.InfrastructureMachinePoolTemplateByMachinePoolClass[mpClass.Class]
 		ccInfrastructureMachinePoolTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachinePoolTemplate().Template().Metadata().Get(ccInfrastructureMachinePoolTemplate))
 		infrastructureMachinePool := clusterObjects.InfrastructureMachinePoolByMachinePool[machinePool.Name]
-		expectMapsToBeEquivalent(g, infrastructureMachinePool.GetLabels(),
+		infrastructureMachinePoolMetadata := filterMetadataBeforeValidation(infrastructureMachinePool)
+		expectMapsToBeEquivalent(g, infrastructureMachinePoolMetadata.Labels,
 			union(
 				map[string]string{
 					clusterv1.ClusterNameLabel:                    cluster.Name,
@@ -1000,7 +1005,7 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 				ccInfrastructureMachinePoolTemplateTemplateMetadata.Labels,
 			),
 		)
-		expectMapsToBeEquivalent(g, infrastructureMachinePool.GetAnnotations(),
+		expectMapsToBeEquivalent(g, infrastructureMachinePoolMetadata.Annotations,
 			union(
 				map[string]string{
 					clusterv1.TemplateClonedFromGroupKindAnnotation: mpClass.Infrastructure.TemplateRef.GroupVersionKind().GroupKind().String(),
@@ -1014,7 +1019,8 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 		ccBootstrapConfigTemplate := clusterClassObjects.BootstrapConfigTemplateByMachinePoolClass[mpClass.Class]
 		ccBootstrapConfigTemplateTemplateMetadata := mustMetadata(contract.BootstrapConfigTemplate().Template().Metadata().Get(ccBootstrapConfigTemplate))
 		bootstrapConfig := clusterObjects.BootstrapConfigByMachinePool[machinePool.Name]
-		expectMapsToBeEquivalent(g, bootstrapConfig.GetLabels(),
+		bootstrapConfigMetadata := filterMetadataBeforeValidation(bootstrapConfig)
+		expectMapsToBeEquivalent(g, bootstrapConfigMetadata.Labels,
 			union(
 				map[string]string{
 					clusterv1.ClusterNameLabel:                    cluster.Name,
@@ -1024,7 +1030,7 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 				ccBootstrapConfigTemplateTemplateMetadata.Labels,
 			),
 		)
-		expectMapsToBeEquivalent(g, bootstrapConfig.GetAnnotations(),
+		expectMapsToBeEquivalent(g, bootstrapConfigMetadata.Annotations,
 			union(
 				map[string]string{
 					clusterv1.TemplateClonedFromGroupKindAnnotation: mpClass.Bootstrap.TemplateRef.GroupVersionKind().GroupKind().String(),

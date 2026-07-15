@@ -29,6 +29,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
@@ -45,6 +46,8 @@ import (
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
+	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/labels"
 )
 
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;patch;update;create
@@ -153,6 +156,15 @@ func patchDevClusterTemplate(_ context.Context, obj runtime.Object, templateVari
 		return errors.New("object is not a DevClusterTemplate")
 	}
 
+	if devClusterTemplate.Spec.Template.ObjectMeta.Labels == nil {
+		devClusterTemplate.Spec.Template.ObjectMeta.Labels = map[string]string{}
+	}
+	devClusterTemplate.Spec.Template.ObjectMeta.Labels["top-level-label-1"] = "top-level-label-value-1"
+	if devClusterTemplate.Spec.Template.ObjectMeta.Annotations == nil {
+		devClusterTemplate.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+	}
+	devClusterTemplate.Spec.Template.ObjectMeta.Annotations["top-level-annotation-1"] = "top-level-annotation-value-1"
+
 	if devClusterTemplate.Spec.Template.Spec.Backend.Docker != nil {
 		devClusterTemplate.Spec.Template.Spec.Backend.Docker.LoadBalancer.ImageRepository = imageRepo
 	}
@@ -174,6 +186,15 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 	// 1) Set extraArgs
 	switch obj := obj.(type) {
 	case *controlplanev1beta1.KubeadmControlPlaneTemplate:
+		if obj.Spec.Template.ObjectMeta.Labels == nil {
+			obj.Spec.Template.ObjectMeta.Labels = map[string]string{}
+		}
+		obj.Spec.Template.ObjectMeta.Labels["top-level-label-1"] = "top-level-label-value-1"
+		if obj.Spec.Template.ObjectMeta.Annotations == nil {
+			obj.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+		}
+		obj.Spec.Template.ObjectMeta.Annotations["top-level-annotation-1"] = "top-level-annotation-value-1"
+
 		if obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 			obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration = &bootstrapv1beta1.ClusterConfiguration{}
 		}
@@ -210,6 +231,15 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
 		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["node-labels"] = fmt.Sprintf("kubernetesVersion=%s", strings.ReplaceAll(cpVersion, "+", "_"))
 	case *controlplanev1.KubeadmControlPlaneTemplate:
+		if obj.Spec.Template.ObjectMeta.Labels == nil {
+			obj.Spec.Template.ObjectMeta.Labels = map[string]string{}
+		}
+		obj.Spec.Template.ObjectMeta.Labels["top-level-label-1"] = "top-level-label-value-1"
+		if obj.Spec.Template.ObjectMeta.Annotations == nil {
+			obj.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+		}
+		obj.Spec.Template.ObjectMeta.Annotations["top-level-annotation-1"] = "top-level-annotation-value-1"
+
 		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 
 		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
@@ -295,6 +325,9 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 
 // patchKubeadmConfigTemplate patches the ControlPlaneTemplate.
 func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
+	labels.AddLabels(obj.(metav1.Object), map[string]string{"top-level-label-1": "top-level-label-value-1"})
+	annotations.AddAnnotations(obj.(metav1.Object), map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"})
+
 	// 1) Set extraArgs
 	switch obj := obj.(type) {
 	case *bootstrapv1beta1.KubeadmConfigTemplate:
@@ -392,6 +425,9 @@ func convertToKubeadmConfigFiles(files []fileVariable) []bootstrapv1.File {
 func patchDevMachineTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
+	labels.AddLabels(obj.(metav1.Object), map[string]string{"top-level-label-1": "top-level-label-value-1"})
+	annotations.AddAnnotations(obj.(metav1.Object), map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"})
+
 	devMachineTemplate, ok := obj.(*infrav1.DevMachineTemplate)
 	if !ok {
 		return errors.New("object is not a DevMachineTemplate")
@@ -462,6 +498,15 @@ func patchDevMachinePoolTemplate(ctx context.Context, obj runtime.Object, templa
 	if !ok {
 		return errors.New("object is not a DevMachinePoolTemplate")
 	}
+
+	if devMachinePoolTemplate.Spec.Template.ObjectMeta.Labels == nil {
+		devMachinePoolTemplate.Spec.Template.ObjectMeta.Labels = map[string]string{}
+	}
+	devMachinePoolTemplate.Spec.Template.ObjectMeta.Labels["top-level-label-1"] = "top-level-label-value-1"
+	if devMachinePoolTemplate.Spec.Template.ObjectMeta.Annotations == nil {
+		devMachinePoolTemplate.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+	}
+	devMachinePoolTemplate.Spec.Template.ObjectMeta.Annotations["top-level-annotation-1"] = "top-level-annotation-value-1"
 
 	// If the DevMachinePoolTemplate belongs to a MachinePool, set the images the MachinePool version.
 	// NOTE: MachinePool version might be different from Cluster.version or other MachinePool's versions;

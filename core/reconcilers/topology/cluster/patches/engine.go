@@ -84,7 +84,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 	}
 
 	// Create a patch generation request.
-	req, err := createRequest(blueprint, desired, controlPlaneContractVersion)
+	req, err := createRequest(ctx, blueprint, desired, controlPlaneContractVersion)
 	if err != nil {
 		return errors.Wrapf(err, "failed to generate patch request")
 	}
@@ -271,10 +271,18 @@ func getMPTopologyFromMP(blueprint *scope.ClusterBlueprint, mp *clusterv1.Machin
 // replicas of a MachineDeployment.
 // NOTE: A single GeneratePatchesRequest object is used to carry templates state across subsequent Generate calls.
 // NOTE: This function does not add variables to items for the request, as the variables depend on the specific patch.
-func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterState, controlPlaneContractVersion string) (*runtimehooksv1.GeneratePatchesRequest, error) {
+func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState, controlPlaneContractVersion string) (*runtimehooksv1.GeneratePatchesRequest, error) {
 	req := &runtimehooksv1.GeneratePatchesRequest{}
 
 	// Add the InfrastructureClusterTemplate.
+	// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
+	if err := patchUnstructured(ctx, blueprint.InfrastructureClusterTemplate, desired.InfrastructureCluster, []patchUnstructuredFields{
+		{Src: "metadata.labels", Dest: "spec.template.metadata.labels"},
+		{Src: "metadata.annotations", Dest: "spec.template.metadata.annotations"},
+	}); err != nil {
+		return nil, errors.Wrapf(err, "failed to prepare %s %s for patching",
+			blueprint.InfrastructureClusterTemplate.GetKind(), klog.KObj(blueprint.InfrastructureClusterTemplate))
+	}
 	t, err := newRequestItemBuilder(blueprint.InfrastructureClusterTemplate).
 		WithHolder(desired.Cluster, clusterv1.GroupVersion.WithKind("Cluster"), "spec.infrastructureRef").
 		Build()
@@ -285,6 +293,14 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 	req.Items = append(req.Items, *t)
 
 	// Add the ControlPlaneTemplate.
+	// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
+	if err := patchUnstructured(ctx, blueprint.ControlPlane.Template, desired.ControlPlane.Object, []patchUnstructuredFields{
+		{Src: "metadata.labels", Dest: "spec.template.metadata.labels"},
+		{Src: "metadata.annotations", Dest: "spec.template.metadata.annotations"},
+	}); err != nil {
+		return nil, errors.Wrapf(err, "failed to prepare %s %s for patching",
+			blueprint.ControlPlane.Template.GetKind(), klog.KObj(blueprint.ControlPlane.Template))
+	}
 	t, err = newRequestItemBuilder(blueprint.ControlPlane.Template).
 		WithHolder(desired.Cluster, clusterv1.GroupVersion.WithKind("Cluster"), "spec.controlPlaneRef").
 		Build()
@@ -297,6 +313,14 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 	// If the clusterClass mandates the controlPlane has infrastructureMachines,
 	// add the InfrastructureMachineTemplate for control plane machines.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
+		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
+		if err := patchUnstructured(ctx, blueprint.ControlPlane.InfrastructureMachineTemplate, desired.ControlPlane.InfrastructureMachineTemplate, []patchUnstructuredFields{
+			{Src: "metadata.labels", Dest: "metadata.labels"},
+			{Src: "metadata.annotations", Dest: "metadata.annotations"},
+		}); err != nil {
+			return nil, errors.Wrapf(err, "failed to prepare ControlPlane's %s %s for patching",
+				blueprint.ControlPlane.InfrastructureMachineTemplate.GetKind(), klog.KObj(blueprint.ControlPlane.InfrastructureMachineTemplate))
+		}
 		t, err := newRequestItemBuilder(blueprint.ControlPlane.InfrastructureMachineTemplate).
 			WithHolder(desired.ControlPlane.Object, desired.ControlPlane.Object.GroupVersionKind(), getControlPlaneHolderFieldPath(controlPlaneContractVersion)).
 			Build()
@@ -327,6 +351,14 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 		}
 
 		// Add the BootstrapTemplate.
+		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
+		if err := patchUnstructured(ctx, mdClass.BootstrapTemplate, md.BootstrapTemplate, []patchUnstructuredFields{
+			{Src: "metadata.labels", Dest: "metadata.labels"},
+			{Src: "metadata.annotations", Dest: "metadata.annotations"},
+		}); err != nil {
+			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
+				mdClass.BootstrapTemplate.GetKind(), klog.KObj(mdClass.BootstrapTemplate), mdTopologyName)
+		}
 		t, err := newRequestItemBuilder(mdClass.BootstrapTemplate).
 			WithHolder(md.Object, clusterv1.GroupVersion.WithKind("MachineDeployment"), "spec.template.spec.bootstrap.configRef").
 			Build()
@@ -337,6 +369,14 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 		req.Items = append(req.Items, *t)
 
 		// Add the InfrastructureMachineTemplate.
+		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
+		if err := patchUnstructured(ctx, mdClass.InfrastructureMachineTemplate, md.InfrastructureMachineTemplate, []patchUnstructuredFields{
+			{Src: "metadata.labels", Dest: "metadata.labels"},
+			{Src: "metadata.annotations", Dest: "metadata.annotations"},
+		}); err != nil {
+			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
+				mdClass.InfrastructureMachineTemplate.GetKind(), klog.KObj(mdClass.InfrastructureMachineTemplate), mdTopologyName)
+		}
 		t, err = newRequestItemBuilder(mdClass.InfrastructureMachineTemplate).
 			WithHolder(md.Object, clusterv1.GroupVersion.WithKind("MachineDeployment"), "spec.template.spec.infrastructureRef").
 			Build()
@@ -367,6 +407,14 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 		}
 
 		// Add the BootstrapTemplate.
+		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
+		if err := patchUnstructured(ctx, mpClass.BootstrapTemplate, mp.BootstrapObject, []patchUnstructuredFields{
+			{Src: "metadata.labels", Dest: "spec.template.metadata.labels"},
+			{Src: "metadata.annotations", Dest: "spec.template.metadata.annotations"},
+		}); err != nil {
+			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
+				mpClass.BootstrapTemplate.GetKind(), klog.KObj(mpClass.BootstrapTemplate), mpTopologyName)
+		}
 		t, err := newRequestItemBuilder(mpClass.BootstrapTemplate).
 			WithHolder(mp.Object, clusterv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.bootstrap.configRef").
 			Build()
@@ -377,6 +425,14 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 		req.Items = append(req.Items, *t)
 
 		// Add the InfrastructureMachineTemplate.
+		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
+		if err := patchUnstructured(ctx, mpClass.InfrastructureMachinePoolTemplate, mp.InfrastructureMachinePoolObject, []patchUnstructuredFields{
+			{Src: "metadata.labels", Dest: "spec.template.metadata.labels"},
+			{Src: "metadata.annotations", Dest: "spec.template.metadata.annotations"},
+		}); err != nil {
+			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
+				mpClass.InfrastructureMachinePoolTemplate.GetKind(), klog.KObj(mpClass.InfrastructureMachinePoolTemplate), mpTopologyName)
+		}
 		t, err = newRequestItemBuilder(mpClass.InfrastructureMachinePoolTemplate).
 			WithHolder(mp.Object, clusterv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.infrastructureRef").
 			Build()
@@ -505,7 +561,7 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 
 	// Overwrite the spec of template.Template with the spec of the patchedTemplate,
 	// to ensure that we only pick up changes to the spec.
-	if err := patchutil.Patch(&requestItem.Object, patchedTemplate, "spec"); err != nil {
+	if err := patchutil.Patch(&requestItem.Object, patchedTemplate, "spec", "metadata.labels", "metadata.annotations"); err != nil {
 		log.Error(err, fmt.Sprintf("Failed to apply patch to template with uid %q", requestItem.UID))
 		return errors.Wrap(err, "failed to apply patch to template")
 	}
@@ -536,12 +592,21 @@ func convertToValidationRequest(generateRequest *runtimehooksv1.GeneratePatchesR
 func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatchesRequest, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState, controlPlaneContractVersion string) error {
 	var err error
 
+	alwaysPreserveLabelsAndAnnotations := []contract.Path{
+		{"metadata", "labels", clusterv1.ClusterNameLabel},
+		{"metadata", "labels", clusterv1.ClusterTopologyOwnedLabel},
+		{"metadata", "labels", clusterv1.ClusterTopologyMachineDeploymentNameLabel},
+		{"metadata", "labels", clusterv1.ClusterTopologyMachinePoolNameLabel},
+		{"metadata", "annotations", clusterv1.TemplateClonedFromNameAnnotation},
+		{"metadata", "annotations", clusterv1.TemplateClonedFromGroupKindAnnotation},
+	}
+
 	// Update the InfrastructureCluster.
 	infrastructureClusterTemplate, err := getTemplateAsUnstructured(req, "Cluster", "spec.infrastructureRef", requestTopologyName{})
 	if err != nil {
 		return err
 	}
-	if err := patchObject(ctx, desired.InfrastructureCluster, infrastructureClusterTemplate); err != nil {
+	if err := patchObject(ctx, desired.InfrastructureCluster, infrastructureClusterTemplate, PreserveFields(alwaysPreserveLabelsAndAnnotations)); err != nil {
 		return err
 	}
 
@@ -550,7 +615,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 	if err != nil {
 		return err
 	}
-	if err := patchObject(ctx, desired.ControlPlane.Object, controlPlaneTemplate, PreserveFields{
+	if err := patchObject(ctx, desired.ControlPlane.Object, controlPlaneTemplate, append(PreserveFields{
 		contract.ControlPlane().MachineTemplate().Metadata().Path(),
 		// Note: For simplicity we don't allow patching for the fields of both contracts to avoid
 		// requiring a client here to retrieve the contract version of the ControlPlane object.
@@ -568,7 +633,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		contract.ControlPlane().Replicas().Path(),
 		contract.ControlPlane().Version().Path(),
 		contract.ControlPlane().RolloutAfter().Path(),
-	}); err != nil {
+	}, alwaysPreserveLabelsAndAnnotations...)); err != nil {
 		return err
 	}
 
@@ -579,7 +644,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		if err != nil {
 			return err
 		}
-		if err := patchTemplate(ctx, desired.ControlPlane.InfrastructureMachineTemplate, infrastructureMachineTemplate); err != nil {
+		if err := patchTemplate(ctx, desired.ControlPlane.InfrastructureMachineTemplate, infrastructureMachineTemplate, PreserveFields(alwaysPreserveLabelsAndAnnotations)); err != nil {
 			return err
 		}
 	}
@@ -592,7 +657,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		if err != nil {
 			return err
 		}
-		if err := patchTemplate(ctx, md.BootstrapTemplate, bootstrapTemplate); err != nil {
+		if err := patchTemplate(ctx, md.BootstrapTemplate, bootstrapTemplate, PreserveFields(alwaysPreserveLabelsAndAnnotations)); err != nil {
 			return err
 		}
 
@@ -601,7 +666,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		if err != nil {
 			return err
 		}
-		if err := patchTemplate(ctx, md.InfrastructureMachineTemplate, infrastructureMachineTemplate); err != nil {
+		if err := patchTemplate(ctx, md.InfrastructureMachineTemplate, infrastructureMachineTemplate, PreserveFields(alwaysPreserveLabelsAndAnnotations)); err != nil {
 			return err
 		}
 	}
@@ -614,7 +679,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		if err != nil {
 			return err
 		}
-		if err := patchObject(ctx, mp.BootstrapObject, bootstrapTemplate); err != nil {
+		if err := patchObject(ctx, mp.BootstrapObject, bootstrapTemplate, PreserveFields(alwaysPreserveLabelsAndAnnotations)); err != nil {
 			return err
 		}
 
@@ -623,7 +688,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		if err != nil {
 			return err
 		}
-		if err := patchObject(ctx, mp.InfrastructureMachinePoolObject, infrastructureMachinePoolTemplate); err != nil {
+		if err := patchObject(ctx, mp.InfrastructureMachinePoolObject, infrastructureMachinePoolTemplate, PreserveFields(alwaysPreserveLabelsAndAnnotations)); err != nil {
 			return err
 		}
 	}

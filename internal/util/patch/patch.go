@@ -156,7 +156,7 @@ func ConvertToRawExtension(object any) (runtime.RawExtension, error) {
 }
 
 // Patch overwrites spec in object with spec of patchedObjectBytes.
-func Patch(object *runtime.RawExtension, patchedObjectBytes []byte, patchPath string) error {
+func Patch(object *runtime.RawExtension, patchedObjectBytes []byte, patchPaths ...string) error {
 	objectUnstructured, err := bytesToUnstructured(object.Raw)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert object to Unstructured")
@@ -166,12 +166,19 @@ func Patch(object *runtime.RawExtension, patchedObjectBytes []byte, patchPath st
 		return errors.Wrap(err, "failed to convert patched object to Unstructured")
 	}
 
+	fields := make([]CopyFieldsInputField, 0, len(patchPaths))
+	for _, patchPath := range patchPaths {
+		fields = append(fields, CopyFieldsInputField{
+			Src:  patchPath,
+			Dest: patchPath,
+		})
+	}
+
 	// Copy spec from patchedObjectUnstructured to objectUnstructured.
-	if err := CopySpec(CopySpecInput{
-		Src:          patchedObjectUnstructured,
-		Dest:         objectUnstructured,
-		SrcSpecPath:  patchPath,
-		DestSpecPath: patchPath,
+	if err := CopyFields(CopyFieldsInput{
+		Src:    patchedObjectUnstructured,
+		Dest:   objectUnstructured,
+		Fields: fields,
 	}); err != nil {
 		return errors.Wrap(err, "failed to apply patch to object")
 	}
@@ -186,20 +193,29 @@ func Patch(object *runtime.RawExtension, patchedObjectBytes []byte, patchPath st
 	return nil
 }
 
-// CopySpecInput is a struct containing the input parameters of CopySpec.
-type CopySpecInput struct {
+// CopyFieldsInput is a struct containing the input parameters of CopyFields.
+type CopyFieldsInput struct {
 	Src              *unstructured.Unstructured
 	Dest             *unstructured.Unstructured
-	SrcSpecPath      string
-	DestSpecPath     string
+	Fields           []CopyFieldsInputField
 	FieldsToPreserve []contract.Path
 }
 
-// CopySpec copies a field from a srcSpecPath in src to a destSpecPath in dest,
-// while preserving fieldsToPreserve.
-func CopySpec(in CopySpecInput) error {
+// CopyFieldsInputField contains a single field that should be copied.
+type CopyFieldsInputField struct {
+	Src  string
+	Dest string
+}
+
+type preservedField struct {
+	Field contract.Path
+	Value interface{}
+}
+
+// CopyFields copies fields from src to dest while preserving fieldsToPreserve.
+func CopyFields(in CopyFieldsInput) error {
 	// Backup fields that should be preserved from dest.
-	preservedFields := map[string]interface{}{}
+	var preservedFields []preservedField
 	for _, field := range in.FieldsToPreserve {
 		value, found, err := unstructured.NestedFieldNoCopy(in.Dest.Object, field...)
 		if !found {
@@ -208,27 +224,32 @@ func CopySpec(in CopySpecInput) error {
 		} else if err != nil {
 			return errors.Wrapf(err, "failed to get field %q from %s %s", strings.Join(field, "."), in.Dest.GetKind(), klog.KObj(in.Dest))
 		}
-		preservedFields[strings.Join(field, ".")] = value
+		preservedFields = append(preservedFields, preservedField{
+			Field: field,
+			Value: value,
+		})
 	}
 
-	// Get spec from src.
-	srcSpec, found, err := unstructured.NestedFieldNoCopy(in.Src.Object, strings.Split(in.SrcSpecPath, ".")...)
-	if !found {
-		// Return if srcSpecPath does not exist in src, nothing to do.
-		return nil
-	} else if err != nil {
-		return errors.Wrapf(err, "failed to get field %q from %s %s", in.SrcSpecPath, in.Src.GetKind(), klog.KObj(in.Src))
-	}
+	for _, field := range in.Fields {
+		// Get fieldValue from src.
+		fieldValue, found, err := unstructured.NestedFieldNoCopy(in.Src.Object, strings.Split(field.Src, ".")...)
+		if !found {
+			// Continue if field.Src does not exist in src, nothing to do.
+			continue
+		} else if err != nil {
+			return errors.Wrapf(err, "failed to get field %q from %s %s", field.Src, in.Src.GetKind(), klog.KObj(in.Src))
+		}
 
-	// Set spec in dest.
-	if err := unstructured.SetNestedField(in.Dest.Object, srcSpec, strings.Split(in.DestSpecPath, ".")...); err != nil {
-		return errors.Wrapf(err, "failed to set field %q on %s %s", in.DestSpecPath, in.Dest.GetKind(), klog.KObj(in.Dest))
+		// Set fieldValue in dest.
+		if err := unstructured.SetNestedField(in.Dest.Object, fieldValue, strings.Split(field.Dest, ".")...); err != nil {
+			return errors.Wrapf(err, "failed to set field %q on %s %s", field.Dest, in.Dest.GetKind(), klog.KObj(in.Dest))
+		}
 	}
 
 	// Restore preserved fields.
-	for path, value := range preservedFields {
-		if err := unstructured.SetNestedField(in.Dest.Object, value, strings.Split(path, ".")...); err != nil {
-			return errors.Wrapf(err, "failed to set field %q on %s %s", path, in.Dest.GetKind(), klog.KObj(in.Dest))
+	for _, preservedField := range preservedFields {
+		if err := unstructured.SetNestedField(in.Dest.Object, preservedField.Value, preservedField.Field...); err != nil {
+			return errors.Wrapf(err, "failed to set field %q on %s %s", preservedField.Field, in.Dest.GetKind(), klog.KObj(in.Dest))
 		}
 	}
 	return nil

@@ -124,10 +124,12 @@ linters:
             - sigs.k8s.io/cluster-api/test/extension
             - sigs.k8s.io/cluster-api/test/infrastructure/docker/api
             - sigs.k8s.io/cluster-api/test/infrastructure/kind$
+            - sigs.k8s.io/cluster-api/util/annotations$
             - sigs.k8s.io/cluster-api/util/cache$
             - sigs.k8s.io/cluster-api/util/conditions$
             - sigs.k8s.io/cluster-api/util/contract$
             - sigs.k8s.io/cluster-api/util/flags$
+            - sigs.k8s.io/cluster-api/util/labels$
             - sigs.k8s.io/cluster-api/util/util$
             - sigs.k8s.io/cluster-api/version$
             - sigs.k8s.io/controller-runtime

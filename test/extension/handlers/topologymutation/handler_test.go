@@ -33,6 +33,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 )
@@ -82,6 +83,10 @@ func Test_patchDevClusterTemplate(t *testing.T) {
 			expectedTemplate: &infrav1.DevClusterTemplate{
 				Spec: infrav1.DevClusterTemplateSpec{
 					Template: infrav1.DevClusterTemplateResource{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+							Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+						},
 						Spec: infrav1.DevClusterSpec{
 							Backend: infrav1.DevClusterBackendSpec{
 								Docker: &infrav1.DockerClusterBackendSpec{
@@ -133,6 +138,10 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 			expectedTemplate: &controlplanev1.KubeadmControlPlaneTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 					Template: controlplanev1.KubeadmControlPlaneTemplateResource{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+							Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+						},
 						Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
 							Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
 								Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
@@ -203,11 +212,16 @@ func Test_patchDevMachineTemplate(t *testing.T) {
 		expectedErr      bool
 	}{
 		{
-			name:             "fails if builtin.controlPlane.version nor builtin.machineDeployment.version is not set",
-			template:         &infrav1.DevMachineTemplate{},
-			variables:        nil,
-			expectedTemplate: &infrav1.DevMachineTemplate{},
-			expectedErr:      true,
+			name:      "fails if builtin.controlPlane.version nor builtin.machineDeployment.version is not set",
+			template:  &infrav1.DevMachineTemplate{},
+			variables: nil,
+			expectedTemplate: &infrav1.DevMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+					Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+				},
+			},
+			expectedErr: true,
 		},
 		{
 			name: "sets customImage for templates linked to ControlPlane",
@@ -230,6 +244,10 @@ func Test_patchDevMachineTemplate(t *testing.T) {
 				})},
 			},
 			expectedTemplate: &infrav1.DevMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+					Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+				},
 				Spec: infrav1.DevMachineTemplateSpec{
 					Template: infrav1.DevMachineTemplateResource{
 						Spec: infrav1.DevMachineSpec{
@@ -264,6 +282,10 @@ func Test_patchDevMachineTemplate(t *testing.T) {
 				})},
 			},
 			expectedTemplate: &infrav1.DevMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+					Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+				},
 				Spec: infrav1.DevMachineTemplateSpec{
 					Template: infrav1.DevMachineTemplateResource{
 						Spec: infrav1.DevMachineSpec{
@@ -302,11 +324,20 @@ func Test_patchDevMachinePoolTemplate(t *testing.T) {
 		expectedErr      bool
 	}{
 		{
-			name:             "fails if builtin.controlPlane.version nor builtin.machinePool.version is not set",
-			template:         &infrav1.DevMachinePoolTemplate{},
-			variables:        nil,
-			expectedTemplate: &infrav1.DevMachinePoolTemplate{},
-			expectedErr:      true,
+			name:      "fails if builtin.controlPlane.version nor builtin.machinePool.version is not set",
+			template:  &infrav1.DevMachinePoolTemplate{},
+			variables: nil,
+			expectedTemplate: &infrav1.DevMachinePoolTemplate{
+				Spec: infrav1.DevMachinePoolTemplateSpec{
+					Template: infrav1.DevMachinePoolTemplateResource{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+							Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+						},
+					},
+				},
+			},
+			expectedErr: true,
 		},
 		{
 			name: "sets customImage for templates linked to ControlPlane",
@@ -335,6 +366,10 @@ func Test_patchDevMachinePoolTemplate(t *testing.T) {
 			expectedTemplate: &infrav1.DevMachinePoolTemplate{
 				Spec: infrav1.DevMachinePoolTemplateSpec{
 					Template: infrav1.DevMachinePoolTemplateResource{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+							Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+						},
 						Spec: infrav1.DevMachinePoolSpec{
 							Backend: infrav1.DevMachinePoolBackendSpec{
 								Docker: &infrav1.DockerMachinePoolBackendSpec{
@@ -469,6 +504,14 @@ func TestHandler_GeneratePatches(t *testing.T) {
   "path" : "/spec",
   "value" : {
     "template" : {
+      "metadata" : {
+        "annotations" : {
+          "top-level-annotation-1": "top-level-annotation-value-1"
+        },
+        "labels" : {
+          "top-level-label-1": "top-level-label-value-1"
+        }
+      },
       "spec" : {
         "kubeadmConfigSpec" : {
           "clusterConfiguration" : {
@@ -525,18 +568,25 @@ func TestHandler_GeneratePatches(t *testing.T) {
       }
     }
   }
-} ]`),
+}
+]`),
 					responseItem("2", `[
-{"op":"add","path":"/spec/template/spec/backend/docker/customImage","value":"kindest/node:v1.23.0"}
+{"op":"add","path":"/spec/template/spec/backend/docker/customImage","value":"kindest/node:v1.23.0"},
+{"op":"add","path":"/metadata/annotations","value":{"top-level-annotation-1": "top-level-annotation-value-1"}},
+{"op":"add","path":"/metadata/labels","value":{"top-level-label-1": "top-level-label-value-1"}}
 ]`),
 					responseItem("3", `[
-{"op":"add","path":"/spec/template/spec/backend/docker/customImage","value":"kindest/node:v1.23.0"}
+{"op":"add","path":"/spec/template/spec/backend/docker/customImage","value":"kindest/node:v1.23.0"},
+{"op":"add","path":"/metadata/annotations","value":{"top-level-annotation-1": "top-level-annotation-value-1"}},
+{"op":"add","path":"/metadata/labels","value":{"top-level-label-1": "top-level-label-value-1"}}
 ]`),
 					responseItem("4", `[
-{"op":"add","path":"/spec/template/spec/backend/docker/loadBalancer/imageRepository","value":"docker.io"}
+{"op":"add","path":"/spec/template/spec/backend/docker/loadBalancer/imageRepository","value":"docker.io"},
+{"op":"add","path":"/spec/template/metadata","value":{"annotations":{"top-level-annotation-1": "top-level-annotation-value-1"},"labels":{"top-level-label-1": "top-level-label-value-1"}}}
 ]`),
 					responseItem("6", `[
-{"op":"add","path":"/spec/template/spec/backend/docker/customImage","value":"kindest/node:v1.23.0"}
+{"op":"add","path":"/spec/template/spec/backend/docker/customImage","value":"kindest/node:v1.23.0"},
+{"op":"add","path":"/spec/template/metadata","value":{"annotations":{"top-level-annotation-1": "top-level-annotation-value-1"},"labels":{"top-level-label-1": "top-level-label-value-1"}}}
 ]`),
 				},
 			},

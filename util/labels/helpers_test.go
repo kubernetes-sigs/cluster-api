@@ -23,9 +23,171 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
+
+func TestAddLabels(t *testing.T) {
+	g := NewWithT(t)
+
+	testcases := []struct {
+		name     string
+		obj      metav1.Object
+		input    map[string]string
+		expected map[string]string
+		changed  bool
+	}{
+		{
+			name: "should return false if no changes are made",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			input: map[string]string{
+				"foo": "bar",
+			},
+			expected: map[string]string{
+				"foo": "bar",
+			},
+			changed: false,
+		},
+		{
+			name: "should do nothing if no labels are provided",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			input: map[string]string{},
+			expected: map[string]string{
+				"foo": "bar",
+			},
+			changed: false,
+		},
+		{
+			name: "should do nothing if no labels are provided and have been nil before",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: nil,
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			input:    map[string]string{},
+			expected: nil,
+			changed:  false,
+		},
+		{
+			name: "should return true if labels are added",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			input: map[string]string{
+				"thing1": "thing2",
+				"buzz":   "blah",
+			},
+			expected: map[string]string{
+				"foo":    "bar",
+				"thing1": "thing2",
+				"buzz":   "blah",
+			},
+			changed: true,
+		},
+		{
+			name: "should return true if labels are changed",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			input: map[string]string{
+				"foo": "buzz",
+			},
+			expected: map[string]string{
+				"foo": "buzz",
+			},
+			changed: true,
+		},
+		{
+			name: "should return true if labels are changed and have been nil before",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: nil,
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			input: map[string]string{
+				"foo": "buzz",
+			},
+			expected: map[string]string{
+				"foo": "buzz",
+			},
+			changed: true,
+		},
+		{
+			name: "should add labels to an empty unstructured",
+			obj:  &unstructured.Unstructured{},
+			input: map[string]string{
+				"foo": "buzz",
+			},
+			expected: map[string]string{
+				"foo": "buzz",
+			},
+			changed: true,
+		},
+		{
+			name: "should add labels to a non empty unstructured",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							"foo": "bar",
+						},
+					},
+				},
+			},
+			input: map[string]string{
+				"thing1": "thing2",
+				"buzz":   "blah",
+			},
+			expected: map[string]string{
+				"foo":    "bar",
+				"thing1": "thing2",
+				"buzz":   "blah",
+			},
+			changed: true,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(*testing.T) {
+			res := AddLabels(tc.obj, tc.input)
+			g.Expect(res).To(Equal(tc.changed))
+			g.Expect(tc.obj.GetLabels()).To(Equal(tc.expected))
+		})
+	}
+}
 
 func TestHasWatchLabel(t *testing.T) {
 	g := NewWithT(t)

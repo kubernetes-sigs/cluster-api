@@ -909,11 +909,16 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		rollout = clusterv1.MachineDeploymentRolloutSpec{
 			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 				Type: machineDeploymentClass.Rollout.Strategy.Type,
-				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-					MaxUnavailable: machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
-					MaxSurge:       machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxSurge,
-				},
 			},
+		}
+		// Pre-existing Clusters or ClusterClasses may carry invalid OnDelete and rollingUpdate combinations
+		// that webhooks ratchet-allow on update. The fields are ignored for OnDelete anyway, and dropping them
+		// here guarantees the topology controller never creates or updates a MachineDeployment its webhook rejects.
+		if shouldPropagateRollingUpdateRolloutStrategy(rollout.Strategy.Type) {
+			rollout.Strategy.RollingUpdate = clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+				MaxUnavailable: machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				MaxSurge:       machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxSurge,
+			}
 		}
 	}
 	if !reflect.DeepEqual(machineDeploymentTopology.Rollout, clusterv1.MachineDeploymentTopologyRolloutSpec{}) {
@@ -921,11 +926,16 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 			After: machineDeploymentTopology.Rollout.After,
 			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 				Type: machineDeploymentTopology.Rollout.Strategy.Type,
-				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-					MaxUnavailable: machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable,
-					MaxSurge:       machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxSurge,
-				},
 			},
+		}
+		// Pre-existing Clusters or ClusterClasses may carry invalid OnDelete and rollingUpdate combinations
+		// that webhooks ratchet-allow on update. The fields are ignored for OnDelete anyway, and dropping them
+		// here guarantees the topology controller never creates or updates a MachineDeployment its webhook rejects.
+		if shouldPropagateRollingUpdateRolloutStrategy(rollout.Strategy.Type) {
+			rollout.Strategy.RollingUpdate = clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+				MaxUnavailable: machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				MaxSurge:       machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxSurge,
+			}
 		}
 	}
 
@@ -1073,6 +1083,13 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 			checks, remediation)
 	}
 	return desiredMachineDeployment, nil
+}
+
+// shouldPropagateRollingUpdateRolloutStrategy returns true if rollingUpdate fields are valid for the given strategy type.
+// Empty strategy type is treated like RollingUpdate because MachineDeployment defaulting applies RollingUpdate, while
+// topology and ClusterClass use empty values to inherit defaults.
+func shouldPropagateRollingUpdateRolloutStrategy(strategyType clusterv1.MachineDeploymentRolloutStrategyType) bool {
+	return strategyType == "" || strategyType == clusterv1.RollingUpdateMachineDeploymentStrategyType
 }
 
 // computeMachineDeploymentVersion calculates the version of the desired machine deployment.

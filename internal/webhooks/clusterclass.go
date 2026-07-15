@@ -62,12 +62,12 @@ var _ admission.Validator[*clusterv1.ClusterClass] = &ClusterClass{}
 
 // ValidateCreate implements validation for ClusterClass create.
 func (webhook *ClusterClass) ValidateCreate(ctx context.Context, in *clusterv1.ClusterClass) (admission.Warnings, error) {
-	return nil, webhook.validate(ctx, nil, in)
+	return webhook.validate(ctx, nil, in)
 }
 
 // ValidateUpdate implements validation for ClusterClass update.
 func (webhook *ClusterClass) ValidateUpdate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) (admission.Warnings, error) {
-	return nil, webhook.validate(ctx, oldClusterClass, newClusterClass)
+	return webhook.validate(ctx, oldClusterClass, newClusterClass)
 }
 
 // ValidateDelete implements validation for ClusterClass delete.
@@ -87,11 +87,13 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, clusterClass *c
 	return nil, nil
 }
 
-func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) error {
+func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) (admission.Warnings, error) {
+	var allWarnings admission.Warnings
+
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects when the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
-		return field.Forbidden(
+		return allWarnings, field.Forbidden(
 			field.NewPath("spec"),
 			"can be set only if the ClusterTopology feature flag is enabled",
 		)
@@ -107,7 +109,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	// Ensure all MachinePool classes are unique.
 	allErrs = append(allErrs, check.MachinePoolClassesAreUnique(newClusterClass)...)
 
-	allErrs = append(allErrs, validateClusterClassRollout(newClusterClass)...)
+	rolloutWarnings, rolloutErrs := validateClusterClassRollout(oldClusterClass, newClusterClass)
+	allWarnings = rolloutWarnings
+	allErrs = append(allErrs, rolloutErrs...)
 
 	// Ensure MachineHealthChecks are valid.
 	allErrs = append(allErrs, validateMachineHealthCheckClasses(newClusterClass)...)
@@ -146,7 +150,7 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 		if err != nil {
 			allErrs = append(allErrs, field.InternalError(field.NewPath(""),
 				errors.Wrapf(err, "Clusters using ClusterClass %v can not be retrieved", oldClusterClass.Name)))
-			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
+			return allWarnings, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
 		}
 
 		// Ensure New ClusterClass contains Kubernetes versions of all the Clusters of ClusterClass.
@@ -170,9 +174,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	}
 
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
+		return allWarnings, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
 	}
-	return nil
+	return allWarnings, nil
 }
 
 // validateUpdatesToMachineHealthCheckClasses checks if the updates made to MachineHealthChecks are valid.
@@ -377,15 +381,50 @@ func getClusterClassVariablesMapWithReverseIndex(clusterClassVariables []cluster
 	return variablesMap, variablesIndexMap
 }
 
-func validateClusterClassRollout(clusterClass *clusterv1.ClusterClass) field.ErrorList {
-	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
+// validateClusterClassRollout validates MachineDeploymentClass rollout strategy fields in a ClusterClass.
+// It returns warnings when unchanged pre-existing invalid rollingUpdate values are ratchet-allowed.
+func validateClusterClassRollout(oldClusterClass, clusterClass *clusterv1.ClusterClass) (admission.Warnings, field.ErrorList) {
+	var allWarnings admission.Warnings
+	var allErrs field.ErrorList
 
 	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("rollout")
-		allErrs = append(allErrs, validateRolloutStrategy(fldPath.Child("strategy"), md.Rollout.Strategy.RollingUpdate.MaxUnavailable, md.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+		enforceTypeMismatchValidation := true
+		if oldClusterClass != nil {
+			if oldMDClass := machineDeploymentClassOfName(oldClusterClass, md.Class); oldMDClass != nil {
+				enforceTypeMismatchValidation = shouldEnforceRolloutStrategyTypeMismatchValidation(
+					md.Rollout.Strategy.Type,
+					md.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					md.Rollout.Strategy.RollingUpdate.MaxSurge,
+					oldMDClass.Rollout.Strategy.Type,
+					oldMDClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					oldMDClass.Rollout.Strategy.RollingUpdate.MaxSurge,
+				)
+			}
+		}
+		rolloutStrategyPath := fldPath.Child("strategy")
+		rolloutStrategyTypeMismatchErrs := field.ErrorList{}
+		if enforceTypeMismatchValidation {
+			rolloutStrategyTypeMismatchErrs = validateRolloutStrategyTypeMismatch(
+				rolloutStrategyPath,
+				md.Rollout.Strategy.Type,
+				md.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				md.Rollout.Strategy.RollingUpdate.MaxSurge,
+			)
+			allErrs = append(allErrs, rolloutStrategyTypeMismatchErrs...)
+		} else {
+			allWarnings = append(allWarnings, rolloutStrategyTypeMismatchWarning(rolloutStrategyPath, md.Rollout.Strategy.Type))
+		}
+		if len(rolloutStrategyTypeMismatchErrs) == 0 {
+			allErrs = append(allErrs, validateRolloutStrategy(
+				rolloutStrategyPath,
+				md.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				md.Rollout.Strategy.RollingUpdate.MaxSurge,
+			)...)
+		}
 	}
 
-	return allErrs
+	return allWarnings, allErrs
 }
 
 func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) field.ErrorList {

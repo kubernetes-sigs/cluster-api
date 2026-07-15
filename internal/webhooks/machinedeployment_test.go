@@ -588,6 +588,143 @@ func TestMachineDeploymentValidation(t *testing.T) {
 	}
 }
 
+func TestMachineDeploymentRolloutStrategyTypeMismatchValidationTransitions(t *testing.T) {
+	maxSurge1 := intstr.FromInt32(1)
+	maxSurge2 := intstr.FromInt32(2)
+
+	tests := []struct {
+		name            string
+		oldStrategy     clusterv1.MachineDeploymentRolloutStrategy
+		newStrategy     clusterv1.MachineDeploymentRolloutStrategy
+		expectCreateErr bool
+		expectUpdateErr bool
+	}{
+		{
+			name: "Should allow unchanged invalid rollout strategy on update",
+			oldStrategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			},
+			newStrategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			},
+			expectCreateErr: true,
+			expectUpdateErr: false,
+		},
+		{
+			name: "Should reject new invalid rollout strategy on update",
+			oldStrategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			},
+			newStrategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			},
+			expectCreateErr: true,
+			expectUpdateErr: true,
+		},
+		{
+			name: "Should reject changed invalid rollout strategy on update",
+			oldStrategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			},
+			newStrategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge2,
+				},
+			},
+			expectCreateErr: true,
+			expectUpdateErr: true,
+		},
+		{
+			name: "Should allow fixing invalid rollout strategy on update",
+			oldStrategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxSurge: &maxSurge1,
+				},
+			},
+			newStrategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+			},
+			expectCreateErr: false,
+			expectUpdateErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			oldMD := newMachineDeploymentForRolloutStrategyValidation("test-md", tt.oldStrategy)
+			newMD := newMachineDeploymentForRolloutStrategyValidation("test-md", tt.newStrategy)
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			webhook := MachineDeployment{
+				decoder: admission.NewDecoder(scheme),
+			}
+
+			warnings, err := webhook.ValidateCreate(ctx, newMD)
+			if tt.expectCreateErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(warnings).To(BeEmpty())
+
+			warnings, err = webhook.ValidateUpdate(ctx, oldMD, newMD)
+			if tt.expectUpdateErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(warnings).To(BeEmpty())
+		})
+	}
+}
+
+func newMachineDeploymentForRolloutStrategyValidation(name string, strategy clusterv1.MachineDeploymentRolloutStrategy) *clusterv1.MachineDeployment {
+	return &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			ClusterName: "test-cluster",
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"foo": "bar"},
+			},
+			Template: clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{"foo": "bar"},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "test-cluster",
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To("data-secret"),
+					},
+				},
+			},
+			Rollout: clusterv1.MachineDeploymentRolloutSpec{
+				Strategy: strategy,
+			},
+		},
+	}
+}
+
 func TestMachineDeploymentVersionValidation(t *testing.T) {
 	tests := []struct {
 		name      string

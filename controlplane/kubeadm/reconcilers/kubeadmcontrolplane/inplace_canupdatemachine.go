@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -41,7 +42,12 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
 
-func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error) {
+type canUpdateMachineResult struct {
+	canUpdateMachine    bool
+	affectsAvailability bool
+}
+
+func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (canUpdateMachineResult, error) {
 	if r.overrideCanUpdateMachineFunc != nil {
 		return r.overrideCanUpdateMachineFunc(ctx, machine, machineUpToDateResult)
 	}
@@ -50,7 +56,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Ma
 
 	// Machine cannot be updated in-place if the feature gate is not enabled.
 	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
-		return false, nil
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
 	}
 
 	// Machine cannot be updated in-place if the UpToDate func was not able to provide all objects,
@@ -60,36 +66,36 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Ma
 		machineUpToDateResult.DesiredInfraMachine == nil ||
 		machineUpToDateResult.CurrentKubeadmConfig == nil ||
 		machineUpToDateResult.DesiredKubeadmConfig == nil {
-		return false, nil
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
 	}
 
 	extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.CanUpdateMachine, machine)
 	if err != nil {
-		return false, err
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, err
 	}
 	// Machine cannot be updated in-place if no CanUpdateMachine extensions are registered.
 	if len(extensionHandlers) == 0 {
-		return false, nil
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
 	}
 	if len(extensionHandlers) > 1 {
-		return false, pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
 	}
 
-	canUpdateMachine, reasons, err := r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
+	res, reasons, err := r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
 	if err != nil {
-		return false, err
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, err
 	}
-	if !canUpdateMachine {
+	if !res.canUpdateMachine {
 		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions", klog.KObj(machine)), "reason", strings.Join(reasons, ","))
-		return false, nil
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
 	}
-	return true, nil
+	return res, nil
 }
 
 // canExtensionsUpdateMachine calls CanUpdateMachine extensions to decide if a Machine can be updated in-place.
 // Note: This is following the same general structure that is used in the Apply func in
 // internal/controllers/topology/cluster/patches/engine.go.
-func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (bool, []string, error) {
+func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
 	if r.overrideCanExtensionsUpdateMachine != nil {
 		return r.overrideCanExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
 	}
@@ -99,38 +105,40 @@ func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *cl
 	// Create the CanUpdateMachine request.
 	cannotUpdateMachineReason, req, err := createRequest(ctx, r.Client, machine, machineUpToDateResult)
 	if err != nil {
-		return false, nil, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachine request")
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachine request")
 	}
 	if cannotUpdateMachineReason != "" {
-		return false, []string{cannotUpdateMachineReason}, nil
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, []string{cannotUpdateMachineReason}, nil
 	}
 
 	var reasons []string
+	var affectsAvailability bool
 	for _, extensionHandler := range extensionHandlers {
 		// Call CanUpdateMachine extension.
 		resp := &runtimehooksv1.CanUpdateMachineResponse{}
 		if err := r.RuntimeClient.CallExtension(ctx, runtimehooksv1.CanUpdateMachine, machine, extensionHandler, req, resp); err != nil {
-			return false, nil, err
+			return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, err
 		}
+		affectsAvailability = affectsAvailability || ptr.Deref(resp.AffectsAvailability, true)
 
 		// Apply patches from the CanUpdateMachine response to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
-			return false, nil, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachine request", extensionHandler)
+			return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachine request", extensionHandler)
 		}
 
 		// Check if current and desired objects are now matching.
 		var matches bool
 		matches, reasons, err = matchesMachine(req)
 		if err != nil {
-			return false, nil, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
+			return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
 		}
 		if matches {
-			return true, nil, nil
+			return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: affectsAvailability}, nil, nil
 		}
 		log.V(5).Info(fmt.Sprintf("Machine cannot be updated in-place yet after calling extension %s: %s", extensionHandler, strings.Join(reasons, ",")), "Machine", klog.KObj(&req.Current.Machine))
 	}
 
-	return false, reasons, nil
+	return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, reasons, nil
 }
 
 func createRequest(ctx context.Context, c client.Client, currentMachine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (string, *runtimehooksv1.CanUpdateMachineRequest, error) {

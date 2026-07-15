@@ -234,7 +234,7 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 			})
 			if tt.createMachineWithUpdateInProgressAnnotation {
 				orig := currentMachineForPatch.DeepCopy()
-				currentMachineForPatch.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+				currentMachineForPatch.Annotations[clusterv1.UpdateInProgressAnnotation] = "{\"affectsAvailability\":true}"
 				g.Expect(env.Client.Patch(ctx, currentMachineForPatch, client.MergeFrom(orig), client.FieldOwner("manager"))).To(Succeed())
 			}
 
@@ -295,7 +295,7 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 				},
 			}
 
-			err := r.triggerInPlaceUpdate(ctx, controlPlane, currentMachineForPatch, upToDateResult)
+			err := r.triggerInPlaceUpdate(ctx, controlPlane, currentMachineForPatch, upToDateResult, true)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
@@ -307,7 +307,7 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.desiredMachine), gotMachine)).To(Succeed())
 			g.Expect(gotMachine.Annotations).To(Equal(map[string]string{
 				"annotation-1":                       "annotation-value-1",
-				clusterv1.UpdateInProgressAnnotation: "",
+				clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
 				runtimev1.PendingHooksAnnotation:     "UpdateMachine",
 			}))
 			g.Expect(gotMachine.Spec).To(BeComparableTo(tt.desiredMachine.Spec))

@@ -120,13 +120,12 @@ type Reconciler struct {
 	ssaCache          ssa.Cache
 
 	// Only used for testing.
-	overrideTryInPlaceUpdateFunc       func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error)
 	overrideScaleUpControlPlaneFunc    func(ctx context.Context, controlPlane *pkg.ControlPlane) (ctrl.Result, error)
 	overrideScaleDownControlPlaneFunc  func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToDelete *clusterv1.Machine) (ctrl.Result, error)
 	overridePreflightChecksFunc        func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult
-	overrideCanUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error)
-	overrideCanExtensionsUpdateMachine func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (bool, []string, error)
-	overrideTriggerInPlaceUpdate       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) error
+	overrideCanUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (canUpdateMachineResult, error)
+	overrideCanExtensionsUpdateMachine func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error)
+	overrideTriggerInPlaceUpdate       func(ctx context.Context, controlPlane *pkg.ControlPlane, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, affectsAvailability bool) error
 	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 	//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
 	disableRemoveManagedFieldsForLabelsAndAnnotations bool
@@ -507,7 +506,9 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 	if machines := controlPlane.MachinesToCompleteTriggerInPlaceUpdate(); len(machines) > 0 {
 		_, machinesUpToDateResults := controlPlane.NotUpToDateMachines()
 		for _, m := range machines {
-			if err := r.triggerInPlaceUpdate(ctx, controlPlane, m, machinesUpToDateResults[m.Name]); err != nil {
+			// Note: It does not matter what we use for affectsAvailability here as it is only used to set
+			// the UpdateInProgressAnnotation annotation, but here this annotation is already set.
+			if err := r.triggerInPlaceUpdate(ctx, controlPlane, m, machinesUpToDateResults[m.Name], true); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -571,7 +572,7 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join
 		log.V(4).Info("Scaling up control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
-		return r.scaleUpControlPlane(ctx, controlPlane)
+		return r.scaleUpControlPlane(ctx, controlPlane, true)
 	// We are scaling down
 	case numMachines > desiredReplicas:
 		log.V(4).Info("Scaling down control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
@@ -1350,7 +1351,7 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// If there are unexpected members, but there is a machine not yet reporting the node name,
 	// there is chance that the unexpected member is the one hosted on the provisioning machine, so wait.
 	if len(provisioningMachines) > 0 {
-		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with machines with newly provisioned nodes %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")))
+		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")))
 		return ctrl.Result{}, nil
 	}
 	// An unnamed member is normally a learner added by kubeadm before the local

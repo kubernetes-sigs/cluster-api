@@ -40,9 +40,9 @@ var _ = Describe("When in-place updating a workload cluster using ClusterClass",
 			ExtensionServiceNamespace: "test-extension-system",
 			ExtensionServiceName:      "test-extension-webhook-service",
 			ClusterctlVariables: map[string]string{
-				// MaxSurge=0 on KCP: uses scale-in rollout so no new CP machine is
-				// created when the files variable changes.
-				"KUBEADM_CONTROL_PLANE_MAX_SURGE": "0",
+				// MaxSurge=1 on KCP: verify that no new CP machine is created because the in-place update
+				// does not affect availability when the files variable changes.
+				"KUBEADM_CONTROL_PLANE_MAX_SURGE": "1",
 				// MaxSurge=1, MaxUnavailable=1 on the MD: with MaxUnavailable=1 we
 				// should be able to only do in-place updates without any Machine re-creations.
 				"MD_MAX_SURGE":       "1",

@@ -180,6 +180,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Topology":                                                 schema_cluster_api_api_core_v1beta2_Topology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition":                                schema_cluster_api_api_core_v1beta2_UnhealthyMachineCondition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition":                                   schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.UpdateInProgressAnnotationData":                           schema_cluster_api_api_core_v1beta2_UpdateInProgressAnnotationData(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ValidationRule":                                           schema_cluster_api_api_core_v1beta2_ValidationRule(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.VariableSchema":                                           schema_cluster_api_api_core_v1beta2_VariableSchema(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.VariableSchemaMetadata":                                   schema_cluster_api_api_core_v1beta2_VariableSchemaMetadata(ref),
@@ -7166,6 +7167,26 @@ func schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref common.Refer
 					},
 				},
 				Required: []string{"type", "status", "timeoutSeconds"},
+			},
+		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_UpdateInProgressAnnotationData(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UpdateInProgressAnnotationData is used to store data about the in-place update in the UpdateInProgressAnnotation.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"affectsAvailability": {
+						SchemaProps: spec.SchemaProps{
+							Description: "affectsAvailability indicates if the in-place update affects availability of the Machine. Default is true.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
 			},
 		},
 	}

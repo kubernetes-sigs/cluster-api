@@ -286,7 +286,30 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 		}
 	}
 
-	// 3) Set files
+	// 3) Set etcdImageTag
+	var etcdImageTag string
+	err = topologymutation.GetObjectVariableInto(templateVariables, "etcdImageTag", &etcdImageTag)
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return pkgerrors.Wrap(err, "could not set KubeadmControlPlaneTemplate etcdImageTag")
+	}
+	if etcdImageTag != "" {
+		kcpTemplateV1Beta1, ok := obj.(*controlplanev1beta1.KubeadmControlPlaneTemplate)
+		if ok {
+			if kcpTemplateV1Beta1.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
+				kcpTemplateV1Beta1.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration = &bootstrapv1beta1.ClusterConfiguration{}
+			}
+			if kcpTemplateV1Beta1.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local == nil {
+				kcpTemplateV1Beta1.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &bootstrapv1beta1.LocalEtcd{}
+			}
+			kcpTemplateV1Beta1.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag = etcdImageTag
+		}
+		kcpTemplate, ok := obj.(*controlplanev1.KubeadmControlPlaneTemplate)
+		if ok {
+			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag = etcdImageTag
+		}
+	}
+
+	// 4) Set files
 	files := []fileVariable{}
 	err = topologymutation.GetObjectVariableInto(templateVariables, "files", &files)
 	if err != nil && !topologymutation.IsNotFoundError(err) {
@@ -579,6 +602,16 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 							MessageExpression: "'just a test expression, got %s'.format([self])",
 						},
 					},
+				},
+			},
+		},
+		{
+			Name:     "etcdImageTag",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:    "string",
+					Example: &apiextensionsv1.JSON{Raw: []byte(`"3.5.3-0"`)},
 				},
 			},
 		},

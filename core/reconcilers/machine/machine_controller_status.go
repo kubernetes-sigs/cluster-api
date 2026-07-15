@@ -727,15 +727,18 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 
 	defaultReadinessGates := []string{
 		clusterv1.MachineDeletingCondition,
-		clusterv1.MachineUpdatingCondition,
 		clusterv1.MachineBootstrapConfigReadyCondition,
 		clusterv1.MachineInfrastructureReadyCondition,
 		clusterv1.MachineNodeHealthyCondition,
 		clusterv1.MachineHealthCheckSucceededCondition,
 	}
+	negativePolarityConditionTypes := []string{clusterv1.MachineDeletingCondition}
+	if inplace.IsUpdateInProgressAndAffectsAvailability(machine) {
+		defaultReadinessGates = append(defaultReadinessGates, clusterv1.MachineUpdatingCondition)
+		negativePolarityConditionTypes = append(negativePolarityConditionTypes, clusterv1.MachineUpdatingCondition)
+	}
 	forConditionTypes := make(conditions.ForConditionTypes, 0, len(defaultReadinessGates)+len(machine.Spec.ReadinessGates))
 	forConditionTypes = append(forConditionTypes, defaultReadinessGates...)
-	negativePolarityConditionTypes := []string{clusterv1.MachineDeletingCondition, clusterv1.MachineUpdatingCondition}
 	for _, g := range machine.Spec.ReadinessGates {
 		forConditionTypes = append(forConditionTypes, g.ConditionType)
 		if g.Polarity == clusterv1.NegativePolarityCondition {

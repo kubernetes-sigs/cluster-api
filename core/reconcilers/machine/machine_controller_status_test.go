@@ -1923,6 +1923,9 @@ func TestSetReadyCondition(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine-test",
 					Namespace: metav1.NamespaceDefault,
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "",
+					},
 				},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
@@ -1960,6 +1963,53 @@ func TestSetReadyCondition(t *testing.T) {
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotReadyReason,
 				Message: "* Updating: In-place update in progress",
+			},
+		},
+		{
+			name: "Aggregates Ready condition correctly while the machine is updating (when in-place update does not affect availability)",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}",
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineBootstrapConfigReadyCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.InfrastructureReadyCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineDeletingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotDeletingReason,
+						},
+						{
+							Type:    clusterv1.MachineUpdatingCondition,
+							Status:  metav1.ConditionTrue,
+							Reason:  clusterv1.MachineInPlaceUpdatingReason,
+							Message: "In-place update in progress",
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineReadyReason,
 			},
 		},
 		{

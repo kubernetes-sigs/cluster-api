@@ -80,6 +80,11 @@ type CanUpdateMachineResponse struct {
 	// Only fields in spec have to be covered by the patch.
 	// +optional
 	BootstrapConfigPatch Patch `json:"bootstrapConfigPatch,omitempty,omitzero"`
+
+	// affectsAvailability indicates if the in-place update affects availability of the Machine.
+	// Default is true.
+	// +optional
+	AffectsAvailability *bool `json:"affectsAvailability,omitempty"`
 }
 
 // Patch is a single patch (JSONPatch or JSONMergePatch) which can include multiple operations.

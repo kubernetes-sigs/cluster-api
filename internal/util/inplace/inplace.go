@@ -18,6 +18,10 @@ limitations under the License.
 package inplace
 
 import (
+	"encoding/json"
+
+	"k8s.io/utils/ptr"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/hooks"
@@ -33,6 +37,27 @@ func IsUpdateInProgress(machine *clusterv1.Machine) bool {
 	hasUpdateMachinePending := hooks.IsPending(runtimehooksv1.UpdateMachine, machine)
 
 	return inPlaceUpdateInProgress || hasUpdateMachinePending
+}
+
+// IsUpdateInProgressAndAffectsAvailability returns true if an in-place update is in progress
+// for one machine and affects availability.
+// Note: an in-place update is considered in progress even if technically it is still starting
+//
+//	(only the annotation is there, the hook is not yet there), or if it is stopping (only the
+//	pending hook is still there, but the annotation is gone).
+func IsUpdateInProgressAndAffectsAvailability(machine *clusterv1.Machine) bool {
+	inPlaceUpdateInProgressValue, inPlaceUpdateInProgress := machine.Annotations[clusterv1.UpdateInProgressAnnotation]
+	hasUpdateMachinePending := hooks.IsPending(runtimehooksv1.UpdateMachine, machine)
+
+	affectsAvailability := true
+	if inPlaceUpdateInProgressValue != "" {
+		data := &clusterv1.UpdateInProgressAnnotationData{}
+		if err := json.Unmarshal([]byte(inPlaceUpdateInProgressValue), &data); err == nil {
+			affectsAvailability = ptr.Deref(data.AffectsAvailability, true)
+		}
+	}
+
+	return (inPlaceUpdateInProgress || hasUpdateMachinePending) && affectsAvailability
 }
 
 // CleanupMachineSpecForDiff cleans up a MachineSpec for diff.

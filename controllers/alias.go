@@ -79,6 +79,8 @@ type MachineReconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+	WatchNamespace   string
+	ControllerName   string
 
 	RemoteConditionsGracePeriod time.Duration
 
@@ -93,6 +95,8 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		ClusterCache:                     r.ClusterCache,
 		RuntimeClient:                    r.RuntimeClient,
 		WatchFilterValue:                 r.WatchFilterValue,
+		WatchNamespace:                   r.WatchNamespace,
+		ControllerName:                   r.ControllerName,
 		RemoteConditionsGracePeriod:      r.RemoteConditionsGracePeriod,
 		AdditionalSyncMachineLabels:      r.AdditionalSyncMachineLabels,
 		AdditionalSyncMachineAnnotations: r.AdditionalSyncMachineAnnotations,

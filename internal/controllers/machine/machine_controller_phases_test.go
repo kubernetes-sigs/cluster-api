@@ -358,7 +358,7 @@ func TestReconcileBootstrap(t *testing.T) {
 
 			r := &Reconciler{
 				Client: c,
-				externalTracker: external.ObjectTracker{
+				contractObjectCache: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          runtime.NewScheme(),
@@ -1015,7 +1015,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			r := &Reconciler{
 				Client:     c,
 				controller: fc,
-				externalTracker: external.ObjectTracker{
+				contractObjectCache: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          c.Scheme(),

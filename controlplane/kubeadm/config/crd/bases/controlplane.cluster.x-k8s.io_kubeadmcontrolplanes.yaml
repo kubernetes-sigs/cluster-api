@@ -2940,6 +2940,67 @@ spec:
           spec:
             description: spec is the desired state of KubeadmControlPlane.
             properties:
+              etcdMaintenance:
+                description: |-
+                  etcdMaintenance defines settings for automatic etcd maintenance operations such as defragmentation.
+                  Only applies when using managed (local) etcd; has no effect with external etcd.
+                properties:
+                  autoDisalarm:
+                    description: |-
+                      autoDisalarm controls whether the controller should automatically disarm the etcd
+                      NOSPACE alarm on a member after it has been successfully defragmented and its
+                      dbSize/dbQuota ratio drops below disalarmThreshold.
+                      Defaults to false.
+                    type: boolean
+                  defragRule:
+                    description: |-
+                      defragRule is a boolean expression evaluated independently for each etcd member to decide
+                      whether defragmentation should be performed on that member.
+
+                      The following variables are available:
+                        - dbSize:       total size of the etcd database file, in bytes
+                        - dbSizeInUse:  total size actually in use in the etcd database, in bytes
+                        - dbSizeFree:   total unused space (dbSize - dbSizeInUse), in bytes
+                        - dbQuota:      etcd storage quota in bytes; resolved from the etcd Status response
+                                        (etcd v3.6+), then from spec.kubeadmConfigSpec.clusterConfiguration.etcd.local.extraArgs
+                                        quota-backend-bytes, then defaulting to 2 GiB
+                        - dbQuotaUsage: ratio of database size to quota (dbSize / dbQuota)
+
+                      Supported operators: <, <=, >, >=, ==, !=, &&, ||, !, ()
+                      Arithmetic: +, -, *, /
+
+                      Examples:
+                        "dbQuotaUsage > 0.8 || dbSizeFree > 209715200"
+                        "dbSize > dbQuota*80/100 && dbSizeFree > 100*1024*1024"
+
+                      If empty or not set, defragmentation is disabled.
+                    maxLength: 512
+                    type: string
+                  disalarmThresholdPercent:
+                    description: |-
+                      disalarmThresholdPercent is the maximum database-size-to-quota ratio, expressed as
+                      an integer percentage, below which the NOSPACE alarm is cleared on a member after
+                      successful defragmentation. For example, 90 means the alarm is disarmed when
+                      dbSize / dbQuota < 0.90.
+                      The check is performed independently per member immediately after it is defragmented.
+                      Only evaluated when autoDisalarm is true.
+                      Must be in the range (0, 100]. Defaults to 90 when set to 0 or not specified.
+                    format: int32
+                    maximum: 100
+                    minimum: 0
+                    type: integer
+                  minDefragIntervalSeconds:
+                    description: |-
+                      minDefragIntervalSeconds is the minimum number of seconds that must elapse
+                      between two consecutive defragmentations of the same etcd member.
+                      The interval is enforced independently per member, so all members in a cluster
+                      can be defragmented in rapid succession (one per reconcile, 5 s apart) and each
+                      member will not be defragmented again until its own timer has expired.
+                      Defaults to 3600 (1 hour) when set to 0 or not specified.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
               kubeadmConfigSpec:
                 description: |-
                   kubeadmConfigSpec is a KubeadmConfigSpec
@@ -5883,6 +5944,34 @@ spec:
                         type: integer
                     type: object
                 type: object
+              etcdMemberDefragTimes:
+                description: |-
+                  etcdMemberDefragTimes records the last time each etcd member was defragmented.
+                  Used by the controller to enforce spec.etcdMaintenance.minDefragIntervalSeconds
+                  independently for each member.
+                items:
+                  description: EtcdMemberDefragStatus records when an etcd member
+                    was last defragmented.
+                  properties:
+                    lastDefragTime:
+                      description: lastDefragTime is the timestamp when this etcd
+                        member was last defragmented.
+                      format: date-time
+                      type: string
+                    name:
+                      description: name is the name of the etcd member.
+                      maxLength: 253
+                      minLength: 1
+                      type: string
+                  required:
+                  - lastDefragTime
+                  - name
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               initialization:
                 description: |-
                   initialization provides observations of the KubeadmControlPlane initialization process.

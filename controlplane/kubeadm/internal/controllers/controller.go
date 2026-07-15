@@ -494,6 +494,13 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		return result, err
 	}
 
+	// Defragment etcd members (and auto-disalarm NOSPACE alarms) when the configured rule is
+	// satisfied. This intentionally runs before scaling, rolling updates, and remediation so
+	// that etcd is in a healthy state before any of those operations proceed.
+	if result, err := r.reconcileEtcdDefragmentation(ctx, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
+
 	// Complete triggering in-place update if necessary, for reentrancy if triggerInPlaceUpdate failed
 	// when triggering the in-place update initially.
 	if machines := controlPlane.MachinesToCompleteTriggerInPlaceUpdate(); len(machines) > 0 {
@@ -600,6 +607,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	if err := r.reconcileCertificateExpiries(ctx, controlPlane); err != nil {
 		return ctrl.Result{}, err
 	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -1102,6 +1110,17 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 	// Update conditions status
 	workloadCluster.UpdateStaticPodConditions(ctx, controlPlane)
 	workloadCluster.UpdateEtcdConditions(ctx, controlPlane)
+
+	log := ctrl.LoggerFrom(ctx)
+	for _, alarm := range controlPlane.EtcdMembersAlarms {
+		switch alarm.Type {
+		case etcd.AlarmCorrupt:
+			// TODO: attempt auto-repair when quorum is still satisfied.
+			return errors.Errorf("etcd member %d has a CORRUPT alarm", alarm.MemberID)
+		case etcd.AlarmNoSpace:
+			log.Info("Warning: etcd member has a NOSPACE alarm", "memberID", alarm.MemberID)
+		}
+	}
 
 	// KCP will be patched at the end of Reconcile to reflect updated conditions, so we can return now.
 	return nil

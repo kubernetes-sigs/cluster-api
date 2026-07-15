@@ -195,6 +195,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-taints.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ignition.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-etcd-defrag.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-in-memory.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-in-memory-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-in-memory.yaml"
@@ -279,3 +280,6 @@ intervals:
   scale/wait-control-plane: ["20m", "10s"]
   scale/wait-worker-nodes: ["20m", "10s"]
   self-hosted/wait-control-plane-upgrade: ["20m", "10s"]
+  etcd-defrag/wait-control-plane: ["10m", "10s"]
+  etcd-defrag/wait-defrag: ["2m", "5s"]
+  etcd-defrag/wait-second-defrag: ["1m", "5s"]

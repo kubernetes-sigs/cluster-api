@@ -72,6 +72,10 @@ func ConvertKubeadmControlPlaneV1Beta1ToHub(ctx context.Context, src *controlpla
 	// Recover other values
 	if ok {
 		bootstrapconversion.RestoreKubeadmConfigSpec(&restored.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec)
+		// EtcdMaintenance (including MinDefragInterval) is a v1beta2-only field; restore from annotation.
+		dst.Spec.EtcdMaintenance = restored.Spec.EtcdMaintenance
+		// EtcdMemberDefragTimes is a v1beta2-only status field; restore from annotation.
+		dst.Status.EtcdMemberDefragTimes = restored.Status.EtcdMemberDefragTimes
 	}
 
 	if src.Spec.RemediationStrategy != nil {

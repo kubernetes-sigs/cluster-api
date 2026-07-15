@@ -37,4 +37,9 @@ const (
 
 	// EtcdMemberRemoved is added to etcd pods which have been removed from the etcd cluster.
 	EtcdMemberRemoved = "etcd.inmemory.infrastructure.cluster.x-k8s.io/member-removed"
+
+	// EtcdDefragCountAnnotationName tracks how many times the in-memory etcd member
+	// has been defragmented. The value is a decimal integer that is incremented on
+	// every successful Defragment RPC handled by the fake etcd server.
+	EtcdDefragCountAnnotationName = "etcd.inmemory.infrastructure.cluster.x-k8s.io/defrag-count"
 )

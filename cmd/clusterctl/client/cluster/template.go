@@ -207,7 +207,7 @@ func (t *templateClient) getGitHubFileContent(ctx context.Context, rURL *url.URL
 		return getGithubFileContentFromCode(ctx, ghClient, rURL.Path, owner, repo, path, branch)
 
 	case "releases": // get a github release asset
-		if urlSplit[3] != "download" {
+		if len(urlSplit) < 6 || urlSplit[3] != "download" {
 			break
 		}
 		tag := urlSplit[4]

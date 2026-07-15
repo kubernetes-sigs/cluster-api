@@ -74,11 +74,12 @@ type IssueResponse struct {
 
 // releaseDetails is the struct for the release details.
 type releaseDetails struct {
-	ReleaseTag       string
-	PreReleaseTag    string
-	ReleaseLink      string
-	ReleaseDate      string
-	ReleaseNotesLink string
+	ReleaseTag            string
+	PreReleaseTag         string
+	ReleaseLink           string
+	ReleaseDate           string
+	ReleaseCodeFreezeDate string
+	ReleaseNotesLink      string
 }
 
 // Example command:
@@ -296,17 +297,29 @@ func getReleaseDetails() (releaseDetails, error) {
 		return releaseDetails{}, errors.New("unable to parse the date")
 	}
 
+	// Parse the release code freeze date
+	codeFreezeDate, keySet := os.LookupEnv("RELEASE_CODE_FREEZE_DATE")
+	if !keySet || codeFreezeDate == "" {
+		return releaseDetails{}, errors.New("release code freeze date is a required environmental variable. Refer to README.md in folder for more information")
+	}
+
+	formattedCodeFreezeDate, err := formatDate(codeFreezeDate)
+	if err != nil {
+		return releaseDetails{}, errors.New("unable to parse the code freeze date")
+	}
+
 	majorMinorWithoutPrefixV := fmt.Sprintf("%s.%s", major, minor) // e.g. 1.7 . Note that there is no "v" in the majorMinor
 	releaseTag := fmt.Sprintf("v%s.%s.%s", major, minor, patch)    // e.g. v1.7.0
 	releaseLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-%s.md#timeline", majorMinorWithoutPrefixV)
 	releaseNotesLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/tag/%s", releaseSemVer)
 
 	return releaseDetails{
-		ReleaseDate:      formattedReleaseDate,
-		ReleaseTag:       releaseTag,
-		PreReleaseTag:    releaseSemVer,
-		ReleaseLink:      releaseLink,
-		ReleaseNotesLink: releaseNotesLink,
+		ReleaseDate:           formattedReleaseDate,
+		ReleaseTag:            releaseTag,
+		PreReleaseTag:         releaseSemVer,
+		ReleaseLink:           releaseLink,
+		ReleaseNotesLink:      releaseNotesLink,
+		ReleaseCodeFreezeDate: formattedCodeFreezeDate,
 	}, nil
 }
 
@@ -352,6 +365,8 @@ Looking forward to your feedback before {{.ReleaseTag}} release!
 ## Following are the planned dates for the upcoming releases
 
 CAPI {{.ReleaseTag}} will be released on **{{.ReleaseDate}}**.
+
+Code Freeze for {{.ReleaseTag}} is scheduled to begin on **{{.ReleaseCodeFreezeDate}}**.
 
 More details of the upcoming schedule can be seen at [CAPI {{.ReleaseTag}} release timeline]({{.ReleaseLink}}).
 

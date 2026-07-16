@@ -80,7 +80,7 @@ import (
 	topologymachinedeployment "sigs.k8s.io/cluster-api/core/reconcilers/topology/machinedeployment"
 	topologymachineset "sigs.k8s.io/cluster-api/core/reconcilers/topology/machineset"
 	"sigs.k8s.io/cluster-api/core/setup"
-	corewebhooks "sigs.k8s.io/cluster-api/core/webhooks/admission"
+	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
@@ -735,7 +735,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 	return clusterCache
 }
 
-func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader corewebhooks.ClusterCacheReader) {
+func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader coreadmission.ClusterCacheReader) {
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
 	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
@@ -743,78 +743,78 @@ func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader corew
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled.
-	if err := (&corewebhooks.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "ClusterClass")
 		os.Exit(1)
 	}
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent usage of Cluster.Topology in case the feature flag is disabled.
-	if err := (&corewebhooks.Cluster{Client: mgr.GetClient(), ClusterCacheReader: clusterCacheReader}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.Cluster{Client: mgr.GetClient(), ClusterCacheReader: clusterCacheReader}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "Cluster")
 		os.Exit(1)
 	}
 
-	if err := (&corewebhooks.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.Machine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "Machine")
 		os.Exit(1)
 	}
 
-	if err := (&corewebhooks.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "MachineSet")
 		os.Exit(1)
 	}
 
-	if err := (&corewebhooks.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "MachineDeployment")
 		os.Exit(1)
 	}
 
-	if err := (&corewebhooks.MachineDrainRule{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineDrainRule{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "MachineDrainRule")
 		os.Exit(1)
 	}
 
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
-	if err := (&corewebhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "MachinePool")
 		os.Exit(1)
 	}
 
 	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
-	if err := (&corewebhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "ClusterResourceSet")
 		os.Exit(1)
 	}
 	// NOTE: ClusterResourceSetBinding is behind ClusterResourceSet feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
-	if err := (&corewebhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "ClusterResourceSetBinding")
 		os.Exit(1)
 	}
 
-	if err := (&corewebhooks.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "MachineHealthCheck")
 		os.Exit(1)
 	}
 
 	// NOTE: ExtensionConfig is behind the RuntimeSDK feature gate flag. The webhook will prevent creating or updating
 	// new objects if the feature flag is disabled.
-	if err := (&corewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "ExtensionConfig")
 		os.Exit(1)
 	}
 
-	if err := (&corewebhooks.IPAddress{
+	if err := (&coreadmission.IPAddress{
 		// We are using GetAPIReader here to avoid caching all IPAddressClaims
 		Client: mgr.GetAPIReader(),
 	}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "IPAddress")
 		os.Exit(1)
 	}
-	if err := (&corewebhooks.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "IPAddressClaim")
 		os.Exit(1)
 	}

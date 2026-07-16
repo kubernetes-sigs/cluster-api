@@ -195,21 +195,21 @@ linters:
           alias: ctrl
         # CABPK
         - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission
-          alias: kubeadmbootstrapwebhooks
+          alias: bootstrapadmission
         - pkg: sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1
           alias: bootstrapv1beta1
         - pkg: sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2
           alias: bootstrapv1
         # KCP
         - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission
-          alias: kubeadmcontrolplanewebhooks
+          alias: controlplaneadmission
         - pkg: sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1
           alias: controlplanev1beta1
         - pkg: sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2
           alias: controlplanev1
         # CAPI
         - pkg: sigs.k8s.io/cluster-api/core/webhooks/admission
-          alias: corewebhooks
+          alias: coreadmission
         - pkg: sigs.k8s.io/cluster-api/api/core/v1beta1
           alias: clusterv1beta1
         - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2

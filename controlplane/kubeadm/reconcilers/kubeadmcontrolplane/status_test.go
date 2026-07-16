@@ -35,7 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
-	kubeadmcontrolplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
+	controlplaneadmission "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -2064,7 +2064,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 			},
 		},
 	}
-	webhook := &kubeadmcontrolplanewebhooks.KubeadmControlPlane{}
+	webhook := &controlplaneadmission.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -2212,7 +2212,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 			},
 		},
 	}
-	webhook := &kubeadmcontrolplanewebhooks.KubeadmControlPlane{}
+	webhook := &controlplaneadmission.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -2280,7 +2280,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 			},
 		},
 	}
-	webhook := &kubeadmcontrolplanewebhooks.KubeadmControlPlane{}
+	webhook := &controlplaneadmission.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -2354,7 +2354,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 			},
 		},
 	}
-	webhook := &kubeadmcontrolplanewebhooks.KubeadmControlPlane{}
+	webhook := &controlplaneadmission.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -2429,7 +2429,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 			},
 		},
 	}
-	webhook := &kubeadmcontrolplanewebhooks.KubeadmControlPlane{}
+	webhook := &controlplaneadmission.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())

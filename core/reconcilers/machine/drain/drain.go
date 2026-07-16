@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/core/webhooks/admission"
+	corewebhooks "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
@@ -175,7 +175,7 @@ func (d *Helper) getMatchingMachineDrainRules(ctx context.Context, cluster *clus
 	// Validate selectors of all MachineDrainRules (so we don't have to do it later for every Pod in machineDrainRulesFilter).
 	errs := []error{}
 	for _, mdr := range machineDrainRuleList.Items {
-		if validationErrs := admission.ValidateMachineDrainRulesSelectors(&mdr); len(validationErrs) > 0 {
+		if validationErrs := corewebhooks.ValidateMachineDrainRulesSelectors(&mdr); len(validationErrs) > 0 {
 			errs = append(errs, errors.Wrapf(validationErrs.ToAggregate(), "invalid selectors in MachineDrainRule %s", mdr.Name))
 		}
 	}

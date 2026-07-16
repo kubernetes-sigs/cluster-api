@@ -57,8 +57,8 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
-	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
-	"sigs.k8s.io/cluster-api/core/webhooks/admission"
+	kubeadmcontrolplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
+	corewebhooks "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -263,7 +263,7 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 			},
 		},
 	}
-	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	webhook := &kubeadmcontrolplanewebhooks.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -349,7 +349,7 @@ func TestReconcileNoCluster(t *testing.T) {
 			},
 		},
 	}
-	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	webhook := &kubeadmcontrolplanewebhooks.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -402,7 +402,7 @@ func TestReconcilePaused(t *testing.T) {
 			},
 		},
 	}
-	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	webhook := &kubeadmcontrolplanewebhooks.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -466,7 +466,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 			}},
 		},
 	}
-	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	webhook := &kubeadmcontrolplanewebhooks.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -5005,7 +5005,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 			},
 		},
 	}
-	webhook := admission.Machine{}
+	webhook := corewebhooks.Machine{}
 	if err := webhook.Default(ctx, machine); err != nil {
 		panic(err)
 	}

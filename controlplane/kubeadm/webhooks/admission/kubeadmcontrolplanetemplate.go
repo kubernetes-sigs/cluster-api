@@ -29,7 +29,7 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	kubeadmwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
+	kubeadmbootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
@@ -64,7 +64,7 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateCreate(_ context.Context, k 
 	spec := k.Spec.Template.Spec
 	allErrs := validateKubeadmControlPlaneTemplateResourceSpec(spec, field.NewPath("spec", "template", "spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(nil, &spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
-	allErrs = append(allErrs, kubeadmwebhooks.Validate(&spec.KubeadmConfigSpec, true, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec"))...)
+	allErrs = append(allErrs, kubeadmbootstrapwebhooks.Validate(&spec.KubeadmConfigSpec, true, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec"))...)
 	// Validate the metadata of the KubeadmControlPlaneTemplateResource
 	allErrs = append(allErrs, k.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
 	if len(allErrs) > 0 {
@@ -79,8 +79,8 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(_ context.Context, ol
 
 	// Apply defaults from older versions of CAPI so the following checks do not report differences when
 	// dealing with objects created before dropping those defaults.
-	kubeadmwebhooks.ApplyPreviousKubeadmConfigDefaults(&oldK.Spec.Template.Spec.KubeadmConfigSpec)
-	kubeadmwebhooks.ApplyPreviousKubeadmConfigDefaults(&newK.Spec.Template.Spec.KubeadmConfigSpec)
+	kubeadmbootstrapwebhooks.ApplyPreviousKubeadmConfigDefaults(&oldK.Spec.Template.Spec.KubeadmConfigSpec)
+	kubeadmbootstrapwebhooks.ApplyPreviousKubeadmConfigDefaults(&newK.Spec.Template.Spec.KubeadmConfigSpec)
 
 	// In Cluster API < v1.11 the RolloutStrategy field was defaulted.
 	// The defaulting was dropped with Cluster API v1.11.

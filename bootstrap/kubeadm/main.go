@@ -47,7 +47,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/reconcilers/kubeadmconfig"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/setup"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
+	kubeadmbootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -339,11 +339,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if err := (&admission.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&kubeadmbootstrapwebhooks.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
 		os.Exit(1)
 	}
-	if err := (&admission.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&kubeadmbootstrapwebhooks.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
 		os.Exit(1)
 	}

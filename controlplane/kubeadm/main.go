@@ -60,7 +60,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/reconcilers/kubeadmcontrolplane"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
+	kubeadmcontrolplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/core/reconcilers/extensionconfig"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
@@ -450,19 +450,19 @@ func setupWebhooks(_ context.Context, mgr ctrl.Manager) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
 	})
 
-	if err := (&admission.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&kubeadmcontrolplanewebhooks.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
 		os.Exit(1)
 	}
 
-	if err := (&admission.ScaleValidator{
+	if err := (&kubeadmcontrolplanewebhooks.ScaleValidator{
 		Client: mgr.GetClient(),
 	}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane scale")
 		os.Exit(1)
 	}
 
-	if err := (&admission.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&kubeadmcontrolplanewebhooks.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlaneTemplate")
 		os.Exit(1)
 	}

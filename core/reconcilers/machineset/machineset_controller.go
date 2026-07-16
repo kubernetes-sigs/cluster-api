@@ -50,7 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine"
-	"sigs.k8s.io/cluster-api/core/webhooks/admission"
+	corewebhooks "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
@@ -670,7 +670,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, b
 			m.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
 			m.Spec.Deletion.NodeDrainTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
 			m.Spec.Deletion.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
-			admission.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on MS.
+			corewebhooks.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on MS.
 			m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 			m.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
 			m.Spec.Taints = machineSet.Spec.Template.Spec.Taints

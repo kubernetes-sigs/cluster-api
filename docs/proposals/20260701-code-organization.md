@@ -235,23 +235,24 @@ Cluster API code base (core Cluster API, KCP, CABPK) we are going to complete th
 the following structure:
 
 * `/api`: public consumption, guarantees according to Kubernetes API guarantees (`sigs.k8s.io/cluster-api/api` Go module)
-* `/utils`: public consumption, strong guarantees (`sigs.k8s.io/cluster-api/utils` Go module)
-* `/cmd/clusterctl`: clusterctl command, internal code/not for general consumption, limited guarantees
-* `/core`: "core" Cluster API provider, internal code/not for general consumption, limited guarantees
 * `/bootstrap/kubeadm`: CABPK provider, internal code/not for general consumption, limited guarantees
+* `/CHANGELOG`: documentation
+* `/cmd/clusterctl`: clusterctl command, internal code/not for general consumption, limited guarantees
 * `/controlplane/kubeadm`: KCP internal, internal code/not for general consumption, limited guarantees
+* `/core`: "core" Cluster API provider, internal code/not for general consumption, limited guarantees
+* `/docs`: documentation
+* `/hack`: scripting, CI, no guarantees (Go module: hack/tools)
 * `/pkg`: internal code shared among the above components/not for general consumption, limited guarantees
 * `/test`: public e2e test code & test providers, limited guarantee (`sigs.k8s.io/cluster-api/test` Go module)
-* `/hack`: scripting, CI, no guarantees (Go module: hack/tools)
-* `/docs`: documentation
-* `/CHANGELOG`: documentation
+* `/utils`: public consumption, strong guarantees (`sigs.k8s.io/cluster-api/utils` Go module)
 
 Please note we are also going to ensure a consistent structure for all production providers (core Cluster API, KCP, CABPK),
 having the same set of folders in `/core`, `/bootstrap/kubeadm`, `/controlplane/kubeadm`:
 * `/config`
-* `/controllers/<reconciled type>/`
-* `/pkg/{setup,...}`
-* `/webhooks/{conversion,...}`
+* `/pkg` 
+* `/reconcilers/<reconciler type>`
+* `/setup`
+* `/webhooks/{admission,conversion}`
 * `/main.go`
 
 Note: In general provider-specific code should be located within the provider package.

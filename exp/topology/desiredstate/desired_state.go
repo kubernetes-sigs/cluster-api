@@ -39,7 +39,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/core/controllers/topology/cluster/patches"
+	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches"
 	"sigs.k8s.io/cluster-api/core/webhooks/admission"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"

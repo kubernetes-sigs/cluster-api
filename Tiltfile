@@ -61,7 +61,7 @@ providers = {
         "context": "core",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
         "live_reload_deps": [
-            "controllers",
+            "reconcilers",
             "webhooks",
             "main.go",
             "../api",
@@ -78,8 +78,8 @@ providers = {
         "context": "bootstrap/kubeadm",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller",
         "live_reload_deps": [
-            "controllers",
             "pkg",
+            "reconcilers",
             "webhooks",
             "main.go",
             "../../api/bootstrap/kubeadm",
@@ -92,8 +92,8 @@ providers = {
         "context": "controlplane/kubeadm",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller",
         "live_reload_deps": [
-            "controllers",
             "pkg",
+            "reconcilers",
             "webhooks",
             "main.go",
             "../../api/controlplane/kubeadm",

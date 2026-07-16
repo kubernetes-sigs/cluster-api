@@ -45,7 +45,7 @@ import (
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers/kubeadmconfig"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/reconcilers/kubeadmconfig"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"

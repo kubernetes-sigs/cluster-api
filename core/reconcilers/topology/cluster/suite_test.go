@@ -1,5 +1,5 @@
 /*
-Copyright 2025 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package upgrade
+package cluster
 
 import (
 	"context"
@@ -35,7 +35,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/core/reconcilers/clusterclass"
-	topologycluster "sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster"
 	"sigs.k8s.io/cluster-api/core/setup"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
@@ -84,7 +83,7 @@ func TestMain(m *testing.M) {
 			clusterCache.(interface{ Shutdown() }).Shutdown()
 		}()
 
-		if err := (&topologycluster.Reconciler{
+		if err := (&Reconciler{
 			Client:        mgr.GetClient(),
 			APIReader:     mgr.GetAPIReader(),
 			ClusterCache:  clusterCache,

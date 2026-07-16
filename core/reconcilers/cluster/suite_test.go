@@ -1,5 +1,5 @@
 /*
-Copyright 2025 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package upgrade
+package cluster
 
 import (
 	"context"
@@ -24,7 +24,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -34,37 +33,35 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/core/reconcilers/clusterclass"
-	topologycluster "sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster"
+	machinecontroller "sigs.k8s.io/cluster-api/core/reconcilers/machine"
 	"sigs.k8s.io/cluster-api/core/setup"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 	"sigs.k8s.io/cluster-api/util/index"
 )
 
+const (
+	timeout = time.Second * 30
+)
+
 var (
+	env        *envtest.Environment
 	ctx        = ctrl.SetupSignalHandler()
 	fakeScheme = runtime.NewScheme()
-	env        *envtest.Environment
 )
 
 func init() {
 	_ = clientgoscheme.AddToScheme(fakeScheme)
 	_ = clusterv1.AddToScheme(fakeScheme)
 	_ = apiextensionsv1.AddToScheme(fakeScheme)
-	_ = corev1.AddToScheme(fakeScheme)
 }
+
 func TestMain(m *testing.M) {
 	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
 			panic(fmt.Sprintf("unable to setup index: %v", err))
 		}
-		// Set up the ClusterClassName index explicitly here. This index is ordinarily created in
-		// index.AddDefaultIndexes. That doesn't happen here because the ClusterClass feature flag is not set.
-		if err := index.ByClusterClassRef(ctx, mgr); err != nil {
-			panic(fmt.Sprintf("unable to setup index: %v", err))
-		}
 	}
+
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
 		secretCachingClient, err := setup.CreateSecretCachingClient(mgr)
 		if err != nil {
@@ -84,23 +81,32 @@ func TestMain(m *testing.M) {
 			clusterCache.(interface{ Shutdown() }).Shutdown()
 		}()
 
-		if err := (&topologycluster.Reconciler{
-			Client:        mgr.GetClient(),
-			APIReader:     mgr.GetAPIReader(),
-			ClusterCache:  clusterCache,
-			RuntimeClient: fakeruntimeclient.NewRuntimeClientBuilder().Build(),
+		// Setting ConnectionCreationRetryInterval to 2 seconds, otherwise client creation is
+		// only retried every 30s. If we get unlucky tests are then failing with timeout.
+		clusterCache.(interface{ SetConnectionCreationRetryInterval(time.Duration) }).
+			SetConnectionCreationRetryInterval(2 * time.Second)
+
+		if err := (&Reconciler{
+			Client:                      mgr.GetClient(),
+			APIReader:                   mgr.GetClient(),
+			ClusterCache:                clusterCache,
+			RemoteConnectionGracePeriod: 50 * time.Second,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-			panic(fmt.Sprintf("unable to create topology cluster reconciler: %v", err))
+			panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
 		}
-		if err := (&clusterclass.Reconciler{
-			Client:        mgr.GetClient(),
-			RuntimeClient: fakeruntimeclient.NewRuntimeClientBuilder().Build(),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
-			panic(fmt.Sprintf("unable to create clusterclass reconciler: %v", err))
+		if err := (&machinecontroller.Reconciler{
+			Client:                      mgr.GetClient(),
+			APIReader:                   mgr.GetAPIReader(),
+			ClusterCache:                clusterCache,
+			RemoteConditionsGracePeriod: 5 * time.Minute,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
 		}
 	}
+
 	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
-	SetDefaultEventuallyTimeout(30 * time.Second)
+	SetDefaultEventuallyTimeout(timeout)
+
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M: m,
 		SetupManagerCacheOptions: func(scheme *runtime.Scheme) cache.Options {
@@ -110,6 +116,5 @@ func TestMain(m *testing.M) {
 		SetupEnv:             func(e *envtest.Environment) { env = e },
 		SetupIndexes:         setupIndexes,
 		SetupReconcilers:     setupReconcilers,
-		MinK8sVersion:        "v1.22.0", // ClusterClass uses server side apply that went GA in 1.22; we do not support previous version because of bug/inconsistent behaviours in the older release.
 	}))
 }

@@ -305,7 +305,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./api/ipam/... \
 		paths=./api/runtime/... \
 		paths=./core \
-		paths=./core/controllers/... \
+		paths=./core/reconcilers/... \
 		paths=./core/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
@@ -357,7 +357,7 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 	$(CONTROLLER_GEN) \
 		paths=./api/bootstrap/kubeadm/... \
 		paths=./bootstrap/kubeadm \
-		paths=./bootstrap/kubeadm/controllers/... \
+		paths=./bootstrap/kubeadm/reconcilers/... \
 		paths=./bootstrap/kubeadm/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
@@ -372,7 +372,7 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 	$(CONTROLLER_GEN) \
 		paths=./api/controlplane/kubeadm/... \
 		paths=./controlplane/kubeadm \
-		paths=./controlplane/kubeadm/controllers/... \
+		paths=./controlplane/kubeadm/reconcilers/... \
 		paths=./controlplane/kubeadm/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \

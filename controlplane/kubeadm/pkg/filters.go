@@ -29,7 +29,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/defaulting"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -333,8 +333,8 @@ func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bo
 	// *Note* This assumes that newly added default values never
 	// introduce a semantic difference to the unset value.
 	// But that is something that is ensured by our API guarantees.
-	defaulting.ApplyPreviousKubeadmConfigDefaults(&desiredKubeadmConfig.Spec)
-	defaulting.ApplyPreviousKubeadmConfigDefaults(&currentKubeadmConfig.Spec)
+	webhooks.ApplyPreviousKubeadmConfigDefaults(&desiredKubeadmConfig.Spec)
+	webhooks.ApplyPreviousKubeadmConfigDefaults(&currentKubeadmConfig.Spec)
 
 	// Cleanup JoinConfiguration.Discovery from desiredKubeadmConfig and currentKubeadmConfig, because those info are relevant only for
 	// the join process and not for comparing the configuration of the machine.

@@ -40,7 +40,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/defaulting"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
@@ -500,8 +500,8 @@ func validateCanUpdateMachineRequests(currentMachine *clusterv1.Machine, machine
 			// Compare KubeadmConfig
 			currentKubeadmConfig := machineUpToDateResult.CurrentKubeadmConfig.DeepCopy()
 			currentKubeadmConfig.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))
-			currentKubeadmConfig.ResourceVersion = ""                                 // cleanupKubeadmConfig drops ResourceVersion.
-			defaulting.ApplyPreviousKubeadmConfigDefaults(&currentKubeadmConfig.Spec) // PrepareKubeadmConfigsForDiff applies defaults.
+			currentKubeadmConfig.ResourceVersion = ""                               // cleanupKubeadmConfig drops ResourceVersion.
+			webhooks.ApplyPreviousKubeadmConfigDefaults(&currentKubeadmConfig.Spec) // PrepareKubeadmConfigsForDiff applies defaults.
 			if mutator, ok := callExtensionExpectedChanges[name]; ok {
 				mutator(currentKubeadmConfig)
 			}
@@ -511,8 +511,8 @@ func validateCanUpdateMachineRequests(currentMachine *clusterv1.Machine, machine
 			}
 			desiredKubeadmConfig := machineUpToDateResult.DesiredKubeadmConfig.DeepCopy()
 			desiredKubeadmConfig.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))
-			desiredKubeadmConfig.ResourceVersion = ""                                 // cleanupKubeadmConfig drops ResourceVersion.
-			defaulting.ApplyPreviousKubeadmConfigDefaults(&desiredKubeadmConfig.Spec) // PrepareKubeadmConfigsForDiff applies defaults.
+			desiredKubeadmConfig.ResourceVersion = ""                               // cleanupKubeadmConfig drops ResourceVersion.
+			webhooks.ApplyPreviousKubeadmConfigDefaults(&desiredKubeadmConfig.Spec) // PrepareKubeadmConfigsForDiff applies defaults.
 			desiredKubeadmConfigBytes, _ := json.Marshal(desiredKubeadmConfig)
 			if d := diff(req.Desired.BootstrapConfig.Raw, desiredKubeadmConfigBytes); d != "" {
 				return fmt.Errorf("expected desiredKubeadmConfig to be equal, got diff: %s", d)
@@ -641,7 +641,7 @@ func Test_createRequest(t *testing.T) {
 	currentKubeadmConfigCleanedUp := currentKubeadmConfig.DeepCopy()
 	currentKubeadmConfigCleanedUp.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")) // cleanupKubeadmConfig adds GVK.
 	currentKubeadmConfigCleanedUp.Status = bootstrapv1.KubeadmConfigStatus{}                              // cleanupKubeadmConfig drops status.
-	defaulting.ApplyPreviousKubeadmConfigDefaults(&currentKubeadmConfigCleanedUp.Spec)                    // PrepareKubeadmConfigsForDiff applies defaults.
+	webhooks.ApplyPreviousKubeadmConfigDefaults(&currentKubeadmConfigCleanedUp.Spec)                      // PrepareKubeadmConfigsForDiff applies defaults.
 	currentKubeadmConfigWithOutdatedLabelsAndAnnotations := currentKubeadmConfig.DeepCopy()
 	currentKubeadmConfigWithOutdatedLabelsAndAnnotations.Labels["outdated-label-1"] = "outdated-label-value-1"
 	currentKubeadmConfigWithOutdatedLabelsAndAnnotations.Annotations["outdated-annotation-1"] = "outdated-annotation-value-1"
@@ -654,7 +654,7 @@ func Test_createRequest(t *testing.T) {
 	desiredKubeadmConfigCleanedUp := desiredKubeadmConfig.DeepCopy()
 	desiredKubeadmConfigCleanedUp.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")) // cleanupKubeadmConfig adds GVK.
 	desiredKubeadmConfigCleanedUp.Status = bootstrapv1.KubeadmConfigStatus{}                              // cleanupKubeadmConfig drops status.
-	defaulting.ApplyPreviousKubeadmConfigDefaults(&desiredKubeadmConfigCleanedUp.Spec)                    // PrepareKubeadmConfigsForDiff applies defaults.
+	webhooks.ApplyPreviousKubeadmConfigDefaults(&desiredKubeadmConfigCleanedUp.Spec)                      // PrepareKubeadmConfigsForDiff applies defaults.
 
 	currentInfraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{

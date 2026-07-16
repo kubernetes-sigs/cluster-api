@@ -53,7 +53,7 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-bootstrap-provider-kubeadm-ignition-maintainers:
-  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers: []
+  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers:
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for controlplane/kubeadm

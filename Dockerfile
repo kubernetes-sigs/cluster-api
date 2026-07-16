@@ -28,8 +28,11 @@ ARG ARCH
 FROM ${builder_image} as builder
 WORKDIR /workspace
 
-# Run this with docker build --build-arg goproxy=$(go env GOPROXY) to override the goproxy
 ARG package=.
+ARG ARCH
+ARG gcflags
+ARG ldflags
+# Run this with docker build --build-arg goproxy=$(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 # Run this with docker build --build-arg package=./controlplane/kubeadm or --build-arg package=./bootstrap/kubeadm
 ENV GOPROXY=$goproxy
@@ -53,12 +56,6 @@ COPY ./ ./
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     go build -o manager ${package}
-
-# Build
-ARG package=.
-ARG ARCH
-ARG gcflags
-ARG ldflags
 
 # Do not force rebuild of up-to-date packages (do not use -a) and use the compiler cache folder
 # TODO: Remove fieldsv1string once build tag is switched (https://github.com/kubernetes/kubernetes/issues/137109#issuecomment-4697742098)

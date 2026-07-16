@@ -49,7 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
-	"sigs.k8s.io/cluster-api/core/webhooks"
+	"sigs.k8s.io/cluster-api/core/webhooks/admission"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
@@ -885,7 +885,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, controlPlane *pkg.Control
 			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
 			m.Spec.Deletion.NodeDrainTimeoutSeconds = controlPlane.KCP.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds
 			m.Spec.Deletion.NodeDeletionTimeoutSeconds = controlPlane.KCP.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds
-			webhooks.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on KCP.
+			admission.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on KCP.
 			m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = controlPlane.KCP.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 			m.Spec.Taints = controlPlane.KCP.Spec.MachineTemplate.Spec.Taints
 

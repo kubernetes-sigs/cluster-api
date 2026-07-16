@@ -57,8 +57,8 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
-	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
-	"sigs.k8s.io/cluster-api/core/webhooks"
+	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
+	"sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -5005,7 +5005,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 			},
 		},
 	}
-	webhook := webhooks.Machine{}
+	webhook := admission.Machine{}
 	if err := webhook.Default(ctx, machine); err != nil {
 		panic(err)
 	}

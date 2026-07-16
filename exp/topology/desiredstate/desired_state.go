@@ -40,7 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/core/controllers/topology/cluster/patches"
-	"sigs.k8s.io/cluster-api/core/webhooks"
+	"sigs.k8s.io/cluster-api/core/webhooks/admission"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
@@ -1672,7 +1672,7 @@ func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Obj
 
 	// Default all fields in the MachineHealthCheck using the same function called in the webhook. This ensures the desired
 	// state of the object won't be different from the current state due to webhook Defaulting.
-	if err := (&webhooks.MachineHealthCheck{}).Default(ctx, mhc); err != nil {
+	if err := (&admission.MachineHealthCheck{}).Default(ctx, mhc); err != nil {
 		panic(err)
 	}
 

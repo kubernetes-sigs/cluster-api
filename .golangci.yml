@@ -114,7 +114,7 @@ linters:
             - sigs.k8s.io/cluster-api/controllers/clustercache$
             - sigs.k8s.io/cluster-api/controllers/remote$
             - sigs.k8s.io/cluster-api/core/controllers/clusterclass$
-            - sigs.k8s.io/cluster-api/core/webhooks$
+            - sigs.k8s.io/cluster-api/core/webhooks/admission$
             - sigs.k8s.io/cluster-api/exp/runtime/client$
             - sigs.k8s.io/cluster-api/exp/runtime/server$
             - sigs.k8s.io/cluster-api/exp/runtime/topologymutation$

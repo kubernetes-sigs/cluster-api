@@ -1,0 +1,113 @@
+/*
+Copyright 2021 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package admission
+
+import (
+	"context"
+	"reflect"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
+)
+
+// ClusterResourceSet implements a validation and defaulting webhook for ClusterResourceSet.
+type ClusterResourceSet struct{}
+
+func (webhook *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr, &addonsv1.ClusterResourceSet{}).
+		WithDefaulter(webhook).
+		WithValidator(webhook).
+		WithConverter(conversion.ClusterResourceSet).
+		Complete()
+}
+
+// +kubebuilder:webhook:verbs=create;update,path=/validate-addons-cluster-x-k8s-io-v1beta2-clusterresourceset,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesets,versions=v1beta2,name=validation.clusterresourceset.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-addons-cluster-x-k8s-io-v1beta2-clusterresourceset,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesets,versions=v1beta2,name=default.clusterresourceset.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
+
+var _ admission.Defaulter[*addonsv1.ClusterResourceSet] = &ClusterResourceSet{}
+var _ admission.Validator[*addonsv1.ClusterResourceSet] = &ClusterResourceSet{}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
+func (webhook *ClusterResourceSet) Default(_ context.Context, crs *addonsv1.ClusterResourceSet) error {
+	// ClusterResourceSet Strategy defaults to ApplyOnce.
+	if crs.Spec.Strategy == "" {
+		crs.Spec.Strategy = string(addonsv1.ClusterResourceSetStrategyApplyOnce)
+	}
+	return nil
+}
+
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
+func (webhook *ClusterResourceSet) ValidateCreate(_ context.Context, newCRS *addonsv1.ClusterResourceSet) (admission.Warnings, error) {
+	return nil, webhook.validate(nil, newCRS)
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+func (webhook *ClusterResourceSet) ValidateUpdate(_ context.Context, oldCRS, newCRS *addonsv1.ClusterResourceSet) (admission.Warnings, error) {
+	return nil, webhook.validate(oldCRS, newCRS)
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
+func (webhook *ClusterResourceSet) ValidateDelete(_ context.Context, _ *addonsv1.ClusterResourceSet) (admission.Warnings, error) {
+	return nil, nil
+}
+
+func (webhook *ClusterResourceSet) validate(oldCRS, newCRS *addonsv1.ClusterResourceSet) error {
+	var allErrs field.ErrorList
+
+	// Validate selector parses as Selector
+	selector, err := metav1.LabelSelectorAsSelector(&newCRS.Spec.ClusterSelector)
+	if err != nil {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "clusterSelector"), newCRS.Spec.ClusterSelector, err.Error()),
+		)
+	}
+
+	// Validate that the selector isn't empty as null selectors do not select any objects.
+	if selector != nil && selector.Empty() {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "clusterSelector"), newCRS.Spec.ClusterSelector, "selector must not be empty"),
+		)
+	}
+
+	if oldCRS != nil && oldCRS.Spec.Strategy != "" && oldCRS.Spec.Strategy != newCRS.Spec.Strategy {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "strategy"), newCRS.Spec.Strategy, "field is immutable"),
+		)
+	}
+
+	if oldCRS != nil && !reflect.DeepEqual(oldCRS.Spec.ClusterSelector, newCRS.Spec.ClusterSelector) {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "clusterSelector"), newCRS.Spec.ClusterSelector, "field is immutable"),
+		)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(addonsv1.GroupVersion.WithKind("ClusterResourceSet").GroupKind(), newCRS.Name, allErrs)
+}

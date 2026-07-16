@@ -44,7 +44,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	admission2 "sigs.k8s.io/cluster-api/core/webhooks/admission"
+	corewebhooks "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -1511,7 +1511,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 
 		reqCtx := admission.NewContextWithRequest(ctx, admission.Request{})
-		g.Expect((&admission2.MachineSet{}).Default(reqCtx, machineSet)).Should(Succeed())
+		g.Expect((&corewebhooks.MachineSet{}).Default(reqCtx, machineSet)).Should(Succeed())
 		g.Expect(env.Create(ctx, machineSet)).To(Succeed())
 
 		// Ensure machines have been created.

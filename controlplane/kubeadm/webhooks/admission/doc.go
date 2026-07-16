@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package admission provides the validating webhook for KubeadmControlPlane scale subresource.
+// Package admission provides the admission webhook for KubeadmControlPlane scale subresource.
 package admission

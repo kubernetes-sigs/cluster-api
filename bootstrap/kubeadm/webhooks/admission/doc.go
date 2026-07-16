@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package admission provides the validating webhooks for KubeadmConfig and KubeadmConfigTemplate.
+// Package admission provides the admission webhooks for KubeadmConfig and KubeadmConfigTemplate.
 package admission

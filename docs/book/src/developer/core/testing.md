@@ -133,9 +133,59 @@ E0210 16:11:04.222471  132945 server.go:329] controller-runtime/test-env "msg"="
 
 #### VSCode
 
-The `dev/vscode-example-configuration` directory in the repository contains an example configuration that integrates VSCode with the envtest framework.
+The following files are an example configuration that integrates VSCode with the envtest framework. To use it, simply
+create the files in the `.vscode` directory in the repository, and restart VSCode.
 
-To use the example configuration, copy the files to the `.vscode` directory in the repository, and restart VSCode.
+<details>
+<summary>settings.json</summary>
+
+```json
+{
+    "go.testEnvFile": "${workspaceFolder}/.vscode/test.env"
+}
+```
+
+</details>
+
+<details>
+<summary>tasks.json</summary>
+
+```json
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "sigs.k8s.io/cluster-api: Prepare vscode to run envtest-based tests",
+            "detail": "Install envtest and configure the vscode-go test environment.",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "command": [
+                "echo $(make setup-envtest) > ${workspaceFolder}/.vscode/test.env",
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "runOptions": {
+                "runOn": "folderOpen",
+                "instanceLimit": 1,
+            },
+            "promptOnClose": true,
+        }
+    ]
+}
+
+```
+</details>
 
 The configuration works as follows: Whenever the project is opened in VSCode, a VSCode task runs that installs the executables, and writes the location to a file. A setting tells [vscode-go] to initialize the environment from this file.
 

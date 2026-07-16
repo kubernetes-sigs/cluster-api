@@ -58,21 +58,19 @@ default_enable_providers = [core_provider_name]
 
 providers = {
     core_provider_name: {
-        "context": ".",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
+        "context": "core",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
         "live_reload_deps": [
-            "main.go",
-            "go.mod",
-            "go.sum",
-            "api",
-            "cmd",
-            "controllers",
-            "errors",
-            "exp",
-            "feature",
-            "internal",
-            "util",
+            "reconcilers",
             "webhooks",
+            "main.go",
+            "../api",
+            "../exp",
+            "../feature",
+            "../internal",
+            "../util",
+            "../go.mod",
+            "../go.sum",
         ],
         "label": "CAPI",
     },
@@ -80,11 +78,11 @@ providers = {
         "context": "bootstrap/kubeadm",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller",
         "live_reload_deps": [
+            "pkg",
+            "reconcilers",
+            "webhooks",
             "main.go",
-            "api",
-            "controllers",
-            "internal",
-            "types",
+            "../../api/bootstrap/kubeadm",
             "../../go.mod",
             "../../go.sum",
         ],
@@ -94,10 +92,11 @@ providers = {
         "context": "controlplane/kubeadm",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller",
         "live_reload_deps": [
+            "pkg",
+            "reconcilers",
+            "webhooks",
             "main.go",
-            "api",
-            "controllers",
-            "internal",
+            "../../api/controlplane/kubeadm",
             "../../go.mod",
             "../../go.sum",
         ],

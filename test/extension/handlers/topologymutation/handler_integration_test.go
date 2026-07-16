@@ -51,8 +51,9 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/core/reconcilers/clusterclass"
+	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
@@ -60,7 +61,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/contract"
-	"sigs.k8s.io/cluster-api/webhooks"
 )
 
 var (
@@ -94,7 +94,7 @@ func TestHandler(t *testing.T) {
 	// Create a ClusterClassReconciler.
 	fakeClient, mgr, err := createClusterClassFakeClientAndManager(s.Blueprint)
 	g.Expect(err).ToNot(HaveOccurred())
-	clusterClassReconciler := controllers.ClusterClassReconciler{
+	clusterClassReconciler := clusterclass.Reconciler{
 		Client:        fakeClient,
 		RuntimeClient: runtimeClient,
 	}
@@ -128,7 +128,7 @@ func TestHandler(t *testing.T) {
 
 	// Note: as of today we don't have to set any fields and also don't have to call
 	// SetupWebhookWithManager because DefaultAndValidateVariables doesn't need any of that.
-	clusterWebhook := webhooks.Cluster{}
+	clusterWebhook := coreadmission.Cluster{}
 
 	// Reconcile ClusterClass.
 	// Note: this also reconciles variables from inline and external variables into ClusterClass.status.

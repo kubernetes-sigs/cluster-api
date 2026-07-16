@@ -77,19 +77,18 @@ import (
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	runtimev1alpha1 "sigs.k8s.io/cluster-api/api/runtime/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	bootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
+	bootstrapadmission "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
+	controlplaneadmission "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
 	controlplaneconversion "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
+	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
+	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
-	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 	"sigs.k8s.io/cluster-api/version"
-	"sigs.k8s.io/cluster-api/webhooks"
-	"sigs.k8s.io/cluster-api/webhooks/conversion"
 )
 
 func init() {
@@ -284,7 +283,7 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 
 	crdDirectoryPaths := make([]string, 0, 3+len(additionalCRDDirectoryPaths))
 	crdDirectoryPaths = append(crdDirectoryPaths,
-		filepath.Join(root, "config", "crd", "bases"),
+		filepath.Join(root, "core", "config", "crd", "bases"),
 		filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
 		filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
 	)
@@ -400,7 +399,7 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 	}
 
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
-	internalwebhooks.SetMinNodeStartupTimeoutSeconds(0)
+	coreadmission.SetMinNodeStartupTimeoutSeconds(0)
 
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
 	controlplaneconversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
@@ -410,55 +409,55 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
 	})
 
-	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.Machine{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.MachineDrainRule{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineDrainRule{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&bootstrapwebhooks.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapadmission.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&bootstrapwebhooks.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapadmission.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&controlplanewebhooks.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&controlplaneadmission.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&controlplanewebhooks.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&controlplaneadmission.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for crs: %+v", err)
 	}
-	if err := (&webhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for ClusterResourceSetBinding: %+v", err)
 	}
-	if err := (&webhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for machinepool: %+v", err)
 	}
-	if err := (&webhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for extensionconfig: %+v", err)
 	}
-	if err := (&webhooks.IPAddress{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.IPAddress{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for ipaddress: %v", err)
 	}
-	if err := (&webhooks.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for ipaddressclaim: %v", err)
 	}
 

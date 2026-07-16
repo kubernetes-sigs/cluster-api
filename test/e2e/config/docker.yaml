@@ -61,7 +61,7 @@ providers:
     files:
       - sourcePath: "../data/shared/v1.13/metadata.yaml"
   - name: v1.14.99 # next; use manifest from source files
-    value: ../../../config/default
+    value: ../../../core/config/default
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 

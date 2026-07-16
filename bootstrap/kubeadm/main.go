@@ -45,9 +45,9 @@ import (
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/setup"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/webhooks"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/reconcilers/kubeadmconfig"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/setup"
+	bootstrapadmission "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -150,7 +150,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&clusterCacheClientBurst, "clustercache-client-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the cluster cache clients to the Kubernetes API server of workload clusters.")
 
-	fs.DurationVar(&tokenTTL, "bootstrap-token-ttl", kubeadmbootstrapcontrollers.DefaultTokenTTL,
+	fs.DurationVar(&tokenTTL, "bootstrap-token-ttl", kubeadmconfig.DefaultTokenTTL,
 		"The amount of time the bootstrap token will be valid")
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
@@ -325,7 +325,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
+	if err := (&kubeadmconfig.Reconciler{
 		Client:              mgr.GetClient(),
 		SecretCachingClient: secretCachingClient,
 		APIReader:           mgr.GetAPIReader(),
@@ -339,11 +339,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if err := (&webhooks.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapadmission.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
 		os.Exit(1)
 	}
-	if err := (&webhooks.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapadmission.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
 		os.Exit(1)
 	}

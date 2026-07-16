@@ -17,7 +17,7 @@ limitations under the License.
 package topologymutation
 
 import (
-	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
+	patchvariables "sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/variables"
 )
 
 // IsNotFoundError checks if the passed error is a notFoundError.

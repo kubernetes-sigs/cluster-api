@@ -1,0 +1,131 @@
+/*
+Copyright 2020 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package kubeadmcontrolplane
+
+import (
+	"context"
+	"time"
+
+	"github.com/blang/semver/v4"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
+	"sigs.k8s.io/cluster-api/util/collections"
+)
+
+type fakeManagementCluster struct {
+	// TODO: once all client interactions are moved to the Management cluster this can go away
+	Management   *pkg.Management
+	Machines     collections.Machines
+	MachinePools *clusterv1.MachinePoolList
+	Workload     *fakeWorkloadCluster
+	WorkloadErr  error
+	Reader       client.Reader
+}
+
+func (f *fakeManagementCluster) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	return f.Reader.Get(ctx, key, obj, opts...)
+}
+
+func (f *fakeManagementCluster) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	return f.Reader.List(ctx, list, opts...)
+}
+
+func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ *clusterv1.Cluster, _ bootstrapv1.EncryptionAlgorithmType) (pkg.WorkloadCluster, error) {
+	return f.Workload, f.WorkloadErr
+}
+
+func (f *fakeManagementCluster) GetControlPlaneMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster) (collections.Machines, error) {
+	if f.Management != nil {
+		return f.Management.GetControlPlaneMachinesForCluster(ctx, cluster)
+	}
+	return f.Machines, nil
+}
+
+func (f *fakeManagementCluster) GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error) {
+	if f.Management != nil {
+		return f.Management.GetMachinesForCluster(ctx, cluster, filters...)
+	}
+	return f.Machines, nil
+}
+
+func (f *fakeManagementCluster) GetMachinePoolsForCluster(c context.Context, cluster *clusterv1.Cluster) (*clusterv1.MachinePoolList, error) {
+	if f.Management != nil {
+		return f.Management.GetMachinePoolsForCluster(c, cluster)
+	}
+	return f.MachinePools, nil
+}
+
+type fakeWorkloadCluster struct {
+	*pkg.Workload
+	KubeadmConfigExist            bool
+	APIServerCertificateExpiry    *time.Time
+	OverrideForwardEtcdLeadership func(context.Context, string, string) error
+
+	forwardEtcdLeadershipCalled int
+	removeEtcdMemberCalled      int
+}
+
+func (f *fakeWorkloadCluster) ForwardEtcdLeadership(ctx context.Context, member, leaderCandidate string) error {
+	if f.OverrideForwardEtcdLeadership != nil {
+		return f.OverrideForwardEtcdLeadership(ctx, member, leaderCandidate)
+	}
+	f.forwardEtcdLeadershipCalled++
+	return nil
+}
+
+func (f *fakeWorkloadCluster) HasKubeadmConfig(_ context.Context) (bool, error) {
+	return f.KubeadmConfigExist, nil
+}
+
+func (f *fakeWorkloadCluster) GetAPIServerCertificateExpiry(_ context.Context, _ *bootstrapv1.KubeadmConfig, _ string) (*time.Time, error) {
+	return f.APIServerCertificateExpiry, nil
+}
+
+func (f *fakeWorkloadCluster) AllowClusterAdminPermissions(_ context.Context, _ semver.Version) error {
+	return nil
+}
+
+func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
+	return nil
+}
+
+func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ *etcd.Member, _ []*pkg.Node) error {
+	f.removeEtcdMemberCalled++
+	return nil
+}
+
+func (f *fakeWorkloadCluster) UpdateClusterConfiguration(context.Context, semver.Version, ...func(*bootstrapv1.ClusterConfiguration)) error {
+	return nil
+}
+
+type fakeMigrator struct {
+	migrateCalled    bool
+	migrateErr       error
+	migratedCorefile string
+}
+
+func (m *fakeMigrator) Migrate(string, string, string, bool) (string, error) {
+	m.migrateCalled = true
+	if m.migrateErr != nil {
+		return "", m.migrateErr
+	}
+	return m.migratedCorefile, nil
+}

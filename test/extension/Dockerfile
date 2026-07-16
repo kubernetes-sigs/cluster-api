@@ -28,6 +28,9 @@ ARG ARCH
 FROM ${builder_image} as builder
 WORKDIR /workspace
 
+ARG package=.
+ARG ARCH
+ARG ldflags
 # Run this with docker build --build-arg goproxy=$(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 # Run this with docker build --build-arg package=./controlplane/kubeadm or --build-arg package=./bootstrap/kubeadm
@@ -48,15 +51,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy the sources
 COPY ./ ./
 
+# Essentially, change directories into test extension
+WORKDIR /workspace/test/extension
+
 # Cache the go build into the Go’s compiler cache folder so we take benefits of compiler caching across docker build calls
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    go build .
-
-# Build
-ARG package=.
-ARG ARCH
-ARG ldflags
+    go build -o /workspace/manager ${package}
 
 # Essentially, change directories into test extension
 WORKDIR /workspace/test/extension

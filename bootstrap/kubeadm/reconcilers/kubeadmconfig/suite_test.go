@@ -1,0 +1,59 @@
+/*
+Copyright 2019 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package kubeadmconfig
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"testing"
+	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/setup"
+	"sigs.k8s.io/cluster-api/internal/test/envtest"
+)
+
+var (
+	env                 *envtest.Environment
+	ctx                 = ctrl.SetupSignalHandler()
+	secretCachingClient client.Client
+)
+
+func TestMain(m *testing.M) {
+	setupReconcilers := func(_ context.Context, mgr ctrl.Manager) {
+		var err error
+		secretCachingClient, err = setup.CreateSecretCachingClient(mgr)
+		if err != nil {
+			panic(fmt.Sprintf("unable to create secretCachingClient: %v", err))
+		}
+	}
+
+	os.Exit(envtest.Run(ctx, envtest.RunInput{
+		M: m,
+		SetupManagerCacheOptions: func(scheme *runtime.Scheme) cache.Options {
+			return setup.ManagerCacheOptions(scheme, "test-controller-manager", "", 10*time.Minute)
+		},
+		ManagerClientOptions: setup.ManagerClientOptions(),
+		SetupEnv:             func(e *envtest.Environment) { env = e },
+		SetupReconcilers:     setupReconcilers,
+	}))
+}

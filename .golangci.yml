@@ -111,9 +111,10 @@ linters:
             - k8s.io/klog
             - k8s.io/utils
             - sigs.k8s.io/cluster-api/api
-            - sigs.k8s.io/cluster-api/controllers$
             - sigs.k8s.io/cluster-api/controllers/clustercache$
             - sigs.k8s.io/cluster-api/controllers/remote$
+            - sigs.k8s.io/cluster-api/core/reconcilers/clusterclass$
+            - sigs.k8s.io/cluster-api/core/webhooks/admission$
             - sigs.k8s.io/cluster-api/exp/runtime/client$
             - sigs.k8s.io/cluster-api/exp/runtime/server$
             - sigs.k8s.io/cluster-api/exp/runtime/topologymutation$
@@ -129,7 +130,6 @@ linters:
             - sigs.k8s.io/cluster-api/util/flags$
             - sigs.k8s.io/cluster-api/util/util$
             - sigs.k8s.io/cluster-api/version$
-            - sigs.k8s.io/cluster-api/webhooks$
             - sigs.k8s.io/controller-runtime
             - sigs.k8s.io/yaml
     forbidigo:
@@ -194,16 +194,22 @@ linters:
         - pkg: sigs.k8s.io/controller-runtime
           alias: ctrl
         # CABPK
+        - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission
+          alias: bootstrapadmission
         - pkg: sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1
           alias: bootstrapv1beta1
         - pkg: sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2
           alias: bootstrapv1
         # KCP
+        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission
+          alias: controlplaneadmission
         - pkg: sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1
           alias: controlplanev1beta1
         - pkg: sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2
           alias: controlplanev1
         # CAPI
+        - pkg: sigs.k8s.io/cluster-api/core/webhooks/admission
+          alias: coreadmission
         - pkg: sigs.k8s.io/cluster-api/api/core/v1beta1
           alias: clusterv1beta1
         - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2
@@ -347,7 +353,7 @@ linters:
       - linters:
           - revive
         text: 'var-naming: avoid meaningless package names'
-        path: test/infrastructure/docker/internal/docker/types/.*\.go$|bootstrap/kubeadm/types/.*\.go$|internal/webhooks/util/.*\.go$|util/.*\.go$|exp/util/.*\.go$|controlplane/kubeadm/internal/etcd/util/.*\.go$|cmd/clusterctl/internal/util/.*\.go$|bootstrap/util/.*\.go$
+        path: test/infrastructure/docker/internal/docker/types/.*\.go$|bootstrap/kubeadm/pkg/types/.*\.go$|util/.*\.go$|exp/util/.*\.go$|controlplane/kubeadm/pkg/etcd/util/.*\.go$|cmd/clusterctl/internal/util/.*\.go$|bootstrap/util/.*\.go$
       - linters:
           - errcheck
         text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
@@ -413,7 +419,7 @@ linters:
       - linters:
           - revive
         # Ignoring stylistic checks for generated code
-        path: bootstrap/kubeadm/types/upstreamv1beta3/conversion.go|bootstrap/kubeadm/types/upstreamv1beta4/conversion.go|internal/topology/upgrade/test/t1/v1beta1/conversion.go|internal/topology/upgrade/test/t2/v1beta1/conversion.go|test/infrastructure/docker/api/v1beta1/conversion.go
+        path: bootstrap/kubeadm/pkg/types/upstreamv1beta3/conversion.go|bootstrap/kubeadm/pkg/types/upstreamv1beta4/conversion.go|internal/topology/upgrade/test/t1/v1beta1/conversion.go|internal/topology/upgrade/test/t2/v1beta1/conversion.go|test/infrastructure/docker/api/v1beta1/conversion.go
         # By convention, receiver names in a method should reflect their identity.
         text: 'receiver-naming: receiver name'
       - linters:

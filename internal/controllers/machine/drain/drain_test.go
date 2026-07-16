@@ -1719,6 +1719,68 @@ func TestEvictPods(t *testing.T) {
 	}
 }
 
+func TestEvictPodsWithDisableEviction(t *testing.T) {
+	g := NewWithT(t)
+
+	podDeleteList := &PodDeleteList{items: []PodDelete{
+		{
+			Pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod-1-pdb-blocked",
+					Namespace: "default",
+				},
+			},
+			Status: PodDeleteStatus{
+				DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+				DrainOrder:    ptr.To[int32](0),
+				Reason:        PodDeleteStatusTypeOkay,
+			},
+		},
+		{
+			Pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod-2-pdb-blocked",
+					Namespace: "default",
+				},
+			},
+			Status: PodDeleteStatus{
+				DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+				DrainOrder:    ptr.To[int32](0),
+				Reason:        PodDeleteStatusTypeOkay,
+			},
+		},
+	}}
+
+	// Create pods in the fake client so Delete can find them.
+	fakeClient := fake.NewClientBuilder().WithObjects(
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-1-pdb-blocked", Namespace: "default"}},
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-2-pdb-blocked", Namespace: "default"}},
+	).Build()
+
+	// Track that SubResourceCreate (eviction) is never called.
+	evictionCalled := false
+	fakeClient = interceptor.NewClient(fakeClient, interceptor.Funcs{
+		SubResourceCreate: func(_ context.Context, _ client.Client, _ string, _ client.Object, _ client.Object, _ ...client.SubResourceCreateOption) error {
+			evictionCalled = true
+			return nil
+		},
+	})
+
+	drainer := &Helper{
+		RemoteClient:    fakeClient,
+		DisableEviction: true,
+	}
+
+	gotEvictionResult := drainer.EvictPods(context.Background(), podDeleteList)
+
+	// Verify eviction API was never called.
+	g.Expect(evictionCalled).To(BeFalse(), "Eviction API should not be called when DisableEviction is true")
+
+	// Both pods should have been successfully deleted.
+	g.Expect(gotEvictionResult.PodsDeletionTimestampSet).To(HaveLen(2))
+	g.Expect(gotEvictionResult.PodsFailedEviction).To(BeEmpty())
+}
+
 func TestEvictionResult_ConditionMessage(t *testing.T) {
 	g := NewWithT(t)
 

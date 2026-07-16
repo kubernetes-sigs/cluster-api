@@ -59,7 +59,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers/kubeadmcontrolplane"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/setup"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/core/controllers/extensionconfig"

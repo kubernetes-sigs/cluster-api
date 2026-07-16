@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/setup"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 

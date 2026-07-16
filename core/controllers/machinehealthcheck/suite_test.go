@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	machinecontroller "sigs.k8s.io/cluster-api/core/controllers/machine"
 	machinesetcontroller "sigs.k8s.io/cluster-api/core/controllers/machineset"
-	"sigs.k8s.io/cluster-api/internal/setup"
+	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 	"sigs.k8s.io/cluster-api/util/index"
 )

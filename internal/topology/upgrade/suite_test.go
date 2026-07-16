@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/core/controllers/clusterclass"
 	topologycluster "sigs.k8s.io/cluster-api/core/controllers/topology/cluster"
+	"sigs.k8s.io/cluster-api/core/setup"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
-	"sigs.k8s.io/cluster-api/internal/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 	"sigs.k8s.io/cluster-api/util/index"
 )

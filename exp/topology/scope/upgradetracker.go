@@ -20,10 +20,11 @@ import "k8s.io/apimachinery/pkg/util/sets"
 
 // UpgradeTracker is a helper to capture the upgrade status and make upgrade decisions.
 type UpgradeTracker struct {
-	ControlPlane       ControlPlaneUpgradeTracker
-	MachineDeployments WorkerUpgradeTracker
-	MachinePools       WorkerUpgradeTracker
-	MinWorkersVersion  string
+	ControlPlane         ControlPlaneUpgradeTracker
+	MachineDeployments   WorkerUpgradeTracker
+	MachinePools         WorkerUpgradeTracker
+	MinWorkersVersion    string
+	UpgradePlanAvailable bool
 }
 
 // ControlPlaneUpgradeTracker holds the current upgrade status of the Control Plane.

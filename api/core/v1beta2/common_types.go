@@ -281,6 +281,15 @@ type StatusVersion struct {
 	Replicas int32 `json:"replicas,omitempty"`
 }
 
+// StatusUpgradePlanVersion groups upgrade plan version-related status information.
+type StatusUpgradePlanVersion struct {
+	// version is the Kubernetes version.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
+}
+
 // NodeUninitializedTaint can be added to Nodes at creation by the bootstrap provider, e.g. the
 // KubeadmBootstrap provider will add the taint.
 // This taint is used to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.

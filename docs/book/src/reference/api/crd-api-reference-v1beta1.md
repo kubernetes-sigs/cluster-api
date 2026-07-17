@@ -1671,7 +1671,8 @@ _Appears in:_
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date control plane machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the total number of ready control plane machines in this cluster. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the total number of available control plane machines in this cluster. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
-| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this control plane. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this control plane. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `upgradePlan` _[StatusUpgradePlanVersion](#statusupgradeplanversion) array_ | UpgradePlan reports the list of versions that would be applied to the control plane object according to the upgrade plan.<br />Note:<br />- This field is set only when the Cluster topology is managed by Cluster API and a Cluster upgrade is in progress.<br />- Once a version is applied to the control plane object, it is removed from the list (after a version<br />  is applied to a control plane object, it might take some time for the actual upgrade to complete)<br />- During a chained upgrade, the upgrade plan is continuously re-computed, and this field will<br />  report only the last known upgrade plan. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 
@@ -3556,6 +3557,23 @@ _Appears in:_
 
 
 
+#### StatusUpgradePlanVersion
+
+
+
+StatusUpgradePlanVersion groups upgrade plan version-related status information.
+
+
+
+_Appears in:_
+- [ClusterControlPlaneStatus](#clustercontrolplanestatus)
+- [WorkersStatus](#workersstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `version` _string_ | version is the Kubernetes version. |  | MaxLength: 256 <br />MinLength: 1 <br />Required: \{\} <br /> |
+
+
 #### StatusVersion
 
 
@@ -3699,7 +3717,8 @@ _Appears in:_
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date worker machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the total number of ready worker machines in this cluster. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the total number of available worker machines in this cluster. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
-| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in these workers. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this control plane. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `upgradePlan` _[StatusUpgradePlanVersion](#statusupgradeplanversion) array_ | UpgradePlan reports the list of versions that would be applied to the worker objects (all MachineDeployments and MachinePools).<br />Note:<br />- This field is set only when Cluster.spec.topology is set and a Cluster upgrade is in progress.<br />- Once a version is applied to the worker objects, it is removed from the list (after a version<br />  is applied to a worker object, it might take some time for the upgrade to complete)<br />- During a chained upgrade, the upgrade plan is continuously re-computed, and this field will<br />  report only the last known upgrade plan. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 #### WorkersTopology

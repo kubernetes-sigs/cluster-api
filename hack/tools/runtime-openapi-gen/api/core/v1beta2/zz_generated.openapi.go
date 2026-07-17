@@ -175,6 +175,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatch":                                       schema_cluster_api_api_core_v1beta2_PatchSelectorMatch(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatchMachineDeploymentClass":                 schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachineDeploymentClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatchMachinePoolClass":                       schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachinePoolClass(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusUpgradePlanVersion":                                 schema_cluster_api_api_core_v1beta2_StatusUpgradePlanVersion(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion":                                            schema_cluster_api_api_core_v1beta2_StatusVersion(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Topology":                                                 schema_cluster_api_api_core_v1beta2_Topology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition":                                schema_cluster_api_api_core_v1beta2_UnhealthyMachineCondition(ref),
@@ -1062,10 +1063,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterControlPlaneStatus(ref common.Re
 					"versions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
-								"x-kubernetes-list-map-keys": []interface{}{
-									"version",
-								},
-								"x-kubernetes-list-type": "map",
+								"x-kubernetes-list-type": "atomic",
 							},
 						},
 						SchemaProps: spec.SchemaProps{
@@ -1081,11 +1079,30 @@ func schema_cluster_api_api_core_v1beta2_ClusterControlPlaneStatus(ref common.Re
 							},
 						},
 					},
+					"upgradePlan": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "UpgradePlan reports the list of versions that would be applied to the control plane object according to the upgrade plan. Note: - This field is set only when the Cluster topology is managed by Cluster API and a Cluster upgrade is in progress. - Once a version is applied to the control plane object, it is removed from the list (after a version\n  is applied to a control plane object, it might take some time for the actual upgrade to complete)\n- During a chained upgrade, the upgrade plan is continuously re-computed, and this field will\n  report only the last known upgrade plan.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.StatusUpgradePlanVersion"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusUpgradePlanVersion", "sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"},
 	}
 }
 
@@ -6969,6 +6986,27 @@ func schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachinePoolClass(ref 
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_StatusUpgradePlanVersion(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StatusUpgradePlanVersion groups upgrade plan version-related status information.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the Kubernetes version.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"version"},
+			},
+		},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_StatusVersion(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -7355,10 +7393,7 @@ func schema_cluster_api_api_core_v1beta2_WorkersStatus(ref common.ReferenceCallb
 					"versions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
-								"x-kubernetes-list-map-keys": []interface{}{
-									"version",
-								},
-								"x-kubernetes-list-type": "map",
+								"x-kubernetes-list-type": "atomic",
 							},
 						},
 						SchemaProps: spec.SchemaProps{
@@ -7374,11 +7409,30 @@ func schema_cluster_api_api_core_v1beta2_WorkersStatus(ref common.ReferenceCallb
 							},
 						},
 					},
+					"upgradePlan": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "UpgradePlan reports the list of versions that would be applied to the worker objects (all MachineDeployments and MachinePools). Note: - This field is set only when Cluster.spec.topology is set and a Cluster upgrade is in progress. - Once a version is applied to the worker objects, it is removed from the list (after a version\n  is applied to a worker object, it might take some time for the upgrade to complete)\n- During a chained upgrade, the upgrade plan is continuously re-computed, and this field will\n  report only the last known upgrade plan.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.StatusUpgradePlanVersion"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusUpgradePlanVersion", "sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion"},
 	}
 }
 

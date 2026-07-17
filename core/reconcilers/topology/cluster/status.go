@@ -36,8 +36,39 @@ import (
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
-func (r *Reconciler) reconcileConditions(s *scope.Scope, cluster *clusterv1.Cluster, reconcileErr error) error {
+func (r *Reconciler) reconcileStatus(s *scope.Scope, cluster *clusterv1.Cluster, reconcileErr error) error {
+	r.reconcileUpgradePlan(s, cluster)
 	return r.reconcileTopologyReconciledCondition(s, cluster, reconcileErr)
+}
+
+// reconcileUpgradePlan sets the upgradePlan for control plane and workers in Cluster.status.
+// Those fields are updated only if the upgradePlan has been successfully computed; if not, the current value is preserved.
+func (r *Reconciler) reconcileUpgradePlan(s *scope.Scope, cluster *clusterv1.Cluster) {
+	if !s.UpgradeTracker.UpgradePlanAvailable {
+		return
+	}
+
+	if cluster.Status.ControlPlane == nil {
+		cluster.Status.ControlPlane = &clusterv1.ClusterControlPlaneStatus{}
+	}
+	cluster.Status.ControlPlane.UpgradePlan = nil
+	if cluster.Status.Workers == nil {
+		cluster.Status.Workers = &clusterv1.WorkersStatus{}
+	}
+	cluster.Status.Workers.UpgradePlan = nil
+	for _, v := range s.UpgradeTracker.ControlPlane.UpgradePlan {
+		cluster.Status.ControlPlane.UpgradePlan = append(cluster.Status.ControlPlane.UpgradePlan, clusterv1.StatusUpgradePlanVersion{Version: v})
+	}
+
+	// Picks the MachineDeployments.UpgradePlan or the MachinePools.UpgradePlan; in case both are set, MachinePools.UpgradePlan
+	// is used because MachinePools are upgraded after MachineDeployments.
+	workersPlan := s.UpgradeTracker.MachineDeployments.UpgradePlan
+	if len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 {
+		workersPlan = s.UpgradeTracker.MachinePools.UpgradePlan
+	}
+	for _, v := range workersPlan {
+		cluster.Status.Workers.UpgradePlan = append(cluster.Status.Workers.UpgradePlan, clusterv1.StatusUpgradePlanVersion{Version: v})
+	}
 }
 
 // reconcileTopologyReconciledCondition sets the TopologyReconciled condition on the cluster.

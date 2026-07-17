@@ -291,7 +291,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	s := scope.New(cluster)
 
 	defer func() {
-		if err := r.reconcileConditions(s, cluster, reterr); err != nil {
+		if err := r.reconcileStatus(s, cluster, reterr); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to reconcile cluster topology conditions")})
 			return
 		}

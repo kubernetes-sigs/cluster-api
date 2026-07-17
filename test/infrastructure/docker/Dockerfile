@@ -49,7 +49,7 @@ COPY test/go.sum go.sum
 
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN --mount=type=cache,target=/go/pkg/mod \
+RUN --mount=type=cache,id=go-mod,target=/go/pkg/mod \
     go mod download
 
 # This needs to build with the entire Cluster API context
@@ -64,8 +64,8 @@ WORKDIR /workspace/test/infrastructure/docker
 ARG ARCH
 
 # Build the CAPD manager using the compiler cache folder
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg/mod \
+RUN --mount=type=cache,id=go-build,target=/root/.cache/go-build \
+    --mount=type=cache,id=go-mod,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -trimpath -a -o /workspace/manager .
 
 # NOTE: CAPD can't use non-root because docker requires access to the docker socket

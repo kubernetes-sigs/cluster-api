@@ -35,5 +35,25 @@ case "$OSTYPE" in
   *)        echo "No mdBook release available for: $OSTYPE" && exit 1;;
 esac
 
-# Download and extract the mdBook release
-curl -L "https://github.com/rust-lang/mdBook/releases/download/${VERSION}/mdbook-${VERSION}-${RELEASE_NAME}" | tar -xvz -C "${OUTPUT_PATH}"
+# mdBook releases do not publish checksums or signatures, so known-good sha256
+# digests are pinned here and must be updated whenever MDBOOK_VERSION is bumped.
+EXPECTED_SHA256=""
+case "${VERSION}-${RELEASE_NAME}" in
+  v0.4.11-x86_64-apple-darwin.tar.gz)       EXPECTED_SHA256="16615a2b4b5e623f35d27c24fd6651b8e80cdcb315176c3c8feba07161442811" ;;
+  v0.4.11-x86_64-unknown-linux-gnu.tar.gz)  EXPECTED_SHA256="d26c32fa09e0199ffa30705beb05a16b17a2fb2e96977de277f96695f6185049" ;;
+  *) echo "No known sha256 digest for mdbook-${VERSION}-${RELEASE_NAME}, refusing to install an unverified binary" && exit 1 ;;
+esac
+
+# Download the mdBook release, verify its digest, then extract it
+ARCHIVE="$(mktemp -t mdbook.XXXXXX).tar.gz"
+trap 'rm -f "${ARCHIVE}"' EXIT
+
+curl -L -o "${ARCHIVE}" "https://github.com/rust-lang/mdBook/releases/download/${VERSION}/mdbook-${VERSION}-${RELEASE_NAME}"
+
+ACTUAL_SHA256="$(shasum -a 256 "${ARCHIVE}" | awk '{print $1}')"
+if [[ "${ACTUAL_SHA256}" != "${EXPECTED_SHA256}" ]]; then
+  echo "sha256 mismatch for mdbook-${VERSION}-${RELEASE_NAME}: expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}"
+  exit 1
+fi
+
+tar -xvz -C "${OUTPUT_PATH}" -f "${ARCHIVE}"

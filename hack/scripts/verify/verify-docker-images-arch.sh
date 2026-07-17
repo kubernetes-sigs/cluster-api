@@ -50,7 +50,7 @@ function TESTIMAGE() {
 }
 
 for arch in ${ALL_ARCH}; do
-  TESTIMAGE "${REGISTRY}/cluster-api-controller-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api$"
+  TESTIMAGE "${REGISTRY}/cluster-api-controller-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/core$"
   TESTIMAGE "${REGISTRY}/kubeadm-bootstrap-controller-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/bootstrap/kubeadm$"
   TESTIMAGE "${REGISTRY}/kubeadm-control-plane-controller-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/controlplane/kubeadm$"
   TESTIMAGE "${REGISTRY}/capd-manager-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/test/infrastructure/docker$"

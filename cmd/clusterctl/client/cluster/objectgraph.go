@@ -767,7 +767,15 @@ func (o *objectGraph) setTenants() {
 
 // setTenantHierarchy sets a tenant for a node and for its own dependents/softDependents.
 func (o *objectGraph) setTenantHierarchy(node, tenant *node, isGlobalHierarchy bool) {
+	_, alreadyTenant := node.tenant[tenant]
 	node.tenant[tenant] = empty{}
+
+	// Guard against cyclic ownerReferences (which the API server does not reject):
+	// only descend when this is the first visit for this tenant.
+	if alreadyTenant {
+		return
+	}
+
 	node.isGlobalHierarchy = node.isGlobalHierarchy || isGlobalHierarchy
 	for _, other := range o.getNodes() {
 		if other.isOwnedBy(node) || other.isSoftOwnedBy(node) {
@@ -844,8 +852,10 @@ func (o *objectGraph) setShouldNotDelete(ctx context.Context, namespace string) 
 func (o *objectGraph) setShouldNotDeleteHierarchy(node *node) {
 	node.shouldNotDelete = true
 	for _, other := range o.getNodes() {
-		// Skip removal only for direct owners from the object namespace
-		if other.isOwnedBy(node) {
+		// Skip removal only for direct owners from the object namespace.
+		// Also guard against cyclic ownerReferences (which the API server does not reject):
+		// descend only into nodes not already marked, so the walk terminates on cycles.
+		if !other.shouldNotDelete && other.isOwnedBy(node) {
 			o.setShouldNotDeleteHierarchy(other)
 		}
 	}

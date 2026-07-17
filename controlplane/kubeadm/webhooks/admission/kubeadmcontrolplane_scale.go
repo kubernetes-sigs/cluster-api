@@ -63,8 +63,8 @@ func (v *ScaleValidator) Handle(ctx context.Context, req admission.Request) admi
 		return admission.Errored(http.StatusInternalServerError, errors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s", scale.Namespace, scale.Name))
 	}
 
-	if scale.Spec.Replicas == 0 {
-		return admission.Denied("replicas cannot be 0")
+	if scale.Spec.Replicas <= 0 {
+		return admission.Denied("replicas should be greater than zero")
 	}
 
 	externalEtcd := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External.IsDefined()

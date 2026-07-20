@@ -1467,7 +1467,7 @@ func (r *Reconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
+		return errors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.Config.GetName(), secret.GetName())
 	}
 
 	configRef := metav1.OwnerReference{
@@ -1483,15 +1483,15 @@ func (r *Reconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *
 		return nil
 	}
 
-	// Otherwise replace existing controller OwnerReferences with the configRef.
+	// If there are unexpected controller OwnerReferences, report an error.
 	original := secret.DeepCopy()
-	if c := metav1.GetControllerOf(secret); c != nil && c.Kind != "KubeadmConfig" {
-		secret.SetOwnerReferences(util.RemoveOwnerRef(secret.GetOwnerReferences(), *c))
+	if c := metav1.GetControllerOf(secret); c != nil && c.Kind != configRef.Kind {
+		return errors.Errorf("could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s, it is already controlled by %s %s", scope.Config.GetName(), secret.GetName(), c.Kind, c.Name)
 	}
 
 	secret.SetOwnerReferences(util.EnsureOwnerRef(secret.GetOwnerReferences(), configRef))
 	if err := r.Client.Patch(ctx, secret, client.MergeFrom(original)); err != nil {
-		return errors.Wrapf(err, "could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
+		return errors.Wrapf(err, "could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.Config.GetName(), secret.GetName())
 	}
 	return nil
 }

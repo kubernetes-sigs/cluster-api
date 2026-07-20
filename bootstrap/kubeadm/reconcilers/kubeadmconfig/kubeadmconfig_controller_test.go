@@ -209,7 +209,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(controllerOwner.Kind).To(Equal("KubeadmConfig"))
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
-	t.Run("non-KubeadmConfig controller OwnerReference is replaced", func(*testing.T) {
+	t.Run("returns an error if the secret is already controlled by another kind", func(*testing.T) {
 		g.Expect(myclient.Get(ctx, key, actual)).To(Succeed())
 
 		actual.SetOwnerReferences([]metav1.OwnerReference{
@@ -224,14 +224,14 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(myclient.Update(ctx, actual)).To(Succeed())
 
 		_, err = k.Reconcile(ctx, request)
-		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(err).To(HaveOccurred())
 
 		g.Expect(myclient.Get(ctx, key, actual)).To(Succeed())
 
 		controllerOwner := metav1.GetControllerOf(actual)
 		g.Expect(controllerOwner).To(Not(BeNil()))
-		g.Expect(controllerOwner.Kind).To(Equal("KubeadmConfig"))
-		g.Expect(controllerOwner.Name).To(Equal(config.Name))
+		g.Expect(controllerOwner.Kind).To(Equal("Machine"))
+		g.Expect(controllerOwner.Name).To(Equal(machine.Name))
 	})
 }
 

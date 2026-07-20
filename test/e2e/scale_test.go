@@ -32,7 +32,7 @@ var _ = Describe("When testing the machinery for scale testing using in-memory b
 			ClusterctlConfigPath:              clusterctlConfigPath,
 			BootstrapClusterProxy:             bootstrapClusterProxy,
 			ArtifactFolder:                    artifactFolder,
-			Flavor:                            ptr.To("in-memory"),
+			Flavor:                            ptr.To("in-memory-scale"),
 			DumpResources:                     true,
 			SkipCleanup:                       skipCleanup,
 			ClusterCount:                      ptr.To[int64](10),

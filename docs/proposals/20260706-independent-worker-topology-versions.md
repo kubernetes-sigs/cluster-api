@@ -57,8 +57,8 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 ## Summary
 
 Today, Cluster API managed topologies enforces a single Kubernetes version across the whole
-cluster topology. This proposal adds an optional per-MD/MP version so that individual
-MachineDeployments/MachinePools can be upgraded independently of the control plane and of each
+cluster topology. This proposal adds an optional per-MachineDeployment/MachinePool (MD/MP)
+version so that individual MD/MPs can be upgraded independently of the control plane and of each
 other, within the limits of the
 [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/). Cluster
 admins keep the benefits of Cluster API managed topologies while gaining fine-grained control
@@ -97,7 +97,7 @@ removing the friction described above.
 
 ### Goals
 
-- Preserve existing Managed topologies version management when MD/MP version pinning is not used.
+- Preserve the existing Cluster API managed topologies version behavior when MD/MP version pinning is not used.
 - Allow pinning versions/manually manage version for each MD/MP.
 - Keep normal operations (scaling, remediation, config changes) running on MD/MPs with a pinned
   version; they are not frozen by cluster-level upgrades the way cluster-managed groups are today.
@@ -115,8 +115,8 @@ removing the friction described above.
   never removes an MD/MP version automatically — e.g. it will not revert an MD/MP to
   cluster-managed versioning once it catches up to the control plane; the user must clear the
   field.
-- **Changing rollout behavior for groups not using the feature.** Groups without an
-  independent version keep today's behavior.
+- **Changing rollout behavior for groups not using the feature.** Groups without a
+  pinned version keep today's behavior.
 
 ## Proposal
 
@@ -129,8 +129,8 @@ version step has its config/scale changes deferred:
 flowchart TD
   V["Cluster.spec.topology.version: v1.31 to v1.32"] --> CP["Control plane upgrades to v1.32"]
   CP --> G{"Control plane stable?"}
-  G -->|no| H["MDs/MPs hold at v1.31; config and topology-driven scale changes deferred; remediation still runs"]
-  G -->|yes| R["MDs/MPs roll to v1.32, sequenced and concurrency-limited"]
+  G -->|no| H["MD/MPs hold at v1.31; config and topology-driven scale changes deferred; remediation still runs"]
+  G -->|yes| R["MD/MPs roll to v1.32, sequenced and concurrency-limited"]
 ```
 
 With this proposal, an MD/MP can pin its own version and upgrade on its own schedule. Version
@@ -166,7 +166,7 @@ Add an optional `version` field to `MachineDeploymentTopology` and `MachinePoolT
 ```go
 // version is the optional Kubernetes version for this MachineDeployment/MachinePool.
 // When set, it overrides Cluster.spec.topology.version for this MD/MP only,
-// enabling independent version management and upgrade scheduling.
+// enabling manual version management and upgrade scheduling.
 //
 // Skew between this version and the control plane version is enforced according to the
 // Kubernetes version skew policy.
@@ -179,7 +179,7 @@ Version *string `json:"version,omitempty"`
 ```
 
 The feature as a whole is guarded by a new feature gate — proposed name
-`IndependentWorkerTopologyVersion` — that we will register (defaulted off) when we implement,
+`WorkerVersionPinning` — that we will register (defaulted off) when we implement,
 following the existing `ClusterTopology` gate in
 [`feature/feature.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/feature/feature.go).
 Cluster API gates behavior in controller and webhook code rather than via a field-level codegen
@@ -189,9 +189,9 @@ standard guide for adding a new field to an existing API version.
 
 ### Behavior
 
-- **Feature gate off / created before enablement:** no independent versions; webhooks reject
+- **Feature gate off / created before enablement:** no pinned versions; webhooks reject
   changes to MD/MP versions and behavior is unchanged.
-- **Feature gate on / excluded from cluster-level rollouts:** an MD/MP with an independent
+- **Feature gate on / excluded from cluster-level rollouts:** an MD/MP with a pinned
   version is skipped by `Cluster.spec.topology.version` rollouts (and by chained upgrades), but
   is still evaluated by version-skew safety checks.
 - **Validating webhooks** enforce two sets of rules:
@@ -228,7 +228,7 @@ standard guide for adding a new field to an existing API version.
   from the kubeadm-binary propagation in [#13433](https://github.com/kubernetes-sigs/cluster-api/pull/13433),
   which exposes `{{ .controlPlane.version }}` to bootstrap `spec.files` — a separate path.
 - **Preflight checks:** the MachineSet-level preflight checks that enforce version alignment
-  today must be relaxed for MD/MPs with an independent version (while still enforcing the
+  today must be relaxed for MD/MPs with a pinned version (while still enforcing the
   Kubernetes skew policy). In
   [`machineset_preflight.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/machineset/machineset_preflight.go)
   these are `KubeadmVersionSkew` (requires the worker minor to equal the control plane minor;
@@ -269,7 +269,7 @@ flowchart TD
 
 1. **Pin (no-op).** Set `MachineDeploymentTopology.version` / `MachinePoolTopology.version` to the
    MD/MP's current version, which — at a stable cluster — equals the control plane version. This
-   makes the group independent without triggering any rollout. A pin can never exceed the control
+   pins the group without triggering any rollout. A pin can never exceed the control
    plane version and can never move a group below the version it currently runs.
 2. **Diverge.** Advance the control plane (the pinned group holds back, within the skew policy) or
    raise the group's pinned version toward the control plane. Raising the pin is what triggers a
@@ -314,7 +314,7 @@ to be enabled and the new API field to be set to have any effect.
 - Existing behavior preserved when no MD/MP versions are set (control plane + workers
   roll to the desired version).
 - Setting an MD/MP version for the first time (equal to the control plane version) is a no-op: it
-  makes the group independent without triggering a rollout.
+  pins the group without triggering a rollout.
 - Raising the version of an already-pinned MD/MP triggers a rolling upgrade of only that group;
   other groups and the control plane keep operating normally.
 - Cluster-level version upgrade on a cluster that has pinned MD/MPs: skew validated

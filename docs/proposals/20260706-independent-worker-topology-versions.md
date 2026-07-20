@@ -110,11 +110,10 @@ removing the friction described above.
 
 - **Allowing unsupported skew.** Only skew permitted by the Kubernetes version skew policy is
   allowed.
-- **Version-aware built-in patches for independent groups.** Out of scope for this iteration;
-  candidate for future work.
-- **Automatically dropping a worker-group version override.** Reverting a group back to
-  cluster-managed versioning (e.g. once all groups have caught up to the control plane) is
-  deferred to future work to avoid adding another upgrade variant now.
+- **Automatic unpinning.** Pinning and unpinning are always explicit user actions. Cluster API
+  never removes an MD/MP version automatically — e.g. it will not revert an MD/MP to
+  cluster-managed versioning once it catches up to the control plane; the user must clear the
+  field.
 - **Changing rollout behavior for groups not using the feature.** Groups without an
   independent version keep today's behavior.
 
@@ -212,6 +211,16 @@ standard guide for adding a new field to an existing API version.
   path in [`desired_state.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/exp/topology/desiredstate/desired_state.go)
   and the `Upgrading` list in [`scope/state.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/exp/topology/scope/state.go)),
   so a `Cluster.spec.topology.version` change does not roll them.
+- **Version-aware patches:** patches keep working for pinned MD/MPs with no change to the patch
+  engine. The `builtin.machineDeployment.version` / `builtin.machinePool.version` variables are
+  already sourced from the desired MD/MP object's `spec.template.spec.version`
+  ([`variables.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/topology/cluster/patches/variables/variables.go)),
+  which the topology controller computes in `computeMachineDeploymentVersion` /
+  `computeMachinePoolVersion`. Once those functions target the pinned version for a pinned MD/MP,
+  patches automatically render with that version. This is why version-aware patches are a goal,
+  not a non-goal: skipping it would render patches with the wrong version. Note this is distinct
+  from the kubeadm-binary propagation in [#13433](https://github.com/kubernetes-sigs/cluster-api/pull/13433),
+  which exposes `{{ .controlPlane.version }}` to bootstrap `spec.files` — a separate path.
 - **Preflight checks:** the MachineSet-level preflight checks that enforce version alignment
   today must be relaxed for MD/MPs with an independent version (while still enforcing the
   Kubernetes skew policy). In

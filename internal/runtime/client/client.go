@@ -63,6 +63,13 @@ type errCallingExtensionHandler error
 
 const defaultDiscoveryTimeout = 10 * time.Second
 
+// maxExtensionResponseBodyBytes bounds the response body a runtime client
+// will buffer. Without a limit, an extension server can
+// stream an arbitrarily large body that io.ReadAll buffers whole, OOM-killing the
+// process. 20 MiB is above any legitimate hook response (e.g. a
+// GeneratePatchesResponse carrying patches for the cluster's topology objects).
+const maxExtensionResponseBodyBytes = 20 << 20 // 20 MiB
+
 // Options are creation options for a Client.
 type Options struct {
 	CertFile string // Path of the PEM-encoded client certificate.
@@ -638,15 +645,22 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, err := io.ReadAll(resp.Body)
+		maxBytesReader := http.MaxBytesReader(nil, resp.Body, maxExtensionResponseBodyBytes)
+		defer maxBytesReader.Close()
+
+		respBody, err := io.ReadAll(maxBytesReader)
 		if err != nil {
 			return errCallingExtensionHandler(
 				errors.Errorf("http call failed: got response with status code %d != 200: failed to read response body", resp.StatusCode),
 			)
 		}
 
+		respBodyStr := string(respBody)
+		if len(respBodyStr) > 512 {
+			respBodyStr = respBodyStr[:512] + "..."
+		}
 		return errCallingExtensionHandler(
-			errors.Errorf("http call failed: got response with status code %d != 200: response: %q", resp.StatusCode, string(respBody)),
+			errors.Errorf("http call failed: got response with status code %d != 200: response : %q", resp.StatusCode, respBodyStr),
 		)
 	}
 

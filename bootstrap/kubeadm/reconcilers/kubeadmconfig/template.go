@@ -18,12 +18,29 @@ package kubeadmconfig
 
 import (
 	"bytes"
+	"io"
 	"text/template"
 
 	"github.com/pkg/errors"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 )
+
+// maxRenderedTemplateBytes bounds the size of a single rendered spec.files entry.
+const maxRenderedTemplateBytes = 1 << 20 // 1 MiB
+
+type limitedWriter struct {
+	w         io.Writer
+	remaining int
+}
+
+func (l *limitedWriter) Write(p []byte) (int, error) {
+	if len(p) > l.remaining {
+		return 0, errors.Errorf("rendered output exceeds the %d byte limit", maxRenderedTemplateBytes)
+	}
+	l.remaining -= len(p)
+	return l.w.Write(p)
+}
 
 // templateData returns the data map passed to Go text/template when a KubeadmConfig spec.files entry uses
 // contentFormat "Template". The map uses lowercase keys to match CAPI's builtin variable naming convention
@@ -57,7 +74,7 @@ func renderTemplates(files []bootstrapv1.File, data map[string]interface{}) ([]b
 			return nil, errors.Wrapf(err, "failed to parse template for file %q", out[i].Path)
 		}
 		var buf bytes.Buffer
-		if err := tpl.Execute(&buf, data); err != nil {
+		if err := tpl.Execute(&limitedWriter{w: &buf, remaining: maxRenderedTemplateBytes}, data); err != nil {
 			return nil, errors.Wrapf(err, "failed to execute template for file %q", out[i].Path)
 		}
 		out[i].Content = buf.String()

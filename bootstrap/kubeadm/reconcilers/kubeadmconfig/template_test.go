@@ -17,6 +17,7 @@ limitations under the License.
 package kubeadmconfig
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -85,5 +86,16 @@ func TestRenderTemplates(t *testing.T) {
 		_, err := renderTemplates(in, data)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(ContainSubstring(`failed to execute template for file "/d"`))
+	})
+
+	t.Run("template execution fails when resulting size exceeds limit", func(t *testing.T) {
+		g := NewWithT(t)
+		in := []bootstrapv1.File{
+			{Path: "/big", ContentFormat: bootstrapv1.FileContentFormatTemplate, Content: strings.Repeat(`{{printf "%999999s" ""}}`, 3)},
+		}
+		_, err := renderTemplates(in, data)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring(`failed to execute template for file "/big"`))
+		g.Expect(err.Error()).To(ContainSubstring("exceeds"))
 	})
 }

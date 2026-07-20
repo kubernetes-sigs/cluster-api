@@ -1,5 +1,5 @@
 ---
-title: Independent Worker Topology Versions
+title: Worker Version Pinning in Cluster API Managed Topologies
 authors:
   - "@AcidLeroy"
   - "@ivelichkovich"
@@ -26,7 +26,7 @@ replaces:
  Supersedes the earlier WIP proposal PR: https://github.com/kubernetes-sigs/cluster-api/pull/12698
 -->
 
-# Independent Worker Topology Versions
+# Worker Version Pinning in Cluster API Managed Topologies
 
 ## Table of Contents
 
@@ -53,56 +53,57 @@ replaces:
 
 Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
 
-- **Worker Node Group Version**: An optional Kubernetes version set on an individual
-  `MachineDeploymentTopology` or `MachinePoolTopology` in a Cluster's topology. When set, it
-  overrides the cluster-wide topology version (`Cluster.spec.topology.version`) for that one
-  worker node group, allowing that group to be versioned and upgraded independently.
-
 ## Summary
 
-Today, ClusterClass enforces a single Kubernetes version across the whole cluster topology.
-This proposal adds an optional per-worker-node-group version so that individual worker node
-groups can be upgraded independently of the control plane and of each other, within the limits
-of the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/).
-Cluster admins keep the benefits of ClusterClass while gaining fine-grained control over
-upgrade timing and blast radius.
+Today, Cluster API managed topologies enforces a single Kubernetes version across the whole
+cluster topology. This proposal adds an optional per-MD/MP version so that individual
+MachineDeployments/MachinePools can be upgraded independently of the control plane and of each
+other, within the limits of the
+[Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/). Cluster
+admins keep the benefits of Cluster API managed topologies while gaining fine-grained control
+over upgrade timing and blast radius.
 
 ## Motivation
 
-ClusterClass ties every worker node group to a single cluster-wide topology version
-(`Cluster.spec.topology.version`) and upgrades them under one coupled, controller-driven
-sequence. While a worker node group is waiting to take its version step, the topology
-controller defers that group's config changes and topology-driven scaling so they roll out
-together with the version bump, avoiding a double rollout (the `IsPendingUpgrade` early-return
-in [`reconcile_state.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/topology/cluster/reconcile_state.go);
+Cluster API managed topologies ties every MachineDeployment/MachinePool to a single
+cluster-wide topology version (`Cluster.spec.topology.version`) and upgrades them under one
+coupled, controller-driven sequence. While an MD/MP is waiting to take its version step, the
+topology controller defers that MD/MP's config changes and topology-driven scaling so they roll
+out together with the version bump, avoiding a double rollout (the `IsPendingUpgrade`
+early-return in [`reconcile_state.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/topology/cluster/reconcile_state.go);
 machine remediation via MachineHealthCheck is deliberately exempt from this freeze). For
-multi-minor upgrades the control plane and workers advance in lockstep — the control plane
-takes a step, then waits for the workers to catch up before taking the next
+multi-minor upgrades the control plane advances one minor at a time and pauses before any step
+that would exceed the version skew policy until workers catch up; workers themselves can skip
+minors, upgrading directly to the target
 ([`desired_state.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/exp/topology/desiredstate/desired_state.go),
-`ControlPlane.IsWaitingForWorkersUpgrade`). For large or heterogeneous clusters this coupling
-creates real friction:
+`ControlPlane.IsWaitingForWorkersUpgrade`).
 
-- A single worker group's rollout can take days, and no group can be upgraded independently of
-  the cluster-wide version while it runs.
+This approach works well for most cases, by removing most of the upgrade toil from users, but in
+large or heterogeneous clusters this coupling creates some friction:
+
+- A single MD/MP's rollout can take days, and no group can be upgraded independently of the
+  cluster-wide version while it runs.
 - Different workloads need different upgrade cadences (e.g. uninterruptible training jobs vs.
   customer-facing inference sharing one cluster via a custom scheduler).
-- The only workarounds today — dropping ClusterClass for raw MachineDeployments, or splitting
-  into many clusters — cost guardrails, features, and money.
+- Annotations can defer/hold an upgrade or control the upgrade sequence, but this only stretches
+  the overall upgrade duration and still gives no proper granular per-MD/MP version control.
+- The only other workarounds today — dropping Cluster API managed topologies for raw
+  MachineDeployments, or splitting into many clusters — cost guardrails, features, and money.
 
-Decoupling worker-group upgrades from the global cluster version keeps the ClusterClass
-abstraction while removing this bottleneck.
+This proposal introduces the possibility to pin versions/manual version management for specific
+MD/MP, thus preserving all the benefits of Cluster API managed topologies abstraction while
+removing the friction described above.
 
 ### Goals
 
-- Preserve existing ClusterClass version behavior when the feature is not used.
-- Allow any single worker node group to be upgraded independently of the control plane and of
-  other worker node groups.
-- Keep normal operations (scaling, remediation, config changes) running on worker node groups
-  that are *not* the one being upgraded.
-- Support version skew between worker node groups and the control plane as allowed by the
-  Kubernetes version skew policy, and keep the existing skew safety checks/guardrails.
+- Preserve existing Managed topologies version management when MD/MP version pinning is not used.
+- Allow pinning versions/manually manage version for each MD/MP.
+- Keep normal operations (scaling, remediation, config changes) running on MD/MPs with a pinned
+  version; they are not frozen by cluster-level upgrades the way cluster-managed groups are today.
+- Support version skew between MD/MPs and the control plane as allowed by the Kubernetes version
+  skew policy, and keep the existing skew safety checks/guardrails.
 - Keep version-aware patches predictable by using `builtin.machineDeployment.version` /
-  `builtin.machinePool.version` as the source of truth for a group, even when it differs from
+  `builtin.machinePool.version` as the source of truth for an MD/MP, even when it differs from
   `builtin.cluster.topology.version`.
 
 ### Non-Goals/Future Work
@@ -115,34 +116,34 @@ abstraction while removing this bottleneck.
   cluster-managed versioning (e.g. once all groups have caught up to the control plane) is
   deferred to future work to avoid adding another upgrade variant now.
 - **Changing rollout behavior for groups not using the feature.** Groups without an
-  independent version keep today's behavior; they are simply still included in skew checks.
+  independent version keep today's behavior.
 
 ## Proposal
 
 ### Overview
 
-Today, one topology version drives the whole cluster, and a worker group waiting for its
+Today, one topology version drives the whole cluster, and an MD/MP waiting for its
 version step has its config/scale changes deferred:
 
 ```mermaid
 flowchart TD
   V["Cluster.spec.topology.version: v1.31 to v1.32"] --> CP["Control plane upgrades to v1.32"]
   CP --> G{"Control plane stable?"}
-  G -->|no| H["Worker groups hold at v1.31; config and topology-driven scale changes deferred; remediation still runs"]
-  G -->|yes| R["Worker groups roll to v1.32, sequenced and concurrency-limited"]
+  G -->|no| H["MDs/MPs hold at v1.31; config and topology-driven scale changes deferred; remediation still runs"]
+  G -->|yes| R["MDs/MPs roll to v1.32, sequenced and concurrency-limited"]
 ```
 
-With this proposal, a group can pin its own version and upgrade on its own schedule; the
-validating webhook keeps every group within the Kubernetes version skew policy relative to the
-control plane:
+With this proposal, an MD/MP can pin its own version and upgrade on its own schedule. Version
+skew between the control plane and every MD/MP is enforced at admission by the validating
+webhooks:
 
 ```mermaid
 flowchart TD
-  W["Validating webhook enforces K8s version skew: control plane vs every worker group"]
-  CPV["Cluster.spec.topology.version = v1.32"] --> CPU["Control plane and cluster-managed worker groups upgrade to v1.32"]
-  WV["MachineDeploymentTopology.version = v1.30, pinned group"] --> WU["Pinned group upgrades on its own schedule"]
-  W -->|gates| CPU
-  W -->|gates| WU
+  P["User pins an MD/MP: sets MachineDeploymentTopology.version"] --> B{"Is the MD/MP pinned?"}
+  B -->|no| M["Cluster-managed MD/MP follows Cluster.spec.topology.version"]
+  B -->|yes| U["Pinned MD/MP: user manually sets/bumps its version"]
+  M --> RM["MD/MP upgrades with cluster-level rollouts"]
+  U --> RU["Pinned MD/MP upgrades on its own schedule, within version skew policy"]
 ```
 
 ### User Stories
@@ -150,12 +151,12 @@ flowchart TD
 1. **Independent control-plane vs. worker upgrades.** As a cluster admin, I want to upgrade the
    control plane without forcing a (potentially disruptive) worker upgrade that must be
    coordinated with tenants.
-2. **Per-group upgrade scheduling.** As a cluster admin, I have multiple worker groups for
+2. **Per-group upgrade scheduling.** As a cluster admin, I have multiple MachineDeployments/MachinePools for
    different purposes (e.g. inference vs. training) that need different upgrade timing in the
    same cluster.
-3. **No cluster-wide freeze.** As a cluster admin with many/large worker groups, I don't want
-   every other group frozen while one group's multi-day rollout runs.
-4. **Smaller blast radius.** As a cluster admin, I want to upgrade one worker group first to
+3. **No cluster-wide freeze.** As a cluster admin with many/large MD/MPs, I don't want
+   every other MD/MP frozen while one MD/MP's multi-day rollout runs.
+4. **Smaller blast radius.** As a cluster admin, I want to upgrade one MD/MP first to
    validate the change before rolling it out cluster-wide.
 
 ### API Changes
@@ -163,12 +164,15 @@ flowchart TD
 Add an optional `version` field to `MachineDeploymentTopology` and `MachinePoolTopology`:
 
 ```go
-// version is the optional Kubernetes version for this worker node group.
-// When set, it overrides Cluster.spec.topology.version for this group only,
+// version is the optional Kubernetes version for this MachineDeployment/MachinePool.
+// When set, it overrides Cluster.spec.topology.version for this MD/MP only,
 // enabling independent version management and upgrade scheduling.
 //
-// Skew between this version and the control plane version is enforced per the
-// Kubernetes version skew policy. If unset, the group uses Cluster.spec.topology.version.
+// Skew between this version and the control plane version is enforced according to the
+// Kubernetes version skew policy.
+//
+// If unset, the MD/MP uses Cluster.spec.topology.version.
+// Once set, the field can be unset only if the MD/MP version is equal to Cluster.spec.topology.version.
 //
 // +optional
 Version *string `json:"version,omitempty"`
@@ -186,25 +190,30 @@ standard guide for adding a new field to an existing API version.
 ### Behavior
 
 - **Feature gate off / created before enablement:** no independent versions; webhooks reject
-  changes to worker-group versions and behavior is unchanged.
-- **Excluded from cluster-level rollouts:** a group with an independent version is skipped by
-  `Cluster.spec.topology.version` rollouts (and by chained upgrades), but is still evaluated by
-  version-skew safety checks.
-- **Validating webhooks** enforce:
-  - allowable version skew between the control plane and every worker-group version (validated
-    against both current and incoming versions);
-  - a group can only return to cluster-managed versioning when its version already matches
-    `Cluster.spec.topology.version`;
-  - a worker-group version can only be set/changed while the cluster is otherwise stable (not
-    mid-upgrade), matching today's rule that versions aren't changed during an in-progress
-    upgrade.
-- **Controller:** worker groups with a version set are excluded from the topology controller's
+  changes to MD/MP versions and behavior is unchanged.
+- **Feature gate on / excluded from cluster-level rollouts:** an MD/MP with an independent
+  version is skipped by `Cluster.spec.topology.version` rollouts (and by chained upgrades), but
+  is still evaluated by version-skew safety checks.
+- **Validating webhooks** enforce two sets of rules:
+  - On `Cluster.spec.topology.version` changes:
+    - the allowable version skew must hold between the control plane and every MD/MP version,
+      validated against both the persisted value and the new value in the request, so no
+      transition passes through a skew-violating state.
+  - On the new `MachineDeployment/MachinePool.version` field:
+    - allowable version skew between the control plane and the MD/MP version, validated against
+      both the persisted value and the new value in the request;
+    - an MD/MP can only return to cluster-managed versioning when its version already matches
+      `Cluster.spec.topology.version`;
+    - an MD/MP version can only be set/changed while the cluster is otherwise stable (not
+      mid-upgrade), matching today's rule that versions aren't changed during an in-progress
+      upgrade.
+- **Controller:** MD/MPs with a version set are excluded from the topology controller's
   pending/upgrading computation for cluster-level version rollouts (the `MarkPendingUpgrade`
   path in [`desired_state.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/exp/topology/desiredstate/desired_state.go)
   and the `Upgrading` list in [`scope/state.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/exp/topology/scope/state.go)),
   so a `Cluster.spec.topology.version` change does not roll them.
 - **Preflight checks:** the MachineSet-level preflight checks that enforce version alignment
-  today must be relaxed for groups with an independent version (while still enforcing the
+  today must be relaxed for MD/MPs with an independent version (while still enforcing the
   Kubernetes skew policy). In
   [`machineset_preflight.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/machineset/machineset_preflight.go)
   these are `KubeadmVersionSkew` (requires the worker minor to equal the control plane minor;
@@ -239,16 +248,16 @@ already permits.
 
 ### Risks and Mitigations
 
-- **Admin blocked by a forgotten pinned group.** A cluster-level version change can be denied
-  because some worker group has a pinned version that would violate skew. Mitigation: surface a
-  clear error via webhook validation and conditions, and let the admin align that group's
+- **Admin blocked by a forgotten pinned MD/MP.** A cluster-level version change can be denied
+  because some MD/MP has a pinned version that would violate skew. Mitigation: surface a
+  clear error via webhook validation and conditions, and let the admin align that MD/MP's
   version and remove the override to bring it back under cluster control.
 
 ## Alternatives
 
 - **Raw MachineDeployments/MachinePools.** Attach non-topology MachineDeployments to a
-  topology cluster. Loses ClusterClass guardrails (including skew safety) and worker classes.
-- **One cluster per worker group.** Isolates upgrades but adds control-plane cost, complicates
+  topology cluster. Loses Cluster API managed topologies guardrails (including skew safety) and worker classes.
+- **One cluster per group of workers.** Isolates upgrades but adds control-plane cost, complicates
   shared services and multi-tenant networking, requires cross-cluster config propagation, and
   still doesn't let you manage control-plane and worker versions independently within a
   cluster. Good fit for strong-isolation models, poor fit for shared single-cluster platforms.
@@ -262,26 +271,26 @@ to be enabled and the new API field to be set to have any effect.
 
 ### Test Plan
 
-- Existing behavior preserved when no worker-group versions are set (control plane + workers
+- Existing behavior preserved when no MD/MP versions are set (control plane + workers
   roll to the desired version).
 - Setting a worker-group version for the first time triggers a rolling upgrade of only that
   group; other groups and the control plane keep operating normally.
-- Cluster-level version upgrade on a cluster that has independent groups: skew validated
-  against every group; independent groups are skipped, cluster-managed groups upgrade.
+- Cluster-level version upgrade on a cluster that has pinned MD/MPs: skew validated
+  against every MD/MP; pinned MD/MPs are skipped, cluster-managed MD/MPs upgrade.
 - Skew validation blocks any transition that would exceed the policy at any point (validating
-  current↔incoming for control plane and each worker group).
-- Config and topology-driven scale changes on independent groups are applied during upgrades
+  persisted↔new for control plane and each MD/MP).
+- Config and topology-driven scale changes on pinned MD/MPs are applied during upgrades
   rather than deferred; remediation continues (as it does today). All remain subject to skew
   safety checks.
 - Feature-gate behavior: disabling the gate after use blocks version edits (with a clear
   "re-enable the gate" message) while allowing other edits.
-- Chained upgrades: allowed only when no step violates skew with any pinned group; pinned
-  groups are excluded from the chained upgrade.
+- Chained upgrades: allowed only when no step violates skew with any pinned MD/MP; pinned
+  MD/MPs are excluded from the chained upgrade.
 - In-place upgrades follow the same rules as rolling upgrades.
 
 ### Version Skew Strategy
 
-Skew between worker node groups and the control plane is bounded by the
+Skew between MD/MPs and the control plane is bounded by the
 [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/), enforced
 at admission by the validating webhooks and backstopped by the existing MachineSet preflight
 checks (`KubeadmVersionSkew`, `ControlPlaneVersionSkew` in

@@ -139,12 +139,23 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 		{
 			name:              "should return error when trying to scale to zero",
 			expectRespAllowed: false,
-			expectRespMessage: "replicas cannot be 0",
+			expectRespMessage: "replicas should be greater than zero",
 			admissionRequest: admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
 				UID:       uuid.NewUUID(),
 				Kind:      metav1.GroupVersionKind{Group: "autoscaling", Version: "v1", Kind: "Scale"},
 				Operation: admissionv1.Update,
 				Object:    runtime.RawExtension{Raw: []byte(`{"metadata":{"name":"kcp-managed-etcd","namespace":"foo"},"spec":{"replicas":0}}`)},
+			}},
+		},
+		{
+			name:              "should return error when trying to scale to a negative number",
+			expectRespAllowed: false,
+			expectRespMessage: "replicas should be greater than zero",
+			admissionRequest: admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+				UID:       uuid.NewUUID(),
+				Kind:      metav1.GroupVersionKind{Group: "autoscaling", Version: "v1", Kind: "Scale"},
+				Operation: admissionv1.Update,
+				Object:    runtime.RawExtension{Raw: []byte(`{"metadata":{"name":"kcp-managed-etcd","namespace":"foo"},"spec":{"replicas":-1}}`)},
 			}},
 		},
 		{

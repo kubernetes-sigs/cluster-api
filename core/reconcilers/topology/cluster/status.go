@@ -44,7 +44,7 @@ func (r *Reconciler) reconcileStatus(s *scope.Scope, cluster *clusterv1.Cluster,
 // reconcileUpgradePlan sets the upgradePlan for control plane and workers in Cluster.status.
 // Those fields are updated only if the upgradePlan has been successfully computed; if not, the current value is preserved.
 func (r *Reconciler) reconcileUpgradePlan(s *scope.Scope, cluster *clusterv1.Cluster) {
-	if !s.UpgradeTracker.UpgradePlanAvailable {
+	if !s.UpgradeTracker.ComputeUpgradePlanSucceeded {
 		return
 	}
 

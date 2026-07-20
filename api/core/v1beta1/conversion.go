@@ -768,6 +768,7 @@ func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.Cluste
 			ReadyReplicas:     in.ControlPlane.ReadyReplicas,
 			AvailableReplicas: in.ControlPlane.AvailableReplicas,
 			Versions:          statusVersionsFromV1Beta2(in.ControlPlane.Versions),
+			UpgradePlan:       statusUpgradePlaneFromV1Beta2(in.ControlPlane.UpgradePlan),
 		}
 	}
 	if in.Workers != nil {
@@ -778,6 +779,7 @@ func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.Cluste
 			ReadyReplicas:     in.Workers.ReadyReplicas,
 			AvailableReplicas: in.Workers.AvailableReplicas,
 			Versions:          statusVersionsFromV1Beta2(in.Workers.Versions),
+			UpgradePlan:       statusUpgradePlaneFromV1Beta2(in.Workers.UpgradePlan),
 		}
 	}
 	return nil
@@ -817,6 +819,7 @@ func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, o
 				ReadyReplicas:     in.V1Beta2.ControlPlane.ReadyReplicas,
 				AvailableReplicas: in.V1Beta2.ControlPlane.AvailableReplicas,
 				Versions:          statusVersionsToV1Beta2(in.V1Beta2.ControlPlane.Versions),
+				UpgradePlan:       statusUpgradePlanToV1Beta2(in.V1Beta2.ControlPlane.UpgradePlan),
 			}
 		}
 		if in.V1Beta2.Workers != nil {
@@ -827,6 +830,7 @@ func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, o
 				ReadyReplicas:     in.V1Beta2.Workers.ReadyReplicas,
 				AvailableReplicas: in.V1Beta2.Workers.AvailableReplicas,
 				Versions:          statusVersionsToV1Beta2(in.V1Beta2.Workers.Versions),
+				UpgradePlan:       statusUpgradePlanToV1Beta2(in.V1Beta2.Workers.UpgradePlan),
 			}
 		}
 	}
@@ -1841,6 +1845,19 @@ func statusVersionsFromV1Beta2(in []clusterv1.StatusVersion) []StatusVersion {
 	return out
 }
 
+func statusUpgradePlaneFromV1Beta2(in []clusterv1.StatusUpgradePlanVersion) []StatusUpgradePlanVersion {
+	if in == nil {
+		return nil
+	}
+	out := make([]StatusUpgradePlanVersion, 0, len(in))
+	for _, v := range in {
+		out = append(out, StatusUpgradePlanVersion{
+			Version: v.Version,
+		})
+	}
+	return out
+}
+
 func statusVersionsToV1Beta2(in []StatusVersion) []clusterv1.StatusVersion {
 	if in == nil {
 		return nil
@@ -1850,6 +1867,19 @@ func statusVersionsToV1Beta2(in []StatusVersion) []clusterv1.StatusVersion {
 		out = append(out, clusterv1.StatusVersion{
 			Version:  v.Version,
 			Replicas: v.Replicas,
+		})
+	}
+	return out
+}
+
+func statusUpgradePlanToV1Beta2(in []StatusUpgradePlanVersion) []clusterv1.StatusUpgradePlanVersion {
+	if in == nil {
+		return nil
+	}
+	out := make([]clusterv1.StatusUpgradePlanVersion, 0, len(in))
+	for _, v := range in {
+		out = append(out, clusterv1.StatusUpgradePlanVersion{
+			Version: v.Version,
 		})
 	}
 	return out

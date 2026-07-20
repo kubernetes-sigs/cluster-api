@@ -18,6 +18,7 @@ package proxy
 
 import (
 	"net"
+	"sync"
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -27,10 +28,13 @@ import (
 
 // Conn is a Kubernetes API server proxied type of net/conn.
 type Conn struct {
-	connection    httpstream.Connection
-	stream        httpstream.Stream
+	connection httpstream.Connection
+	stream     httpstream.Stream
+
+	mu            sync.Mutex
 	readDeadline  time.Time
 	writeDeadline time.Time
+	deadlineTimer *time.Timer
 }
 
 // Read from the connection.
@@ -40,6 +44,13 @@ func (c *Conn) Read(b []byte) (n int, err error) {
 
 // Close the underlying proxied connection.
 func (c *Conn) Close() error {
+	c.mu.Lock()
+	if c.deadlineTimer != nil {
+		c.deadlineTimer.Stop()
+		c.deadlineTimer = nil
+	}
+	c.mu.Unlock()
+
 	return kerrors.NewAggregate([]error{c.stream.Close(), c.connection.Close()})
 }
 
@@ -60,22 +71,73 @@ func (c *Conn) RemoteAddr() net.Addr {
 
 // SetDeadline sets the read and write deadlines to the specified interval.
 func (c *Conn) SetDeadline(t time.Time) error {
-	// TODO: Handle deadlines
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.readDeadline = t
 	c.writeDeadline = t
+	c.armDeadlineTimer()
 	return nil
 }
 
-// SetWriteDeadline sets the read and write deadlines to the specified interval.
+// SetWriteDeadline sets the write deadline to the specified time.
 func (c *Conn) SetWriteDeadline(t time.Time) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.writeDeadline = t
+	c.armDeadlineTimer()
 	return nil
 }
 
-// SetReadDeadline sets the read and write deadlines to the specified interval.
+// SetReadDeadline sets the read deadline to the specified time.
 func (c *Conn) SetReadDeadline(t time.Time) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.readDeadline = t
+	c.armDeadlineTimer()
 	return nil
+}
+
+// armDeadlineTimer (re)arms the timer that enforces the earliest of the
+// configured read/write deadlines by closing the underlying connection when
+// it elapses. httpstream.Connection has no concept of an absolute deadline
+// (only SetIdleTimeout, a rolling duration), so closing on expiry is the only
+// way to unblock a stream.Read/Write call that ignores context cancellation,
+// which is required for callers like tls.HandshakeContext and the gRPC
+// transport that rely on net.Conn deadlines to interrupt blocked I/O.
+// c.mu must be held by the caller.
+func (c *Conn) armDeadlineTimer() {
+	if c.deadlineTimer != nil {
+		c.deadlineTimer.Stop()
+		c.deadlineTimer = nil
+	}
+
+	deadline := earliestDeadline(c.readDeadline, c.writeDeadline)
+	if deadline.IsZero() {
+		return
+	}
+
+	d := time.Until(deadline)
+	if d < 0 {
+		d = 0
+	}
+	c.deadlineTimer = time.AfterFunc(d, func() {
+		_ = c.Close()
+	})
+}
+
+// earliestDeadline returns the earlier of a and b, treating the zero value
+// (no deadline) as later than any set deadline.
+func earliestDeadline(a, b time.Time) time.Time {
+	switch {
+	case a.IsZero():
+		return b
+	case b.IsZero():
+		return a
+	case a.Before(b):
+		return a
+	default:
+		return b
+	}
 }
 
 // NewConn creates a new net/conn interface based on an underlying Kubernetes

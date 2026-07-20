@@ -132,6 +132,7 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 	if err := ComputeUpgradePlan(ctx, s, getUpgradePlan); err != nil {
 		return nil, err
 	}
+	s.UpgradeTracker.ComputeUpgradePlanSucceeded = true
 
 	// Mark all the MachineDeployments that are currently upgrading.
 	// This captured information is used for:

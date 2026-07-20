@@ -24,6 +24,10 @@ type UpgradeTracker struct {
 	MachineDeployments WorkerUpgradeTracker
 	MachinePools       WorkerUpgradeTracker
 	MinWorkersVersion  string
+
+	// ComputeUpgradePlanSucceeded reports when an upgrade plan has been successfully computed
+	// Note: when there are no upgrade in progress, ComputeUpgradePlan succeeds and it returns an empty upgrade plan.
+	ComputeUpgradePlanSucceeded bool
 }
 
 // ControlPlaneUpgradeTracker holds the current upgrade status of the Control Plane.

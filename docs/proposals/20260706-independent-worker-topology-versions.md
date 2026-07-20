@@ -40,6 +40,7 @@ replaces:
   - [User Stories](#user-stories)
   - [API Changes](#api-changes)
   - [Behavior](#behavior)
+  - [Workflow](#workflow)
   - [Security Model](#security-model)
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Alternatives](#alternatives)
@@ -199,6 +200,11 @@ standard guide for adding a new field to an existing API version.
       validated against both the persisted value and the new value in the request, so no
       transition passes through a skew-violating state.
   - On the new `MachineDeployment/MachinePool.version` field:
+    - the version must satisfy `currentVersion ≤ MD/MP.version ≤ controlPlane.version` — never
+      above the control plane, never a downgrade. Because a cluster-managed MD/MP sits at the
+      control plane version while the cluster is stable, the first set must equal the control
+      plane version and therefore never triggers an upgrade on its own; upgrades happen only when
+      the pin is later raised (see [Workflow](#workflow));
     - allowable version skew between the control plane and the MD/MP version, validated against
       both the persisted value and the new value in the request;
     - an MD/MP can only return to cluster-managed versioning when its version already matches
@@ -247,6 +253,31 @@ bootstrap, instead of relying on the image's baked-in version. This deliberately
 change the kubeadm JoinConfiguration API version, which still follows the joining Machine's own
 version. See [#13315](https://github.com/kubernetes-sigs/cluster-api/issues/13315).
 
+### Workflow
+
+Pinning and upgrading a group is a two-step, always-explicit sequence. Setting the version the
+first time never rolls the group; it only opts the group out of cluster-managed versioning.
+
+```mermaid
+flowchart TD
+  A["MD/MP is cluster-managed, at the control plane version (e.g. v1.31)"] --> B["User sets MD/MP.version = v1.31 (equal to control plane)"]
+  B --> C["No rollout: MD/MP is now pinned / independent"]
+  C --> D["Control plane advances to v1.32; pinned MD/MP holds at v1.31, skew within policy"]
+  D --> E["User raises MD/MP.version to v1.32"]
+  E --> F["Only this MD/MP rolls to v1.32"]
+```
+
+1. **Pin (no-op).** Set `MachineDeploymentTopology.version` / `MachinePoolTopology.version` to the
+   MD/MP's current version, which — at a stable cluster — equals the control plane version. This
+   makes the group independent without triggering any rollout. A pin can never exceed the control
+   plane version and can never move a group below the version it currently runs.
+2. **Diverge.** Advance the control plane (the pinned group holds back, within the skew policy) or
+   raise the group's pinned version toward the control plane. Raising the pin is what triggers a
+   rolling upgrade of that group only.
+3. **Unpin (explicit).** Clear the field to return the group to cluster-managed versioning; this
+   is allowed only when the pinned version already equals `Cluster.spec.topology.version`. Cluster
+   API never unpins automatically.
+
 ### Security Model
 
 No new security surface. The `version` field is part of the existing `Cluster` topology spec
@@ -282,8 +313,10 @@ to be enabled and the new API field to be set to have any effect.
 
 - Existing behavior preserved when no MD/MP versions are set (control plane + workers
   roll to the desired version).
-- Setting a worker-group version for the first time triggers a rolling upgrade of only that
-  group; other groups and the control plane keep operating normally.
+- Setting an MD/MP version for the first time (equal to the control plane version) is a no-op: it
+  makes the group independent without triggering a rollout.
+- Raising the version of an already-pinned MD/MP triggers a rolling upgrade of only that group;
+  other groups and the control plane keep operating normally.
 - Cluster-level version upgrade on a cluster that has pinned MD/MPs: skew validated
   against every MD/MP; pinned MD/MPs are skipped, cluster-managed MD/MPs upgrade.
 - Skew validation blocks any transition that would exceed the policy at any point (validating

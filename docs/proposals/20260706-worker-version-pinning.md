@@ -20,9 +20,7 @@ replaces:
 ---
 
 <!--
- Short-form proposal draft following the Cluster API CAEP template.
- Target location once ready: docs/proposals/YYYYMMDD-independent-worker-topology-versions.md
- (rename YYYYMMDD to the date the proposal PR is first opened).
+ Short-form proposal following the Cluster API CAEP template.
  Supersedes the earlier WIP proposal PR: https://github.com/kubernetes-sigs/cluster-api/pull/12698
 -->
 

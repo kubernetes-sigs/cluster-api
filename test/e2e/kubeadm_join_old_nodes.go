@@ -28,10 +28,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
@@ -177,33 +179,36 @@ func KubeadmJoinOldNodesSpec(ctx context.Context, inputGetter func() KubeadmJoin
 			mdTopology.Metadata.Annotations = map[string]string{}
 		}
 		mdTopology.Metadata.Annotations[clusterv1.ClusterTopologyDeferUpgradeAnnotation] = ""
-		mdTopology.Metadata.Annotations[clusterv1.MachineSetSkipPreflightChecksAnnotation] = skippedMachineSetPreflights
+		mdTopology.Variables.Overrides = append(mdTopology.Variables.Overrides, clusterv1.ClusterVariable{
+			Name:  "kubeadmConfigTemplateAnnotations",
+			Value: apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf(`{%q:%q}`, clusterv1.MachineSetSkipPreflightChecksAnnotation, skippedMachineSetPreflights))},
+		})
 		cluster.Spec.Topology.Workers.MachineDeployments[0] = mdTopology
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, cluster)
 		}, 1*time.Minute, 10*time.Second).Should(Succeed(), "Failed to add annotations to MachineDeployment topology")
 
-		By("Waiting for the skip-preflight-checks annotation to propagate to the MachineSet")
-		Eventually(func() bool {
+		By("Waiting for the skip-preflight-checks annotation to propagate to the KubeadmConfigTemplate")
+		Eventually(func(g Gomega) {
 			msList := &clusterv1.MachineSetList{}
-			if err := mgmtClient.List(ctx, msList,
+			g.Expect(mgmtClient.List(ctx, msList,
 				client.InNamespace(cluster.Namespace),
 				client.MatchingLabels{
 					clusterv1.ClusterNameLabel:                          cluster.Name,
 					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-0",
 				},
-			); err != nil {
-				return false
+			)).To(Succeed())
+			for _, ms := range msList.Items {
+				kubeadmConfigTemplate := &bootstrapv1.KubeadmConfigTemplate{}
+				g.Expect(mgmtClient.Get(ctx, client.ObjectKey{
+					Namespace: ms.Namespace,
+					Name:      ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name,
+				}, kubeadmConfigTemplate)).To(Succeed())
+				g.Expect(kubeadmConfigTemplate.Annotations).To(HaveKeyWithValue(clusterv1.MachineSetSkipPreflightChecksAnnotation, skippedMachineSetPreflights))
 			}
-			for i := range msList.Items {
-				if v, ok := msList.Items[i].Annotations[clusterv1.MachineSetSkipPreflightChecksAnnotation]; ok && v != "" {
-					log.Logf("MachineSet %s has skip-preflight-checks annotation: %s", msList.Items[i].Name, v)
-					return true
-				}
-			}
-			return false
-		}, 2*time.Minute, 5*time.Second).Should(BeTrue(),
+		}, 2*time.Minute, 5*time.Second).Should(Succeed(),
 			"Timed out waiting for skip-preflight-checks annotation to propagate to MachineSet")
+		log.Logf("KubeadmConfigTemplate has skip-preflight-checks annotation")
 
 		By("Upgrading the Cluster topology version to trigger CP upgrade")
 		patchHelper, err = patch.NewHelper(cluster, mgmtClient)
@@ -276,7 +281,14 @@ func KubeadmJoinOldNodesSpec(ctx context.Context, inputGetter func() KubeadmJoin
 		Expect(err).ToNot(HaveOccurred())
 		mdTopology = cluster.Spec.Topology.Workers.MachineDeployments[0]
 		delete(mdTopology.Metadata.Annotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
-		delete(mdTopology.Metadata.Annotations, clusterv1.MachineSetSkipPreflightChecksAnnotation)
+		newVariableOverrides := []clusterv1.ClusterVariable{}
+		for _, variable := range mdTopology.Variables.Overrides {
+			if variable.Name == "kubeadmConfigTemplateAnnotations" {
+				continue
+			}
+			newVariableOverrides = append(newVariableOverrides, variable)
+		}
+		mdTopology.Variables.Overrides = newVariableOverrides
 		mdTopology.Replicas = ptr.To[int32](2)
 		cluster.Spec.Topology.Workers.MachineDeployments[0] = mdTopology
 		Eventually(func() error {

@@ -24,6 +24,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -51,7 +52,11 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		return nil, nil
 	}
 
-	skipped := skippedPreflightChecks(ms)
+	skipped, err := r.skippedPreflightChecks(ctx, ms)
+	if err != nil {
+		return nil, err
+	}
+
 	// If all the preflight checks are skipped then return early.
 	if len(r.PreflightChecks) == 0 || skipped.Has(clusterv1.MachineSetPreflightCheckAll) {
 		return nil, nil
@@ -233,18 +238,42 @@ func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluste
 	return nil
 }
 
-func skippedPreflightChecks(ms *clusterv1.MachineSet) sets.Set[clusterv1.MachineSetPreflightCheck] {
+func (r *Reconciler) skippedPreflightChecks(ctx context.Context, ms *clusterv1.MachineSet) (sets.Set[clusterv1.MachineSetPreflightCheck], error) {
 	skipped := sets.Set[clusterv1.MachineSetPreflightCheck]{}
 	if ms == nil {
-		return skipped
+		return skipped, nil
 	}
+
+	// Try to read skip annotation from MachineSet.
 	skip := ms.Annotations[clusterv1.MachineSetSkipPreflightChecksAnnotation]
-	if skip == "" {
-		return skipped
+
+	// Fallback to try to read skip annotation from BootstrapConfigTemplate.
+	if skip == "" && ms.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
+		apiVersion, err := contract.GetAPIVersion(ctx, r.Client, ms.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read %s annotation", clusterv1.MachineSetSkipPreflightChecksAnnotation)
+		}
+		templateRef := &corev1.ObjectReference{
+			APIVersion: apiVersion,
+			Kind:       ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
+			Namespace:  ms.Namespace,
+			Name:       ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name,
+		}
+		template, err := external.Get(ctx, r.Client, templateRef)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read %s annotation", clusterv1.MachineSetSkipPreflightChecksAnnotation)
+		}
+		skip = template.GetAnnotations()[clusterv1.MachineSetSkipPreflightChecksAnnotation]
 	}
+
+	// Return early if skip annotation is not set
+	if skip == "" {
+		return skipped, nil
+	}
+
 	skippedList := strings.Split(skip, ",")
 	for i := range skippedList {
 		skipped.Insert(clusterv1.MachineSetPreflightCheck(strings.TrimSpace(skippedList[i])))
 	}
-	return skipped
+	return skipped, nil
 }

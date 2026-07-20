@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -69,12 +70,13 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 
 	t.Run("should run preflight checks if the feature gate is enabled", func(t *testing.T) {
 		tests := []struct {
-			name         string
-			cluster      *clusterv1.Cluster
-			controlPlane *unstructured.Unstructured
-			machineSet   *clusterv1.MachineSet
-			wantMessages []string
-			wantErr      bool
+			name                  string
+			cluster               *clusterv1.Cluster
+			controlPlane          *unstructured.Unstructured
+			machineSet            *clusterv1.MachineSet
+			kubeadmConfigTemplate *bootstrapv1.KubeadmConfigTemplate
+			wantMessages          []string
+			wantErr               bool
 		}{
 			{
 				name:         "should pass if cluster has no control plane",
@@ -127,6 +129,59 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				machineSet: &clusterv1.MachineSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ns,
+						Annotations: map[string]string{
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckAll),
+						},
+					},
+				},
+				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Name:      "kubeadmconfigtemplate-1",
+						Annotations: map[string]string{
+							// Note: Disabling this check is not enough, so this test verifies that this annotation is overwritten
+							// by the one from the MachineSet.
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew),
+						},
+					},
+				},
+				wantMessages: nil,
+				wantErr:      false,
+			},
+			{
+				name: "should pass if all preflight checks are skipped via KubeadmConfigTemplate",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
+					},
+				},
+				controlPlane: controlPlaneUpgrading,
+				machineSet: &clusterv1.MachineSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: "v1.26.2",
+								Bootstrap: clusterv1.Bootstrap{
+									ConfigRef: clusterv1.ContractVersionedObjectReference{
+										APIGroup: bootstrapv1.GroupVersion.Group,
+										Kind:     "KubeadmConfigTemplate",
+										Name:     "kubeadmconfigtemplate-1",
+									},
+								},
+							},
+						},
+					},
+				},
+				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Name:      "kubeadmconfigtemplate-1",
 						Annotations: map[string]string{
 							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckAll),
 						},
@@ -233,10 +288,22 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version:   "v1.26.2",
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{Kind: "KubeadmConfigTemplate"}},
+								Version: "v1.26.2",
+								Bootstrap: clusterv1.Bootstrap{
+									ConfigRef: clusterv1.ContractVersionedObjectReference{
+										APIGroup: bootstrapv1.GroupVersion.Group,
+										Kind:     "KubeadmConfigTemplate",
+										Name:     "kubeadmconfigtemplate-1",
+									},
+								},
 							},
 						},
+					},
+				},
+				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Name:      "kubeadmconfigtemplate-1",
 					},
 				},
 				wantMessages: nil,
@@ -454,12 +521,21 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: "v1.25.5",
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
-									APIGroup: bootstrapv1.GroupVersion.Group,
-									Kind:     "KubeadmConfigTemplate",
-								}},
+								Bootstrap: clusterv1.Bootstrap{
+									ConfigRef: clusterv1.ContractVersionedObjectReference{
+										APIGroup: bootstrapv1.GroupVersion.Group,
+										Kind:     "KubeadmConfigTemplate",
+										Name:     "kubeadmconfigtemplate-1",
+									},
+								},
 							},
 						},
+					},
+				},
+				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Name:      "kubeadmconfigtemplate-1",
 					},
 				},
 				wantMessages: []string{
@@ -515,12 +591,21 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: "v1.25.0",
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
-									APIGroup: bootstrapv1.GroupVersion.Group,
-									Kind:     "KubeadmConfigTemplate",
-								}},
+								Bootstrap: clusterv1.Bootstrap{
+									ConfigRef: clusterv1.ContractVersionedObjectReference{
+										APIGroup: bootstrapv1.GroupVersion.Group,
+										Kind:     "KubeadmConfigTemplate",
+										Name:     "kubeadmconfigtemplate-1",
+									},
+								},
 							},
 						},
+					},
+				},
+				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Name:      "kubeadmconfigtemplate-1",
 					},
 				},
 				wantMessages: nil,
@@ -545,12 +630,21 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: "v1.26.2",
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
-									APIGroup: bootstrapv1.GroupVersion.Group,
-									Kind:     "KubeadmConfigTemplate",
-								}},
+								Bootstrap: clusterv1.Bootstrap{
+									ConfigRef: clusterv1.ContractVersionedObjectReference{
+										APIGroup: bootstrapv1.GroupVersion.Group,
+										Kind:     "KubeadmConfigTemplate",
+										Name:     "kubeadmconfigtemplate-1",
+									},
+								},
 							},
 						},
+					},
+				},
+				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Name:      "kubeadmconfigtemplate-1",
 					},
 				},
 				wantMessages: nil,
@@ -696,6 +790,16 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				objs := []client.Object{}
 				if tt.controlPlane != nil {
 					objs = append(objs, tt.controlPlane, builder.GenericControlPlaneCRD)
+				}
+				if tt.kubeadmConfigTemplate != nil {
+					objs = append(objs, tt.kubeadmConfigTemplate, &apiextensionsv1.CustomResourceDefinition{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "kubeadmconfigtemplates.bootstrap.cluster.x-k8s.io",
+							Labels: map[string]string{
+								clusterv1.GroupVersion.String(): bootstrapv1.GroupVersion.Version,
+							},
+						},
+					})
 				}
 				fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 				r := &Reconciler{

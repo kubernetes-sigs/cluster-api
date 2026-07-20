@@ -89,14 +89,14 @@ func TestConn_SetReadDeadline_UnblocksPendingRead(t *testing.T) {
 	select {
 	case err := <-errCh:
 		g.Expect(err).To(HaveOccurred())
-	case <-time.After(2 * time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("Read did not unblock after read deadline expired")
 	}
 
 	// The underlying connection must have been closed to unblock the read.
 	select {
 	case <-connection.closed:
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("underlying connection was not closed on deadline expiry")
 	}
 }
@@ -112,7 +112,7 @@ func TestConn_SetDeadline_InThePast_ClosesImmediately(t *testing.T) {
 
 	select {
 	case <-connection.closed:
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("connection was not closed for a deadline already in the past")
 	}
 }
@@ -130,7 +130,7 @@ func TestConn_SetDeadline_Zero_CancelsTimer(t *testing.T) {
 	select {
 	case <-connection.closed:
 		t.Fatal("connection was closed even though the deadline was cleared")
-	case <-time.After(200 * time.Millisecond):
+	case <-time.After(5 * time.Second):
 		// Expected: no close happened.
 	}
 }

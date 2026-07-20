@@ -273,7 +273,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -772,6 +772,21 @@ clusterctl init --infrastructure outscale
 
 {{#/tab }}
 
+{{#tab Oxide}}
+
+```bash
+export OXIDE_HOST=<silo host>
+export OXIDE_TOKEN=<token>
+# Create secret
+kubectl create secret generic cluster-api-provider-oxide \
+  --from-literal=oxide-host=${OXIDE_HOST} \
+  --from-literal=oxide-token=${OXIDE_TOKEN}
+# Initialize the management cluster
+clusterctl init --infrastructure oxide
+```
+
+{{#/tab }}
+
 {{#tab Proxmox}}
 
 The Proxmox credentials are optional, when creating a cluster they can be set in the `ProxmoxCluster` resource,
@@ -928,7 +943,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1431,6 +1446,66 @@ export OSC_IMAGE_NAME="<IMAGE_NAME>"
 ```
 
 {{#/tab }}
+{{#tab Oxide}}
+
+A ClusterAPI compatible image must be available in your Oxide silo. For additional instructions on how to build a compatible image
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
+
+```bash
+## 1. Upload an Ubuntu 24.04 base image to your Oxide Silo
+## 2. Export the base image ID (Ubuntu 24.04)
+export OXIDE_BOOT_DISK_IMAGE_ID="<ubuntu-24-04-id>"
+## 3. Set the Project for packer to build in
+export OXIDE_PROJECT="<project>"
+## 4. clone image-builder
+git clone https://github.com/kubernetes-sigs/image-builder.git
+## 5. Build CAPI image for Oxide
+cd image-builder/images/capi && make build-oxide-ubuntu-2404
+```
+
+The cluster template requires the following environment variables:
+
+```bash
+# The Oxide Project to deploy to (required)
+export OXIDE_PROJECT="<Project>"
+# The Oxide Image built from image-builder (required)
+export OXIDE_IMAGE_ID="<image-id from image-builder result>"
+# The Oxide VPC to use
+export OXIDE_VPC="default"
+
+## To discover additional optional environment variables and their defaults run: 
+clusterctl generate cluster capi-quickstart --list-variables
+```
+
+We need to create a firewall rule that allows inbound TCP communication over port 6443. This will allow the nodes to join to the cluster and for you to use kubectl to interact with the workload cluster. 
+
+```bash
+OXIDE_RULES_FILE="$(mktemp)"
+
+oxide vpc firewall-rules view --project "$OXIDE_PROJECT" --vpc "$OXIDE_VPC" \
+| jq --arg vpc "$OXIDE_VPC" --arg name "allow-kube-apiserver" '{
+    rules: (
+      [ .rules[]
+        | select(.name != $name)
+        | {action, description, direction, filters, name, priority, status, targets} ]
+      + [ {
+          name: $name,
+          description: "Allow kube-apiserver (TCP 6443) from anywhere (https://github.com/oxidecomputer/cluster-api-provider-oxide/docs/getting-started.md)",
+          action: "allow",
+          direction: "inbound",
+          priority: 0,
+          status: "enabled",
+          filters: { protocols: [ {type:"tcp"} ], ports: ["6443"] },
+          targets: [ { type: "vpc", value: $vpc } ]
+        } ]
+    )
+  }' > "$OXIDE_RULES_FILE"
+
+
+oxide vpc firewall-rules update --project "$OXIDE_PROJECT" --vpc "$OXIDE_VPC" --json-body "$OXIDE_RULES_FILE"
+```
+
+{{#/tab }}
 {{#tab Proxmox}}
 
 A ClusterAPI compatible image must be available in your Proxmox cluster. For instructions on how to build a compatible VM template
@@ -1765,7 +1840,7 @@ Note: To use the default clusterctl method to retrieve kubeconfig for a workload
 
 The Kubernetes in-tree cloud provider implementations are being [removed](https://github.com/kubernetes/enhancements/tree/master/keps/sig-cloud-provider/2395-removing-in-tree-cloud-providers) in favor of external cloud providers (also referred to as "out-of-tree"). This requires deploying a new component called the cloud-controller-manager which is responsible for running all the cloud specific controllers that were previously run in the kube-controller-manager. To learn more, see [this blog post](https://kubernetes.io/blog/2019/04/17/the-future-of-cloud-providers-in-kubernetes/).
 
-{{#tabs name:"tab-install-cloud-provider" tabs:"Azure,OpenStack,Scaleway"}}
+{{#tabs name:"tab-install-cloud-provider" tabs:"Azure,OpenStack,Oxide,Scaleway"}}
 {{#tab Azure}}
 
 Install the official cloud-provider-azure Helm chart on the workload cluster:
@@ -1810,6 +1885,27 @@ kubectl apply --kubeconfig=./capi-quickstart.kubeconfig -f https://raw.githubuse
 ```
 
 Alternatively, refer to the [helm chart](https://github.com/kubernetes/cloud-provider-openstack/tree/master/charts/openstack-cloud-controller-manager).
+
+{{#/tab }}
+{{#tab Oxide}}
+
+The [Oxide Cloud Controller Manager](https://github.com/oxidecomputer/oxide-cloud-controller-manager) (CCM) provides information about nodes from the cloud provider like the `providerID`. 
+
+The CCM requires a Kubernetes secret with credentials to authenticate to the Oxide API, so we'll create that secret first:
+
+```
+kubectl create secret -n kube-system generic capi-quickstart-oxide-cloud-controller-manager \
+    --kubeconfig ./capi-quickstart.kubeconfig \
+    --from-literal=oxide-host=${OXIDE_HOST} \
+    --from-literal=oxide-token=${OXIDE_TOKEN} \
+    --from-literal=oxide-project=${OXIDE_PROJECT}
+
+helm upgrade --install capi-quickstart \
+    oci://ghcr.io/oxidecomputer/helm-charts/oxide-cloud-controller-manager \
+    --namespace kube-system \
+    --kubeconfig ./capi-quickstart.kubeconfig \
+    --wait
+```
 
 {{#/tab }}
 {{#tab Scaleway}}
@@ -1857,7 +1953,7 @@ provider, see the [scaleway-cloud-controller-manager repository](https://github.
 
 Calico is used here as an example.
 
-{{#tabs name:"tab-deploy-cni" tabs:"Azure,vcluster,KubeVirt,Other providers..."}}
+{{#tabs name:"tab-deploy-cni" tabs:"Azure,vcluster,KubeVirt,Oxide,Other providers..."}}
 {{#tab Azure}}
 
 Install the official Calico Helm chart on the workload cluster:
@@ -1947,6 +2043,28 @@ After a short while, our nodes should be running and in `Ready` state, let’s c
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
+
+{{#/tab }}
+{{#tab Oxide}}
+
+Install Calico via the official helm chart using vxlan encapsulation rather than the default IP-in-IP:
+
+```bash
+helm repo add projectcalico https://docs.tigera.io/calico/charts
+
+helm install calico-crds projectcalico/crd.projectcalico.org.v1 \
+  --kubeconfig=./capi-quickstart.kubeconfig
+
+helm upgrade --install calico projectcalico/tigera-operator \
+  --kubeconfig=./capi-quickstart.kubeconfig \
+  --namespace tigera-operator \
+  --create-namespace \
+  --set 'installation.calicoNetwork.ipPools[0].encapsulation=VXLAN' \
+  --set 'installation.calicoNetwork.ipPools[0].cidr=192.168.0.0/16' \
+  --set 'installation.calicoNetwork.bgp=Disabled'
+```
+
+Alternatively, you can install Cilium using the [cilium CLI](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli).
 
 {{#/tab }}
 {{#tab Other providers...}}

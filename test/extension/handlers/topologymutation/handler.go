@@ -35,6 +35,7 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -376,6 +377,15 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, templateV
 		}
 	}
 
+	kubeadmConfigTemplateAnnotations := map[string]string{}
+	err = topologymutation.GetObjectVariableInto(templateVariables, "kubeadmConfigTemplateAnnotations", &kubeadmConfigTemplateAnnotations)
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate kubeadmConfigTemplateAnnotations")
+	}
+	if len(kubeadmConfigTemplateAnnotations) > 0 {
+		annotations.AddAnnotations(obj.(client.Object), kubeadmConfigTemplateAnnotations)
+	}
+
 	return nil
 }
 
@@ -602,6 +612,18 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type: "array",
 					Items: &clusterv1.JSONSchemaProps{
+						Type: "string",
+					},
+				},
+			},
+		},
+		{
+			Name:     "kubeadmConfigTemplateAnnotations",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type: "object",
+					AdditionalProperties: &clusterv1.JSONSchemaProps{
 						Type: "string",
 					},
 				},

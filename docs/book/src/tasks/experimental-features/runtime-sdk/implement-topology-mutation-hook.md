@@ -290,7 +290,15 @@ Example Response:
 
 * The response contains patches instead of full objects to reduce the payload.
 * Templates in the request and patches in the response will be correlated via UIDs.
-* Like inline patches, external patches are only allowed to change fields in `spec.template.spec`.
+* Like inline patches, external patches are only allowed to change fields in `metadata.{labels,annotations}`, `spec.template.spec` and `spec.template.metadata.{labels,annotations}`
+  (see inline patches documentation for additional details).
+* Only fields below `metadata.{labels,annotations}`, `spec.template.spec` and `spec.template.metadata` can be patched.
+  Note that patching `metadata.{labels,annotations}` makes only sense when another template will be originated from the
+  template object linked in the ClusterClass (e.g. it instead makes sense patching `VSphereMachineTemplate.metadata`
+  when this object is referenced from a MachineDeploymentClass because another `VSphereMachineTemplate` will be generated
+  for each MachineDeployment using this class; instead it does not make sense patching `KubeadmControlPlaneTemplate.metadata.labels`
+  because this field will be lost when generating the `KubeadmControlPlane` object for a Cluster).
+
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1

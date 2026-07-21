@@ -309,7 +309,13 @@ spec:
 
 <h1>Writing JSON patches</h1>
 
-* Only fields below `/spec` can be patched.
+* Only fields below `metadata.{labels,annotations}`, `spec.template.spec` and `spec.template.metadata.{labels,annotations}` can be patched. 
+* Patching `metadata.{labels,annotations}` makes only sense when another template will be originated from the 
+  template object linked in the ClusterClass e.g. 
+  * It makes sense patching `VSphereMachineTemplate.metadata` when this object is referenced from a 
+    MachineDeploymentClass because another `VSphereMachineTemplate` will be generated for each MachineDeployment using this class.
+  * It does not make sense patching `KubeadmControlPlaneTemplate.metadata.labels` because this field will be ignored 
+     when generating the `KubeadmControlPlane` object for a Cluster (`KubeadmControlPlane` derives from `KubeadmControlPlaneTemplate.spec.template`).
 * Only `add`, `remove` and `replace` operations are supported.
 * It's only possible to append and prepend to arrays. Insertions at a specific index are 
   not supported.

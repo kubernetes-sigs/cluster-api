@@ -74,3 +74,18 @@ Annotations that meet at least one of the following criteria are always propagat
 - Belongs to `node.cluster.x-k8s.io` domain
 
 In addition, any annotations that match at least one of the regexes provided by the `--additional-sync-machine-annotations` flag on the manager will be synced from the Machine to the Node.
+
+## Patches
+
+While this is not technically metadata propagation, it is worth to notice that when using Cluster API managed topologies,
+by using patches it is also possible to manage labels and annotations in resources that are originated from templates linked to the ClusterClass. More specifically:
+
+Patches for ControlPlaneTemplates, InfraClusterTemplates, MachinePoolTemplates and BootstrapConfigTemplates (only if referenced from a MachinePool class):
+- Changes to `.spec.template.metadata.{labels|annotations}` will be reflected in `.metadata.{labels|annotations}` of the corresponding generated object. 
+  e.g. `KubeadmControlPlaneTemplate.spec.template.metadata.labels` --> `KubeadmControlPlane.metadata.labels`
+
+Patches for InfraMachineTemplates, BootstrapConfigTemplates (except when referenced from a MachinePool)
+- Changes to `.metadata.{labels|annotations}` will be reflected in `.metadata.{labels|annotations}` of the corresponding generated template.
+  e.g. `VSphereMachineTemplate.metadata.labels` --> `VSphereMachineTemplate.metadata.labels`
+- Changes to `.spec.template.metadata.{labels|annotations}` will be reflected in `.spec.template.metadata.{labels|annotations}` of the corresponding generated template.
+  e.g. `VSphereMachineTemplate.spec.template.metadata.labels` --> `VSphereMachineTemplate.spec.template.metadata.labels`

@@ -25,6 +25,8 @@ import (
 
 // NewClusterClient returns the same client passed as input, as output. It is assumed that the client is a
 // fake controller-runtime client.
+//
+// Deprecated: This type is deprecated and will be removed in an upcoming release of Cluster API.
 func NewClusterClient(_ context.Context, _ string, c client.Client, _ client.ObjectKey) (client.Client, error) {
 	return c, nil
 }

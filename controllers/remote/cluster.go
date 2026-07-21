@@ -33,9 +33,13 @@ const (
 )
 
 // ClusterClientGetter returns a new remote client.
+//
+// Deprecated: This type is deprecated and will be removed in an upcoming release of Cluster API.
 type ClusterClientGetter func(ctx context.Context, sourceName string, c client.Client, cluster client.ObjectKey) (client.Client, error)
 
 // NewClusterClient returns a Client for interacting with a remote Cluster using the given scheme for encoding and decoding objects.
+//
+// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API, please use ClusterCache or inline this function instead.
 func NewClusterClient(ctx context.Context, sourceName string, c client.Client, cluster client.ObjectKey) (client.Client, error) {
 	restConfig, err := RESTConfig(ctx, sourceName, c, cluster)
 	if err != nil {
@@ -49,6 +53,8 @@ func NewClusterClient(ctx context.Context, sourceName string, c client.Client, c
 }
 
 // RESTConfig returns a configuration instance to be used with a Kubernetes client.
+//
+// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API, please use ClusterCache or inline this function instead.
 func RESTConfig(ctx context.Context, sourceName string, c client.Reader, cluster client.ObjectKey) (*restclient.Config, error) {
 	kubeConfig, err := kcfg.FromSecret(ctx, c, cluster)
 	if err != nil {

@@ -78,6 +78,11 @@ metadata:
   name: in-memory
 spec:
   controlPlane:
+    metadata:
+      labels:
+        ClusterClass.controlPlane.label: "ClusterClass.controlPlane.labelValue"
+      annotations:
+        ClusterClass.controlPlane.annotation: "ClusterClass.controlPlane.annotationValue"
     machineInfrastructure:
       templateRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -104,6 +109,11 @@ spec:
   workers:
     machineDeployments:
       - class: default-worker
+        metadata:
+          labels:
+            ClusterClass.machineDeployment.label: "ClusterClass.machineDeployment.labelValue"
+          annotations:
+            ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
         bootstrap:
           templateRef:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta2

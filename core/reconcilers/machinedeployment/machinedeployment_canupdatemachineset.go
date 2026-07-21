@@ -236,19 +236,19 @@ func cleanupUnstructured(u *unstructured.Unstructured) *unstructured.Unstructure
 
 func applyPatchesToRequest(ctx context.Context, req *runtimehooksv1.CanUpdateMachineSetRequest, resp *runtimehooksv1.CanUpdateMachineSetResponse) error {
 	if resp.MachineSetPatch.IsDefined() {
-		if err := patch.ApplyPatchToTypedObject(ctx, &req.Current.MachineSet, resp.MachineSetPatch, "spec.template.spec"); err != nil {
+		if err := patch.ApplyPatchToTypedObject(ctx, &req.Current.MachineSet, resp.MachineSetPatch, []string{"spec", "template", "spec"}); err != nil {
 			return err
 		}
 	}
 
 	if resp.BootstrapConfigTemplatePatch.IsDefined() && req.Current.BootstrapConfigTemplate.Object != nil {
-		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.BootstrapConfigTemplate, resp.BootstrapConfigTemplatePatch, "spec.template.spec"); err != nil {
+		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.BootstrapConfigTemplate, resp.BootstrapConfigTemplatePatch, []string{"spec", "template", "spec"}); err != nil {
 			return err
 		}
 	}
 
 	if resp.InfrastructureMachineTemplatePatch.IsDefined() {
-		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.InfrastructureMachineTemplate, resp.InfrastructureMachineTemplatePatch, "spec.template.spec"); err != nil {
+		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.InfrastructureMachineTemplate, resp.InfrastructureMachineTemplatePatch, []string{"spec", "template", "spec"}); err != nil {
 			return err
 		}
 	}

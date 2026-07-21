@@ -43,10 +43,16 @@ var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", Label("Clu
 			ExtensionServiceName:      "test-extension-webhook-service",
 			FilterMetadataBeforeValidation: func(object client.Object) clusterv1.ObjectMeta {
 				annotations := object.GetAnnotations()
+				labels := object.GetLabels()
+				// Annotations added by the CAPDev in-memory backend.
 				delete(annotations, "inmemorycluster.infrastructure.cluster.x-k8s.io/listener")
 				delete(annotations, "machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped")
+				// Labels & Annotations added by the test extension
+				// TODO: Implement validation that these labels/annotations are set.
+				delete(labels, "top-level-label-1")
+				delete(annotations, "top-level-annotation-1")
 				return clusterv1.ObjectMeta{
-					Labels:      object.GetLabels(),
+					Labels:      labels,
 					Annotations: annotations,
 				}
 			},

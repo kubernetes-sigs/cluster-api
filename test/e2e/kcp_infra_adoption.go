@@ -68,7 +68,7 @@ type KCPInfraAdoptionSpecInput struct {
 	InfrastructureProvider *string
 
 	// Flavor, if specified, must refer to a template that is
-	// specially crafted with FIXME: describe requirements for the template
+	// specially crafted with TODO: describe requirements for the template
 	Flavor *string
 
 	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "kcp-infra-adoption".

@@ -41,6 +41,8 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
+	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -86,6 +88,21 @@ func TestApply(t *testing.T) {
 							JSONPatches: []clusterv1.JSONPatch{
 								{
 									Op:    "add",
+									Path:  "/spec/template/metadata",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-label-1": "top-level-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-annotation-1": "top-level-annotation-value-1"}`)},
+								},
+								{
+									Op:    "add",
 									Path:  "/spec/template/spec/resource",
 									Value: &apiextensionsv1.JSON{Raw: []byte(`"infraCluster"`)},
 								},
@@ -100,6 +117,21 @@ func TestApply(t *testing.T) {
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-label-1": "top-level-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-annotation-1": "top-level-annotation-value-1"}`)},
+								},
 								{
 									Op:    "add",
 									Path:  "/spec/template/spec/resource",
@@ -118,6 +150,31 @@ func TestApply(t *testing.T) {
 							JSONPatches: []clusterv1.JSONPatch{
 								{
 									Op:    "add",
+									Path:  "/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-label-1": "top-level-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-annotation-1": "top-level-annotation-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"nested-label-1": "nested-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"nested-annotation-1": "nested-annotation-value-1"}`)},
+								},
+								{
+									Op:    "add",
 									Path:  "/spec/template/spec/resource",
 									Value: &apiextensionsv1.JSON{Raw: []byte(`"controlPlaneInfrastructureMachineTemplate"`)},
 								},
@@ -128,13 +185,21 @@ func TestApply(t *testing.T) {
 			},
 			expectedFields: expectedFields{
 				infrastructureCluster: map[string]interface{}{
+					"metadata.labels.top-level-label-1":           "top-level-label-value-1",
+					"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
 					"spec.resource": "infraCluster",
 				},
 				controlPlane: map[string]interface{}{
+					"metadata.labels.top-level-label-1":           "top-level-label-value-1",
+					"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
 					"spec.resource": "controlPlane",
 				},
 				controlPlaneInfrastructureMachineTemplate: map[string]interface{}{
-					"spec.template.spec.resource": "controlPlaneInfrastructureMachineTemplate",
+					"metadata.labels.top-level-label-1":                      "top-level-label-value-1",
+					"metadata.annotations.top-level-annotation-1":            "top-level-annotation-value-1",
+					"spec.template.metadata.labels.nested-label-1":           "nested-label-value-1",
+					"spec.template.metadata.annotations.nested-annotation-1": "nested-annotation-value-1",
+					"spec.template.spec.resource":                            "controlPlaneInfrastructureMachineTemplate",
 				},
 			},
 		},
@@ -157,6 +222,31 @@ func TestApply(t *testing.T) {
 							JSONPatches: []clusterv1.JSONPatch{
 								{
 									Op:    "add",
+									Path:  "/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-label-1": "top-level-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-annotation-1": "top-level-annotation-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"nested-label-1": "nested-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"nested-annotation-1": "nested-annotation-value-1"}`)},
+								},
+								{
+									Op:    "add",
 									Path:  "/spec/template/spec/resource",
 									Value: &apiextensionsv1.JSON{Raw: []byte(`"default-worker-infra"`)},
 								},
@@ -173,6 +263,31 @@ func TestApply(t *testing.T) {
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:    "add",
+									Path:  "/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-label-1": "top-level-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-annotation-1": "top-level-annotation-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"nested-label-1": "nested-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"nested-annotation-1": "nested-annotation-value-1"}`)},
+								},
 								{
 									Op:    "add",
 									Path:  "/spec/template/spec/resource",
@@ -193,6 +308,21 @@ func TestApply(t *testing.T) {
 							JSONPatches: []clusterv1.JSONPatch{
 								{
 									Op:    "add",
+									Path:  "/spec/template/metadata",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-label-1": "top-level-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-annotation-1": "top-level-annotation-value-1"}`)},
+								},
+								{
+									Op:    "add",
 									Path:  "/spec/template/spec/resource",
 									Value: &apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-infra"`)},
 								},
@@ -211,6 +341,21 @@ func TestApply(t *testing.T) {
 							JSONPatches: []clusterv1.JSONPatch{
 								{
 									Op:    "add",
+									Path:  "/spec/template/metadata",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/labels",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-label-1": "top-level-label-value-1"}`)},
+								},
+								{
+									Op:    "add",
+									Path:  "/spec/template/metadata/annotations",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-annotation-1": "top-level-annotation-value-1"}`)},
+								},
+								{
+									Op:    "add",
 									Path:  "/spec/template/spec/resource",
 									Value: &apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-bootstrap"`)},
 								},
@@ -221,20 +366,60 @@ func TestApply(t *testing.T) {
 			},
 			expectedFields: expectedFields{
 				machineDeploymentBootstrapTemplate: map[string]map[string]interface{}{
-					"default-worker-topo1": {"spec.template.spec.resource": "default-worker-bootstrap"},
-					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-bootstrap"},
+					"default-worker-topo1": {
+						"metadata.labels.top-level-label-1":                      "top-level-label-value-1",
+						"metadata.annotations.top-level-annotation-1":            "top-level-annotation-value-1",
+						"spec.template.metadata.labels.nested-label-1":           "nested-label-value-1",
+						"spec.template.metadata.annotations.nested-annotation-1": "nested-annotation-value-1",
+						"spec.template.spec.resource":                            "default-worker-bootstrap",
+					},
+					"default-worker-topo2": {
+						"metadata.labels.top-level-label-1":                      "top-level-label-value-1",
+						"metadata.annotations.top-level-annotation-1":            "top-level-annotation-value-1",
+						"spec.template.metadata.labels.nested-label-1":           "nested-label-value-1",
+						"spec.template.metadata.annotations.nested-annotation-1": "nested-annotation-value-1",
+						"spec.template.spec.resource":                            "default-worker-bootstrap",
+					},
 				},
 				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]interface{}{
-					"default-worker-topo1": {"spec.template.spec.resource": "default-worker-infra"},
-					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-infra"},
+					"default-worker-topo1": {
+						"metadata.labels.top-level-label-1":                      "top-level-label-value-1",
+						"metadata.annotations.top-level-annotation-1":            "top-level-annotation-value-1",
+						"spec.template.metadata.labels.nested-label-1":           "nested-label-value-1",
+						"spec.template.metadata.annotations.nested-annotation-1": "nested-annotation-value-1",
+						"spec.template.spec.resource":                            "default-worker-infra",
+					},
+					"default-worker-topo2": {
+						"metadata.labels.top-level-label-1":                      "top-level-label-value-1",
+						"metadata.annotations.top-level-annotation-1":            "top-level-annotation-value-1",
+						"spec.template.metadata.labels.nested-label-1":           "nested-label-value-1",
+						"spec.template.metadata.annotations.nested-annotation-1": "nested-annotation-value-1",
+						"spec.template.spec.resource":                            "default-worker-infra",
+					},
 				},
 				machinePoolBootstrapConfig: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-bootstrap"},
-					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-bootstrap"},
+					"default-mp-worker-topo1": {
+						"metadata.labels.top-level-label-1":           "top-level-label-value-1",
+						"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
+						"spec.resource": "default-mp-worker-bootstrap",
+					},
+					"default-mp-worker-topo2": {
+						"metadata.labels.top-level-label-1":           "top-level-label-value-1",
+						"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
+						"spec.resource": "default-mp-worker-bootstrap",
+					},
 				},
 				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-infra"},
-					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-infra"},
+					"default-mp-worker-topo1": {
+						"metadata.labels.top-level-label-1":           "top-level-label-value-1",
+						"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
+						"spec.resource": "default-mp-worker-infra",
+					},
+					"default-mp-worker-topo2": {
+						"metadata.labels.top-level-label-1":           "top-level-label-value-1",
+						"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
+						"spec.resource": "default-mp-worker-infra",
+					},
 				},
 			},
 		},
@@ -316,6 +501,25 @@ func TestApply(t *testing.T) {
 							},
 							JSONPatches: []clusterv1.JSONPatch{
 								{
+									Op:    "replace",
+									Path:  "/spec/template/metadata/labels/cluster.x-k8s.io~1cluster-name",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`"different-cluster"`)},
+								},
+								{
+									Op:   "remove",
+									Path: "/spec/template/metadata/labels/topology.cluster.x-k8s.io~1owned",
+								},
+								{
+									Op:    "replace",
+									Path:  "/spec/template/metadata/annotations/cluster.x-k8s.io~1cloned-from-name",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`"different-cp-template-name"`)},
+								},
+								{
+									Op:    "replace",
+									Path:  "/spec/template/metadata/annotations/cluster.x-k8s.io~1cloned-from-groupkind",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`"different-cp-template-kind"`)},
+								},
+								{
 									Op:    "add",
 									Path:  "/spec/template/spec/replicas",
 									Value: &apiextensionsv1.JSON{Raw: []byte(`1`)},
@@ -337,7 +541,7 @@ func TestApply(t *testing.T) {
 			},
 		},
 		{
-			name: "Should apply JSON patches without metadata",
+			name: "Should not apply JSON patches for metadata.name",
 			patches: []clusterv1.ClusterClassPatch{
 				{
 					Name: "fake-patch1",
@@ -425,6 +629,24 @@ func TestApply(t *testing.T) {
 							PatchType: runtimehooksv1.JSONPatchType,
 							Patch: bytesPatch([]jsonPatchRFC6902{{
 								Op:    "add",
+								Path:  "/spec/template/metadata/labels",
+								Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-label-1": "top-level-label-value-1"}`)},
+							}}),
+						},
+						{
+							UID:       "1",
+							PatchType: runtimehooksv1.JSONPatchType,
+							Patch: bytesPatch([]jsonPatchRFC6902{{
+								Op:    "add",
+								Path:  "/spec/template/metadata/annotations",
+								Value: &apiextensionsv1.JSON{Raw: []byte(`{"top-level-annotation-1": "top-level-annotation-value-1"}`)},
+							}}),
+						},
+						{
+							UID:       "1",
+							PatchType: runtimehooksv1.JSONPatchType,
+							Patch: bytesPatch([]jsonPatchRFC6902{{
+								Op:    "add",
 								Path:  "/spec/template/spec/resource",
 								Value: &apiextensionsv1.JSON{Raw: []byte(`"infraCluster"`)},
 							}}),
@@ -439,6 +661,8 @@ func TestApply(t *testing.T) {
 			},
 			expectedFields: expectedFields{
 				infrastructureCluster: map[string]interface{}{
+					"metadata.labels.top-level-label-1":           "top-level-label-value-1",
+					"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
 					"spec.resource": "infraCluster",
 				},
 			},
@@ -1030,25 +1254,25 @@ func TestApply(t *testing.T) {
 
 				// Set expected fields on the copy of the objects, so they can be used for comparison with the result of Apply.
 				if tt.expectedFields.infrastructureCluster != nil {
-					setSpecFields(expectedInfrastructureCluster, tt.expectedFields.infrastructureCluster)
+					setFields(expectedInfrastructureCluster, tt.expectedFields.infrastructureCluster)
 				}
 				if tt.expectedFields.controlPlane != nil {
-					setSpecFields(expectedControlPlane, tt.expectedFields.controlPlane)
+					setFields(expectedControlPlane, tt.expectedFields.controlPlane)
 				}
 				if tt.expectedFields.controlPlaneInfrastructureMachineTemplate != nil {
-					setSpecFields(expectedControlPlaneInfrastructureMachineTemplate, tt.expectedFields.controlPlaneInfrastructureMachineTemplate)
+					setFields(expectedControlPlaneInfrastructureMachineTemplate, tt.expectedFields.controlPlaneInfrastructureMachineTemplate)
 				}
 				for mdTopology, expectedFields := range tt.expectedFields.machineDeploymentBootstrapTemplate {
-					setSpecFields(expectedBootstrapTemplates[mdTopology], expectedFields)
+					setFields(expectedBootstrapTemplates[mdTopology], expectedFields)
 				}
 				for mdTopology, expectedFields := range tt.expectedFields.machineDeploymentInfrastructureMachineTemplate {
-					setSpecFields(expectedInfrastructureMachineTemplate[mdTopology], expectedFields)
+					setFields(expectedInfrastructureMachineTemplate[mdTopology], expectedFields)
 				}
 				for mpTopology, expectedFields := range tt.expectedFields.machinePoolBootstrapConfig {
-					setSpecFields(expectedBootstrapConfig[mpTopology], expectedFields)
+					setFields(expectedBootstrapConfig[mpTopology], expectedFields)
 				}
 				for mpTopology, expectedFields := range tt.expectedFields.machinePoolInfrastructureMachinePool {
-					setSpecFields(expectedInfrastructureMachinePool[mpTopology], expectedFields)
+					setFields(expectedInfrastructureMachinePool[mpTopology], expectedFields)
 				}
 
 				// Apply patches.
@@ -1270,11 +1494,11 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 
 	desired := &scope.ClusterState{
 		Cluster:               desiredCluster,
-		InfrastructureCluster: infrastructureCluster,
+		InfrastructureCluster: addStandardLabelsAndAnnotations(infrastructureCluster, cluster.Name, "", "", infrastructureClusterTemplate),
 		ControlPlane: &scope.ControlPlaneState{
-			Object: controlPlane,
+			Object: addStandardLabelsAndAnnotations(controlPlane, cluster.Name, "", "", controlPlaneTemplate),
 			// Make sure we're using an independent instance of the template.
-			InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate.DeepCopy(),
+			InfrastructureMachineTemplate: addStandardLabelsAndAnnotations(controlPlaneInfrastructureMachineTemplate.DeepCopy(), cluster.Name, "", "", controlPlaneInfrastructureMachineTemplate),
 		},
 		MachineDeployments: map[string]*scope.MachineDeploymentState{
 			"default-worker-topo1": {
@@ -1283,8 +1507,8 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 					WithVersion("v1.21.2").
 					Build(),
 				// Make sure we're using an independent instance of the template.
-				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate.DeepCopy(),
-				BootstrapTemplate:             workerBootstrapTemplate.DeepCopy(),
+				InfrastructureMachineTemplate: addStandardLabelsAndAnnotations(workerInfrastructureMachineTemplate.DeepCopy(), cluster.Name, "default-worker-topo1", "", workerInfrastructureMachineTemplate),
+				BootstrapTemplate:             addStandardLabelsAndAnnotations(workerBootstrapTemplate.DeepCopy(), cluster.Name, "default-worker-topo1", "", workerBootstrapTemplate),
 			},
 			"default-worker-topo2": {
 				Object: builder.MachineDeployment(metav1.NamespaceDefault, "md2").
@@ -1293,8 +1517,8 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 					WithReplicas(5).
 					Build(),
 				// Make sure we're using an independent instance of the template.
-				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate.DeepCopy(),
-				BootstrapTemplate:             workerBootstrapTemplate.DeepCopy(),
+				InfrastructureMachineTemplate: addStandardLabelsAndAnnotations(workerInfrastructureMachineTemplate.DeepCopy(), cluster.Name, "default-worker-topo2", "", workerInfrastructureMachineTemplate),
+				BootstrapTemplate:             addStandardLabelsAndAnnotations(workerBootstrapTemplate.DeepCopy(), cluster.Name, "default-worker-topo2", "", workerBootstrapTemplate),
 			},
 		},
 		MachinePools: map[string]*scope.MachinePoolState{
@@ -1304,8 +1528,8 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 					WithVersion("v1.21.2").
 					Build(),
 				// Make sure we're using an independent instance of the template.
-				InfrastructureMachinePoolObject: workerInfrastructureMachinePool.DeepCopy(),
-				BootstrapObject:                 workerBootstrapConfig.DeepCopy(),
+				InfrastructureMachinePoolObject: addStandardLabelsAndAnnotations(workerInfrastructureMachinePool.DeepCopy(), cluster.Name, "", "default-mp-worker-topo1", workerInfrastructureMachinePoolTemplate),
+				BootstrapObject:                 addStandardLabelsAndAnnotations(workerBootstrapConfig.DeepCopy(), cluster.Name, "", "default-mp-worker-topo1", workerBootstrapTemplate),
 			},
 			"default-mp-worker-topo2": {
 				Object: builder.MachinePool(metav1.NamespaceDefault, "mp2").
@@ -1314,23 +1538,45 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 					WithReplicas(5).
 					Build(),
 				// Make sure we're using an independent instance of the template.
-				InfrastructureMachinePoolObject: workerInfrastructureMachinePool.DeepCopy(),
-				BootstrapObject:                 workerBootstrapConfig.DeepCopy(),
+				InfrastructureMachinePoolObject: addStandardLabelsAndAnnotations(workerInfrastructureMachinePool.DeepCopy(), cluster.Name, "", "default-mp-worker-topo2", workerInfrastructureMachinePoolTemplate),
+				BootstrapObject:                 addStandardLabelsAndAnnotations(workerBootstrapConfig.DeepCopy(), cluster.Name, "", "default-mp-worker-topo2", workerBootstrapTemplate),
 			},
 		},
 	}
 	return blueprint, desired
 }
 
-// setSpecFields sets fields on an unstructured object from a map.
-func setSpecFields(obj *unstructured.Unstructured, fields map[string]interface{}) {
+func addStandardLabelsAndAnnotations(obj *unstructured.Unstructured, clusterName, mdTopologyName, mpTopologyName string, templateClonedFrom *unstructured.Unstructured) *unstructured.Unstructured {
+	labels.AddLabels(obj, map[string]string{
+		clusterv1.ClusterNameLabel:          clusterName,
+		clusterv1.ClusterTopologyOwnedLabel: "",
+	})
+	if mdTopologyName != "" {
+		labels.AddLabels(obj, map[string]string{
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopologyName,
+		})
+	}
+	if mpTopologyName != "" {
+		labels.AddLabels(obj, map[string]string{
+			clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopologyName,
+		})
+	}
+	annotations.AddAnnotations(obj, map[string]string{
+		clusterv1.TemplateClonedFromNameAnnotation:      templateClonedFrom.GetName(),
+		clusterv1.TemplateClonedFromGroupKindAnnotation: templateClonedFrom.GroupVersionKind().GroupKind().String(),
+	})
+	return obj
+}
+
+// setFields sets fields on an unstructured object from a map.
+func setFields(obj *unstructured.Unstructured, fields map[string]interface{}) {
 	for k, v := range fields {
 		fieldParts := strings.Split(k, ".")
 		if len(fieldParts) == 0 {
 			panic(fmt.Errorf("fieldParts invalid"))
 		}
-		if fieldParts[0] != "spec" {
-			panic(fmt.Errorf("can not set fields outside spec"))
+		if !strings.HasPrefix(k, "spec.") && !strings.HasPrefix(k, "metadata.labels") && !strings.HasPrefix(k, "metadata.annotations") {
+			panic(fmt.Errorf("can not set fields outside spec or metadata.labels/annotations"))
 		}
 		if err := unstructured.SetNestedField(obj.UnstructuredContent(), v, strings.Split(k, ".")...); err != nil {
 			panic(err)

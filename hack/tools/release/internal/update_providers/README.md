@@ -29,6 +29,13 @@
   export RELEASE_DATE="2023-11-28"
   ```
 
+- Export `RELEASE_CODE_FREEZE_DATE` to the targeted CAPI release version date. Fetch the target code freeze date from latest [release file](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases). The `RELEASE_CODE_FREEZE_DATE` should be in the format `YYYY-MM-DD`.
+  Example:
+
+  ```sh
+  export RELEASE_CODE_FREEZE_DATE="2023-11-13"
+  ```
+
 ## How to run the tool
 
 - Finish the pre-requites [tasks](#pre-requisites).

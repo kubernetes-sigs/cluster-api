@@ -27,49 +27,56 @@ import (
 
 func Test_GetReleaseDetails(t *testing.T) {
 	tests := []struct {
-		name        string
-		releaseTag  string
-		releaseDate string
-		want        releaseDetails
-		expectErr   bool
-		err         string
+		name                  string
+		releaseTag            string
+		releaseDate           string
+		releaseCodeFreezeDate string
+		want                  releaseDetails
+		expectErr             bool
+		err                   string
 	}{
 		{
-			name:        "Correct RELEASE_TAG and RELEASE_DATE are set for alpha",
-			releaseTag:  "v1.7.0-alpha.0",
-			releaseDate: "2024-04-16",
+			name:                  "Correct RELEASE_TAG, RELEASE_DATE and RELEASE_CODE_FREEZE_DATE are set for alpha",
+			releaseTag:            "v1.7.0-alpha.0",
+			releaseDate:           "2024-04-16",
+			releaseCodeFreezeDate: "2024-04-01",
 			want: releaseDetails{
-				ReleaseDate:      "Tuesday, 16th April 2024",
-				ReleaseTag:       "v1.7.0",
-				PreReleaseTag:    "v1.7.0-alpha.0",
-				ReleaseLink:      "https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-1.7.md#timeline",
-				ReleaseNotesLink: "https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.7.0-alpha.0",
+				ReleaseDate:           "Tuesday, 16th April 2024",
+				ReleaseCodeFreezeDate: "Monday, 1st April 2024",
+				ReleaseTag:            "v1.7.0",
+				PreReleaseTag:         "v1.7.0-alpha.0",
+				ReleaseLink:           "https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-1.7.md#timeline",
+				ReleaseNotesLink:      "https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.7.0-alpha.0",
 			},
 			expectErr: false,
 		},
 		{
-			name:        "Correct RELEASE_TAG and RELEASE_DATE are set for beta",
-			releaseTag:  "v1.7.0-beta.0",
-			releaseDate: "2024-04-16",
+			name:                  "Correct RELEASE_TAG, RELEASE_DATE and RELEASE_CODE_FREEZE_DATE are set for beta",
+			releaseTag:            "v1.7.0-beta.0",
+			releaseDate:           "2024-04-16",
+			releaseCodeFreezeDate: "2024-04-01",
 			want: releaseDetails{
-				ReleaseDate:      "Tuesday, 16th April 2024",
-				ReleaseTag:       "v1.7.0",
-				PreReleaseTag:    "v1.7.0-beta.0",
-				ReleaseLink:      "https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-1.7.md#timeline",
-				ReleaseNotesLink: "https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.7.0-beta.0",
+				ReleaseDate:           "Tuesday, 16th April 2024",
+				ReleaseCodeFreezeDate: "Monday, 1st April 2024",
+				ReleaseTag:            "v1.7.0",
+				PreReleaseTag:         "v1.7.0-beta.0",
+				ReleaseLink:           "https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-1.7.md#timeline",
+				ReleaseNotesLink:      "https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.7.0-beta.0",
 			},
 			expectErr: false,
 		},
 		{
-			name:        "Correct RELEASE_TAG and RELEASE_DATE are set for rc",
-			releaseTag:  "v1.7.0-rc.0",
-			releaseDate: "2024-04-16",
+			name:                  "Correct RELEASE_TAG, RELEASE_DATE and RELEASE_CODE_FREEZE_DATE are set for rc",
+			releaseTag:            "v1.7.0-rc.0",
+			releaseDate:           "2024-04-16",
+			releaseCodeFreezeDate: "2024-04-01",
 			want: releaseDetails{
-				ReleaseDate:      "Tuesday, 16th April 2024",
-				ReleaseTag:       "v1.7.0",
-				PreReleaseTag:    "v1.7.0-rc.0",
-				ReleaseLink:      "https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-1.7.md#timeline",
-				ReleaseNotesLink: "https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.7.0-rc.0",
+				ReleaseDate:           "Tuesday, 16th April 2024",
+				ReleaseCodeFreezeDate: "Monday, 1st April 2024",
+				ReleaseTag:            "v1.7.0",
+				PreReleaseTag:         "v1.7.0-rc.0",
+				ReleaseLink:           "https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-1.7.md#timeline",
+				ReleaseNotesLink:      "https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.7.0-rc.0",
 			},
 			expectErr: false,
 		},
@@ -122,6 +129,30 @@ func Test_GetReleaseDetails(t *testing.T) {
 			expectErr:   true,
 			err:         "unable to parse the date",
 		},
+		{
+			name:                  "invalid yyyy/dd/mm RELEASE_CODE_FREEZE_DATE entered",
+			releaseTag:            "v1.7.0-beta.0",
+			releaseDate:           "2024-04-16",
+			releaseCodeFreezeDate: "2024/1/4",
+			expectErr:             true,
+			err:                   "unable to parse the code freeze date",
+		},
+		{
+			name:                  "invalid yyyy/mm/dd RELEASE_CODE_FREEZE_DATE entered",
+			releaseTag:            "v1.7.0-beta.0",
+			releaseDate:           "2024-04-16",
+			releaseCodeFreezeDate: "2024/4/1",
+			expectErr:             true,
+			err:                   "unable to parse the code freeze date",
+		},
+		{
+			name:                  "invalid yyyy/mm/dd RELEASE_CODE_FREEZE_DATE entered",
+			releaseTag:            "v1.7.0-beta.0",
+			releaseDate:           "2024-04-16",
+			releaseCodeFreezeDate: "2024-4-1",
+			expectErr:             true,
+			err:                   "unable to parse the code freeze date",
+		},
 	}
 
 	for _, tt := range tests {
@@ -130,12 +161,14 @@ func Test_GetReleaseDetails(t *testing.T) {
 
 			t.Setenv("RELEASE_TAG", tt.releaseTag)
 			t.Setenv("RELEASE_DATE", tt.releaseDate)
+			t.Setenv("RELEASE_CODE_FREEZE_DATE", tt.releaseCodeFreezeDate)
 
 			got, err := getReleaseDetails()
 			if tt.expectErr {
 				g.Expect(err.Error()).To(Equal(tt.err))
 			} else {
 				g.Expect(got.ReleaseDate).To(Equal(tt.want.ReleaseDate))
+				g.Expect(got.ReleaseCodeFreezeDate).To(Equal(tt.want.ReleaseCodeFreezeDate))
 				g.Expect(got.ReleaseTag).To(Equal(tt.want.ReleaseTag))
 				g.Expect(got.PreReleaseTag).To(Equal(tt.want.PreReleaseTag))
 				g.Expect(got.ReleaseLink).To(Equal(tt.want.ReleaseLink))

@@ -469,6 +469,16 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "Get asset from GitHub release with an incomplete URL",
+			args: args{
+				templateURL:         "https://github.com/some-owner/some-repo/releases/download/v1.0.0",
+				targetNamespace:     "",
+				skipTemplateProcess: false,
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
 			name: "Get from stdin",
 			args: args{
 				templateURL:         "-",

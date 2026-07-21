@@ -748,6 +748,11 @@ func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader corea
 		os.Exit(1)
 	}
 
+	if err := (&coreadmission.CustomResourceDefinitionWebhook{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "Unable to create webhook", "webhook", "CustomResourceDefinition")
+		os.Exit(1)
+	}
+
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent usage of Cluster.Topology in case the feature flag is disabled.
 	if err := (&coreadmission.Cluster{Client: mgr.GetClient(), ClusterCacheReader: clusterCacheReader}).SetupWebhookWithManager(mgr); err != nil {

@@ -135,6 +135,7 @@ ibmcloud                   InfrastructureProvider     https://github.com/kuberne
 ionoscloud-ionoscloud      InfrastructureProvider     https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/releases/latest/                   infrastructure-components.yaml
 k0sproject-k0smotron       InfrastructureProvider     https://github.com/k0sproject/k0smotron/releases/latest/                                          infrastructure-components.yaml
 kubekey                    InfrastructureProvider     https://github.com/kubesphere/kubekey/releases/latest/                                            infrastructure-components.yaml
+kubeswift-io               InfrastructureProvider     https://github.com/kubeswift-io/cluster-api-provider-kubeswift/releases/latest/                   infrastructure-components.yaml
 kubevirt                   InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/                 infrastructure-components.yaml
 linode-linode              InfrastructureProvider     https://github.com/linode/cluster-api-provider-linode/releases/latest/                            infrastructure-components.yaml
 maas                       InfrastructureProvider     https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/                        infrastructure-components.yaml
@@ -310,6 +311,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: kubekey
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubesphere/kubekey/releases/latest/
+- File: infrastructure-components.yaml
+  Name: kubeswift-io
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kubeswift-io/cluster-api-provider-kubeswift/releases/latest/
 - File: infrastructure-components.yaml
   Name: kubevirt
   ProviderType: InfrastructureProvider

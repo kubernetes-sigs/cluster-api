@@ -65,6 +65,7 @@ const (
 	MAASProviderName           = "maas"
 	KubevirtProviderName       = "kubevirt"
 	KubeKeyProviderName        = "kubekey"
+	KubeSwiftProviderName      = "kubeswift-io"
 	VclusterProviderName       = "vcluster"
 	VirtinkProviderName        = "virtink"
 	CoxEdgeProviderName        = "coxedge"
@@ -358,6 +359,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         OxideProviderName,
 			url:          "https://github.com/oxidecomputer/cluster-api-provider-oxide/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         KubeSwiftProviderName,
+			url:          "https://github.com/kubeswift-io/cluster-api-provider-kubeswift/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

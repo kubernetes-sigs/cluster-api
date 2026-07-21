@@ -32,7 +32,7 @@ replaces:
 - [Summary](#summary)
 - [Motivation](#motivation)
   - [Goals](#goals)
-  - [Non-Goals/Future Work](#non-goalsfuture-work)
+  - [Non-Goals](#non-goals)
 - [Proposal](#proposal)
   - [Overview](#overview)
   - [User Stories](#user-stories)
@@ -80,7 +80,7 @@ minors, upgrading directly to the target
 This approach works well for most cases, by removing most of the upgrade toil from users, but in
 large or heterogeneous clusters this coupling creates some friction:
 
-- A single MD/MP's rollout can take days, and no group can be upgraded independently of the
+- A single MD/MP's rollout can take days, and no MD/MP can be upgraded independently of the
   cluster-wide version while it runs.
 - Different workloads need different upgrade cadences (e.g. uninterruptible training jobs vs.
   customer-facing inference sharing one cluster via a custom scheduler).
@@ -98,14 +98,14 @@ removing the friction described above.
 - Preserve the existing Cluster API managed topologies version behavior when MD/MP version pinning is not used.
 - Allow pinning versions/manually manage version for each MD/MP.
 - Keep normal operations (scaling, remediation, config changes) running on MD/MPs with a pinned
-  version; they are not frozen by cluster-level upgrades the way cluster-managed groups are today.
+  version; they are not frozen by cluster-level upgrades the way cluster-managed MD/MPs are today.
 - Support version skew between MD/MPs and the control plane as allowed by the Kubernetes version
   skew policy, and keep the existing skew safety checks/guardrails.
 - Keep version-aware patches predictable by using `builtin.machineDeployment.version` /
   `builtin.machinePool.version` as the source of truth for an MD/MP, even when it differs from
   `builtin.cluster.topology.version`.
 
-### Non-Goals/Future Work
+### Non-Goals
 
 - **Allowing unsupported skew.** Only skew permitted by the Kubernetes version skew policy is
   allowed.
@@ -113,7 +113,7 @@ removing the friction described above.
   never removes an MD/MP version automatically — e.g. it will not revert an MD/MP to
   cluster-managed versioning once it catches up to the control plane; the user must clear the
   field.
-- **Changing rollout behavior for groups not using the feature.** Groups without a
+- **Changing rollout behavior for MD/MPs not using the feature.** MD/MPs without a
   pinned version keep today's behavior.
 
 ## Proposal
@@ -149,7 +149,7 @@ flowchart TD
 1. **Independent control-plane vs. worker upgrades.** As a cluster admin, I want to upgrade the
    control plane without forcing a (potentially disruptive) worker upgrade that must be
    coordinated with tenants.
-2. **Per-group upgrade scheduling.** As a cluster admin, I have multiple MachineDeployments/MachinePools for
+2. **Per-MD/MP upgrade scheduling.** As a cluster admin, I have multiple MachineDeployments/MachinePools for
    different purposes (e.g. inference vs. training) that need different upgrade timing in the
    same cluster.
 3. **No cluster-wide freeze.** As a cluster admin with many/large MD/MPs, I don't want
@@ -253,8 +253,8 @@ version. See [#13315](https://github.com/kubernetes-sigs/cluster-api/issues/1331
 
 ### Workflow
 
-Pinning and upgrading a group is a two-step, always-explicit sequence. Setting the version the
-first time never rolls the group; it only opts the group out of cluster-managed versioning.
+Pinning and upgrading an MD/MP is a two-step, always-explicit sequence. Setting the version the
+first time never rolls the MD/MP; it only opts the MD/MP out of cluster-managed versioning.
 
 ```mermaid
 flowchart TD
@@ -267,12 +267,12 @@ flowchart TD
 
 1. **Pin (no-op).** Set `MachineDeploymentTopology.version` / `MachinePoolTopology.version` to the
    MD/MP's current version, which — at a stable cluster — equals the control plane version. This
-   pins the group without triggering any rollout. A pin can never exceed the control
-   plane version and can never move a group below the version it currently runs.
-2. **Diverge.** Advance the control plane (the pinned group holds back, within the skew policy) or
-   raise the group's pinned version toward the control plane. Raising the pin is what triggers a
-   rolling upgrade of that group only.
-3. **Unpin (explicit).** Clear the field to return the group to cluster-managed versioning; this
+   pins the MD/MP without triggering any rollout. A pin can never exceed the control
+   plane version and can never move an MD/MP below the version it currently runs.
+2. **Diverge.** Advance the control plane (the pinned MD/MP holds back, within the skew policy) or
+   raise the MD/MP's pinned version toward the control plane. Raising the pin is what triggers a
+   rolling upgrade of that MD/MP only.
+3. **Unpin (explicit).** Clear the field to return the MD/MP to cluster-managed versioning; this
    is allowed only when the pinned version already equals `Cluster.spec.topology.version`. Cluster
    API never unpins automatically.
 
@@ -295,7 +295,7 @@ already permits.
 
 - **Raw MachineDeployments/MachinePools.** Attach non-topology MachineDeployments to a
   topology cluster. Loses Cluster API managed topologies guardrails (including skew safety) and worker classes.
-- **One cluster per group of workers.** Isolates upgrades but adds control-plane cost, complicates
+- **One cluster per set of workers.** Isolates upgrades but adds control-plane cost, complicates
   shared services and multi-tenant networking, requires cross-cluster config propagation, and
   still doesn't let you manage control-plane and worker versions independently within a
   cluster. Good fit for strong-isolation models, poor fit for shared single-cluster platforms.
@@ -312,9 +312,9 @@ to be enabled and the new API field to be set to have any effect.
 - Existing behavior preserved when no MD/MP versions are set (control plane + workers
   roll to the desired version).
 - Setting an MD/MP version for the first time (equal to the control plane version) is a no-op: it
-  pins the group without triggering a rollout.
-- Raising the version of an already-pinned MD/MP triggers a rolling upgrade of only that group;
-  other groups and the control plane keep operating normally.
+  pins the MD/MP without triggering a rollout.
+- Raising the version of an already-pinned MD/MP triggers a rolling upgrade of only that MD/MP;
+  other MD/MPs and the control plane keep operating normally.
 - Cluster-level version upgrade on a cluster that has pinned MD/MPs: skew validated
   against every MD/MP; pinned MD/MPs are skipped, cluster-managed MD/MPs upgrade.
 - Skew validation blocks any transition that would exceed the policy at any point (validating

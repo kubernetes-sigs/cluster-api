@@ -57,6 +57,7 @@ source of inspiration and ideas for others.
 - [IONOS Cloud](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud)
 - [KubeKey](https://github.com/kubesphere/kubekey)
 - [k0smotron RemoteMachine (SSH)](https://github.com/k0sproject/k0smotron)
+- [KubeSwift](https://github.com/kubeswift-io/cluster-api-provider-kubeswift)
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)
 - [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)

@@ -48,6 +48,7 @@ var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", Label("Clu
 				delete(annotations, "inmemorycluster.infrastructure.cluster.x-k8s.io/listener")
 				delete(annotations, "machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped")
 				// Labels & Annotations added by the test extension
+				// TODO: Implement validation that these labels/annotations are set.
 				delete(labels, "top-level-label-1")
 				delete(annotations, "top-level-annotation-1")
 				return clusterv1.ObjectMeta{

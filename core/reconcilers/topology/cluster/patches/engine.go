@@ -277,8 +277,8 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 	// Add the InfrastructureClusterTemplate.
 	// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
 	if err := patchUnstructured(ctx, blueprint.InfrastructureClusterTemplate, desired.InfrastructureCluster, []patchUnstructuredFields{
-		{Src: "metadata.labels", Dest: "spec.template.metadata.labels"},
-		{Src: "metadata.annotations", Dest: "spec.template.metadata.annotations"},
+		{Src: []string{"metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
+		{Src: []string{"metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
 	}); err != nil {
 		return nil, errors.Wrapf(err, "failed to prepare %s %s for patching",
 			blueprint.InfrastructureClusterTemplate.GetKind(), klog.KObj(blueprint.InfrastructureClusterTemplate))
@@ -295,8 +295,8 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 	// Add the ControlPlaneTemplate.
 	// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
 	if err := patchUnstructured(ctx, blueprint.ControlPlane.Template, desired.ControlPlane.Object, []patchUnstructuredFields{
-		{Src: "metadata.labels", Dest: "spec.template.metadata.labels"},
-		{Src: "metadata.annotations", Dest: "spec.template.metadata.annotations"},
+		{Src: []string{"metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
+		{Src: []string{"metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
 	}); err != nil {
 		return nil, errors.Wrapf(err, "failed to prepare %s %s for patching",
 			blueprint.ControlPlane.Template.GetKind(), klog.KObj(blueprint.ControlPlane.Template))
@@ -315,8 +315,8 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 	if blueprint.HasControlPlaneInfrastructureMachine() {
 		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
 		if err := patchUnstructured(ctx, blueprint.ControlPlane.InfrastructureMachineTemplate, desired.ControlPlane.InfrastructureMachineTemplate, []patchUnstructuredFields{
-			{Src: "metadata.labels", Dest: "metadata.labels"},
-			{Src: "metadata.annotations", Dest: "metadata.annotations"},
+			{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
+			{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
 		}); err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare ControlPlane's %s %s for patching",
 				blueprint.ControlPlane.InfrastructureMachineTemplate.GetKind(), klog.KObj(blueprint.ControlPlane.InfrastructureMachineTemplate))
@@ -353,8 +353,8 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 		// Add the BootstrapTemplate.
 		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
 		if err := patchUnstructured(ctx, mdClass.BootstrapTemplate, md.BootstrapTemplate, []patchUnstructuredFields{
-			{Src: "metadata.labels", Dest: "metadata.labels"},
-			{Src: "metadata.annotations", Dest: "metadata.annotations"},
+			{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
+			{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
 		}); err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
 				mdClass.BootstrapTemplate.GetKind(), klog.KObj(mdClass.BootstrapTemplate), mdTopologyName)
@@ -371,8 +371,8 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 		// Add the InfrastructureMachineTemplate.
 		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
 		if err := patchUnstructured(ctx, mdClass.InfrastructureMachineTemplate, md.InfrastructureMachineTemplate, []patchUnstructuredFields{
-			{Src: "metadata.labels", Dest: "metadata.labels"},
-			{Src: "metadata.annotations", Dest: "metadata.annotations"},
+			{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
+			{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
 		}); err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
 				mdClass.InfrastructureMachineTemplate.GetKind(), klog.KObj(mdClass.InfrastructureMachineTemplate), mdTopologyName)
@@ -409,8 +409,8 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 		// Add the BootstrapTemplate.
 		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
 		if err := patchUnstructured(ctx, mpClass.BootstrapTemplate, mp.BootstrapObject, []patchUnstructuredFields{
-			{Src: "metadata.labels", Dest: "spec.template.metadata.labels"},
-			{Src: "metadata.annotations", Dest: "spec.template.metadata.annotations"},
+			{Src: []string{"metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
+			{Src: []string{"metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
 		}); err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
 				mpClass.BootstrapTemplate.GetKind(), klog.KObj(mpClass.BootstrapTemplate), mpTopologyName)
@@ -427,8 +427,8 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 		// Add the InfrastructureMachineTemplate.
 		// Syncing labels/annotations added (during desired state computation) to the desired state back into the template, so the patch engine can consider them.
 		if err := patchUnstructured(ctx, mpClass.InfrastructureMachinePoolTemplate, mp.InfrastructureMachinePoolObject, []patchUnstructuredFields{
-			{Src: "metadata.labels", Dest: "spec.template.metadata.labels"},
-			{Src: "metadata.annotations", Dest: "spec.template.metadata.annotations"},
+			{Src: []string{"metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
+			{Src: []string{"metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
 		}); err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
 				mpClass.InfrastructureMachinePoolTemplate.GetKind(), klog.KObj(mpClass.InfrastructureMachinePoolTemplate), mpTopologyName)
@@ -561,7 +561,8 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 
 	// Overwrite the spec of template.Template with the spec of the patchedTemplate,
 	// to ensure that we only pick up changes to the spec.
-	if err := patchutil.Patch(&requestItem.Object, patchedTemplate, "spec", "metadata.labels", "metadata.annotations"); err != nil {
+	// Note: By patching "spec" we'll be patching "spec.template.spec" and "spec.template.metadata".
+	if err := patchutil.Patch(&requestItem.Object, patchedTemplate, []string{"spec"}, []string{"metadata", "labels"}, []string{"metadata", "annotations"}); err != nil {
 		log.Error(err, fmt.Sprintf("Failed to apply patch to template with uid %q", requestItem.UID))
 		return errors.Wrap(err, "failed to apply patch to template")
 	}

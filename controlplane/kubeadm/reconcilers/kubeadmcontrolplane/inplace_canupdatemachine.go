@@ -271,19 +271,19 @@ func cleanupUnstructured(u *unstructured.Unstructured) *unstructured.Unstructure
 
 func applyPatchesToRequest(ctx context.Context, req *runtimehooksv1.CanUpdateMachineRequest, resp *runtimehooksv1.CanUpdateMachineResponse) error {
 	if resp.MachinePatch.IsDefined() {
-		if err := patch.ApplyPatchToTypedObject(ctx, &req.Current.Machine, resp.MachinePatch, "spec"); err != nil {
+		if err := patch.ApplyPatchToTypedObject(ctx, &req.Current.Machine, resp.MachinePatch, []string{"spec"}); err != nil {
 			return err
 		}
 	}
 
 	if resp.BootstrapConfigPatch.IsDefined() {
-		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.BootstrapConfig, resp.BootstrapConfigPatch, "spec"); err != nil {
+		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.BootstrapConfig, resp.BootstrapConfigPatch, []string{"spec"}); err != nil {
 			return err
 		}
 	}
 
 	if resp.InfrastructureMachinePatch.IsDefined() {
-		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.InfrastructureMachine, resp.InfrastructureMachinePatch, "spec"); err != nil {
+		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.InfrastructureMachine, resp.InfrastructureMachinePatch, []string{"spec"}); err != nil {
 			return err
 		}
 	}

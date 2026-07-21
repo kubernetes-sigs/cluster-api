@@ -52,8 +52,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec",
-						Dest: "spec",
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
 					},
 				},
 			},
@@ -84,8 +84,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec",
-						Dest: "spec",
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
 					},
 				},
 			},
@@ -124,8 +124,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec",
-						Dest: "spec",
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
 					},
 				},
 			},
@@ -168,8 +168,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec",
-						Dest: "spec",
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
 					},
 				},
 			},
@@ -200,8 +200,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec",
-						Dest: "spec",
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
 					},
 				},
 			},
@@ -232,8 +232,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec",
-						Dest: "spec",
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
 					},
 				},
 			},
@@ -268,8 +268,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec.template.spec",
-						Dest: "spec",
+						Src:  []string{"spec", "template", "spec"},
+						Dest: []string{"spec"},
 					},
 				},
 			},
@@ -304,8 +304,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec.template.spec",
-						Dest: "spec",
+						Src:  []string{"spec", "template", "spec"},
+						Dest: []string{"spec"},
 					},
 				},
 			},
@@ -360,8 +360,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec.template.spec",
-						Dest: "spec",
+						Src:  []string{"spec", "template", "spec"},
+						Dest: []string{"spec"},
 					},
 				},
 				FieldsToPreserve: []contract.Path{
@@ -407,8 +407,8 @@ func TestCopyFields(t *testing.T) {
 				},
 				Fields: []CopyFieldsInputField{
 					{
-						Src:  "spec",
-						Dest: "spec",
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
 					},
 				},
 			},
@@ -462,9 +462,9 @@ func TestCopyFields(t *testing.T) {
 					},
 				},
 				Fields: []CopyFieldsInputField{
-					{Src: "doesnotexist", Dest: "doesnotexist"}, // Should not influence metadata copying
-					{Src: "metadata.labels", Dest: "metadata.labels"},
-					{Src: "metadata.annotations", Dest: "metadata.annotations"},
+					{Src: []string{"doesnotexist"}, Dest: []string{"doesnotexist"}}, // Should not influence metadata copying
+					{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
+					{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
 				},
 				FieldsToPreserve: []contract.Path{
 					{"metadata", "labels", clusterv1.ClusterNameLabel},

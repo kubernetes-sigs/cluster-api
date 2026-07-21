@@ -65,9 +65,9 @@ func (i PreserveFields) ApplyToHelper(opts *PatchOptions) {
 // which are previously set by the topology controller and shouldn't be overwritten.
 func patchObject(ctx context.Context, dest, src *unstructured.Unstructured, opts ...PatchOption) error {
 	return patchUnstructured(ctx, dest, src, []patchUnstructuredFields{
-		{Src: "spec.template.spec", Dest: "spec"},
-		{Src: "spec.template.metadata.labels", Dest: "metadata.labels"},
-		{Src: "spec.template.metadata.annotations", Dest: "metadata.annotations"},
+		{Src: []string{"spec", "template", "spec"}, Dest: []string{"spec"}},
+		{Src: []string{"spec", "template", "metadata", "labels"}, Dest: []string{"metadata", "labels"}},
+		{Src: []string{"spec", "template", "metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
 	}, opts...)
 }
 
@@ -77,17 +77,17 @@ func patchObject(ctx context.Context, dest, src *unstructured.Unstructured, opts
 // BootstrapTemplate.spec.template.spec while preserving fields configured via opts.fieldsToPreserve.
 func patchTemplate(ctx context.Context, dest, src *unstructured.Unstructured, opts ...PatchOption) error {
 	return patchUnstructured(ctx, dest, src, []patchUnstructuredFields{
-		{Src: "metadata.labels", Dest: "metadata.labels"},
-		{Src: "metadata.annotations", Dest: "metadata.annotations"},
-		{Src: "spec.template.spec", Dest: "spec.template.spec"},
-		{Src: "spec.template.metadata.labels", Dest: "spec.template.metadata.labels"},
-		{Src: "spec.template.metadata.annotations", Dest: "spec.template.metadata.annotations"},
+		{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
+		{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
+		{Src: []string{"spec", "template", "spec"}, Dest: []string{"spec", "template", "spec"}},
+		{Src: []string{"spec", "template", "metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
+		{Src: []string{"spec", "template", "metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
 	}, opts...)
 }
 
 type patchUnstructuredFields struct {
-	Src  string
-	Dest string
+	Src  []string
+	Dest []string
 }
 
 // patchUnstructured overwrites original.destSpecPath with modified.srcSpecPath.
@@ -139,6 +139,9 @@ func patchUnstructured(ctx context.Context, dest, src *unstructured.Unstructured
 }
 
 // calculateDiff calculates the diff between two Unstructured objects.
+// Note: This func is diff'ing only metadata.labels/annotations and spec (which includes
+// spec.template.spec and spec.template.metadata) of the objects because
+// patchUnstructured (the func where calculateDiff is used) only patches these fields.
 func calculateDiff(original, patched *unstructured.Unstructured) ([]byte, error) {
 	originalDiffObject := map[string]any{
 		"metadata": map[string]any{

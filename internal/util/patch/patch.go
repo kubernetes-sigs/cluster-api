@@ -39,7 +39,7 @@ import (
 )
 
 // ApplyPatchToTypedObject applies the patch to a typed obj.
-func ApplyPatchToTypedObject[T any](ctx context.Context, currentMachine *T, machinePath runtimehooksv1.Patch, patchPath string) error {
+func ApplyPatchToTypedObject[T any](ctx context.Context, currentMachine *T, machinePath runtimehooksv1.Patch, patchPath []string) error {
 	// Note: Machine needs special handling because it is not a runtime.RawExtension. Simply converting it here to
 	//       a runtime.RawExtension so we can avoid making the code in applyPatchToObject more complex.
 	currentMachineRaw, err := ConvertToRawExtension(currentMachine)
@@ -68,7 +68,7 @@ func ApplyPatchToTypedObject[T any](ctx context.Context, currentMachine *T, mach
 // ApplyPatchToObject applies the patch to the obj.
 // Note: This is following the same general structure that is used in the applyPatchToRequest func in
 // internal/controllers/topology/cluster/patches/engine.go.
-func ApplyPatchToObject(ctx context.Context, obj *runtime.RawExtension, patch runtimehooksv1.Patch, patchPath string) (objChanged bool, reterr error) {
+func ApplyPatchToObject(ctx context.Context, obj *runtime.RawExtension, patch runtimehooksv1.Patch, patchPath []string) (objChanged bool, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if patch.PatchType == "" {
@@ -156,7 +156,7 @@ func ConvertToRawExtension(object any) (runtime.RawExtension, error) {
 }
 
 // Patch overwrites spec in object with spec of patchedObjectBytes.
-func Patch(object *runtime.RawExtension, patchedObjectBytes []byte, patchPaths ...string) error {
+func Patch(object *runtime.RawExtension, patchedObjectBytes []byte, patchPaths ...[]string) error {
 	objectUnstructured, err := bytesToUnstructured(object.Raw)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert object to Unstructured")
@@ -203,8 +203,8 @@ type CopyFieldsInput struct {
 
 // CopyFieldsInputField contains a single field that should be copied.
 type CopyFieldsInputField struct {
-	Src  string
-	Dest string
+	Src  []string
+	Dest []string
 }
 
 type preservedField struct {
@@ -232,17 +232,17 @@ func CopyFields(in CopyFieldsInput) error {
 
 	for _, field := range in.Fields {
 		// Get fieldValue from src.
-		fieldValue, found, err := unstructured.NestedFieldNoCopy(in.Src.Object, strings.Split(field.Src, ".")...)
+		fieldValue, found, err := unstructured.NestedFieldNoCopy(in.Src.Object, field.Src...)
 		if !found {
 			// Continue if field.Src does not exist in src, nothing to do.
 			continue
 		} else if err != nil {
-			return errors.Wrapf(err, "failed to get field %q from %s %s", field.Src, in.Src.GetKind(), klog.KObj(in.Src))
+			return errors.Wrapf(err, "failed to get field %q from %s %s", strings.Join(field.Src, "."), in.Src.GetKind(), klog.KObj(in.Src))
 		}
 
 		// Set fieldValue in dest.
-		if err := unstructured.SetNestedField(in.Dest.Object, fieldValue, strings.Split(field.Dest, ".")...); err != nil {
-			return errors.Wrapf(err, "failed to set field %q on %s %s", field.Dest, in.Dest.GetKind(), klog.KObj(in.Dest))
+		if err := unstructured.SetNestedField(in.Dest.Object, fieldValue, field.Dest...); err != nil {
+			return errors.Wrapf(err, "failed to set field %q on %s %s", strings.Join(field.Dest, "."), in.Dest.GetKind(), klog.KObj(in.Dest))
 		}
 	}
 

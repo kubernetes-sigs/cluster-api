@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -58,11 +59,12 @@ func TestClient_httpCall(t *testing.T) {
 	g := NewWithT(t)
 
 	tableTests := []struct {
-		name     string
-		request  runtime.Object
-		response runtime.Object
-		opts     *httpCallOptions
-		wantErr  bool
+		name            string
+		request         runtime.Object
+		response        runtime.Object
+		responseHandler func(w http.ResponseWriter, _ *http.Request)
+		opts            *httpCallOptions
+		wantErr         bool
 	}{
 		{
 			name:     "error if request, response and options are nil",
@@ -190,6 +192,31 @@ func TestClient_httpCall(t *testing.T) {
 			}(),
 			wantErr: false,
 		},
+		{
+			name:     "error if response is too large",
+			request:  &fakev1alpha1.FakeRequest{},
+			response: &fakev1alpha1.FakeResponse{},
+			responseHandler: func(w http.ResponseWriter, _ *http.Request) {
+				respBody := "{}" + strings.Repeat(" ", maxExtensionResponseBodyBytes+1)
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(respBody))
+			},
+			opts: func() *httpCallOptions {
+				c := runtimecatalog.New()
+				g.Expect(fakev1alpha1.AddToCatalog(c)).To(Succeed())
+
+				// get same gvh for hook by using the FakeHook and catalog
+				gvh, err := c.GroupVersionHook(fakev1alpha1.FakeHook)
+				g.Expect(err).To(Succeed())
+
+				return &httpCallOptions{
+					catalog:         c,
+					registrationGVH: gvh,
+					hookGVH:         gvh,
+				}
+			}(),
+			wantErr: true,
+		},
 	}
 	for _, tt := range tableTests {
 		t.Run(tt.name, func(*testing.T) {
@@ -197,7 +224,11 @@ func TestClient_httpCall(t *testing.T) {
 			if tt.opts != nil && tt.opts.catalog != nil {
 				// create http server with fakeHookHandler
 				mux := http.NewServeMux()
-				mux.HandleFunc("/", fakeHookHandler)
+				if tt.responseHandler != nil {
+					mux.HandleFunc("/", tt.responseHandler)
+				} else {
+					mux.HandleFunc("/", fakeHookHandler)
+				}
 
 				srv := newUnstartedTLSServer(mux)
 				srv.StartTLS()

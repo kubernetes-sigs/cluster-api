@@ -41,6 +41,13 @@ import (
 // DefaultPort is the default port that the webhook server serves.
 var DefaultPort = 9443
 
+// maxExtensionRequestBodyBytes bounds the request body a runtime extension handler
+// will buffer. Without a limit, any peer that can reach the extension's TLS port
+// (if mTLS is not configured) can stream an arbitrarily large body that io.ReadAll
+// buffers whole, OOM-killing the process. 20 MiB is above any legitimate hook request
+// (e.g. a GeneratePatchesRequest carrying the cluster's topology objects).
+const maxExtensionRequestBodyBytes = 20 << 20 // 20 MiB
+
 // Server is a runtime webhook server.
 type Server struct {
 	webhook.Server
@@ -302,7 +309,10 @@ func (s *Server) callHandler(handler ExtensionHandler, r *http.Request) runtimeh
 	request := handler.requestObject.DeepCopyObject()
 	response := handler.responseObject.DeepCopyObject().(runtimehooksv1.ResponseObject)
 
-	requestBody, err := io.ReadAll(r.Body)
+	maxBytesReader := http.MaxBytesReader(nil, r.Body, maxExtensionRequestBodyBytes)
+	defer maxBytesReader.Close()
+
+	requestBody, err := io.ReadAll(maxBytesReader)
 	if err != nil {
 		response.SetStatus(runtimehooksv1.ResponseStatusFailure)
 		response.SetMessage(fmt.Sprintf("error reading request: %v", err))

@@ -19,7 +19,7 @@ package kubeadmcontrolplane
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -62,7 +62,7 @@ func (r *Reconciler) tryInPlaceUpdate(
 	// fails or if we fail to delete the Machine.
 	canUpdate, err := r.canUpdateMachine(ctx, machineToInPlaceUpdate, machineUpToDateResult)
 	if err != nil {
-		return false, ctrl.Result{}, errors.Wrapf(err, "failed to determine if Machine %s can be updated in-place", machineToInPlaceUpdate.Name)
+		return false, ctrl.Result{}, pkgerrors.Wrapf(err, "failed to determine if Machine %s can be updated in-place", machineToInPlaceUpdate.Name)
 	}
 
 	if !canUpdate {

@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -231,7 +231,7 @@ func TestScaleMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 			},
-			error: errors.Errorf("spec.replicas for MachineSet foo/bar is nil, this is unexpected"),
+			error: pkgerrors.Errorf("spec.replicas for MachineSet foo/bar is nil, this is unexpected"),
 		},
 		{
 			name: "It fails when new MachineDeployment has no replicas",
@@ -251,7 +251,7 @@ func TestScaleMachineSet(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				},
 			},
-			error: errors.Errorf("spec.replicas for MachineDeployment foo/bar is nil, this is unexpected"),
+			error: pkgerrors.Errorf("spec.replicas for MachineDeployment foo/bar is nil, this is unexpected"),
 		},
 		{
 			name: "Scale up",

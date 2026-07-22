@@ -19,7 +19,7 @@ package kubeadmconfig
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -154,7 +154,7 @@ func getConfigOwner(ctx context.Context, c client.Client, obj metav1.Object, get
 	for _, ref := range obj.GetOwnerReferences() {
 		refGV, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse GroupVersion from %q", ref.APIVersion)
+			return nil, pkgerrors.Wrapf(err, "failed to parse GroupVersion from %q", ref.APIVersion)
 		}
 		refGVK := refGV.WithKind(ref.Kind)
 
@@ -189,11 +189,11 @@ func GetTypedOwnerByRef(ctx context.Context, c client.Client, ref *corev1.Object
 	objGVK := ref.GroupVersionKind()
 	obj, err := c.Scheme().New(objGVK)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to construct object of type %s", ref.GroupVersionKind())
+		return nil, pkgerrors.Wrapf(err, "failed to construct object of type %s", ref.GroupVersionKind())
 	}
 	clientObj, ok := obj.(client.Object)
 	if !ok {
-		return nil, errors.Errorf("expected owner reference to refer to a client.Object, is actually %T", obj)
+		return nil, pkgerrors.Errorf("expected owner reference to refer to a client.Object, is actually %T", obj)
 	}
 	key := types.NamespacedName{
 		Namespace: ref.Namespace,

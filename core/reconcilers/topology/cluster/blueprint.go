@@ -19,7 +19,7 @@ package cluster
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/klog/v2"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -41,21 +41,21 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 	// Get ClusterClass.spec.infrastructure.
 	blueprint.InfrastructureClusterTemplate, err = r.getReference(ctx, blueprint.ClusterClass.Spec.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get infrastructure cluster template for ClusterClass %s", klog.KObj(blueprint.ClusterClass))
+		return nil, pkgerrors.Wrapf(err, "failed to get infrastructure cluster template for ClusterClass %s", klog.KObj(blueprint.ClusterClass))
 	}
 
 	// Get ClusterClass.spec.controlPlane.
 	blueprint.ControlPlane = &scope.ControlPlaneBlueprint{}
 	blueprint.ControlPlane.Template, err = r.getReference(ctx, blueprint.ClusterClass.Spec.ControlPlane.TemplateRef.ToObjectReference(clusterClass.Namespace))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get control plane template for ClusterClass %s", klog.KObj(blueprint.ClusterClass))
+		return nil, pkgerrors.Wrapf(err, "failed to get control plane template for ClusterClass %s", klog.KObj(blueprint.ClusterClass))
 	}
 
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, read it.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
 		blueprint.ControlPlane.InfrastructureMachineTemplate, err = r.getReference(ctx, blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get control plane's machine template for ClusterClass %s", klog.KObj(blueprint.ClusterClass))
+			return nil, pkgerrors.Wrapf(err, "failed to get control plane's machine template for ClusterClass %s", klog.KObj(blueprint.ClusterClass))
 		}
 	}
 
@@ -77,13 +77,13 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 		// Get the infrastructure machine template.
 		machineDeploymentBlueprint.InfrastructureMachineTemplate, err = r.getReference(ctx, machineDeploymentClass.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get infrastructure machine template for ClusterClass %s, MachineDeployment class %q", klog.KObj(blueprint.ClusterClass), machineDeploymentClass.Class)
+			return nil, pkgerrors.Wrapf(err, "failed to get infrastructure machine template for ClusterClass %s, MachineDeployment class %q", klog.KObj(blueprint.ClusterClass), machineDeploymentClass.Class)
 		}
 
 		// Get the bootstrap config template.
 		machineDeploymentBlueprint.BootstrapTemplate, err = r.getReference(ctx, machineDeploymentClass.Bootstrap.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get bootstrap config template for ClusterClass %s, MachineDeployment class %q", klog.KObj(blueprint.ClusterClass), machineDeploymentClass.Class)
+			return nil, pkgerrors.Wrapf(err, "failed to get bootstrap config template for ClusterClass %s, MachineDeployment class %q", klog.KObj(blueprint.ClusterClass), machineDeploymentClass.Class)
 		}
 
 		machineDeploymentBlueprint.HealthCheck = machineDeploymentClass.HealthCheck
@@ -103,13 +103,13 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 		// Get the InfrastructureMachinePoolTemplate.
 		machinePoolBlueprint.InfrastructureMachinePoolTemplate, err = r.getReference(ctx, machinePoolClass.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get InfrastructureMachinePoolTemplate for ClusterClass %s, MachinePool class %q", klog.KObj(blueprint.ClusterClass), machinePoolClass.Class)
+			return nil, pkgerrors.Wrapf(err, "failed to get InfrastructureMachinePoolTemplate for ClusterClass %s, MachinePool class %q", klog.KObj(blueprint.ClusterClass), machinePoolClass.Class)
 		}
 
 		// Get the bootstrap config template.
 		machinePoolBlueprint.BootstrapTemplate, err = r.getReference(ctx, machinePoolClass.Bootstrap.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get bootstrap config for ClusterClass %s, MachinePool class %q", klog.KObj(blueprint.ClusterClass), machinePoolClass.Class)
+			return nil, pkgerrors.Wrapf(err, "failed to get bootstrap config for ClusterClass %s, MachinePool class %q", klog.KObj(blueprint.ClusterClass), machinePoolClass.Class)
 		}
 
 		blueprint.MachinePools[machinePoolClass.Class] = machinePoolBlueprint

@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	ignitionTypes "github.com/flatcar/ignition/config/v2_3/types"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vincent-petithory/dataurl"
 	"sigs.k8s.io/yaml"
 
@@ -48,7 +48,7 @@ conntrack:
 func RawIgnitionToProvisioningCommands(config []byte) ([]provisioning.Cmd, error) {
 	// Ensure Ignition is a valid YAML document.
 	if err := yaml.Unmarshal(config, &map[string]interface{}{}); err != nil {
-		return nil, errors.Wrapf(err, "invalid YAML")
+		return nil, pkgerrors.Wrapf(err, "invalid YAML")
 	}
 
 	// Parse the Ignition YAML into a slice of Ignition actions.

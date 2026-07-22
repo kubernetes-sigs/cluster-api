@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/gobuffalo/flect"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -214,11 +214,11 @@ type defaultMergeStrategy struct {
 // - info: conditions with positive polarity (normal True) and status True or conditions with negative polarity (normal False) and status False.
 func (d *defaultMergeStrategy) Merge(operation MergeOperation, conditions []ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
 	if len(conditions) == 0 {
-		return "", "", "", errors.New("can't merge an empty list of conditions")
+		return "", "", "", pkgerrors.New("can't merge an empty list of conditions")
 	}
 
 	if d.getPriorityFunc == nil {
-		return "", "", "", errors.New("can't merge without a getPriority func")
+		return "", "", "", pkgerrors.New("can't merge without a getPriority func")
 	}
 
 	// sortConditions the relevance defined by the users (the order of condition types), LastTransition time (older first).
@@ -248,7 +248,7 @@ func (d *defaultMergeStrategy) Merge(operation MergeOperation, conditions []Cond
 		}
 	default:
 		// NOTE: this is already handled above, but repeating also here for better readability.
-		return "", "", "", errors.New("can't merge an empty list of conditions")
+		return "", "", "", pkgerrors.New("can't merge an empty list of conditions")
 	}
 
 	// Compute the reason for the target condition:

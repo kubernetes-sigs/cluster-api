@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -230,7 +230,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 
 func unwrapAll(err error) error {
 	for {
-		newErr := errors.Unwrap(err)
+		newErr := pkgerrors.Unwrap(err)
 		if newErr == nil {
 			break
 		}
@@ -263,7 +263,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 				Message: fmt.Sprintf("Failed to connect to etcd: %s", unwrapAll(err)),
 			})
 		}
-		return nil, nil, nil, errors.Wrapf(err, "failed to get an etcd client for %s Nodes", strings.Join(nodeNames, ","))
+		return nil, nil, nil, pkgerrors.Wrapf(err, "failed to get an etcd client for %s Nodes", strings.Join(nodeNames, ","))
 	}
 	defer etcdClient.Close()
 
@@ -280,7 +280,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 				Message: fmt.Sprintf("Failed to get etcd members: %s", unwrapAll(err)),
 			})
 		}
-		return nil, nil, nil, errors.Wrapf(err, "failed to get etcd members")
+		return nil, nil, nil, pkgerrors.Wrapf(err, "failed to get etcd members")
 	}
 
 	var etcdLeader *etcd.Member
@@ -291,7 +291,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 		}
 	}
 	if etcdLeader == nil {
-		return nil, nil, nil, errors.Errorf("failed to get etcd leader")
+		return nil, nil, nil, pkgerrors.Errorf("failed to get etcd leader")
 	}
 
 	// Gets the list of etcd alarms.
@@ -307,7 +307,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 				Message: fmt.Sprintf("Failed to get etcd alarms: %s", unwrapAll(err)),
 			})
 		}
-		return nil, nil, nil, errors.Wrapf(err, "failed to get etcd alarms")
+		return nil, nil, nil, pkgerrors.Wrapf(err, "failed to get etcd alarms")
 	}
 
 	return currentMembers, etcdLeader, alarms, nil
@@ -482,7 +482,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	// without a corresponding machine, and thus we use this list in the loop for updating static pod conditions as well.
 	nodesWithControlPlaneLabel, err := w.getNodesWithControlPlaneLabel(ctx)
 	if err != nil {
-		controlPlane.NodeListError = errors.Wrap(err, "failed to list control plane nodes")
+		controlPlane.NodeListError = pkgerrors.Wrap(err, "failed to list control plane nodes")
 		for i := range controlPlane.Machines {
 			machine := controlPlane.Machines[i]
 			for _, condition := range allMachinePodV1Beta1Conditions {

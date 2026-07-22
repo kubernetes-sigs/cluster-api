@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 const (
@@ -101,16 +101,16 @@ func calculateURL(version string) (string, error) {
 func getVersionFromMarkerFile(ctx context.Context, url string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get %s: failed to create request", url)
+		return "", pkgerrors.Wrapf(err, "failed to get %s: failed to create request", url)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get %s", url)
+		return "", pkgerrors.Wrapf(err, "failed to get %s", url)
 	}
 	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get %s: failed to read body", url)
+		return "", pkgerrors.Wrapf(err, "failed to get %s: failed to read body", url)
 	}
 
 	return strings.TrimSpace(string(b)), nil

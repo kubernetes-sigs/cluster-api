@@ -27,7 +27,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -36,7 +36,7 @@ import (
 // NewPrivateKey creates an RSA private key.
 func NewPrivateKey() (*rsa.PrivateKey, error) {
 	pk, err := rsa.GenerateKey(rand.Reader, DefaultRSAKeySize)
-	return pk, errors.WithStack(err)
+	return pk, pkgerrors.WithStack(err)
 }
 
 // EncodeCertPEM returns PEM-endcoded certificate data.
@@ -62,7 +62,7 @@ func EncodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
 func EncodePublicKeyPEM(key *rsa.PublicKey) ([]byte, error) {
 	der, err := x509.MarshalPKIXPublicKey(key)
 	if err != nil {
-		return []byte{}, errors.WithStack(err)
+		return []byte{}, pkgerrors.WithStack(err)
 	}
 	block := pem.Block{
 		Type:  "PUBLIC KEY",
@@ -76,7 +76,7 @@ func EncodePublicKeyPEM(key *rsa.PublicKey) ([]byte, error) {
 func DecodeCertPEM(encoded []byte) (*x509.Certificate, error) {
 	block, _ := pem.Decode(encoded)
 	if block == nil {
-		return nil, errors.New("unable to decode PEM data")
+		return nil, pkgerrors.New("unable to decode PEM data")
 	}
 
 	return x509.ParseCertificate(block.Bytes)
@@ -87,7 +87,7 @@ func DecodeCertPEM(encoded []byte) (*x509.Certificate, error) {
 func DecodePrivateKeyPEM(encoded []byte) (crypto.Signer, error) {
 	block, _ := pem.Decode(encoded)
 	if block == nil {
-		return nil, errors.New("unable to decode PEM data")
+		return nil, pkgerrors.New("unable to decode PEM data")
 	}
 
 	errs := []error{}
@@ -104,7 +104,7 @@ func DecodePrivateKeyPEM(encoded []byte) (crypto.Signer, error) {
 	if pkcs8Err == nil {
 		pkcs8Signer, ok := pkcs8Key.(crypto.Signer)
 		if !ok {
-			return nil, errors.New("x509: certificate private key does not implement crypto.Signer")
+			return nil, pkgerrors.New("x509: certificate private key does not implement crypto.Signer")
 		}
 		return pkcs8Signer, nil
 	}
@@ -129,7 +129,7 @@ func NewSigner(keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (cryp
 	}
 	rsaKeySize := rsaKeySizeFromAlgorithmType(keyEncryptionAlgorithm)
 	if rsaKeySize == 0 {
-		return nil, errors.Errorf("cannot obtain key size from unknown RSA algorithm: %q", keyEncryptionAlgorithm)
+		return nil, pkgerrors.Errorf("cannot obtain key size from unknown RSA algorithm: %q", keyEncryptionAlgorithm)
 	}
 	return rsa.GenerateKey(rand.Reader, rsaKeySize)
 }

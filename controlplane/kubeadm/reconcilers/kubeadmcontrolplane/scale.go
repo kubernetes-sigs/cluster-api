@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
@@ -123,19 +123,19 @@ func (r *Reconciler) scaleDownControlPlane(
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
 		log.Error(err, "Failed to create client to workload cluster")
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create client to workload cluster")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create client to workload cluster")
 	}
 
 	if machineToDelete == nil {
 		log.Info("Failed to pick control plane Machine to delete")
-		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
+		return ctrl.Result{}, pkgerrors.New("failed to pick control plane Machine to delete")
 	}
 
 	// If KCP should manage etcd, If etcd leadership is on machine that is about to be deleted, move it to the newest member available.
 	if controlPlane.IsEtcdManaged() {
 		// We cannot perform any etcd operation without a list of nodes.
 		if controlPlane.NodeListError != nil {
-			return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable to forward etcd leadership")
+			return ctrl.Result{}, pkgerrors.Wrap(controlPlane.NodeListError, "unable to forward etcd leadership")
 		}
 
 		if err := r.forwardEtcdLeadership(ctx, workloadCluster, controlPlane, machineToDelete); err != nil {

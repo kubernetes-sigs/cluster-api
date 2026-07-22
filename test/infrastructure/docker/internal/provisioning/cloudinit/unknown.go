@@ -19,7 +19,7 @@ package cloudinit
 import (
 	"encoding/json"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
@@ -40,7 +40,7 @@ func (u *unknown) Unmarshal(data []byte, _ kind.Mapping) error {
 	var s1 []string
 	if err := json.Unmarshal(data, &s1); err != nil {
 		if _, ok := err.(*json.UnmarshalTypeError); !ok {
-			return errors.WithStack(err)
+			return pkgerrors.WithStack(err)
 		}
 	} else {
 		u.lines = s1
@@ -50,7 +50,7 @@ func (u *unknown) Unmarshal(data []byte, _ kind.Mapping) error {
 	// If it's not a slice of strings it should be one string value
 	var s2 string
 	if err := json.Unmarshal(data, &s2); err != nil {
-		return errors.WithStack(err)
+		return pkgerrors.WithStack(err)
 	}
 
 	u.lines = []string{s2}

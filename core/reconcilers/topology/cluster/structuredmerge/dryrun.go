@@ -23,7 +23,7 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/google/go-cmp/cmp"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,17 +79,17 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 
 	// Add TopologyDryRunAnnotation to notify validation webhooks to skip immutability checks.
 	if err := unstructured.SetNestedField(dryRunCtx.originalUnstructured.Object, "", "metadata", "annotations", clusterv1.TopologyDryRunAnnotation); err != nil {
-		return false, false, "", "", errors.Wrap(err, "failed to add topology dry-run annotation to original object")
+		return false, false, "", "", pkgerrors.Wrap(err, "failed to add topology dry-run annotation to original object")
 	}
 	if err := unstructured.SetNestedField(dryRunCtx.modifiedUnstructured.Object, "", "metadata", "annotations", clusterv1.TopologyDryRunAnnotation); err != nil {
-		return false, false, "", "", errors.Wrap(err, "failed to add topology dry-run annotation to modified object")
+		return false, false, "", "", pkgerrors.Wrap(err, "failed to add topology dry-run annotation to modified object")
 	}
 
 	// Do a server-side apply dry-run with modifiedUnstructured to get the updated object.
 	err = dryRunCtx.client.Apply(ctx, client.ApplyConfigurationFromUnstructured(dryRunCtx.modifiedUnstructured), client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
 		// This catches errors like metadata.uid changes.
-		return false, false, "", "", errors.Wrap(err, "server side apply dry-run failed for modified object")
+		return false, false, "", "", pkgerrors.Wrap(err, "server side apply dry-run failed for modified object")
 	}
 
 	// Do a server-side apply dry-run with originalUnstructured to ensure the latest defaulting is applied.
@@ -114,7 +114,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	dryRunCtx.originalUnstructured.SetManagedFields(nil)
 	err = dryRunCtx.client.Apply(ctx, client.ApplyConfigurationFromUnstructured(dryRunCtx.originalUnstructured), client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
-		return false, false, "", "", errors.Wrap(err, "server side apply dry-run failed for original object")
+		return false, false, "", "", pkgerrors.Wrap(err, "server side apply dry-run failed for original object")
 	}
 	// Restore managed fields.
 	dryRunCtx.originalUnstructured.SetManagedFields(originalUnstructuredManagedFieldsBeforeSSA)
@@ -129,7 +129,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Please note that if other managers made changes to fields that we care about and thus ownership changed,
 	// this would affect our managed fields as well and we would still detect it by diffing our managed fields.
 	if err := cleanupManagedFieldsAndAnnotation(dryRunCtx.modifiedUnstructured); err != nil {
-		return false, false, "", "", errors.Wrap(err, "failed to filter topology dry-run annotation on modified object")
+		return false, false, "", "", pkgerrors.Wrap(err, "failed to filter topology dry-run annotation on modified object")
 	}
 
 	// Also run the function for the originalUnstructured to remove the managedField
@@ -140,7 +140,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Please note that if other managers made changes to fields that we care about and thus ownership changed,
 	// this would affect our managed fields as well and we would still detect it by diffing our managed fields.
 	if err := cleanupManagedFieldsAndAnnotation(dryRunCtx.originalUnstructured); err != nil {
-		return false, false, "", "", errors.Wrap(err, "failed to filter topology dry-run annotation on original object")
+		return false, false, "", "", pkgerrors.Wrap(err, "failed to filter topology dry-run annotation on original object")
 	}
 
 	// Drop the other fields which are not part of our intent.
@@ -184,23 +184,23 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 		if len(diff.Object) != 0 {
 			patchBytes, err := json.Marshal(diff.Object)
 			if err != nil {
-				return false, false, "", "", errors.Wrapf(err, "failed to marshal diff")
+				return false, false, "", "", pkgerrors.Wrapf(err, "failed to marshal diff")
 			}
 			patchString = string(patchBytes)
 
 			originalJSONWithChanges, err := jsonpatch.MergePatch(originalJSON, patchBytes)
 			if err != nil {
-				return false, false, "", "", errors.Wrapf(err, "failed to apply diff to original object")
+				return false, false, "", "", pkgerrors.Wrapf(err, "failed to apply diff to original object")
 			}
 
 			originalYAML, err := yaml.JSONToYAML(originalJSON)
 			if err != nil {
-				return false, false, "", "", errors.Wrapf(err, "failed to convert original object to yaml")
+				return false, false, "", "", pkgerrors.Wrapf(err, "failed to convert original object to yaml")
 			}
 
 			originalYAMLWithChanges, err := yaml.JSONToYAML(originalJSONWithChanges)
 			if err != nil {
-				return false, false, "", "", errors.Wrapf(err, "failed to convert original object with diff to yaml")
+				return false, false, "", "", pkgerrors.Wrapf(err, "failed to convert original object with diff to yaml")
 			}
 
 			diffString = cmp.Diff(string(originalYAML), string(originalYAMLWithChanges))
@@ -256,7 +256,7 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 		// Unmarshal the managed fields into a map[string]interface{}
 		fieldsV1 := map[string]interface{}{}
 		if err := json.Unmarshal(managedField.FieldsV1.GetRawBytes(), &fieldsV1); err != nil {
-			return errors.Wrap(err, "failed to unmarshal managed fields")
+			return pkgerrors.Wrap(err, "failed to unmarshal managed fields")
 		}
 
 		// Filter out the annotation ownership as well as leftover empty maps.
@@ -271,7 +271,7 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 
 		fieldsV1Raw, err := json.Marshal(fieldsV1)
 		if err != nil {
-			return errors.Wrap(err, "failed to marshal managed fields")
+			return pkgerrors.Wrap(err, "failed to marshal managed fields")
 		}
 		managedField.FieldsV1.SetRawBytes(fieldsV1Raw)
 

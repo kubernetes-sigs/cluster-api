@@ -28,7 +28,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -678,14 +678,14 @@ func machineSetControllerMutatorMoveMachines(log *fileLogger, ms *clusterv1.Mach
 		}
 	}
 	if targetMS == nil {
-		return errors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, which does not exists", ms.Name, targetMSName)
+		return pkgerrors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, which does not exists", ms.Name, targetMSName)
 	}
 
 	validSourceMSs := targetMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]
 	sourcesSet := sets.Set[string]{}
 	sourcesSet.Insert(strings.Split(validSourceMSs, ",")...)
 	if !sourcesSet.Has(ms.Name) {
-		return errors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, but %[2]s only accepts machines from %s", ms.Name, targetMS.Name, validSourceMSs)
+		return pkgerrors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, but %[2]s only accepts machines from %s", ms.Name, targetMS.Name, validSourceMSs)
 	}
 
 	// Sort machines to ensure stable results of the move operation during tests.

@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -57,7 +57,7 @@ func parseYAMLStream(input []byte, scheme *runtime.Scheme, sourceGVs map[schema.
 			break
 		}
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to read YAML document")
+			return nil, pkgerrors.Wrap(err, "failed to read YAML document")
 		}
 
 		trimmed := bytes.TrimSpace(raw)
@@ -67,7 +67,7 @@ func parseYAMLStream(input []byte, scheme *runtime.Scheme, sourceGVs map[schema.
 
 		doc, err := parseDocument(trimmed, index, unstructuredDecoder, typedDecoder, sourceGVs)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse document at index %d", index)
+			return nil, pkgerrors.Wrapf(err, "failed to parse document at index %d", index)
 		}
 		documents = append(documents, doc)
 		index++
@@ -94,12 +94,12 @@ func serializeYAMLStream(docs []document, scheme *runtime.Scheme) ([]byte, error
 	for i, doc := range docs {
 		if i > 0 {
 			if _, err := buf.WriteString("---\n"); err != nil {
-				return nil, errors.Wrap(err, "failed to write document separator")
+				return nil, pkgerrors.Wrap(err, "failed to write document separator")
 			}
 		}
 
 		if err := yamlSerializer.Encode(doc.object, buf); err != nil {
-			return nil, errors.Wrapf(err, "failed to encode document at index %d", doc.index)
+			return nil, pkgerrors.Wrapf(err, "failed to encode document at index %d", doc.index)
 		}
 	}
 
@@ -111,10 +111,10 @@ func parseDocument(trimmed []byte, index int, unstructuredDecoder runtime.Decode
 	obj := &unstructured.Unstructured{}
 	_, gvk, err := unstructuredDecoder.Decode(trimmed, nil, obj)
 	if err != nil {
-		return document{}, errors.Wrap(err, "failed to decode document: invalid YAML structure")
+		return document{}, pkgerrors.Wrap(err, "failed to decode document: invalid YAML structure")
 	}
 	if gvk == nil || gvk.Empty() || gvk.Kind == "" || (gvk.Group == "" && gvk.Version == "") {
-		return document{}, errors.New("failed to decode document: missing or empty apiVersion/kind")
+		return document{}, pkgerrors.New("failed to decode document: missing or empty apiVersion/kind")
 	}
 
 	convertible := sourceGVs[schema.GroupVersion{Group: gvk.Group, Version: gvk.Version}]

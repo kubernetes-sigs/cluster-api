@@ -19,7 +19,7 @@ package cluster
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
@@ -30,12 +30,12 @@ import (
 // getReference gets the object referenced in ref.
 func (r *Reconciler) getReference(ctx context.Context, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	if ref == nil {
-		return nil, errors.New("reference is not set")
+		return nil, pkgerrors.New("reference is not set")
 	}
 
 	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
+		return nil, pkgerrors.Wrapf(err, "failed to retrieve %s %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
 	}
 	return obj, nil
 }

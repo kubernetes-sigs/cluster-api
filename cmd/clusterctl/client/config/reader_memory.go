@@ -19,7 +19,7 @@ package config
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -66,7 +66,7 @@ func (f *MemoryReader) Get(key string) (string, error) {
 	if val, ok := f.variables[key]; ok {
 		return val, nil
 	}
-	return "", errors.Errorf("value for variable %q is not set", key)
+	return "", pkgerrors.Errorf("value for variable %q is not set", key)
 }
 
 // Set sets a value for the given key.

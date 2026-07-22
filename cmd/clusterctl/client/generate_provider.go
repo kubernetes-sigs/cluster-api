@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -58,12 +58,12 @@ func (c *clusterctlClient) GenerateProvider(ctx context.Context, provider string
 
 	releaseSeries := latestMetadata.GetReleaseSeriesForVersion(currentVersion)
 	if releaseSeries == nil {
-		return nil, errors.Errorf("invalid provider metadata: version %s for the provider %s does not match any release series", providerVersion, providerName)
+		return nil, pkgerrors.Errorf("invalid provider metadata: version %s for the provider %s does not match any release series", providerVersion, providerName)
 	}
 
 	compatibleContracts := c.getCompatibleContractVersions(c.currentContractVersion)
 	if !compatibleContracts.Has(releaseSeries.Contract) {
-		return nil, errors.Errorf("current version of clusterctl is only compatible with provider implementing %s contract versions, detected %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, providerName)
+		return nil, pkgerrors.Errorf("current version of clusterctl is only compatible with provider implementing %s contract versions, detected %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, providerName)
 	}
 
 	return c.GetProviderComponents(ctx, provider, providerType, options)

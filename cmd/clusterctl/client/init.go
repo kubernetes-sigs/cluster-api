@@ -21,7 +21,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -309,7 +309,7 @@ func (c *clusterctlClient) addToInstaller(ctx context.Context, options addToInst
 		// It is possible to opt-out from automatic installation of bootstrap/control-plane providers using '-' as a provider name (NoopProvider).
 		if provider == NoopProvider {
 			if providerType == clusterctlv1.CoreProviderType {
-				return errors.New("the '-' value can not be used for the core provider")
+				return pkgerrors.New("the '-' value can not be used for the core provider")
 			}
 			continue
 		}
@@ -319,11 +319,11 @@ func (c *clusterctlClient) addToInstaller(ctx context.Context, options addToInst
 		}
 		components, err := c.getComponentsByName(ctx, provider, providerType, componentsOptions)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get provider components for the %q provider", provider)
+			return pkgerrors.Wrapf(err, "failed to get provider components for the %q provider", provider)
 		}
 
 		if components.Type() != providerType {
-			return errors.Errorf("can't use %q provider as an %q, it is a %q", provider, providerType, components.Type())
+			return pkgerrors.Errorf("can't use %q provider as an %q, it is a %q", provider, providerType, components.Type())
 		}
 
 		// If a provider of the same name, type and version already exists in the Cluster skip adding it to the installer.

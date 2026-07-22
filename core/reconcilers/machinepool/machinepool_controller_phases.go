@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -110,8 +110,8 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, m *clusterv1.Machine
 
 	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
-		if apierrors.IsNotFound(errors.Cause(err)) {
-			return external.ReconcileOutput{}, errors.Wrapf(err, "could not find %s %s for MachinePool %s, requeuing",
+		if apierrors.IsNotFound(pkgerrors.Cause(err)) {
+			return external.ReconcileOutput{}, pkgerrors.Wrapf(err, "could not find %s %s for MachinePool %s, requeuing",
 				ref.Kind, klog.KRef(m.Namespace, ref.Name), klog.KObj(m))
 		}
 		return external.ReconcileOutput{}, err
@@ -204,7 +204,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		// Determine if the data secret was created.
 		var dataSecretCreated bool
 		if dataSecretCreatedPtr, err := contract.Bootstrap().DataSecretCreated(contractVersion).Get(bootstrapConfig); err != nil {
-			if !errors.Is(err, contract.ErrFieldNotFound) {
+			if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
 				return ctrl.Result{}, err
 			}
 		} else {
@@ -226,9 +226,9 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		// Get and set the name of the secret containing the bootstrap data.
 		secretName, err := contract.Bootstrap().DataSecretName().Get(bootstrapConfig)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
 		} else if secretName == nil {
-			return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
+			return ctrl.Result{}, pkgerrors.Errorf("retrieved empty dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
 		}
 
 		m.Spec.Template.Spec.Bootstrap.DataSecretName = secretName
@@ -244,7 +244,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// This should never happen because the MachinePool webhook would not allow neither ConfigRef nor DataSecretName to be set.
-	return ctrl.Result{}, errors.Errorf("neither .spec.bootstrap.configRef nor .spec.bootstrap.dataSecretName are set for MachinePool %q in namespace %q", m.Name, m.Namespace)
+	return ctrl.Result{}, pkgerrors.Errorf("neither .spec.bootstrap.configRef nor .spec.bootstrap.dataSecretName are set for MachinePool %q in namespace %q", m.Name, m.Namespace)
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a MachinePool.
@@ -255,7 +255,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, mp, mp.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
-		if apierrors.IsNotFound(errors.Cause(err)) {
+		if apierrors.IsNotFound(pkgerrors.Cause(err)) {
 			log.Error(err, "infrastructure reference could not be found")
 			if ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 				// Infra object went missing after the machine pool was up and running
@@ -306,7 +306,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	err = r.reconcileMachines(ctx, s, infraConfig)
 
 	if err != nil || getNodeRefsErr != nil {
-		return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to reconcile Machines for MachinePool %s", klog.KObj(mp)), errors.Wrapf(getNodeRefsErr, "failed to get nodeRefs for MachinePool %s", klog.KObj(mp))})
+		return ctrl.Result{}, kerrors.NewAggregate([]error{pkgerrors.Wrapf(err, "failed to reconcile Machines for MachinePool %s", klog.KObj(mp)), pkgerrors.Wrapf(getNodeRefsErr, "failed to get nodeRefs for MachinePool %s", klog.KObj(mp))})
 	}
 
 	if !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
@@ -316,15 +316,15 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 
 	var providerIDList []string
 	// Get Spec.ProviderIDList from the infrastructure provider.
-	if err := util.UnstructuredUnmarshalField(infraConfig, &providerIDList, "spec", "providerIDList"); err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve data from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+	if err := util.UnstructuredUnmarshalField(infraConfig, &providerIDList, "spec", "providerIDList"); err != nil && !pkgerrors.Is(err, util.ErrUnstructuredFieldNotFound) {
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve data from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
 
 	// Get and set Status.Replicas from the infrastructure provider.
 	err = util.UnstructuredUnmarshalField(infraConfig, &mp.Status.Replicas, "status", "replicas")
 	if err != nil {
-		if !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve replicas from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+		if !pkgerrors.Is(err, util.ErrUnstructuredFieldNotFound) {
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve replicas from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 		}
 	}
 
@@ -362,12 +362,12 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 
 	var infraMachineKind string
 	if err := util.UnstructuredUnmarshalField(infraMachinePool, &infraMachineKind, "status", "infrastructureMachineKind"); err != nil {
-		if errors.Is(err, util.ErrUnstructuredFieldNotFound) {
+		if pkgerrors.Is(err, util.ErrUnstructuredFieldNotFound) {
 			log.V(4).Info("MachinePool Machines not supported, no infraMachineKind found")
 			return nil
 		}
 
-		return errors.Wrapf(err, "failed to retrieve infraMachineKind from infrastructure provider for MachinePool %s", klog.KObj(mp))
+		return pkgerrors.Wrapf(err, "failed to retrieve infraMachineKind from infrastructure provider for MachinePool %s", klog.KObj(mp))
 	}
 
 	infraMachineSelector := metav1.LabelSelector{
@@ -384,7 +384,7 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 	infraMachineList.SetAPIVersion(infraMachinePool.GetAPIVersion())
 	infraMachineList.SetKind(infraMachineKind + "List")
 	if err := r.Client.List(ctx, &infraMachineList, client.InNamespace(mp.Namespace), client.MatchingLabels(infraMachineSelector.MatchLabels)); err != nil {
-		return errors.Wrapf(err, "failed to list infra machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+		return pkgerrors.Wrapf(err, "failed to list infra machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
 
 	// Add watcher for infraMachine, if there isn't one already; this will allow this controller to reconcile
@@ -406,7 +406,7 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 	}
 
 	if err := r.createOrUpdateMachines(ctx, s, machineList.Items, infraMachineList.Items); err != nil {
-		return errors.Wrapf(err, "failed to create machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+		return pkgerrors.Wrapf(err, "failed to create machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
 
 	return nil
@@ -445,7 +445,7 @@ func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machi
 			desiredMachine := r.computeDesiredMachine(s.machinePool, infraMachine, &existingMachine, node)
 			if err := ssa.Patch(ctx, r.Client, MachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: &existingMachine}); err != nil {
 				log.Error(err, "failed to update Machine", "Machine", klog.KObj(desiredMachine))
-				errs = append(errs, errors.Wrapf(err, "failed to update Machine %q", klog.KObj(desiredMachine)))
+				errs = append(errs, pkgerrors.Wrapf(err, "failed to update Machine %q", klog.KObj(desiredMachine)))
 			}
 		} else {
 			// Otherwise create a new Machine for the infraMachine.
@@ -453,7 +453,7 @@ func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machi
 			machine := r.computeDesiredMachine(s.machinePool, infraMachine, nil, node)
 
 			if err := ssa.Patch(ctx, r.Client, MachinePoolControllerName, machine); err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to create new Machine for infraMachine %q in namespace %q", infraMachine.GetName(), infraMachine.GetNamespace()))
+				errs = append(errs, pkgerrors.Wrapf(err, "failed to create new Machine for infraMachine %q in namespace %q", infraMachine.GetName(), infraMachine.GetNamespace()))
 				continue
 			}
 
@@ -461,7 +461,7 @@ func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machi
 		}
 	}
 	if err := r.waitForMachineCreation(ctx, createdMachines); err != nil {
-		errs = append(errs, errors.Wrapf(err, "failed to wait for machines to be created"))
+		errs = append(errs, pkgerrors.Wrapf(err, "failed to wait for machines to be created"))
 	}
 	if len(errs) > 0 {
 		return kerrors.NewAggregate(errs)
@@ -579,7 +579,7 @@ func (r *Reconciler) waitForMachineCreation(ctx context.Context, machineList []c
 		})
 
 		if pollErr != nil {
-			return errors.Wrapf(pollErr, "failed waiting for machine object %v to be created", klog.KObj(&machine))
+			return pkgerrors.Wrapf(pollErr, "failed waiting for machine object %v to be created", klog.KObj(&machine))
 		}
 	}
 

@@ -20,7 +20,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -40,13 +40,13 @@ type ClientWithDeleteResponse interface {
 func NewClientWithDeleteResponse(obj client.Object, objGR schema.GroupResource, scheme *runtime.Scheme, restConfig *rest.Config, httpClient *http.Client) (ClientWithDeleteResponse, error) {
 	gvk, err := apiutil.GVKForObject(obj, scheme)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create client: failed to get GVK from object")
+		return nil, pkgerrors.Wrapf(err, "failed to create client: failed to get GVK from object")
 	}
 
 	restClient, err := apiutil.RESTClientForGVK(gvk, false, false, restConfig,
 		serializer.NewCodecFactory(scheme), httpClient)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create client: failed to create REST client")
+		return nil, pkgerrors.Wrapf(err, "failed to create client: failed to create REST client")
 	}
 
 	return &clientWithDeleteResponse{

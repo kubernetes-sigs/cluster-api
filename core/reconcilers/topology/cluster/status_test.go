@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,7 +63,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 
 		{
 			name:         "should set the condition to false if there is a reconcile error",
-			reconcileErr: errors.New("reconcile error"),
+			reconcileErr: pkgerrors.New("reconcile error"),
 			s: &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{},

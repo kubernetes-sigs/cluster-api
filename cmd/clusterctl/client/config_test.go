@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -915,7 +915,7 @@ func newFakeClientWithoutCluster(configClient config.Client) *fakeClient {
 		InjectConfig(fake.configClient),
 		InjectRepositoryFactory(func(_ context.Context, input RepositoryClientFactoryInput) (repository.Client, error) {
 			if _, ok := fake.repositories[input.Provider.ManifestLabel()]; !ok {
-				return nil, errors.Errorf("repository for kubeconfig %q does not exist", input.Provider.ManifestLabel())
+				return nil, pkgerrors.Errorf("repository for kubeconfig %q does not exist", input.Provider.ManifestLabel())
 			}
 			return fake.repositories[input.Provider.ManifestLabel()], nil
 		}),
@@ -1121,5 +1121,5 @@ v3: default3`,
 type errReader struct{}
 
 func (e *errReader) Read(_ []byte) (n int, err error) {
-	return 0, errors.New("read error")
+	return 0, pkgerrors.New("read error")
 }

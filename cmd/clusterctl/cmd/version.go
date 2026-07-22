@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 
@@ -78,7 +78,7 @@ func runVersion() error {
 		}
 		fmt.Println(string(y))
 	default:
-		return errors.Errorf("invalid output format: %s", vo.output)
+		return pkgerrors.Errorf("invalid output format: %s", vo.output)
 	}
 
 	return nil

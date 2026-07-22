@@ -19,7 +19,7 @@ package structuredmerge
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -56,7 +56,7 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 			originalUnstructured = original.DeepCopyObject().(*unstructured.Unstructured)
 		default:
 			if err := c.Scheme().Convert(original, originalUnstructured, nil); err != nil {
-				return nil, errors.Wrap(err, "failed to convert original object to Unstructured")
+				return nil, pkgerrors.Wrap(err, "failed to convert original object to Unstructured")
 			}
 		}
 	}
@@ -67,7 +67,7 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 		modifiedUnstructured = modified.DeepCopyObject().(*unstructured.Unstructured)
 	default:
 		if err := c.Scheme().Convert(modified, modifiedUnstructured, nil); err != nil {
-			return nil, errors.Wrap(err, "failed to convert modified object to Unstructured")
+			return nil, pkgerrors.Wrap(err, "failed to convert modified object to Unstructured")
 		}
 	}
 

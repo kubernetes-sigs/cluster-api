@@ -26,7 +26,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/ptr"
@@ -84,13 +84,13 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, _ client.Object, req *r
 		// Merge template-specific and global variables.
 		variables, err := topologymutation.MergeVariableMaps(globalVariables, templateVariables)
 		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to merge global and template-specific variables for %q", objectKind))
+			errs = append(errs, pkgerrors.Wrapf(err, "failed to merge global and template-specific variables for %q", objectKind))
 			continue
 		}
 
 		enabled, err := patchIsEnabled(j.patch.EnabledIf, variables)
 		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to calculate if patch is enabled for %q", objectKind))
+			errs = append(errs, pkgerrors.Wrapf(err, "failed to calculate if patch is enabled for %q", objectKind))
 			continue
 		}
 		if !enabled {
@@ -103,7 +103,7 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, _ client.Object, req *r
 			// Generate JSON patches.
 			jsonPatches, err := generateJSONPatches(patch.JSONPatches, variables)
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to generate JSON patches for %q", objectKind))
+				errs = append(errs, pkgerrors.Wrapf(err, "failed to generate JSON patches for %q", objectKind))
 				continue
 			}
 
@@ -234,7 +234,7 @@ func patchIsEnabled(enabledIf string, variables map[string]apiextensionsv1.JSON)
 	// Rendered template.
 	value, err := renderValueTemplate(enabledIf, variables)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to calculate value for enabledIf")
+		return false, pkgerrors.Wrapf(err, "failed to calculate value for enabledIf")
 	}
 
 	// Patch is enabled if the rendered template value is `true`.
@@ -272,7 +272,7 @@ func generateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables map[string
 	// Render JSON Patches.
 	resJSON, err := json.Marshal(res)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to marshal JSON Patch %v", jsonPatches)
+		return nil, pkgerrors.Wrapf(err, "failed to marshal JSON Patch %v", jsonPatches)
 	}
 
 	return resJSON, nil
@@ -282,16 +282,16 @@ func generateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables map[string
 func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextensionsv1.JSON) (*apiextensionsv1.JSON, error) {
 	// Return if values are set incorrectly.
 	if patch.Value == nil && patch.ValueFrom == nil {
-		return nil, errors.Errorf("failed to calculate value: neither .value nor .valueFrom are set")
+		return nil, pkgerrors.Errorf("failed to calculate value: neither .value nor .valueFrom are set")
 	}
 	if patch.Value != nil && patch.ValueFrom != nil {
-		return nil, errors.Errorf("failed to calculate value: both .value and .valueFrom are set")
+		return nil, pkgerrors.Errorf("failed to calculate value: both .value and .valueFrom are set")
 	}
 	if patch.ValueFrom != nil && patch.ValueFrom.Variable == "" && patch.ValueFrom.Template == "" {
-		return nil, errors.Errorf("failed to calculate value: .valueFrom is set, but neither .valueFrom.variable nor .valueFrom.template are set")
+		return nil, pkgerrors.Errorf("failed to calculate value: .valueFrom is set, but neither .valueFrom.variable nor .valueFrom.template are set")
 	}
 	if patch.ValueFrom != nil && patch.ValueFrom.Variable != "" && patch.ValueFrom.Template != "" {
-		return nil, errors.Errorf("failed to calculate value: .valueFrom is set, but both .valueFrom.variable and .valueFrom.template are set")
+		return nil, pkgerrors.Errorf("failed to calculate value: .valueFrom is set, but both .valueFrom.variable and .valueFrom.template are set")
 	}
 
 	// Return raw value.
@@ -303,7 +303,7 @@ func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextension
 	if patch.ValueFrom.Variable != "" {
 		value, err := patchvariables.GetVariableValue(variables, patch.ValueFrom.Variable)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to calculate value")
+			return nil, pkgerrors.Wrapf(err, "failed to calculate value")
 		}
 		return value, nil
 	}
@@ -311,7 +311,7 @@ func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextension
 	// Return rendered value template.
 	value, err := renderValueTemplate(patch.ValueFrom.Template, variables)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to calculate value for template")
+		return nil, pkgerrors.Wrapf(err, "failed to calculate value for template")
 	}
 	return value, nil
 }
@@ -321,7 +321,7 @@ func renderValueTemplate(valueTemplate string, variables map[string]apiextension
 	// Parse the template.
 	tpl, err := template.New("tpl").Funcs(sprig.HermeticTxtFuncMap()).Parse(valueTemplate)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse template: %q", valueTemplate)
+		return nil, pkgerrors.Wrapf(err, "failed to parse template: %q", valueTemplate)
 	}
 
 	// Convert the flat variables map in a nested map, so that variables can be
@@ -330,20 +330,20 @@ func renderValueTemplate(valueTemplate string, variables map[string]apiextension
 	// they cannot be directly consumed as byte arrays.
 	data, err := calculateTemplateData(variables)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to calculate template data")
+		return nil, pkgerrors.Wrap(err, "failed to calculate template data")
 	}
 
 	// Render the template.
 	var buf bytes.Buffer
 	if err := tpl.Execute(&buf, data); err != nil {
-		return nil, errors.Wrapf(err, "failed to render template: %q", valueTemplate)
+		return nil, pkgerrors.Wrapf(err, "failed to render template: %q", valueTemplate)
 	}
 
 	// Unmarshal the rendered template.
 	// NOTE: The YAML library is used for unmarshalling, to be able to handle YAML and JSON.
 	value := apiextensionsv1.JSON{}
 	if err := yaml.Unmarshal(buf.Bytes(), &value); err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal rendered template: %q", buf.String())
+		return nil, pkgerrors.Wrapf(err, "failed to unmarshal rendered template: %q", buf.String())
 	}
 
 	return &value, nil
@@ -376,14 +376,14 @@ func calculateTemplateData(variables map[string]apiextensionsv1.JSON) (map[strin
 	// Marshal the variables into a byte array.
 	tmp, err := json.Marshal(variables)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to convert variables: failed to marshal variables")
+		return nil, pkgerrors.Wrapf(err, "failed to convert variables: failed to marshal variables")
 	}
 
 	// Unmarshal the byte array back.
 	// NOTE: This converts the "leaf nodes" of the nested map
 	// from apiextensionsv1.JSON to their Go types.
 	if err := json.Unmarshal(tmp, &res); err != nil {
-		return nil, errors.Wrapf(err, "failed to convert variables: failed to unmarshal variables")
+		return nil, pkgerrors.Wrapf(err, "failed to convert variables: failed to unmarshal variables")
 	}
 
 	return res, nil

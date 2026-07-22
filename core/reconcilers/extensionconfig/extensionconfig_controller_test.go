@@ -26,7 +26,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -226,7 +226,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 				return err
 			}
 			if conf.Spec.ClientConfig.URL != updatedServer.URL {
-				return errors.Errorf("URL not set on updated object: got: %s, want: %s", conf.Spec.ClientConfig.URL, updatedServer.URL)
+				return pkgerrors.Errorf("URL not set on updated object: got: %s, want: %s", conf.Spec.ClientConfig.URL, updatedServer.URL)
 			}
 			return nil
 		}, 30*time.Second, 100*time.Millisecond).Should(Succeed())

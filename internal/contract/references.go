@@ -19,7 +19,7 @@ package contract
 import (
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
@@ -55,22 +55,22 @@ func getNestedV1Beta1Ref(obj *unstructured.Unstructured, fields ...string) (*cor
 	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "apiVersion")...); ok && err == nil {
 		ref.APIVersion = v
 	} else {
-		return nil, errors.Errorf("failed to get %s.apiVersion from %s", strings.Join(fields, "."), obj.GetKind())
+		return nil, pkgerrors.Errorf("failed to get %s.apiVersion from %s", strings.Join(fields, "."), obj.GetKind())
 	}
 	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "kind")...); ok && err == nil {
 		ref.Kind = v
 	} else {
-		return nil, errors.Errorf("failed to get %s.kind from %s", strings.Join(fields, "."), obj.GetKind())
+		return nil, pkgerrors.Errorf("failed to get %s.kind from %s", strings.Join(fields, "."), obj.GetKind())
 	}
 	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "name")...); ok && err == nil {
 		ref.Name = v
 	} else {
-		return nil, errors.Errorf("failed to get %s.name from %s", strings.Join(fields, "."), obj.GetKind())
+		return nil, pkgerrors.Errorf("failed to get %s.name from %s", strings.Join(fields, "."), obj.GetKind())
 	}
 	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "namespace")...); ok && err == nil {
 		ref.Namespace = v
 	} else {
-		return nil, errors.Errorf("failed to get %s.namespace from %s", strings.Join(fields, "."), obj.GetKind())
+		return nil, pkgerrors.Errorf("failed to get %s.namespace from %s", strings.Join(fields, "."), obj.GetKind())
 	}
 	return ref, nil
 }
@@ -84,7 +84,7 @@ func setNestedV1Beta1Ref(obj *unstructured.Unstructured, ref *corev1.ObjectRefer
 		"apiVersion": ref.APIVersion,
 	}
 	if err := unstructured.SetNestedField(obj.UnstructuredContent(), r, fields...); err != nil {
-		return errors.Wrapf(err, "failed to set object reference on object %v %s",
+		return pkgerrors.Wrapf(err, "failed to set object reference on object %v %s",
 			obj.GroupVersionKind(), klog.KObj(obj))
 	}
 	return nil

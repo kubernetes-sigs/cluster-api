@@ -22,7 +22,7 @@ import (
 	"os"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cmd"
@@ -211,7 +211,7 @@ apiServer:
 		errStr := fmt.Sprintf("Failed to create kind cluster %q: %v", k.name, err)
 		// Extract the details of the RunError, if the cluster creation was triggered by a RunError.
 		var runErr *exec.RunError
-		if errors.As(err, &runErr) {
+		if pkgerrors.As(err, &runErr) {
 			errStr += "\n" + string(runErr.Output)
 		}
 		Expect(err).ToNot(HaveOccurred(), errStr)

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -110,7 +110,7 @@ func (r *Reconciler) updateV1Beta1Status(ctx context.Context, controlPlane *pkg.
 	if !v1beta1conditions.IsTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition) {
 		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 		if err != nil {
-			return errors.Wrap(err, "failed to create remote cluster client")
+			return pkgerrors.Wrap(err, "failed to create remote cluster client")
 		}
 
 		hasKubeadmConfig, err := workloadCluster.HasKubeadmConfig(ctx)
@@ -195,7 +195,7 @@ func setControlPlaneInitialized(ctx context.Context, controlPlane *pkg.ControlPl
 
 		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 		if err != nil {
-			return errors.Wrap(err, "failed to create remote cluster client")
+			return pkgerrors.Wrap(err, "failed to create remote cluster client")
 		}
 		hasKubeadmConfig, err := workloadCluster.HasKubeadmConfig(ctx)
 		if err != nil {

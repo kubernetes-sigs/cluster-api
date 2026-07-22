@@ -23,7 +23,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,10 +79,10 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil {
-		return errors.New("Client must not be nil")
+		return pkgerrors.New("Client must not be nil")
 	}
 	if feature.Gates.Enabled(feature.RuntimeSDK) && r.RuntimeClient == nil {
-		return errors.New("RuntimeClient must not be nil")
+		return pkgerrors.New("RuntimeClient must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clusterclass")
@@ -97,7 +97,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Complete(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.discoverVariablesCache = cache.New[runtimeclient.CallExtensionCacheEntry](ctx, cache.DefaultTTL)
@@ -304,11 +304,11 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 			err := r.RuntimeClient.CallExtension(ctx, runtimehooksv1.DiscoverVariables, clusterClass, patch.External.DiscoverVariablesExtension, req, resp,
 				runtimeclient.WithCaching{Cache: r.discoverVariablesCache, CacheKeyFunc: cacheKeyFunc})
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to call DiscoverVariables for patch %s", patch.Name))
+				errs = append(errs, pkgerrors.Wrapf(err, "failed to call DiscoverVariables for patch %s", patch.Name))
 				continue
 			}
 			if resp.Status != runtimehooksv1.ResponseStatusSuccess {
-				errs = append(errs, errors.Errorf("patch %s returned status %q with message %q", patch.Name, resp.Status, resp.Message))
+				errs = append(errs, pkgerrors.Errorf("patch %s returned status %q with message %q", patch.Name, resp.Status, resp.Message))
 				continue
 			}
 
@@ -334,9 +334,9 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 	}
 	if len(errs) > 0 {
 		err := kerrors.NewAggregate(errs)
-		s.variableDiscoveryError = errors.Wrapf(err, "VariableDiscovery failed")
+		s.variableDiscoveryError = pkgerrors.Wrapf(err, "VariableDiscovery failed")
 		// TODO: Decide whether to remove old variables if discovery fails.
-		return ctrl.Result{}, errors.Wrapf(err, "failed to discover variables for ClusterClass %s", clusterClass.Name)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to discover variables for ClusterClass %s", clusterClass.Name)
 	}
 
 	statusVarList := []clusterv1.ClusterClassStatusVariable{}
@@ -360,8 +360,8 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 
 	if len(variablesWithConflict) > 0 {
 		err := fmt.Errorf("the following variables have conflicting schemas: %s", strings.Join(variablesWithConflict, ","))
-		s.variableDiscoveryError = errors.Wrapf(err, "VariableDiscovery failed")
-		return ctrl.Result{}, errors.Wrapf(err, "failed to discover variables for ClusterClass %s", clusterClass.Name)
+		s.variableDiscoveryError = pkgerrors.Wrapf(err, "VariableDiscovery failed")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to discover variables for ClusterClass %s", clusterClass.Name)
 	}
 
 	return ctrl.Result{}, nil
@@ -448,10 +448,10 @@ func dropFalsePtrBool(in *clusterv1.JSONSchemaProps) *clusterv1.JSONSchemaProps 
 func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference) error {
 	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {
-		if apierrors.IsNotFound(errors.Cause(err)) {
-			return errors.Wrapf(err, "Could not find external object for the ClusterClass. refGroupVersionKind: %s, refName: %s, refNamespace: %s", ref.GroupVersionKind(), ref.Name, ref.Namespace)
+		if apierrors.IsNotFound(pkgerrors.Cause(err)) {
+			return pkgerrors.Wrapf(err, "Could not find external object for the ClusterClass. refGroupVersionKind: %s, refName: %s, refNamespace: %s", ref.GroupVersionKind(), ref.Name, ref.Namespace)
 		}
-		return errors.Wrapf(err, "failed to get the external object for the ClusterClass. refGroupVersionKind: %s, refName: %s, refNamespace: %s", ref.GroupVersionKind(), ref.Name, ref.Namespace)
+		return pkgerrors.Wrapf(err, "failed to get the external object for the ClusterClass. refGroupVersionKind: %s, refName: %s, refNamespace: %s", ref.GroupVersionKind(), ref.Name, ref.Namespace)
 	}
 
 	desiredOwnerRef := metav1.OwnerReference{
@@ -467,7 +467,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 
 	original := obj.DeepCopyObject().(client.Object)
 	if err := controllerutil.SetOwnerReference(clusterClass, obj, r.Client.Scheme()); err != nil {
-		return errors.Wrapf(err, "failed to set ClusterClass owner reference for %s %s", obj.GetKind(), klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "failed to set ClusterClass owner reference for %s %s", obj.GetKind(), klog.KObj(obj))
 	}
 
 	return r.Client.Patch(ctx, obj, client.MergeFrom(original))

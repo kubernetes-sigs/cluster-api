@@ -27,7 +27,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -4431,9 +4431,9 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 			Message: "failed to create object",
 		},
 	}
-	nonStatusError := errors.New("an unexpected error with unknown information inside")
-	expectedNonStatusError := errors.New("failed to create TestControlPlane.controlplane.cluster.x-k8s.io")
-	expectedNilObjectNonStatusError := errors.New("failed to create object")
+	nonStatusError := pkgerrors.New("an unexpected error with unknown information inside")
+	expectedNonStatusError := pkgerrors.New("failed to create TestControlPlane.controlplane.cluster.x-k8s.io")
+	expectedNilObjectNonStatusError := pkgerrors.New("failed to create object")
 	tests := []struct {
 		name     string
 		input    error

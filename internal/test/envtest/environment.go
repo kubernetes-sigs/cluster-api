@@ -30,7 +30,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -212,7 +212,7 @@ func Run(ctx context.Context, input RunInput) int {
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		})
 		if err := os.WriteFile(kubeconfigPath, config, 0o600); err != nil { //nolint:gosec // G703: kubeconfigPath is constructed internally.
-			panic(errors.Wrapf(err, "failed to write the test env kubeconfig"))
+			panic(pkgerrors.Wrapf(err, "failed to write the test env kubeconfig"))
 		}
 	}
 
@@ -240,12 +240,12 @@ func Run(ctx context.Context, input RunInput) int {
 	var errs []error
 
 	if err := verifyPanicMetrics(); err != nil {
-		errs = append(errs, errors.Wrapf(err, "panics occurred during tests"))
+		errs = append(errs, pkgerrors.Wrapf(err, "panics occurred during tests"))
 	}
 
 	// Tearing down the test environment
 	if err := env.stop(); err != nil {
-		errs = append(errs, errors.Wrapf(err, "failed to stop the test environment"))
+		errs = append(errs, pkgerrors.Wrapf(err, "failed to stop the test environment"))
 	}
 
 	if len(errs) > 0 {
@@ -513,7 +513,7 @@ func (e *Environment) start(ctx context.Context) {
 // stop stops the test environment.
 func (e *Environment) stop() error {
 	fmt.Println("Stopping the test environment")
-	e.cancelManager(errors.New("test environment stopped"))
+	e.cancelManager(pkgerrors.New("test environment stopped"))
 	return e.env.Stop()
 }
 
@@ -589,7 +589,7 @@ func (e *Environment) CleanupAndWait(ctx context.Context, objs ...client.Object)
 				return false, nil
 			})
 		oBytes, _ := yaml.Marshal(oCopy)
-		errs = append(errs, errors.Wrapf(err, "Object %s is not being deleted from the testenv client cache:\n%s", klog.KObj(o), oBytes))
+		errs = append(errs, pkgerrors.Wrapf(err, "Object %s is not being deleted from the testenv client cache:\n%s", klog.KObj(o), oBytes))
 	}
 	return kerrors.NewAggregate(errs)
 }
@@ -616,7 +616,7 @@ func (e *Environment) CreateAndWait(ctx context.Context, obj client.Object, opts
 			}
 			return true, nil
 		}); err != nil {
-		return errors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+		return pkgerrors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
 	}
 	return nil
 }
@@ -647,7 +647,7 @@ func (e *Environment) DeleteAndWait(ctx context.Context, obj client.Object, opts
 			}
 			return false, nil
 		}); err != nil {
-		return errors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+		return pkgerrors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
 	}
 	return nil
 }
@@ -658,7 +658,7 @@ func (e *Environment) DeleteAndWait(ctx context.Context, obj client.Object, opts
 func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, fieldManager string) error {
 	objGVK, err := apiutil.GVKForObject(obj, e.Scheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to get GVK to set GVK on object")
+		return pkgerrors.Wrapf(err, "failed to get GVK to set GVK on object")
 	}
 
 	if err := ssa.Patch(ctx, e.Client, fieldManager, obj); err != nil {
@@ -687,7 +687,7 @@ func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, field
 			}
 			return true, nil
 		}); err != nil {
-		return errors.Wrapf(err, "%s %s is not being added to or did not get updated in the testenv client cache", objGVK.Kind, klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "%s %s is not being added to or did not get updated in the testenv client cache", objGVK.Kind, klog.KObj(obj))
 	}
 	return nil
 }

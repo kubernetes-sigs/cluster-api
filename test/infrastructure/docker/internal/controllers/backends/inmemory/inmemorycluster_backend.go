@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +55,7 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	log := ctrl.LoggerFrom(ctx)
 
 	if inMemoryCluster.Spec.Backend.InMemory == nil {
-		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
+		return ctrl.Result{}, pkgerrors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
 	}
 
 	// Compute the name for resource group and listener.
@@ -87,11 +87,11 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 		if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(ns), ns); err != nil {
 			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to get %s Namespace", nsName)
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get %s Namespace", nsName)
 			}
 
 			if err := inmemoryClient.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to create %s Namespace", nsName)
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create %s Namespace", nsName)
 			}
 		}
 	}
@@ -103,19 +103,19 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 			// Note: Check if the kubeconfig secret has the wrong controlPlaneEndpoint, if yes, fix it up
 			kubeconfigSecret := &corev1.Secret{}
 			if err := r.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Name + "-kubeconfig"}, kubeconfigSecret); err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to get kubeconfig Secret for Cluster")
+				return ctrl.Result{}, pkgerrors.Wrap(err, "failed to get kubeconfig Secret for Cluster")
 			}
 			data, ok := kubeconfigSecret.Data[secret.KubeconfigDataName]
 			if !ok {
-				return ctrl.Result{}, errors.Errorf("missing key %q in kubeconfig Secret for Cluster", secret.KubeconfigDataName)
+				return ctrl.Result{}, pkgerrors.Errorf("missing key %q in kubeconfig Secret for Cluster", secret.KubeconfigDataName)
 			}
 			config, err := clientcmd.Load(data)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
+				return ctrl.Result{}, pkgerrors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
 			}
 			kubeconfigCluster, ok := config.Clusters[cluster.Name]
 			if !ok {
-				return ctrl.Result{}, errors.Errorf("missing clusters map entry in kubeconfig Secret for Cluster")
+				return ctrl.Result{}, pkgerrors.Errorf("missing clusters map entry in kubeconfig Secret for Cluster")
 			}
 			desiredServer := fmt.Sprintf("https://%s", net.JoinHostPort(r.APIServerMux.Host(), strconv.Itoa(int(inMemoryCluster.Spec.ControlPlaneEndpoint.Port))))
 			if kubeconfigCluster.Server != desiredServer {
@@ -144,10 +144,10 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// the operation is a no-op.
 	listener, err := r.APIServerMux.InitWorkloadClusterListener(listenerName, inMemoryCluster.Spec.ControlPlaneEndpoint.Port)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to init the listener for the workload cluster")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to init the listener for the workload cluster")
 	}
 	if err := r.APIServerMux.RegisterResourceGroup(listenerName, resourceGroup); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to register the resource group for the workload cluster")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to register the resource group for the workload cluster")
 	}
 
 	// Surface the control plane endpoint
@@ -166,7 +166,7 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 // ReconcileDelete handle in memory backend for deleted DevCluster.
 func (r *ClusterBackendReconciler) ReconcileDelete(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.DevCluster) (ctrl.Result, error) {
 	if inMemoryCluster.Spec.Backend.InMemory == nil {
-		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
+		return ctrl.Result{}, pkgerrors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
 	}
 
 	// Compute the name for resource group and listener.
@@ -189,7 +189,7 @@ func (r *ClusterBackendReconciler) ReconcileDelete(_ context.Context, cluster *c
 // PatchDevCluster patch a DevCluster.
 func (r *ClusterBackendReconciler) PatchDevCluster(ctx context.Context, patchHelper *patch.Helper, inMemoryCluster *infrav1.DevCluster) error {
 	if inMemoryCluster.Spec.Backend.InMemory == nil {
-		return errors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
+		return pkgerrors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
 	}
 
 	return patchHelper.Patch(

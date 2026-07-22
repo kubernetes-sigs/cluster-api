@@ -40,7 +40,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/valyala/fastjson"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
@@ -82,19 +82,19 @@ func importLogs(logPath string, logFileRegex *regexp.Regexp, logJSONAdditionalLa
 	// Get Logs.
 	logs, err := getLogs(ctx, logPath, logFileRegex)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get logs")
+		return pkgerrors.Wrapf(err, "failed to get logs")
 	}
 
 	for logFile, logData := range logs {
 		// Prepare logs for Loki.
 		streams, err := prepareLogsForLoki(logData, logJSONAdditionalLabels)
 		if err != nil {
-			return errors.Wrapf(err, "failed to prepare logs for Loki")
+			return pkgerrors.Wrapf(err, "failed to prepare logs for Loki")
 		}
 
 		// Push logs to Loki.
 		if err := pushLogsToLoki(ctx, lokiURL, lokiOrgID, logFile, streams); err != nil {
-			return errors.Wrapf(err, "failed to push logs to Loki")
+			return pkgerrors.Wrapf(err, "failed to push logs to Loki")
 		}
 	}
 
@@ -136,7 +136,7 @@ func getLogsFromFile(logPath string, logFileRegex *regexp.Regexp) (map[string]Lo
 
 		file, err := os.ReadFile(fileName) //nolint:gosec // file inclusion via variable is not an issue here.
 		if err != nil {
-			return errors.Wrapf(err, "failed to read log file from filesystem")
+			return pkgerrors.Wrapf(err, "failed to read log file from filesystem")
 		}
 		ld.logs = file
 
@@ -153,7 +153,7 @@ func getLogsFromFile(logPath string, logFileRegex *regexp.Regexp) (map[string]Lo
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read logs from filesystem")
+		return nil, pkgerrors.Wrapf(err, "failed to read logs from filesystem")
 	}
 
 	return logData, nil
@@ -164,13 +164,13 @@ func getLogsFromGCS(ctx context.Context, logPath string, logFileRegex *regexp.Re
 	// Calculate GCS log location based on either a GCS path or a ProwJob URL.
 	bucket, folder, err := calculateGCSLogLocation(logPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get logs from GCS")
+		return nil, pkgerrors.Wrapf(err, "failed to get logs from GCS")
 	}
 
 	klog.Infof("Getting logs from gs://%s/%s", bucket, folder)
 
 	// Set timeout.
-	ctx, cancel := context.WithTimeoutCause(ctx, 2*time.Minute, errors.New("client timeout expired"))
+	ctx, cancel := context.WithTimeoutCause(ctx, 2*time.Minute, pkgerrors.New("client timeout expired"))
 	defer cancel()
 
 	// Create GCS client.
@@ -193,10 +193,10 @@ func getLogsFromGCS(ctx context.Context, logPath string, logFileRegex *regexp.Re
 		attrs, err := it.Next()
 		if err != nil {
 			// Break if there are no other files.
-			if errors.Is(err, iterator.Done) {
+			if pkgerrors.Is(err, iterator.Done) {
 				break
 			}
-			return nil, errors.Wrapf(err, "failed to get logs from GCS: failed to get next file")
+			return nil, pkgerrors.Wrapf(err, "failed to get logs from GCS: failed to get next file")
 		}
 		fileName := attrs.Name
 
@@ -212,7 +212,7 @@ func getLogsFromGCS(ctx context.Context, logPath string, logFileRegex *regexp.Re
 		// Download manager.log file from GCS.
 		file, err := downloadFileFromGCS(ctx, client, bucket, fileName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get log file from GCS")
+			return nil, pkgerrors.Wrapf(err, "failed to get log file from GCS")
 		}
 		ld.logs = file
 
@@ -235,7 +235,7 @@ func getLogsFromGCS(ctx context.Context, logPath string, logFileRegex *regexp.Re
 func calculateGCSLogLocation(logPath string) (string, string, error) {
 	u, err := url.Parse(logPath)
 	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to parse log path %q", logPath)
+		return "", "", pkgerrors.Wrapf(err, "failed to parse log path %q", logPath)
 	}
 
 	if u.Scheme == "https" {
@@ -244,7 +244,7 @@ func calculateGCSLogLocation(logPath string) (string, string, error) {
 		// u.Path then is: /view/gs/kubernetes-jenkins/pr-logs/pull/kubernetes-sigs_cluster-api/6189/pull-cluster-api-build-main/1496233282759561216
 		pathSegments := strings.Split(strings.TrimPrefix(u.Path, "/"), "/")
 		if len(pathSegments) < 4 {
-			return "", "", errors.Wrapf(err, "failed to parse log path %q: unexpected format", logPath)
+			return "", "", pkgerrors.Wrapf(err, "failed to parse log path %q: unexpected format", logPath)
 		}
 
 		bucket := pathSegments[2]
@@ -268,14 +268,14 @@ func downloadFileFromGCS(ctx context.Context, client *storage.Client, bucket, ob
 	// Create reader for object.
 	rc, err := client.Bucket(bucket).Object(object).NewReader(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create reader for file %q", object)
+		return nil, pkgerrors.Wrapf(err, "failed to create reader for file %q", object)
 	}
 	defer rc.Close()
 
 	// Read object.
 	data, err := io.ReadAll(rc)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read file %q", object)
+		return nil, pkgerrors.Wrapf(err, "failed to read file %q", object)
 	}
 	return data, nil
 }
@@ -352,7 +352,7 @@ func prepareLogsForLoki(ld LogData, logJSONAdditionalLabels []string) ([]LokiStr
 					continue
 				}
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to unquote label %q: %q", label, labelValue)
+					return nil, pkgerrors.Wrapf(err, "failed to unquote label %q: %q", label, labelValue)
 				}
 				logLineMetadata[label] = labelValue
 			}
@@ -386,11 +386,11 @@ func pushLogsToLoki(ctx context.Context, lokiURL, lokiOrgID, file string, lokiLo
 		// Marshal streams to JSON.
 		body, err := json.Marshal(streams)
 		if err != nil {
-			return errors.Wrapf(err, "failed to marshal Loki stream")
+			return pkgerrors.Wrapf(err, "failed to marshal Loki stream")
 		}
 
 		if err := pushStreamToLoki(ctx, lokiURL, lokiOrgID, body); err != nil {
-			return errors.Wrapf(err, "failed to push Loki stream")
+			return pkgerrors.Wrapf(err, "failed to push Loki stream")
 		}
 	}
 
@@ -402,16 +402,16 @@ func pushStreamToLoki(ctx context.Context, lokiURL, lokiOrgID string, body []byt
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	if _, err := gz.Write(body); err != nil {
-		return errors.Wrapf(err, "failed to gzip Loki data: failed to write")
+		return pkgerrors.Wrapf(err, "failed to gzip Loki data: failed to write")
 	}
 	if err := gz.Close(); err != nil {
-		return errors.Wrapf(err, "failed to gzip Loki data: failed to close writer")
+		return pkgerrors.Wrapf(err, "failed to gzip Loki data: failed to close writer")
 	}
 
 	// Create the request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, lokiURL, &buf)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create request")
+		return pkgerrors.Wrapf(err, "failed to create request")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
@@ -419,13 +419,13 @@ func pushStreamToLoki(ctx context.Context, lokiURL, lokiOrgID string, body []byt
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "failed to do request")
+		return pkgerrors.Wrapf(err, "failed to do request")
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read response")
+		return pkgerrors.Wrapf(err, "failed to read response")
 	}
 
 	klog.Infof("Push response: status: %q, body: %q", resp.Status, string(respBody))

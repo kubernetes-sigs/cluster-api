@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -57,18 +57,18 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 	desiredVersion := s.Blueprint.Topology.Version
 	desiredSemVer, err := semver.ParseTolerant(desiredVersion)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse Cluster version %s", desiredVersion)
+		return pkgerrors.Wrapf(err, "failed to parse Cluster version %s", desiredVersion)
 	}
 
 	controlPlaneVersion := ""
 	v, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
 	if err != nil {
-		return errors.Wrap(err, "failed to get the version from control plane spec")
+		return pkgerrors.Wrap(err, "failed to get the version from control plane spec")
 	}
 	controlPlaneVersion = *v
 	controlPlaneSemVer, err := semver.ParseTolerant(*v)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse ControlPlane version %s", *v)
+		return pkgerrors.Wrapf(err, "failed to parse ControlPlane version %s", *v)
 	}
 
 	var minWorkersSemVer *semver.Version
@@ -76,7 +76,7 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 		if md.Object.Spec.Template.Spec.Version != "" {
 			currentSemVer, err := semver.ParseTolerant(md.Object.Spec.Template.Spec.Version)
 			if err != nil {
-				return errors.Wrapf(err, "failed to parse version %s of MachineDeployment %s", md.Object.Spec.Template.Spec.Version, md.Object.Name)
+				return pkgerrors.Wrapf(err, "failed to parse version %s of MachineDeployment %s", md.Object.Spec.Template.Spec.Version, md.Object.Name)
 			}
 			if minWorkersSemVer == nil || isLowerThanMinVersion(currentSemVer, *minWorkersSemVer, controlPlaneSemVer) {
 				minWorkersSemVer = &currentSemVer
@@ -88,7 +88,7 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 		if mp.Object.Spec.Template.Spec.Version != "" {
 			currentSemVer, err := semver.ParseTolerant(mp.Object.Spec.Template.Spec.Version)
 			if err != nil {
-				return errors.Wrapf(err, "failed to parse version %s of MachinePool %s", mp.Object.Spec.Template.Spec.Version, mp.Object.Name)
+				return pkgerrors.Wrapf(err, "failed to parse version %s of MachinePool %s", mp.Object.Spec.Template.Spec.Version, mp.Object.Name)
 			}
 			if minWorkersSemVer == nil || isLowerThanMinVersion(currentSemVer, *minWorkersSemVer, controlPlaneSemVer) {
 				minWorkersSemVer = &currentSemVer
@@ -141,19 +141,19 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion string, minWorkersVersion string, controlPlaneUpgradePlan []string, workersUpgradePlan []string) ([]string, error) {
 	desiredSemVer, err := semver.ParseTolerant(desiredVersion)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse Cluster version %s", desiredVersion)
+		return nil, pkgerrors.Wrapf(err, "failed to parse Cluster version %s", desiredVersion)
 	}
 
 	controlPlaneSemVer, err := semver.ParseTolerant(controlPlaneVersion)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse ControlPlane version %s", controlPlaneVersion)
+		return nil, pkgerrors.Wrapf(err, "failed to parse ControlPlane version %s", controlPlaneVersion)
 	}
 
 	var minWorkersSemVer *semver.Version
 	if minWorkersVersion != "" {
 		v, err := semver.ParseTolerant(minWorkersVersion)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse min workers version %s", minWorkersVersion)
+			return nil, pkgerrors.Wrapf(err, "failed to parse min workers version %s", minWorkersVersion)
 		}
 		minWorkersSemVer = &v
 	}
@@ -176,28 +176,28 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 			versionOrder[targetVersion] = i
 			targetSemVer, err := semver.ParseTolerant(targetVersion)
 			if err != nil {
-				return nil, errors.Wrapf(err, "invalid ControlPlane upgrade plan: item %d; failed to parse version %s", i, targetVersion)
+				return nil, pkgerrors.Wrapf(err, "invalid ControlPlane upgrade plan: item %d; failed to parse version %s", i, targetVersion)
 			}
 
 			// Check versions in the control plane upgrade plan are in the right order.
 			// Note: we tolerate having one version followed by another with the same major.minor.patch but different build tags (version.Compare==2)
 			if version.Compare(targetSemVer, currentSemVer, version.WithBuildTags()) <= 0 {
-				return nil, errors.Errorf("invalid ControlPlane upgrade plan: item %d; version %s must be greater than v%s", i, targetVersion, currentSemVer)
+				return nil, pkgerrors.Errorf("invalid ControlPlane upgrade plan: item %d; version %s must be greater than v%s", i, targetVersion, currentSemVer)
 			}
 
 			// Check we are not skipping minors.
 			if currentSemVer.Minor != targetSemVer.Minor && currentSemVer.Minor+1 != targetSemVer.Minor {
-				return nil, errors.Errorf("invalid ControlPlane upgrade plan: item %d; expecting a version with minor %d or %d, found version %s", i, currentSemVer.Minor, currentSemVer.Minor+1, targetVersion)
+				return nil, pkgerrors.Errorf("invalid ControlPlane upgrade plan: item %d; expecting a version with minor %d or %d, found version %s", i, currentSemVer.Minor, currentSemVer.Minor+1, targetVersion)
 			}
 
 			minors[targetSemVer.Minor] = targetVersion
 			currentSemVer = targetSemVer
 		}
 		if version.Compare(currentSemVer, desiredSemVer, version.WithBuildTags()) != 0 {
-			return nil, errors.Errorf("invalid ControlPlane upgrade plan: control plane upgrade plan must end with version %s, ends with %s instead", desiredVersion, fmt.Sprintf("v%s", currentSemVer))
+			return nil, pkgerrors.Errorf("invalid ControlPlane upgrade plan: control plane upgrade plan must end with version %s, ends with %s instead", desiredVersion, fmt.Sprintf("v%s", currentSemVer))
 		}
 	} else if len(controlPlaneUpgradePlan) > 0 {
-		return nil, errors.New("invalid ControlPlane upgrade plan: control plane is already at the desired version")
+		return nil, pkgerrors.New("invalid ControlPlane upgrade plan: control plane is already at the desired version")
 	}
 
 	// Defaults and validate the workers upgrade plan.
@@ -206,7 +206,7 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 			// Check that the workers upgrade plan only includes the same versions considered for the control plane upgrade plan,
 			// plus the control plane version to handle the case that CP already completed its upgrade.
 			if diff := sets.New(workersUpgradePlan...).Difference(sets.New(controlPlaneUpgradePlan...).Insert(controlPlaneVersion)); len(diff) > 0 {
-				return nil, errors.Errorf("invalid workers upgrade plan: versions %s doesn't match any versions in the control plane upgrade plan nor the control plane version", strings.Join(diff.UnsortedList(), ","))
+				return nil, pkgerrors.Errorf("invalid workers upgrade plan: versions %s doesn't match any versions in the control plane upgrade plan nor the control plane version", strings.Join(diff.UnsortedList(), ","))
 			}
 		}
 
@@ -222,7 +222,7 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 					if !ok {
 						// Note: this should never happen, all the minors in the range minWorkersSemVer.Minor-desiredSemVer.Minor should exist in the list of minors, which is
 						// derived from control plane upgrade plan + current control plane version (a superset of the versions in the workers upgrade plan)
-						return nil, errors.Wrapf(err, "invalid upgrade plan; unable to identify version for minor %d", currentMinor+i)
+						return nil, pkgerrors.Wrapf(err, "invalid upgrade plan; unable to identify version for minor %d", currentMinor+i)
 					}
 					workersUpgradePlan = append(workersUpgradePlan, targetVersion)
 				}
@@ -238,14 +238,14 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 		for i, targetVersion := range workersUpgradePlan {
 			targetSemVer, err := semver.ParseTolerant(targetVersion)
 			if err != nil {
-				return nil, errors.Wrapf(err, "invalid workers upgrade plan, item %d; failed to parse version %s", i, targetVersion)
+				return nil, pkgerrors.Wrapf(err, "invalid workers upgrade plan, item %d; failed to parse version %s", i, targetVersion)
 			}
 
 			// Check versions in the workers upgrade plan are in the right order.
 			cmp := version.Compare(targetSemVer, currentSemVer, version.WithBuildTags())
 			switch {
 			case cmp <= 0:
-				return nil, errors.Errorf("invalid workers upgrade plan, item %d; version %s must be greater than v%s", i, targetVersion, currentSemVer)
+				return nil, pkgerrors.Errorf("invalid workers upgrade plan, item %d; version %s must be greater than v%s", i, targetVersion, currentSemVer)
 			case cmp == 2:
 				// In the case of same major.minor.patch but different build tags (version.Compare==2), check if
 				// versions are in the same order as in the control plane upgrade plan.
@@ -253,32 +253,32 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 				if !ok {
 					// Note: this should never happen, all the versions in the workers upgrade plan should exist in versionOrder, which is
 					// derived from control plane upgrade plan + current control plane version (a superset of the versions in the workers upgrade plan)
-					return nil, errors.Errorf("invalid workers upgrade plan, item %d; failer to determine version %s order", i, targetVersion)
+					return nil, pkgerrors.Errorf("invalid workers upgrade plan, item %d; failer to determine version %s order", i, targetVersion)
 				}
 				currentVersionOrder, ok := versionOrder[fmt.Sprintf("v%s", currentSemVer)]
 				if !ok {
 					// Note: this should never happen, all the versions in the workers upgrade plan should exist in versionOrder, which is
 					// derived from control plane upgrade plan + current control plane version (a superset of the versions in the workers upgrade plan)
-					return nil, errors.Errorf("failer to determine version v%s order", currentSemVer)
+					return nil, pkgerrors.Errorf("failer to determine version v%s order", currentSemVer)
 				}
 				if targetVersionOrder < currentVersionOrder {
-					return nil, errors.Errorf("invalid workers upgrade plan, item %d; version %s must be before v%s", i, targetVersion, currentSemVer)
+					return nil, pkgerrors.Errorf("invalid workers upgrade plan, item %d; version %s must be before v%s", i, targetVersion, currentSemVer)
 				}
 			}
 
 			targetMinor := targetSemVer.Minor
 			if targetMinor-currentMinor > 3 {
-				return nil, errors.Errorf("invalid workers upgrade plan, item %d; workers cannot go from minor %d (%s) to minor %d (%s), an intermediate step is required to comply with Kubernetes version skew rules", i, currentMinor, fmt.Sprintf("v%s", currentSemVer.String()), targetMinor, targetVersion)
+				return nil, pkgerrors.Errorf("invalid workers upgrade plan, item %d; workers cannot go from minor %d (%s) to minor %d (%s), an intermediate step is required to comply with Kubernetes version skew rules", i, currentMinor, fmt.Sprintf("v%s", currentSemVer.String()), targetMinor, targetVersion)
 			}
 
 			currentSemVer = targetSemVer
 			currentMinor = currentSemVer.Minor
 		}
 		if version.Compare(currentSemVer, desiredSemVer, version.WithBuildTags()) != 0 {
-			return nil, errors.Errorf("invalid workers upgrade plan; workers upgrade plan must end with version %s, ends with %s instead", desiredVersion, fmt.Sprintf("v%s", currentSemVer))
+			return nil, pkgerrors.Errorf("invalid workers upgrade plan; workers upgrade plan must end with version %s, ends with %s instead", desiredVersion, fmt.Sprintf("v%s", currentSemVer))
 		}
 	} else if len(workersUpgradePlan) > 0 {
-		return nil, errors.New("invalid worker upgrade plan; there are no workers or workers already at the desired version")
+		return nil, pkgerrors.New("invalid worker upgrade plan; there are no workers or workers already at the desired version")
 	}
 
 	return workersUpgradePlan, nil
@@ -334,12 +334,12 @@ type GetUpgradePlanFunc func(_ context.Context, desiredVersion, currentControlPl
 func GetUpgradePlanOneMinor(_ context.Context, desiredVersion, currentControlPlaneVersion, _ string) ([]string, []string, error) {
 	desiredSemVer, err := semver.ParseTolerant(desiredVersion)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to parse desired version")
+		return nil, nil, pkgerrors.Wrap(err, "failed to parse desired version")
 	}
 
 	currentControlPlaneSemVer, err := semver.ParseTolerant(currentControlPlaneVersion)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to parse current ControlPlane version")
+		return nil, nil, pkgerrors.Wrap(err, "failed to parse current ControlPlane version")
 	}
 
 	if currentControlPlaneSemVer.String() == desiredSemVer.String() {
@@ -347,7 +347,7 @@ func GetUpgradePlanOneMinor(_ context.Context, desiredVersion, currentControlPla
 	}
 
 	if desiredSemVer.Minor > currentControlPlaneSemVer.Minor+1 {
-		return nil, nil, errors.Errorf("cannot compute an upgrade plan from %s to %s", currentControlPlaneVersion, desiredVersion)
+		return nil, nil, pkgerrors.Errorf("cannot compute an upgrade plan from %s to %s", currentControlPlaneVersion, desiredVersion)
 	}
 
 	return []string{desiredVersion}, nil, nil
@@ -361,12 +361,12 @@ func GetUpgradePlanFromClusterClassVersions(clusterClassVersions []string) func(
 	return func(_ context.Context, desiredVersion, currentControlPlaneVersion, _ string) ([]string, []string, error) {
 		desiredSemVer, err := semver.ParseTolerant(desiredVersion)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to parse desired version")
+			return nil, nil, pkgerrors.Wrap(err, "failed to parse desired version")
 		}
 
 		currentControlPlaneSemVer, err := semver.ParseTolerant(currentControlPlaneVersion)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to parse current ControlPlane version")
+			return nil, nil, pkgerrors.Wrap(err, "failed to parse current ControlPlane version")
 		}
 
 		if currentControlPlaneSemVer.String() == desiredSemVer.String() {
@@ -378,7 +378,7 @@ func GetUpgradePlanFromClusterClassVersions(clusterClassVersions []string) func(
 		for _, v := range clusterClassVersions {
 			semV, err := semver.ParseTolerant(v)
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "failed to parse version %s", v)
+				return nil, nil, pkgerrors.Wrapf(err, "failed to parse version %s", v)
 			}
 			// Ignore all candidate version older or equal to the current control plane version;
 			// also ignoring same versions but with different build tags, because those version will never
@@ -416,7 +416,7 @@ func GetUpgradePlanFromClusterClassVersions(clusterClassVersions []string) func(
 		for _, v := range upgradePlan {
 			semV, err := semver.ParseTolerant(v)
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "failed to parse version %s", v)
+				return nil, nil, pkgerrors.Wrapf(err, "failed to parse version %s", v)
 			}
 			if semV.Minor > currentMinor {
 				simplifiedUpgradePlan = append(simplifiedUpgradePlan, v)
@@ -449,7 +449,7 @@ func (r GenerateUpgradePlanCacheEntry) Key() string {
 func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, getUpgradePlanCache cache.Cache[GenerateUpgradePlanCacheEntry], cluster *clusterv1.Cluster, extensionName string) func(ctx context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error) {
 	return func(ctx context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error) {
 		if !feature.Gates.Enabled(feature.RuntimeSDK) {
-			return nil, nil, errors.Errorf("can not use GenerateUpgradePlan extension %q if RuntimeSDK feature flag is disabled", extensionName)
+			return nil, nil, pkgerrors.Errorf("can not use GenerateUpgradePlan extension %q if RuntimeSDK feature flag is disabled", extensionName)
 		}
 
 		// Prepare the request.
@@ -474,7 +474,7 @@ func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, getUpgradeP
 		// Call the extension.
 		resp := &runtimehooksv1.GenerateUpgradePlanResponse{}
 		if err := runtimeClient.CallExtension(ctx, runtimehooksv1.GenerateUpgradePlan, cluster, extensionName, req, resp); err != nil {
-			return nil, nil, errors.Wrap(err, "failed to get upgrade plan from extension")
+			return nil, nil, pkgerrors.Wrap(err, "failed to get upgrade plan from extension")
 		}
 
 		// Convert UpgradeStep to string slice.

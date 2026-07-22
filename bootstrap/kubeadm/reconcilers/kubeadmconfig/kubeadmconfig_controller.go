@@ -24,7 +24,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -111,7 +111,7 @@ type Scope struct {
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.SecretCachingClient == nil || r.ClusterCache == nil || r.TokenTTL == time.Duration(0) {
-		return errors.New("Client, SecretCachingClient and ClusterCache must not be nil and TokenTTL must not be 0")
+		return pkgerrors.New("Client, SecretCachingClient and ClusterCache must not be nil and TokenTTL must not be 0")
 	}
 
 	if r.KubeadmInitLock == nil {
@@ -145,7 +145,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	).WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmconfig", r.ClusterToKubeadmConfigs))
 
 	if err := b.Complete(ctx, r); err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil
 }
@@ -170,7 +170,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 			// Could not find the owner yet, this is not an error and will rereconcile when the owner gets set.
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get owner")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get owner")
 	}
 	if configOwner == nil {
 		return ctrl.Result{}, nil
@@ -384,7 +384,7 @@ func (r *Reconciler) refreshBootstrapTokenIfNeeded(ctx context.Context, config *
 			config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = ""
 			return r.recreateBootstrapToken(ctx, config, scope, remoteClient)
 		}
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get bootstrap token secret in order to refresh it")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get bootstrap token secret in order to refresh it")
 	}
 	log = log.WithValues("Secret", klog.KObj(secret))
 
@@ -395,7 +395,7 @@ func (r *Reconciler) refreshBootstrapTokenIfNeeded(ctx context.Context, config *
 		// Assuming UTC, since we create the label value with that timezone
 		expiration, err := time.Parse(time.RFC3339, secretExpiration)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "can't parse expiration time of bootstrap token")
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "can't parse expiration time of bootstrap token")
 		}
 
 		now := time.Now().UTC()
@@ -419,7 +419,7 @@ func (r *Reconciler) refreshBootstrapTokenIfNeeded(ctx context.Context, config *
 			config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = ""
 			return r.recreateBootstrapToken(ctx, config, scope, remoteClient)
 		}
-		return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to refresh bootstrap token")
 	}
 	return ctrl.Result{
 		RequeueAfter: r.tokenCheckRefreshOrRotationInterval(),
@@ -431,7 +431,7 @@ func (r *Reconciler) recreateBootstrapToken(ctx context.Context, config *bootstr
 
 	token, err := createToken(ctx, remoteClient, r.TokenTTL)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create new bootstrap token")
 	}
 
 	config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
@@ -484,7 +484,7 @@ func (r *Reconciler) handleClusterNotInitialized(ctx context.Context, scope *Sco
 
 	machine := &clusterv1.Machine{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(scope.ConfigOwner.Object, machine); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "cannot convert %s to Machine", scope.ConfigOwner.GetKind())
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "cannot convert %s to Machine", scope.ConfigOwner.GetKind())
 	}
 
 	// acquire the init lock so that only the first machine configured
@@ -497,7 +497,7 @@ func (r *Reconciler) handleClusterNotInitialized(ctx context.Context, scope *Sco
 	defer func() {
 		if reterr != nil {
 			if !r.KubeadmInitLock.Unlock(ctx, scope.Cluster) {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.New("failed to unlock the kubeadm init lock")})
+				reterr = kerrors.NewAggregate([]error{reterr, pkgerrors.New("failed to unlock the kubeadm init lock")})
 			}
 		}
 	}()
@@ -513,7 +513,7 @@ func (r *Reconciler) handleClusterNotInitialized(ctx context.Context, scope *Sco
 	kubernetesVersion := scope.ConfigOwner.KubernetesVersion()
 	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
 	}
 
 	additionalData := r.computeClusterConfigurationAndAdditionalData(scope.Cluster, machine, &scope.Config.Spec.ClusterConfiguration, &scope.Config.Spec.InitConfiguration)
@@ -698,7 +698,7 @@ func (r *Reconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result,
 	// template variable in spec.files (see resolveFiles / getControlPlaneVersion).
 	parsedVersion, err := semver.ParseTolerant(scope.ConfigOwner.KubernetesVersion())
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", scope.ConfigOwner.KubernetesVersion())
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to parse kubernetes version %q", scope.ConfigOwner.KubernetesVersion())
 	}
 
 	// Add the node uninitialized taint to the list of taints.
@@ -719,7 +719,7 @@ func (r *Reconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result,
 	}
 
 	if scope.Config.Spec.JoinConfiguration.ControlPlane != nil {
-		return ctrl.Result{}, errors.New("Machine is a Worker, but JoinConfiguration.ControlPlane is set in the KubeadmConfig object")
+		return ctrl.Result{}, pkgerrors.New("Machine is a Worker, but JoinConfiguration.ControlPlane is set in the KubeadmConfig object")
 	}
 
 	verbosityFlag := ""
@@ -831,14 +831,14 @@ func (r *Reconciler) getControlPlaneVersion(ctx context.Context, cluster *cluste
 	}
 	controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, r.APIReader, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to read control plane version")
+		return "", pkgerrors.Wrap(err, "failed to read control plane version")
 	}
 	cpVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 	if err != nil {
-		if errors.Is(err, contract.ErrFieldNotFound) {
+		if pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			return "", nil
 		}
-		return "", errors.Wrap(err, "failed to read control plane version")
+		return "", pkgerrors.Wrap(err, "failed to read control plane version")
 	}
 	if cpVersion == nil {
 		return "", nil
@@ -902,7 +902,7 @@ func (r *Reconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.R
 	kubernetesVersion := scope.ConfigOwner.KubernetesVersion()
 	parsedVersion, err := semver.ParseTolerant(kubernetesVersion)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
 	}
 
 	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(&scope.Config.Spec.JoinConfiguration, parsedVersion)
@@ -1026,7 +1026,7 @@ func (r *Reconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmC
 		// and with CAPI builtin variables. This also validates that the control plane version is valid semver.
 		parsed, perr := semver.ParseTolerant(cpVersion)
 		if perr != nil {
-			return nil, errors.Wrapf(perr, "failed to parse control plane version %q for template data", cpVersion)
+			return nil, pkgerrors.Wrapf(perr, "failed to parse control plane version %q for template data", cpVersion)
 		}
 		cpVersion = "v" + parsed.String()
 	}
@@ -1037,7 +1037,7 @@ func (r *Reconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmC
 		if in.ContentFrom.IsDefined() {
 			data, err := r.resolveSecretFileContent(ctx, cfg.Namespace, in)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to resolve file source")
+				return nil, pkgerrors.Wrapf(err, "failed to resolve file source")
 			}
 			in.ContentFrom = bootstrapv1.FileSource{}
 			in.Content = string(data)
@@ -1047,7 +1047,7 @@ func (r *Reconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmC
 
 	rendered, err := renderTemplates(collected, templateData(cpVersion))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to render templates")
+		return nil, pkgerrors.Wrapf(err, "failed to render templates")
 	}
 	return rendered, nil
 }
@@ -1058,13 +1058,13 @@ func (r *Reconciler) resolveSecretFileContent(ctx context.Context, ns string, so
 	key := types.NamespacedName{Namespace: ns, Name: source.ContentFrom.Secret.Name}
 	if err := r.Client.Get(ctx, key, secret); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "secret not found: %s", key)
+			return nil, pkgerrors.Wrapf(err, "secret not found: %s", key)
 		}
-		return nil, errors.Wrapf(err, "failed to retrieve Secret %q", key)
+		return nil, pkgerrors.Wrapf(err, "failed to retrieve Secret %q", key)
 	}
 	data, ok := secret.Data[source.ContentFrom.Secret.Key]
 	if !ok {
-		return nil, errors.Errorf("secret references non-existent secret key: %q", source.ContentFrom.Secret.Key)
+		return nil, pkgerrors.Errorf("secret references non-existent secret key: %q", source.ContentFrom.Secret.Key)
 	}
 	return data, nil
 }
@@ -1079,7 +1079,7 @@ func (r *Reconciler) resolveUsers(ctx context.Context, cfg *bootstrapv1.KubeadmC
 		if in.PasswdFrom.IsDefined() {
 			data, err := r.resolveSecretPasswordContent(ctx, cfg.Namespace, in)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to resolve passwd source")
+				return nil, pkgerrors.Wrapf(err, "failed to resolve passwd source")
 			}
 			in.PasswdFrom = bootstrapv1.PasswdSource{}
 			passwdContent := string(data)
@@ -1139,7 +1139,7 @@ func (r *Reconciler) resolveDiscoveryKubeConfig(cfg bootstrapv1.FileDiscovery) (
 
 	b, err := yaml.Marshal(kubeconfig)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to marshal kubeconfig from JoinConfiguration.Discovery.File.KubeConfig")
+		return nil, pkgerrors.Wrapf(err, "failed to marshal kubeconfig from JoinConfiguration.Discovery.File.KubeConfig")
 	}
 	return &bootstrapv1.File{
 		Path:        cfg.KubeConfigPath,
@@ -1155,13 +1155,13 @@ func (r *Reconciler) resolveSecretPasswordContent(ctx context.Context, ns string
 	key := types.NamespacedName{Namespace: ns, Name: source.PasswdFrom.Secret.Name}
 	if err := r.Client.Get(ctx, key, secret); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "secret not found: %s", key)
+			return nil, pkgerrors.Wrapf(err, "secret not found: %s", key)
 		}
-		return nil, errors.Wrapf(err, "failed to retrieve Secret %q", key)
+		return nil, pkgerrors.Wrapf(err, "failed to retrieve Secret %q", key)
 	}
 	data, ok := secret.Data[source.PasswdFrom.Secret.Key]
 	if !ok {
-		return nil, errors.Errorf("secret references non-existent secret key: %q", source.PasswdFrom.Secret.Key)
+		return nil, pkgerrors.Errorf("secret references non-existent secret key: %q", source.PasswdFrom.Secret.Key)
 	}
 	return data, nil
 }
@@ -1314,7 +1314,7 @@ func (r *Reconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.
 
 		token, err := createToken(ctx, remoteClient, r.TokenTTL)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create new bootstrap token")
 		}
 
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
@@ -1440,11 +1440,11 @@ func (r *Reconciler) storeBootstrapData(ctx context.Context, scope *Scope, data 
 	// it is possible that secret creation happens but the config.Status patches are not applied
 	if err := r.Client.Create(ctx, secret); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
+			return pkgerrors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
 		log.Info("Bootstrap data secret for KubeadmConfig already exists, updating", "Secret", klog.KObj(secret))
 		if err := r.Client.Update(ctx, secret); err != nil {
-			return errors.Wrapf(err, "failed to update bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
+			return pkgerrors.Wrapf(err, "failed to update bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
 	}
 	scope.Config.Status.DataSecretName = secret.Name
@@ -1467,7 +1467,7 @@ func (r *Reconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.Config.GetName(), secret.GetName())
+		return pkgerrors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.Config.GetName(), secret.GetName())
 	}
 
 	configRef := metav1.OwnerReference{
@@ -1486,12 +1486,12 @@ func (r *Reconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *
 	// If there are unexpected controller OwnerReferences, report an error.
 	original := secret.DeepCopy()
 	if c := metav1.GetControllerOf(secret); c != nil && c.Kind != configRef.Kind {
-		return errors.Errorf("could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s, it is already controlled by %s %s", scope.Config.GetName(), secret.GetName(), c.Kind, c.Name)
+		return pkgerrors.Errorf("could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s, it is already controlled by %s %s", scope.Config.GetName(), secret.GetName(), c.Kind, c.Name)
 	}
 
 	secret.SetOwnerReferences(util.EnsureOwnerRef(secret.GetOwnerReferences(), configRef))
 	if err := r.Client.Patch(ctx, secret, client.MergeFrom(original)); err != nil {
-		return errors.Wrapf(err, "could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.Config.GetName(), secret.GetName())
+		return pkgerrors.Wrapf(err, "could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.Config.GetName(), secret.GetName())
 	}
 	return nil
 }

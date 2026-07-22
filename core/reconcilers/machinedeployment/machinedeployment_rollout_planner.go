@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -83,16 +83,16 @@ func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client, canU
 // how to perform scale up/down operations.
 func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines []*clusterv1.Machine, createNewMSIfNotExist bool, mdTemplateExists bool) error {
 	if md == nil {
-		return errors.New("machineDeployment is nil, this is unexpected")
+		return pkgerrors.New("machineDeployment is nil, this is unexpected")
 	}
 
 	if md.Spec.Replicas == nil {
-		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(p.md))
+		return pkgerrors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(p.md))
 	}
 
 	for _, ms := range msList {
 		if ms.Spec.Replicas == nil {
-			return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(ms))
+			return pkgerrors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(ms))
 		}
 	}
 
@@ -144,7 +144,7 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 	}
 
 	if !mdTemplateExists {
-		return errors.New("cannot create a MachineSet when templates do not exist")
+		return pkgerrors.New("cannot create a MachineSet when templates do not exist")
 	}
 
 	// Compute a new MachineSet with mandatory labels, fields in-place propagated from the MachineDeployment etc.
@@ -234,7 +234,7 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 		// is not using the hash anymore.
 		templateHash, err := hash.Compute(mdutil.MachineTemplateDeepCopyRolloutFields(&deployment.Spec.Template))
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to compute desired MachineSet: failed to compute machine template hash")
+			return nil, pkgerrors.Wrap(err, "failed to compute desired MachineSet: failed to compute machine template hash")
 		}
 		// Append a random string at the end of template hash. This is required to distinguish MachineSets that
 		// could be created with the same spec as a result of rolloutAfter.
@@ -251,7 +251,7 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 		var uniqueIdentifierLabelExists bool
 		uniqueIdentifierLabelValue, uniqueIdentifierLabelExists = currentMS.Labels[clusterv1.MachineDeploymentUniqueLabel]
 		if !uniqueIdentifierLabelExists {
-			return nil, errors.Errorf("failed to compute desired MachineSet: failed to get unique identifier from %q annotation",
+			return nil, pkgerrors.Errorf("failed to compute desired MachineSet: failed to get unique identifier from %q annotation",
 				clusterv1.MachineDeploymentUniqueLabel)
 		}
 

@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -344,7 +344,7 @@ func SetupWithManager(ctx context.Context, mgr manager.Manager, options Options,
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), log, options.WatchFilterValue)).
 		Complete(ctx, cc)
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed setting up ClusterCache with a controller manager")
+		return nil, pkgerrors.WithMessage(err, "failed setting up ClusterCache with a controller manager")
 	}
 
 	return cc, nil
@@ -400,7 +400,7 @@ type clusterSource struct {
 func (cc *clusterCache) GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting client")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting client")
 	}
 	return accessor.GetClient(ctx)
 }
@@ -408,7 +408,7 @@ func (cc *clusterCache) GetClient(ctx context.Context, cluster client.ObjectKey)
 func (cc *clusterCache) GetReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting client reader")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting client reader")
 	}
 	return accessor.GetReader(ctx)
 }
@@ -418,7 +418,7 @@ func (cc *clusterCache) GetReader(ctx context.Context, cluster client.ObjectKey)
 func (cc *clusterCache) GetUncachedClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting uncached client")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting uncached client")
 	}
 	return accessor.GetUncachedClient(ctx)
 }
@@ -426,7 +426,7 @@ func (cc *clusterCache) GetUncachedClient(ctx context.Context, cluster client.Ob
 func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.ObjectKey) (*rest.Config, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting REST config")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting REST config")
 	}
 	return accessor.GetRESTConfig(ctx)
 }
@@ -434,7 +434,7 @@ func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.Object
 func (cc *clusterCache) Watch(ctx context.Context, cluster client.ObjectKey, watcher Watcher) error {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return errors.WithMessagef(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
+		return pkgerrors.WithMessagef(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
 	return accessor.Watch(ctx, watcher)
 }
@@ -730,12 +730,12 @@ func (cc *clusterCache) SetConnectionCreationRetryInterval(interval time.Duratio
 // This method should only be used for tests because it hasn't been designed for production usage
 // in a manager (race conditions with manager shutdown etc.).
 func (cc *clusterCache) Shutdown() {
-	cc.cacheCtxCancel(errors.New("ClusterCache is shutdown"))
+	cc.cacheCtxCancel(pkgerrors.New("ClusterCache is shutdown"))
 }
 
 func validateAndDefaultOptions(opts *Options) error {
 	if opts.SecretClient == nil {
-		return errors.New("options.SecretClient must be set")
+		return pkgerrors.New("options.SecretClient must be set")
 	}
 
 	if opts.Client.Timeout.Nanoseconds() == 0 {
@@ -748,7 +748,7 @@ func validateAndDefaultOptions(opts *Options) error {
 		opts.Client.Burst = 30
 	}
 	if opts.Client.UserAgent == "" {
-		return errors.New("options.Client.UserAgent must be set")
+		return pkgerrors.New("options.Client.UserAgent must be set")
 	}
 
 	return nil

@@ -21,7 +21,7 @@ import (
 	"sort"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -57,12 +57,12 @@ func NewPatch(before, after Getter) (Patch, error) {
 	var patch Patch
 
 	if util.IsNil(before) {
-		return nil, errors.New("error creating patch: before object is nil")
+		return nil, pkgerrors.New("error creating patch: before object is nil")
 	}
 	beforeConditions := before.GetConditions()
 
 	if util.IsNil(after) {
-		return nil, errors.New("error creating patch: after object is nil")
+		return nil, pkgerrors.New("error creating patch: after object is nil")
 	}
 	afterConditions := after.GetConditions()
 
@@ -133,7 +133,7 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 	}
 
 	if util.IsNil(latest) {
-		return errors.New("error patching conditions: latest object is nil")
+		return pkgerrors.New("error patching conditions: latest object is nil")
 	}
 	latestConditions := latest.GetConditions()
 
@@ -156,7 +156,7 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 			if latestCondition := meta.FindStatusCondition(latestConditions, conditionPatch.After.Type); latestCondition != nil {
 				// If latest and after disagree on the change, then it is a conflict
 				if !HasSameState(latestCondition, conditionPatch.After) {
-					return errors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/AddCondition conflict: %v", conditionPatch.After.Type, cmp.Diff(latestCondition, conditionPatch.After))
+					return pkgerrors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/AddCondition conflict: %v", conditionPatch.After.Type, cmp.Diff(latestCondition, conditionPatch.After))
 				}
 				// otherwise, the latest is already as intended.
 				// NOTE: We are preserving LastTransitionTime from the latest in order to avoid altering the existing value.
@@ -176,14 +176,14 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 
 			// If the condition does not exist anymore on the latest, this is a conflict.
 			if latestCondition == nil {
-				return errors.Errorf("error patching conditions: The condition %q was deleted by a different process and this caused a merge/ChangeCondition conflict", conditionPatch.After.Type)
+				return pkgerrors.Errorf("error patching conditions: The condition %q was deleted by a different process and this caused a merge/ChangeCondition conflict", conditionPatch.After.Type)
 			}
 
 			// If the condition on the latest is different from the base condition, check if
 			// the after state corresponds to the desired value. If not this is a conflict (unless we should ignore conflicts for this condition type).
 			if !reflect.DeepEqual(latestCondition, conditionPatch.Before) {
 				if !HasSameState(latestCondition, conditionPatch.After) {
-					return errors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/ChangeCondition conflict: %v", conditionPatch.After.Type, cmp.Diff(latestCondition, conditionPatch.After))
+					return pkgerrors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/ChangeCondition conflict: %v", conditionPatch.After.Type, cmp.Diff(latestCondition, conditionPatch.After))
 				}
 				// Otherwise the latest is already as intended.
 				// NOTE: We are preserving LastTransitionTime from the latest in order to avoid altering the existing value.
@@ -208,7 +208,7 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 			// if so then this is a conflict.
 			if latestCondition := meta.FindStatusCondition(latestConditions, conditionPatch.Before.Type); latestCondition != nil {
 				if !HasSameState(latestCondition, conditionPatch.Before) {
-					return errors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/RemoveCondition conflict: %v", conditionPatch.Before.Type, cmp.Diff(latestCondition, conditionPatch.Before))
+					return pkgerrors.Errorf("error patching conditions: The condition %q was modified by a different process and this caused a merge/RemoveCondition conflict: %v", conditionPatch.Before.Type, cmp.Diff(latestCondition, conditionPatch.Before))
 				}
 			}
 			// Otherwise the latest and after agreed on the delete operation, so there's nothing to change.

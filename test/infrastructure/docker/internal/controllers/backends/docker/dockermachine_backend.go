@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -64,10 +64,10 @@ type MachineBackendReconciler struct {
 // ReconcileNormal handle docker backend for DevMachines not yet deleted.
 func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster, machine *clusterv1.Machine, dockerMachine *infrav1.DevMachine) (res ctrl.Result, retErr error) {
 	if dockerMachine.Spec.Backend.Docker == nil {
-		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
+		return ctrl.Result{}, pkgerrors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
 	}
 	if dockerCluster.Spec.Backend.Docker == nil {
-		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
+		return ctrl.Result{}, pkgerrors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 
 	externalMachine, externalLoadBalancer, err := r.getExternalObjects(ctx, cluster, dockerCluster, machine, dockerMachine)
@@ -84,7 +84,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	if labels.IsMachinePoolOwned(dockerMachine) {
 		machinePool, err := util.GetMachinePoolByLabels(ctx, r.Client, dockerMachine.GetNamespace(), dockerMachine.Labels)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get machine pool for DockerMachine %s/%s", dockerMachine.GetNamespace(), dockerMachine.GetName())
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get machine pool for DockerMachine %s/%s", dockerMachine.GetNamespace(), dockerMachine.GetName())
 		}
 		if machinePool == nil {
 			log.Info("No MachinePool matching labels found, returning without error")
@@ -209,7 +209,7 @@ func (r *MachineBackendReconciler) reconcileContainer(ctx context.Context, clust
 	if externalMachine.Exists() && !externalMachine.IsRunning() {
 		// This deletes the machine and results in re-creating it below.
 		if err := externalMachine.Delete(ctx); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to delete not running DockerMachine")
+			return ctrl.Result{}, pkgerrors.Wrap(err, "Failed to delete not running DockerMachine")
 		}
 	}
 
@@ -224,7 +224,7 @@ func (r *MachineBackendReconciler) reconcileContainer(ctx context.Context, clust
 		// each container, so we can check placement.
 		log.Info("Creating container")
 		if err := externalMachine.Create(ctx, dockerMachine.Spec.Backend.Docker.CustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.Backend.Docker.ExtraMounts); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
+			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to create worker DockerMachine")
 		}
 
 		conditions.Set(dockerMachine, metav1.Condition{
@@ -244,7 +244,7 @@ func (r *MachineBackendReconciler) reconcileContainer(ctx context.Context, clust
 
 	// Surface machine address.
 	if err := setMachineAddress(ctx, dockerMachine, externalMachine); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to set the machine address")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to set the machine address")
 	}
 
 	// Surface failure domain.
@@ -639,7 +639,7 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 		// CloudInitOrIgnitionTask failed.
 		// Note: when bootstrap fails on a Machine, there is no retry.
 		cmdErr := &cmdError{}
-		if errors.As(taskState.Err, &cmdErr) {
+		if pkgerrors.As(taskState.Err, &cmdErr) {
 			conditions.Set(dockerMachine, metav1.Condition{
 				Type:   infrav1.DevMachineBootstrapCompletedCondition,
 				Status: metav1.ConditionFalse,
@@ -699,7 +699,7 @@ func boostrapCommandOperation(externalMachine *docker.Machine, command provision
 					}
 					externalMachine.LogContainerDebugInfo(ctx)
 					return &cmdError{
-						Err:    errors.WithStack(err),
+						Err:    pkgerrors.WithStack(err),
 						Stdout: stdout,
 						Stderr: stderr,
 					}
@@ -738,12 +738,12 @@ func (r *MachineBackendReconciler) reconcileNode(ctx context.Context, cluster *c
 	// state changes during control plane provisioning.
 	remoteClient, err := r.ClusterCache.GetClient(ctx, client.ObjectKeyFromObject(cluster))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to generate workload cluster client")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to generate workload cluster client")
 	}
 
 	node := &corev1.Node{}
 	if err = remoteClient.Get(ctx, types.NamespacedName{Name: nodeName}, node); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to get node")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to get node")
 	}
 
 	if node.Spec.ProviderID != "" && !taints.HasTaint(node.Spec.Taints, cloudProviderTaint) {
@@ -813,7 +813,7 @@ func (r *MachineBackendReconciler) getExternalObjects(ctx context.Context, clust
 
 	externalMachine, err := docker.NewMachine(ctx, cluster, name, nil)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to create helper for managing the externalMachine")
+		return nil, nil, pkgerrors.Wrapf(err, "failed to create helper for managing the externalMachine")
 	}
 
 	// Create a helper for managing a docker container hosting the loadbalancer.
@@ -830,7 +830,7 @@ func (r *MachineBackendReconciler) getExternalObjects(ctx context.Context, clust
 		imageTag,
 		strconv.Itoa(int(dockerCluster.Spec.ControlPlaneEndpoint.Port)))
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
+		return nil, nil, pkgerrors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
 	}
 	return externalMachine, externalLoadBalancer, err
 }
@@ -838,10 +838,10 @@ func (r *MachineBackendReconciler) getExternalObjects(ctx context.Context, clust
 // ReconcileDelete handle docker backend for deleted DevMachines.
 func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster, machine *clusterv1.Machine, dockerMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	if dockerMachine.Spec.Backend.Docker == nil {
-		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
+		return ctrl.Result{}, pkgerrors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
 	}
 	if dockerCluster.Spec.Backend.Docker == nil {
-		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
+		return ctrl.Result{}, pkgerrors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 
 	// Cancel all the provisioning tasks for this machine.
@@ -867,7 +867,7 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 
 	// delete the machine
 	if err := externalMachine.Delete(ctx); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to delete DockerMachine")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to delete DockerMachine")
 	}
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
@@ -885,7 +885,7 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 // PatchDevMachine patch a DevMachine.
 func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHelper *patch.Helper, dockerMachine *infrav1.DevMachine, _ bool) error {
 	if dockerMachine.Spec.Backend.Docker == nil {
-		return errors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
+		return pkgerrors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
 	}
 
 	// Always update the readyCondition by summarizing the state of other conditions.
@@ -918,7 +918,7 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 			),
 		},
 	); err != nil {
-		return errors.Wrapf(err, "failed to set %s condition", infrav1.DevMachineReadyCondition)
+		return pkgerrors.Wrapf(err, "failed to set %s condition", infrav1.DevMachineReadyCondition)
 	}
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
@@ -949,7 +949,7 @@ func (r *MachineBackendReconciler) reconcileLoadBalancerConfiguration(ctx contex
 		clusterv1.MachineControlPlaneLabel: "",
 		clusterv1.ClusterNameLabel:         cluster.Name,
 	}); err != nil {
-		return errors.Wrap(err, "failed to list control plane machines")
+		return pkgerrors.Wrap(err, "failed to list control plane machines")
 	}
 
 	for _, m := range controlPlaneMachineList.Items {
@@ -962,10 +962,10 @@ func (r *MachineBackendReconciler) reconcileLoadBalancerConfiguration(ctx contex
 
 	unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
 	if err != nil {
-		return errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
+		return pkgerrors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
 	}
 	if err := externalLoadBalancer.UpdateConfiguration(ctx, controlPlaneWeight, unsafeLoadBalancerConfigTemplate); err != nil {
-		return errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
+		return pkgerrors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 	}
 	return nil
 }
@@ -974,12 +974,12 @@ func (r *MachineBackendReconciler) getBootstrapData(ctx context.Context, namespa
 	s := &corev1.Secret{}
 	key := client.ObjectKey{Namespace: namespace, Name: dataSecretName}
 	if err := r.Get(ctx, key, s); err != nil {
-		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret %s", dataSecretName)
+		return "", "", pkgerrors.Wrapf(err, "failed to retrieve bootstrap data secret %s", dataSecretName)
 	}
 
 	value, ok := s.Data["value"]
 	if !ok {
-		return "", "", errors.New("error retrieving bootstrap data: secret value key is missing")
+		return "", "", pkgerrors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
 	format := s.Data["format"]
@@ -1000,7 +1000,7 @@ func (r *MachineBackendReconciler) getUnsafeLoadBalancerConfigTemplate(ctx conte
 		Namespace: dockerCluster.Namespace,
 	}
 	if err := r.Get(ctx, key, cm); err != nil {
-		return "", errors.Wrapf(err, "failed to retrieve custom HAProxy configuration ConfigMap %s", key)
+		return "", pkgerrors.Wrapf(err, "failed to retrieve custom HAProxy configuration ConfigMap %s", key)
 	}
 	template, ok := cm.Data["value"]
 	if !ok {

@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -157,7 +157,7 @@ func configMapName(clusterName string) string {
 func (s semaphore) information() (*information, error) {
 	li := &information{}
 	if err := json.Unmarshal([]byte(s.Data[semaphoreInformationKey]), li); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal semaphore information")
+		return nil, pkgerrors.Wrap(err, "failed to unmarshal semaphore information")
 	}
 	return li, nil
 }
@@ -165,7 +165,7 @@ func (s semaphore) information() (*information, error) {
 func (s semaphore) setInformation(information *information) error {
 	b, err := json.Marshal(information)
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal semaphore information")
+		return pkgerrors.Wrap(err, "failed to marshal semaphore information")
 	}
 	s.Data = map[string]string{}
 	s.Data[semaphoreInformationKey] = string(b)

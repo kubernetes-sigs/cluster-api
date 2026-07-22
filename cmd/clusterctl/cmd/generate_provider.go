@@ -19,7 +19,7 @@ package cmd
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -142,48 +142,48 @@ func parseProvider() (string, clusterctlv1.ProviderType, error) {
 	providerType := clusterctlv1.CoreProviderType
 	if gpo.bootstrapProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
+			return "", "", pkgerrors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.bootstrapProvider
 		providerType = clusterctlv1.BootstrapProviderType
 	}
 	if gpo.controlPlaneProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
+			return "", "", pkgerrors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.controlPlaneProvider
 		providerType = clusterctlv1.ControlPlaneProviderType
 	}
 	if gpo.infrastructureProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
+			return "", "", pkgerrors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.infrastructureProvider
 		providerType = clusterctlv1.InfrastructureProviderType
 	}
 	if gpo.ipamProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
+			return "", "", pkgerrors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.ipamProvider
 		providerType = clusterctlv1.IPAMProviderType
 	}
 	if gpo.runtimeExtensionProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
+			return "", "", pkgerrors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.runtimeExtensionProvider
 		providerType = clusterctlv1.RuntimeExtensionProviderType
 	}
 	if gpo.addonProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
+			return "", "", pkgerrors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.addonProvider
 		providerType = clusterctlv1.AddonProviderType
 	}
 	if providerName == "" {
-		return "", "", errors.New("at least one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
+		return "", "", pkgerrors.New("at least one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 	}
 
 	return providerName, providerType, nil

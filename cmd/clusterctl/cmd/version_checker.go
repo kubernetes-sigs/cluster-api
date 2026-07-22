@@ -29,7 +29,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/blang/semver/v4"
 	"github.com/google/go-github/v82/github"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"sigs.k8s.io/yaml"
 
@@ -110,7 +110,7 @@ func (v *versionChecker) Check(ctx context.Context) (string, error) {
 	if v.cliVersion().GitVersion != "" {
 		cliVer, err = semver.ParseTolerant(v.cliVersion().GitVersion)
 		if err != nil {
-			return "", errors.Wrap(err, "unable to semver parse clusterctl GitVersion")
+			return "", pkgerrors.Wrap(err, "unable to semver parse clusterctl GitVersion")
 		}
 	}
 
@@ -123,7 +123,7 @@ func (v *versionChecker) Check(ctx context.Context) (string, error) {
 	}
 	latestVersion, err := semver.ParseTolerant(release.Version)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to semver parse latest release version")
+		return "", pkgerrors.Wrap(err, "unable to semver parse latest release version")
 	}
 
 	// if we are using a dirty dev build or go build, just log it out
@@ -157,7 +157,7 @@ func (v *versionChecker) getLatestRelease(ctx context.Context) (*ReleaseInfo, er
 	// NOTE: local state file is ignored if older than 1d.
 	vs, err := readStateFile(v.versionFilePath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read version state file %s", v.versionFilePath)
+		return nil, pkgerrors.Wrapf(err, "unable to read version state file %s", v.versionFilePath)
 	}
 	if vs != nil {
 		return &vs.LatestRelease, nil
@@ -175,7 +175,7 @@ func (v *versionChecker) getLatestRelease(ctx context.Context) (*ReleaseInfo, er
 		}
 
 		if err := writeStateFile(v.versionFilePath, vs); err != nil {
-			return nil, errors.Wrap(err, "unable to write version state file")
+			return nil, pkgerrors.Wrap(err, "unable to write version state file")
 		}
 		return &vs.LatestRelease, nil
 	}
@@ -195,7 +195,7 @@ func (v *versionChecker) getLatestRelease(ctx context.Context) (*ReleaseInfo, er
 	}
 
 	if err := writeStateFile(v.versionFilePath, vs); err != nil {
-		return nil, errors.Wrap(err, "unable to write version state file")
+		return nil, pkgerrors.Wrap(err, "unable to write version state file")
 	}
 
 	return &vs.LatestRelease, nil

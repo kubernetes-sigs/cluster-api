@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,14 +50,14 @@ func (w *Workload) EnsureResource(ctx context.Context, obj client.Object) error 
 	testObj := obj.DeepCopyObject().(client.Object)
 	key := client.ObjectKeyFromObject(obj)
 	if err := w.Client.Get(ctx, key, testObj); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to determine if resource %s/%s already exists", key.Namespace, key.Name)
+		return pkgerrors.Wrapf(err, "failed to determine if resource %s/%s already exists", key.Namespace, key.Name)
 	} else if err == nil {
 		// If object already exists, nothing left to do
 		return nil
 	}
 	if err := w.Client.Create(ctx, obj); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrapf(err, "unable to create resource %s/%s on workload cluster", key.Namespace, key.Name)
+			return pkgerrors.Wrapf(err, "unable to create resource %s/%s on workload cluster", key.Namespace, key.Name)
 		}
 	}
 	return nil

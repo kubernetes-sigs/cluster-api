@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -111,12 +111,12 @@ func (r *ssaCache) Has(key, kind string) bool {
 func ComputeRequestIdentifier(scheme *runtime.Scheme, resourceVersion string, obj client.Object) (string, error) {
 	objHash, err := hash.Compute(obj)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to calculate request identifier: failed to compute hash for object")
+		return "", pkgerrors.Wrapf(err, "failed to calculate request identifier: failed to compute hash for object")
 	}
 
 	gvk, err := apiutil.GVKForObject(obj, scheme)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to calculate request identifier: failed to get GroupVersionKind of object %s", klog.KObj(obj))
+		return "", pkgerrors.Wrapf(err, "failed to calculate request identifier: failed to get GroupVersionKind of object %s", klog.KObj(obj))
 	}
 
 	return fmt.Sprintf("%s.%s.%s.%d", gvk.String(), klog.KObj(obj), resourceVersion, objHash), nil

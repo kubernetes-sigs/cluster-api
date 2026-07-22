@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -230,7 +230,7 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
-				processor: test.NewFakeProcessor().WithGetVariablesErr(errors.New("cannot get vars")),
+				processor: test.NewFakeProcessor().WithGetVariablesErr(pkgerrors.New("cannot get vars")),
 			},
 			args: args{
 				version:         "v1.0.0",
@@ -247,7 +247,7 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", utilyaml.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
 
-				processor: test.NewFakeProcessor().WithProcessErr(errors.New("cannot process")),
+				processor: test.NewFakeProcessor().WithProcessErr(pkgerrors.New("cannot process")),
 			},
 			args: args{
 				version:         "v1.0.0",

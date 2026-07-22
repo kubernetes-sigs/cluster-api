@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,13 +65,13 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, controlPlane *pkg.
 			controllerOwnerRef,
 			kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm()),
 		)
-		if errors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {
+		if pkgerrors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {
 			return ctrl.Result{RequeueAfter: dependentCertRequeueAfter}, nil
 		}
 		// always return if we have just created in order to skip rotation checks
 		return ctrl.Result{}, createErr
 	case err != nil:
-		return ctrl.Result{}, errors.Wrap(err, "failed to retrieve kubeconfig Secret")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to retrieve kubeconfig Secret")
 	}
 
 	if err := r.adoptKubeconfigSecret(ctx, configSecret, controlPlane.KCP); err != nil {
@@ -91,7 +91,7 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, controlPlane *pkg.
 	if needsRotation {
 		log.Info("Rotating kubeconfig secret")
 		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret, kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm())); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
+			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to regenerate kubeconfig")
 		}
 	}
 
@@ -120,7 +120,7 @@ func (r *Reconciler) adoptKubeconfigSecret(ctx context.Context, configSecret *co
 	configSecret.SetOwnerReferences(util.EnsureOwnerRef(configSecret.GetOwnerReferences(), kcpRef))
 
 	if err := r.Client.Patch(ctx, configSecret, client.MergeFrom(original)); err != nil {
-		return errors.Wrap(err, "failed to patch kubeadm config secret")
+		return pkgerrors.Wrap(err, "failed to patch kubeadm config secret")
 	}
 	return nil
 }
@@ -162,7 +162,7 @@ func (r *Reconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster
 
 	machine, err := desiredstate.ComputeDesiredMachine(kcp, cluster, failureDomain, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create Machine")
+		return nil, pkgerrors.Wrap(err, "failed to create Machine")
 	}
 
 	infraMachine, infraRef, err := r.createInfraMachine(ctx, kcp, cluster, machine.Name)
@@ -170,7 +170,7 @@ func (r *Reconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster
 		// Safe to return early here since no resources have been created yet.
 		v1beta1conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedV1Beta1Condition, controlplanev1.InfrastructureTemplateCloningFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityError, "%s", err.Error())
-		return nil, errors.Wrap(err, "failed to create Machine")
+		return nil, pkgerrors.Wrap(err, "failed to create Machine")
 	}
 	machine.Spec.InfrastructureRef = infraRef
 
@@ -179,7 +179,7 @@ func (r *Reconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster
 	if err != nil {
 		v1beta1conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedV1Beta1Condition, controlplanev1.BootstrapTemplateCloningFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityError, "%s", err.Error())
-		errs = append(errs, errors.Wrap(err, "failed to create Machine"))
+		errs = append(errs, pkgerrors.Wrap(err, "failed to create Machine"))
 	}
 
 	// Only proceed to creating the Machine if we haven't encountered an error
@@ -189,14 +189,14 @@ func (r *Reconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster
 		if err := r.createMachine(ctx, kcp, machine); err != nil {
 			v1beta1conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedV1Beta1Condition, controlplanev1.MachineGenerationFailedV1Beta1Reason,
 				clusterv1.ConditionSeverityError, "%s", err.Error())
-			errs = append(errs, errors.Wrap(err, "failed to create Machine"))
+			errs = append(errs, pkgerrors.Wrap(err, "failed to create Machine"))
 		}
 	}
 
 	// If we encountered any errors, attempt to clean up any dangling resources
 	if len(errs) > 0 {
 		if err := r.cleanupFromGeneration(ctx, infraMachine, bootstrapConfig); err != nil {
-			errs = append(errs, errors.Wrap(err, "failed to cleanup created objects"))
+			errs = append(errs, pkgerrors.Wrap(err, "failed to cleanup created objects"))
 		}
 		return nil, kerrors.NewAggregate(errs)
 	}
@@ -212,7 +212,7 @@ func (r *Reconciler) cleanupFromGeneration(ctx context.Context, objects ...clien
 			continue
 		}
 		if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
-			errs = append(errs, errors.Wrap(err, "failed to cleanup generated resources after error"))
+			errs = append(errs, pkgerrors.Wrap(err, "failed to cleanup generated resources after error"))
 		}
 	}
 
@@ -222,7 +222,7 @@ func (r *Reconciler) cleanupFromGeneration(ctx context.Context, objects ...clien
 func (r *Reconciler) createInfraMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, name string) (*unstructured.Unstructured, clusterv1.ContractVersionedObjectReference, error) {
 	infraMachine, err := desiredstate.ComputeDesiredInfraMachine(ctx, r.Client, kcp, cluster, name, nil)
 	if err != nil {
-		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
+		return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create InfraMachine")
 	}
 
 	// Create the full object with capi-kubeadmcontrolplane.
@@ -231,14 +231,14 @@ func (r *Reconciler) createInfraMachine(ctx context.Context, kcp *controlplanev1
 	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
 	// memory usage by dropping managedFields before storing objects in the cache.
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, infraMachine); err != nil {
-		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
+		return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create InfraMachine")
 	}
 
 	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 	//       on KubeadmConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
 	if !r.disableRemoveManagedFieldsForLabelsAndAnnotations {
 		if err := ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, r.Client, r.APIReader, infraMachine, kcpManagerName); err != nil {
-			return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
+			return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create InfraMachine")
 		}
 	}
 
@@ -252,7 +252,7 @@ func (r *Reconciler) createInfraMachine(ctx context.Context, kcp *controlplanev1
 func (r *Reconciler) createKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, isJoin bool, name string) (*bootstrapv1.KubeadmConfig, clusterv1.ContractVersionedObjectReference, error) {
 	kubeadmConfig, err := desiredstate.ComputeDesiredKubeadmConfig(kcp, cluster, isJoin, name, nil)
 	if err != nil {
-		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create KubeadmConfig")
+		return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create KubeadmConfig")
 	}
 
 	// Create the full object with capi-kubeadmcontrolplane.
@@ -261,14 +261,14 @@ func (r *Reconciler) createKubeadmConfig(ctx context.Context, kcp *controlplanev
 	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
 	// memory usage by dropping managedFields before storing objects in the cache.
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, kubeadmConfig); err != nil {
-		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create KubeadmConfig")
+		return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create KubeadmConfig")
 	}
 
 	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 	//       on KubeadmConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
 	if !r.disableRemoveManagedFieldsForLabelsAndAnnotations {
 		if err := ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, r.Client, r.APIReader, kubeadmConfig, kcpManagerName); err != nil {
-			return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create KubeadmConfig")
+			return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create KubeadmConfig")
 		}
 	}
 
@@ -310,7 +310,7 @@ func (r *Reconciler) createMachine(ctx context.Context, kcp *controlplanev1.Kube
 func (r *Reconciler) updateMachine(ctx context.Context, machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {
 	updatedMachine, err := desiredstate.ComputeDesiredMachine(kcp, cluster, machine.Spec.FailureDomain, machine)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to apply Machine")
+		return nil, pkgerrors.Wrap(err, "failed to apply Machine")
 	}
 
 	// Note: It's not critical that the next Reconcile observes the changes applied here, so we don't wait for the cache.

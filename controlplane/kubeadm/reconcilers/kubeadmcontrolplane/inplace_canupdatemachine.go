@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -72,7 +72,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Ma
 		return false, nil
 	}
 	if len(extensionHandlers) > 1 {
-		return false, errors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		return false, pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
 	}
 
 	canUpdateMachine, reasons, err := r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
@@ -99,7 +99,7 @@ func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *cl
 	// Create the CanUpdateMachine request.
 	cannotUpdateMachineReason, req, err := createRequest(ctx, r.Client, machine, machineUpToDateResult)
 	if err != nil {
-		return false, nil, errors.Wrapf(err, "failed to generate CanUpdateMachine request")
+		return false, nil, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachine request")
 	}
 	if cannotUpdateMachineReason != "" {
 		return false, []string{cannotUpdateMachineReason}, nil
@@ -115,14 +115,14 @@ func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *cl
 
 		// Apply patches from the CanUpdateMachine response to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
-			return false, nil, errors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachine request", extensionHandler)
+			return false, nil, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachine request", extensionHandler)
 		}
 
 		// Check if current and desired objects are now matching.
 		var matches bool
 		matches, reasons, err = matchesMachine(req)
 		if err != nil {
-			return false, nil, errors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
+			return false, nil, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
 		}
 		if matches {
 			return true, nil, nil
@@ -161,7 +161,7 @@ func createRequest(ctx context.Context, c client.Client, currentMachine *cluster
 		// Note: While we check for specific errors for InfraMachine below we don't do the same here for Machine
 		// as we don't expect validating webhook errors for the Machine. If these errors actually occur
 		// we consider this a bug that should be fixed.
-		return "", nil, errors.Wrap(err, "server side apply dry-run failed for desired Machine")
+		return "", nil, pkgerrors.Wrap(err, "server side apply dry-run failed for desired Machine")
 	}
 	// InfraMachine
 	// Note: Both currentInfraMachineForDiff and desiredInfraMachineForDiff need a dry-run to ensure changes
@@ -173,7 +173,7 @@ func createRequest(ctx context.Context, c client.Client, currentMachine *cluster
 		if apierrors.IsInvalid(err) || apierrors.IsForbidden(err) {
 			return fmt.Sprintf("server side apply dry-run for current InfraMachine failed: %s", err), nil, nil
 		}
-		return "", nil, errors.Wrap(err, "server side apply dry-run failed for current InfraMachine")
+		return "", nil, pkgerrors.Wrap(err, "server side apply dry-run failed for current InfraMachine")
 	}
 	if err := ssa.Patch(ctx, c, kcpManagerName, desiredInfraMachineForDiff, ssa.WithDryRun{}); err != nil {
 		// Note: If ssa.Patch fails because a validating webhook returns an error we cannot in-place update the InfraMachine
@@ -181,7 +181,7 @@ func createRequest(ctx context.Context, c client.Client, currentMachine *cluster
 		if apierrors.IsInvalid(err) || apierrors.IsForbidden(err) {
 			return fmt.Sprintf("server side apply dry-run for desired InfraMachine failed: %s", err), nil, nil
 		}
-		return "", nil, errors.Wrap(err, "server side apply dry-run failed for desired InfraMachine")
+		return "", nil, pkgerrors.Wrap(err, "server side apply dry-run failed for desired InfraMachine")
 	}
 	// KubeadmConfig
 	// Note: Both currentKubeadmConfigForDiff and desiredKubeadmConfigForDiff don't need a dry-run as
@@ -295,21 +295,21 @@ func matchesMachine(req *runtimehooksv1.CanUpdateMachineRequest) (bool, []string
 	var reasons []string
 	match, diff, err := matchesMachineSpec(&req.Current.Machine, &req.Desired.Machine)
 	if err != nil {
-		return false, nil, errors.Wrapf(err, "failed to match Machine")
+		return false, nil, pkgerrors.Wrapf(err, "failed to match Machine")
 	}
 	if !match {
 		reasons = append(reasons, fmt.Sprintf("Machine cannot be updated in-place: %s", diff))
 	}
 	match, diff, err = matchesUnstructuredSpec(req.Current.BootstrapConfig, req.Desired.BootstrapConfig)
 	if err != nil {
-		return false, nil, errors.Wrapf(err, "failed to match KubeadmConfig")
+		return false, nil, pkgerrors.Wrapf(err, "failed to match KubeadmConfig")
 	}
 	if !match {
 		reasons = append(reasons, fmt.Sprintf("KubeadmConfig cannot be updated in-place: %s", diff))
 	}
 	match, diff, err = matchesUnstructuredSpec(req.Current.InfrastructureMachine, req.Desired.InfrastructureMachine)
 	if err != nil {
-		return false, nil, errors.Wrapf(err, "failed to match %s", req.Current.InfrastructureMachine.Object.GetObjectKind().GroupVersionKind().Kind)
+		return false, nil, pkgerrors.Wrapf(err, "failed to match %s", req.Current.InfrastructureMachine.Object.GetObjectKind().GroupVersionKind().Kind)
 	}
 	if !match {
 		reasons = append(reasons, fmt.Sprintf("%s cannot be updated in-place: %s", req.Current.InfrastructureMachine.Object.GetObjectKind().GroupVersionKind().Kind, diff))
@@ -339,11 +339,11 @@ func matchesUnstructuredSpec(patched, desired runtime.RawExtension) (equal bool,
 	//       applyPatchToObject are always setting objects as Unstructured.
 	patchedUnstructured, ok := patched.Object.(*unstructured.Unstructured)
 	if !ok {
-		return false, "", errors.Errorf("patched object is not an Unstructured")
+		return false, "", pkgerrors.Errorf("patched object is not an Unstructured")
 	}
 	desiredUnstructured, ok := desired.Object.(*unstructured.Unstructured)
 	if !ok {
-		return false, "", errors.Errorf("desired object is not an Unstructured")
+		return false, "", pkgerrors.Errorf("desired object is not an Unstructured")
 	}
 	// Note: Wrapping Unstructured specs in an Unstructured for proper formatting of the diff.
 	return compare.Diff(

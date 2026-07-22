@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -43,7 +43,7 @@ func ByMachineNode(ctx context.Context, mgr ctrl.Manager) error {
 		MachineNodeNameField,
 		MachineByNodeName,
 	); err != nil {
-		return errors.Wrap(err, "error setting index field")
+		return pkgerrors.Wrap(err, "error setting index field")
 	}
 
 	return nil
@@ -68,7 +68,7 @@ func ByMachineProviderID(ctx context.Context, mgr ctrl.Manager) error {
 		MachineProviderIDField,
 		machineByProviderID,
 	); err != nil {
-		return errors.Wrap(err, "error setting index field")
+		return pkgerrors.Wrap(err, "error setting index field")
 	}
 
 	return nil

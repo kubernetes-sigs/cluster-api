@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	apiyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/yaml"
@@ -42,10 +42,10 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 		// Read one YAML document at a time, until io.EOF is returned
 		b, err := reader.Read()
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if pkgerrors.Is(err, io.EOF) {
 				break
 			}
-			return nil, errors.Wrapf(err, "failed to read yaml")
+			return nil, pkgerrors.Wrapf(err, "failed to read yaml")
 		}
 		if len(b) == 0 {
 			break
@@ -53,7 +53,7 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 
 		var m map[string]interface{}
 		if err := yaml.Unmarshal(b, &m); err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal the %s yaml document: %q", util.Ordinalize(count), string(b))
+			return nil, pkgerrors.Wrapf(err, "failed to unmarshal the %s yaml document: %q", util.Ordinalize(count), string(b))
 		}
 
 		var u unstructured.Unstructured
@@ -102,7 +102,7 @@ func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
 	for _, o := range objs {
 		content, err := yaml.Marshal(o.UnstructuredContent())
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to marshal yaml for %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+			return nil, pkgerrors.Wrapf(err, "failed to marshal yaml for %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
 		}
 		ret = append(ret, content)
 	}

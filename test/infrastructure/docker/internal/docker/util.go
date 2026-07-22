@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker/types"
@@ -61,7 +61,7 @@ func machineFromContainerName(cluster, containerName string) string {
 func listContainers(ctx context.Context, filters container.FilterBuilder) ([]*types.Node, error) {
 	n, err := List(ctx, filters)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list containers")
+		return nil, pkgerrors.Wrapf(err, "failed to list containers")
 	}
 	return n, nil
 }
@@ -79,7 +79,7 @@ func getContainer(ctx context.Context, filters container.FilterBuilder) (*types.
 	case 1:
 		return n[0], nil
 	default:
-		return nil, errors.Errorf("expected 0 or 1 container, got %d", len(n))
+		return nil, pkgerrors.Errorf("expected 0 or 1 container, got %d", len(n))
 	}
 }
 
@@ -97,7 +97,7 @@ func List(ctx context.Context, filters container.FilterBuilder) ([]*types.Node, 
 func list(ctx context.Context, visit func(context.Context, string, *types.Node), filters container.FilterBuilder) error {
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to container runtime")
+		return pkgerrors.Wrap(err, "failed to connect to container runtime")
 	}
 
 	// We also need our cluster label key to the list of filter
@@ -105,7 +105,7 @@ func list(ctx context.Context, visit func(context.Context, string, *types.Node),
 
 	containers, err := containerRuntime.ListContainers(ctx, filters)
 	if err != nil {
-		return errors.Wrap(err, "failed to list containers")
+		return pkgerrors.Wrap(err, "failed to list containers")
 	}
 
 	for _, cntr := range containers {

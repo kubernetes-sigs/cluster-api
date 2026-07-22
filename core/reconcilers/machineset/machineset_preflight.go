@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -70,7 +70,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	// Get the control plane object.
 	controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get ControlPlane %s", action, klog.KRef(cluster.Namespace, cluster.Spec.ControlPlaneRef.Name))
+		return nil, pkgerrors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get ControlPlane %s", action, klog.KRef(cluster.Namespace, cluster.Spec.ControlPlaneRef.Name))
 	}
 	cpKlogRef := klog.KRef(controlPlane.GetNamespace(), controlPlane.GetName())
 
@@ -79,14 +79,14 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	// we do not have enough information. Return early.
 	cpVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 	if err != nil {
-		if errors.Is(err, contract.ErrFieldNotFound) {
+		if pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			return nil, nil
 		}
-		return nil, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get the version of ControlPlane %s", action, cpKlogRef)
+		return nil, pkgerrors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get the version of ControlPlane %s", action, cpKlogRef)
 	}
 	cpSemver, err := semver.ParseTolerant(*cpVersion)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to parse version %q of ControlPlane %s", action, *cpVersion, cpKlogRef)
+		return nil, pkgerrors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to parse version %q of ControlPlane %s", action, *cpVersion, cpKlogRef)
 	}
 
 	errList := []error{}
@@ -107,7 +107,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		msVersion := ms.Spec.Template.Spec.Version
 		msSemver, err := semver.ParseTolerant(msVersion)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to parse version %q of MachineSet %s", action, msVersion, klog.KObj(ms))
+			return nil, pkgerrors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to parse version %q of MachineSet %s", action, msVersion, klog.KObj(ms))
 		}
 
 		// Run the kubernetes-version skew preflight check.
@@ -133,7 +133,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	}
 
 	if len(errList) > 0 {
-		return nil, errors.Wrapf(kerrors.NewAggregate(errList), "failed to perform %q: failed to perform preflight checks", action)
+		return nil, pkgerrors.Wrapf(kerrors.NewAggregate(errList), "failed to perform %q: failed to perform preflight checks", action)
 	}
 	if len(preflightCheckErrs) > 0 {
 		preflightCheckErrStrings := []string{}
@@ -174,7 +174,7 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 	// Check that the control plane is not provisioning.
 	isProvisioning, err := contract.ControlPlane().IsProvisioning(controlPlane)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to perform %q preflight check: failed to check if %s %s is provisioning", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
+		return nil, pkgerrors.Wrapf(err, "failed to perform %q preflight check: failed to check if %s %s is provisioning", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
 	}
 	if isProvisioning {
 		return ptr.To(fmt.Sprintf("%s %s is provisioning (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
@@ -183,7 +183,7 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 	// Check that the control plane is not upgrading.
 	isUpgrading, err := contract.ControlPlane().IsUpgrading(controlPlane)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to perform %q preflight check: failed to check if the %s %s is upgrading", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
+		return nil, pkgerrors.Wrapf(err, "failed to perform %q preflight check: failed to check if the %s %s is upgrading", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
 	}
 	if isUpgrading {
 		return ptr.To(fmt.Sprintf("%s %s is upgrading (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
@@ -251,7 +251,7 @@ func (r *Reconciler) skippedPreflightChecks(ctx context.Context, ms *clusterv1.M
 	if skip == "" && ms.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		apiVersion, err := contract.GetAPIVersion(ctx, r.Client, ms.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read %s annotation", clusterv1.MachineSetSkipPreflightChecksAnnotation)
+			return nil, pkgerrors.Wrapf(err, "failed to read %s annotation", clusterv1.MachineSetSkipPreflightChecksAnnotation)
 		}
 		templateRef := &corev1.ObjectReference{
 			APIVersion: apiVersion,
@@ -261,7 +261,7 @@ func (r *Reconciler) skippedPreflightChecks(ctx context.Context, ms *clusterv1.M
 		}
 		template, err := external.Get(ctx, r.Client, templateRef)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read %s annotation", clusterv1.MachineSetSkipPreflightChecksAnnotation)
+			return nil, pkgerrors.Wrapf(err, "failed to read %s annotation", clusterv1.MachineSetSkipPreflightChecksAnnotation)
 		}
 		skip = template.GetAnnotations()[clusterv1.MachineSetSkipPreflightChecksAnnotation]
 	}

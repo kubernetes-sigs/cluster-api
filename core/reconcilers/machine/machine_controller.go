@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -75,11 +75,11 @@ const (
 )
 
 var (
-	errNilNodeRef                 = errors.New("noderef is nil")
-	errLastControlPlaneNode       = errors.New("last control plane member")
-	errNoControlPlaneNodes        = errors.New("no control plane members")
-	errClusterIsBeingDeleted      = errors.New("cluster is being deleted")
-	errControlPlaneIsBeingDeleted = errors.New("control plane is being deleted")
+	errNilNodeRef                 = pkgerrors.New("noderef is nil")
+	errLastControlPlaneNode       = pkgerrors.New("last control plane member")
+	errNoControlPlaneNodes        = pkgerrors.New("no control plane members")
+	errClusterIsBeingDeleted      = pkgerrors.New("cluster is being deleted")
+	errControlPlaneIsBeingDeleted = pkgerrors.New("control plane is being deleted")
 )
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
@@ -126,10 +126,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
 		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
 		// to have some buffer.
-		return errors.New("Client, APIReader and ClusterCache must not be nil and RemoteConditionsGracePeriod must not be < 2m")
+		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil and RemoteConditionsGracePeriod must not be < 2m")
 	}
 	if feature.Gates.Enabled(feature.InPlaceUpdates) && r.RuntimeClient == nil {
-		return errors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
+		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 
 	r.predicateLog = ptr.To(ctrl.LoggerFrom(ctx).WithValues("controller", "machine"))
@@ -172,7 +172,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		Build(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.hookCache = cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)
@@ -484,7 +484,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		default:
 			s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
 			s.deletingMessage = "Please check controller logs for errors" //nolint:goconst // Not making this a constant for now
-			return ctrl.Result{}, errors.Wrapf(err, "failed to check if Kubernetes Node deletion is allowed")
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to check if Kubernetes Node deletion is allowed")
 		}
 	}
 
@@ -652,7 +652,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 		var deleteNodeErr error
 		waitErr := wait.PollUntilContextTimeout(ctx, 2*time.Second, r.nodeDeletionRetryTimeout, true, func(ctx context.Context) (bool, error) {
-			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(errors.Cause(deleteNodeErr)) {
+			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(pkgerrors.Cause(deleteNodeErr)) {
 				return false, nil
 			}
 			return true, nil
@@ -860,7 +860,7 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 
 	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to drain Node %s", nodeName)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to drain Node %s", nodeName)
 	}
 
 	node := &corev1.Node{}
@@ -870,7 +870,7 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 			log.Info("Could not find Node from Machine.status.nodeRef, skipping Node drain.")
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, errors.Wrapf(err, "unable to get Node %s", nodeName)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "unable to get Node %s", nodeName)
 	}
 
 	drainer := &drain.Helper{
@@ -904,7 +904,7 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 
 	if err := drainer.CordonNode(ctx, node); err != nil {
 		// Machine will be re-reconciled after a cordon failure.
-		return ctrl.Result{}, errors.Wrapf(err, "failed to cordon Node %s", node.Name)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to cordon Node %s", node.Name)
 	}
 
 	podDeleteList, err := drainer.GetPodsForEviction(ctx, cluster, machine, nodeName)
@@ -1028,7 +1028,7 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, s *scope) (ct
 func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
 	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		return errors.Wrapf(err, "failed deleting Node because connection to the workload cluster is down")
+		return pkgerrors.Wrapf(err, "failed deleting Node because connection to the workload cluster is down")
 	}
 
 	node := &corev1.Node{
@@ -1038,7 +1038,7 @@ func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster,
 	}
 
 	if err := remoteClient.Delete(ctx, node); err != nil {
-		return errors.Wrapf(err, "error deleting node %s", name)
+		return pkgerrors.Wrapf(err, "error deleting node %s", name)
 	}
 	return nil
 }
@@ -1051,7 +1051,7 @@ func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, s *scope) (bo
 
 	if s.bootstrapConfig != nil && s.bootstrapConfig.GetDeletionTimestamp().IsZero() {
 		if err := r.Client.Delete(ctx, s.bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
-			return false, errors.Wrapf(err,
+			return false, pkgerrors.Wrapf(err,
 				"failed to delete %v %q for Machine %q in namespace %q",
 				s.bootstrapConfig.GroupVersionKind().Kind, s.bootstrapConfig.GetName(), s.machine.Name, s.machine.Namespace)
 		}
@@ -1068,7 +1068,7 @@ func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, s *scope
 
 	if s.infraMachine != nil && s.infraMachine.GetDeletionTimestamp().IsZero() {
 		if err := r.Client.Delete(ctx, s.infraMachine); err != nil && !apierrors.IsNotFound(err) {
-			return false, errors.Wrapf(err,
+			return false, pkgerrors.Wrapf(err,
 				"failed to delete %v %q for Machine %q in namespace %q",
 				s.infraMachine.GroupVersionKind().Kind, s.infraMachine.GetName(), s.machine.Name, s.machine.Namespace)
 		}
@@ -1189,13 +1189,13 @@ func getAttachedVolumeInformation(ctx context.Context, remoteClient client.Clien
 	if feature.Gates.Enabled(feature.MachineWaitForVolumeDetachConsiderVolumeAttachments) {
 		volumeAttachments, err := getVolumeAttachmentForNode(ctx, remoteClient, node.GetName())
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to list VolumeAttachments")
+			return nil, nil, pkgerrors.Wrap(err, "failed to list VolumeAttachments")
 		}
 
 		for _, va := range volumeAttachments {
 			// Return an error if a VolumeAttachments does not refer a PersistentVolume.
 			if va.Spec.Source.PersistentVolumeName == nil {
-				return nil, nil, errors.Errorf("spec.source.persistentVolumeName for VolumeAttachment %s is not set", va.GetName())
+				return nil, nil, pkgerrors.Errorf("spec.source.persistentVolumeName for VolumeAttachment %s is not set", va.GetName())
 			}
 			attachedPVNames.Insert(*va.Spec.Source.PersistentVolumeName)
 		}
@@ -1215,7 +1215,7 @@ func getPersistentVolumeClaimsToIgnore(ctx context.Context, c client.Client, rem
 
 	pods, err := drainHelper.GetPodsForEviction(ctx, cluster, machine, nodeName)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to find PersistentVolumeClaims from Pods ignored during drain")
+		return nil, pkgerrors.Wrap(err, "failed to find PersistentVolumeClaims from Pods ignored during drain")
 	}
 
 	ignoredPods := pods.SkippedPods()
@@ -1247,7 +1247,7 @@ func getVolumeAttachmentForNode(ctx context.Context, c client.Client, nodeName s
 			client.Limit(100),
 		}
 		if err := c.List(ctx, volumeAttachmentList, listOpts...); err != nil {
-			return nil, errors.Wrap(err, "failed to list VolumeAttachments")
+			return nil, pkgerrors.Wrap(err, "failed to list VolumeAttachments")
 		}
 
 		for _, volumeAttachment := range volumeAttachmentList.Items {
@@ -1364,7 +1364,7 @@ func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, 
 			client.Limit(100),
 		}
 		if err := c.List(ctx, persistentVolumeList, listOpts...); err != nil {
-			return nil, errors.Wrap(err, "failed to list PersistentVolumes")
+			return nil, pkgerrors.Wrap(err, "failed to list PersistentVolumes")
 		}
 
 		for _, persistentVolume := range persistentVolumeList.Items {

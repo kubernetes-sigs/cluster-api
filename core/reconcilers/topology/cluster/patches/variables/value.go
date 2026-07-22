@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/valyala/fastjson"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/ptr"
@@ -41,7 +41,7 @@ func GetVariableValue(variables map[string]apiextensionsv1.JSON, variablePath st
 	// Parse the path segment.
 	variableNameSegment, err := parsePathSegment(variableName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "variable %q is invalid", variablePath)
+		return nil, pkgerrors.Wrapf(err, "variable %q is invalid", variablePath)
 	}
 
 	// Get the variable.
@@ -59,7 +59,7 @@ func GetVariableValue(variables map[string]apiextensionsv1.JSON, variablePath st
 	// Parse the variable object.
 	variable, err := fastjson.ParseBytes(value.Raw)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot parse variable %q: %s", variableName, string(value.Raw))
+		return nil, pkgerrors.Wrapf(err, "cannot parse variable %q: %s", variableName, string(value.Raw))
 	}
 
 	// If variableName contains an array index, get the array element (i.e. starts with "<variableName>[i]").
@@ -84,7 +84,7 @@ func GetVariableValue(variables map[string]apiextensionsv1.JSON, variablePath st
 		// Parse the path segment.
 		pathSegment, err := parsePathSegment(p)
 		if err != nil {
-			return nil, errors.Wrapf(err, "variable %q has invalid syntax", variablePath)
+			return nil, pkgerrors.Wrapf(err, "variable %q has invalid syntax", variablePath)
 		}
 
 		// Return if the variable does not exist.
@@ -124,7 +124,7 @@ func (p pathSegment) HasIndex() bool {
 func parsePathSegment(segment string) (*pathSegment, error) {
 	if (strings.Contains(segment, leftArrayDelim) && !strings.Contains(segment, rightArrayDelim)) ||
 		(!strings.Contains(segment, leftArrayDelim) && strings.Contains(segment, rightArrayDelim)) {
-		return nil, errors.Errorf("failed to parse path segment %q", segment)
+		return nil, pkgerrors.Errorf("failed to parse path segment %q", segment)
 	}
 
 	if !strings.Contains(segment, leftArrayDelim) && !strings.Contains(segment, rightArrayDelim) {
@@ -136,10 +136,10 @@ func parsePathSegment(segment string) (*pathSegment, error) {
 	arrayIndexStr := segment[strings.Index(segment, leftArrayDelim)+1 : strings.Index(segment, rightArrayDelim)]
 	index, err := strconv.Atoi(arrayIndexStr)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse array index in path segment %q", segment)
+		return nil, pkgerrors.Wrapf(err, "failed to parse array index in path segment %q", segment)
 	}
 	if index < 0 {
-		return nil, errors.Errorf("invalid array index %d in path segment %q", index, segment)
+		return nil, pkgerrors.Errorf("invalid array index %d in path segment %q", index, segment)
 	}
 
 	return &pathSegment{
@@ -153,11 +153,11 @@ func getVariableArrayElement(array *fastjson.Value, arrayPathSegment *pathSegmen
 	// Retrieve the array element, handling index out of range.
 	arr, err := array.Array()
 	if err != nil {
-		return nil, errors.Wrapf(err, "variable %q is invalid: failed to get array %q", fullVariablePath, arrayPathSegment.path)
+		return nil, pkgerrors.Wrapf(err, "variable %q is invalid: failed to get array %q", fullVariablePath, arrayPathSegment.path)
 	}
 
 	if len(arr) < *arrayPathSegment.index+1 {
-		return nil, errors.Errorf("variable %q is invalid: array does not have index %d", fullVariablePath, arrayPathSegment.index)
+		return nil, pkgerrors.Errorf("variable %q is invalid: array does not have index %d", fullVariablePath, arrayPathSegment.index)
 	}
 
 	return arr[*arrayPathSegment.index], nil

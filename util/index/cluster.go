@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -42,7 +42,7 @@ func ByClusterClassRef(ctx context.Context, mgr ctrl.Manager) error {
 		ClusterClassRefPath,
 		ClusterByClusterClassRef,
 	); err != nil {
-		return errors.Wrap(err, "error setting index field")
+		return pkgerrors.Wrap(err, "error setting index field")
 	}
 	return nil
 }

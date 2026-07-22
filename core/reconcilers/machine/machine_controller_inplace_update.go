@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -58,7 +58,7 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 		if hasUpdateMachinePending {
 			log.Info("In-place update annotation removed but UpdateMachine hook still pending, cleaning up orphaned hook and annotations")
 			if err := r.completeInPlaceUpdate(ctx, s); err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to clean up orphaned UpdateMachine hook and annotations")
+				return ctrl.Result{}, pkgerrors.Wrap(err, "failed to clean up orphaned UpdateMachine hook and annotations")
 			}
 		}
 
@@ -88,7 +88,7 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 	if s.infraMachine == nil {
 		s.updatingReason = clusterv1.MachineInPlaceUpdateFailedReason
 		s.updatingMessage = "In-place update not possible: InfraMachine not found"
-		return ctrl.Result{}, errors.New("in-place update failed: InfraMachine not found")
+		return ctrl.Result{}, pkgerrors.New("in-place update failed: InfraMachine not found")
 	}
 
 	infraReady := r.isInfraMachineReadyForUpdate(s)
@@ -103,7 +103,7 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 	if err != nil {
 		s.updatingReason = clusterv1.MachineInPlaceUpdateFailedReason
 		s.updatingMessage = "UpdateMachine hook failed: please check controller logs for errors"
-		return ctrl.Result{}, errors.Wrap(err, "in-place update failed")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "in-place update failed")
 	}
 
 	if result.RequeueAfter > 0 {
@@ -117,7 +117,7 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 	}
 
 	if err := r.completeInPlaceUpdate(ctx, s); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to complete in-place update")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to complete in-place update")
 	}
 
 	return ctrl.Result{}, nil
@@ -150,10 +150,10 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 		return ctrl.Result{}, "", err
 	}
 	if len(extensions) == 0 {
-		return ctrl.Result{}, "", errors.New("no extensions registered for UpdateMachine hook")
+		return ctrl.Result{}, "", pkgerrors.New("no extensions registered for UpdateMachine hook")
 	}
 	if len(extensions) > 1 {
-		return ctrl.Result{}, "", errors.Errorf("found multiple UpdateMachine hooks (%s): only one hook is supported", strings.Join(extensions, ","))
+		return ctrl.Result{}, "", pkgerrors.Errorf("found multiple UpdateMachine hooks (%s): only one hook is supported", strings.Join(extensions, ","))
 	}
 
 	if cacheEntry, ok := r.hookCache.Has(cache.NewHookEntryKey(s.machine, runtimehooksv1.UpdateMachine)); ok {
@@ -235,7 +235,7 @@ func (r *Reconciler) removeInPlaceUpdateAnnotation(ctx context.Context, obj clie
 
 	gvk, err := apiutil.GVKForObject(obj, r.Client.Scheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to remove %s annotation from object %s", clusterv1.UpdateInProgressAnnotation, klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "failed to remove %s annotation from object %s", clusterv1.UpdateInProgressAnnotation, klog.KObj(obj))
 	}
 
 	// Note: DeepCopy object to not modify the passed-in object which can lead to conflict errors later on.
@@ -245,7 +245,7 @@ func (r *Reconciler) removeInPlaceUpdateAnnotation(ctx context.Context, obj clie
 	obj.SetAnnotations(annotations)
 
 	if err := r.Client.Patch(ctx, obj, client.MergeFrom(orig)); err != nil {
-		return errors.Wrapf(err, "failed to remove %s annotation from %s %s", clusterv1.UpdateInProgressAnnotation, gvk.Kind, klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "failed to remove %s annotation from %s %s", clusterv1.UpdateInProgressAnnotation, gvk.Kind, klog.KObj(obj))
 	}
 
 	return nil

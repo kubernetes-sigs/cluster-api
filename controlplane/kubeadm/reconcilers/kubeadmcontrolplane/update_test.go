@@ -23,7 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -392,7 +392,7 @@ func Test_rollingUpdate(t *testing.T) {
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
 			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (bool, ctrl.Result, error) {
-				return false, ctrl.Result{}, errors.New("in-place update error")
+				return false, ctrl.Result{}, pkgerrors.New("in-place update error")
 			},
 			wantTryInPlaceUpdateCalled: true,
 			wantScaleDownCalled:        false,

@@ -24,7 +24,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -129,7 +129,7 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, ownerGraphFilterFun
 			}
 			for _, f := range allAssertFuncs[v.Object.Kind] {
 				if err := f(types.NamespacedName{Namespace: v.Object.Namespace, Name: v.Object.Name}, v.Owners); err != nil {
-					allErrs = append(allErrs, errors.Wrapf(err, "unexpected ownerReferences for %s, %s", v.Object.Kind, klog.KRef(v.Object.Namespace, v.Object.Name)))
+					allErrs = append(allErrs, pkgerrors.Wrapf(err, "unexpected ownerReferences for %s, %s", v.Object.Kind, klog.KRef(v.Object.Namespace, v.Object.Name)))
 				}
 			}
 		}

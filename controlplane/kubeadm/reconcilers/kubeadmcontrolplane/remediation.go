@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -132,7 +132,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 	// by considering which machine has lower impact on etcd quorum.
 	machineToBeRemediated := getMachineToBeRemediated(machinesToBeRemediated, controlPlane.IsEtcdManaged())
 	if machineToBeRemediated == nil {
-		return ctrl.Result{}, errors.New("failed to find a Machine to remediate within unhealthy Machines")
+		return ctrl.Result{}, pkgerrors.New("failed to find a Machine to remediate within unhealthy Machines")
 	}
 
 	// Returns if the machine is in the process of being deleted.
@@ -171,7 +171,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 		); err != nil {
 			log.Error(err, "Failed to patch control plane Machine", "Machine", machineToBeRemediated.Name)
 			if retErr == nil {
-				retErr = errors.Wrapf(err, "failed to patch control plane Machine %s", machineToBeRemediated.Name)
+				retErr = pkgerrors.Wrapf(err, "failed to patch control plane Machine %s", machineToBeRemediated.Name)
 			}
 		}
 	}()
@@ -317,7 +317,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 			workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 			if err != nil {
 				log.Error(err, "Failed to create client to workload cluster")
-				return ctrl.Result{}, errors.Wrapf(err, "failed to create client to workload cluster")
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create client to workload cluster")
 			}
 			if err := r.forwardEtcdLeadership(ctx, workloadCluster, controlPlane, machineToBeRemediated); err != nil {
 				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.RemediationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
@@ -346,7 +346,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 			Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
-		return ctrl.Result{}, errors.Wrapf(err, "failed to delete unhealthy machine %s", machineToBeRemediated.Name)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete unhealthy machine %s", machineToBeRemediated.Name)
 	} else if deletedMachine != nil {
 		r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 	}
@@ -901,7 +901,7 @@ type RemediationData struct {
 func RemediationDataFromAnnotation(value string) (*RemediationData, error) {
 	ret := &RemediationData{}
 	if err := json.Unmarshal([]byte(value), ret); err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal value %s for %s annotation", value, clusterv1.RemediationInProgressV1Beta1Reason)
+		return nil, pkgerrors.Wrapf(err, "failed to unmarshal value %s for %s annotation", value, clusterv1.RemediationInProgressV1Beta1Reason)
 	}
 	return ret, nil
 }
@@ -910,7 +910,7 @@ func RemediationDataFromAnnotation(value string) (*RemediationData, error) {
 func (r *RemediationData) Marshal() (string, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to marshal value for %s annotation", clusterv1.RemediationInProgressV1Beta1Reason)
+		return "", pkgerrors.Wrapf(err, "failed to marshal value for %s annotation", clusterv1.RemediationInProgressV1Beta1Reason)
 	}
 	return string(b), nil
 }

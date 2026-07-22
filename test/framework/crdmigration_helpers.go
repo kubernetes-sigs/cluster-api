@@ -24,7 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -92,7 +92,7 @@ func ValidateCRDMigration(ctx context.Context, proxy ClusterProxy, namespace, _ 
 			obj.SetNamespace(node.Object.Namespace)
 			obj.SetName(node.Object.Name)
 			if err := proxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-				return errors.Wrapf(err, "failed to get %s %s", node.Object.Kind, klog.KRef(node.Object.Namespace, node.Object.Name))
+				return pkgerrors.Wrapf(err, "failed to get %s %s", node.Object.Kind, klog.KRef(node.Object.Namespace, node.Object.Name))
 			}
 
 			servedGroupVersions, ok := servedGroupVersionsByGK[schema.GroupKind{

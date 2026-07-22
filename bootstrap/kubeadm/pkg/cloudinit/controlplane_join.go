@@ -17,7 +17,7 @@ limitations under the License.
 package cloudinit
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -64,7 +64,7 @@ func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, error) {
 
 	userData, err := generate("JoinControlplane", controlPlaneJoinCloudInit, input)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to generate user data for machine joining control plane")
+		return nil, pkgerrors.Wrapf(err, "failed to generate user data for machine joining control plane")
 	}
 
 	return userData, err

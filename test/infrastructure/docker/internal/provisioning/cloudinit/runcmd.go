@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
@@ -39,7 +39,7 @@ func newRunCmdAction() action {
 // Unmarshal the runCmd.
 func (a *runCmd) Unmarshal(userData []byte, _ kind.Mapping) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
-		return errors.Wrapf(err, "error parsing run_cmd action: %s", userData)
+		return pkgerrors.Wrapf(err, "error parsing run_cmd action: %s", userData)
 	}
 	return nil
 }

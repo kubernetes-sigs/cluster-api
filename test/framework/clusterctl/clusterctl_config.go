@@ -19,7 +19,7 @@ package clusterctl
 import (
 	"os"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
 
@@ -43,11 +43,11 @@ type providerConfig struct {
 func (c *clusterctlConfig) write() error {
 	data, err := yaml.Marshal(c.Values)
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal the clusterctl config file")
+		return pkgerrors.Wrap(err, "failed to marshal the clusterctl config file")
 	}
 
 	if err := os.WriteFile(c.Path, data, 0600); err != nil {
-		return errors.Wrap(err, "failed to write the clusterctl config file")
+		return pkgerrors.Wrap(err, "failed to write the clusterctl config file")
 	}
 
 	return nil
@@ -57,11 +57,11 @@ func (c *clusterctlConfig) write() error {
 func (c *clusterctlConfig) read() error {
 	data, err := os.ReadFile(c.Path)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read clusterctl config file %q", c.Path)
+		return pkgerrors.Wrapf(err, "failed to read clusterctl config file %q", c.Path)
 	}
 
 	if err = yaml.Unmarshal(data, &c.Values); err != nil {
-		return errors.Wrap(err, "failed to unmarshal the clusterctl config file")
+		return pkgerrors.Wrap(err, "failed to unmarshal the clusterctl config file")
 	}
 
 	return nil

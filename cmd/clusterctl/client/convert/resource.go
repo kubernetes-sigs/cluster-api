@@ -17,7 +17,7 @@ limitations under the License.
 package convert
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -38,13 +38,13 @@ func convertResource(obj runtime.Object, targetGV schema.GroupVersion, scheme *r
 	}
 
 	if !scheme.Recognizes(targetGVK) {
-		return nil, errors.Errorf("target GVK %s not recognized by scheme", targetGVK.String())
+		return nil, pkgerrors.Errorf("target GVK %s not recognized by scheme", targetGVK.String())
 	}
 
 	// Fallback to scheme conversion.
 	convertedObj, err := scheme.ConvertToVersion(obj, targetGVK.GroupVersion())
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to convert %s from %s to %s", gvk.Kind, gvk.Version, targetGV.Version)
+		return nil, pkgerrors.Wrapf(err, "failed to convert %s from %s to %s", gvk.Kind, gvk.Version, targetGV.Version)
 	}
 
 	return convertedObj, nil

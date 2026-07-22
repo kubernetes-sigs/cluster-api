@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -192,11 +192,11 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 	log := ctrl.LoggerFrom(ctx)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		return errors.New("can't start Watch: can't get http.Flusher")
+		return pkgerrors.New("can't start Watch: can't get http.Flusher")
 	}
 	resp, ok := w.(*restful.Response)
 	if !ok {
-		return errors.New("can't start Watch: can't get restful.Response")
+		return pkgerrors.New("can't start Watch: can't get restful.Response")
 	}
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("Content-Type", "application/json")
@@ -215,7 +215,7 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 
 	timeoutTimer, seconds, err := setTimer(timeout)
 	if err != nil {
-		return errors.Wrapf(err, "can't start Watch: could not set timeout")
+		return pkgerrors.Wrapf(err, "can't start Watch: could not set timeout")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, seconds)
@@ -277,7 +277,7 @@ func setTimer(timeout string) (*time.Timer, time.Duration, error) {
 	}
 	seconds, err := time.ParseDuration(fmt.Sprintf("%ss", timeout))
 	if err != nil {
-		return nil, 0, errors.Wrapf(err, "Could not parse request timeout %s", timeout)
+		return nil, 0, pkgerrors.Wrapf(err, "Could not parse request timeout %s", timeout)
 	}
 	t := time.NewTimer(seconds)
 	return t, seconds, nil

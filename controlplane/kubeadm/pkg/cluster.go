@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -198,18 +198,18 @@ func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.Obj
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			// Return error if we got an errors which is not a NotFound error.
-			return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
+			return nil, nil, pkgerrors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
 		}
 
 		// Try to get the certificate via the uncached client.
 		if err := m.Client.Get(ctx, etcdCAObjectKey, etcdCASecret); err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
+			return nil, nil, pkgerrors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
 		}
 	}
 
 	crtData, ok := etcdCASecret.Data[secret.TLSCrtDataName]
 	if !ok {
-		return nil, nil, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+		return nil, nil, pkgerrors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
 	}
 	keyData := etcdCASecret.Data[secret.TLSKeyDataName]
 	return crtData, keyData, nil
@@ -222,15 +222,15 @@ func (m *Management) getAPIServerEtcdClientCert(ctx context.Context, clusterKey 
 		Name:      fmt.Sprintf("%s-apiserver-etcd-client", clusterKey.Name),
 	}
 	if err := m.Client.Get(ctx, apiServerEtcdClientCertificateObjectKey, apiServerEtcdClientCertificateSecret); err != nil {
-		return tls.Certificate{}, errors.Wrapf(err, "failed to get secret; etcd apiserver-etcd-client %s/%s", apiServerEtcdClientCertificateObjectKey.Namespace, apiServerEtcdClientCertificateObjectKey.Name)
+		return tls.Certificate{}, pkgerrors.Wrapf(err, "failed to get secret; etcd apiserver-etcd-client %s/%s", apiServerEtcdClientCertificateObjectKey.Namespace, apiServerEtcdClientCertificateObjectKey.Name)
 	}
 	crtData, ok := apiServerEtcdClientCertificateSecret.Data[secret.TLSCrtDataName]
 	if !ok {
-		return tls.Certificate{}, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+		return tls.Certificate{}, pkgerrors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
 	}
 	keyData, ok := apiServerEtcdClientCertificateSecret.Data[secret.TLSKeyDataName]
 	if !ok {
-		return tls.Certificate{}, errors.Errorf("etcd tls key does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+		return tls.Certificate{}, pkgerrors.Errorf("etcd tls key does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
 	}
 	return tls.X509KeyPair(crtData, keyData)
 }

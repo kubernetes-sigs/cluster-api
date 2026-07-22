@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,7 +39,7 @@ func GetMachineSetsForDeployment(ctx context.Context, c client.Reader, md types.
 	msList := &clusterv1.MachineSetList{}
 	if err := c.List(ctx, msList,
 		client.InNamespace(md.Namespace), client.MatchingLabels{clusterv1.MachineDeploymentNameLabel: md.Name}); err != nil {
-		return nil, errors.Wrapf(err, "failed to list MachineSets for MachineDeployment/%s", md.Name)
+		return nil, pkgerrors.Wrapf(err, "failed to list MachineSets for MachineDeployment/%s", md.Name)
 	}
 
 	// Copy the MachineSets to an array of MachineSet pointers, to avoid MachineSet copying later.
@@ -97,7 +97,7 @@ func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse
 
 	apiVersion, err := contract.GetAPIVersion(ctx, c, ref.GroupKind())
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete %s %s", ref.Kind, klog.KRef(namespace, ref.Name))
+		return pkgerrors.Wrapf(err, "failed to delete %s %s", ref.Kind, klog.KRef(namespace, ref.Name))
 	}
 	deleteRef := &corev1.ObjectReference{
 		APIVersion: apiVersion,
@@ -108,7 +108,7 @@ func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse
 
 	log.Info(fmt.Sprintf("Deleting %s", ref.Kind))
 	if err := external.Delete(ctx, c, deleteRef); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to delete %s %s", ref.Kind, klog.KRef(namespace, ref.Name))
+		return pkgerrors.Wrapf(err, "failed to delete %s %s", ref.Kind, klog.KRef(namespace, ref.Name))
 	}
 	return nil
 }

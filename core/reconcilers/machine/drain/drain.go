@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -76,7 +76,7 @@ func (d *Helper) CordonNode(ctx context.Context, node *corev1.Node) error {
 	patch := client.MergeFrom(node.DeepCopy())
 	node.Spec.Unschedulable = true
 	if err := d.RemoteClient.Patch(ctx, node, patch); err != nil {
-		return errors.Wrapf(err, "failed to cordon Node")
+		return pkgerrors.Wrapf(err, "failed to cordon Node")
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func (d *Helper) GetPodsForEviction(ctx context.Context, cluster *clusterv1.Clus
 			client.Limit(100),
 		}
 		if err := d.RemoteClient.List(ctx, podList, listOpts...); err != nil {
-			return nil, errors.Wrapf(err, "failed to get Pods for eviction")
+			return nil, pkgerrors.Wrapf(err, "failed to get Pods for eviction")
 		}
 
 		for _, pod := range podList.Items {
@@ -114,7 +114,7 @@ func (d *Helper) GetPodsForEviction(ctx context.Context, cluster *clusterv1.Clus
 	// Get MachineDrainRules matching the Machine and Cluster.
 	machineDrainRulesMatchingMachine, err := d.getMatchingMachineDrainRules(ctx, cluster, machine)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get Pods for eviction")
+		return nil, pkgerrors.Wrapf(err, "failed to get Pods for eviction")
 	}
 
 	// List all Namespaces.
@@ -123,7 +123,7 @@ func (d *Helper) GetPodsForEviction(ctx context.Context, cluster *clusterv1.Clus
 	podNamespaces := map[string]*corev1.Namespace{}
 	namespaceList := &corev1.NamespaceList{}
 	if err := d.RemoteClient.List(ctx, namespaceList); err != nil {
-		return nil, errors.Wrapf(err, "failed to get Pods for eviction: failed to list Namespaces")
+		return nil, pkgerrors.Wrapf(err, "failed to get Pods for eviction: failed to list Namespaces")
 	}
 	for _, ns := range namespaceList.Items {
 		podNamespaces[ns.Name] = &ns
@@ -159,7 +159,7 @@ func (d *Helper) GetPodsForEviction(ctx context.Context, cluster *clusterv1.Clus
 		d.machineDrainRulesFilter(machineDrainRulesMatchingMachine, podNamespaces),
 	})
 	if errs := list.errors(); len(errs) > 0 {
-		return nil, errors.Wrapf(kerrors.NewAggregate(errs), "failed to get Pods for eviction")
+		return nil, pkgerrors.Wrapf(kerrors.NewAggregate(errs), "failed to get Pods for eviction")
 	}
 
 	return list, nil
@@ -169,18 +169,18 @@ func (d *Helper) getMatchingMachineDrainRules(ctx context.Context, cluster *clus
 	// List all MachineDrainRules.
 	machineDrainRuleList := &clusterv1.MachineDrainRuleList{}
 	if err := d.Client.List(ctx, machineDrainRuleList, client.InNamespace(machine.Namespace)); err != nil {
-		return nil, errors.Wrapf(err, "failed to list MachineDrainRules")
+		return nil, pkgerrors.Wrapf(err, "failed to list MachineDrainRules")
 	}
 
 	// Validate selectors of all MachineDrainRules (so we don't have to do it later for every Pod in machineDrainRulesFilter).
 	errs := []error{}
 	for _, mdr := range machineDrainRuleList.Items {
 		if validationErrs := coreadmission.ValidateMachineDrainRulesSelectors(&mdr); len(validationErrs) > 0 {
-			errs = append(errs, errors.Wrapf(validationErrs.ToAggregate(), "invalid selectors in MachineDrainRule %s", mdr.Name))
+			errs = append(errs, pkgerrors.Wrapf(validationErrs.ToAggregate(), "invalid selectors in MachineDrainRule %s", mdr.Name))
 		}
 	}
 	if len(errs) > 0 {
-		return nil, errors.Wrapf(kerrors.NewAggregate(errs), "failed to get matching MachineDrainRules")
+		return nil, pkgerrors.Wrapf(kerrors.NewAggregate(errs), "failed to get matching MachineDrainRules")
 	}
 
 	// Collect all MachineDrainRules that match the Machine and Cluster.
@@ -314,7 +314,7 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 
 	// Trigger evictions for at most 10s. We'll continue on the next reconcile if we hit the timeout.
 	evictionTimeout := 10 * time.Second
-	ctx, cancel := context.WithTimeoutCause(ctx, evictionTimeout, errors.New("eviction timeout expired"))
+	ctx, cancel := context.WithTimeoutCause(ctx, evictionTimeout, pkgerrors.New("eviction timeout expired"))
 	defer cancel()
 
 	res := EvictionResult{
@@ -373,7 +373,7 @@ evictionLoop:
 			// Ensure the causes are also included in the error message.
 			// Before: "Cannot evict pod as it would violate the pod's disruption budget."
 			// After: "Cannot evict pod as it would violate the pod's disruption budget. The disruption budget nginx needs 20 healthy pods and has 20 currently"
-			if errors.As(err, &statusError) {
+			if pkgerrors.As(err, &statusError) {
 				errorMessage := statusError.Status().Message
 				if statusError.Status().Details != nil {
 					var causes []string
@@ -382,7 +382,7 @@ evictionLoop:
 					}
 					errorMessage = fmt.Sprintf("%s %v", errorMessage, strings.Join(causes, ","))
 				}
-				err = errors.New(errorMessage)
+				err = pkgerrors.New(errorMessage)
 			}
 
 			log.V(4).Info("Error when evicting Pod", "err", err)

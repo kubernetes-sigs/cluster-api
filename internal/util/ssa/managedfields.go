@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -50,7 +50,7 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 	objectKey := client.ObjectKeyFromObject(object)
 	objectGVK, err := apiutil.GVKForObject(object, c.Scheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to remove managedFields for labels and annotations from object %s",
+		return pkgerrors.Wrapf(err, "failed to remove managedFields for labels and annotations from object %s",
 			klog.KRef(objectKey.Namespace, objectKey.Name))
 	}
 
@@ -89,7 +89,7 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 				// Unmarshal the managed fields into a map[string]interface{}
 				fieldsV1 := map[string]interface{}{}
 				if err := json.Unmarshal(managedField.FieldsV1.GetRawBytes(), &fieldsV1); err != nil {
-					return errors.Wrap(err, "failed to unmarshal managed fields")
+					return pkgerrors.Wrap(err, "failed to unmarshal managed fields")
 				}
 
 				// Filter out the ownership for labels and annotations.
@@ -108,7 +108,7 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 
 				fieldsV1Raw, err := json.Marshal(fieldsV1)
 				if err != nil {
-					return errors.Wrap(err, "failed to marshal managed fields")
+					return pkgerrors.Wrap(err, "failed to marshal managed fields")
 				}
 				managedField.FieldsV1.SetRawBytes(fieldsV1Raw)
 
@@ -124,7 +124,7 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 		return c.Patch(ctx, object, client.MergeFromWithOptions(base, client.MergeFromWithOptimisticLock{}))
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to remove managedFields for labels and annotations from %s %s",
+		return pkgerrors.Wrapf(err, "failed to remove managedFields for labels and annotations from %s %s",
 			objectGVK.Kind, klog.KRef(objectKey.Namespace, objectKey.Name))
 	}
 	return nil
@@ -141,14 +141,14 @@ func MigrateManagedFields(ctx context.Context, c client.Client, object client.Ob
 	objectKey := client.ObjectKeyFromObject(object)
 	objectGVK, err := apiutil.GVKForObject(object, c.Scheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to migrate managedFields for object %s",
+		return pkgerrors.Wrapf(err, "failed to migrate managedFields for object %s",
 			klog.KRef(objectKey.Namespace, objectKey.Name))
 	}
 
 	// Check if a migration is still needed. This should be only done once per object.
 	needsMigration, err := needsMigration(object, fieldManager)
 	if err != nil {
-		return errors.Wrapf(err, "failed to migrate managedFields for %s %s",
+		return pkgerrors.Wrapf(err, "failed to migrate managedFields for %s %s",
 			objectGVK.Kind, klog.KRef(objectKey.Namespace, objectKey.Name))
 	}
 	if !needsMigration {
@@ -194,7 +194,7 @@ func MigrateManagedFields(ctx context.Context, c client.Client, object client.Ob
 
 	// Use optimistic locking to avoid accidentally rolling back managedFields.
 	if err := c.Patch(ctx, object, client.MergeFromWithOptions(base, client.MergeFromWithOptimisticLock{})); err != nil {
-		return errors.Wrapf(err, "failed to migrate managedFields for %s %s",
+		return pkgerrors.Wrapf(err, "failed to migrate managedFields for %s %s",
 			objectGVK.Kind, klog.KRef(objectKey.Namespace, objectKey.Name))
 	}
 	return nil
@@ -215,13 +215,13 @@ func needsMigration(object client.Object, fieldManager string) (bool, error) {
 			// Unmarshal the managed fields into a map[string]interface{}
 			fieldsV1 := map[string]interface{}{}
 			if err := json.Unmarshal(managedField.FieldsV1.GetRawBytes(), &fieldsV1); err != nil {
-				return false, errors.Wrap(err, "failed to determine if migration is needed: failed to unmarshal managed fields")
+				return false, pkgerrors.Wrap(err, "failed to determine if migration is needed: failed to unmarshal managed fields")
 			}
 
 			// Note: MigrateManagedFields is only called for BootstrapConfig/InfraMachine and both always have the cluster-name label set.
 			_, containsClusterNameLabel, err := unstructured.NestedFieldNoCopy(fieldsV1, "f:metadata", "f:labels", "f:cluster.x-k8s.io/cluster-name")
 			if err != nil {
-				return false, errors.Wrapf(err, "failed to determine if migration is needed: failed to determine if managed field contains the %s label", clusterv1.ClusterNameLabel)
+				return false, pkgerrors.Wrapf(err, "failed to determine if migration is needed: failed to determine if managed field contains the %s label", clusterv1.ClusterNameLabel)
 			}
 			return containsClusterNameLabel, nil
 		}

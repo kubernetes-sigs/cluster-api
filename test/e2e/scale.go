@@ -31,7 +31,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -681,9 +681,9 @@ outer:
 	for _, result := range results {
 		if result.err != nil {
 			if e, ok := result.err.(types.GinkgoError); ok {
-				errs = append(errs, errors.Errorf("[clusterName: %q] Error: %v Stack trace: \n %s", result.clusterName, result.err, e.CodeLocation.FullStackTrace))
+				errs = append(errs, pkgerrors.Errorf("[clusterName: %q] Error: %v Stack trace: \n %s", result.clusterName, result.err, e.CodeLocation.FullStackTrace))
 			} else {
-				errs = append(errs, errors.Errorf("[clusterName: %q] Error: %v", result.clusterName, result.err))
+				errs = append(errs, pkgerrors.Errorf("[clusterName: %q] Error: %v", result.clusterName, result.err))
 			}
 		}
 	}

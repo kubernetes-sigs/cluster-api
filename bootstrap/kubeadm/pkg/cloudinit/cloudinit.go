@@ -22,7 +22,7 @@ import (
 	"text/template"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 )
@@ -66,45 +66,45 @@ func (input *BaseUserData) prepare() {
 func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	tm := template.New(kind).Funcs(defaultTemplateFuncMap)
 	if _, err := tm.Parse(filesTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse files template")
+		return nil, pkgerrors.Wrap(err, "failed to parse files template")
 	}
 
 	if _, err := tm.Parse(bootCommandsTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse boot commands template")
+		return nil, pkgerrors.Wrap(err, "failed to parse boot commands template")
 	}
 
 	if _, err := tm.Parse(commandsTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse commands template")
+		return nil, pkgerrors.Wrap(err, "failed to parse commands template")
 	}
 
 	if _, err := tm.Parse(ntpTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse ntp template")
+		return nil, pkgerrors.Wrap(err, "failed to parse ntp template")
 	}
 
 	if _, err := tm.Parse(usersTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse users template")
+		return nil, pkgerrors.Wrap(err, "failed to parse users template")
 	}
 
 	if _, err := tm.Parse(diskSetupTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse disk setup template")
+		return nil, pkgerrors.Wrap(err, "failed to parse disk setup template")
 	}
 
 	if _, err := tm.Parse(fsSetupTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse fs setup template")
+		return nil, pkgerrors.Wrap(err, "failed to parse fs setup template")
 	}
 
 	if _, err := tm.Parse(mountsTemplate); err != nil {
-		return nil, errors.Wrap(err, "failed to parse mounts template")
+		return nil, pkgerrors.Wrap(err, "failed to parse mounts template")
 	}
 
 	t, err := tm.Parse(tpl)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse %s template", kind)
+		return nil, pkgerrors.Wrapf(err, "failed to parse %s template", kind)
 	}
 
 	var out bytes.Buffer
 	if err := t.Execute(&out, data); err != nil {
-		return nil, errors.Wrapf(err, "failed to generate %s template", kind)
+		return nil, pkgerrors.Wrapf(err, "failed to generate %s template", kind)
 	}
 
 	return out.Bytes(), nil

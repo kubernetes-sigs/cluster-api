@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -55,7 +55,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 		}
 		machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
 		if err := r.Client.Patch(ctx, machine, client.MergeFrom(orig)); err != nil {
-			return errors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
+			return pkgerrors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
 		}
 
 		// Wait until the cache observed the Machine with UpdateInProgressAnnotation to ensure subsequent reconciles
@@ -80,10 +80,10 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 	// Note: As canUpdateMachine also checks these fields for nil this can only happen if the initial
 	//      triggerInPlaceUpdate call failed after setting UpdateInProgressAnnotation.
 	if desiredInfraMachine == nil {
-		return errors.Errorf("failed to complete triggering in-place update for Machine %s, could not compute desired InfraMachine", klog.KObj(machine))
+		return pkgerrors.Errorf("failed to complete triggering in-place update for Machine %s, could not compute desired InfraMachine", klog.KObj(machine))
 	}
 	if desiredKubeadmConfig == nil {
-		return errors.Errorf("failed to complete triggering in-place update for Machine %s, could not compute desired KubeadmConfig", klog.KObj(machine))
+		return pkgerrors.Errorf("failed to complete triggering in-place update for Machine %s, could not compute desired KubeadmConfig", klog.KObj(machine))
 	}
 
 	// Write InfraMachine without the labels & annotations that are written continuously by updateLabelsAndAnnotations.
@@ -100,7 +100,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 		clusterv1.UpdateInProgressAnnotation: "",
 	})
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, desiredInfraMachine); err != nil {
-		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
+		return pkgerrors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
 
 	// Write KubeadmConfig without the labels & annotations that are written continuously by updateLabelsAndAnnotations.
@@ -110,17 +110,17 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 		clusterv1.UpdateInProgressAnnotation: "",
 	}
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, desiredKubeadmConfig); err != nil {
-		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
+		return pkgerrors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
 	if desiredKubeadmConfig.Spec.InitConfiguration.IsDefined() {
 		if err := r.removeInitConfiguration(ctx, desiredKubeadmConfig); err != nil {
-			return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
+			return pkgerrors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 		}
 	}
 
 	// Write Machine.
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, desiredMachine); err != nil {
-		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
+		return pkgerrors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
 
 	// Note: Once we write PendingHooksAnnotation the Machine controller will start with the in-place update.
@@ -129,7 +129,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 	//       conditions when the Machine controller tries to remove the annotation and KCP adds it back.
 	// Note: This call will update the resourceVersion on desiredMachine, so that WaitForCacheToBeUpToDate also considers this change.
 	if err := hooks.MarkAsPending(ctx, r.Client, desiredMachine, true, runtimehooksv1.UpdateMachine); err != nil {
-		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
+		return pkgerrors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
 	r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), desiredMachine.ResourceVersion)
 
@@ -161,7 +161,7 @@ func (r *Reconciler) removeInitConfiguration(ctx context.Context, desiredKubeadm
 	origKubeadmConfig := desiredKubeadmConfig.DeepCopy()
 	desiredKubeadmConfig.Spec.InitConfiguration = bootstrapv1.InitConfiguration{}
 	if err := r.Client.Patch(ctx, desiredKubeadmConfig, client.MergeFrom(origKubeadmConfig)); err != nil {
-		return errors.Wrap(err, "failed to patch KubeadmConfig: failed to remove initConfiguration")
+		return pkgerrors.Wrap(err, "failed to patch KubeadmConfig: failed to remove initConfiguration")
 	}
 	return nil
 }

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
@@ -46,7 +46,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	// This is necessary for CRDs including scale subresources.
 	selector, err := metav1.LabelSelectorAsSelector(&s.machineSet.Spec.Selector)
 	if err != nil {
-		return errors.Wrapf(err, "failed to update status for MachineSet %s", klog.KObj(s.machineSet))
+		return pkgerrors.Wrapf(err, "failed to update status for MachineSet %s", klog.KObj(s.machineSet))
 	}
 	s.machineSet.Status.Selector = selector.String()
 

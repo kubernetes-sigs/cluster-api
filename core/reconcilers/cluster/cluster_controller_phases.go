@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -165,7 +165,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 
 			if ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 				// Infra object went missing after the cluster was up and running
-				return ctrl.Result{}, errors.Errorf("%s has been deleted after being provisioned", cluster.Spec.InfrastructureRef.Kind)
+				return ctrl.Result{}, pkgerrors.Errorf("%s has been deleted after being provisioned", cluster.Spec.InfrastructureRef.Kind)
 			}
 			log.Info(fmt.Sprintf("Could not find %s, requeuing", cluster.Spec.InfrastructureRef.Kind))
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
@@ -183,7 +183,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Determine if the InfrastructureCluster is provisioned.
 	var provisioned bool
 	if provisionedPtr, err := contract.InfrastructureCluster().Provisioned(contractVersion).Get(s.infraCluster); err != nil {
-		if !errors.Is(err, contract.ErrFieldNotFound) {
+		if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -219,8 +219,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		if endpoint, err := contract.InfrastructureCluster().ControlPlaneEndpoint().Get(obj); err == nil {
 			cluster.Spec.ControlPlaneEndpoint = *endpoint
 		} else {
-			if !errors.Is(err, contract.ErrFieldNotFound) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve %s from infrastructure provider for Cluster %q in namespace %q",
+			if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve %s from infrastructure provider for Cluster %q in namespace %q",
 					strings.Join(contract.InfrastructureCluster().ControlPlaneEndpoint().Path(), "."), cluster.Name, cluster.Namespace)
 			}
 			cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{}
@@ -231,8 +231,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if failureDomains, err := contract.InfrastructureCluster().FailureDomains(contractVersion).Get(obj); err == nil {
 		cluster.Status.FailureDomains = failureDomains
 	} else {
-		if !errors.Is(err, contract.ErrFieldNotFound) {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve %s from infrastructure provider for Cluster %q in namespace %q",
+		if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve %s from infrastructure provider for Cluster %q in namespace %q",
 				strings.Join(contract.InfrastructureCluster().FailureDomains(contractVersion).Path(), "."), cluster.Name, cluster.Namespace)
 		}
 		cluster.Status.FailureDomains = []clusterv1.FailureDomain{}
@@ -269,7 +269,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 
 			if ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 				// Control plane went missing after the cluster was up and running
-				return ctrl.Result{}, errors.Errorf("%s has been deleted after being initialized", cluster.Spec.ControlPlaneRef.Kind)
+				return ctrl.Result{}, pkgerrors.Errorf("%s has been deleted after being initialized", cluster.Spec.ControlPlaneRef.Kind)
 			}
 			log.Info(fmt.Sprintf("Could not find %s, requeuing", cluster.Spec.ControlPlaneRef.Kind))
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
@@ -287,7 +287,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	// Determine if the ControlPlane is provisioned.
 	var initialized bool
 	if initializedPtr, err := contract.ControlPlane().Initialized(contractVersion).Get(s.controlPlane); err != nil {
-		if !errors.Is(err, contract.ErrFieldNotFound) {
+		if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -332,8 +332,8 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 		if endpoint, err := contract.ControlPlane().ControlPlaneEndpoint().Get(obj); err == nil {
 			cluster.Spec.ControlPlaneEndpoint = *endpoint
 		} else {
-			if !errors.Is(err, contract.ErrFieldNotFound) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve %s from control plane provider for Cluster %q in namespace %q",
+			if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve %s from control plane provider for Cluster %q in namespace %q",
 					strings.Join(contract.ControlPlane().ControlPlaneEndpoint().Path(), "."), cluster.Name, cluster.Namespace)
 			}
 			cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{}
@@ -368,14 +368,14 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, s *scope) (ctrl.Re
 	switch {
 	case apierrors.IsNotFound(err):
 		if err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != nil {
-			if errors.Is(err, kubeconfig.ErrDependentCertificateNotFound) {
+			if pkgerrors.Is(err, kubeconfig.ErrDependentCertificateNotFound) {
 				log.Info("Could not find secret for cluster, requeuing", "Secret", secret.ClusterCA)
 				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 			}
 			return ctrl.Result{}, err
 		}
 	case err != nil:
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
 	}
 
 	return ctrl.Result{}, nil

@@ -19,7 +19,7 @@ package cmd
 import (
 	goerrors "errors"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +56,7 @@ func helpOnErrorArgs(args cobra.PositionalArgs) cobra.PositionalArgs {
 func exactArgsWithMessage(expected int, message string) cobra.PositionalArgs {
 	return func(_ *cobra.Command, args []string) error {
 		if len(args) != expected {
-			return wrapHelpError(errors.New(message))
+			return wrapHelpError(pkgerrors.New(message))
 		}
 		return nil
 	}

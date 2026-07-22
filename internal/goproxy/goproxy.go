@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -75,7 +75,7 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL.String(), http.NoBody)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get versions: failed to create request")
+			return nil, pkgerrors.Wrapf(err, "failed to get versions: failed to create request")
 		}
 
 		var rawResponse []byte
@@ -86,7 +86,7 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				retryError = errors.Wrapf(err, "failed to get versions: failed to do request")
+				retryError = pkgerrors.Wrapf(err, "failed to get versions: failed to do request")
 				return false, nil
 			}
 			defer resp.Body.Close()
@@ -97,7 +97,7 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 			// * OK indicates that we got a list of versions to read.
 			// * NotFound indicates that there are no versions for this module / modules major version.
 			if responseStatusCode != http.StatusOK && responseStatusCode != http.StatusNotFound {
-				retryError = errors.Errorf("failed to get versions: response status code %d", resp.StatusCode)
+				retryError = pkgerrors.Errorf("failed to get versions: response status code %d", resp.StatusCode)
 				return false, nil
 			}
 
@@ -105,7 +105,7 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 			if responseStatusCode == http.StatusOK {
 				rawResponse, err = io.ReadAll(resp.Body)
 				if err != nil {
-					retryError = errors.Wrap(err, "failed to get versions: error reading goproxy response body")
+					retryError = pkgerrors.Wrap(err, "failed to get versions: error reading goproxy response body")
 					return false, nil
 				}
 			}
@@ -180,7 +180,7 @@ func GetSchemeAndHost(goproxy string) (string, string, error) {
 
 		parsedURL, err := url.Parse(rawURL)
 		if err != nil {
-			return "", "", errors.Wrapf(err, "parse GOPROXY url %q", rawURL)
+			return "", "", pkgerrors.Wrapf(err, "parse GOPROXY url %q", rawURL)
 		}
 		goproxyHost = parsedURL.Host
 		goproxyScheme = parsedURL.Scheme

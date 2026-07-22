@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -90,7 +90,7 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil || r.RemoteConnectionGracePeriod == time.Duration(0) {
-		return errors.New("Client, APIReader and ClusterCache must not be nil and RemoteConnectionGracePeriod must not be 0")
+		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil and RemoteConnectionGracePeriod must not be 0")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "cluster")
@@ -120,7 +120,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Build(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
@@ -170,7 +170,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	if cluster.Spec.Topology.IsDefined() {
 		s.clusterClass = &clusterv1.ClusterClass{}
 		if err := r.Client.Get(ctx, cluster.GetClassKey(), s.clusterClass); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get ClusterClass %s", cluster.GetClassKey())
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get ClusterClass %s", cluster.GetClassKey())
 		}
 	}
 
@@ -352,7 +352,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	if err != nil {
 		s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 		s.deletingMessage = "Please check controller logs for errors"
-		return reconcile.Result{}, errors.Wrapf(err, "failed to extract direct descendants")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to extract direct descendants")
 	}
 
 	if len(children) > 0 {
@@ -368,14 +368,14 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			gvk, err := apiutil.GVKForObject(child, r.Client.Scheme())
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "error getting gvk for child object"))
+				errs = append(errs, pkgerrors.Wrapf(err, "error getting gvk for child object"))
 				continue
 			}
 
 			log := log.WithValues(gvk.Kind, klog.KObj(child))
 			log.Info("Deleting child object")
 			if err := r.Client.Delete(ctx, child); err != nil {
-				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, child.GetName())
+				err = pkgerrors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, child.GetName())
 				log.Error(err, "Error deleting resource")
 				errs = append(errs, err)
 			}
@@ -426,7 +426,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 					if !apierrors.IsNotFound(err) {
 						s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 						s.deletingMessage = "Please check controller logs for errors"
-						return ctrl.Result{}, errors.Wrapf(err,
+						return ctrl.Result{}, pkgerrors.Wrapf(err,
 							"failed to delete %v %q for Cluster %q in namespace %q",
 							s.controlPlane.GroupVersionKind().Kind, s.controlPlane.GetName(), cluster.Name, cluster.Namespace)
 					}
@@ -466,7 +466,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 					if !apierrors.IsNotFound(err) {
 						s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 						s.deletingMessage = "Please check controller logs for errors"
-						return ctrl.Result{}, errors.Wrapf(err,
+						return ctrl.Result{}, pkgerrors.Wrapf(err,
 							"failed to delete %v %q for Cluster %q in namespace %q",
 							s.infraCluster.GroupVersionKind().Kind, s.infraCluster.GetName(), cluster.Name, cluster.Namespace)
 					}
@@ -580,21 +580,21 @@ func (r *Reconciler) getDescendants(ctx context.Context, s *scope) (reconcile.Re
 	}
 
 	if err := r.Client.List(ctx, &descendants.machineDeployments, listOptions...); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to list MachineDeployments for cluster %s/%s", cluster.Namespace, cluster.Name)
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to list MachineDeployments for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
 	if err := r.Client.List(ctx, &descendants.machineSets, listOptions...); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := r.Client.List(ctx, &descendants.machinePools, listOptions...); err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to list MachinePools for the cluster %s/%s", cluster.Namespace, cluster.Name)
+			return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to list MachinePools for the cluster %s/%s", cluster.Namespace, cluster.Name)
 		}
 	}
 	var machines clusterv1.MachineList
 	if err := r.Client.List(ctx, &machines, listOptions...); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to list Machines for cluster %s/%s", cluster.Namespace, cluster.Name)
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to list Machines for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
 	// Split machines into control plane and worker machines
@@ -665,7 +665,7 @@ func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) 
 
 	for _, list := range lists {
 		if err := meta.EachListItem(list, eachFunc); err != nil {
-			return nil, errors.Wrapf(err, "error finding owned descendants of cluster %s/%s", cluster.Namespace, cluster.Name)
+			return nil, pkgerrors.Wrapf(err, "error finding owned descendants of cluster %s/%s", cluster.Namespace, cluster.Name)
 		}
 	}
 

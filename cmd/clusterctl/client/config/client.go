@@ -19,7 +19,7 @@ package config
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // Client is used to interact with the clusterctl configurations.
@@ -91,10 +91,10 @@ func newConfigClient(ctx context.Context, path string, options ...Option) (*conf
 	var err error
 	if client.reader == nil {
 		if client.reader, err = newViperReader(); err != nil {
-			return nil, errors.Wrap(err, "failed to create the configuration reader")
+			return nil, pkgerrors.Wrap(err, "failed to create the configuration reader")
 		}
 		if err = client.reader.Init(ctx, path); err != nil {
-			return nil, errors.Wrap(err, "failed to initialize the configuration reader")
+			return nil, pkgerrors.Wrap(err, "failed to initialize the configuration reader")
 		}
 	}
 

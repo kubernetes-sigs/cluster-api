@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
@@ -62,13 +62,13 @@ type Machine struct {
 // NewMachine returns a new Machine service for the given Cluster/DockerCluster pair.
 func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine string, filterLabels map[string]string) (*Machine, error) {
 	if cluster == nil {
-		return nil, errors.New("cluster is required when creating a docker.Machine")
+		return nil, pkgerrors.New("cluster is required when creating a docker.Machine")
 	}
 	if cluster.Name == "" {
-		return nil, errors.New("cluster name is required when creating a docker.Machine")
+		return nil, pkgerrors.New("cluster name is required when creating a docker.Machine")
 	}
 	if machine == "" {
-		return nil, errors.New("machine is required when creating a docker.Machine")
+		return nil, pkgerrors.New("machine is required when creating a docker.Machine")
 	}
 
 	filters := container.FilterBuilder{}
@@ -100,10 +100,10 @@ func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine string,
 // ListMachinesByCluster will retrieve a list of all machines that are part of the given cluster.
 func ListMachinesByCluster(ctx context.Context, cluster *clusterv1.Cluster, labels map[string]string) ([]*Machine, error) {
 	if cluster == nil {
-		return nil, errors.New("cluster is required when listing machines in the cluster")
+		return nil, pkgerrors.New("cluster is required when listing machines in the cluster")
 	}
 	if cluster.Name == "" {
-		return nil, errors.New("cluster name is required when listing machines in the cluster")
+		return nil, pkgerrors.New("cluster name is required when listing machines in the cluster")
 	}
 
 	filters := container.FilterBuilder{}
@@ -193,7 +193,7 @@ func (m *Machine) Address(ctx context.Context) ([]string, error) {
 	case container.DualStackIPFamily:
 		return []string{ipv4, ipv6}, nil
 	}
-	return nil, errors.New("unknown ipFamily")
+	return nil, pkgerrors.New("unknown ipFamily")
 }
 
 // ContainerImage return the image of the container for this machine
@@ -217,12 +217,12 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 		// NOTE: The KindMapping allows to select the most recent kindest/node image available, if any, as well as
 		// provide info about the mode to be used when starting the kindest/node image itself.
 		if version == "" {
-			return errors.New("cannot create a DockerMachine for a nil version")
+			return pkgerrors.New("cannot create a DockerMachine for a nil version")
 		}
 
 		semVer, err := semver.ParseTolerant(version)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse DockerMachine version")
+			return pkgerrors.Wrap(err, "failed to parse DockerMachine version")
 		}
 
 		kindMapping := kind.GetMapping(semVer, image)
@@ -243,7 +243,7 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 				kindMapping,
 			)
 			if err != nil {
-				return errors.WithStack(err)
+				return pkgerrors.WithStack(err)
 			}
 		case constants.WorkerNodeRoleValue:
 			log.Info(fmt.Sprintf("Creating worker machine container with image %s, mode %s", kindMapping.Image, kindMapping.Mode))
@@ -258,10 +258,10 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 				kindMapping,
 			)
 			if err != nil {
-				return errors.WithStack(err)
+				return pkgerrors.WithStack(err)
 			}
 		default:
-			return errors.Errorf("unable to create machine for role %s", role)
+			return pkgerrors.Errorf("unable to create machine for role %s", role)
 		}
 	}
 	return nil
@@ -279,7 +279,7 @@ func (m *Machine) WaitForCrictlPs(ctx context.Context) error {
 	if err != nil {
 		log.Info("Failed running command", "command", "crictl ps")
 		m.LogContainerDebugInfo(ctx)
-		return errors.Wrap(err, "failed to run crictl ps")
+		return pkgerrors.Wrap(err, "failed to run crictl ps")
 	}
 	return nil
 }
@@ -306,25 +306,25 @@ func (m *Machine) PreloadLoadImage(ctx context.Context, image string) error {
 	// Save the image into a tar
 	dir, err := os.MkdirTemp("", "image-tar")
 	if err != nil {
-		return errors.Wrap(err, "failed to create tempdir")
+		return pkgerrors.Wrap(err, "failed to create tempdir")
 	}
 	defer os.RemoveAll(dir)
 
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to container runtime")
+		return pkgerrors.Wrap(err, "failed to connect to container runtime")
 	}
 
 	imageTarPath := filepath.Clean(filepath.Join(dir, "image.tar"))
 
 	err = containerRuntime.SaveContainerImage(ctx, image, imageTarPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to save image %q to %q", image, imageTarPath)
+		return pkgerrors.Wrapf(err, "failed to save image %q to %q", image, imageTarPath)
 	}
 
 	f, err := os.Open(imageTarPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open image %q from %q", image, imageTarPath)
+		return pkgerrors.Wrapf(err, "failed to open image %q from %q", image, imageTarPath)
 	}
 	defer func() {
 		_ = f.Close()
@@ -333,7 +333,7 @@ func (m *Machine) PreloadLoadImage(ctx context.Context, image string) error {
 	ps := m.Command("ctr", "--namespace=k8s.io", "images", "import", "-")
 	ps.SetStdin(f)
 	if err := ps.Run(ctx); err != nil {
-		return errors.Wrapf(err, "failed to load image %q", image)
+		return pkgerrors.Wrapf(err, "failed to load image %q", image)
 	}
 	return nil
 }
@@ -344,7 +344,7 @@ var waitUntilLogRegExp = regexp.MustCompile("Reached target .*Multi-User System.
 // WaitForMultiUserTarget checks if the multi-user target is reached to figure out if the container is ready for bootstrap exec.
 func (m *Machine) WaitForMultiUserTarget(ctx context.Context, containerRuntime container.Runtime) error {
 	if m.container == nil {
-		return errors.New("the container hosting this machine does not exist")
+		return pkgerrors.New("the container hosting this machine does not exist")
 	}
 
 	logs, err := containerRuntime.GetContainerLogs(ctx, m.container.Name)
@@ -353,7 +353,7 @@ func (m *Machine) WaitForMultiUserTarget(ctx context.Context, containerRuntime c
 	}
 
 	if !waitUntilLogRegExp.MatchString(logs) {
-		return errors.New("multi-user target not reached yet")
+		return pkgerrors.New("multi-user target not reached yet")
 	}
 
 	return m.WaitForCrictlPs(ctx)
@@ -362,19 +362,19 @@ func (m *Machine) WaitForMultiUserTarget(ctx context.Context, containerRuntime c
 // GetBootstrapCommands return bootstrap commands for a Machine, this is generally `kubeadm <init|join>` plus additional commands.
 func (m *Machine) GetBootstrapCommands(_ context.Context, data string, format bootstrapv1.Format, version string, image string) ([]provisioning.Cmd, error) {
 	if m.container == nil {
-		return nil, errors.New("unable to set ExecBootstrap. the container hosting this machine does not exist")
+		return nil, pkgerrors.New("unable to set ExecBootstrap. the container hosting this machine does not exist")
 	}
 
 	// Get the kindMapping for the target K8s version.
 	// NOTE: The kindMapping allows to select the most recent kindest/node image available, if any, as well as
 	// provide info about the mode to be used when starting the kindest/node image itself.
 	if version == "" {
-		return nil, errors.New("cannot create a DockerMachine for a nil version")
+		return nil, pkgerrors.New("cannot create a DockerMachine for a nil version")
 	}
 
 	semVer, err := semver.ParseTolerant(version)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse DockerMachine version")
+		return nil, pkgerrors.Wrap(err, "failed to parse DockerMachine version")
 	}
 
 	kindMapping := kind.GetMapping(semVer, image)
@@ -382,7 +382,7 @@ func (m *Machine) GetBootstrapCommands(_ context.Context, data string, format bo
 	// Decode the cloud config
 	cloudConfig, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to decode machine's bootstrap data")
+		return nil, pkgerrors.Wrap(err, "failed to decode machine's bootstrap data")
 	}
 
 	var commands []provisioning.Cmd
@@ -397,7 +397,7 @@ func (m *Machine) GetBootstrapCommands(_ context.Context, data string, format bo
 	}
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to join a control plane node with kubeadm")
+		return nil, pkgerrors.Wrap(err, "failed to join a control plane node with kubeadm")
 	}
 	return commands, nil
 }
@@ -405,7 +405,7 @@ func (m *Machine) GetBootstrapCommands(_ context.Context, data string, format bo
 // CheckForSentinelFile checks if bootstrap was already started by checking for existence of the sentinel file.
 func (m *Machine) CheckForSentinelFile(ctx context.Context) (bool, error) {
 	if m.container == nil {
-		return false, errors.New("unable to set CheckForBootstrapSuccess. the container hosting this machine does not exists")
+		return false, pkgerrors.New("unable to set CheckForBootstrapSuccess. the container hosting this machine does not exists")
 	}
 
 	var outErr bytes.Buffer
@@ -414,7 +414,7 @@ func (m *Machine) CheckForSentinelFile(ctx context.Context) (bool, error) {
 	cmd.SetStderr(&outErr)
 	cmd.SetStdout(&outStd)
 	if err := cmd.Run(ctx); err != nil {
-		return false, errors.Wrap(err, "failed to run bootstrap check")
+		return false, pkgerrors.Wrap(err, "failed to run bootstrap check")
 	}
 	return strings.Contains(outStd.String(), "true"), nil
 }

@@ -26,7 +26,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/coredns/corefile-migration/migration"
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -623,7 +623,7 @@ func (webhook *KubeadmControlPlane) validateVersion(oldK, newK *controlplanev1.K
 		allErrs = append(allErrs,
 			field.InternalError(
 				field.NewPath("spec", "version"),
-				errors.Wrapf(err, "failed to parse current kubeadmcontrolplane version: %s", previousVersion),
+				pkgerrors.Wrapf(err, "failed to parse current kubeadmcontrolplane version: %s", previousVersion),
 			),
 		)
 		return allErrs
@@ -634,7 +634,7 @@ func (webhook *KubeadmControlPlane) validateVersion(oldK, newK *controlplanev1.K
 		allErrs = append(allErrs,
 			field.InternalError(
 				field.NewPath("spec", "version"),
-				errors.Wrapf(err, "failed to parse updated kubeadmcontrolplane version: %s", newK.Spec.Version),
+				pkgerrors.Wrapf(err, "failed to parse updated kubeadmcontrolplane version: %s", newK.Spec.Version),
 			),
 		)
 		return allErrs

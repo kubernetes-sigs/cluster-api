@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	v1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -73,7 +73,7 @@ func (webhook *MachinePool) Default(ctx context.Context, m *clusterv1.MachinePoo
 	if req.Operation == v1.Update {
 		oldMP = &clusterv1.MachinePool{}
 		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMP); err != nil {
-			return errors.Wrapf(err, "failed to decode oldObject to MachinePool")
+			return pkgerrors.Wrapf(err, "failed to decode oldObject to MachinePool")
 		}
 	}
 
@@ -198,11 +198,11 @@ func calculateMachinePoolReplicas(ctx context.Context, oldMP *clusterv1.MachineP
 	if hasMinSizeAnnotation && hasMaxSizeAnnotation {
 		minSize, err := strconv.ParseInt(minSizeString, 10, 32)
 		if err != nil {
-			return 0, errors.Wrapf(err, "failed to caculate MachinePool replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMinSizeAnnotation)
+			return 0, pkgerrors.Wrapf(err, "failed to caculate MachinePool replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMinSizeAnnotation)
 		}
 		maxSize, err := strconv.ParseInt(maxSizeString, 10, 32)
 		if err != nil {
-			return 0, errors.Wrapf(err, "failed to caculate MachinePool replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMaxSizeAnnotation)
+			return 0, pkgerrors.Wrapf(err, "failed to caculate MachinePool replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMaxSizeAnnotation)
 		}
 
 		// If it's a new MachinePool => Use the min size.

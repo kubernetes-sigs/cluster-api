@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -80,13 +80,13 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 	// Determine contract version used by the ControlPlane.
 	controlPlaneContractVersion, err := contract.GetContractVersionForVersion(ctx, e.client, desired.ControlPlane.Object.GroupVersionKind().GroupKind(), desired.ControlPlane.Object.GroupVersionKind().Version)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate patch request: failed to get contract version for the ControlPlane object")
+		return pkgerrors.Wrapf(err, "failed to generate patch request: failed to get contract version for the ControlPlane object")
 	}
 
 	// Create a patch generation request.
 	req, err := createRequest(ctx, blueprint, desired, controlPlaneContractVersion)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate patch request")
+		return pkgerrors.Wrapf(err, "failed to generate patch request")
 	}
 
 	// Loop over patches in ClusterClass, generate patches and apply them to the request,
@@ -102,7 +102,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 			definitionFrom = clusterv1.VariableDefinitionFromInline
 		}
 		if err := addVariablesForPatch(blueprint, desired, req, definitionFrom, controlPlaneContractVersion); err != nil {
-			return errors.Wrapf(err, "failed to calculate variables for patch %q", clusterClassPatch.Name)
+			return pkgerrors.Wrapf(err, "failed to calculate variables for patch %q", clusterClassPatch.Name)
 		}
 		log.V(5).Info("Applying patch to templates")
 
@@ -118,12 +118,12 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 		// version of the request (including the patched version of the templates).
 		resp, err := generator.Generate(ctx, desired.Cluster, req)
 		if err != nil {
-			return errors.Wrapf(err, "failed to generate patches for patch %q", clusterClassPatch.Name)
+			return pkgerrors.Wrapf(err, "failed to generate patches for patch %q", clusterClassPatch.Name)
 		}
 
 		// Apply patches to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
-			return errors.Wrapf(err, "failed to apply patches for patch %q", clusterClassPatch.Name)
+			return pkgerrors.Wrapf(err, "failed to apply patches for patch %q", clusterClassPatch.Name)
 		}
 	}
 
@@ -148,14 +148,14 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 
 		_, err := validator.Validate(ctx, desired.Cluster, validationRequest)
 		if err != nil {
-			return errors.Wrapf(err, "validation of patch %q failed", clusterClassPatch.Name)
+			return pkgerrors.Wrapf(err, "validation of patch %q failed", clusterClassPatch.Name)
 		}
 	}
 
 	// Use patched templates to update the desired state objects.
 	log.V(5).Info("Applying patched templates to desired state")
 	if err := updateDesiredState(ctx, req, blueprint, desired, controlPlaneContractVersion); err != nil {
-		return errors.Wrapf(err, "failed to apply patches to desired state")
+		return pkgerrors.Wrapf(err, "failed to apply patches to desired state")
 	}
 
 	return nil
@@ -165,21 +165,21 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.ClusterState, req *runtimehooksv1.GeneratePatchesRequest, definitionFrom, controlPlaneContractVersion string) error {
 	// If there is no definitionFrom return an error.
 	if definitionFrom == "" {
-		return errors.New("failed to calculate variables: no patch name provided")
+		return pkgerrors.New("failed to calculate variables: no patch name provided")
 	}
 
 	patchVariableDefinitions := definitionsForPatch(blueprint, definitionFrom)
 	// Calculate global variables.
 	globalVariables, err := variables.Global(blueprint.Topology, desired.Cluster, patchVariableDefinitions)
 	if err != nil {
-		return errors.Wrapf(err, "failed to calculate global variables")
+		return pkgerrors.Wrapf(err, "failed to calculate global variables")
 	}
 	req.Variables = globalVariables
 
 	// Calculate the Control Plane variables.
 	controlPlaneVariables, err := variables.ControlPlane(&blueprint.Topology.ControlPlane, desired.ControlPlane.Object, desired.ControlPlane.InfrastructureMachineTemplate, patchVariableDefinitions)
 	if err != nil {
-		return errors.Wrapf(err, "failed to calculate ControlPlane variables")
+		return pkgerrors.Wrapf(err, "failed to calculate ControlPlane variables")
 	}
 
 	mdStateIndex := map[string]*scope.MachineDeploymentState{}
@@ -206,7 +206,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 		case "MachineDeployment":
 			md, ok := mdStateIndex[item.HolderReference.Name]
 			if !ok {
-				return errors.Errorf("could not find desired state for MachineDeployment %s", klog.KRef(item.HolderReference.Namespace, item.HolderReference.Name))
+				return pkgerrors.Errorf("could not find desired state for MachineDeployment %s", klog.KRef(item.HolderReference.Namespace, item.HolderReference.Name))
 			}
 			mdTopology, err := getMDTopologyFromMD(blueprint, md.Object)
 			if err != nil {
@@ -216,13 +216,13 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 			// Calculate MachineDeployment variables.
 			mdVariables, err := variables.MachineDeployment(mdTopology, md.Object, md.BootstrapTemplate, md.InfrastructureMachineTemplate, patchVariableDefinitions)
 			if err != nil {
-				return errors.Wrapf(err, "failed to calculate variables for %s", klog.KObj(md.Object))
+				return pkgerrors.Wrapf(err, "failed to calculate variables for %s", klog.KObj(md.Object))
 			}
 			item.Variables = mdVariables
 		case "MachinePool":
 			mp, ok := mpStateIndex[item.HolderReference.Name]
 			if !ok {
-				return errors.Errorf("could not find desired state for MachinePool %s", klog.KRef(item.HolderReference.Namespace, item.HolderReference.Name))
+				return pkgerrors.Errorf("could not find desired state for MachinePool %s", klog.KRef(item.HolderReference.Namespace, item.HolderReference.Name))
 			}
 			mpTopology, err := getMPTopologyFromMP(blueprint, mp.Object)
 			if err != nil {
@@ -232,7 +232,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 			// Calculate MachinePool variables.
 			mpVariables, err := variables.MachinePool(mpTopology, mp.Object, mp.BootstrapObject, mp.InfrastructureMachinePoolObject, patchVariableDefinitions)
 			if err != nil {
-				return errors.Wrapf(err, "failed to calculate variables for %s", klog.KObj(mp.Object))
+				return pkgerrors.Wrapf(err, "failed to calculate variables for %s", klog.KObj(mp.Object))
 			}
 			item.Variables = mpVariables
 		}
@@ -244,7 +244,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 func getMDTopologyFromMD(blueprint *scope.ClusterBlueprint, md *clusterv1.MachineDeployment) (*clusterv1.MachineDeploymentTopology, error) {
 	topologyName, ok := md.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
 	if !ok {
-		return nil, errors.Errorf("failed to get topology name for %s", klog.KObj(md))
+		return nil, pkgerrors.Errorf("failed to get topology name for %s", klog.KObj(md))
 	}
 	mdTopology, err := lookupMDTopology(blueprint.Topology, topologyName)
 	if err != nil {
@@ -256,7 +256,7 @@ func getMDTopologyFromMD(blueprint *scope.ClusterBlueprint, md *clusterv1.Machin
 func getMPTopologyFromMP(blueprint *scope.ClusterBlueprint, mp *clusterv1.MachinePool) (*clusterv1.MachinePoolTopology, error) {
 	topologyName, ok := mp.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
 	if !ok {
-		return nil, errors.Errorf("failed to get topology name for %s", klog.KObj(mp))
+		return nil, pkgerrors.Errorf("failed to get topology name for %s", klog.KObj(mp))
 	}
 	mpTopology, err := lookupMPTopology(blueprint.Topology, topologyName)
 	if err != nil {
@@ -280,14 +280,14 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 		{Src: []string{"metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
 		{Src: []string{"metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
 	}); err != nil {
-		return nil, errors.Wrapf(err, "failed to prepare %s %s for patching",
+		return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for patching",
 			blueprint.InfrastructureClusterTemplate.GetKind(), klog.KObj(blueprint.InfrastructureClusterTemplate))
 	}
 	t, err := newRequestItemBuilder(blueprint.InfrastructureClusterTemplate).
 		WithHolder(desired.Cluster, clusterv1.GroupVersion.WithKind("Cluster"), "spec.infrastructureRef").
 		Build()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to prepare %s %s for patching",
+		return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for patching",
 			blueprint.InfrastructureClusterTemplate.GetKind(), klog.KObj(blueprint.InfrastructureClusterTemplate))
 	}
 	req.Items = append(req.Items, *t)
@@ -298,14 +298,14 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 		{Src: []string{"metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
 		{Src: []string{"metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
 	}); err != nil {
-		return nil, errors.Wrapf(err, "failed to prepare %s %s for patching",
+		return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for patching",
 			blueprint.ControlPlane.Template.GetKind(), klog.KObj(blueprint.ControlPlane.Template))
 	}
 	t, err = newRequestItemBuilder(blueprint.ControlPlane.Template).
 		WithHolder(desired.Cluster, clusterv1.GroupVersion.WithKind("Cluster"), "spec.controlPlaneRef").
 		Build()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to prepare %s %s for patching",
+		return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for patching",
 			blueprint.ControlPlane.Template.GetKind(), klog.KObj(blueprint.ControlPlane.Template))
 	}
 	req.Items = append(req.Items, *t)
@@ -318,14 +318,14 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 			{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
 			{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
 		}); err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare ControlPlane's %s %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare ControlPlane's %s %s for patching",
 				blueprint.ControlPlane.InfrastructureMachineTemplate.GetKind(), klog.KObj(blueprint.ControlPlane.InfrastructureMachineTemplate))
 		}
 		t, err := newRequestItemBuilder(blueprint.ControlPlane.InfrastructureMachineTemplate).
 			WithHolder(desired.ControlPlane.Object, desired.ControlPlane.Object.GroupVersionKind(), getControlPlaneHolderFieldPath(controlPlaneContractVersion)).
 			Build()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare ControlPlane's %s %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare ControlPlane's %s %s for patching",
 				blueprint.ControlPlane.InfrastructureMachineTemplate.GetKind(), klog.KObj(blueprint.ControlPlane.InfrastructureMachineTemplate))
 		}
 		req.Items = append(req.Items, *t)
@@ -347,7 +347,7 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 		// Get corresponding MachineDeploymentClass from the ClusterClass.
 		mdClass, ok := blueprint.MachineDeployments[mdTopology.Class]
 		if !ok {
-			return nil, errors.Errorf("failed to lookup MachineDeployment class %q in ClusterClass", mdTopology.Class)
+			return nil, pkgerrors.Errorf("failed to lookup MachineDeployment class %q in ClusterClass", mdTopology.Class)
 		}
 
 		// Add the BootstrapTemplate.
@@ -356,14 +356,14 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 			{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
 			{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
 		}); err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
 				mdClass.BootstrapTemplate.GetKind(), klog.KObj(mdClass.BootstrapTemplate), mdTopologyName)
 		}
 		t, err := newRequestItemBuilder(mdClass.BootstrapTemplate).
 			WithHolder(md.Object, clusterv1.GroupVersion.WithKind("MachineDeployment"), "spec.template.spec.bootstrap.configRef").
 			Build()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
 				mdClass.BootstrapTemplate.GetKind(), klog.KObj(mdClass.BootstrapTemplate), mdTopologyName)
 		}
 		req.Items = append(req.Items, *t)
@@ -374,14 +374,14 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 			{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
 			{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
 		}); err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
 				mdClass.InfrastructureMachineTemplate.GetKind(), klog.KObj(mdClass.InfrastructureMachineTemplate), mdTopologyName)
 		}
 		t, err = newRequestItemBuilder(mdClass.InfrastructureMachineTemplate).
 			WithHolder(md.Object, clusterv1.GroupVersion.WithKind("MachineDeployment"), "spec.template.spec.infrastructureRef").
 			Build()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for MachineDeployment topology %s for patching",
 				mdClass.InfrastructureMachineTemplate.GetKind(), klog.KObj(mdClass.InfrastructureMachineTemplate), mdTopologyName)
 		}
 		req.Items = append(req.Items, *t)
@@ -403,7 +403,7 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 		// Get corresponding MachinePoolClass from the ClusterClass.
 		mpClass, ok := blueprint.MachinePools[mpTopology.Class]
 		if !ok {
-			return nil, errors.Errorf("failed to lookup MachinePool class %q in ClusterClass", mpTopology.Class)
+			return nil, pkgerrors.Errorf("failed to lookup MachinePool class %q in ClusterClass", mpTopology.Class)
 		}
 
 		// Add the BootstrapTemplate.
@@ -412,14 +412,14 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 			{Src: []string{"metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
 			{Src: []string{"metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
 		}); err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
 				mpClass.BootstrapTemplate.GetKind(), klog.KObj(mpClass.BootstrapTemplate), mpTopologyName)
 		}
 		t, err := newRequestItemBuilder(mpClass.BootstrapTemplate).
 			WithHolder(mp.Object, clusterv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.bootstrap.configRef").
 			Build()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
 				mpClass.BootstrapTemplate.GetKind(), klog.KObj(mpClass.BootstrapTemplate), mpTopologyName)
 		}
 		req.Items = append(req.Items, *t)
@@ -430,14 +430,14 @@ func createRequest(ctx context.Context, blueprint *scope.ClusterBlueprint, desir
 			{Src: []string{"metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
 			{Src: []string{"metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
 		}); err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
 				mpClass.InfrastructureMachinePoolTemplate.GetKind(), klog.KObj(mpClass.InfrastructureMachinePoolTemplate), mpTopologyName)
 		}
 		t, err = newRequestItemBuilder(mpClass.InfrastructureMachinePoolTemplate).
 			WithHolder(mp.Object, clusterv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.infrastructureRef").
 			Build()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
+			return nil, pkgerrors.Wrapf(err, "failed to prepare %s %s for MachinePool topology %s for patching",
 				mpClass.InfrastructureMachinePoolTemplate.GetKind(), klog.KObj(mpClass.InfrastructureMachinePoolTemplate), mpTopologyName)
 		}
 		req.Items = append(req.Items, *t)
@@ -453,7 +453,7 @@ func lookupMDTopology(topology clusterv1.Topology, mdTopologyName string) (*clus
 			return &mdTopology, nil
 		}
 	}
-	return nil, errors.Errorf("failed to lookup MachineDeployment topology %q in Cluster.spec.topology.workers.machineDeployments", mdTopologyName)
+	return nil, pkgerrors.Errorf("failed to lookup MachineDeployment topology %q in Cluster.spec.topology.workers.machineDeployments", mdTopologyName)
 }
 
 // lookupMPTopology looks up the MachinePoolTopology based on a mpTopologyName in a topology.
@@ -463,7 +463,7 @@ func lookupMPTopology(topology clusterv1.Topology, mpTopologyName string) (*clus
 			return &mpTopology, nil
 		}
 	}
-	return nil, errors.Errorf("failed to lookup MachinePool topology %q in Cluster.spec.topology.workers.machinePools", mpTopologyName)
+	return nil, pkgerrors.Errorf("failed to lookup MachinePool topology %q in Cluster.spec.topology.workers.machinePools", mpTopologyName)
 }
 
 // createPatchGenerator creates a patch generator for the given patch.
@@ -477,15 +477,15 @@ func createPatchGenerator(runtimeClient runtimeclient.Client, patch *clusterv1.C
 	// Return an externalPatchGenerator if there is an external configuration in the patch.
 	if patch.External != nil && patch.External.GeneratePatchesExtension != "" {
 		if !feature.Gates.Enabled(feature.RuntimeSDK) {
-			return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", patch.Name)
+			return nil, pkgerrors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", patch.Name)
 		}
 		if runtimeClient == nil {
-			return nil, errors.Errorf("failed to create patch generator for patch %q: runtimeClient is not set up", patch.Name)
+			return nil, pkgerrors.Errorf("failed to create patch generator for patch %q: runtimeClient is not set up", patch.Name)
 		}
 		return external.NewGenerator(runtimeClient, patch), nil
 	}
 
-	return nil, errors.Errorf("failed to create patch generator for patch %q", patch.Name)
+	return nil, pkgerrors.Errorf("failed to create patch generator for patch %q", patch.Name)
 }
 
 // applyPatchesToRequest updates the templates of a GeneratePatchesRequest by applying the patches
@@ -515,7 +515,7 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 	// If a patch doesn't have a corresponding request item, the patch is invalid.
 	if requestItem == nil {
 		log.Info(fmt.Sprintf("Unable to find corresponding request item with uid %q for the patch", patch.UID))
-		return errors.Errorf("unable to find corresponding request item for patch")
+		return pkgerrors.Errorf("unable to find corresponding request item for patch")
 	}
 
 	// Use the patch to create a patched copy of the template.
@@ -528,7 +528,7 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 		jsonPatch, err := jsonpatch.DecodePatch(patch.Patch)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to apply patch with uid %q: error decoding json patch (RFC6902)", requestItem.UID), "patch", string(patch.Patch))
-			return errors.Wrap(err, "failed to apply patch: error decoding json patch (RFC6902)")
+			return pkgerrors.Wrap(err, "failed to apply patch: error decoding json patch (RFC6902)")
 		}
 
 		if len(jsonPatch) == 0 {
@@ -541,7 +541,7 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 		patchedTemplate, err = jsonPatch.Apply(requestItem.Object.Raw)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to apply patch with uid %q: error applying json patch (RFC6902)", requestItem.UID), "patch", string(patch.Patch))
-			return errors.Wrap(err, "failed to apply patch: error applying json patch (RFC6902)")
+			return pkgerrors.Wrap(err, "failed to apply patch: error applying json patch (RFC6902)")
 		}
 	case runtimehooksv1.JSONMergePatchType:
 		if len(patch.Patch) == 0 || bytes.Equal(patch.Patch, []byte("{}")) {
@@ -555,7 +555,7 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 		patchedTemplate, err = jsonpatch.MergePatch(requestItem.Object.Raw, patch.Patch)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to apply patch with uid %q: error applying json merge patch (RFC7386)", requestItem.UID), "patch", string(patch.Patch))
-			return errors.Wrap(err, "failed to apply patch: error applying json merge patch (RFC7386)")
+			return pkgerrors.Wrap(err, "failed to apply patch: error applying json merge patch (RFC7386)")
 		}
 	}
 
@@ -564,7 +564,7 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 	// Note: By patching "spec" we'll be patching "spec.template.spec" and "spec.template.metadata".
 	if err := patchutil.Patch(&requestItem.Object, patchedTemplate, []string{"spec"}, []string{"metadata", "labels"}, []string{"metadata", "annotations"}); err != nil {
 		log.Error(err, fmt.Sprintf("Failed to apply patch to template with uid %q", requestItem.UID))
-		return errors.Wrap(err, "failed to apply patch to template")
+		return pkgerrors.Wrap(err, "failed to apply patch to template")
 	}
 
 	return nil

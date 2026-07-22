@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	oldhttpstream "k8s.io/apimachinery/pkg/util/httpstream" //nolint:staticcheck // Keep using this package for now as it's not straightforward to migrate this to k8s.io/streaming/pkg/httpstream. For now for the fallback decision we check for errors of the old and new package to be safe. Eventually we stop using this package when we only support SPDYOverWebsocket.
@@ -47,7 +47,7 @@ type Dialer struct {
 // NewDialer creates a new dialer for a given API server scope.
 func NewDialer(p Proxy, options ...func(*Dialer) error) (*Dialer, error) {
 	if p.Port == 0 {
-		return nil, errors.New("port required")
+		return nil, pkgerrors.New("port required")
 	}
 
 	dialer := &Dialer{
@@ -89,7 +89,7 @@ func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Co
 	// Check if context is already cancelled or timed out
 	select {
 	case <-ctx.Done():
-		return nil, errors.Wrap(ctx.Err(), "context cancelled before establishing connection")
+		return nil, pkgerrors.Wrap(ctx.Err(), "context cancelled before establishing connection")
 	default:
 	}
 
@@ -114,7 +114,7 @@ func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Co
 	// Note: websockets are enabled per default starting with kubernetes 1.31.
 	tunnelingDialer, err := portforward.NewSPDYOverWebsocketDialer(req.URL(), d.proxy.KubeConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating websocket tunneling dialer")
+		return nil, pkgerrors.Wrap(err, "error creating websocket tunneling dialer")
 	}
 	dialer = portforward.NewFallbackDialer(tunnelingDialer, dialer, func(err error) bool {
 		return oldhttpstream.IsUpgradeFailure(err) || oldhttpstream.IsHTTPSProxyError(err) ||
@@ -126,7 +126,7 @@ func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Co
 	// Warning: Any early return should close this connection, otherwise we're going to leak them.
 	connection, _, err := dialer.Dial(portforward.PortForwardProtocolV1Name)
 	if err != nil {
-		return nil, errors.Wrap(err, "error upgrading connection")
+		return nil, pkgerrors.Wrap(err, "error upgrading connection")
 	}
 
 	// Create the headers.
@@ -163,7 +163,7 @@ func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Co
 	dataStream, err := connection.CreateStream(headers)
 	if err != nil {
 		return nil, kerrors.NewAggregate([]error{
-			errors.Wrap(err, "error creating forwarding stream"),
+			pkgerrors.Wrap(err, "error creating forwarding stream"),
 			connection.Close(),
 		})
 	}

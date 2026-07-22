@@ -20,7 +20,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -171,7 +171,7 @@ func getDeletePriorityFunc(ms *clusterv1.MachineSet) (deletePriorityFunc, error)
 	case "":
 		return randomDeletionOrder, nil
 	default:
-		return nil, errors.Errorf("Unsupported deletion order %s. Must be one of 'Random', 'Newest', or 'Oldest'", ms.Spec.Deletion.Order)
+		return nil, pkgerrors.Errorf("Unsupported deletion order %s. Must be one of 'Random', 'Newest', or 'Oldest'", ms.Spec.Deletion.Order)
 	}
 }
 

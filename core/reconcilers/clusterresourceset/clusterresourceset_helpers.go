@@ -27,7 +27,7 @@ import (
 	"sort"
 	"unicode"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,7 +71,7 @@ func objsFromYamlData(yamlDocs [][]byte) ([]unstructured.Unstructured, error) {
 			// If it is not a json list, data is either json or yaml format.
 			objs, err = utilyaml.ToUnstructured(data)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed converting data to unstructured objects")
+				return nil, pkgerrors.Wrapf(err, "failed converting data to unstructured objects")
 			}
 		}
 
@@ -95,7 +95,7 @@ func isJSONList(data []byte) (bool, error) {
 
 func createUnstructured(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {
 	if err := c.Create(ctx, obj); err != nil {
-		return errors.Wrapf(
+		return pkgerrors.Wrapf(
 			err,
 			"creating object %s %s",
 			obj.GroupVersionKind(),
@@ -126,7 +126,7 @@ func (r *Reconciler) getOrCreateClusterResourceSetBinding(ctx context.Context, c
 			r.Client.Scheme(),
 		)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to set owner reference for clusterResourceSetBinding %s for cluster %s/%s", clusterResourceSetBindingKey, cluster.Namespace, cluster.Name)
+			return nil, pkgerrors.Wrapf(err, "failed to set owner reference for clusterResourceSetBinding %s for cluster %s/%s", clusterResourceSetBindingKey, cluster.Namespace, cluster.Name)
 		}
 
 		clusterResourceSetBinding.Spec.ClusterName = cluster.Name
@@ -137,7 +137,7 @@ func (r *Reconciler) getOrCreateClusterResourceSetBinding(ctx context.Context, c
 				}
 				return clusterResourceSetBinding, nil
 			}
-			return nil, errors.Wrapf(err, "failed to create clusterResourceSetBinding for cluster: %s/%s", cluster.Namespace, cluster.Name)
+			return nil, pkgerrors.Wrapf(err, "failed to create clusterResourceSetBinding for cluster: %s/%s", cluster.Namespace, cluster.Name)
 		}
 	}
 	return clusterResourceSetBinding, nil
@@ -183,7 +183,7 @@ func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 	keys := make([]string, 0)
 	data, ok := resource.UnstructuredContent()["data"]
 	if !ok {
-		return nil, errors.Errorf("failed to get data field from resource %s", klog.KObj(resource))
+		return nil, pkgerrors.Errorf("failed to get data field from resource %s", klog.KObj(resource))
 	}
 
 	unstructuredData := data.(map[string]interface{})
@@ -196,10 +196,10 @@ func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 	for _, key := range keys {
 		val, ok, err := unstructured.NestedString(unstructuredData, key)
 		if err != nil {
-			return nil, errors.Wrapf(err, "getting value for field %s in data from resource %s", key, klog.KObj(resource))
+			return nil, pkgerrors.Wrapf(err, "getting value for field %s in data from resource %s", key, klog.KObj(resource))
 		}
 		if !ok {
-			return nil, errors.Errorf("value for field %s not present in data from resource %s", key, klog.KObj(resource))
+			return nil, pkgerrors.Errorf("value for field %s not present in data from resource %s", key, klog.KObj(resource))
 		}
 
 		byteArr := []byte(val)

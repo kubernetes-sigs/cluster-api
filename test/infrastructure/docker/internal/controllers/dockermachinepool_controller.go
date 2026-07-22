@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -101,7 +101,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 				dockerMachinePoolWithoutFinalizer := dockerMachinePool.DeepCopy()
 				controllerutil.RemoveFinalizer(dockerMachinePoolWithoutFinalizer, infrav1.MachinePoolFinalizer)
 				if err := r.Client.Patch(ctx, dockerMachinePoolWithoutFinalizer, client.MergeFrom(dockerMachinePool)); err != nil {
-					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DockerMachinePool %s", klog.KObj(dockerMachinePool))
+					return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to patch DockerMachinePool %s", klog.KObj(dockerMachinePool))
 				}
 			}
 			return ctrl.Result{}, nil
@@ -172,7 +172,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 // SetupWithManager will add watches for this controller.
 func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.ContainerRuntime == nil {
-		return errors.New("Client and ContainerRuntime must not be nil")
+		return pkgerrors.New("Client and ContainerRuntime must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockermachinepool")
@@ -201,7 +201,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 			predicates.ClusterUnpausedAndInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 		).Build(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.recorder = mgr.GetEventRecorderFor(dockerMachinePoolControllerName)
@@ -236,7 +236,7 @@ func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, clust
 			}
 
 			if err := r.deleteMachinePoolMachine(ctx, dockerMachine); err != nil {
-				err = errors.Wrapf(err, "error deleting DockerMachinePool %s/%s: failed to delete %s %s", dockerMachinePool.Namespace, dockerMachinePool.Name, dockerMachine.Namespace, dockerMachine.Name)
+				err = pkgerrors.Wrapf(err, "error deleting DockerMachinePool %s/%s: failed to delete %s %s", dockerMachinePool.Namespace, dockerMachinePool.Name, dockerMachine.Namespace, dockerMachine.Name)
 				errs = append(errs, err)
 			}
 		}
@@ -255,14 +255,14 @@ func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, clust
 	// List Docker containers, i.e. external machines in the cluster.
 	externalMachines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
 	if err != nil {
-		return errors.Wrapf(err, "failed to list all machines in the cluster with label \"%s:%s\"", dockerMachinePoolLabel, dockerMachinePool.Name)
+		return pkgerrors.Wrapf(err, "failed to list all machines in the cluster with label \"%s:%s\"", dockerMachinePoolLabel, dockerMachinePool.Name)
 	}
 
 	// Providers should similarly ensure that all infrastructure instances are deleted even if the InfraMachine has not been created yet.
 	for _, externalMachine := range externalMachines {
 		log.Info("Deleting Docker container", "container", externalMachine.Name())
 		if err := externalMachine.Delete(ctx); err != nil {
-			return errors.Wrapf(err, "failed to delete machine %s", externalMachine.Name())
+			return pkgerrors.Wrapf(err, "failed to delete machine %s", externalMachine.Name())
 		}
 	}
 
@@ -399,7 +399,7 @@ func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster 
 	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
 	externalMachines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to list all external machines in the cluster")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to list all external machines in the cluster")
 	}
 
 	externalMachineMap := make(map[string]*docker.Machine)

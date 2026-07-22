@@ -23,7 +23,7 @@ import (
 	"fmt"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -116,13 +116,13 @@ func patchUnstructured(ctx context.Context, dest, src *unstructured.Unstructured
 		Fields:           fields,
 		FieldsToPreserve: patchOptions.preserveFields,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to apply patch to %s %s", dest.GetKind(), klog.KObj(dest))
+		return pkgerrors.Wrapf(err, "failed to apply patch to %s %s", dest.GetKind(), klog.KObj(dest))
 	}
 
 	// Calculate diff.
 	diff, err := calculateDiff(dest, patched)
 	if err != nil {
-		return errors.Wrapf(err, "failed to apply patch to %s %s: failed to calculate diff", dest.GetKind(), klog.KObj(dest))
+		return pkgerrors.Wrapf(err, "failed to apply patch to %s %s: failed to calculate diff", dest.GetKind(), klog.KObj(dest))
 	}
 
 	// Return if there is no diff.
@@ -160,17 +160,17 @@ func calculateDiff(original, patched *unstructured.Unstructured) ([]byte, error)
 
 	originalJSON, err := json.Marshal(originalDiffObject)
 	if err != nil {
-		return nil, errors.Errorf("failed to marshal original object")
+		return nil, pkgerrors.Errorf("failed to marshal original object")
 	}
 
 	patchedJSON, err := json.Marshal(patchedDiffObject)
 	if err != nil {
-		return nil, errors.Errorf("failed to marshal patched object")
+		return nil, pkgerrors.Errorf("failed to marshal patched object")
 	}
 
 	diff, err := jsonpatch.CreateMergePatch(originalJSON, patchedJSON)
 	if err != nil {
-		return nil, errors.Errorf("failed to diff objects")
+		return nil, pkgerrors.Errorf("failed to diff objects")
 	}
 	return diff, nil
 }

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -180,7 +180,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions(ctx context.Context) e
 	// Transform the yaml in a list of objects.
 	objs, err := utilyaml.ToUnstructured(config.ClusterctlAPIManifest)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse yaml for clusterctl inventory CRDs")
+		return pkgerrors.Wrap(err, "failed to parse yaml for clusterctl inventory CRDs")
 	}
 
 	// Install the CRDs.
@@ -218,7 +218,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions(ctx context.Context) e
 				}
 				return false, nil
 			}); err != nil {
-				return errors.Wrapf(err, "failed to scale deployment")
+				return pkgerrors.Wrapf(err, "failed to scale deployment")
 			}
 		}
 	}
@@ -238,7 +238,7 @@ func checkInventoryCRDs(ctx context.Context, proxy Proxy) (bool, error) {
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}
-		return false, errors.Wrap(err, "failed to check if the clusterctl inventory CRD exists")
+		return false, pkgerrors.Wrap(err, "failed to check if the clusterctl inventory CRD exists")
 	}
 
 	for _, version := range crd.Spec.Versions {
@@ -246,7 +246,7 @@ func checkInventoryCRDs(ctx context.Context, proxy Proxy) (bool, error) {
 			return true, nil
 		}
 	}
-	return true, errors.Errorf("clusterctl inventory CRD does not defines the %s version", clusterctlv1.GroupVersion.Version)
+	return true, pkgerrors.Errorf("clusterctl inventory CRD does not defines the %s version", clusterctlv1.GroupVersion.Version)
 }
 
 func (p *inventoryClient) createObj(ctx context.Context, o unstructured.Unstructured) error {
@@ -266,7 +266,7 @@ func (p *inventoryClient) createObj(ctx context.Context, o unstructured.Unstruct
 		if apierrors.IsAlreadyExists(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to create clusterctl inventory CRDs component: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+		return pkgerrors.Wrapf(err, "failed to create clusterctl inventory CRDs component: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
 	}
 	return nil
 }
@@ -287,12 +287,12 @@ func (p *inventoryClient) Create(ctx context.Context, m clusterctlv1.Provider) e
 		}
 		if err := cl.Get(ctx, key, currentProvider); err != nil {
 			if !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to get current provider object")
+				return pkgerrors.Wrapf(err, "failed to get current provider object")
 			}
 
 			// if it does not exists, create the provider object
 			if err := cl.Create(ctx, &m); err != nil {
-				return errors.Wrapf(err, "failed to create provider object")
+				return pkgerrors.Wrapf(err, "failed to create provider object")
 			}
 			return nil
 		}
@@ -301,7 +301,7 @@ func (p *inventoryClient) Create(ctx context.Context, m clusterctlv1.Provider) e
 		// NB. we are using client.Merge PatchOption so the new objects gets compared with the current one server side
 		m.SetResourceVersion(currentProvider.GetResourceVersion())
 		if err := cl.Patch(ctx, &m, client.Merge); err != nil {
-			return errors.Wrapf(err, "failed to patch provider object")
+			return pkgerrors.Wrapf(err, "failed to patch provider object")
 		}
 
 		return nil
@@ -329,7 +329,7 @@ func listProviders(ctx context.Context, proxy Proxy, providerList *clusterctlv1.
 	}
 
 	if err := cl.List(ctx, providerList); err != nil {
-		return errors.Wrap(err, "failed get providers")
+		return pkgerrors.Wrap(err, "failed get providers")
 	}
 	return nil
 }
@@ -411,7 +411,7 @@ func (p *inventoryClient) CheckCAPIContract(ctx context.Context, options ...Chec
 		if opt.AllowCAPINotInstalled && apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.Wrap(err, "failed to check Cluster API version")
+		return pkgerrors.Wrap(err, "failed to check Cluster API version")
 	}
 
 	if opt.AllowCAPIAnyContract {
@@ -428,10 +428,10 @@ func (p *inventoryClient) CheckCAPIContract(ctx context.Context, options ...Chec
 					return nil
 				}
 			}
-			return errors.Errorf("this version of clusterctl could be used only with %q management clusters, %q detected", p.currentContractVersion, version.Name)
+			return pkgerrors.Errorf("this version of clusterctl could be used only with %q management clusters, %q detected", p.currentContractVersion, version.Name)
 		}
 	}
-	return errors.Errorf("failed to check Cluster API version")
+	return pkgerrors.Errorf("failed to check Cluster API version")
 }
 
 func (p *inventoryClient) CheckCAPIInstalled(ctx context.Context) (bool, error) {
@@ -464,12 +464,12 @@ func (p *inventoryClient) CheckSingleProviderInstance(ctx context.Context) error
 	var errs []error
 	for provider, providerInstances := range providerGroups {
 		if len(providerInstances) > 1 {
-			errs = append(errs, errors.Errorf("multiple instance of provider type %q found: %v", provider, providerInstances))
+			errs = append(errs, pkgerrors.Errorf("multiple instance of provider type %q found: %v", provider, providerInstances))
 		}
 	}
 
 	if len(errs) > 0 {
-		return errors.Wrap(kerrors.NewAggregate(errs), "detected multiple instances of the same provider, "+
+		return pkgerrors.Wrap(kerrors.NewAggregate(errs), "detected multiple instances of the same provider, "+
 			"but clusterctl does not support this use case. See https://cluster-api.sigs.k8s.io/developer/core/support-multiple-instances for more details")
 	}
 

@@ -25,7 +25,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,7 +67,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 				}.String(), nil
 			}
 		}
-		return "", errors.Errorf("unknown GroupVersionKind: %v", gk)
+		return "", pkgerrors.Errorf("unknown GroupVersionKind: %v", gk)
 	})
 
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
@@ -1266,7 +1266,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 						return err
 					}
 				default:
-					return errors.Errorf("unhandled request type %T", request)
+					return pkgerrors.Errorf("unhandled request type %T", request)
 				}
 				return validateClusterParameter(s.Current.Cluster)(request)
 			}
@@ -1345,85 +1345,85 @@ func validateHookRequest(request runtimehooksv1.RequestObject, wantRequest runti
 	if request, ok := request.(*runtimehooksv1.BeforeClusterUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.BeforeClusterUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.FromKubernetesVersion != request.FromKubernetesVersion {
-				return errors.Errorf("unexpected BeforeClusterUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeClusterUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
 			}
 			if wantRequest.ToKubernetesVersion != request.ToKubernetesVersion {
-				return errors.Errorf("unexpected BeforeClusterUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeClusterUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected BeforeClusterUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeClusterUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected BeforeClusterUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeClusterUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	if request, ok := request.(*runtimehooksv1.BeforeControlPlaneUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.BeforeControlPlaneUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.FromKubernetesVersion != request.FromKubernetesVersion {
-				return errors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
 			}
 			if wantRequest.ToKubernetesVersion != request.ToKubernetesVersion {
-				return errors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	if request, ok := request.(*runtimehooksv1.BeforeWorkersUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.BeforeWorkersUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.FromKubernetesVersion != request.FromKubernetesVersion {
-				return errors.Errorf("unexpected BeforeWorkersUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeWorkersUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
 			}
 			if wantRequest.ToKubernetesVersion != request.ToKubernetesVersion {
-				return errors.Errorf("unexpected BeforeWorkersUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeWorkersUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected BeforeWorkersUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeWorkersUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected BeforeWorkersUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeWorkersUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	if request, ok := request.(*runtimehooksv1.AfterControlPlaneUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.AfterControlPlaneUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.KubernetesVersion != request.KubernetesVersion {
-				return errors.Errorf("unexpected AfterControlPlaneUpgradeRequest.Kubernetes version %s, want %s", request.KubernetesVersion, wantRequest.KubernetesVersion)
+				return pkgerrors.Errorf("unexpected AfterControlPlaneUpgradeRequest.Kubernetes version %s, want %s", request.KubernetesVersion, wantRequest.KubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected AfterControlPlaneUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected AfterControlPlaneUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected AfterControlPlaneUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected AfterControlPlaneUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	if request, ok := request.(*runtimehooksv1.AfterWorkersUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.AfterWorkersUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.KubernetesVersion != request.KubernetesVersion {
-				return errors.Errorf("unexpected AfterWorkersUpgradeRequest.Kubernetes version %s, want %s", request.KubernetesVersion, wantRequest.KubernetesVersion)
+				return pkgerrors.Errorf("unexpected AfterWorkersUpgradeRequest.Kubernetes version %s, want %s", request.KubernetesVersion, wantRequest.KubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected AfterWorkersUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected AfterWorkersUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected AfterWorkersUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected AfterWorkersUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	return nil
@@ -1446,18 +1446,18 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		case *runtimehooksv1.AfterWorkersUpgradeRequest:
 			cluster = req.Cluster
 		default:
-			return errors.Errorf("unhandled request type %T", req)
+			return pkgerrors.Errorf("unhandled request type %T", req)
 		}
 
 		// check if managed fields and well know annotations have been removed from the Cluster parameter included in the payload lifecycle hooks calls.
 		if cluster.GetManagedFields() != nil {
-			return errors.New("managedFields should have been cleaned up")
+			return pkgerrors.New("managedFields should have been cleaned up")
 		}
 		if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
-			return errors.New("last-applied-configuration annotation should have been cleaned up")
+			return pkgerrors.New("last-applied-configuration annotation should have been cleaned up")
 		}
 		if _, ok := cluster.Annotations[conversionutil.DataAnnotation]; ok {
-			return errors.New("conversion annotation should have been cleaned up")
+			return pkgerrors.New("conversion annotation should have been cleaned up")
 		}
 
 		// Check the Cluster parameter has been cleaned up as expected.
@@ -1475,7 +1475,7 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		originalClusterCopy.Status.Conditions = nil
 
 		if !apiequality.Semantic.DeepEqual(originalClusterCopy, &cluster) {
-			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, &cluster))
+			return pkgerrors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, &cluster))
 		}
 		return nil
 	}

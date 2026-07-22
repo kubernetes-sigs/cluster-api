@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -170,7 +170,7 @@ loopmachines:
 			// Correlating Machines to Nodes requires the nodeRef to be set.
 			// Instead of confusing users with errors about that the conditions are not set, let's point them
 			// towards the unset nodeRef (which is the root cause of the conditions not being there).
-			machineErrors = append(machineErrors, errors.Errorf("Machine %s does not have a corresponding Node yet (Machine.status.nodeRef not set)", machine.Name))
+			machineErrors = append(machineErrors, pkgerrors.Errorf("Machine %s does not have a corresponding Node yet (Machine.status.nodeRef not set)", machine.Name))
 
 			controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
 			if controlPlane.IsEtcdManaged() {
@@ -218,15 +218,15 @@ func (r *Reconciler) checkHealthinessWhileRemediationInProgress(ctx context.Cont
 	// Check id the target Kubernetes control plane will have at least one set of operational Kubernetes control plane components.
 	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {
 		controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
-		allErrors = append(allErrors, errors.New("cannot add a new control plane Machine when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status"))
+		allErrors = append(allErrors, pkgerrors.New("cannot add a new control plane Machine when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status"))
 	}
 
 	// Check target etcd cluster.
 	if controlPlane.IsEtcdManaged() {
 		if len(controlPlane.EtcdMembers) == 0 {
-			allErrors = append(allErrors, errors.New("cannot check etcd cluster health before scale up, etcd member list is empty"))
+			allErrors = append(allErrors, pkgerrors.New("cannot check etcd cluster health before scale up, etcd member list is empty"))
 		} else if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
-			allErrors = append(allErrors, errors.New("adding a new control plane Machine can lead to etcd quorum loss. Please check the etcd status"))
+			allErrors = append(allErrors, pkgerrors.New("adding a new control plane Machine can lead to etcd quorum loss. Please check the etcd status"))
 			controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
 		}
 	}
@@ -237,13 +237,13 @@ func (r *Reconciler) checkHealthinessWhileRemediationInProgress(ctx context.Cont
 func preflightCheckCondition(kind string, obj *clusterv1.Machine, conditionType string) error {
 	c := conditions.Get(obj, conditionType)
 	if c == nil {
-		return errors.Errorf("%s %s does not have %s condition", kind, obj.GetName(), conditionType)
+		return pkgerrors.Errorf("%s %s does not have %s condition", kind, obj.GetName(), conditionType)
 	}
 	if c.Status == metav1.ConditionFalse {
-		return errors.Errorf("%s %s reports %s condition is false (%s)", kind, obj.GetName(), conditionType, c.Message)
+		return pkgerrors.Errorf("%s %s reports %s condition is false (%s)", kind, obj.GetName(), conditionType, c.Message)
 	}
 	if c.Status == metav1.ConditionUnknown {
-		return errors.Errorf("%s %s reports %s condition is unknown (%s)", kind, obj.GetName(), conditionType, c.Message)
+		return pkgerrors.Errorf("%s %s reports %s condition is unknown (%s)", kind, obj.GetName(), conditionType, c.Message)
 	}
 	return nil
 }

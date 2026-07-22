@@ -22,7 +22,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -168,7 +168,7 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 		}
 		if versions, err := contract.ControlPlane().StatusVersions().Get(controlPlane); err == nil {
 			cluster.Status.ControlPlane.Versions = versions
-		} else if errors.Is(err, contract.ErrFieldNotFound) {
+		} else if pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			cluster.Status.ControlPlane.Versions = nil
 		}
 		return
@@ -596,7 +596,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 		// Determine if the ControlPlane is provisioned.
 		initialized, err := contract.ControlPlane().Initialized(contractVersion).Get(controlPlane)
 		if err != nil {
-			if !errors.Is(err, contract.ErrFieldNotFound) {
+			if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
 				log.Error(err, fmt.Sprintf("Failed to get status.initialized from %s", cluster.Spec.ControlPlaneRef.Kind))
 				conditions.Set(cluster, metav1.Condition{
 					Type:    clusterv1.ClusterControlPlaneInitializedCondition,

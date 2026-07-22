@@ -21,7 +21,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -120,20 +120,20 @@ func (m *MachineAddresses) Path() Path {
 func (m *MachineAddresses) Get(obj *unstructured.Unstructured) (*[]clusterv1.MachineAddress, error) {
 	slice, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), m.path...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(m.path, "."))
+		return nil, pkgerrors.Wrapf(err, "failed to get %s from object", "."+strings.Join(m.path, "."))
 	}
 	if !ok {
-		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(m.path, "."))
+		return nil, pkgerrors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(m.path, "."))
 	}
 
 	addresses := make([]clusterv1.MachineAddress, len(slice))
 	s, err := json.Marshal(slice)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to marshall field at %s to json", "."+strings.Join(m.path, "."))
+		return nil, pkgerrors.Wrapf(err, "failed to marshall field at %s to json", "."+strings.Join(m.path, "."))
 	}
 	err = json.Unmarshal(s, &addresses)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshall field at %s to json", "."+strings.Join(m.path, "."))
+		return nil, pkgerrors.Wrapf(err, "failed to unmarshall field at %s to json", "."+strings.Join(m.path, "."))
 	}
 
 	return &addresses, nil
@@ -144,15 +144,15 @@ func (m *MachineAddresses) Set(obj *unstructured.Unstructured, values []clusterv
 	slice := make([]interface{}, len(values))
 	s, err := json.Marshal(values)
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshall supplied values to json for path %s", "."+strings.Join(m.path, "."))
+		return pkgerrors.Wrapf(err, "failed to marshall supplied values to json for path %s", "."+strings.Join(m.path, "."))
 	}
 	err = json.Unmarshal(s, &slice)
 	if err != nil {
-		return errors.Wrapf(err, "failed to unmarshall supplied values to json for path %s", "."+strings.Join(m.path, "."))
+		return pkgerrors.Wrapf(err, "failed to unmarshall supplied values to json for path %s", "."+strings.Join(m.path, "."))
 	}
 
 	if err := unstructured.SetNestedField(obj.UnstructuredContent(), slice, m.path...); err != nil {
-		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(m.path, "."), obj.GroupVersionKind())
+		return pkgerrors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(m.path, "."), obj.GroupVersionKind())
 	}
 	return nil
 }

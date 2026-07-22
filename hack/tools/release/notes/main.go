@@ -28,7 +28,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	release "sigs.k8s.io/cluster-api/hack/tools/release/internal"
 )
@@ -162,7 +162,7 @@ func releaseTypeFromNewTag(newTagConfig string) string {
 
 func ensureInstalledDependencies() error {
 	if !commandExists("gh") {
-		return errors.New("gh GitHub CLI not available. GitHub CLI is required to be present in the PATH. Refer to https://cli.github.com/ for installation")
+		return pkgerrors.New("gh GitHub CLI not available. GitHub CLI is required to be present in the PATH. Refer to https://cli.github.com/ for installation")
 	}
 
 	return nil
@@ -175,11 +175,11 @@ func commandExists(cmd string) bool {
 
 func validateConfig(config *notesCmdConfig) error {
 	if config.fromRef == "" && config.newTag == "" {
-		return errors.New("at least one of --from or --release need to be set")
+		return pkgerrors.New("at least one of --from or --release need to be set")
 	}
 
 	if config.branch == "" && config.newTag == "" {
-		return errors.New("at least one of --branch or --release need to be set")
+		return pkgerrors.New("at least one of --branch or --release need to be set")
 	}
 
 	if config.fromRef != "" {
@@ -206,12 +206,12 @@ func validateConfig(config *notesCmdConfig) error {
 func validatePreviousReleaseVersion(previousReleaseVersion string) error {
 	// Extract version string from ref format (e.g. "tags/v1.0.0-rc.1" -> "v1.0.0-rc.1")
 	if !strings.Contains(previousReleaseVersion, "/") {
-		return errors.New("--previous-release-version must be in ref format (e.g. tags/v1.0.0-rc.1)")
+		return pkgerrors.New("--previous-release-version must be in ref format (e.g. tags/v1.0.0-rc.1)")
 	}
 
 	parts := strings.SplitN(previousReleaseVersion, "/", 2)
 	if len(parts) != 2 {
-		return errors.New("--previous-release-version must be in ref format (e.g. tags/v1.0.0-rc.1)")
+		return pkgerrors.New("--previous-release-version must be in ref format (e.g. tags/v1.0.0-rc.1)")
 	}
 
 	versionStr := parts[1]
@@ -219,18 +219,18 @@ func validatePreviousReleaseVersion(previousReleaseVersion string) error {
 	// Parse the version to check if it contains alpha, beta, or rc
 	version, err := semver.ParseTolerant(versionStr)
 	if err != nil {
-		return errors.Wrap(err, "invalid --previous-release-version, is not a valid semver")
+		return pkgerrors.Wrap(err, "invalid --previous-release-version, is not a valid semver")
 	}
 
 	// Check if the version has pre-release identifiers
 	if len(version.Pre) == 0 {
-		return errors.Errorf("--previous-release-version must contain '%s', '%s', or '%s' pre-release identifier", preReleaseAlpha, preReleaseBeta, preReleaseRC)
+		return pkgerrors.Errorf("--previous-release-version must contain '%s', '%s', or '%s' pre-release identifier", preReleaseAlpha, preReleaseBeta, preReleaseRC)
 	}
 
 	// Check if the first pre-release identifier is 'alpha', 'beta', or 'rc'
 	preReleaseType := version.Pre[0].VersionStr
 	if preReleaseType != preReleaseAlpha && preReleaseType != preReleaseBeta && preReleaseType != preReleaseRC {
-		return errors.Errorf("--previous-release-version must contain '%s', '%s', or '%s' pre-release identifier", preReleaseAlpha, preReleaseBeta, preReleaseRC)
+		return pkgerrors.Errorf("--previous-release-version must contain '%s', '%s', or '%s' pre-release identifier", preReleaseAlpha, preReleaseBeta, preReleaseRC)
 	}
 
 	return nil
@@ -245,7 +245,7 @@ func computeConfigDefaults(config *notesCmdConfig) error {
 
 	newTag, err := semver.ParseTolerant(config.newTag)
 	if err != nil {
-		return errors.Wrap(err, "invalid --release, is not a semver")
+		return pkgerrors.Wrap(err, "invalid --release, is not a semver")
 	}
 
 	if config.fromRef == "" {

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"net/netip"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -135,7 +135,7 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 		allErrs = append(allErrs,
 			field.InternalError(
 				specPath.Child("claimRef"),
-				errors.Wrap(err, "failed to fetch claim"),
+				pkgerrors.Wrap(err, "failed to fetch claim"),
 			),
 		)
 	}

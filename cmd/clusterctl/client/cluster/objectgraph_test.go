@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -1709,7 +1709,7 @@ func getDetachedObjectGraphWihObjs(objs []client.Object) (*objectGraph, error) {
 	for _, o := range objs {
 		u := &unstructured.Unstructured{}
 		if err := test.FakeScheme.Convert(o, u, nil); err != nil {
-			return nil, errors.Wrap(err, "failed to convert object in unstructured")
+			return nil, pkgerrors.Wrap(err, "failed to convert object in unstructured")
 		}
 		if err := graph.addObj(u); err != nil {
 			return nil, err

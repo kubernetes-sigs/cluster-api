@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/util/container"
 )
@@ -84,7 +84,7 @@ func (p *imageMetaClient) getImageMeta(component, imageName string) (*imageMeta,
 	// Otherwise read the image override configurations.
 	var meta map[string]imageMeta
 	if err := p.reader.UnmarshalKey(imagesConfigKey, &meta); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal image override configurations")
+		return nil, pkgerrors.Wrap(err, "failed to unmarshal image override configurations")
 	}
 
 	// If there are not image override configurations, return.

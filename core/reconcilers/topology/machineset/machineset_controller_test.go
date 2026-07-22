@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -281,7 +281,7 @@ func templateExists(fakeClient client.Reader, template *unstructured.Unstructure
 
 	err := fakeClient.Get(ctx, client.ObjectKeyFromObject(template), obj)
 	if err != nil && !apierrors.IsNotFound(err) {
-		panic(errors.Wrapf(err, "failed to get %s/%s", template.GetKind(), template.GetName()))
+		panic(pkgerrors.Wrapf(err, "failed to get %s/%s", template.GetKind(), template.GetName()))
 	}
 	return err == nil
 }

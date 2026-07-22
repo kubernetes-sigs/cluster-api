@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	v1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,7 +80,7 @@ func (webhook *MachineDeployment) Default(ctx context.Context, m *clusterv1.Mach
 	if req.Operation == v1.Update {
 		oldMD = &clusterv1.MachineDeployment{}
 		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMD); err != nil {
-			return errors.Wrapf(err, "failed to decode oldObject to MachineDeployment")
+			return pkgerrors.Wrapf(err, "failed to decode oldObject to MachineDeployment")
 		}
 	}
 
@@ -371,11 +371,11 @@ func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *clusterv1.Ma
 	if hasMinSizeAnnotation && hasMaxSizeAnnotation {
 		minSize, err := strconv.ParseInt(minSizeString, 10, 32)
 		if err != nil {
-			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMinSizeAnnotation)
+			return 0, pkgerrors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMinSizeAnnotation)
 		}
 		maxSize, err := strconv.ParseInt(maxSizeString, 10, 32)
 		if err != nil {
-			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMaxSizeAnnotation)
+			return 0, pkgerrors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMaxSizeAnnotation)
 		}
 
 		// If it's a new MachineDeployment => Use the min size.

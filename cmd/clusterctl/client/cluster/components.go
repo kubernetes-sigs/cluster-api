@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -109,13 +109,13 @@ func (p *providerComponents) createObj(ctx context.Context, obj unstructured.Uns
 	}
 	if err := c.Get(ctx, key, currentR); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get current provider object")
+			return pkgerrors.Wrapf(err, "failed to get current provider object")
 		}
 
 		// if it does not exists, create the component
 		log.V(5).Info("Creating", logf.UnstructuredToValues(obj)...)
 		if err := c.Create(ctx, &obj); err != nil {
-			return errors.Wrapf(err, "failed to create provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
+			return pkgerrors.Wrapf(err, "failed to create provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
 		}
 		return nil
 	}
@@ -125,7 +125,7 @@ func (p *providerComponents) createObj(ctx context.Context, obj unstructured.Uns
 	log.V(5).Info("Patching", logf.UnstructuredToValues(obj)...)
 	obj.SetResourceVersion(currentR.GetResourceVersion())
 	if err := c.Patch(ctx, &obj, client.Merge); err != nil {
-		return errors.Wrapf(err, "failed to patch provider object")
+		return pkgerrors.Wrapf(err, "failed to patch provider object")
 	}
 	return nil
 }
@@ -230,7 +230,7 @@ func (p *providerComponents) Delete(ctx context.Context, options DeleteOptions) 
 			}
 			return nil
 		}); err != nil {
-			errList = append(errList, errors.Wrapf(err, "Error deleting object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName()))
+			errList = append(errList, pkgerrors.Wrapf(err, "Error deleting object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName()))
 		}
 	}
 
@@ -253,7 +253,7 @@ func (p *providerComponents) DeleteWebhookNamespace(ctx context.Context) error {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to delete namespace %s", webhookNamespaceName)
+		return pkgerrors.Wrapf(err, "failed to delete namespace %s", webhookNamespaceName)
 	}
 
 	return nil

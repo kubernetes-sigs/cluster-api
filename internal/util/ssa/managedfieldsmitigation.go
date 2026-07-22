@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"slices"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -138,12 +138,12 @@ func MigrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, c client.C
 	}
 	patch, err := json.Marshal(jsonPatch)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to migrate Cluster to regular patch and mitigate managedFields issue: failed to marshal patch for managedFields entry")
+		return false, pkgerrors.Wrap(err, "failed to migrate Cluster to regular patch and mitigate managedFields issue: failed to marshal patch for managedFields entry")
 	}
 
 	log.Info("Migrating Cluster or fixing up managedFields to mitigate kube-apiserver managedFields issue", "Cluster", klog.KObj(cluster))
 	if err := c.Patch(ctx, cluster, client.RawPatch(types.JSONPatchType, patch)); err != nil {
-		return false, errors.Wrapf(err, "failed to migrate Cluster to regular patch and mitigate managedFields issue: failed to patch %s %s", "Cluster", klog.KObj(cluster))
+		return false, pkgerrors.Wrapf(err, "failed to migrate Cluster to regular patch and mitigate managedFields issue: failed to patch %s %s", "Cluster", klog.KObj(cluster))
 	}
 
 	return true, nil
@@ -199,7 +199,7 @@ func MitigateManagedFieldsIssue(ctx context.Context, c client.Client, obj client
 	log := ctrl.LoggerFrom(ctx)
 	objGVK, err := apiutil.GVKForObject(obj, c.Scheme())
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to mitigate managedFields issue")
+		return false, pkgerrors.Wrapf(err, "failed to mitigate managedFields issue")
 	}
 
 	// Remove before-first-apply entry if it exists.
@@ -209,7 +209,7 @@ func MitigateManagedFieldsIssue(ctx context.Context, c client.Client, obj client
 	if !slices.ContainsFunc(managedFields, isManager(fieldManager)) {
 		fieldsV1, err := computeManagedFields(obj, objGVK)
 		if err != nil {
-			return false, errors.Wrapf(err, "failed to mitigate managedFields issue: failed to compute managedFields entry")
+			return false, pkgerrors.Wrapf(err, "failed to mitigate managedFields issue: failed to compute managedFields entry")
 		}
 		managedFields = append(managedFields, metav1.ManagedFieldsEntry{
 			Manager:    fieldManager,
@@ -237,12 +237,12 @@ func MitigateManagedFieldsIssue(ctx context.Context, c client.Client, obj client
 	}
 	patch, err := json.Marshal(jsonPatch)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to mitigate managedFields issue: failed to marshal patch for managedFields entry")
+		return false, pkgerrors.Wrap(err, "failed to mitigate managedFields issue: failed to marshal patch for managedFields entry")
 	}
 
 	log.Info("Fixing up managedFields to mitigate kube-apiserver managedFields issue", objGVK.Kind, klog.KObj(obj))
 	if err := c.Patch(ctx, obj, client.RawPatch(types.JSONPatchType, patch)); err != nil {
-		return false, errors.Wrapf(err, "failed to mitigate managedFields issue: failed to patch %s %s", objGVK.Kind, klog.KObj(obj))
+		return false, pkgerrors.Wrapf(err, "failed to mitigate managedFields issue: failed to patch %s %s", objGVK.Kind, klog.KObj(obj))
 	}
 
 	return true, nil
@@ -256,7 +256,7 @@ func computeManagedFields(obj client.Object, objGVK schema.GroupVersionKind) ([]
 	case objGVK.Kind == "KubeadmControlPlane" && objGVK.Version == controlplanev1.GroupVersion.Version:
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		if err := kcpScheme.Convert(obj, kcp, nil); err != nil {
-			return nil, errors.Wrap(err, "failed to convert object to KubeadmControlPlane")
+			return nil, pkgerrors.Wrap(err, "failed to convert object to KubeadmControlPlane")
 		}
 
 		addArgs(managedFieldSet, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs,
@@ -275,7 +275,7 @@ func computeManagedFields(obj client.Object, objGVK schema.GroupVersionKind) ([]
 	case objGVK.Kind == "KubeadmControlPlane" && objGVK.Version == controlplanev1beta1.GroupVersion.Version:
 		kcp := &controlplanev1beta1.KubeadmControlPlane{}
 		if err := kcpScheme.Convert(obj, kcp, nil); err != nil {
-			return nil, errors.Wrap(err, "failed to convert object to KubeadmControlPlane")
+			return nil, pkgerrors.Wrap(err, "failed to convert object to KubeadmControlPlane")
 		}
 
 		if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
@@ -313,7 +313,7 @@ func computeManagedFields(obj client.Object, objGVK schema.GroupVersionKind) ([]
 
 	fieldsV1, err := managedFieldSet.ToJSON()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal managedFields entry")
+		return nil, pkgerrors.Wrap(err, "failed to marshal managedFields entry")
 	}
 
 	return fieldsV1, nil

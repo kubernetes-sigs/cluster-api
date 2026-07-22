@@ -24,7 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -375,7 +375,7 @@ metadata:
 			if len(binding.Spec.Bindings[0].Resources) > 0 && binding.Spec.Bindings[0].Resources[0].Name == newCMName {
 				return nil
 			}
-			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newCMName, binding.Spec.Bindings)
+			return pkgerrors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newCMName, binding.Spec.Bindings)
 		}, timeout).Should(Succeed())
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
@@ -480,7 +480,7 @@ metadata:
 			if len(binding.Spec.Bindings[0].Resources) > 0 && binding.Spec.Bindings[0].Resources[0].Name == newSecretName {
 				return nil
 			}
-			return errors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newSecretName, binding.Spec.Bindings)
+			return pkgerrors.Errorf("ClusterResourceSet binding does not have any resources matching %q: %v", newSecretName, binding.Spec.Bindings)
 		}, timeout).Should(Succeed())
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted when its cluster owner reference is deleted")
@@ -735,7 +735,7 @@ metadata:
 
 			for _, r := range binding.Spec.Bindings[0].Resources {
 				if resourceHashes[r.Name] == r.Hash {
-					return errors.Errorf("resource binding for %s hasn't been updated with new hash", r.Name)
+					return pkgerrors.Errorf("resource binding for %s hasn't been updated with new hash", r.Name)
 				}
 			}
 
@@ -1034,7 +1034,7 @@ func configMapHasBeenUpdated(env *envtest.Environment, key client.ObjectKey, new
 		}
 
 		if !cmp.Equal(cm.Data, newState.Data) {
-			return errors.Errorf("configMap %s hasn't been updated yet", key.Name)
+			return pkgerrors.Errorf("configMap %s hasn't been updated yet", key.Name)
 		}
 
 		return nil

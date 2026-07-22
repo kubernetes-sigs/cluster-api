@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,7 +40,7 @@ func indexByExtensionInjectCAFromSecretName(ctx context.Context, mgr ctrl.Manage
 		injectCAFromSecretAnnotationField,
 		extensionConfigByInjectCAFromSecretName,
 	); err != nil {
-		return errors.Wrap(err, "error setting index field for InjectCAFromSecretAnnotation")
+		return pkgerrors.Wrap(err, "error setting index field for InjectCAFromSecretAnnotation")
 	}
 	return nil
 }

@@ -25,7 +25,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/utils/ptr"
 
@@ -42,13 +42,13 @@ func printYamlOutput(printer client.YamlPrinter, outputFile string) error {
 	outputFile = strings.TrimSpace(outputFile)
 	if outputFile == "" || outputFile == "-" {
 		if _, err := os.Stdout.Write(yaml); err != nil {
-			return errors.Wrap(err, "failed to write yaml to Stdout")
+			return pkgerrors.Wrap(err, "failed to write yaml to Stdout")
 		}
 		return nil
 	}
 	outputFile = filepath.Clean(outputFile)
 	if err := os.WriteFile(outputFile, yaml, 0600); err != nil {
-		return errors.Wrap(err, "failed to write to destination file")
+		return pkgerrors.Wrap(err, "failed to write to destination file")
 	}
 	return nil
 }

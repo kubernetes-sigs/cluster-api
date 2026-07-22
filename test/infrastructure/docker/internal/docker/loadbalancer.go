@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
@@ -48,7 +48,7 @@ type LoadBalancer struct {
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
 func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, imageRepository, imageTag string, port string) (*LoadBalancer, error) {
 	if cluster.Name == "" {
-		return nil, errors.New("create load balancer: cluster name is empty")
+		return nil, pkgerrors.New("create load balancer: cluster name is empty")
 	}
 
 	// Look for the container that is hosting the loadbalancer for the cluster.
@@ -126,7 +126,7 @@ func (s *LoadBalancer) Create(ctx context.Context) error {
 			s.ipFamily,
 		)
 		if err != nil {
-			return errors.WithStack(err)
+			return pkgerrors.WithStack(err)
 		}
 	}
 
@@ -138,7 +138,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, weights map[stri
 	log := ctrl.LoggerFrom(ctx)
 
 	if s.container == nil {
-		return errors.New("unable to configure load balancer: load balancer container does not exists")
+		return pkgerrors.New("unable to configure load balancer: load balancer container does not exists")
 	}
 
 	configData := &loadbalancer.ConfigData{
@@ -155,14 +155,14 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, weights map[stri
 
 	controlPlaneNodes, err := listContainers(ctx, filters)
 	if err != nil {
-		return errors.WithStack(err)
+		return pkgerrors.WithStack(err)
 	}
 
 	for _, n := range controlPlaneNodes {
 		backendServer := loadbalancer.BackendServer{}
 		controlPlaneIPv4, controlPlaneIPv6, err := n.IP(ctx)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get IP for container %s", n.String())
+			return pkgerrors.Wrapf(err, "failed to get IP for container %s", n.String())
 		}
 		if s.ipFamily == container.IPv6IPFamily {
 			backendServer.Address = controlPlaneIPv6
@@ -184,12 +184,12 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, weights map[stri
 
 	loadBalancerConfig, err := loadbalancer.Config(configData, loadBalancerConfigTemplate)
 	if err != nil {
-		return errors.WithStack(err)
+		return pkgerrors.WithStack(err)
 	}
 
 	log.Info("Updating load balancer configuration")
 	if err := s.container.WriteFile(ctx, loadbalancer.ConfigPath, loadBalancerConfig); err != nil {
-		return errors.WithStack(err)
+		return pkgerrors.WithStack(err)
 	}
 
 	// Read back the load balancer configuration to ensure it got written before
@@ -197,20 +197,20 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, weights map[stri
 	// This is a workaround to fix https://github.com/kubernetes-sigs/cluster-api/issues/10356
 	readLoadBalancerConfig, err := s.container.ReadFile(ctx, loadbalancer.ConfigPath)
 	if err != nil {
-		return errors.WithStack(err)
+		return pkgerrors.WithStack(err)
 	}
 	if string(readLoadBalancerConfig) != loadBalancerConfig {
 		return fmt.Errorf("read load balancer configuration does not match written file")
 	}
 
-	return errors.WithStack(s.container.Kill(ctx, "SIGHUP"))
+	return pkgerrors.WithStack(s.container.Kill(ctx, "SIGHUP"))
 }
 
 // IP returns the load balancer IP address.
 func (s *LoadBalancer) IP(ctx context.Context) (string, error) {
 	lbIPv4, lbIPv6, err := s.container.IP(ctx)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", pkgerrors.WithStack(err)
 	}
 	var lbIP string
 	if s.ipFamily == container.IPv6IPFamily {
@@ -220,7 +220,7 @@ func (s *LoadBalancer) IP(ctx context.Context) (string, error) {
 	}
 	if lbIP == "" {
 		// if there is a load balancer container with the same name exists but is stopped, it may not have IP address associated with it.
-		return "", errors.Errorf("load balancer IP cannot be empty: container %s does not have an associated IP address", s.containerName())
+		return "", pkgerrors.Errorf("load balancer IP cannot be empty: container %s does not have an associated IP address", s.containerName())
 	}
 	return lbIP, nil
 }

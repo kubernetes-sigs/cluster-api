@@ -24,7 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -188,31 +188,31 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 			}
 			found = true
 			if ptr.Deref(statusVar.DefinitionsConflict, false) {
-				return errors.Errorf("ClusterClass status %s variable DefinitionsConflict does not match. Expected %v , got %v", specVar.Name, false, *statusVar.DefinitionsConflict)
+				return pkgerrors.Errorf("ClusterClass status %s variable DefinitionsConflict does not match. Expected %v , got %v", specVar.Name, false, *statusVar.DefinitionsConflict)
 			}
 			if len(statusVar.Definitions) != 1 {
-				return errors.Errorf("ClusterClass status has multiple definitions for variable %s. Expected a single definition", specVar.Name)
+				return pkgerrors.Errorf("ClusterClass status has multiple definitions for variable %s. Expected a single definition", specVar.Name)
 			}
 			// For this test assume there is only one status variable definition, and that it should match the spec.
 			statusVarDefinition := statusVar.Definitions[0]
 			if statusVarDefinition.From != clusterv1.VariableDefinitionFromInline {
-				return errors.Errorf("ClusterClass status variable %s from field does not match. Expected %s. Got %s", statusVar.Name, clusterv1.VariableDefinitionFromInline, statusVarDefinition.From)
+				return pkgerrors.Errorf("ClusterClass status variable %s from field does not match. Expected %s. Got %s", statusVar.Name, clusterv1.VariableDefinitionFromInline, statusVarDefinition.From)
 			}
 			if specVar.Required == nil || statusVarDefinition.Required == nil {
-				return errors.Errorf("ClusterClass spec or status variable %s is nil, expected both to be set", specVar.Name)
+				return pkgerrors.Errorf("ClusterClass spec or status variable %s is nil, expected both to be set", specVar.Name)
 			}
 			if *specVar.Required != *statusVarDefinition.Required {
-				return errors.Errorf("ClusterClass status variable %s required field does not match. Expected %v. Got %v", specVar.Name, *statusVarDefinition.Required, *statusVarDefinition.Required)
+				return pkgerrors.Errorf("ClusterClass status variable %s required field does not match. Expected %v. Got %v", specVar.Name, *statusVarDefinition.Required, *statusVarDefinition.Required)
 			}
 			if !cmp.Equal(specVar.Schema, statusVarDefinition.Schema) {
-				return errors.Errorf("ClusterClass status variable %s schema does not match. Expected %v. Got %v", specVar.Name, specVar.Schema, statusVarDefinition.Schema)
+				return pkgerrors.Errorf("ClusterClass status variable %s schema does not match. Expected %v. Got %v", specVar.Name, specVar.Schema, statusVarDefinition.Schema)
 			}
 			if !cmp.Equal(specVar.DeprecatedV1Beta1Metadata, statusVarDefinition.DeprecatedV1Beta1Metadata) {
-				return errors.Errorf("ClusterClass status variable %s metadata does not match. Expected %v. Got %v", specVar.Name, specVar.DeprecatedV1Beta1Metadata, statusVarDefinition.DeprecatedV1Beta1Metadata)
+				return pkgerrors.Errorf("ClusterClass status variable %s metadata does not match. Expected %v. Got %v", specVar.Name, specVar.DeprecatedV1Beta1Metadata, statusVarDefinition.DeprecatedV1Beta1Metadata)
 			}
 		}
 		if !found {
-			return errors.Errorf("ClusterClass does not have status for variable %s", specVar.Name)
+			return pkgerrors.Errorf("ClusterClass does not have status for variable %s", specVar.Name)
 		}
 	}
 	return nil

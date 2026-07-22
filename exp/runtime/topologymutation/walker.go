@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 
 	mergepatch "github.com/evanphx/json-patch/v5"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"gomodules.xyz/jsonpatch/v2"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -115,7 +115,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 		holderRefGV, err := schema.ParseGroupVersion(requestItem.HolderReference.APIVersion)
 		if err != nil {
 			resp.Status = runtimehooksv1.ResponseStatusFailure
-			resp.Message = errors.Wrapf(err, "error generating patches - HolderReference apiVersion %q is not in valid format", requestItem.HolderReference.APIVersion).Error()
+			resp.Message = pkgerrors.Wrapf(err, "error generating patches - HolderReference apiVersion %q is not in valid format", requestItem.HolderReference.APIVersion).Error()
 			return
 		}
 		requestItemLog := log.WithValues(
@@ -177,17 +177,17 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 func createJSONPatch(marshalledOriginal []byte, modified runtime.Object) ([]byte, error) {
 	marshalledModified, err := json.Marshal(modified)
 	if err != nil {
-		return nil, errors.Errorf("failed to marshal modified object: %v", err)
+		return nil, pkgerrors.Errorf("failed to marshal modified object: %v", err)
 	}
 
 	patch, err := jsonpatch.CreatePatch(marshalledOriginal, marshalledModified)
 	if err != nil {
-		return nil, errors.Errorf("failed to create patch: %v", err)
+		return nil, pkgerrors.Errorf("failed to create patch: %v", err)
 	}
 
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
-		return nil, errors.Errorf("failed to marshal patch: %v", err)
+		return nil, pkgerrors.Errorf("failed to marshal patch: %v", err)
 	}
 
 	return patchBytes, nil
@@ -197,12 +197,12 @@ func createJSONPatch(marshalledOriginal []byte, modified runtime.Object) ([]byte
 func createJSONMergePatch(marshalledOriginal []byte, modified runtime.Object) ([]byte, error) {
 	marshalledModified, err := json.Marshal(modified)
 	if err != nil {
-		return nil, errors.Errorf("failed to marshal modified object: %v", err)
+		return nil, pkgerrors.Errorf("failed to marshal modified object: %v", err)
 	}
 
 	patch, err := mergepatch.CreateMergePatch(marshalledOriginal, marshalledModified)
 	if err != nil {
-		return nil, errors.Errorf("failed to create patch: %v", err)
+		return nil, pkgerrors.Errorf("failed to create patch: %v", err)
 	}
 
 	return patch, nil

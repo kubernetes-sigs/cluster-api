@@ -45,7 +45,7 @@ import (
 	clct "github.com/flatcar/container-linux-config-transpiler/config"
 	ignition "github.com/flatcar/ignition/config/v2_3"
 	ignitionTypes "github.com/flatcar/ignition/config/v2_3/types"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -344,7 +344,7 @@ func renderCLC(input *cloudinit.BaseUserData, kubeadmConfig string) ([]byte, err
 
 	var out bytes.Buffer
 	if err := t.Execute(&out, data); err != nil {
-		return nil, errors.Wrapf(err, "failed to render template")
+		return nil, pkgerrors.Wrapf(err, "failed to render template")
 	}
 
 	return out.Bytes(), nil
@@ -353,17 +353,17 @@ func renderCLC(input *cloudinit.BaseUserData, kubeadmConfig string) ([]byte, err
 // Render renders the provided user data and CLC snippets into Ignition config.
 func Render(input *cloudinit.BaseUserData, clc *bootstrapv1.ContainerLinuxConfig, kubeadmConfig string) ([]byte, string, error) {
 	if input == nil {
-		return nil, "", errors.New("empty base user data")
+		return nil, "", pkgerrors.New("empty base user data")
 	}
 
 	clcBytes, err := renderCLC(input, kubeadmConfig)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "rendering CLC configuration")
+		return nil, "", pkgerrors.Wrapf(err, "rendering CLC configuration")
 	}
 
 	userData, warnings, err := buildIgnitionConfig(clcBytes, clc)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "building Ignition config")
+		return nil, "", pkgerrors.Wrapf(err, "building Ignition config")
 	}
 
 	return userData, warnings, nil
@@ -373,7 +373,7 @@ func buildIgnitionConfig(baseCLC []byte, clc *bootstrapv1.ContainerLinuxConfig) 
 	// We control baseCLC config, so treat it as strict.
 	ign, _, err := clcToIgnition(baseCLC, true)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "converting generated CLC to Ignition")
+		return nil, "", pkgerrors.Wrapf(err, "converting generated CLC to Ignition")
 	}
 
 	var clcWarnings string
@@ -381,7 +381,7 @@ func buildIgnitionConfig(baseCLC []byte, clc *bootstrapv1.ContainerLinuxConfig) 
 	if clc != nil && clc.AdditionalConfig != "" {
 		additionalIgn, warnings, err := clcToIgnition([]byte(clc.AdditionalConfig), ptr.Deref(clc.Strict, false))
 		if err != nil {
-			return nil, "", errors.Wrapf(err, "converting additional CLC to Ignition")
+			return nil, "", pkgerrors.Wrapf(err, "converting additional CLC to Ignition")
 		}
 
 		clcWarnings = warnings
@@ -391,7 +391,7 @@ func buildIgnitionConfig(baseCLC []byte, clc *bootstrapv1.ContainerLinuxConfig) 
 
 	userData, err := json.Marshal(&ign)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "marshaling generated Ignition config into JSON")
+		return nil, "", pkgerrors.Wrapf(err, "marshaling generated Ignition config into JSON")
 	}
 
 	return userData, clcWarnings, nil

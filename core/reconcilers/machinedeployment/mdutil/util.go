@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -213,7 +213,7 @@ func ComputeRevisionAnnotations(ctx context.Context, newMS *clusterv1.MachineSet
 		if currentRevisionExists {
 			currentRevisionInt, err := strconv.ParseInt(currentRevision, 10, 64)
 			if err != nil {
-				return nil, newRevision, errors.Wrapf(err, "failed to parse current revision on MachineSet %s", klog.KObj(newMS))
+				return nil, newRevision, pkgerrors.Wrapf(err, "failed to parse current revision on MachineSet %s", klog.KObj(newMS))
 			}
 			if newRevisionInt < currentRevisionInt {
 				newRevision = currentRevision

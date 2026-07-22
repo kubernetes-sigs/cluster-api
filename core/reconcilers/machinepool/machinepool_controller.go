@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,7 +90,7 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil {
-		return errors.New("Client, APIReader and ClusterCache must not be nil")
+		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil")
 	}
 
 	r.predicateLog = ptr.To(ctrl.LoggerFrom(ctx).WithValues("controller", "machinepool"))
@@ -113,7 +113,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WatchesRawSource(r.ClusterCache.GetClusterSource("machinepool", clusterToMachinePools)).
 		Build(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.controller = c
@@ -149,7 +149,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	cluster, err := util.GetClusterByName(ctx, r.Client, mp.Namespace, mp.Spec.ClusterName)
 	if err != nil {
 		log.Error(err, "Failed to get Cluster for MachinePool.", "MachinePool", klog.KObj(mp), "Cluster", klog.KRef(mp.Namespace, mp.Spec.ClusterName))
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machinepool %q in namespace %q",
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get cluster %q for machinepool %q in namespace %q",
 			mp.Spec.ClusterName, mp.Name, mp.Namespace)
 	}
 
@@ -322,8 +322,8 @@ func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, machinePool *c
 		}
 
 		obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, machinePool.Namespace)
-		if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
-			return false, errors.Wrapf(err, "failed to get %s %s for MachinePool %s",
+		if err != nil && !apierrors.IsNotFound(pkgerrors.Cause(err)) {
+			return false, pkgerrors.Wrapf(err, "failed to get %s %s for MachinePool %s",
 				ref.Kind, klog.KRef(machinePool.Namespace, ref.Name), klog.KObj(machinePool))
 		}
 		if obj != nil {
@@ -334,7 +334,7 @@ func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, machinePool *c
 	// Issue a delete request for any object that has been found.
 	for _, obj := range objects {
 		if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
-			return false, errors.Wrapf(err,
+			return false, pkgerrors.Wrapf(err,
 				"failed to delete %v %q for MachinePool %q in namespace %q",
 				obj.GroupVersionKind(), obj.GetName(), machinePool.Name, machinePool.Namespace)
 		}
@@ -488,7 +488,7 @@ type machinePoolReconcileFunc func(ctx context.Context, s *scope) (ctrl.Result, 
 func wrapErrMachinePoolReconcileFunc(f machinePoolReconcileFunc, msg string) machinePoolReconcileFunc {
 	return func(ctx context.Context, s *scope) (ctrl.Result, error) {
 		res, err := f(ctx, s)
-		return res, errors.Wrap(err, msg)
+		return res, pkgerrors.Wrap(err, msg)
 	}
 }
 

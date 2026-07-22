@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -143,7 +143,7 @@ func waitManagerDeploymentsReady(ctx context.Context, opts InstallOptions, insta
 		for _, obj := range components.Objs() {
 			if util.IsDeploymentWithManager(obj) {
 				if err := waitDeploymentReady(ctx, obj, opts.WaitProviderTimeout, proxy); err != nil {
-					return errors.Wrapf(err, "deployment %q is not ready after %s", obj.GetName(), opts.WaitProviderTimeout)
+					return pkgerrors.Wrapf(err, "deployment %q is not ready after %s", obj.GetName(), opts.WaitProviderTimeout)
 				}
 			}
 		}
@@ -186,7 +186,7 @@ func (i *providerInstaller) Validate(ctx context.Context) error {
 	// - There must be only one instance of the same provider
 	for _, components := range i.installQueue {
 		if providerList, err = simulateInstall(providerList, components); err != nil {
-			return errors.Wrapf(err, "installing provider %q can lead to a non functioning management cluster", components.ManifestLabel())
+			return pkgerrors.Wrapf(err, "installing provider %q can lead to a non functioning management cluster", components.ManifestLabel())
 		}
 	}
 
@@ -196,7 +196,7 @@ func (i *providerInstaller) Validate(ctx context.Context) error {
 
 	coreProviders := providerList.FilterCore()
 	if len(coreProviders) != 1 {
-		return errors.Errorf("invalid management cluster: there must be one core provider, found %d", len(coreProviders))
+		return pkgerrors.Errorf("invalid management cluster: there must be one core provider, found %d", len(coreProviders))
 	}
 	coreProvider := coreProviders[0]
 
@@ -216,7 +216,7 @@ func (i *providerInstaller) Validate(ctx context.Context) error {
 			return err
 		}
 		if !compatibleContracts.Has(providerContract) {
-			return errors.Errorf("installing provider %q could lead to a non functioning management cluster: the target version for the provider implements the %s contract version, while the core provider is compatible with %s contract versions", components.ManifestLabel(), providerContract, strings.Join(compatibleContracts.UnsortedList(), ","))
+			return pkgerrors.Errorf("installing provider %q could lead to a non functioning management cluster: the target version for the provider implements the %s contract version, while the core provider is compatible with %s contract versions", components.ManifestLabel(), providerContract, strings.Join(compatibleContracts.UnsortedList(), ","))
 		}
 	}
 
@@ -232,7 +232,7 @@ func (i *providerInstaller) Validate(ctx context.Context) error {
 
 			gk, err := getCRDGroupKind(obj)
 			if err != nil {
-				return errors.Wrap(err, "failed to read group and kind from CustomResourceDefinition")
+				return pkgerrors.Wrap(err, "failed to read group and kind from CustomResourceDefinition")
 			}
 
 			if err := validateCRDName(obj, gk); err != nil {
@@ -252,19 +252,19 @@ func getCRDGroupKind(obj unstructured.Unstructured) (*schema.GroupKind, error) {
 	case apiextensionsv1beta1.SchemeGroupVersion.Version:
 		crd := &apiextensionsv1beta1.CustomResourceDefinition{}
 		if err := scheme.Scheme.Convert(&obj, crd, nil); err != nil {
-			return nil, errors.Wrapf(err, "failed to convert %s CustomResourceDefinition %q", version, obj.GetName())
+			return nil, pkgerrors.Wrapf(err, "failed to convert %s CustomResourceDefinition %q", version, obj.GetName())
 		}
 		group = crd.Spec.Group
 		kind = crd.Spec.Names.Kind
 	case apiextensionsv1.SchemeGroupVersion.Version:
 		crd := &apiextensionsv1.CustomResourceDefinition{}
 		if err := scheme.Scheme.Convert(&obj, crd, nil); err != nil {
-			return nil, errors.Wrapf(err, "failed to convert %s CustomResourceDefinition %q", version, obj.GetName())
+			return nil, pkgerrors.Wrapf(err, "failed to convert %s CustomResourceDefinition %q", version, obj.GetName())
 		}
 		group = crd.Spec.Group
 		kind = crd.Spec.Names.Kind
 	default:
-		return nil, errors.Errorf("failed to read %s CustomResourceDefinition %q", version, obj.GetName())
+		return nil, pkgerrors.Errorf("failed to read %s CustomResourceDefinition %q", version, obj.GetName())
 	}
 	return &schema.GroupKind{Group: group, Kind: kind}, nil
 }
@@ -282,7 +282,7 @@ func validateCRDName(obj unstructured.Unstructured, gk *schema.GroupKind) error 
 		return nil
 	}
 
-	return errors.Errorf("ERROR: CRD name %q is invalid for a CRD referenced in a core Cluster API CRD,"+
+	return pkgerrors.Errorf("ERROR: CRD name %q is invalid for a CRD referenced in a core Cluster API CRD,"+
 		"it should be %q. Support for CRDs that are referenced in core Cluster API resources with invalid names has been "+
 		"dropped. Note: Please check if this CRD is actually referenced in core Cluster API "+
 		"CRDs. If not, this warning can be hidden by setting the %q' annotation.", obj.GetName(), correctCRDName, clusterctlv1.SkipCRDNamePreflightCheckAnnotation)
@@ -314,7 +314,7 @@ func (i *providerInstaller) getProviderContract(ctx context.Context, providerIns
 	// quickly pinpoint the root cause.
 	latestMetadata, err := providerRepository.Metadata(provider.Version).Get(ctx)
 	if err != nil {
-		return "", errors.Wrapf(err,
+		return "", pkgerrors.Wrapf(err,
 			"failed to fetch metadata for provider %q (version %s). "+
 				"Check that the release tag exists and the repository URL is correct — the project may have moved or the tag may be missing metadata.yaml",
 			provider.ManifestLabel(), provider.Version)
@@ -323,7 +323,7 @@ func (i *providerInstaller) getProviderContract(ctx context.Context, providerIns
 	// Gets the contract for the current release.
 	currentVersion, err := version.ParseSemantic(provider.Version)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse current version for the %s provider", provider.InstanceName())
+		return "", pkgerrors.Wrapf(err, "failed to parse current version for the %s provider", provider.InstanceName())
 	}
 
 	releaseSeries := latestMetadata.GetReleaseSeriesForVersion(currentVersion)
@@ -344,12 +344,12 @@ func (i *providerInstaller) getProviderContract(ctx context.Context, providerIns
 				provider.Version, provider.InstanceName())
 		}
 
-		return "", errors.New(errorMsg)
+		return "", pkgerrors.New(errorMsg)
 	}
 
 	compatibleContracts := i.getCompatibleContractVersions(i.currentContractVersion)
 	if !compatibleContracts.Has(releaseSeries.Contract) {
-		return "", errors.Errorf("current version of clusterctl is only compatible with providers implementing the %s contract versions, detected contract version %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, provider.ManifestLabel())
+		return "", pkgerrors.Errorf("current version of clusterctl is only compatible with providers implementing the %s contract versions, detected contract version %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, provider.ManifestLabel())
 	}
 
 	providerInstanceContracts[provider.InstanceName()] = releaseSeries.Contract
@@ -369,7 +369,7 @@ func simulateInstall(providerList *clusterctlv1.ProviderList, components reposit
 			}
 			return strings.Join(namespaces, ", ")
 		}()
-		return providerList, errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", provider.ManifestLabel(), namespaces)
+		return providerList, pkgerrors.Errorf("there is already an instance of the %q provider installed in the %q namespace", provider.ManifestLabel(), namespaces)
 	}
 
 	providerList.Items = append(providerList.Items, provider)

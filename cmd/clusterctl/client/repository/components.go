@@ -21,7 +21,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -153,7 +153,7 @@ type ComponentsAlterFn func(objs []unstructured.Unstructured) ([]unstructured.Un
 func AlterComponents(comps Components, alterFn ComponentsAlterFn) error {
 	c, ok := comps.(*components)
 	if !ok {
-		return errors.New("could not alter components as Components is not of the correct type")
+		return pkgerrors.New("could not alter components as Components is not of the correct type")
 	}
 
 	alteredObjs, err := alterFn(c.Objs())
@@ -204,14 +204,14 @@ func NewComponents(input ComponentsInput) (Components, error) {
 	if !input.Options.SkipTemplateProcess {
 		processedYaml, err = input.Processor.Process(input.RawYaml, input.ConfigClient.Variables().Get)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to perform variable substitution")
+			return nil, pkgerrors.Wrap(err, "failed to perform variable substitution")
 		}
 	}
 
 	// Transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes)
 	objs, err := utilyaml.ToUnstructured(processedYaml)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse yaml")
+		return nil, pkgerrors.Wrap(err, "failed to parse yaml")
 	}
 
 	// Apply image overrides, if defined
@@ -219,20 +219,20 @@ func NewComponents(input ComponentsInput) (Components, error) {
 		return input.ConfigClient.ImageMeta().AlterImage(input.Provider.ManifestLabel(), image)
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to apply image overrides")
+		return nil, pkgerrors.Wrap(err, "failed to apply image overrides")
 	}
 
 	// Inspect the list of objects for the images required by the provider component.
 	images, err := util.InspectImages(objs)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to detect required images")
+		return nil, pkgerrors.Wrap(err, "failed to detect required images")
 	}
 
 	// inspect the list of objects for the default target namespace
 	// the default target namespace is the namespace object defined in the component yaml read from the repository, if any
 	defaultTargetNamespace, err := inspectTargetNamespace(objs)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to detect default target namespace")
+		return nil, pkgerrors.Wrap(err, "failed to detect default target namespace")
 	}
 
 	// Ensures all the provider components are deployed in the target namespace (apply only to namespaced objects)
@@ -244,7 +244,7 @@ func NewComponents(input ComponentsInput) (Components, error) {
 	}
 
 	if input.Options.TargetNamespace == "" {
-		return nil, errors.New("target namespace can't be defaulted. Please specify a target namespace")
+		return nil, pkgerrors.New("target namespace can't be defaulted. Please specify a target namespace")
 	}
 
 	// add a Namespace object if missing (ensure the targetNamespace will be created)
@@ -253,7 +253,7 @@ func NewComponents(input ComponentsInput) (Components, error) {
 	// fix Namespace name in all the objects
 	objs, err = fixTargetNamespace(objs, input.Options.TargetNamespace)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to set the TargetNamespace on the components")
+		return nil, pkgerrors.Wrap(err, "failed to set the TargetNamespace on the components")
 	}
 
 	// Add common labels.
@@ -294,7 +294,7 @@ func inspectTargetNamespace(objs []unstructured.Unstructured) (string, error) {
 		if o.GetKind() == namespaceKind {
 			// grab the name (or error if there is more than one Namespace object)
 			if namespace != "" {
-				return "", errors.New("Invalid manifest. There should be no more than one resource with Kind Namespace in the provider components yaml")
+				return "", pkgerrors.New("Invalid manifest. There should be no more than one resource with Kind Namespace in the provider components yaml")
 			}
 			namespace = o.GetName()
 		}
@@ -426,7 +426,7 @@ func fixWebhookNamespaceReferences(o unstructured.Unstructured, targetNamespace 
 		return fixCRDWebhookNamespaceReference(o, targetNamespace)
 	}
 
-	return o, errors.Errorf("failed to patch %s %s version", o.GroupVersionKind().Version, o.GetKind())
+	return o, pkgerrors.Errorf("failed to patch %s %s version", o.GroupVersionKind().Version, o.GetKind())
 }
 
 func fixMutatingWebhookNamespaceReferences(o unstructured.Unstructured, targetNamespace string) (unstructured.Unstructured, error) {
@@ -455,7 +455,7 @@ func fixMutatingWebhookNamespaceReferences(o unstructured.Unstructured, targetNa
 		}
 		return o, scheme.Scheme.Convert(b, &o, nil)
 	}
-	return o, errors.Errorf("failed to patch %s MutatingWebhookConfiguration", version)
+	return o, pkgerrors.Errorf("failed to patch %s MutatingWebhookConfiguration", version)
 }
 
 func fixValidatingWebhookNamespaceReferences(o unstructured.Unstructured, targetNamespace string) (unstructured.Unstructured, error) {
@@ -484,7 +484,7 @@ func fixValidatingWebhookNamespaceReferences(o unstructured.Unstructured, target
 		}
 		return o, scheme.Scheme.Convert(b, &o, nil)
 	}
-	return o, errors.Errorf("failed to patch %s ValidatingWebhookConfiguration", version)
+	return o, pkgerrors.Errorf("failed to patch %s ValidatingWebhookConfiguration", version)
 }
 
 func fixCRDWebhookNamespaceReference(o unstructured.Unstructured, targetNamespace string) (unstructured.Unstructured, error) {
@@ -510,7 +510,7 @@ func fixCRDWebhookNamespaceReference(o unstructured.Unstructured, targetNamespac
 		}
 		return o, scheme.Scheme.Convert(crd, &o, nil)
 	}
-	return o, errors.Errorf("failed to patch %s CustomResourceDefinition", version)
+	return o, pkgerrors.Errorf("failed to patch %s CustomResourceDefinition", version)
 }
 
 // fixCertificate fixes the dnsNames of cert-manager Certificates. The DNS names contain the dns names of the provider
@@ -518,7 +518,7 @@ func fixCRDWebhookNamespaceReference(o unstructured.Unstructured, targetNamespac
 func fixCertificate(o unstructured.Unstructured, originalNamespace, targetNamespace string) (unstructured.Unstructured, error) {
 	dnsNames, ok, err := unstructured.NestedStringSlice(o.UnstructuredContent(), "spec", "dnsNames")
 	if err != nil {
-		return o, errors.Wrapf(err, "failed to get .spec.dnsNames from Certificate %s/%s", o.GetNamespace(), o.GetName())
+		return o, pkgerrors.Wrapf(err, "failed to get .spec.dnsNames from Certificate %s/%s", o.GetNamespace(), o.GetName())
 	}
 	// Return if we don't find .spec.dnsNames.
 	if !ok {
@@ -534,7 +534,7 @@ func fixCertificate(o unstructured.Unstructured, originalNamespace, targetNamesp
 	}
 
 	if err := unstructured.SetNestedStringSlice(o.UnstructuredContent(), dnsNames, "spec", "dnsNames"); err != nil {
-		return o, errors.Wrapf(err, "failed to set .spec.dnsNames to Certificate %s/%s", o.GetNamespace(), o.GetName())
+		return o, pkgerrors.Wrapf(err, "failed to set .spec.dnsNames to Certificate %s/%s", o.GetNamespace(), o.GetName())
 	}
 
 	return o, nil

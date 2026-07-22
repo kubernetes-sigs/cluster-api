@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -67,7 +67,7 @@ type DevMachinePoolReconciler struct {
 // SetupWithManager will add watches for this controller.
 func (r *DevMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.ContainerRuntime == nil {
-		return errors.New("Client and ContainerRuntime must not be nil")
+		return pkgerrors.New("Client and ContainerRuntime must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "devmachinepool")
@@ -95,7 +95,7 @@ func (r *DevMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctr
 			predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 		).Build(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.recorder = mgr.GetEventRecorderFor(devMachinePoolControllerName)
@@ -142,7 +142,7 @@ func (r *DevMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				devMachinePoolWithoutFinalizer := devMachinePool.DeepCopy()
 				controllerutil.RemoveFinalizer(devMachinePoolWithoutFinalizer, infrav1.MachinePoolFinalizer)
 				if err := r.Client.Patch(ctx, devMachinePoolWithoutFinalizer, client.MergeFrom(devMachinePool)); err != nil {
-					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DevMachinePool %s", klog.KObj(devMachinePool))
+					return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to patch DevMachinePool %s", klog.KObj(devMachinePool))
 				}
 			}
 			return ctrl.Result{}, nil

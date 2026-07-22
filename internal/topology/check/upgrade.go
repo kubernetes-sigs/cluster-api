@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,11 +39,11 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 	}
 	selectorMap, err := metav1.LabelSelectorAsMap(&md.Spec.Selector)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to convert label selector to map", md.Name)
+		return false, pkgerrors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to convert label selector to map", md.Name)
 	}
 	machines := &clusterv1.MachineList{}
 	if err := c.List(ctx, machines, client.InNamespace(md.Namespace), client.MatchingLabels(selectorMap)); err != nil {
-		return false, errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to list Machines", md.Name)
+		return false, pkgerrors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to list Machines", md.Name)
 	}
 	mdVersion := md.Spec.Template.Spec.Version
 	// Check if the versions of the all the Machines match the MachineDeployment version.

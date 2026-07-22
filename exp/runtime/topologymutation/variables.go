@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -77,7 +77,7 @@ func GetObjectVariableInto(templateVariables map[string]apiextensionsv1.JSON, va
 	}
 
 	if err := json.Unmarshal(value.Raw, into); err != nil {
-		return errors.Wrapf(err, "failed to unmarshal variable json %q into %q", string(value.Raw), into)
+		return pkgerrors.Wrapf(err, "failed to unmarshal variable json %q into %q", string(value.Raw), into)
 	}
 
 	return nil
@@ -107,7 +107,7 @@ func MergeVariableMaps(variableMaps ...map[string]apiextensionsv1.JSON) (map[str
 			if _, ok := res[variableName]; ok && variableName == runtimehooksv1.BuiltinsName {
 				mergedV, err := mergeBuiltinVariables(res[variableName], variableValue)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to merge builtin variables")
+					return nil, pkgerrors.Wrapf(err, "failed to merge builtin variables")
 				}
 				res[variableName] = *mergedV
 				continue
@@ -130,14 +130,14 @@ func mergeBuiltinVariables(variableList ...apiextensionsv1.JSON) (*apiextensions
 	// set on multiple variables.
 	for _, variable := range variableList {
 		if err := json.Unmarshal(variable.Raw, builtins); err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal builtin variable")
+			return nil, pkgerrors.Wrapf(err, "failed to unmarshal builtin variable")
 		}
 	}
 
 	// Marshal builtins to JSON.
 	builtinVariableJSON, err := json.Marshal(builtins)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to marshal builtin variable")
+		return nil, pkgerrors.Wrapf(err, "failed to marshal builtin variable")
 	}
 
 	return &apiextensionsv1.JSON{

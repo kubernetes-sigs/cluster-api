@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"go.etcd.io/etcd/client/pkg/v3/logutil"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/rest"
@@ -69,7 +69,7 @@ func TestFirstAvailableNode(t *testing.T) {
 			name:  "Returns error from client",
 			nodes: []string{"node-1", "node-2"},
 			cc: func(context.Context, string) (*etcd.Client, error) {
-				return nil, errors.New("something went wrong")
+				return nil, pkgerrors.New("something went wrong")
 			},
 			expectedErr: "could not establish a connection to etcd members hosted on node-1,node-2: something went wrong",
 		},
@@ -78,7 +78,7 @@ func TestFirstAvailableNode(t *testing.T) {
 			nodes: []string{"node-down-1", "node-down-2", "node-up"},
 			cc: func(_ context.Context, endpoint string) (*etcd.Client, error) {
 				if strings.Contains(endpoint, "node-down") {
-					return nil, errors.New("node down")
+					return nil, pkgerrors.New("node down")
 				}
 
 				return &etcd.Client{Endpoint: endpoint}, nil

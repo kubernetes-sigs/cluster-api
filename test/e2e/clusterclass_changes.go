@@ -27,7 +27,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -885,17 +885,17 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 				clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopology.Name,
 			})).To(Succeed())
 			if len(mdList.Items) != 1 {
-				return errors.Errorf("expected one MachineDeployment for topology %q, but got %d", mdTopology.Name, len(mdList.Items))
+				return pkgerrors.Errorf("expected one MachineDeployment for topology %q, but got %d", mdTopology.Name, len(mdList.Items))
 			}
 			md := mdList.Items[0]
 
 			// Verify the label has been set.
 			labelValue, ok := md.Spec.Template.Labels[testWorkerLabelName]
 			if !ok {
-				return errors.Errorf("label %q should be set", testWorkerLabelName)
+				return pkgerrors.Errorf("label %q should be set", testWorkerLabelName)
 			}
 			if labelValue != mdTopology.Class {
-				return errors.Errorf("label %q should be %q, but is %q", testWorkerLabelName, mdTopology.Class, labelValue)
+				return pkgerrors.Errorf("label %q should be %q, but is %q", testWorkerLabelName, mdTopology.Class, labelValue)
 			}
 
 			return nil
@@ -993,7 +993,7 @@ func deleteMachineDeploymentTopologyAndWait(ctx context.Context, input deleteMac
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopologyToDelete.Name,
 		})).To(Succeed())
 		if len(mdList.Items) != 0 {
-			return errors.Errorf("expected no MachineDeployment for topology %q, but got %d", mdTopologyToDelete.Name, len(mdList.Items))
+			return pkgerrors.Errorf("expected no MachineDeployment for topology %q, but got %d", mdTopologyToDelete.Name, len(mdList.Items))
 		}
 		return nil
 	}, input.WaitForMachineDeployments...).Should(Succeed())

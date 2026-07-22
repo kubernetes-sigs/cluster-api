@@ -198,6 +198,8 @@ linters:
         # Misc
         - pkg: github.com/pkg/errors
           alias: pkgerrors
+        - pkg: errors
+          alias: ""
         # CABPK
         - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission
           alias: bootstrapadmission

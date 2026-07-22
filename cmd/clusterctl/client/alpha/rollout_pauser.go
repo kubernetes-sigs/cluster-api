@@ -40,7 +40,7 @@ func (r *rollout) ObjectPauser(ctx context.Context, proxy cluster.Proxy, ref cor
 			return pkgerrors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
 		if ptr.Deref(deployment.Spec.Paused, false) {
-			return pkgerrors.Errorf("MachineDeployment is already paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // MachineDeployment is intentionally capitalized.
+			return pkgerrors.Errorf("MachineDeployment is already paused: %v/%v\n", ref.Kind, ref.Name)
 		}
 		if err := pauseMachineDeployment(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err
@@ -51,7 +51,7 @@ func (r *rollout) ObjectPauser(ctx context.Context, proxy cluster.Proxy, ref cor
 			return pkgerrors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
 		if annotations.HasPaused(kcp.GetObjectMeta()) {
-			return pkgerrors.Errorf("KubeadmControlPlane is already paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // KubeadmControlPlane is intentionally capitalized.
+			return pkgerrors.Errorf("KubeadmControlPlane is already paused: %v/%v\n", ref.Kind, ref.Name)
 		}
 		if err := pauseKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err

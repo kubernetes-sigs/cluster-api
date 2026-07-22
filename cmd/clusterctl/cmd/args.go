@@ -17,7 +17,7 @@ limitations under the License.
 package cmd
 
 import (
-	goerrors "errors"
+	"errors"
 
 	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -44,7 +44,7 @@ func wrapHelpError(err error) error {
 
 func isHelpError(err error) bool {
 	var target *helpError
-	return goerrors.As(err, &target)
+	return errors.As(err, &target)
 }
 
 func helpOnErrorArgs(args cobra.PositionalArgs) cobra.PositionalArgs {

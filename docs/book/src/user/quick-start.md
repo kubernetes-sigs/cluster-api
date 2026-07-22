@@ -273,7 +273,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeSwift,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -641,6 +641,18 @@ clusterctl init --infrastructure kubekey
 ```
 
 {{#/tab }}
+{{#tab KubeSwift}}
+
+KubeSwift runs the workload machines on the management cluster, so no cloud credentials
+are required. Ensure [KubeSwift](https://github.com/kubeswift-io/kubeswift) is installed
+on the management cluster first.
+
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure kubeswift-io
+```
+
+{{#/tab }}
 {{#tab KubeVirt}}
 
 Please visit the [KubeVirt project][KubeVirt provider] for more information.
@@ -943,7 +955,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeSwift,KubeVirt,Metal3,metal-stack,Nutanix,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1265,6 +1277,23 @@ export CONTROL_PLANE_ENDPOINT_IP=<your-control-plane-virtual-ip>
 ```
 
 Please visit the [KubeKey provider] for more information.
+
+{{#/tab }}
+{{#tab KubeSwift}}
+
+KubeSwift runs the workload machines as VMs on the management cluster, so no cloud
+credentials are required. Ensure the management cluster has a Ready `SwiftImage` (for
+example `ubuntu-noble`) and the cluster-scoped `SwiftGuestClass`es referenced by the
+template (`capi-controlplane`, `capi-worker`).
+
+The template variables all have defaults; override them only if your names differ:
+```bash
+export KUBESWIFT_IMAGE="ubuntu-noble"
+export KUBESWIFT_CONTROL_PLANE_CLASS="capi-controlplane"
+export KUBESWIFT_WORKER_CLASS="capi-worker"
+```
+
+Please visit the [cluster-api-provider-kubeswift](https://github.com/kubeswift-io/cluster-api-provider-kubeswift) repository for more information.
 
 {{#/tab }}
 {{#tab KubeVirt}}

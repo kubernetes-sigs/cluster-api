@@ -90,6 +90,9 @@ Cluster API Provider Nutanix
 ### CAPKK
 Cluster API Provider KubeKey
 
+### CAPKS
+Cluster API Provider KubeSwift
+
 ### CAPK
 Cluster API Provider Kubevirt
 

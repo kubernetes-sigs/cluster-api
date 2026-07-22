@@ -75,8 +75,8 @@ github.com/containerd/errdefs/pkg v0.3.0 h1:9IKJ06FvyNlexW690DXuQNx2KA2cUJXx151X
 github.com/containerd/errdefs/pkg v0.3.0/go.mod h1:NJw6s9HwNuRhnjJhM7pylWwMyAkmCQvQ4GpJHEqRLVk=
 github.com/coredns/caddy v1.1.1 h1:2eYKZT7i6yxIfGP3qLJoJ7HAsDJqYB+X68g4NYjSrE0=
 github.com/coredns/caddy v1.1.1/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
-github.com/coredns/corefile-migration v1.0.32 h1:tlbtXBpt7UzmedEoMqnfqOTnGCvzYfJ/Rrfqf+/W+TY=
-github.com/coredns/corefile-migration v1.0.32/go.mod h1:56DPqONc3njpVPsdilEnfijCwNGC3/kTJLl7i7SPavY=
+github.com/coredns/corefile-migration v1.0.34 h1:Evzog/Av6/EQVy/xEAVZo2wsYAWMirIlunDfXxLg5Hk=
+github.com/coredns/corefile-migration v1.0.34/go.mod h1:56DPqONc3njpVPsdilEnfijCwNGC3/kTJLl7i7SPavY=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/cyphar/filepath-securejoin v0.2.4 h1:Ugdm7cg7i6ZK6x3xDF1oEu1nfkyfH53EtKeQYTC3kyg=
 github.com/cyphar/filepath-securejoin v0.2.4/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=

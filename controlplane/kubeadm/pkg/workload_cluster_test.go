@@ -31,6 +31,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/yaml"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -847,6 +848,19 @@ func TestHasKubeadmConfig(t *testing.T) {
 			g.Expect(got).To(Equal(tt.expectHasKubeadmConfig))
 		})
 	}
+}
+
+func TestHasKubeadmConfigReturnsGetErrors(t *testing.T) {
+	g := NewWithT(t)
+	w := &Workload{Client: fake.NewClientBuilder().WithInterceptorFuncs(interceptor.Funcs{
+		Get: func(_ context.Context, _ client.WithWatch, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
+			return apierrors.NewServiceUnavailable("workload API unavailable")
+		},
+	}).Build()}
+
+	hasKubeadmConfig, err := w.HasKubeadmConfig(ctx)
+	g.Expect(hasKubeadmConfig).To(BeFalse())
+	g.Expect(err).To(MatchError(ContainSubstring("workload API unavailable")))
 }
 
 func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {

@@ -71,7 +71,11 @@ func (c *cache) Get(resourceGroup string, objKey client.ObjectKey, obj client.Ob
 		return apierrors.NewNotFound(unsafeGuessGroupVersionResource(objGVK).GroupResource(), objKey.String())
 	}
 
-	if err := c.scheme.Convert(trackedObj, obj, nil); err != nil {
+	// Note: We have to deep copy trackedObj otherwise the returned obj will point to data
+	// in the tracker (for Unstructured Convert just points obj to the content of trackedObj).
+	// Without deep copy we can get `fatal error: concurrent map iteration and map write` if the
+	// object in the tracker is modified while `Get` is called.
+	if err := c.scheme.Convert(trackedObj.DeepCopyObject(), obj, nil); err != nil {
 		return apierrors.NewInternalError(err)
 	}
 	obj.GetObjectKind().SetGroupVersionKind(trackedObj.GetObjectKind().GroupVersionKind())
@@ -128,6 +132,10 @@ func (c *cache) List(resourceGroup string, list client.ObjectList, opts ...clien
 				}
 			}
 
+			// Note: We have to deep copy obj otherwise the returned unstructuredObj will point to data
+			// in the tracker (for Unstructured Convert just points unstructuredObj to the content of obj).
+			// Without deep copy we can get `fatal error: concurrent map iteration and map write` if the
+			// object in the tracker is modified while `Get` is called.
 			obj := obj.DeepCopyObject().(client.Object)
 			switch list.(type) {
 			case *unstructured.UnstructuredList:

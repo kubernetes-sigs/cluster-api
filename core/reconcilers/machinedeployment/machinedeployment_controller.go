@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -96,10 +96,10 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil {
-		return errors.New("Client and APIReader must not be nil")
+		return pkgerrors.New("Client and APIReader must not be nil")
 	}
 	if feature.Gates.Enabled(feature.InPlaceUpdates) && r.RuntimeClient == nil {
-		return errors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
+		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "machinedeployment")
@@ -125,13 +125,13 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 		).Build(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.msClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.MachineSet{}, msGR,
 		mgr.GetScheme(), mgr.GetConfig(), mgr.GetHTTPClient())
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 	r.canUpdateMachineSetCache = cache.New[CanUpdateMachineSetCacheEntry](ctx, cache.HookCacheDefaultTTL)
 	r.controller = c
@@ -187,11 +187,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	// Get machines.
 	selectorMap, err := metav1.LabelSelectorAsMap(&s.machineDeployment.Spec.Selector)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to convert label selector to a map")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to convert label selector to a map")
 	}
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(ctx, machineList, client.InNamespace(s.machineDeployment.Namespace), client.MatchingLabels(selectorMap)); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to list Machines")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to list Machines")
 	}
 	s.machines = collections.FromMachineList(machineList)
 
@@ -322,7 +322,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		original := machineSet.DeepCopy()
 		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = md.Name
 		if err := r.Client.Patch(ctx, machineSet, client.MergeFrom(original)); err != nil {
-			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
+			return pkgerrors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 	}
 
@@ -340,7 +340,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		return r.rolloutOnDelete(ctx, md, s.machineSets, s.machines, templateExists)
 	}
 
-	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
+	return pkgerrors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
 }
 
 // createOrUpdateMachineSetsAndSyncMachineDeploymentRevision applies changes identified by the rolloutPlanner to both newMS and oldMSs.
@@ -394,7 +394,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			// Create the MachineSet.
 			if err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms); err != nil {
 				r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(ms), err)
-				return errors.Wrapf(err, "failed to create MachineSet %s", klog.KObj(ms))
+				return pkgerrors.Wrapf(err, "failed to create MachineSet %s", klog.KObj(ms))
 			}
 			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachineSet"), ms.ResourceVersion)
 			if len(p.oldMSs) > 0 {
@@ -431,7 +431,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 				continue
 			}
 			r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedUpdate", "Failed to update MachineSet %s: %v", klog.KObj(ms), err)
-			return errors.Wrapf(err, "failed to update MachineSet %s", klog.KObj(ms))
+			return pkgerrors.Wrapf(err, "failed to update MachineSet %s", klog.KObj(ms))
 		}
 
 		// Defer next reconcile only if ResourceVersion has changed.
@@ -489,7 +489,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 	for _, ms := range s.machineSets {
 		if ms.DeletionTimestamp.IsZero() {
 			if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to delete MachineSet %s (MachineDeployment deleting)", klog.KObj(ms))
+				return pkgerrors.Wrapf(err, "failed to delete MachineSet %s (MachineDeployment deleting)", klog.KObj(ms))
 			}
 			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 			// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
@@ -515,11 +515,11 @@ func (r *Reconciler) getAndAdoptMachineSetsForDeployment(ctx context.Context, s 
 
 	selector, err := metav1.LabelSelectorAsSelector(&md.Spec.Selector)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get MachineSets: failed to compute label selector from MachineDeployment.spec.selector")
+		return pkgerrors.Wrapf(err, "failed to get MachineSets: failed to compute label selector from MachineDeployment.spec.selector")
 	}
 
 	if selector.Empty() {
-		return errors.New("failed to get MachineSets: label selector computed from MachineDeployment.spec.selector is empty")
+		return pkgerrors.New("failed to get MachineSets: label selector computed from MachineDeployment.spec.selector is empty")
 	}
 
 	filtered := make([]*clusterv1.MachineSet, 0, len(machineSets.Items))

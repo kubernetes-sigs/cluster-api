@@ -27,7 +27,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 )
@@ -39,11 +39,11 @@ func newGenerator(configFile string, templatesDir, outputDir string) (*generator
 	// Read and Unmarshal the configuration file.
 	rawConfig, err := os.ReadFile(filepath.Clean(configFile))
 	if err != nil {
-		return nil, errors.Wrapf(err, "reading config file %s", configFile)
+		return nil, pkgerrors.Wrapf(err, "reading config file %s", configFile)
 	}
 	prowIgnoredConfig := ProwIgnoredConfig{}
 	if err := yaml.UnmarshalStrict(rawConfig, &prowIgnoredConfig); err != nil {
-		return nil, errors.Wrapf(err, "parsing config file %s", configFile)
+		return nil, pkgerrors.Wrapf(err, "parsing config file %s", configFile)
 	}
 
 	g := &generator{
@@ -62,7 +62,7 @@ func newGenerator(configFile string, templatesDir, outputDir string) (*generator
 	for _, tpl := range g.config.Templates {
 		nameTemplate, err := template.New("").Funcs(g.templateFunctions()).Parse(tpl.Template)
 		if err != nil {
-			return nil, errors.Wrapf(err, "parsing name template %q", tpl.Template)
+			return nil, pkgerrors.Wrapf(err, "parsing name template %q", tpl.Template)
 		}
 		g.nameTemplates[tpl.Name] = nameTemplate
 	}
@@ -85,7 +85,7 @@ func (g *generator) generate() error {
 			klog.Infof("Executing and writing template %q for branch %q", tpl.Name, branch)
 			out, err := g.executeTemplate(branch, tpl.Name)
 			if err != nil {
-				return errors.Wrapf(err, "Generating prowjobs for template %s", tpl.Name)
+				return pkgerrors.Wrapf(err, "Generating prowjobs for template %s", tpl.Name)
 			}
 
 			if out.Len() == len(generatedFileHeader) {
@@ -95,11 +95,11 @@ func (g *generator) generate() error {
 
 			fileName, err := g.executeNameTemplate(branch, tpl.Name)
 			if err != nil {
-				return errors.Wrapf(err, "Generating name for template %s and branch %s", tpl.Name, branch)
+				return pkgerrors.Wrapf(err, "Generating name for template %s and branch %s", tpl.Name, branch)
 			}
 			filePath := filepath.Clean(path.Join(g.outputDir, fileName))
 			if err := os.WriteFile(filePath, out.Bytes(), 0644); err != nil { //nolint:gosec
-				return errors.Wrapf(err, "Writing prowjob to %q", filePath)
+				return pkgerrors.Wrapf(err, "Writing prowjob to %q", filePath)
 			}
 		}
 	}
@@ -149,7 +149,7 @@ func (g *generator) executeTemplate(branch, templateName string) (*bytes.Buffer,
 	out.WriteString(generatedFileHeader)
 
 	if err := g.templates.ExecuteTemplate(&out, templateName, data); err != nil {
-		return nil, errors.Wrapf(err, "executing template %q for branch %q", templateName, branch)
+		return nil, pkgerrors.Wrapf(err, "executing template %q for branch %q", templateName, branch)
 	}
 
 	return &out, nil
@@ -164,7 +164,7 @@ func (g *generator) executeNameTemplate(branch, templateName string) (string, er
 	var out bytes.Buffer
 
 	if err := g.nameTemplates[templateName].Execute(&out, data); err != nil {
-		return "", errors.Wrapf(err, "executing name template %q for branch %q", templateName, branch)
+		return "", pkgerrors.Wrapf(err, "executing name template %q for branch %q", templateName, branch)
 	}
 
 	return out.String(), nil

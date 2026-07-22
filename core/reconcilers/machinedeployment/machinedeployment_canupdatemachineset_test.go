@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -155,7 +155,7 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			},
 			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (bool, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return false, nil, errors.Errorf("unexpected error")
+					return false, nil, pkgerrors.Errorf("unexpected error")
 				}
 				return false, []string{"can not update"}, nil
 			},
@@ -180,7 +180,7 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			},
 			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (bool, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return false, nil, errors.Errorf("unexpected error")
+					return false, nil, pkgerrors.Errorf("unexpected error")
 				}
 				return true, nil, nil
 			},

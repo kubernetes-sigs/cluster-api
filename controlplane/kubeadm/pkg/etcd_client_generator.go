@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -69,7 +69,7 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcd
 func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
 	// This is an additional safeguard for avoiding this func to return nil, nil.
 	if len(nodeNames) == 0 {
-		return nil, errors.New("invalid argument: forFirstAvailableNode can't be called with an empty list of nodes")
+		return nil, pkgerrors.New("invalid argument: forFirstAvailableNode can't be called with an empty list of nodes")
 	}
 
 	// Loop through the existing control plane nodes.
@@ -83,5 +83,5 @@ func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNam
 		}
 		return client, nil
 	}
-	return nil, errors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
+	return nil, pkgerrors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
 }

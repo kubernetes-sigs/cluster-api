@@ -25,7 +25,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +41,7 @@ import (
 
 var (
 	// ErrDependentCertificateNotFound signals that a CA secret could not be found.
-	ErrDependentCertificateNotFound = errors.New("could not find secret ca")
+	ErrDependentCertificateNotFound = pkgerrors.New("could not find secret ca")
 )
 
 // FromSecret fetches the Kubeconfig for a Cluster.
@@ -66,17 +66,17 @@ func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Si
 
 	clientKey, err := certs.NewSigner(kubeConfigOptions.keyEncryptionAlgorithm)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create private key")
+		return nil, pkgerrors.Wrap(err, "unable to create private key")
 	}
 
 	clientCert, err := cfg.NewSignedCert(clientKey, caCert, caKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to sign certificate")
+		return nil, pkgerrors.Wrap(err, "unable to sign certificate")
 	}
 
 	encodedClientKey, err := certs.EncodePrivateKeyPEMFromSigner(clientKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to encode private key")
+		return nil, pkgerrors.Wrap(err, "unable to encode private key")
 	}
 
 	userName := fmt.Sprintf("%s-admin", clusterName)
@@ -172,13 +172,13 @@ func NeedsClientCertRotation(configSecret *corev1.Secret, threshold time.Duratio
 
 	config, err := clientcmd.Load(data)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
+		return false, pkgerrors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
 	}
 
 	for _, authInfo := range config.AuthInfos {
 		cert, err := certs.DecodeCertPEM(authInfo.ClientCertificateData)
 		if err != nil {
-			return false, errors.Wrap(err, "failed to decode kubeconfig client certificate")
+			return false, pkgerrors.Wrap(err, "failed to decode kubeconfig client certificate")
 		}
 		if cert.NotAfter.Sub(now) < threshold {
 			return true, nil
@@ -192,7 +192,7 @@ func NeedsClientCertRotation(configSecret *corev1.Secret, threshold time.Duratio
 func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1.Secret, options ...KubeConfigOption) error {
 	clusterName, _, err := secret.ParseSecretName(configSecret.Name)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse secret name")
+		return pkgerrors.Wrap(err, "failed to parse secret name")
 	}
 	data, err := toKubeconfigBytes(configSecret)
 	if err != nil {
@@ -201,7 +201,7 @@ func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1
 
 	config, err := clientcmd.Load(data)
 	if err != nil {
-		return errors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
+		return pkgerrors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
 	}
 	endpoint := config.Clusters[clusterName].Server
 	key := client.ObjectKey{Name: clusterName, Namespace: configSecret.Namespace}
@@ -224,26 +224,26 @@ func generateKubeconfig(ctx context.Context, c client.Client, clusterName client
 
 	cert, err := certs.DecodeCertPEM(clusterCA.Data[secret.TLSCrtDataName])
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to decode CA Cert")
+		return nil, pkgerrors.Wrap(err, "failed to decode CA Cert")
 	} else if cert == nil {
-		return nil, errors.New("certificate not found in config")
+		return nil, pkgerrors.New("certificate not found in config")
 	}
 
 	key, err := certs.DecodePrivateKeyPEM(clusterCA.Data[secret.TLSKeyDataName])
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to decode private key")
+		return nil, pkgerrors.Wrap(err, "failed to decode private key")
 	} else if key == nil {
-		return nil, errors.New("CA private key not found")
+		return nil, pkgerrors.New("CA private key not found")
 	}
 
 	cfg, err := New(clusterName.Name, endpoint, cert, key, options...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate a kubeconfig")
+		return nil, pkgerrors.Wrap(err, "failed to generate a kubeconfig")
 	}
 
 	out, err := clientcmd.Write(*cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to serialize config to yaml")
+		return nil, pkgerrors.Wrap(err, "failed to serialize config to yaml")
 	}
 	return out, nil
 }
@@ -251,7 +251,7 @@ func generateKubeconfig(ctx context.Context, c client.Client, clusterName client
 func toKubeconfigBytes(out *corev1.Secret) ([]byte, error) {
 	data, ok := out.Data[secret.KubeconfigDataName]
 	if !ok {
-		return nil, errors.Errorf("missing key %q in secret data", secret.KubeconfigDataName)
+		return nil, pkgerrors.Errorf("missing key %q in secret data", secret.KubeconfigDataName)
 	}
 	return data, nil
 }

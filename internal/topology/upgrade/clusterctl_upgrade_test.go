@@ -31,7 +31,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -634,10 +634,10 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 
 	actualCluster := &clusterv1.Cluster{}
 	if err := env.Get(ctx, client.ObjectKeyFromObject(cluster), actualCluster); err != nil {
-		return nil, errors.Wrapf(err, "failed to get cluster %s", cluster.Name)
+		return nil, pkgerrors.Wrapf(err, "failed to get cluster %s", cluster.Name)
 	}
 	if c := conditions.Get(actualCluster, clusterv1.ClusterTopologyReconciledCondition); c == nil || c.Status != metav1.ConditionTrue || c.ObservedGeneration != actualCluster.Generation {
-		return nil, errors.Errorf("cluster %s topology is not reconciled", cluster.Name)
+		return nil, pkgerrors.Errorf("cluster %s topology is not reconciled", cluster.Name)
 	}
 
 	addToAllObj(cluster.Name, "cluster", actualCluster)
@@ -648,11 +648,11 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 	}] = actualCluster.GetGeneration()
 
 	if !actualCluster.Spec.InfrastructureRef.IsDefined() {
-		return nil, errors.New("cluster actualCluster.spec.infrastructureRef is not yet set")
+		return nil, pkgerrors.New("cluster actualCluster.spec.infrastructureRef is not yet set")
 	}
 	refObj, err := getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.InfrastructureRef, version, actualCluster.Namespace)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get referenced actualCluster.spec.infrastructureRef")
+		return nil, pkgerrors.Wrap(err, "failed to get referenced actualCluster.spec.infrastructureRef")
 	}
 	addToAllObj(cluster.Name, ".spec.infrastructureRef", refObj)
 	refs[clusterv1.ContractVersionedObjectReference{
@@ -662,16 +662,16 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 	}] = refObj.GetGeneration()
 	for _, check := range additionalChecks {
 		if err := check(refObj); err != nil {
-			return nil, errors.Wrap(err, "failed additional checks on actualCluster.spec.infrastructureRef")
+			return nil, pkgerrors.Wrap(err, "failed additional checks on actualCluster.spec.infrastructureRef")
 		}
 	}
 
 	if !actualCluster.Spec.ControlPlaneRef.IsDefined() {
-		return nil, errors.New("cluster actualCluster.spec.controlPlaneRef is not yet set")
+		return nil, pkgerrors.New("cluster actualCluster.spec.controlPlaneRef is not yet set")
 	}
 	refObj, err = getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.ControlPlaneRef, version, actualCluster.Namespace)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get referenced actualCluster.spec.controlPlaneRef")
+		return nil, pkgerrors.Wrap(err, "failed to get referenced actualCluster.spec.controlPlaneRef")
 	}
 	addToAllObj(cluster.Name, ".spec.controlPlaneRef", refObj)
 	refs[clusterv1.ContractVersionedObjectReference{
@@ -681,17 +681,17 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 	}] = refObj.GetGeneration()
 	for _, check := range additionalChecks {
 		if err := check(refObj); err != nil {
-			return nil, errors.Wrap(err, "failed additional checks on actualCluster.spec.controlPlaneRef")
+			return nil, pkgerrors.Wrap(err, "failed additional checks on actualCluster.spec.controlPlaneRef")
 		}
 	}
 
 	cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(refObj)
 	if err != nil {
-		return nil, errors.Wrap(err, "cluster controlPlane.spec.machineTemplate.spec.infrastructureRef is not yet set")
+		return nil, pkgerrors.Wrap(err, "cluster controlPlane.spec.machineTemplate.spec.infrastructureRef is not yet set")
 	}
 	refObj, err = getReferencedObject(ctx, env.GetClient(), *cpInfraRef, version, actualCluster.Namespace)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get referenced controlPlane.spec.machineTemplate.spec.infrastructureRef")
+		return nil, pkgerrors.Wrap(err, "failed to get referenced controlPlane.spec.machineTemplate.spec.infrastructureRef")
 	}
 	addToAllObj(cluster.Name, "controlPlane.spec.machineTemplate.spec.infrastructureRef", refObj)
 	refs[clusterv1.ContractVersionedObjectReference{
@@ -701,7 +701,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 	}] = refObj.GetGeneration()
 	for _, check := range additionalChecks {
 		if err := check(refObj); err != nil {
-			return nil, errors.Wrap(err, "failed additional checks on controlPlane.spec.machineTemplate.spec.infrastructureRef")
+			return nil, pkgerrors.Wrap(err, "failed additional checks on controlPlane.spec.machineTemplate.spec.infrastructureRef")
 		}
 	}
 
@@ -710,10 +710,10 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 		clusterv1.ClusterNameLabel:          cluster.Name,
 		clusterv1.ClusterTopologyOwnedLabel: "",
 	}); err != nil {
-		return nil, errors.Wrap(err, "failed to list machineDeployments")
+		return nil, pkgerrors.Wrap(err, "failed to list machineDeployments")
 	}
 	if len(machineDeployments.Items) != 1 {
-		return nil, errors.Errorf("expected 1 machineDeployment, got %d", len(machineDeployments.Items))
+		return nil, pkgerrors.Errorf("expected 1 machineDeployment, got %d", len(machineDeployments.Items))
 	}
 
 	for _, md := range machineDeployments.Items {
@@ -726,7 +726,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 
 		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.InfrastructureRef, version, actualCluster.Namespace)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get referenced machineDeployment.spec.template.spec.infrastructureRef")
+			return nil, pkgerrors.Wrap(err, "failed to get referenced machineDeployment.spec.template.spec.infrastructureRef")
 		}
 		addToAllObj(cluster.Name, "machineDeployment "+md.Name+" .spec.template.spec.infrastructureRef", refObj)
 		refs[clusterv1.ContractVersionedObjectReference{
@@ -736,16 +736,16 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 		}] = refObj.GetGeneration()
 		for _, check := range additionalChecks {
 			if err := check(refObj); err != nil {
-				return nil, errors.Wrap(err, "failed additional checks on machineDeployment.spec.template.spec.infrastructureRef")
+				return nil, pkgerrors.Wrap(err, "failed additional checks on machineDeployment.spec.template.spec.infrastructureRef")
 			}
 		}
 
 		if !md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
-			return nil, errors.New("cluster machineDeployment.spec.template.spec.bootstrap.configRef is not yet set")
+			return nil, pkgerrors.New("cluster machineDeployment.spec.template.spec.bootstrap.configRef is not yet set")
 		}
 		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.Bootstrap.ConfigRef, version, actualCluster.Namespace)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get referenced machineDeployment.spec.template.spec.bootstrap.configRef")
+			return nil, pkgerrors.Wrap(err, "failed to get referenced machineDeployment.spec.template.spec.bootstrap.configRef")
 		}
 		addToAllObj(cluster.Name, "machineDeployment "+md.Name+" .spec.template.spec.bootstrap.configRef", refObj)
 		refs[clusterv1.ContractVersionedObjectReference{
@@ -755,7 +755,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 		}] = refObj.GetGeneration()
 		for _, check := range additionalChecks {
 			if err := check(refObj); err != nil {
-				return nil, errors.Wrap(err, "failed additional checks on machineDeployment.spec.template.spec.bootstrap.configRef")
+				return nil, pkgerrors.Wrap(err, "failed additional checks on machineDeployment.spec.template.spec.bootstrap.configRef")
 			}
 		}
 	}
@@ -780,10 +780,10 @@ func checkOmittableFromPatchesField(mustBeSet bool) func(obj *unstructured.Unstr
 				return err
 			}
 			if exists && !mustBeSet {
-				return errors.New("expected to not contain omittable field")
+				return pkgerrors.New("expected to not contain omittable field")
 			}
 			if !exists && mustBeSet {
-				return errors.New("expected to contain omittable field")
+				return pkgerrors.New("expected to contain omittable field")
 			}
 		case "TestResourceTemplate":
 			_, exists, err := unstructured.NestedString(obj.Object, "spec", "template", "spec", "omittable")
@@ -791,10 +791,10 @@ func checkOmittableFromPatchesField(mustBeSet bool) func(obj *unstructured.Unstr
 				return err
 			}
 			if exists && !mustBeSet {
-				return errors.New("expected to not contain omittable field")
+				return pkgerrors.New("expected to not contain omittable field")
 			}
 			if !exists && mustBeSet {
-				return errors.New("expected to contain omittable field")
+				return pkgerrors.New("expected to contain omittable field")
 			}
 		}
 		return nil
@@ -810,7 +810,7 @@ func checkPtrTypeToType() func(obj *unstructured.Unstructured) error {
 				return err
 			}
 			if exists && value == "" {
-				return errors.New("expected to not contain an empty ptrStringToString field")
+				return pkgerrors.New("expected to not contain an empty ptrStringToString field")
 			}
 		case "TestResourceTemplate":
 			value, exists, err := unstructured.NestedString(obj.Object, "spec", "template", "spec", "ptrStringToString")
@@ -818,7 +818,7 @@ func checkPtrTypeToType() func(obj *unstructured.Unstructured) error {
 				return err
 			}
 			if exists && value == "" {
-				return errors.New("expected to not contain an empty ptrStringToString field")
+				return pkgerrors.New("expected to not contain an empty ptrStringToString field")
 			}
 		}
 		return nil
@@ -834,14 +834,14 @@ func checkTypeToPtrType() func(obj *unstructured.Unstructured) error {
 				return err
 			}
 			if exists && value1 == 0 {
-				return errors.New("expected to not contain a zero int32ToPtrInt32 field")
+				return pkgerrors.New("expected to not contain a zero int32ToPtrInt32 field")
 			}
 			value2, exists, err := unstructured.NestedBool(obj.Object, "spec", "boolToPtrBool")
 			if err != nil {
 				return err
 			}
 			if exists && !value2 {
-				return errors.New("expected to not contain a false boolToPtrBool field")
+				return pkgerrors.New("expected to not contain a false boolToPtrBool field")
 			}
 		case "TestResourceTemplate":
 			value1, exists, err := unstructured.NestedInt64(obj.Object, "spec", "template", "spec", "int32ToPtrInt32")
@@ -849,14 +849,14 @@ func checkTypeToPtrType() func(obj *unstructured.Unstructured) error {
 				return err
 			}
 			if exists && value1 == 0 {
-				return errors.New("expected to not contain an zero int32ToPtrInt32 field")
+				return pkgerrors.New("expected to not contain an zero int32ToPtrInt32 field")
 			}
 			value2, exists, err := unstructured.NestedBool(obj.Object, "spec", "template", "spec", "boolToPtrBool")
 			if err != nil {
 				return err
 			}
 			if exists && !value2 {
-				return errors.New("expected to not contain a false boolToPtrBool field")
+				return pkgerrors.New("expected to not contain a false boolToPtrBool field")
 			}
 		}
 		return nil
@@ -872,10 +872,10 @@ func checkDurationToPtrInt32(mustBeSet bool) func(obj *unstructured.Unstructured
 				return err
 			}
 			if !mustBeSet && exists && (reflect.DeepEqual(value, "0s") || reflect.DeepEqual(value, int64(0))) {
-				return errors.New("expected to not contain a 0s durationToPtrInt32 field")
+				return pkgerrors.New("expected to not contain a 0s durationToPtrInt32 field")
 			}
 			if mustBeSet && !exists {
-				return errors.New("expected to contain a durationToPtrInt32 field")
+				return pkgerrors.New("expected to contain a durationToPtrInt32 field")
 			}
 		case "TestResourceTemplate":
 			value, exists, err := unstructured.NestedFieldCopy(obj.Object, "spec", "template", "spec", "durationToPtrInt32")
@@ -883,10 +883,10 @@ func checkDurationToPtrInt32(mustBeSet bool) func(obj *unstructured.Unstructured
 				return err
 			}
 			if !mustBeSet && exists && (reflect.DeepEqual(value, "0s") || reflect.DeepEqual(value, int64(0))) {
-				return errors.New("expected to not contain a 0s durationToPtrInt32 field")
+				return pkgerrors.New("expected to not contain a 0s durationToPtrInt32 field")
 			}
 			if mustBeSet && !exists {
-				return errors.New("expected to contain a durationToPtrInt32 field")
+				return pkgerrors.New("expected to contain a durationToPtrInt32 field")
 			}
 		}
 		return nil
@@ -902,10 +902,10 @@ func checkTypeToOmitZeroType(mustBeSet bool) func(obj *unstructured.Unstructured
 				return err
 			}
 			if exists && reflect.DeepEqual(value, map[string]interface{}{}) && !mustBeSet {
-				return errors.New("expected to not contain a zero structWithOnlyOptionalFields field")
+				return pkgerrors.New("expected to not contain a zero structWithOnlyOptionalFields field")
 			}
 			if !exists && mustBeSet {
-				return errors.New("expected to contain a zero structWithOnlyOptionalFields field")
+				return pkgerrors.New("expected to contain a zero structWithOnlyOptionalFields field")
 			}
 		case "TestResourceTemplate":
 			value, exists, err := unstructured.NestedMap(obj.Object, "spec", "template", "spec", "structWithOnlyOptionalFields")
@@ -913,10 +913,10 @@ func checkTypeToOmitZeroType(mustBeSet bool) func(obj *unstructured.Unstructured
 				return err
 			}
 			if exists && reflect.DeepEqual(value, map[string]interface{}{}) && !mustBeSet {
-				return errors.New("expected to not contain a zero structWithOnlyOptionalFields field")
+				return pkgerrors.New("expected to not contain a zero structWithOnlyOptionalFields field")
 			}
 			if !exists && mustBeSet {
-				return errors.New("expected to contain a zero structWithOnlyOptionalFields field")
+				return pkgerrors.New("expected to contain a zero structWithOnlyOptionalFields field")
 			}
 		}
 		return nil

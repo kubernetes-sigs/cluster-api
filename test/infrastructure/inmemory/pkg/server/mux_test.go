@@ -30,7 +30,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
@@ -792,11 +792,11 @@ func newSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 
 	b, err := x509.CreateCertificate(cryptorand.Reader, &tmpl, &tmpl, key.Public(), key)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create self signed CA certificate: %+v", tmpl)
+		return nil, pkgerrors.Wrapf(err, "failed to create self signed CA certificate: %+v", tmpl)
 	}
 
 	c, err := x509.ParseCertificate(b)
-	return c, errors.WithStack(err)
+	return c, pkgerrors.WithStack(err)
 }
 
 func apiServerEtcdClientCertificateConfig() *certs.Config {

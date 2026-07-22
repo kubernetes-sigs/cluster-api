@@ -19,7 +19,7 @@ package clusterresourceset
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -84,7 +84,7 @@ func newResourceReconcileScope(
 	case addonsv1.ClusterResourceSetStrategyReconcile:
 		return &reconcileStrategyScope{base}, nil
 	default:
-		return nil, errors.Errorf("unsupported or empty resource strategy: %q", clusterResourceSet.Spec.Strategy)
+		return nil, pkgerrors.Errorf("unsupported or empty resource strategy: %q", clusterResourceSet.Spec.Strategy)
 	}
 }
 
@@ -128,7 +128,7 @@ func (r *reconcileStrategyScope) applyObj(ctx context.Context, c client.Client, 
 		return createUnstructured(ctx, c, obj)
 	}
 	if err != nil {
-		return errors.Wrapf(
+		return pkgerrors.Wrapf(
 			err,
 			"reading object %s %s",
 			obj.GroupVersionKind(),
@@ -139,7 +139,7 @@ func (r *reconcileStrategyScope) applyObj(ctx context.Context, c client.Client, 
 	patch := client.MergeFrom(currentObj.DeepCopy())
 	obj.SetResourceVersion(currentObj.GetResourceVersion())
 	if err = c.Patch(ctx, obj, patch); err != nil {
-		return errors.Wrapf(
+		return pkgerrors.Wrapf(
 			err,
 			"patching object %s %s",
 			obj.GroupVersionKind(),

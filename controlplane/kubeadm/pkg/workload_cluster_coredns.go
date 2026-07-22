@@ -23,7 +23,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/coredns/corefile-migration/migration"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -94,7 +94,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	if err != nil {
 		// Return early if we get a not found error, this can happen if any of the CoreDNS components
 		// cannot be found, e.g. configmap, deployment.
-		if apierrors.IsNotFound(errors.Cause(err)) {
+		if apierrors.IsNotFound(pkgerrors.Cause(err)) {
 			return nil
 		}
 		return err
@@ -107,12 +107,12 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 
 	// Validate the image tag.
 	if err := validateCoreDNSImageTag(info.FromImageTag, info.ToImageTag); err != nil {
-		return errors.Wrapf(err, "failed to validate CoreDNS")
+		return pkgerrors.Wrapf(err, "failed to validate CoreDNS")
 	}
 
 	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse Kubernetes version %q", kcp.Spec.Version)
+		return pkgerrors.Wrapf(err, "failed to parse Kubernetes version %q", kcp.Spec.Version)
 	}
 
 	// Perform the upgrade.
@@ -124,7 +124,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	}
 
 	if err := w.updateCoreDNSDeployment(ctx, info); err != nil {
-		return errors.Wrap(err, "unable to update coredns deployment")
+		return pkgerrors.Wrap(err, "unable to update coredns deployment")
 	}
 	return nil
 }
@@ -135,17 +135,17 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig bootstrapv1
 	key := client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
 	cm, err := w.getConfigMap(ctx, key)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting %v config map from target cluster", key)
+		return nil, pkgerrors.Wrapf(err, "error getting %v config map from target cluster", key)
 	}
 	corefile, ok := cm.Data[corefileKey]
 	if !ok {
-		return nil, errors.New("unable to find the CoreDNS Corefile data")
+		return nil, pkgerrors.New("unable to find the CoreDNS Corefile data")
 	}
 
 	// Get the current CoreDNS deployment.
 	deployment := &appsv1.Deployment{}
 	if err := w.Client.Get(ctx, key, deployment); err != nil {
-		return nil, errors.Wrapf(err, "unable to get %v deployment from target cluster", key)
+		return nil, pkgerrors.Wrapf(err, "unable to get %v deployment from target cluster", key)
 	}
 	var container *corev1.Container
 	for _, c := range deployment.Spec.Template.Spec.Containers {
@@ -155,13 +155,13 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig bootstrapv1
 		}
 	}
 	if container == nil {
-		return nil, errors.Errorf("failed to update coredns deployment: deployment spec has no %q container", coreDNSKey)
+		return nil, pkgerrors.Errorf("failed to update coredns deployment: deployment spec has no %q container", coreDNSKey)
 	}
 
 	// Parse container image.
 	parsedImage, err := containerutil.ImageFromString(container.Image)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to parse %q deployment image", container.Image)
+		return nil, pkgerrors.Wrapf(err, "unable to parse %q deployment image", container.Image)
 	}
 
 	// Handle imageRepository.
@@ -176,11 +176,11 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig bootstrapv1
 
 	// Handle imageTag.
 	if parsedImage.Tag == "" {
-		return nil, errors.Errorf("failed to update coredns deployment: does not have a valid image tag: %q", container.Image)
+		return nil, pkgerrors.Errorf("failed to update coredns deployment: does not have a valid image tag: %q", container.Image)
 	}
 	currentVersion, err := version.ParseTolerantImageTag(parsedImage.Tag)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing semver from %q", parsedImage.Tag)
+		return nil, pkgerrors.Wrapf(err, "error parsing semver from %q", parsedImage.Tag)
 	}
 	toImageTag := parsedImage.Tag
 	if clusterConfig.DNS.ImageTag != "" {
@@ -188,7 +188,7 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig bootstrapv1
 	}
 	targetVersion, err := version.ParseTolerantImageTag(toImageTag)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing semver from %q", toImageTag)
+		return nil, pkgerrors.Wrapf(err, "error parsing semver from %q", toImageTag)
 	}
 
 	// Handle the renaming of the upstream image from:
@@ -217,7 +217,7 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig bootstrapv1
 // deployment uses the Corefile key of the coredns configmap.
 func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInfo) error {
 	if util.IsNil(info.Deployment) {
-		return errors.Errorf("failed to patch Deployment %s: modified object is nil", klog.KObj(info.Deployment))
+		return pkgerrors.Errorf("failed to patch Deployment %s: modified object is nil", klog.KObj(info.Deployment))
 	}
 	original := info.Deployment.DeepCopy()
 
@@ -246,7 +246,7 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 	// corefile, then there's no point in continuing further.
 	updatedCorefile, err := w.CoreDNSMigrator.Migrate(info.CurrentMajorMinorPatch, info.TargetMajorMinorPatch, info.Corefile, false)
 	if err != nil {
-		return errors.Wrap(err, "unable to migrate CoreDNS corefile")
+		return pkgerrors.Wrap(err, "unable to migrate CoreDNS corefile")
 	}
 
 	// First we backup the Corefile by backing it up.
@@ -260,13 +260,13 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 			corefileBackupKey: info.Corefile,
 		},
 	}); err != nil {
-		return errors.Wrap(err, "unable to update CoreDNS config map with backup Corefile")
+		return pkgerrors.Wrap(err, "unable to update CoreDNS config map with backup Corefile")
 	}
 
 	// Patching the coredns deployment to point to the Corefile-backup
 	// contents before performing the migration.
 	if util.IsNil(info.Deployment) {
-		return errors.Errorf("failed to patch Deployment %s: modified object is nil", klog.KObj(info.Deployment))
+		return pkgerrors.Errorf("failed to patch Deployment %s: modified object is nil", klog.KObj(info.Deployment))
 	}
 	original := info.Deployment.DeepCopy()
 
@@ -285,7 +285,7 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 			corefileBackupKey: info.Corefile,
 		},
 	}); err != nil {
-		return errors.Wrap(err, "unable to update CoreDNS config map")
+		return pkgerrors.Wrap(err, "unable to update CoreDNS config map")
 	}
 
 	return nil
@@ -318,11 +318,11 @@ func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 func validateCoreDNSImageTag(fromTag, toTag string) error {
 	from, err := version.ParseTolerantImageTag(fromTag)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse CoreDNS current version %q", fromTag)
+		return pkgerrors.Wrapf(err, "failed to parse CoreDNS current version %q", fromTag)
 	}
 	to, err := version.ParseTolerantImageTag(toTag)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse CoreDNS target version %q", toTag)
+		return pkgerrors.Wrapf(err, "failed to parse CoreDNS target version %q", toTag)
 	}
 	// make sure that the version we're upgrading to is greater or equal to the current one,
 	if version.Compare(from, to, version.WithoutPreReleases()) > 0 {

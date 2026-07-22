@@ -19,7 +19,7 @@ package patch
 import (
 	"reflect"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -117,17 +117,17 @@ var (
 
 func identifyConditionsFieldsPath(obj runtime.Object) ([]string, []string, error) {
 	if obj == nil {
-		return nil, nil, errors.New("cannot identify conditions on a nil object")
+		return nil, nil, pkgerrors.New("cannot identify conditions on a nil object")
 	}
 
 	ptr := reflect.ValueOf(obj)
 	if ptr.Kind() != reflect.Pointer {
-		return nil, nil, errors.New("cannot identify conditions on a object that is not a pointer")
+		return nil, nil, pkgerrors.New("cannot identify conditions on a object that is not a pointer")
 	}
 
 	elem := ptr.Elem()
 	if !elem.IsValid() {
-		return nil, nil, errors.New("obj must be a valid value (non zero value of its type)")
+		return nil, nil, pkgerrors.New("obj must be a valid value (non zero value of its type)")
 	}
 
 	statusField := elem.FieldByName("Status")
@@ -143,7 +143,7 @@ func identifyConditionsFieldsPath(obj runtime.Object) ([]string, []string, error
 
 	if v1beta2Field := statusField.FieldByName("V1Beta2"); v1beta2Field != (reflect.Value{}) {
 		if v1beta2Field.Kind() != reflect.Pointer {
-			return nil, nil, errors.New("obj.status.v1beta2 must be a pointer")
+			return nil, nil, pkgerrors.New("obj.status.v1beta2 must be a pointer")
 		}
 
 		v1beta2Elem := v1beta2Field.Elem()
@@ -169,7 +169,7 @@ func identifyConditionsFieldsPath(obj runtime.Object) ([]string, []string, error
 
 	if deprecatedField := statusField.FieldByName("Deprecated"); deprecatedField != (reflect.Value{}) {
 		if deprecatedField.Kind() != reflect.Pointer {
-			return nil, nil, errors.New("obj.status.deprecated must be a pointer")
+			return nil, nil, pkgerrors.New("obj.status.deprecated must be a pointer")
 		}
 
 		deprecatedElem := deprecatedField.Elem()
@@ -180,7 +180,7 @@ func identifyConditionsFieldsPath(obj runtime.Object) ([]string, []string, error
 		} else {
 			if v1Beta1Field := deprecatedElem.FieldByName("V1Beta1"); v1Beta1Field != (reflect.Value{}) {
 				if v1Beta1Field.Kind() != reflect.Pointer {
-					return nil, nil, errors.New("obj.status.deprecated.v1beta1 must be a pointer")
+					return nil, nil, pkgerrors.New("obj.status.deprecated.v1beta1 must be a pointer")
 				}
 
 				v1Beta1Elem := v1Beta1Field.Elem()

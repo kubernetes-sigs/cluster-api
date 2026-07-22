@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 func TestMarshalJSON(t *testing.T) {
@@ -107,13 +107,13 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 	// If string input was specified, roundtrip like this: string -> (unmarshal) -> object -> (marshal) -> string
 	if input != "" {
 		if err := json.Unmarshal([]byte(input), newbts); err != nil {
-			return errors.Wrap(err, "expected no unmarshal error, got error")
+			return pkgerrors.Wrap(err, "expected no unmarshal error, got error")
 		}
 		if b, err = json.Marshal(newbts); err != nil {
-			return errors.Wrap(err, "expected no marshal error, got error")
+			return pkgerrors.Wrap(err, "expected no marshal error, got error")
 		}
 		if input != string(b) {
-			return errors.Errorf(
+			return pkgerrors.Errorf(
 				"expected token: %s\n\t  actual: %s",
 				input,
 				string(b),
@@ -121,13 +121,13 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 		}
 	} else { // Otherwise, roundtrip like this: object -> (marshal) -> string -> (unmarshal) -> object
 		if b, err = json.Marshal(bts); err != nil {
-			return errors.Wrap(err, "expected no marshal error, got error")
+			return pkgerrors.Wrap(err, "expected no marshal error, got error")
 		}
 		if err := json.Unmarshal(b, newbts); err != nil {
-			return errors.Wrap(err, "expected no unmarshal error, got error")
+			return pkgerrors.Wrap(err, "expected no unmarshal error, got error")
 		}
 		if diff := cmp.Diff(bts, newbts); diff != "" {
-			return errors.Errorf(
+			return pkgerrors.Errorf(
 				"expected object: %v\n\t  actual: %v\n\t got diff: %v",
 				bts,
 				newbts,

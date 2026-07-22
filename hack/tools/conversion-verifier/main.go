@@ -22,7 +22,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/klog/v2"
 	crdmarkers "sigs.k8s.io/controller-tools/pkg/crd/markers"
 	"sigs.k8s.io/controller-tools/pkg/loader"
@@ -122,7 +122,7 @@ func main() {
 			}
 			if _, ok := storageVersionTypes[info.Name]; ok {
 				errs = append(errs,
-					errors.Errorf("type %q has a redeclared storage version in package %q", info.Name, pkg.PkgPath),
+					pkgerrors.Errorf("type %q has a redeclared storage version in package %q", info.Name, pkg.PkgPath),
 				)
 				return
 			}
@@ -174,13 +174,13 @@ func main() {
 
 		if !storageType.IsHub() {
 			errs = append(errs,
-				errors.Errorf("type %q in package %q marked as storage version but it's not convertible, missing Hub() method", name, storageType.pkg.PkgPath),
+				pkgerrors.Errorf("type %q in package %q marked as storage version but it's not convertible, missing Hub() method", name, storageType.pkg.PkgPath),
 			)
 		}
 		for _, decl := range storageType.otherDecls {
 			if !decl.IsConvertible() {
 				errs = append(errs,
-					errors.Errorf("type %q in package %q it's not convertible, missing ConvertFrom() and ConvertTo() methods", name, decl.pkg.PkgPath),
+					pkgerrors.Errorf("type %q in package %q it's not convertible, missing ConvertFrom() and ConvertTo() methods", name, decl.pkg.PkgPath),
 				)
 			}
 		}

@@ -18,7 +18,7 @@ limitations under the License.
 package convert
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -67,7 +67,7 @@ func (c *Converter) Convert(input []byte, toVersion string) (Result, error) {
 
 	docs, err := parseYAMLStream(input, c.scheme, c.sourceGVs)
 	if err != nil {
-		return Result{}, errors.Wrap(err, "failed to parse YAML stream")
+		return Result{}, pkgerrors.Wrap(err, "failed to parse YAML stream")
 	}
 
 	var converted, passedThrough int
@@ -80,7 +80,7 @@ func (c *Converter) Convert(input []byte, toVersion string) (Result, error) {
 
 		convertedObj, err := convertResource(doc.object, targetGV, c.scheme)
 		if err != nil {
-			return Result{}, errors.Wrapf(err, "failed to convert resource %s at index %d", doc.gvk.String(), doc.index)
+			return Result{}, pkgerrors.Wrapf(err, "failed to convert resource %s at index %d", doc.gvk.String(), doc.index)
 		}
 		doc.object = convertedObj
 		converted++
@@ -88,7 +88,7 @@ func (c *Converter) Convert(input []byte, toVersion string) (Result, error) {
 
 	output, err := serializeYAMLStream(docs, c.scheme)
 	if err != nil {
-		return Result{}, errors.Wrap(err, "failed to serialize output")
+		return Result{}, pkgerrors.Wrap(err, "failed to serialize output")
 	}
 
 	return Result{

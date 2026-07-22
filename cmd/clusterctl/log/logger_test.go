@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 )
 
@@ -63,7 +63,7 @@ func TestFlatten(t *testing.T) {
 				prefix: "",
 				kvList: []interface{}{
 					"msg", "this is a message",
-					"error", errors.New("this is an error"),
+					"error", pkgerrors.New("this is an error"),
 				},
 			},
 			want: "this is a message: this is an error",
@@ -74,7 +74,7 @@ func TestFlatten(t *testing.T) {
 				prefix: "",
 				kvList: []interface{}{
 					"msg", "this is a message",
-					"error", errors.New("this is an error"),
+					"error", pkgerrors.New("this is an error"),
 					"val1", 123,
 				},
 			},

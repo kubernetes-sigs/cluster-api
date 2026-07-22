@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -70,7 +70,7 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 				return ctrl.Result{}
 			},
 			canUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (bool, error) {
-				return false, errors.New("canUpdateMachine error")
+				return false, pkgerrors.New("canUpdateMachine error")
 			},
 			wantCanUpdateMachineCalled: true,
 			wantError:                  true,

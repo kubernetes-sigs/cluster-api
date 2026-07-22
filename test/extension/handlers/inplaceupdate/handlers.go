@@ -28,7 +28,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"gomodules.xyz/jsonpatch/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -350,17 +350,17 @@ func createJSONPatch(marshalledOriginal []byte, modified runtime.Object) ([]byte
 	// TODO: avoid producing patches for status (although they will be ignored by the KCP / MD controllers anyway)
 	marshalledModified, err := json.Marshal(modified)
 	if err != nil {
-		return nil, errors.Errorf("failed to marshal modified object: %v", err)
+		return nil, pkgerrors.Errorf("failed to marshal modified object: %v", err)
 	}
 
 	patch, err := jsonpatch.CreatePatch(marshalledOriginal, marshalledModified)
 	if err != nil {
-		return nil, errors.Errorf("failed to create patch: %v", err)
+		return nil, pkgerrors.Errorf("failed to create patch: %v", err)
 	}
 
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
-		return nil, errors.Errorf("failed to marshal patch: %v", err)
+		return nil, pkgerrors.Errorf("failed to marshal patch: %v", err)
 	}
 
 	return patchBytes, nil

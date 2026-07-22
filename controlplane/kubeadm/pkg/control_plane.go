@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -190,7 +190,7 @@ func (c *ControlPlane) MachineInFailureDomainWithMostMachines(ctx context.Contex
 	machinesInFailureDomain := eligibleMachines.Filter(collections.InFailureDomains(fd))
 	machineToMark := machinesInFailureDomain.Oldest()
 	if machineToMark == nil {
-		return nil, errors.New("failed to pick control plane Machine to mark for deletion")
+		return nil, pkgerrors.New("failed to pick control plane Machine to mark for deletion")
 	}
 	return machineToMark, nil
 }
@@ -296,10 +296,10 @@ func getInfraMachines(ctx context.Context, cl client.Client, machines collection
 	for _, m := range machines {
 		infraMachine, err := external.GetObjectFromContractVersionedRef(ctx, cl, m.Spec.InfrastructureRef, m.Namespace)
 		if err != nil {
-			if apierrors.IsNotFound(errors.Cause(err)) {
+			if apierrors.IsNotFound(pkgerrors.Cause(err)) {
 				continue
 			}
-			return nil, errors.Wrapf(err, "failed to retrieve InfraMachine for Machine %s", m.Name)
+			return nil, pkgerrors.Wrapf(err, "failed to retrieve InfraMachine for Machine %s", m.Name)
 		}
 		result[m.Name] = infraMachine
 	}
@@ -316,10 +316,10 @@ func getKubeadmConfigs(ctx context.Context, cl client.Client, machines collectio
 		}
 		kubeadmConfig := &bootstrapv1.KubeadmConfig{}
 		if err := cl.Get(ctx, client.ObjectKey{Name: bootstrapRef.Name, Namespace: m.Namespace}, kubeadmConfig); err != nil {
-			if apierrors.IsNotFound(errors.Cause(err)) {
+			if apierrors.IsNotFound(pkgerrors.Cause(err)) {
 				continue
 			}
-			return nil, errors.Wrapf(err, "failed to retrieve KubeadmConfig for Machine %s", m.Name)
+			return nil, pkgerrors.Wrapf(err, "failed to retrieve KubeadmConfig for Machine %s", m.Name)
 		}
 		result[m.Name] = kubeadmConfig
 	}
@@ -384,7 +384,7 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 			}
 			continue
 		}
-		errList = append(errList, errors.Errorf("failed to get patch helper for machine %s", machine.Name))
+		errList = append(errList, pkgerrors.Errorf("failed to get patch helper for machine %s", machine.Name))
 	}
 	return kerrors.NewAggregate(errList)
 }

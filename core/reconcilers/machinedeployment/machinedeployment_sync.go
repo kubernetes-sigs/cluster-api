@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
@@ -116,14 +116,14 @@ func (r *Reconciler) scale(ctx context.Context, deployment *clusterv1.MachineDep
 	log := ctrl.LoggerFrom(ctx)
 
 	if deployment.Spec.Replicas == nil {
-		return errors.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
+		return pkgerrors.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}
 
 	// If there is only one active machine set then we should scale that up to the full count of the
 	// deployment. If there is no active machine set, then we should scale up the newest machine set.
 	if activeOrLatest := mdutil.FindOneActiveOrLatest(newMS, oldMSs); activeOrLatest != nil {
 		if activeOrLatest.Spec.Replicas == nil {
-			return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", activeOrLatest.Name)
+			return pkgerrors.Errorf("spec replicas for machine set %v is nil, this is unexpected", activeOrLatest.Name)
 		}
 
 		if *(activeOrLatest.Spec.Replicas) == *(deployment.Spec.Replicas) {
@@ -280,11 +280,11 @@ func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.Mac
 
 func (r *Reconciler) scaleMachineSet(ctx context.Context, ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment) error {
 	if ms.Spec.Replicas == nil {
-		return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(ms))
+		return pkgerrors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(ms))
 	}
 
 	if deployment.Spec.Replicas == nil {
-		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(deployment))
+		return pkgerrors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(deployment))
 	}
 
 	// No need to scale, return.
@@ -329,7 +329,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 	for i := range cleanableMSCount {
 		ms := cleanableMSes[i]
 		if ms.Spec.Replicas == nil {
-			return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
+			return pkgerrors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 		}
 
 		// Avoid delete machine set with non-zero replica counts
@@ -342,7 +342,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 				// Return error instead of aggregating and continuing DELETEs on the theory
 				// that we may be overloading the api server.
 				r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedDelete", "Failed to delete MachineSet %q: %v", ms.Name, err)
-				return errors.Wrapf(err, "failed to delete MachineSet %s (cleanup of old MachineSets)", klog.KObj(ms))
+				return pkgerrors.Wrapf(err, "failed to delete MachineSet %s (cleanup of old MachineSets)", klog.KObj(ms))
 			}
 		} else if deletedMS != nil {
 			// If the deletion was successful and the MachineSet had a finalizer when deletion was triggered

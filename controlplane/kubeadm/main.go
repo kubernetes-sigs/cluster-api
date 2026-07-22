@@ -25,7 +25,7 @@ import (
 	goruntime "runtime"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"go.etcd.io/etcd/client/pkg/v3/logutil"
 	"go.uber.org/zap/zapcore"
@@ -263,7 +263,7 @@ func main() {
 		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
 		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
 		// to have some buffer.
-		setupLog.Error(errors.Errorf("--remote-conditions-grace-period must be at least 2m"), "Unable to start manager")
+		setupLog.Error(pkgerrors.Errorf("--remote-conditions-grace-period must be at least 2m"), "Unable to start manager")
 		os.Exit(1)
 	}
 

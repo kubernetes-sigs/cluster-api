@@ -19,7 +19,7 @@ package ssa
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -88,7 +88,7 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 
 	gvk, err := apiutil.GVKForObject(modifiedUnstructured, c.Scheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to apply object: failed to get GroupVersionKind of modified object %s", klog.KObj(modifiedUnstructured))
+		return pkgerrors.Wrapf(err, "failed to apply object: failed to get GroupVersionKind of modified object %s", klog.KObj(modifiedUnstructured))
 	}
 
 	var requestIdentifier string
@@ -96,7 +96,7 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 		// Check if the request is cached.
 		requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), options.Original.GetResourceVersion(), modifiedUnstructured)
 		if err != nil {
-			return errors.Wrapf(err, "failed to apply object")
+			return pkgerrors.Wrapf(err, "failed to apply object")
 		}
 		if options.Cache.Has(requestIdentifier, gvk.Kind) {
 			// Refresh the cache entry so we don't have to execute the Apply again after the cache TTL.
@@ -104,7 +104,7 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 
 			// If the request is cached return the original object.
 			if err := c.Scheme().Convert(options.Original, modified, ctx); err != nil {
-				return errors.Wrapf(err, "failed to write original into modified object")
+				return pkgerrors.Wrapf(err, "failed to write original into modified object")
 			}
 			// Recover gvk e.g. for logging.
 			modified.GetObjectKind().SetGroupVersionKind(gvk)
@@ -123,12 +123,12 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 	// as during create the name might be random generated in every reconcile.
 	// If these errors are written to conditions this would lead to an infinite reconcile.
 	if err := c.Apply(ctx, client.ApplyConfigurationFromUnstructured(modifiedUnstructured), applyOptions...); err != nil {
-		return errors.Wrapf(err, "failed to apply %s", gvk.Kind)
+		return pkgerrors.Wrapf(err, "failed to apply %s", gvk.Kind)
 	}
 
 	// Write back the modified object so callers can access the patched object.
 	if err := c.Scheme().Convert(modifiedUnstructured, modified, ctx); err != nil {
-		return errors.Wrapf(err, "failed to write modified object")
+		return pkgerrors.Wrapf(err, "failed to write modified object")
 	}
 
 	// Recover gvk e.g. for logging.
@@ -142,7 +142,7 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 			// modifiedUnstructuredBeforeApply (what we wanted to apply), which is what we want.
 			requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), modifiedUnstructured.GetResourceVersion(), modifiedUnstructuredBeforeApply)
 			if err != nil {
-				return errors.Wrapf(err, "failed to compute request identifier after apply")
+				return pkgerrors.Wrapf(err, "failed to compute request identifier after apply")
 			}
 		}
 		options.Cache.Add(requestIdentifier)
@@ -159,7 +159,7 @@ func PrepareModified(scheme *runtime.Scheme, obj client.Object) (*unstructured.U
 		u = obj.DeepCopyObject().(*unstructured.Unstructured)
 	default:
 		if err := scheme.Convert(obj, u, nil); err != nil {
-			return nil, errors.Wrap(err, "failed to convert object to Unstructured")
+			return nil, pkgerrors.Wrap(err, "failed to convert object to Unstructured")
 		}
 	}
 

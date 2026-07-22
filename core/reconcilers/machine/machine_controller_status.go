@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -298,7 +298,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 	}
 
 	if nodeGetErr != nil {
-		if errors.Is(nodeGetErr, clustercache.ErrClusterNotConnected) {
+		if pkgerrors.Is(nodeGetErr, clustercache.ErrClusterNotConnected) {
 			// If conditions are not set, set them to ConnectionDown.
 			// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
 			// However, if connection errors persist more than remoteConditionsGracePeriod, conditions will be overridden.
@@ -872,7 +872,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) ctrl
 	if readyCondition == nil {
 		// NOTE: this should never happen given that setReadyCondition is called before this method and
 		// it always add a ready condition.
-		log.Error(errors.New("Ready condition must be set before setting the available condition"), "Failed to set Available condition")
+		log.Error(pkgerrors.New("Ready condition must be set before setting the available condition"), "Failed to set Available condition")
 		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineAvailableCondition,
 			Status:  metav1.ConditionUnknown,

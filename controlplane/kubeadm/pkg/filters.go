@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -94,7 +94,7 @@ func UpToDate(
 	// Note: matchesMachineSpec will update res with desired and current objects if necessary.
 	matches, specLogMessages, specConditionMessages, err := matchesMachineSpec(ctx, c, infraMachines, kubeadmConfigs, kcp, cluster, machine, res)
 	if err != nil {
-		return false, nil, errors.Wrapf(err, "failed to determine if Machine %s is up-to-date", machine.Name)
+		return false, nil, pkgerrors.Wrapf(err, "failed to determine if Machine %s is up-to-date", machine.Name)
 	}
 	if !matches {
 		res.LogMessages = append(res.LogMessages, specLogMessages...)
@@ -133,7 +133,7 @@ func matchesMachineSpec(
 
 	desiredMachine, err := desiredstate.ComputeDesiredMachine(kcp, cluster, machine.Spec.FailureDomain, machine)
 	if err != nil {
-		return false, nil, nil, errors.Wrapf(err, "failed to match Machine")
+		return false, nil, nil, pkgerrors.Wrapf(err, "failed to match Machine")
 	}
 	// Note: spec.version is not mutated in-place by syncMachines and accordingly
 	// not updated by desiredstate.ComputeDesiredMachine, so we have to update it here.
@@ -149,7 +149,7 @@ func matchesMachineSpec(
 
 	reason, currentKubeadmConfig, desiredKubeadmConfig, matches, err := matchesKubeadmConfig(kubeadmConfigs, kcp, cluster, machine)
 	if err != nil {
-		return false, nil, nil, errors.Wrapf(err, "failed to match Machine")
+		return false, nil, nil, pkgerrors.Wrapf(err, "failed to match Machine")
 	}
 	res.CurrentKubeadmConfig = currentKubeadmConfig
 	res.DesiredKubeadmConfig = desiredKubeadmConfig
@@ -160,7 +160,7 @@ func matchesMachineSpec(
 
 	reason, currentInfraMachine, desiredInfraMachine, matches, err := matchesInfraMachine(ctx, c, infraMachines, kcp, cluster, machine)
 	if err != nil {
-		return false, nil, nil, errors.Wrapf(err, "failed to match Machine")
+		return false, nil, nil, pkgerrors.Wrapf(err, "failed to match Machine")
 	}
 	res.CurrentInfraMachine = currentInfraMachine
 	res.DesiredInfraMachine = desiredInfraMachine
@@ -209,7 +209,7 @@ func matchesInfraMachine(
 		if !kcp.DeletionTimestamp.IsZero() && apierrors.IsNotFound(err) {
 			return "", nil, nil, true, nil
 		}
-		return "", nil, nil, false, errors.Wrapf(err, "failed to match %s", currentInfraMachine.GetKind())
+		return "", nil, nil, false, pkgerrors.Wrapf(err, "failed to match %s", currentInfraMachine.GetKind())
 	}
 
 	// Check if the machine's infrastructure reference has been created from the current KCP infrastructure template.
@@ -253,7 +253,7 @@ func matchesKubeadmConfig(
 	// joinConfiguration in currentKubeadmConfig.
 	desiredKubeadmConfigWithJoin, err := desiredstate.ComputeDesiredKubeadmConfig(kcp, cluster, true, machine.Name, currentKubeadmConfig)
 	if err != nil {
-		return "", nil, nil, false, errors.Wrapf(err, "failed to match KubeadmConfig")
+		return "", nil, nil, false, pkgerrors.Wrapf(err, "failed to match KubeadmConfig")
 	}
 	desiredKubeadmConfigWithJoinForDiff, currentKubeadmConfigWithJoinForDiff := PrepareKubeadmConfigsForDiff(desiredKubeadmConfigWithJoin, currentKubeadmConfig, true)
 
@@ -262,7 +262,7 @@ func matchesKubeadmConfig(
 	// Note: currentKubeadmConfigWithJoinForDiff has been migrated from init to join, if currentKubeadmConfig was for a kubeadm init.
 	match, diff, err := compare.Diff(&currentKubeadmConfigWithJoinForDiff.Spec, &desiredKubeadmConfigWithJoinForDiff.Spec)
 	if err != nil {
-		return "", nil, nil, false, errors.Wrapf(err, "failed to match KubeadmConfig")
+		return "", nil, nil, false, pkgerrors.Wrapf(err, "failed to match KubeadmConfig")
 	}
 	if !match {
 		// Note: KCP initConfiguration and joinConfiguration should be configured identically.
@@ -274,7 +274,7 @@ func matchesKubeadmConfig(
 		if isKubeadmConfigForInit(currentKubeadmConfig) {
 			desiredKubeadmConfigWithInit, err := desiredstate.ComputeDesiredKubeadmConfig(kcp, cluster, false, machine.Name, currentKubeadmConfig)
 			if err != nil {
-				return "", nil, nil, false, errors.Wrapf(err, "failed to match KubeadmConfig")
+				return "", nil, nil, false, pkgerrors.Wrapf(err, "failed to match KubeadmConfig")
 			}
 			desiredKubeadmConfigWithInitForDiff, currentKubeadmConfigWithInitForDiff := PrepareKubeadmConfigsForDiff(desiredKubeadmConfigWithInit, currentKubeadmConfig, false)
 
@@ -283,7 +283,7 @@ func matchesKubeadmConfig(
 			// Note: currentKubeadmConfigWithInitForDiff is for a kubeadm init.
 			match, diff, err := compare.Diff(&currentKubeadmConfigWithInitForDiff.Spec, &desiredKubeadmConfigWithInitForDiff.Spec)
 			if err != nil {
-				return "", nil, nil, false, errors.Wrapf(err, "failed to match KubeadmConfig")
+				return "", nil, nil, false, pkgerrors.Wrapf(err, "failed to match KubeadmConfig")
 			}
 			// Always return desiredKubeadmConfigWithJoin (not desiredKubeadmConfigWithInit) as it should always be used for in-place updates.
 			if !match {

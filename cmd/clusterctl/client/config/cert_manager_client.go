@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/drone/envsubst/v2"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 const (
@@ -74,7 +74,7 @@ func (p *certManagerClient) Get() (CertManager, error) {
 
 	userCertManager := &configCertManager{}
 	if err := p.reader.UnmarshalKey(CertManagerConfigKey, &userCertManager); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal certManager from the clusterctl configuration file")
+		return nil, pkgerrors.Wrap(err, "failed to unmarshal certManager from the clusterctl configuration file")
 	}
 	if userCertManager.URL != "" {
 		url = userCertManager.URL
@@ -82,7 +82,7 @@ func (p *certManagerClient) Get() (CertManager, error) {
 
 	url, err := envsubst.Eval(url, os.Getenv)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to evaluate url: %q", url)
+		return nil, pkgerrors.Wrapf(err, "unable to evaluate url: %q", url)
 	}
 
 	if userCertManager.Version != "" {

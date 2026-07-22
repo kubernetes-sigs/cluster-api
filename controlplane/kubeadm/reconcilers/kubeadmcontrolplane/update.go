@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -44,17 +44,17 @@ func (r *Reconciler) updateControlPlane(
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
 		log.Error(err, "failed to get remote client for workload cluster", "Cluster", klog.KObj(controlPlane.Cluster))
-		return ctrl.Result{}, errors.Wrapf(err, "failed to update control plane")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to update control plane")
 	}
 
 	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to update control plane: failed to parse Kubernetes version %q", controlPlane.KCP.Spec.Version)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to update control plane: failed to parse Kubernetes version %q", controlPlane.KCP.Spec.Version)
 	}
 
 	// Creates ClusterRoleBinding and ClusterRoles introduced by new versions of kubeadm.
 	if err := workloadCluster.EnsureKubeadmPermissions(ctx, parsedVersion); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to update control plane: failed to set cluster-admin ClusterRoleBinding for kubeadm")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to update control plane: failed to set cluster-admin ClusterRoleBinding for kubeadm")
 	}
 
 	kubeadmCMMutators := make([]func(*bootstrapv1.ClusterConfiguration), 0)
@@ -84,7 +84,7 @@ func (r *Reconciler) updateControlPlane(
 
 	// collectively update Kubeadm config map
 	if err = workloadCluster.UpdateClusterConfiguration(ctx, parsedVersion, kubeadmCMMutators...); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to update control plane")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to update control plane")
 	}
 
 	switch controlPlane.KCP.Spec.Rollout.Strategy.Type {
@@ -92,7 +92,7 @@ func (r *Reconciler) updateControlPlane(
 		// RolloutStrategy is currently defaulted and validated to be RollingUpdate
 		res, err := r.rollingUpdate(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to update control plane")
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to update control plane")
 		}
 		return res, nil
 	default:
@@ -128,12 +128,12 @@ func (r *Reconciler) rollingUpdate(
 	// Pick the Machine that we should in-place update or scale down.
 	machineToInPlaceUpdateOrScaleDown, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, machinesNeedingRollout)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to select next Machine for rollout")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to select next Machine for rollout")
 	}
 	machineUpToDateResult, ok := machinesUpToDateResults[machineToInPlaceUpdateOrScaleDown.Name]
 	if !ok {
 		// Note: This should never happen as we store results for all Machines in machinesUpToDateResults.
-		return ctrl.Result{}, errors.Errorf("failed to check if Machine %s is UpToDate", machineToInPlaceUpdateOrScaleDown.Name)
+		return ctrl.Result{}, pkgerrors.Errorf("failed to check if Machine %s is UpToDate", machineToInPlaceUpdateOrScaleDown.Name)
 	}
 
 	// If the selected Machine is eligible for in-place update and we don't already have enough up-to-date replicas, try in-place update.

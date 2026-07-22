@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -38,10 +38,10 @@ func (r *rollout) ObjectResumer(ctx context.Context, proxy cluster.Proxy, ref co
 	case MachineDeployment:
 		deployment, err := getMachineDeployment(ctx, proxy, ref.Name, ref.Namespace)
 		if err != nil || deployment == nil {
-			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
+			return pkgerrors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
 		if !ptr.Deref(deployment.Spec.Paused, false) {
-			return errors.Errorf("MachineDeployment is not currently paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // MachineDeployment is intentionally capitalized.
+			return pkgerrors.Errorf("MachineDeployment is not currently paused: %v/%v\n", ref.Kind, ref.Name)
 		}
 		if err := resumeMachineDeployment(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err
@@ -49,16 +49,16 @@ func (r *rollout) ObjectResumer(ctx context.Context, proxy cluster.Proxy, ref co
 	case KubeadmControlPlane:
 		kcp, err := getKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace)
 		if err != nil || kcp == nil {
-			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
+			return pkgerrors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
 		if !annotations.HasPaused(kcp.GetObjectMeta()) {
-			return errors.Errorf("KubeadmControlPlane is not currently paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // KubeadmControlPlane is intentionally capitalized.
+			return pkgerrors.Errorf("KubeadmControlPlane is not currently paused: %v/%v\n", ref.Kind, ref.Name)
 		}
 		if err := resumeKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
 	default:
-		return errors.Errorf("invalid resource type %q, valid values are %v", ref.Kind, validResourceTypes)
+		return pkgerrors.Errorf("invalid resource type %q, valid values are %v", ref.Kind, validResourceTypes)
 	}
 	return nil
 }

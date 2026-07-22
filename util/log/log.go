@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -41,7 +41,7 @@ func AddOwners(ctx context.Context, c client.Client, obj metav1.Object) (context
 
 	owners, err := getOwners(ctx, c, obj)
 	if err != nil {
-		return nil, logr.Logger{}, errors.Wrapf(err, "failed to add object hierarchy to logger")
+		return nil, logr.Logger{}, pkgerrors.Wrapf(err, "failed to add object hierarchy to logger")
 	}
 
 	// Add owners as k/v pairs.
@@ -92,7 +92,7 @@ func getOwners(ctx context.Context, c client.Client, obj metav1.Object) ([]owner
 			if apierrors.IsNotFound(err) {
 				continue
 			}
-			return nil, errors.Wrapf(err, "failed to get owners: failed to get MachineSet %s", klog.KRef(obj.GetNamespace(), ownerRef.Name))
+			return nil, pkgerrors.Wrapf(err, "failed to get owners: failed to get MachineSet %s", klog.KRef(obj.GetNamespace(), ownerRef.Name))
 		}
 
 		for _, ref := range ms.GetOwnerReferences() {

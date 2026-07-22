@@ -24,7 +24,7 @@ import (
 	"sort"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -55,7 +55,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Cont
 
 	machines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
 	if err != nil {
-		return errors.Wrapf(err, "failed to list all machines in the cluster")
+		return pkgerrors.Wrapf(err, "failed to list all machines in the cluster")
 	}
 
 	matchingMachineCount := len(machinesMatchingInfrastructureSpec(ctx, machines, machinePool, dockerMachinePool))
@@ -64,7 +64,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Cont
 		log.V(2).Info("Creating a new Docker container for machinePool", "MachinePool", klog.KObj(machinePool))
 		name := fmt.Sprintf("worker-%s", util.RandomString(6))
 		if err := createDockerContainer(ctx, name, cluster, machinePool, dockerMachinePool); err != nil {
-			return errors.Wrap(err, "failed to create a new docker machine")
+			return pkgerrors.Wrap(err, "failed to create a new docker machine")
 		}
 	}
 
@@ -77,7 +77,7 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
 	externalMachine, err := docker.NewMachine(ctx, cluster, name, labelFilters)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", name)
+		return pkgerrors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", name)
 	}
 
 	// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
@@ -100,13 +100,13 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 	if externalMachine.Exists() && !externalMachine.IsRunning() {
 		// This deletes the machine and results in re-creating it below.
 		if err := externalMachine.Delete(ctx); err != nil {
-			return errors.Wrap(err, "Failed to delete not running DockerMachine")
+			return pkgerrors.Wrap(err, "Failed to delete not running DockerMachine")
 		}
 	}
 
 	log.Info("Creating container for machinePool", "name", name, "MachinePool", klog.KObj(machinePool))
 	if err := externalMachine.Create(ctx, dockerMachinePool.Spec.Template.CustomImage, constants.WorkerNodeRoleValue, machinePool.Spec.Template.Spec.Version, labels, dockerMachinePool.Spec.Template.ExtraMounts); err != nil {
-		return errors.Wrapf(err, "failed to create docker machine with name %s", name)
+		return pkgerrors.Wrapf(err, "failed to create docker machine with name %s", name)
 	}
 	return externalMachine.WaitForCrictlPs(ctx)
 }
@@ -137,7 +137,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
 	externalMachines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
 	if err != nil {
-		return errors.Wrapf(err, "failed to list all machines in the cluster")
+		return pkgerrors.Wrapf(err, "failed to list all machines in the cluster")
 	}
 
 	externalMachineMap := make(map[string]*docker.Machine)
@@ -153,7 +153,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 			log.V(2).Info("Patching existing DockerMachine", "DockerMachine", klog.KObj(&existingMachine))
 			desiredMachine := computeDesiredDockerMachine(machine.Name(), cluster, machinePool, dockerMachinePool, &existingMachine)
 			if err := ssa.Patch(ctx, r.Client, dockerMachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: &existingMachine}); err != nil {
-				return errors.Wrapf(err, "failed to update DockerMachine %q", klog.KObj(desiredMachine))
+				return pkgerrors.Wrapf(err, "failed to update DockerMachine %q", klog.KObj(desiredMachine))
 			}
 
 			dockerMachineMap[desiredMachine.Name] = *desiredMachine
@@ -161,7 +161,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 			log.V(2).Info("Creating a new DockerMachine for Docker container", "container", machine.Name())
 			desiredMachine := computeDesiredDockerMachine(machine.Name(), cluster, machinePool, dockerMachinePool, nil)
 			if err := ssa.Patch(ctx, r.Client, dockerMachinePoolControllerName, desiredMachine); err != nil {
-				return errors.Wrap(err, "failed to create a new docker machine")
+				return pkgerrors.Wrap(err, "failed to create a new docker machine")
 			}
 
 			dockerMachineMap[desiredMachine.Name] = *desiredMachine
@@ -294,7 +294,7 @@ func (r *DockerMachinePoolReconciler) deleteMachinePoolMachine(ctx context.Conte
 
 	machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
 	if err != nil {
-		return errors.Wrapf(err, "error getting owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+		return pkgerrors.Wrapf(err, "error getting owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 	}
 	// util.GetOwnerMachine() returns a nil Machine without error if there is no Machine kind in the ownerRefs, so we must verify that machine is not nil.
 	if machine == nil {
@@ -313,7 +313,7 @@ func (r *DockerMachinePoolReconciler) deleteMachinePoolMachine(ctx context.Conte
 	log.Info("Deleting Machine for DockerMachine", "Machine", klog.KObj(machine), "DockerMachine", klog.KObj(&dockerMachine))
 
 	if err := r.Client.Delete(ctx, machine); err != nil {
-		return errors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)
+		return pkgerrors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)
 	}
 
 	return nil
@@ -329,7 +329,7 @@ func (r *DockerMachinePoolReconciler) propagateMachineDeleteAnnotation(ctx conte
 	for _, dockerMachine := range dockerMachineMap {
 		machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error getting owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+			return nil, pkgerrors.Wrapf(err, "error getting owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 		}
 		if machine != nil && machine.Annotations != nil {
 			if dockerMachine.Annotations == nil {
@@ -366,7 +366,7 @@ func isMachineMatchingInfrastructureSpec(_ context.Context, machine *docker.Mach
 	semVer, err := semver.ParseTolerant(machinePool.Spec.Template.Spec.Version)
 	if err != nil {
 		// TODO: consider if to return an error
-		panic(errors.Wrap(err, "failed to parse DockerMachine version").Error())
+		panic(pkgerrors.Wrap(err, "failed to parse DockerMachine version").Error())
 	}
 
 	kindMapping := kind.GetMapping(semVer, dockerMachinePool.Spec.Template.CustomImage)
@@ -393,7 +393,7 @@ func (r *DockerMachinePoolReconciler) getDeletionCandidates(ctx context.Context,
 		externalMachine, ok := externalMachineSet[dockerMachine.Name]
 		if !ok {
 			// Note: Since we deleted any DockerMachines that do not have an associated Docker container earlier, we should never hit this case.
-			return nil, nil, errors.Errorf("failed to find externalMachine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+			return nil, nil, pkgerrors.Errorf("failed to find externalMachine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 		}
 
 		// TODO (v1beta2): test for v1beta2 conditions

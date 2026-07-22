@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -66,7 +66,7 @@ func (m *crdMigrator) Run(ctx context.Context, objs []unstructured.Unstructured)
 		if obj.GetKind() == "CustomResourceDefinition" {
 			crd := &apiextensionsv1.CustomResourceDefinition{}
 			if err := scheme.Scheme.Convert(&obj, crd, nil); err != nil {
-				return errors.Wrapf(err, "failed to convert CRD %q", obj.GetName())
+				return pkgerrors.Wrapf(err, "failed to convert CRD %q", obj.GetName())
 			}
 
 			if _, err := m.run(ctx, crd); err != nil {
@@ -115,7 +115,7 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 
 	// Return an error, if the current storage version has been dropped in the new CRD.
 	if !newVersions.Has(currentStorageVersion) {
-		return false, errors.Errorf("unable to upgrade CRD %q because the new CRD does not contain the storage version %q of the current CRD, thus not allowing CR migration", newCRD.Name, currentStorageVersion)
+		return false, pkgerrors.Errorf("unable to upgrade CRD %q because the new CRD does not contain the storage version %q of the current CRD, thus not allowing CR migration", newCRD.Name, currentStorageVersion)
 	}
 
 	currentStatusStoredVersions := sets.Set[string]{}.Insert(currentCRD.Status.StoredVersions...)
@@ -163,7 +163,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 		if err := retryWithExponentialBackoff(ctx, newCRDMigrationBackoff(), func(ctx context.Context) error {
 			return m.Client.List(ctx, list, client.Continue(list.GetContinue()))
 		}); err != nil {
-			return errors.Wrapf(err, "failed to list %q", list.GetKind())
+			return pkgerrors.Wrapf(err, "failed to list %q", list.GetKind())
 		}
 
 		for i := range list.Items {
@@ -173,7 +173,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 			if err := retryWithExponentialBackoff(ctx, newCRDMigrationBackoff(), func(ctx context.Context) error {
 				return handleMigrateErr(m.Client.Update(ctx, &obj))
 			}); err != nil {
-				return errors.Wrapf(err, "failed to migrate %s/%s", obj.GetNamespace(), obj.GetName())
+				return pkgerrors.Wrapf(err, "failed to migrate %s/%s", obj.GetNamespace(), obj.GetName())
 			}
 
 			// Add some random delays to avoid pressure on the API server.
@@ -198,7 +198,7 @@ func (m *crdMigrator) patchCRDStoredVersions(ctx context.Context, crd *apiextens
 	if err := retryWithExponentialBackoff(ctx, newWriteBackoff(), func(ctx context.Context) error {
 		return m.Client.Status().Update(ctx, crd)
 	}); err != nil {
-		return errors.Wrapf(err, "failed to update status.storedVersions for CRD %q", crd.Name)
+		return pkgerrors.Wrapf(err, "failed to update status.storedVersions for CRD %q", crd.Name)
 	}
 	return nil
 }
@@ -231,7 +231,7 @@ func storageVersionForCRD(crd *apiextensionsv1.CustomResourceDefinition) (string
 			return v.Name, nil
 		}
 	}
-	return "", errors.Errorf("could not find storage version for CRD %q", crd.Name)
+	return "", pkgerrors.Errorf("could not find storage version for CRD %q", crd.Name)
 }
 
 // newCRDMigrationBackoff creates a new API Machinery backoff parameter set suitable for use with crd migration operations.

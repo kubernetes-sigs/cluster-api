@@ -22,7 +22,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -251,7 +251,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 				},
 			},
 			migrator: &fakeMigrator{
-				migrateErr: errors.New("failed to migrate"),
+				migrateErr: pkgerrors.New("failed to migrate"),
 			},
 			objs:      []client.Object{depl, cm, kubeadmCM},
 			expectErr: true,
@@ -481,16 +481,16 @@ func TestUpdateCoreDNS(t *testing.T) {
 				var expectedConfigMap corev1.ConfigMap
 				g.Eventually(func() error {
 					if err := env.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &expectedConfigMap); err != nil {
-						return errors.Wrap(err, "failed to get the coredns ConfigMap")
+						return pkgerrors.Wrap(err, "failed to get the coredns ConfigMap")
 					}
 					if len(expectedConfigMap.Data) != 2 {
-						return errors.Errorf("the coredns ConfigMap has %d data items, expected 2", len(expectedConfigMap.Data))
+						return pkgerrors.Errorf("the coredns ConfigMap has %d data items, expected 2", len(expectedConfigMap.Data))
 					}
 					if val, ok := expectedConfigMap.Data["Corefile"]; !ok || val != "updated-core-file" {
-						return errors.New("the coredns ConfigMap does not have the Corefile entry or it has an unexpected value")
+						return pkgerrors.New("the coredns ConfigMap does not have the Corefile entry or it has an unexpected value")
 					}
 					if val, ok := expectedConfigMap.Data["Corefile-backup"]; !ok || val != expectedCorefile {
-						return errors.New("the coredns ConfigMap does not have the Corefile-backup entry or it has an unexpected value")
+						return pkgerrors.New("the coredns ConfigMap does not have the Corefile-backup entry or it has an unexpected value")
 					}
 					return nil
 				}, "5s").Should(Succeed())
@@ -628,7 +628,7 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		objs := []client.Object{depl, cm}
 		fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 		fakeMigrator := &fakeMigrator{
-			migrateErr: errors.New("failed to migrate"),
+			migrateErr: pkgerrors.New("failed to migrate"),
 		}
 
 		w := &Workload{

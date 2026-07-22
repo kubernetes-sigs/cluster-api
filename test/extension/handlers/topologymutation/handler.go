@@ -27,7 +27,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -103,13 +103,13 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 		case *infrav1.DevClusterTemplate:
 			if err := patchDevClusterTemplate(ctx, obj, variables); err != nil {
 				log.Error(err, "Error patching DevClusterTemplate")
-				return errors.Wrap(err, "error patching DevClusterTemplate")
+				return pkgerrors.Wrap(err, "error patching DevClusterTemplate")
 			}
 		case *controlplanev1beta1.KubeadmControlPlaneTemplate, *controlplanev1.KubeadmControlPlaneTemplate:
 			err := patchKubeadmControlPlaneTemplate(ctx, obj, variables)
 			if err != nil {
 				log.Error(err, "Error patching KubeadmControlPlaneTemplate")
-				return errors.Wrapf(err, "error patching KubeadmControlPlaneTemplate")
+				return pkgerrors.Wrapf(err, "error patching KubeadmControlPlaneTemplate")
 			}
 		case *bootstrapv1beta1.KubeadmConfigTemplate, *bootstrapv1.KubeadmConfigTemplate:
 			// NOTE: KubeadmConfigTemplate could be linked to one or more of the existing MachineDeployment class;
@@ -119,7 +119,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			err := patchKubeadmConfigTemplate(ctx, obj, variables)
 			if err != nil {
 				log.Error(err, "Error patching KubeadmConfigTemplate")
-				return errors.Wrapf(err, "error patching KubeadmConfigTemplate")
+				return pkgerrors.Wrapf(err, "error patching KubeadmConfigTemplate")
 			}
 		case *infrav1.DevMachineTemplate:
 			// NOTE: DevMachineTemplate could be linked to the ControlPlane or one or more of the existing MachineDeployment class;
@@ -128,12 +128,12 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			// is to check the holderRef value and call this func or more specialized func conditionally.
 			if err := patchDevMachineTemplate(ctx, obj, variables); err != nil {
 				log.Error(err, "Error patching DevMachineTemplate")
-				return errors.Wrap(err, "error patching DevMachineTemplate")
+				return pkgerrors.Wrap(err, "error patching DevMachineTemplate")
 			}
 		case *infrav1.DevMachinePoolTemplate:
 			if err := patchDevMachinePoolTemplate(ctx, obj, variables); err != nil {
 				log.Error(err, "Error patching DevMachinePoolTemplate")
-				return errors.Wrap(err, "error patching DevMachinePoolTemplate")
+				return pkgerrors.Wrap(err, "error patching DevMachinePoolTemplate")
 			}
 		}
 		return nil
@@ -149,12 +149,12 @@ func patchDevClusterTemplate(_ context.Context, obj runtime.Object, templateVari
 		if topologymutation.IsNotFoundError(err) {
 			return nil
 		}
-		return errors.Wrap(err, "could not set DevClusterTemplate loadBalancer imageRepository")
+		return pkgerrors.Wrap(err, "could not set DevClusterTemplate loadBalancer imageRepository")
 	}
 
 	devClusterTemplate, ok := obj.(*infrav1.DevClusterTemplate)
 	if !ok {
-		return errors.New("object is not a DevClusterTemplate")
+		return pkgerrors.New("object is not a DevClusterTemplate")
 	}
 
 	if devClusterTemplate.Spec.Template.ObjectMeta.Labels == nil {
@@ -181,7 +181,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 
 	cpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
 	if err != nil {
-		return errors.Wrap(err, "could not patch KubeadmControlPlane: could not get builtin.controlPlane.version")
+		return pkgerrors.Wrap(err, "could not patch KubeadmControlPlane: could not get builtin.controlPlane.version")
 	}
 
 	// 1) Set extraArgs
@@ -261,7 +261,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 	//    If this is unset continue as this variable is not required.
 	kcpControlPlaneMaxSurge, err := topologymutation.GetStringVariable(templateVariables, "kubeadmControlPlaneMaxSurge")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate MaxSurge")
+		return pkgerrors.Wrap(err, "could not set KubeadmControlPlaneTemplate MaxSurge")
 	}
 	if kcpControlPlaneMaxSurge != "" {
 		// This has to be converted to IntOrString type.
@@ -290,7 +290,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 	files := []fileVariable{}
 	err = topologymutation.GetObjectVariableInto(templateVariables, "files", &files)
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate files")
+		return pkgerrors.Wrap(err, "could not set KubeadmControlPlaneTemplate files")
 	}
 	if len(files) > 0 {
 		kcpTemplateV1Beta1, ok := obj.(*controlplanev1beta1.KubeadmControlPlaneTemplate)
@@ -308,7 +308,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 	preKubeadmCommands := []string{}
 	err = topologymutation.GetObjectVariableInto(templateVariables, "preKubeadmCommands", &preKubeadmCommands)
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate preKubeadmCommands")
+		return pkgerrors.Wrap(err, "could not set KubeadmControlPlaneTemplate preKubeadmCommands")
 	}
 	if len(preKubeadmCommands) > 0 {
 		kcpTemplateV1Beta1, ok := obj.(*controlplanev1beta1.KubeadmControlPlaneTemplate)
@@ -346,7 +346,7 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, templateV
 	files := []fileVariable{}
 	err := topologymutation.GetObjectVariableInto(templateVariables, "files", &files)
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set KubeadmConfigTemplate files")
+		return pkgerrors.Wrap(err, "could not set KubeadmConfigTemplate files")
 	}
 	if len(files) > 0 {
 		kcpTemplateV1Beta1, ok := obj.(*bootstrapv1beta1.KubeadmConfigTemplate)
@@ -364,7 +364,7 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, templateV
 	preKubeadmCommands := []string{}
 	err = topologymutation.GetObjectVariableInto(templateVariables, "preKubeadmCommands", &preKubeadmCommands)
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate preKubeadmCommands")
+		return pkgerrors.Wrap(err, "could not set KubeadmControlPlaneTemplate preKubeadmCommands")
 	}
 	if len(preKubeadmCommands) > 0 {
 		kcpTemplateV1Beta1, ok := obj.(*bootstrapv1beta1.KubeadmConfigTemplate)
@@ -380,7 +380,7 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, templateV
 	kubeadmConfigTemplateAnnotations := map[string]string{}
 	err = topologymutation.GetObjectVariableInto(templateVariables, "kubeadmConfigTemplateAnnotations", &kubeadmConfigTemplateAnnotations)
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate kubeadmConfigTemplateAnnotations")
+		return pkgerrors.Wrap(err, "could not set KubeadmControlPlaneTemplate kubeadmConfigTemplateAnnotations")
 	}
 	if len(kubeadmConfigTemplateAnnotations) > 0 {
 		annotations.AddAnnotations(obj.(client.Object), kubeadmConfigTemplateAnnotations)
@@ -440,7 +440,7 @@ func patchDevMachineTemplate(ctx context.Context, obj runtime.Object, templateVa
 
 	devMachineTemplate, ok := obj.(*infrav1.DevMachineTemplate)
 	if !ok {
-		return errors.New("object is not a DevMachineTemplate")
+		return pkgerrors.New("object is not a DevMachineTemplate")
 	}
 
 	// If the DevMachineTemplate belongs to the ControlPlane, set the images using the ControlPlane version.
@@ -449,14 +449,14 @@ func patchDevMachineTemplate(ctx context.Context, obj runtime.Object, templateVa
 	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to the ControlPlane.
 	cpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set customImage to control plane devMachineTemplate")
+		return pkgerrors.Wrap(err, "could not set customImage to control plane devMachineTemplate")
 	}
 
 	// if found
 	if err == nil {
 		semVer, err := semver.ParseTolerant(cpVersion)
 		if err != nil {
-			return errors.Wrap(err, "could not parse control plane version")
+			return pkgerrors.Wrap(err, "could not parse control plane version")
 		}
 		kindMapping := kind.GetMapping(semVer, "")
 
@@ -478,14 +478,14 @@ func patchDevMachineTemplate(ctx context.Context, obj runtime.Object, templateVa
 		if topologymutation.IsNotFoundError(err) {
 			// If the DevMachineTemplate didn't have variables for either a control plane or a machineDeployment return an error.
 			// NOTE: this should never happen because it is enforced by the patch engine.
-			return errors.New("no version variables found for DevMachineTemplate patch")
+			return pkgerrors.New("no version variables found for DevMachineTemplate patch")
 		}
-		return errors.Wrap(err, "could not set customImage to MachineDeployment DevMachineTemplate")
+		return pkgerrors.Wrap(err, "could not set customImage to MachineDeployment DevMachineTemplate")
 	}
 
 	semVer, err := semver.ParseTolerant(mdVersion)
 	if err != nil {
-		return errors.Wrap(err, "could not parse MachineDeployment version")
+		return pkgerrors.Wrap(err, "could not parse MachineDeployment version")
 	}
 	kindMapping := kind.GetMapping(semVer, "")
 
@@ -506,7 +506,7 @@ func patchDevMachinePoolTemplate(ctx context.Context, obj runtime.Object, templa
 
 	devMachinePoolTemplate, ok := obj.(*infrav1.DevMachinePoolTemplate)
 	if !ok {
-		return errors.New("object is not a DevMachinePoolTemplate")
+		return pkgerrors.New("object is not a DevMachinePoolTemplate")
 	}
 
 	if devMachinePoolTemplate.Spec.Template.ObjectMeta.Labels == nil {
@@ -527,14 +527,14 @@ func patchDevMachinePoolTemplate(ctx context.Context, obj runtime.Object, templa
 		// If the DevMachinePoolTemplate didn't have variables for a machinePool return an error.
 		// NOTE: this should never happen because it is enforced by the patch engine.
 		if topologymutation.IsNotFoundError(err) {
-			return errors.New("no version variables found for DevMachinePoolTemplate patch")
+			return pkgerrors.New("no version variables found for DevMachinePoolTemplate patch")
 		}
-		return errors.Wrap(err, "could not set customImage to MachinePool DevMachinePoolTemplate")
+		return pkgerrors.Wrap(err, "could not set customImage to MachinePool DevMachinePoolTemplate")
 	}
 
 	semVer, err := semver.ParseTolerant(mpVersion)
 	if err != nil {
-		return errors.Wrap(err, "could not parse MachinePool version")
+		return pkgerrors.Wrap(err, "could not parse MachinePool version")
 	}
 	kindMapping := kind.GetMapping(semVer, "")
 

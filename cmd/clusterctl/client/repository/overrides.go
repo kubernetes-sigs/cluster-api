@@ -25,7 +25,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/drone/envsubst/v2"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -87,13 +87,13 @@ func (o *overrides) Path() (string, error) {
 
 		basepath, err = envsubst.Eval(basepath, os.Getenv)
 		if err != nil {
-			return "", errors.Wrapf(err, "unable to evaluate %s: %q", overrideFolderKey, basepath)
+			return "", pkgerrors.Wrapf(err, "unable to evaluate %s: %q", overrideFolderKey, basepath)
 		}
 
 		if runtime.GOOS == "windows" {
 			parsedBasePath, err := url.Parse(basepath)
 			if err != nil {
-				return "", errors.Wrapf(err, "unable to parse %s: %q", overrideFolderKey, basepath)
+				return "", pkgerrors.Wrapf(err, "unable to parse %s: %q", overrideFolderKey, basepath)
 			}
 
 			// in case of windows, we should take care of removing the additional / which is required by the URI standard
@@ -129,7 +129,7 @@ func getLocalOverride(info *newOverrideInput) ([]byte, error) {
 	if err == nil {
 		content, err := os.ReadFile(overridePath) //nolint:gosec
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read local override for %s", overridePath)
+			return nil, pkgerrors.Wrapf(err, "failed to read local override for %s", overridePath)
 		}
 		return content, nil
 	}

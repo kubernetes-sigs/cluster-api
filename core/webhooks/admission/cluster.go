@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -107,7 +107,7 @@ func (webhook *Cluster) Default(ctx context.Context, cluster *clusterv1.Cluster)
 
 		clusterClass, clusterClassNotReconciled, clusterClassNotFound, err := webhook.pollClusterClassForCluster(ctx, cluster)
 		if err != nil {
-			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. ClusterClass %s can not be retrieved", cluster.Name, cluster.GetClassKey().Name))
+			return apierrors.NewInternalError(pkgerrors.Wrapf(err, "Cluster %s can't be defaulted. ClusterClass %s can not be retrieved", cluster.Name, cluster.GetClassKey().Name))
 		}
 		if clusterClassNotReconciled || clusterClassNotFound {
 			// If the ClusterClass can't be found or is not reconciled, return as we shouldn't
@@ -123,7 +123,7 @@ func (webhook *Cluster) Default(ctx context.Context, cluster *clusterv1.Cluster)
 		if err == nil && len(req.OldObject.Raw) > 0 {
 			oldCluster = &clusterv1.Cluster{}
 			if err := webhook.decoder.DecodeRaw(req.OldObject, oldCluster); err != nil {
-				return apierrors.NewBadRequest(errors.Wrap(err, "failed to decode old cluster object").Error())
+				return apierrors.NewBadRequest(pkgerrors.Wrap(err, "failed to decode old cluster object").Error())
 			}
 		}
 
@@ -299,7 +299,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			allErrs = append(allErrs, field.Invalid(
 				concurrencyAnnotationField,
 				concurrency,
-				errors.Wrap(err, "could not parse the value of the annotation").Error(),
+				pkgerrors.Wrap(err, "could not parse the value of the annotation").Error(),
 			))
 		} else if concurrencyInt < 1 {
 			allErrs = append(allErrs, field.Invalid(
@@ -336,7 +336,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			allErrs = append(
 				allErrs, field.InternalError(
 					fldPath.Child("class"),
-					errors.Errorf("ClusterClass %s not found", newCluster.GetClassKey())))
+					pkgerrors.Errorf("ClusterClass %s not found", newCluster.GetClassKey())))
 			return allWarnings, allErrs
 		}
 
@@ -498,18 +498,18 @@ func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, fldPa
 func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.Reader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
 	cp, err := external.GetObjectFromContractVersionedRef(ctx, ctrlClient, oldCluster.Spec.ControlPlaneRef, oldCluster.Namespace)
 	if err != nil {
-		return errors.Wrap(err, "failed to check if control plane is upgrading: failed to get control plane object")
+		return pkgerrors.Wrap(err, "failed to check if control plane is upgrading: failed to get control plane object")
 	}
 
 	cpVersionString, err := contract.ControlPlane().Version().Get(cp)
 	if err != nil {
-		return errors.Wrap(err, "failed to check if control plane is upgrading: failed to get control plane version")
+		return pkgerrors.Wrap(err, "failed to check if control plane is upgrading: failed to get control plane version")
 	}
 
 	cpVersion, err := semver.ParseTolerant(*cpVersionString)
 	if err != nil {
 		// NOTE: this should never happen. Nevertheless, handling this for extra caution.
-		return errors.Wrapf(err, "failed to check if control plane is upgrading: failed to parse control plane version %s", *cpVersionString)
+		return pkgerrors.Wrapf(err, "failed to check if control plane is upgrading: failed to parse control plane version %s", *cpVersionString)
 	}
 	if cpVersion.String() != oldVersion.String() {
 		return fmt.Errorf("Cluster.spec.topology.version %s was not propagated to control plane yet (control plane version %s)", oldVersion, cpVersion) //nolint:staticcheck // capitalization is intentional
@@ -517,20 +517,20 @@ func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.
 
 	provisioning, err := contract.ControlPlane().IsProvisioning(cp)
 	if err != nil {
-		return errors.Wrap(err, "failed to check if control plane is provisioning")
+		return pkgerrors.Wrap(err, "failed to check if control plane is provisioning")
 	}
 
 	if provisioning {
-		return errors.New("control plane is currently provisioning")
+		return pkgerrors.New("control plane is currently provisioning")
 	}
 
 	upgrading, err := contract.ControlPlane().IsUpgrading(cp)
 	if err != nil {
-		return errors.Wrap(err, "failed to check if control plane is upgrading")
+		return pkgerrors.Wrap(err, "failed to check if control plane is upgrading")
 	}
 
 	if upgrading {
-		return errors.New("control plane is still completing a previous upgrade")
+		return pkgerrors.New("control plane is still completing a previous upgrade")
 	}
 
 	return nil
@@ -548,7 +548,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 		client.InNamespace(oldCluster.Namespace),
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to check if MachineDeployments are upgrading: failed to get MachineDeployments")
+		return pkgerrors.Wrap(err, "failed to check if MachineDeployments are upgrading: failed to get MachineDeployments")
 	}
 
 	if len(mds.Items) == 0 {
@@ -563,7 +563,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 		mdVersion, err := semver.ParseTolerant(md.Spec.Template.Spec.Version)
 		if err != nil {
 			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
-			return errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to parse version %s", md.Name, md.Spec.Template.Spec.Version)
+			return pkgerrors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to parse version %s", md.Name, md.Spec.Template.Spec.Version)
 		}
 
 		if mdVersion.String() != oldVersion.String() {
@@ -599,7 +599,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 		client.InNamespace(oldCluster.Namespace),
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to check if MachinePools are upgrading: failed to get MachinePools")
+		return pkgerrors.Wrap(err, "failed to check if MachinePools are upgrading: failed to get MachinePools")
 	}
 
 	if len(mps.Items) == 0 {
@@ -608,7 +608,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 
 	wlClient, err := clusterCacheReader.GetReader(ctx, client.ObjectKeyFromObject(oldCluster))
 	if err != nil {
-		return errors.Wrap(err, "failed to check if MachinePools are upgrading: unable to get client for workload cluster")
+		return pkgerrors.Wrap(err, "failed to check if MachinePools are upgrading: unable to get client for workload cluster")
 	}
 
 	mpUpgradingNames := []string{}
@@ -619,7 +619,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 		mpVersion, err := semver.ParseTolerant(mp.Spec.Template.Spec.Version)
 		if err != nil {
 			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
-			return errors.Wrapf(err, "failed to check if MachinePool %s is upgrading: failed to parse version %s", mp.Name, mp.Spec.Template.Spec.Version)
+			return pkgerrors.Wrapf(err, "failed to check if MachinePool %s is upgrading: failed to parse version %s", mp.Name, mp.Spec.Template.Spec.Version)
 		}
 
 		if mpVersion.String() != oldVersion.String() {
@@ -854,10 +854,10 @@ func (webhook *Cluster) DefaultAndValidateVariables(ctx context.Context, cluster
 func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	if cluster == nil {
-		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("Cluster can not be nil"))}
+		return field.ErrorList{field.InternalError(field.NewPath(""), pkgerrors.New("Cluster can not be nil"))}
 	}
 	if clusterClass == nil {
-		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("ClusterClass can not be nil"))}
+		return field.ErrorList{field.InternalError(field.NewPath(""), pkgerrors.New("ClusterClass can not be nil"))}
 	}
 
 	// Default cluster-wide variables.
@@ -916,10 +916,10 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	if cluster == nil {
-		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("Cluster can not be nil"))}
+		return field.ErrorList{field.InternalError(field.NewPath(""), pkgerrors.New("Cluster can not be nil"))}
 	}
 	if clusterClass == nil {
-		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("ClusterClass can not be nil"))}
+		return field.ErrorList{field.InternalError(field.NewPath(""), pkgerrors.New("ClusterClass can not be nil"))}
 	}
 
 	// If the ClusterClass defines a list of versions, check the version is one of them.
@@ -982,7 +982,7 @@ func (webhook *Cluster) validateClusterClassExistsAndIsReconciled(ctx context.Co
 
 // pollClusterClassForCluster will retry getting the ClusterClass referenced in the Cluster for two seconds.
 func (webhook *Cluster) pollClusterClassForCluster(ctx context.Context, cluster *clusterv1.Cluster) (_ *clusterv1.ClusterClass, clusterClassNotReconciled, clusterClassNotFound bool, _ error) {
-	var errClusterClassNotReconciled = errors.New("ClusterClass is not successfully reconciled")
+	var errClusterClassNotReconciled = pkgerrors.New("ClusterClass is not successfully reconciled")
 
 	clusterClass := &clusterv1.ClusterClass{}
 	var clusterClassPollErr error
@@ -1003,7 +1003,7 @@ func (webhook *Cluster) pollClusterClassForCluster(ctx context.Context, cluster 
 		if apierrors.IsNotFound(clusterClassPollErr) {
 			return nil, false, true, nil
 		}
-		if errors.Is(clusterClassPollErr, errClusterClassNotReconciled) {
+		if pkgerrors.Is(clusterClassPollErr, errClusterClassNotReconciled) {
 			// Return ClusterClass if we were able to get it and it's just not reconciled.
 			return clusterClass, true, false, nil
 		}

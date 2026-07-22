@@ -22,7 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -961,7 +961,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				return m
 			}(),
 			node:                 nil,
-			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			nodeGetErr:           pkgerrors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
 			lastProbeSuccessTime: time.Time{}, // probe did not succeed yet
 			expectConditions: []metav1.Condition{
 				{
@@ -990,7 +990,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			}(),
 			machine:              defaultMachine.DeepCopy(),
 			node:                 nil,
-			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			nodeGetErr:           pkgerrors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
 			lastProbeSuccessTime: time.Time{}, // probe did not succeed yet
 			expectConditions: []metav1.Condition{
 				{
@@ -1034,7 +1034,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				return m
 			}(),
 			node:                 nil,
-			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			nodeGetErr:           pkgerrors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
 			lastProbeSuccessTime: now.Add(-3 * time.Minute),
 			// Conditions have not been updated.
 			// remoteConditionsGracePeriod is 5m
@@ -1066,7 +1066,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			}(),
 			machine:              defaultMachine.DeepCopy(),
 			node:                 nil,
-			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			nodeGetErr:           pkgerrors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
 			lastProbeSuccessTime: now.Add(-3 * time.Minute),
 			// Conditions have been set.
 			// remoteConditionsGracePeriod is 5m
@@ -1113,7 +1113,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				return m
 			}(),
 			node:                 nil,
-			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			nodeGetErr:           pkgerrors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
 			lastProbeSuccessTime: now.Add(-6 * time.Minute),
 			// Conditions have been updated.
 			// remoteConditionsGracePeriod is 5m
@@ -1137,7 +1137,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name:                 "internal error occurred when trying to get Node",
 			cluster:              defaultCluster,
 			machine:              defaultMachine.DeepCopy(),
-			nodeGetErr:           errors.Errorf("error creating watch machine-watchNodes for *v1.Node"),
+			nodeGetErr:           pkgerrors.Errorf("error creating watch machine-watchNodes for *v1.Node"),
 			lastProbeSuccessTime: now,
 			expectConditions: []metav1.Condition{
 				{

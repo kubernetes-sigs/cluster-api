@@ -29,7 +29,7 @@ import (
 	"syscall"
 
 	"github.com/adrg/xdg"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -39,7 +39,7 @@ import (
 )
 
 type stackTracer interface {
-	StackTrace() errors.StackTrace
+	StackTrace() pkgerrors.StackTrace
 }
 
 const (
@@ -81,7 +81,7 @@ var RootCmd = &cobra.Command{
 		}
 		output, err := checker.Check(ctx)
 		if err != nil {
-			return errors.Wrap(err, "unable to verify clusterctl version")
+			return pkgerrors.Wrap(err, "unable to verify clusterctl version")
 		}
 		if output != "" {
 			// Print the output in yellow so it is more visible.
@@ -316,7 +316,7 @@ func (h *defaultPluginHandler) Execute(executablePath string, cmdArgs, environme
 }
 
 func shouldSkipOnLookPathErr(err error) bool {
-	return err != nil && !errors.Is(err, exec.ErrDot)
+	return err != nil && !pkgerrors.Is(err, exec.ErrDot)
 }
 
 // handlePluginCommand receives a pluginHandler and command-line arguments and attempts to find

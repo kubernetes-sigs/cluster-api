@@ -19,7 +19,7 @@ package types
 
 import (
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -58,7 +58,7 @@ var (
 func KubeVersionToKubeadmAPIGroupVersion(v semver.Version) (schema.GroupVersion, error) {
 	switch {
 	case version.Compare(v, v1beta3KubeadmVersion, version.WithoutPreReleases()) < 0:
-		return schema.GroupVersion{}, errors.New("the bootstrap provider for kubeadm doesn't support Kubernetes version lower than v1.22.0")
+		return schema.GroupVersion{}, pkgerrors.New("the bootstrap provider for kubeadm doesn't support Kubernetes version lower than v1.22.0")
 	case version.Compare(v, v1beta4KubeadmVersion, version.WithoutPreReleases()) < 0:
 		// NOTE: All the Kubernetes version >= v1.22 and < v1.31 should use the kubeadm API version v1beta3
 		return upstreamv1beta3.GroupVersion, nil
@@ -111,13 +111,13 @@ func marshalForVersion(obj conversion.Hub, version semver.Version, kubeadmObjVer
 
 	targetKubeadmObj, ok := kubeadmObjVersionTypeMap[kubeadmAPIGroupVersion]
 	if !ok {
-		return "", errors.Errorf("missing KubeadmAPI type mapping for version %s", kubeadmAPIGroupVersion)
+		return "", pkgerrors.Errorf("missing KubeadmAPI type mapping for version %s", kubeadmAPIGroupVersion)
 	}
 
 	targetKubeadmObj = targetKubeadmObj.DeepCopyObject().(conversion.Convertible)
 	// DeepCopy obj because ConvertFrom might have side effects.
 	if err := targetKubeadmObj.ConvertFrom(obj.DeepCopyObject().(conversion.Hub)); err != nil {
-		return "", errors.Wrapf(err, "failed to convert to KubeadmAPI type for version %s", kubeadmAPIGroupVersion)
+		return "", pkgerrors.Wrapf(err, "failed to convert to KubeadmAPI type for version %s", kubeadmAPIGroupVersion)
 	}
 
 	if additionalDataSetter, ok := targetKubeadmObj.(upstream.AdditionalDataSetter); ok && data != nil {
@@ -128,7 +128,7 @@ func marshalForVersion(obj conversion.Hub, version semver.Version, kubeadmObjVer
 
 	yaml, err := toYaml(targetKubeadmObj, kubeadmAPIGroupVersion, codecs)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to generate yaml for the Kubeadm API for version %s", kubeadmAPIGroupVersion)
+		return "", pkgerrors.Wrapf(err, "failed to generate yaml for the Kubeadm API for version %s", kubeadmAPIGroupVersion)
 	}
 	return string(yaml), nil
 }
@@ -143,7 +143,7 @@ func getCodecsFor(gv schema.GroupVersion, obj runtime.Object) serializer.CodecFa
 func toYaml(obj runtime.Object, gv runtime.GroupVersioner, codecs serializer.CodecFactory) ([]byte, error) {
 	info, ok := runtime.SerializerInfoForMediaType(codecs.SupportedMediaTypes(), runtime.ContentTypeYAML)
 	if !ok {
-		return []byte{}, errors.Errorf("unsupported media type %q", runtime.ContentTypeYAML)
+		return []byte{}, pkgerrors.Errorf("unsupported media type %q", runtime.ContentTypeYAML)
 	}
 
 	encoder := codecs.EncoderForVersion(info.Serializer, gv)
@@ -193,7 +193,7 @@ func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersi
 		if err == nil {
 			// If conversion worked, then converts the kubeadmObj (spoke) back to the Cluster API type (hub).
 			if err := kubeadmObj.(conversion.Convertible).ConvertTo(capiObj); err != nil {
-				return errors.Wrapf(err, "failed to convert kubeadm types to Cluster API types")
+				return pkgerrors.Wrapf(err, "failed to convert kubeadm types to Cluster API types")
 			}
 
 			if additionalDataGetter, ok := kubeadmObj.(upstream.AdditionalDataGetter); ok && data != nil {
@@ -202,5 +202,5 @@ func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersi
 			return nil
 		}
 	}
-	return errors.New("unknown kubeadm types")
+	return pkgerrors.New("unknown kubeadm types")
 }

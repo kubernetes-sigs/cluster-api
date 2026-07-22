@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,12 +63,12 @@ func UpdateReferenceAPIContract(ctx context.Context, c client.Reader, ref *corev
 
 	metadata, err := GetGKMetadata(ctx, c, gvk.GroupKind())
 	if err != nil {
-		return errors.Wrapf(err, "failed to update apiVersion in ref")
+		return pkgerrors.Wrapf(err, "failed to update apiVersion in ref")
 	}
 
 	_, chosen, err := GetLatestContractAndAPIVersionFromContract(metadata, Version)
 	if err != nil {
-		return errors.Wrapf(err, "failed to update apiVersion in ref")
+		return pkgerrors.Wrapf(err, "failed to update apiVersion in ref")
 	}
 
 	// Modify the GroupVersionKind with the new version.
@@ -84,12 +84,12 @@ func UpdateReferenceAPIContract(ctx context.Context, c client.Reader, ref *corev
 func GetContractVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, error) {
 	crdMetadata, err := GetGKMetadata(ctx, c, gk)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get contract version for kind %s", gk.Kind)
+		return "", pkgerrors.Wrapf(err, "failed to get contract version for kind %s", gk.Kind)
 	}
 
 	contractVersion, _, err := GetLatestContractAndAPIVersionFromContract(crdMetadata, Version)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get contract version for kind %s", gk.Kind)
+		return "", pkgerrors.Wrapf(err, "failed to get contract version for kind %s", gk.Kind)
 	}
 
 	return contractVersion, nil
@@ -99,12 +99,12 @@ func GetContractVersion(ctx context.Context, c client.Reader, gk schema.GroupKin
 func GetAPIVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, error) {
 	crdMetadata, err := GetGKMetadata(ctx, c, gk)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
+		return "", pkgerrors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
 	}
 
 	_, version, err := GetLatestContractAndAPIVersionFromContract(crdMetadata, Version)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
+		return "", pkgerrors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
 	}
 
 	return schema.GroupVersion{
@@ -117,7 +117,7 @@ func GetAPIVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (s
 // the passed in currentContractVersion.
 func GetLatestContractAndAPIVersionFromContract(metadata metav1.Object, currentContractVersion string) (string, string, error) {
 	if currentContractVersion == "" {
-		return "", "", errors.Errorf("current contract version cannot be empty")
+		return "", "", pkgerrors.Errorf("current contract version cannot be empty")
 	}
 
 	labels := metadata.GetLabels()
@@ -140,7 +140,7 @@ func GetLatestContractAndAPIVersionFromContract(metadata metav1.Object, currentC
 		return contractVersion, kubeVersions[len(kubeVersions)-1], nil
 	}
 
-	return "", "", errors.Errorf("cannot find any versions matching contract versions %q for CRD %v as contract version label(s) are either missing or empty (see https://cluster-api.sigs.k8s.io/developer/providers/contracts/overview.html#api-version-labels)", sortedCompatibleContractVersions, metadata.GetName())
+	return "", "", pkgerrors.Errorf("cannot find any versions matching contract versions %q for CRD %v as contract version label(s) are either missing or empty (see https://cluster-api.sigs.k8s.io/developer/providers/contracts/overview.html#api-version-labels)", sortedCompatibleContractVersions, metadata.GetName())
 }
 
 // GetContractVersionForVersion gets the contract version for an apiVersion from a CRD.
@@ -148,7 +148,7 @@ func GetLatestContractAndAPIVersionFromContract(metadata metav1.Object, currentC
 func GetContractVersionForVersion(ctx context.Context, c client.Reader, gk schema.GroupKind, version string) (string, error) {
 	crdMetadata, err := GetGKMetadata(ctx, c, gk)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get contract version for version %s for kind %s", version, gk.Kind)
+		return "", pkgerrors.Wrapf(err, "failed to get contract version for version %s for kind %s", version, gk.Kind)
 	}
 
 	contractPrefix := fmt.Sprintf("%s/", clusterv1.GroupVersion.Group)
@@ -164,7 +164,7 @@ func GetContractVersionForVersion(ctx context.Context, c client.Reader, gk schem
 		}
 	}
 
-	return "", errors.Errorf("cannot find any contract version matching version %s for CRD %s", version, crdMetadata.GetName())
+	return "", pkgerrors.Errorf("cannot find any contract version matching version %s for CRD %s", version, crdMetadata.GetName())
 }
 
 // GetGKMetadata retrieves a CustomResourceDefinition metadata from the API server using partial object metadata.
@@ -175,7 +175,7 @@ func GetGKMetadata(ctx context.Context, c client.Reader, gk schema.GroupKind) (*
 	meta.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
 	meta.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
 	if err := c.Get(ctx, client.ObjectKeyFromObject(meta), meta); err != nil {
-		return meta, errors.Wrap(err, "failed to get CustomResourceDefinition metadata")
+		return meta, pkgerrors.Wrap(err, "failed to get CustomResourceDefinition metadata")
 	}
 	return meta, nil
 }

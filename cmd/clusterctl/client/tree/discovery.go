@@ -19,7 +19,7 @@ package tree
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -215,7 +215,7 @@ func addControlPlane(ctx context.Context, c client.Client, cluster *clusterv1.Cl
 		// Add control plane infrastructure ref using spec fields guaranteed in contract
 		contractVersion, err := contract.GetContractVersionForVersion(ctx, c, controlPlane.GroupVersionKind().GroupKind(), controlPlane.GroupVersionKind().Version)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get contract version for the ControlPlane object")
+			return pkgerrors.Wrapf(err, "failed to get contract version for the ControlPlane object")
 		}
 
 		var infrastructureObjectRef *corev1.ObjectReference

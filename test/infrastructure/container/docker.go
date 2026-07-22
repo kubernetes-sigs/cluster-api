@@ -35,7 +35,7 @@ import (
 	dockernetwork "github.com/moby/moby/api/types/network"
 	dockersystem "github.com/moby/moby/api/types/system"
 	"github.com/moby/moby/client"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/ptr"
 
@@ -59,7 +59,7 @@ type dockerRuntime struct {
 func NewDockerClient() (Runtime, error) {
 	dockerClient, err := getDockerClient()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to created docker runtime client")
+		return nil, pkgerrors.Wrapf(err, "failed to created docker runtime client")
 	}
 
 	return &dockerRuntime{
@@ -105,7 +105,7 @@ func (d *dockerRuntime) SaveContainerImage(ctx context.Context, image, dest stri
 func (d *dockerRuntime) PullContainerImageIfNotExists(ctx context.Context, image string) error {
 	imageExistsLocally, err := d.ImageExistsLocally(ctx, image)
 	if err != nil {
-		return errors.Wrapf(err, "failure determining if the image exists in local cache: %s", image)
+		return pkgerrors.Wrapf(err, "failure determining if the image exists in local cache: %s", image)
 	}
 	if imageExistsLocally {
 		return nil
@@ -139,7 +139,7 @@ func (d *dockerRuntime) ImageExistsLocally(ctx context.Context, image string) (b
 		Filters: filters,
 	})
 	if err != nil {
-		return false, errors.Wrapf(err, "failure listing container image: %s", image)
+		return false, pkgerrors.Wrapf(err, "failure listing container image: %s", image)
 	}
 	if len(images.Items) > 0 {
 		return true, nil
@@ -183,17 +183,17 @@ func (d *dockerRuntime) ExecContainer(ctx context.Context, containerName string,
 
 	response, err := d.dockerClient.ExecCreate(ctx, containerName, execConfig)
 	if err != nil {
-		return errors.Wrap(err, "error creating container exec")
+		return pkgerrors.Wrap(err, "error creating container exec")
 	}
 
 	execID := response.ID
 	if execID == "" {
-		return errors.Wrap(err, "exec ID empty")
+		return pkgerrors.Wrap(err, "exec ID empty")
 	}
 
 	resp, err := d.dockerClient.ExecAttach(ctx, execID, client.ExecAttachOptions{})
 	if err != nil {
-		return errors.Wrap(err, "error attaching to container exec")
+		return pkgerrors.Wrap(err, "error attaching to container exec")
 	}
 	defer resp.Close()
 
@@ -228,28 +228,28 @@ func (d *dockerRuntime) ExecContainer(ctx context.Context, containerName string,
 	select {
 	case err := <-inputErrors:
 		if err != nil {
-			return errors.Wrap(err, "error providing execution input")
+			return pkgerrors.Wrap(err, "error providing execution input")
 		}
 
 	case err := <-outputErrors:
 		if err != nil {
-			return errors.Wrap(err, "error getting execution output")
+			return pkgerrors.Wrap(err, "error getting execution output")
 		}
 
 	case <-ctx.Done():
-		return errors.Wrap(ctx.Err(), "operation cancelled")
+		return pkgerrors.Wrap(ctx.Err(), "operation cancelled")
 	}
 
 	retry := 0
 	for retry < 600 {
 		inspect, err := d.dockerClient.ExecInspect(ctx, execID, client.ExecInspectOptions{})
 		if err != nil {
-			return errors.Wrap(err, "failed to get exec status")
+			return pkgerrors.Wrap(err, "failed to get exec status")
 		}
 
 		if !inspect.Running {
 			if status := inspect.ExitCode; status != 0 {
-				return errors.Errorf("exited with status: %d, %s", status, config.OutputBuffer)
+				return pkgerrors.Errorf("exited with status: %d, %s", status, config.OutputBuffer)
 			}
 			break
 		}
@@ -284,7 +284,7 @@ func (d *dockerRuntime) ListContainers(ctx context.Context, filters FilterBuilde
 
 	dockerContainers, err := d.dockerClient.ContainerList(ctx, listOptions)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to list containers")
+		return nil, pkgerrors.Wrap(err, "failed to list containers")
 	}
 
 	containers := []Container{}
@@ -303,7 +303,7 @@ func (d *dockerRuntime) DeleteContainer(ctx context.Context, containerName strin
 		RemoveVolumes: true, // delete volumes
 	}) // Note: first return value is an empty struct. Ignored.
 	if err != nil {
-		return errors.Wrap(err, "error deleting container")
+		return pkgerrors.Wrap(err, "error deleting container")
 	}
 	return nil
 }
@@ -314,7 +314,7 @@ func (d *dockerRuntime) KillContainer(ctx context.Context, containerName, signal
 		Signal: signal,
 	}) // Note: first return value is an empty struct. Ignored.
 	if err != nil {
-		return errors.Wrap(err, "error killing a container")
+		return pkgerrors.Wrap(err, "error killing a container")
 	}
 	return nil
 }
@@ -325,7 +325,7 @@ func (d *dockerRuntime) KillContainer(ctx context.Context, containerName, signal
 func (d *dockerRuntime) GetContainerIPs(ctx context.Context, containerName string) (string, string, error) {
 	containerInfo, err := d.dockerClient.ContainerInspect(ctx, containerName, client.ContainerInspectOptions{})
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed to get container details")
+		return "", "", pkgerrors.Wrap(err, "failed to get container details")
 	}
 
 	for _, net := range containerInfo.Container.NetworkSettings.Networks {
@@ -342,13 +342,13 @@ func (d *dockerRuntime) GetContainerLogs(ctx context.Context, containerName stri
 		ShowStderr: true,
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get container logs")
+		return "", pkgerrors.Wrap(err, "failed to get container logs")
 	}
 	defer logsReader.Close()
 
 	logs, err := io.ReadAll(logsReader)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to read container logs")
+		return "", pkgerrors.Wrap(err, "failed to read container logs")
 	}
 
 	return string(logs), nil
@@ -358,12 +358,12 @@ func (d *dockerRuntime) GetContainerLogs(ctx context.Context, containerName stri
 func (d *dockerRuntime) ContainerDebugInfo(ctx context.Context, containerName string, w io.Writer) error {
 	containerInfo, err := d.dockerClient.ContainerInspect(ctx, containerName, client.ContainerInspectOptions{})
 	if err != nil {
-		return errors.Wrapf(err, "failed to inspect container %q", containerName)
+		return pkgerrors.Wrapf(err, "failed to inspect container %q", containerName)
 	}
 
 	rawJSON, err := json.Marshal(containerInfo)
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshal container info to json")
+		return pkgerrors.Wrapf(err, "failed to marshal container info to json")
 	}
 
 	fmt.Fprintln(w, "Inspected the container:")
@@ -375,14 +375,14 @@ func (d *dockerRuntime) ContainerDebugInfo(ctx context.Context, containerName st
 	}
 	responseBody, err := d.dockerClient.ContainerLogs(ctx, containerInfo.Container.ID, options)
 	if err != nil {
-		return errors.Wrapf(err, "error getting container logs for %q", containerName)
+		return pkgerrors.Wrapf(err, "error getting container logs for %q", containerName)
 	}
 	defer responseBody.Close()
 
 	fmt.Fprintln(w, "Got logs from the container:")
 	_, err = io.Copy(w, responseBody)
 	if err != nil {
-		return errors.Wrapf(err, "error reading logs from container %q", containerName)
+		return pkgerrors.Wrapf(err, "error reading logs from container %q", containerName)
 	}
 	return nil
 }
@@ -451,7 +451,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 
 	info, err := d.dockerClient.Info(ctx, client.InfoOptions{})
 	if err != nil {
-		return errors.Wrapf(err, "unable to get Docker engine info, failed to create container %q", runConfig.Name)
+		return pkgerrors.Wrapf(err, "unable to get Docker engine info, failed to create container %q", runConfig.Name)
 	}
 
 	// mount /dev/mapper if docker storage driver if Btrfs or ZFS
@@ -465,7 +465,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 	// pass proxy environment variables to be used by node's docker daemon
 	proxyDetails, err := d.getProxyDetails(ctx, runConfig.Network, runConfig.Name)
 	if err != nil {
-		return errors.Wrapf(err, "error getting subnets for %q", runConfig.Network)
+		return pkgerrors.Wrapf(err, "error getting subnets for %q", runConfig.Network)
 	}
 	for key, val := range proxyDetails.Envs {
 		envVars = append(envVars, fmt.Sprintf("%s=%s", key, val))
@@ -491,7 +491,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 
 	// Make sure we have the image
 	if err := d.PullContainerImageIfNotExists(ctx, runConfig.Image); err != nil {
-		return errors.Wrapf(err, "error pulling container image %s", runConfig.Image)
+		return pkgerrors.Wrapf(err, "error pulling container image %s", runConfig.Image)
 	}
 
 	// Create the container using our settings
@@ -505,7 +505,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 		},
 	)
 	if err != nil {
-		return errors.Wrapf(err, "error creating container %q", runConfig.Name)
+		return pkgerrors.Wrapf(err, "error creating container %q", runConfig.Name)
 	}
 
 	var containerOutput client.ContainerAttachResult
@@ -521,17 +521,17 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 		// Attach to the container so we can capture the output
 		containerOutput, err = d.dockerClient.ContainerAttach(ctx, resp.ID, attachOpts)
 		if err != nil {
-			return errors.Wrapf(err, "failed to attach to container %q", runConfig.Name)
+			return pkgerrors.Wrapf(err, "failed to attach to container %q", runConfig.Name)
 		}
 	}
 
 	// Actually start the container
 	if _, err := d.dockerClient.ContainerStart(ctx, resp.ID, client.ContainerStartOptions{}); err != nil {
-		err := errors.Wrapf(err, "error starting container %q", runConfig.Name)
+		err := pkgerrors.Wrapf(err, "error starting container %q", runConfig.Name)
 		// Delete the container and retry later on. This helps getting around the race
 		// condition where of hitting "port is already allocated" issues.
 		if _, reterr := d.dockerClient.ContainerRemove(ctx, resp.ID, client.ContainerRemoveOptions{Force: true, RemoveVolumes: true}); reterr != nil {
-			return kerrors.NewAggregate([]error{err, errors.Wrapf(reterr, "error deleting container")})
+			return kerrors.NewAggregate([]error{err, pkgerrors.Wrapf(reterr, "error deleting container")})
 		}
 		return err
 	}
@@ -553,11 +553,11 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 		select {
 		case err := <-r.Error:
 			if err != nil {
-				return errors.Wrap(err, "error waiting for container run")
+				return pkgerrors.Wrap(err, "error waiting for container run")
 			}
 		case err := <-outputErrors:
 			if err != nil {
-				return errors.Wrap(err, "error reading output from container run")
+				return pkgerrors.Wrap(err, "error reading output from container run")
 			}
 		case <-r.Result:
 		case <-ctx.Done():
@@ -657,7 +657,7 @@ func (d *dockerRuntime) getSubnets(ctx context.Context, networkName string) ([]s
 	subnets := []string{}
 	networkInfo, err := d.dockerClient.NetworkInspect(ctx, networkName, client.NetworkInspectOptions{})
 	if err != nil {
-		return subnets, errors.Wrapf(err, "failed to inspect network %q", networkName)
+		return subnets, pkgerrors.Wrapf(err, "failed to inspect network %q", networkName)
 	}
 
 	for _, config := range networkInfo.Network.IPAM.Config {
@@ -763,11 +763,11 @@ func configurePortMappings(portMappings []PortMapping, config *dockercontainer.C
 		}
 		port, err := dockernetwork.ParsePort(fmt.Sprintf("%d/%s", pm.ContainerPort, protocol))
 		if err != nil {
-			return errors.Wrapf(err, "error parsing port %d", pm.ContainerPort)
+			return pkgerrors.Wrapf(err, "error parsing port %d", pm.ContainerPort)
 		}
 		addr, err := netip.ParseAddr(pm.ListenAddress)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing address %s", pm.ListenAddress)
+			return pkgerrors.Wrapf(err, "error parsing address %s", pm.ListenAddress)
 		}
 
 		mapping := dockernetwork.PortBinding{

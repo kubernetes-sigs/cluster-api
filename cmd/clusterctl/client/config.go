@@ -21,7 +21,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/utils/ptr"
 
@@ -107,7 +107,7 @@ func (c *clusterctlClient) ProcessYAML(ctx context.Context, options ProcessYAMLO
 		return c.getTemplateFromURL(ctx, clstr, *options.URLSource, "", options.SkipTemplateProcess)
 	}
 
-	return nil, errors.New("unable to read custom template. Please specify a template source")
+	return nil, pkgerrors.New("unable to read custom template. Please specify a template source")
 }
 
 // GetClusterTemplateOptions carries the options supported by GetClusterTemplate.
@@ -208,7 +208,7 @@ func (c *clusterctlClient) GetClusterTemplate(ctx context.Context, options GetCl
 	// Checks that no more than on source is set
 	numsSource := options.numSources()
 	if numsSource > 1 {
-		return nil, errors.New("invalid cluster template source: only one template can be used at time")
+		return nil, pkgerrors.New("invalid cluster template source: only one template can be used at time")
 	}
 
 	// If no source is set, defaults to using an empty ProviderRepositorySource so values will be
@@ -226,14 +226,14 @@ func (c *clusterctlClient) GetClusterTemplate(ctx context.Context, options GetCl
 	// If the option specifying the targetNamespace is empty, try to detect it.
 	if options.TargetNamespace == "" {
 		if err := clusterClient.Proxy().CheckClusterAvailable(ctx); err != nil {
-			return nil, errors.Wrap(err, "management cluster not available. Cannot auto-discover target namespace. Please specify a target namespace")
+			return nil, pkgerrors.Wrap(err, "management cluster not available. Cannot auto-discover target namespace. Please specify a target namespace")
 		}
 		currentNamespace, err := clusterClient.Proxy().CurrentNamespace()
 		if err != nil {
 			return nil, err
 		}
 		if currentNamespace == "" {
-			return nil, errors.New("failed to identify the current namespace. Please specify a target namespace")
+			return nil, pkgerrors.New("failed to identify the current namespace. Please specify a target namespace")
 		}
 		options.TargetNamespace = currentNamespace
 	}
@@ -263,7 +263,7 @@ func (c *clusterctlClient) GetClusterTemplate(ctx context.Context, options GetCl
 		return c.getTemplateFromURL(ctx, clusterClient, *options.URLSource, options.TargetNamespace, options.ListVariablesOnly)
 	}
 
-	return nil, errors.New("unable to read custom template. Please specify a template source")
+	return nil, pkgerrors.New("unable to read custom template. Please specify a template source")
 }
 
 // getTemplateFromRepository returns a workload cluster template from a provider repository.
@@ -278,11 +278,11 @@ func (c *clusterctlClient) getTemplateFromRepository(ctx context.Context, cluste
 	ensureCustomResourceDefinitions := false
 	if provider == "" {
 		if err := cluster.Proxy().CheckClusterAvailable(ctx); err != nil {
-			return nil, errors.Wrap(err, "management cluster not available. Cannot auto-discover default infrastructure provider. Please specify an infrastructure provider")
+			return nil, pkgerrors.Wrap(err, "management cluster not available. Cannot auto-discover default infrastructure provider. Please specify an infrastructure provider")
 		}
 		// ensure the custom resource definitions required by clusterctl are in place
 		if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(ctx); err != nil {
-			return nil, errors.Wrapf(err, "provider custom resource definitions (CRDs) are not installed")
+			return nil, pkgerrors.Wrapf(err, "provider custom resource definitions (CRDs) are not installed")
 		}
 		ensureCustomResourceDefinitions = true
 
@@ -292,7 +292,7 @@ func (c *clusterctlClient) getTemplateFromRepository(ctx context.Context, cluste
 		}
 
 		if defaultProviderName == "" {
-			return nil, errors.New("failed to identify the default infrastructure provider. Please specify an infrastructure provider")
+			return nil, pkgerrors.New("failed to identify the default infrastructure provider. Please specify an infrastructure provider")
 		}
 		provider = defaultProviderName
 	}
@@ -306,12 +306,12 @@ func (c *clusterctlClient) getTemplateFromRepository(ctx context.Context, cluste
 	// If the version of the infrastructure provider to get templates from is empty, try to detect it.
 	if version == "" {
 		if err := cluster.Proxy().CheckClusterAvailable(ctx); err != nil {
-			return nil, errors.Wrapf(err, "management cluster not available. Cannot auto-discover version for the provider %q automatically. Please specify a version", name)
+			return nil, pkgerrors.Wrapf(err, "management cluster not available. Cannot auto-discover version for the provider %q automatically. Please specify a version", name)
 		}
 		// ensure the custom resource definitions required by clusterctl are in place (if not already done)
 		if !ensureCustomResourceDefinitions {
 			if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(ctx); err != nil {
-				return nil, errors.Wrapf(err, "failed to identify the default version for the provider %q. Please specify a version", name)
+				return nil, pkgerrors.Wrapf(err, "failed to identify the default version for the provider %q. Please specify a version", name)
 			}
 		}
 
@@ -321,7 +321,7 @@ func (c *clusterctlClient) getTemplateFromRepository(ctx context.Context, cluste
 		}
 
 		if inventoryVersion == "" {
-			return nil, errors.Errorf("Unable to identify version for the provider %q automatically. Please specify a version", name)
+			return nil, pkgerrors.Errorf("Unable to identify version for the provider %q automatically. Please specify a version", name)
 		}
 		version = inventoryVersion
 	}
@@ -380,13 +380,13 @@ func (c *clusterctlClient) getTemplateFromURL(ctx context.Context, cluster clust
 func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplateOptions) error {
 	// the TargetNamespace, if valid, can be used in templates using the ${ NAMESPACE } variable.
 	if err := validateDNS1123Label(options.TargetNamespace); err != nil {
-		return errors.Wrapf(err, "invalid target-namespace")
+		return pkgerrors.Wrapf(err, "invalid target-namespace")
 	}
 	c.configClient.Variables().Set("NAMESPACE", options.TargetNamespace)
 
 	// the ClusterName, if valid, can be used in templates using the ${ CLUSTER_NAME } variable.
 	if err := validateDNS1123Domanin(options.ClusterName); err != nil {
-		return errors.Wrapf(err, "invalid cluster name")
+		return pkgerrors.Wrapf(err, "invalid cluster name")
 	}
 	c.configClient.Variables().Set("CLUSTER_NAME", options.ClusterName)
 
@@ -395,7 +395,7 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 	// configClient is going to search into os env variables/the clusterctl config file as a fallback options.
 	if options.KubernetesVersion != "" {
 		if _, err := version.ParseSemantic(options.KubernetesVersion); err != nil {
-			return errors.Errorf("invalid KubernetesVersion. Please use a semantic version number")
+			return pkgerrors.Errorf("invalid KubernetesVersion. Please use a semantic version number")
 		}
 		c.configClient.Variables().Set("KUBERNETES_VERSION", options.KubernetesVersion)
 	}
@@ -408,13 +408,13 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 		} else {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				return errors.Errorf("invalid value for CONTROL_PLANE_MACHINE_COUNT set")
+				return pkgerrors.Errorf("invalid value for CONTROL_PLANE_MACHINE_COUNT set")
 			}
 			options.ControlPlaneMachineCount = &i
 		}
 	}
 	if *options.ControlPlaneMachineCount < 1 {
-		return errors.Errorf("invalid ControlPlaneMachineCount. Please use a number greater than or equal to 1")
+		return pkgerrors.Errorf("invalid ControlPlaneMachineCount. Please use a number greater than or equal to 1")
 	}
 	c.configClient.Variables().Set("CONTROL_PLANE_MACHINE_COUNT", strconv.FormatInt(*options.ControlPlaneMachineCount, 10))
 
@@ -426,13 +426,13 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 		} else {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				return errors.Errorf("invalid value for WORKER_MACHINE_COUNT set")
+				return pkgerrors.Errorf("invalid value for WORKER_MACHINE_COUNT set")
 			}
 			options.WorkerMachineCount = &i
 		}
 	}
 	if *options.WorkerMachineCount < 0 {
-		return errors.Errorf("invalid WorkerMachineCount. Please use a number greater than or equal to 0")
+		return pkgerrors.Errorf("invalid WorkerMachineCount. Please use a number greater than or equal to 0")
 	}
 	c.configClient.Variables().Set("WORKER_MACHINE_COUNT", strconv.FormatInt(*options.WorkerMachineCount, 10))
 

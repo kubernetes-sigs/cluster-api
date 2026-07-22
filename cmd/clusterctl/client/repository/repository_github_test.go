@@ -26,7 +26,7 @@ import (
 
 	"github.com/google/go-github/v82/github"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -1120,10 +1120,10 @@ func Test_handleGithubErr(t *testing.T) {
 	}{
 		{
 			name:    "Return error",
-			err:     errors.New("error"),
+			err:     pkgerrors.New("error"),
 			message: "message %s and %s",
 			args:    []any{"arg1", "arg2"},
-			want:    fmt.Errorf("message arg1 and arg2: %w", errors.New("error")),
+			want:    fmt.Errorf("message arg1 and arg2: %w", pkgerrors.New("error")),
 		},
 		{
 			name: "Return RateLimitError",

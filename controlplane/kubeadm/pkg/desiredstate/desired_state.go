@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -99,12 +99,12 @@ func ComputeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clu
 		if kcp.Spec.MachineNaming.Template != "" {
 			nameTemplate = kcp.Spec.MachineNaming.Template
 			if !strings.Contains(nameTemplate, "{{ .random }}") {
-				return nil, errors.New("failed to compute desired Machine: cannot generate Machine name: {{ .random }} is missing in machineNaming.template")
+				return nil, pkgerrors.New("failed to compute desired Machine: cannot generate Machine name: {{ .random }} is missing in machineNaming.template")
 			}
 		}
 		generatedMachineName, err := topologynames.KCPMachineNameGenerator(nameTemplate, cluster.Name, kcp.Name).GenerateName()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to compute desired Machine: failed to generate Machine name")
+			return nil, pkgerrors.Wrap(err, "failed to compute desired Machine: failed to generate Machine name")
 		}
 		machineName = generatedMachineName
 		version = kcp.Spec.Version
@@ -230,7 +230,7 @@ func ComputeDesiredKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluste
 
 	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to compute desired KubeadmConfig: failed to parse Kubernetes version %q", kcp.Spec.Version)
+		return nil, pkgerrors.Wrapf(err, "failed to compute desired KubeadmConfig: failed to parse Kubernetes version %q", kcp.Spec.Version)
 	}
 	DefaultFeatureGates(spec, parsedVersion)
 
@@ -266,7 +266,7 @@ func ComputeDesiredInfraMachine(ctx context.Context, c client.Client, kcp *contr
 
 	apiVersion, err := contract.GetAPIVersion(ctx, c, kcp.Spec.MachineTemplate.Spec.InfrastructureRef.GroupKind())
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compute desired InfraMachine")
+		return nil, pkgerrors.Wrap(err, "failed to compute desired InfraMachine")
 	}
 	templateRef := &corev1.ObjectReference{
 		APIVersion: apiVersion,
@@ -277,7 +277,7 @@ func ComputeDesiredInfraMachine(ctx context.Context, c client.Client, kcp *contr
 
 	template, err := external.Get(ctx, c, templateRef)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compute desired InfraMachine")
+		return nil, pkgerrors.Wrap(err, "failed to compute desired InfraMachine")
 	}
 	generateTemplateInput := &external.GenerateTemplateInput{
 		Template:    template,
@@ -291,7 +291,7 @@ func ComputeDesiredInfraMachine(ctx context.Context, c client.Client, kcp *contr
 	}
 	infraMachine, err := external.GenerateTemplate(generateTemplateInput)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compute desired InfraMachine")
+		return nil, pkgerrors.Wrap(err, "failed to compute desired InfraMachine")
 	}
 	if existingInfraMachine != nil {
 		infraMachine.SetName(existingInfraMachine.GetName())

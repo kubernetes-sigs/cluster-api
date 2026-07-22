@@ -22,7 +22,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -45,7 +45,7 @@ import (
 
 var (
 	// ErrNodeNotFound signals that a corev1.Node could not be found for the given provider id.
-	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
+	ErrNodeNotFound = pkgerrors.New("cannot find node with matching ProviderID")
 	// CommonNodeAnnotations is a collection of annotations common to all nodes that ClusterAPI manages.
 	CommonNodeAnnotations = []string{
 		clusterv1.ClusterNameAnnotation,
@@ -83,7 +83,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	// Even if Status.NodeRef exists, continue to do the following checks to make sure Node is healthy
 	node, err := r.getNode(ctx, remoteClient, machine.Spec.ProviderID)
 	if err != nil {
-		if errors.Is(err, ErrNodeNotFound) {
+		if pkgerrors.Is(err, ErrNodeNotFound) {
 			if !s.machine.DeletionTimestamp.IsZero() {
 				// Tolerate node not found when the machine is being deleted.
 				return ctrl.Result{}, nil
@@ -92,7 +92,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 			// If Status.NodeRef is not set before, node still can be in the provisioning state.
 			if machine.Status.NodeRef.IsDefined() {
 				v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "")
-				return ctrl.Result{}, errors.Wrapf(err, "no matching Node for Machine %q in namespace %q", machine.Name, machine.Namespace)
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "no matching Node for Machine %q in namespace %q", machine.Name, machine.Namespace)
 			}
 			v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeProvisioningV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Waiting for a node with matching ProviderID to exist")
 			log.Info("Infrastructure provider reporting spec.providerID, matching Kubernetes Node is not yet available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID)
@@ -132,7 +132,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	if infraMachine != nil {
 		interruptible, found, err = unstructured.NestedBool(infraMachine.Object, "status", "interruptible")
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get status interruptible from infra machine %s", klog.KObj(infraMachine))
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get status interruptible from infra machine %s", klog.KObj(infraMachine))
 		}
 		// If interruptible is set and is true add the interruptible label to the node labels.
 		if found && interruptible {
@@ -144,7 +144,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 	// Reconcile node taints
 	if err := r.patchNode(ctx, remoteClient, s.node, nodeLabels, nodeAnnotations, machine, s.owningMachineSet, s.owningMachineDeployment); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile Node %s", klog.KObj(s.node))
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to reconcile Node %s", klog.KObj(s.node))
 	}
 	if !nodeHadInterruptibleLabel && interruptible {
 		// If the interruptible label is added to the node then record the event.
@@ -340,14 +340,14 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	if feature.Gates.Enabled(feature.MachineTaintPropagation) {
 		var err error
 		if propagateTaintsChanges, err = propagateMachineTaintsToNode(newNode, m.Spec.Taints); err != nil {
-			return errors.Wrapf(err, "failed to propagate Machine taints to Node %s", klog.KObj(node))
+			return pkgerrors.Wrapf(err, "failed to propagate Machine taints to Node %s", klog.KObj(node))
 		}
 	}
 
 	// Set Taint to a node in an old MachineSet and unset Taint from a node in a new MachineSet
 	isOutdated, err := shouldNodeHaveOutdatedTaint(ms, md)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if Node %s is outdated", klog.KRef("", node.Name))
+		return pkgerrors.Wrapf(err, "failed to check if Node %s is outdated", klog.KRef("", node.Name))
 	}
 	if isOutdated {
 		hasTaintChanges = taints.EnsureNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges

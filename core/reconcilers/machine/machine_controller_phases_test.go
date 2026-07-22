@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -97,7 +97,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			contract:                "v1beta1",
 			machine:                 defaultMachine.DeepCopy(),
 			bootstrapConfig:         nil,
-			bootstrapConfigGetError: errors.New("some error"),
+			bootstrapConfigGetError: pkgerrors.New("some error"),
 			expectResult:            ctrl.Result{},
 			expectError:             true,
 		},
@@ -422,7 +422,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			contract:             "v1beta1",
 			machine:              defaultMachine.DeepCopy(),
 			infraMachine:         nil,
-			infraMachineGetError: errors.New("some error"),
+			infraMachineGetError: pkgerrors.New("some error"),
 			expectResult:         ctrl.Result{},
 			expectError:          true,
 		},
@@ -885,7 +885,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 			},
 			infraMachine:         nil,
-			infraMachineGetError: errors.New("some error"),
+			infraMachineGetError: pkgerrors.New("some error"),
 			expectResult:         ctrl.Result{},
 			expectError:          true,
 			expected: func(g *WithT, m *clusterv1.Machine) {

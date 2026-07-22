@@ -23,7 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts"
@@ -223,7 +223,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 		}
 
 		if err := r.Start(ctx); err == nil {
-			t.Error(errors.New("expected error on start up"))
+			t.Error(pkgerrors.New("expected error on start up"))
 		}
 		list := &runtimev1.ExtensionConfigList{}
 		g.Expect(env.GetAPIReader().List(ctx, list)).To(Succeed())

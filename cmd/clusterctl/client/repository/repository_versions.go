@@ -20,7 +20,7 @@ import (
 	"context"
 	"sort"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -45,7 +45,7 @@ func latestContractRelease(ctx context.Context, repo Repository, contract string
 	file, err := repo.GetFile(ctx, latest, metadataFile)
 	// If an error occurs, we just return the latest release.
 	if err != nil {
-		if errors.Is(err, errNotFound) {
+		if pkgerrors.Is(err, errNotFound) {
 			// If it was ErrNotFound, then there is no release yet for the resolved tag.
 			// Ref: https://github.com/kubernetes-sigs/cluster-api/issues/7889
 			return "", err
@@ -87,7 +87,7 @@ func latestRelease(ctx context.Context, repo Repository) (string, error) {
 func latestPatchRelease(ctx context.Context, repo Repository, major, minor *int32) (string, error) {
 	versions, err := repo.GetVersions(ctx)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get repository versions")
+		return "", pkgerrors.Wrapf(err, "failed to get repository versions")
 	}
 
 	// Search for the latest release according to semantic version ordering.
@@ -110,7 +110,7 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *int3
 	}
 
 	if len(versionCandidates) == 0 {
-		return "", errors.New("failed to find releases tagged with a valid semantic version number")
+		return "", pkgerrors.New("failed to find releases tagged with a valid semantic version number")
 	}
 
 	// Sort parsed versions by semantic version order.
@@ -137,7 +137,7 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *int3
 		versionString := "v" + v.String()
 		_, err := repo.GetFile(ctx, versionString, metadataFile)
 		if err != nil {
-			if errors.Is(err, errNotFound) {
+			if pkgerrors.Is(err, errNotFound) {
 				// Ignore this version
 				continue
 			}
@@ -149,5 +149,5 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *int3
 	}
 
 	// If we reached this point, it means we didn't find any release.
-	return "", errors.New("failed to find releases tagged with a valid semantic version number")
+	return "", pkgerrors.New("failed to find releases tagged with a valid semantic version number")
 }

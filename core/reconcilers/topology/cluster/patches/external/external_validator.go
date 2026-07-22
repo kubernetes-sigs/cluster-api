@@ -20,7 +20,7 @@ package external
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -46,7 +46,7 @@ func NewValidator(runtimeClient runtimeclient.Client, patch *clusterv1.ClusterCl
 
 func (e externalValidator) Validate(ctx context.Context, forObject client.Object, req *runtimehooksv1.ValidateTopologyRequest) (*runtimehooksv1.ValidateTopologyResponse, error) {
 	if !feature.Gates.Enabled(feature.RuntimeSDK) {
-		return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", e.patch.External.ValidateTopologyExtension)
+		return nil, pkgerrors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", e.patch.External.ValidateTopologyExtension)
 	}
 
 	// Set the settings defined in external patch definition on the request object.

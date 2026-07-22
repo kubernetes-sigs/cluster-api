@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -190,7 +190,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	// Determine if the data secret was created.
 	var dataSecretCreated bool
 	if dataSecretCreatedPtr, err := contract.Bootstrap().DataSecretCreated(contractVersion).Get(s.bootstrapConfig); err != nil {
-		if !errors.Is(err, contract.ErrFieldNotFound) {
+		if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -223,10 +223,10 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	secretName, err := contract.Bootstrap().DataSecretName().Get(s.bootstrapConfig)
 	switch {
 	case err != nil:
-		return ctrl.Result{}, errors.Wrapf(err, "failed to read dataSecretName from %s %s",
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to read dataSecretName from %s %s",
 			s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
 	case *secretName == "":
-		return ctrl.Result{}, errors.Errorf("got empty %s field from %s %s",
+		return ctrl.Result{}, pkgerrors.Errorf("got empty %s field from %s %s",
 			contract.Bootstrap().DataSecretName().Path().String(),
 			s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
 	default:
@@ -269,7 +269,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 				m.Status.Deprecated.V1Beta1.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
 				m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %s %s has been deleted after provisioning was completed",
 					m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name)))
-				return ctrl.Result{}, errors.Errorf("could not find %s %s for Machine %s", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name), klog.KObj(m))
+				return ctrl.Result{}, pkgerrors.Errorf("could not find %s %s for Machine %s", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name), klog.KObj(m))
 			}
 			log.Info("Could not find InfrastructureMachine, requeuing", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
@@ -287,7 +287,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Determine if the InfrastructureMachine is provisioned.
 	var provisioned bool
 	if provisionedPtr, err := contract.InfrastructureMachine().Provisioned(contractVersion).Get(s.infraMachine); err != nil {
-		if !errors.Is(err, contract.ErrFieldNotFound) {
+		if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -322,8 +322,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Get providerID from the InfrastructureMachine (intentionally not setting it on the Machine yet).
 	providerID, err := contract.InfrastructureMachine().ProviderID().Get(s.infraMachine)
 	switch {
-	case err != nil && !errors.Is(err, contract.ErrFieldNotFound):
-		return ctrl.Result{}, errors.Wrapf(err, "failed to read %s from %s %s",
+	case err != nil && !pkgerrors.Is(err, contract.ErrFieldNotFound):
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to read %s from %s %s",
 			contract.InfrastructureMachine().ProviderID().Path().String(),
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	case ptr.Deref(providerID, "") == "":
@@ -338,9 +338,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Get and set addresses from the InfrastructureMachine.
 	addresses, err := contract.InfrastructureMachine().Addresses().Get(s.infraMachine)
 	switch {
-	case errors.Is(err, contract.ErrFieldNotFound): // no-op
+	case pkgerrors.Is(err, contract.ErrFieldNotFound): // no-op
 	case err != nil:
-		return ctrl.Result{}, errors.Wrapf(err, "failed to read addresses from %s %s",
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to read addresses from %s %s",
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	default:
 		m.Status.Addresses = *addresses
@@ -349,9 +349,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Get deprecatedFailureDomain from the InfrastructureMachine.
 	deprecatedFailureDomain, err := contract.InfrastructureMachine().DeprecatedFailureDomain().Get(s.infraMachine)
 	switch {
-	case errors.Is(err, contract.ErrFieldNotFound): // no-op
+	case pkgerrors.Is(err, contract.ErrFieldNotFound): // no-op
 	case err != nil:
-		return ctrl.Result{}, errors.Wrapf(err, "failed to read spec.failureDomain from %s %s",
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to read spec.failureDomain from %s %s",
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	default:
 		m.Spec.FailureDomain = ptr.Deref(deprecatedFailureDomain, "")
@@ -360,9 +360,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Get failureDomain from the InfrastructureMachine.
 	failureDomain, err := contract.InfrastructureMachine().FailureDomain().Get(s.infraMachine)
 	switch {
-	case errors.Is(err, contract.ErrFieldNotFound): // no-op
+	case pkgerrors.Is(err, contract.ErrFieldNotFound): // no-op
 	case err != nil:
-		return ctrl.Result{}, errors.Wrapf(err, "failed to read status.failureDomain from %s %s",
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to read status.failureDomain from %s %s",
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	default:
 		m.Status.FailureDomain = ptr.Deref(failureDomain, "")
@@ -394,7 +394,7 @@ func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ct
 		expiryInfoFound = true
 		expiryTime, err := time.Parse(time.RFC3339, expiry)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(m))
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(m))
 		}
 		expTime := metav1.NewTime(expiryTime)
 		m.Status.CertificatesExpiryDate = expTime
@@ -406,7 +406,7 @@ func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ct
 			expiryInfoFound = true
 			expiryTime, err := time.Parse(time.RFC3339, expiry)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(s.bootstrapConfig))
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(s.bootstrapConfig))
 			}
 			expTime := metav1.NewTime(expiryTime)
 			m.Status.CertificatesExpiryDate = expTime
@@ -428,7 +428,7 @@ func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, o
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
-			return errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
+			return pkgerrors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
 		}
 		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
 			(cpGK != nil && ownerGV.Group == cpGK.Group && owner.Kind == cpGK.Kind) {
@@ -445,7 +445,7 @@ func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj 
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
-			return false, errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
+			return false, pkgerrors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
 		}
 		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
 			(cpGK != nil && ownerGV.Group == cpGK.Group && owner.Kind == cpGK.Kind) {

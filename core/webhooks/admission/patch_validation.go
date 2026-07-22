@@ -24,7 +24,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -561,7 +561,7 @@ func validateIndexAccess(jsonPatch clusterv1.JSONPatch, path *field.Path) field.
 func prettyPrint(v interface{}) string {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshal field value").Error()
+		return pkgerrors.Wrapf(err, "failed to marshal field value").Error()
 	}
 	return string(b)
 }

@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -149,11 +149,11 @@ func (m *maintenanceServer) MoveLeader(ctx context.Context, req *pb.MoveLeaderRe
 			"component": "etcd",
 			"tier":      "control-plane"},
 	); err != nil {
-		return nil, errors.Wrap(err, "failed to list etcd members")
+		return nil, pkgerrors.Wrap(err, "failed to list etcd members")
 	}
 
 	if len(etcdPods.Items) == 0 {
-		return nil, errors.New("failed to list etcd members: no etcd pods found")
+		return nil, pkgerrors.New("failed to list etcd members: no etcd pods found")
 	}
 
 	for i := range etcdPods.Items {
@@ -176,7 +176,7 @@ func (m *maintenanceServer) MoveLeader(ctx context.Context, req *pb.MoveLeaderRe
 		}
 	}
 	// If we reach this point leadership was not moved.
-	return nil, errors.Errorf("etcd member with ID %d did not become the leader: expected etcd Pod not found", req.TargetID)
+	return nil, pkgerrors.Errorf("etcd member with ID %d did not become the leader: expected etcd Pod not found", req.TargetID)
 }
 
 func (m *maintenanceServer) Downgrade(_ context.Context, _ *pb.DowngradeRequest) (*pb.DowngradeResponse, error) {
@@ -215,7 +215,7 @@ func (c *clusterServerServer) MemberRemove(ctx context.Context, req *pb.MemberRe
 			"component": "etcd",
 			"tier":      "control-plane"},
 	); err != nil {
-		return nil, errors.Wrap(err, "failed to list etcd members")
+		return nil, pkgerrors.Wrap(err, "failed to list etcd members")
 	}
 
 	for i := range etcdPods.Items {
@@ -231,7 +231,7 @@ func (c *clusterServerServer) MemberRemove(ctx context.Context, req *pb.MemberRe
 		}
 		return out, nil
 	}
-	return nil, errors.Errorf("no etcd member with id %d found", req.ID)
+	return nil, pkgerrors.Errorf("no etcd member with id %d found", req.ID)
 }
 
 func (c *clusterServerServer) MemberUpdate(_ context.Context, _ *pb.MemberUpdateRequest) (*pb.MemberUpdateResponse, error) {
@@ -281,7 +281,7 @@ func (b *baseServer) getResourceGroupAndMember(ctx context.Context) (resourceGro
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", "", errors.Errorf("failed to get metadata when processing request to etcd in resourceGroup %s", resourceGroup)
+		return "", "", pkgerrors.Errorf("failed to get metadata when processing request to etcd in resourceGroup %s", resourceGroup)
 	}
 	// Calculate the etcd member name by trimming the "etcd-" prefix from ":authority" metadata.
 	etcdMember = strings.TrimPrefix(strings.Join(md.Get(":authority"), ","), "etcd-")
@@ -296,7 +296,7 @@ func (b *baseServer) inspectEtcd(ctx context.Context, inmemoryClient inmemoryrun
 			"component": "etcd",
 			"tier":      "control-plane"},
 	); err != nil {
-		return nil, nil, errors.Wrap(err, "failed to list etcd members")
+		return nil, nil, pkgerrors.Wrap(err, "failed to list etcd members")
 	}
 
 	memberList := &pb.MemberListResponse{}
@@ -307,7 +307,7 @@ func (b *baseServer) inspectEtcd(ctx context.Context, inmemoryClient inmemoryrun
 	for _, pod := range etcdPods.Items {
 		if _, ok := pod.Annotations[cloudv1.EtcdMemberRemoved]; ok {
 			if pod.Name == fmt.Sprintf("%s%s", "etcd-", etcdMember) {
-				return nil, nil, errors.New("inspect called on etcd which has been removed")
+				return nil, nil, pkgerrors.New("inspect called on etcd which has been removed")
 			}
 			continue
 		}
@@ -315,15 +315,15 @@ func (b *baseServer) inspectEtcd(ctx context.Context, inmemoryClient inmemoryrun
 			var err error
 			clusterID, err = strconv.Atoi(pod.Annotations[cloudv1.EtcdClusterIDAnnotationName])
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "failed read cluster ID annotation from etcd member with name %s", pod.Name)
+				return nil, nil, pkgerrors.Wrapf(err, "failed read cluster ID annotation from etcd member with name %s", pod.Name)
 			}
 		} else if pod.Annotations[cloudv1.EtcdClusterIDAnnotationName] != fmt.Sprintf("%d", clusterID) {
-			return nil, nil, errors.New("invalid etcd cluster, members have different cluster ID")
+			return nil, nil, pkgerrors.New("invalid etcd cluster, members have different cluster ID")
 		}
 
 		memberID, err := strconv.Atoi(pod.Annotations[cloudv1.EtcdMemberIDAnnotationName])
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed read member ID annotation from etcd member with name %s", pod.Name)
+			return nil, nil, pkgerrors.Wrapf(err, "failed read member ID annotation from etcd member with name %s", pod.Name)
 		}
 
 		if t, err := time.Parse(time.RFC3339, pod.Annotations[cloudv1.EtcdLeaderFromAnnotationName]); err == nil {
@@ -350,7 +350,7 @@ func (b *baseServer) inspectEtcd(ctx context.Context, inmemoryClient inmemoryrun
 		// TODO: consider if and how to automatically recover from this case
 		//  note: this can happen also when adding a new etcd members in the handler, might be it is something we have to take case before deletion...
 		//  for now it should not be an issue because KCP forwards etcd leadership before deletion.
-		return nil, nil, errors.New("invalid etcd cluster, no leader found")
+		return nil, nil, pkgerrors.New("invalid etcd cluster, no leader found")
 	}
 	statusResponse.Leader = uint64(leaderID)
 

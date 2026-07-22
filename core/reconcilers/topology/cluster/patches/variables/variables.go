@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"maps"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -128,7 +128,7 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 	if cpTopology.Replicas != nil {
 		replicas, err := contract.ControlPlane().Replicas().Get(cp)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get spec.replicas from the ControlPlane")
+			return nil, pkgerrors.Wrap(err, "failed to get spec.replicas from the ControlPlane")
 		}
 		builtin.ControlPlane.Replicas = replicas
 	}
@@ -141,7 +141,7 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 
 	version, err := contract.ControlPlane().Version().Get(cp)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get spec.version from the ControlPlane")
+		return nil, pkgerrors.Wrap(err, "failed to get spec.version from the ControlPlane")
 	}
 	builtin.ControlPlane.Version = *version
 
@@ -274,7 +274,7 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *clusterv1.Machin
 func toVariable(name string, value interface{}) (*runtimehooksv1.Variable, error) {
 	marshalledValue, err := json.Marshal(value)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to set variable %q: error marshalling", name)
+		return nil, pkgerrors.Wrapf(err, "failed to set variable %q: error marshalling", name)
 	}
 
 	return &runtimehooksv1.Variable{

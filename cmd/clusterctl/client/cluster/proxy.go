@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -93,7 +93,7 @@ var _ Proxy = &proxy{}
 func (k *proxy) CurrentNamespace() (string, error) {
 	config, err := k.configLoadingRules.Load()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to load Kubeconfig")
+		return "", pkgerrors.Wrap(err, "failed to load Kubeconfig")
 	}
 
 	context := config.CurrentContext
@@ -105,9 +105,9 @@ func (k *proxy) CurrentNamespace() (string, error) {
 	v, ok := config.Contexts[context]
 	if !ok {
 		if k.kubeconfig.Path != "" {
-			return "", errors.Errorf("failed to get context %q from %q", context, k.configLoadingRules.GetExplicitFile())
+			return "", pkgerrors.Errorf("failed to get context %q from %q", context, k.configLoadingRules.GetExplicitFile())
 		}
-		return "", errors.Errorf("failed to get context %q from %q", context, k.configLoadingRules.GetLoadingPrecedence())
+		return "", pkgerrors.Errorf("failed to get context %q from %q", context, k.configLoadingRules.GetLoadingPrecedence())
 	}
 
 	if v.Namespace != "" {
@@ -135,7 +135,7 @@ func (k *proxy) ValidateKubernetesVersion() error {
 func (k *proxy) GetConfig() (*rest.Config, error) {
 	config, err := k.configLoadingRules.Load()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load Kubeconfig")
+		return nil, pkgerrors.Wrap(err, "failed to load Kubeconfig")
 	}
 
 	configOverrides := &clientcmd.ConfigOverrides{
@@ -147,7 +147,7 @@ func (k *proxy) GetConfig() (*rest.Config, error) {
 		var inClusterErr error
 		restConfig, inClusterErr = rest.InClusterConfig()
 		if inClusterErr != nil {
-			return nil, errors.Wrapf(kerrors.NewAggregate([]error{err, inClusterErr}), "clusterctl requires either a valid kubeconfig or in cluster config to connect to the management cluster")
+			return nil, pkgerrors.Wrapf(kerrors.NewAggregate([]error{err, inClusterErr}), "clusterctl requires either a valid kubeconfig or in cluster config to connect to the management cluster")
 		}
 	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
@@ -180,7 +180,7 @@ func (k *proxy) NewClient(ctx context.Context) (client.Client, error) {
 		}
 		return nil
 	}); err != nil {
-		return nil, errors.Wrap(err, "failed to connect to the management cluster")
+		return nil, pkgerrors.Wrap(err, "failed to connect to the management cluster")
 	}
 
 	return c, nil
@@ -235,7 +235,7 @@ func (k *proxy) ListResources(ctx context.Context, labels map[string]string, nam
 		resourceList, err = cs.Discovery().ServerPreferredResources()
 		return err
 	}); err != nil {
-		return nil, errors.Wrap(err, "failed to list api resources")
+		return nil, pkgerrors.Wrap(err, "failed to list api resources")
 	}
 
 	// Exclude from discovery the objects from the cert-manager/provider's CRDs.
@@ -246,7 +246,7 @@ func (k *proxy) ListResources(ctx context.Context, labels map[string]string, nam
 	if err := retryWithExponentialBackoff(ctx, newReadBackoff(), func(ctx context.Context) error {
 		return c.List(ctx, crdList)
 	}); err != nil {
-		return nil, errors.Wrap(err, "failed to list CRDs")
+		return nil, pkgerrors.Wrap(err, "failed to list CRDs")
 	}
 	for _, crd := range crdList.Items {
 		component, isCoreComponent := labels[clusterctlv1.ClusterctlCoreLabel]
@@ -277,7 +277,7 @@ func (k *proxy) ListResources(ctx context.Context, labels map[string]string, nam
 			// Continue if the resource is an excluded CRD.
 			gv, err := schema.ParseGroupVersion(resourceGroup.GroupVersion)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse GroupVersion")
+				return nil, pkgerrors.Wrapf(err, "failed to parse GroupVersion")
 			}
 			if crdsToExclude.Has(metav1.GroupVersionKind{
 				Group:   gv.Group,
@@ -358,7 +358,7 @@ func listObjByGVK(ctx context.Context, c client.Client, groupVersion, kind strin
 	if err := retryWithExponentialBackoff(ctx, resourceListBackoff, func(ctx context.Context) error {
 		return c.List(ctx, objList, options...)
 	}); err != nil {
-		return nil, errors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
+		return nil, pkgerrors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
 	}
 
 	return objList, nil
@@ -425,7 +425,7 @@ func (k *proxy) newClientSet(ctx context.Context) (*kubernetes.Clientset, error)
 		}
 		return nil
 	}); err != nil {
-		return nil, errors.Wrap(err, "failed to create the client-go client")
+		return nil, pkgerrors.Wrap(err, "failed to create the client-go client")
 	}
 
 	return cs, nil

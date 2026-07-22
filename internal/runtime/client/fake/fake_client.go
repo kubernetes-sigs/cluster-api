@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
@@ -123,7 +123,7 @@ type RuntimeClient struct {
 func (fc *RuntimeClient) GetAllExtensions(_ context.Context, hook runtimecatalog.Hook, _ client.Object) ([]string, error) {
 	gvh, err := fc.catalog.GroupVersionHook(hook)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compute GVH")
+		return nil, pkgerrors.Wrap(err, "failed to compute GVH")
 	}
 	return fc.getAllResponses[gvh], nil
 }
@@ -136,7 +136,7 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 
 	gvh, err := fc.catalog.GroupVersionHook(hook)
 	if err != nil {
-		return errors.Wrap(err, "failed to compute GVH")
+		return pkgerrors.Wrap(err, "failed to compute GVH")
 	}
 
 	if fc.callAllValidations != nil {
@@ -158,9 +158,9 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 
 	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
 		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-			return errors.Errorf("runtime hook %q failed", gvh)
+			return pkgerrors.Errorf("runtime hook %q failed", gvh)
 		}
-		return errors.Errorf("runtime hook %q got unknown response status %q", gvh, response.GetStatus())
+		return pkgerrors.Errorf("runtime hook %q got unknown response status %q", gvh, response.GetStatus())
 	}
 	return nil
 }
@@ -191,9 +191,9 @@ func (fc *RuntimeClient) CallExtension(ctx context.Context, hook runtimecatalog.
 	// If the received response is not a success then return an error.
 	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
 		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-			return errors.Errorf("ExtensionHandler %s failed with message %s", name, response.GetMessage())
+			return pkgerrors.Errorf("ExtensionHandler %s failed with message %s", name, response.GetMessage())
 		}
-		return errors.Errorf("ExtensionHandler %s got unknown response status %q", name, response.GetStatus())
+		return pkgerrors.Errorf("ExtensionHandler %s got unknown response status %q", name, response.GetStatus())
 	}
 	return nil
 }

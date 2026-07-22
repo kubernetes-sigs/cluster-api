@@ -30,7 +30,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -2922,7 +2922,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				},
 			},
 			managementCluster: &fakeManagementCluster{
-				WorkloadErr: errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting REST config"),
+				WorkloadErr: pkgerrors.Wrapf(clustercache.ErrClusterNotConnected, "error getting REST config"),
 			},
 			lastProbeSuccessTime: now.Add(-3 * time.Minute),
 			// Conditions have not been updated.
@@ -2979,7 +2979,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				},
 			},
 			managementCluster: &fakeManagementCluster{
-				WorkloadErr: errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting REST config"),
+				WorkloadErr: pkgerrors.Wrapf(clustercache.ErrClusterNotConnected, "error getting REST config"),
 			},
 			lastProbeSuccessTime: now.Add(-3 * time.Minute),
 			// Conditions have been set.
@@ -3173,7 +3173,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				},
 			},
 			managementCluster: &fakeManagementCluster{
-				WorkloadErr: errors.Errorf("failed to get secret; etcd CA bundle"),
+				WorkloadErr: pkgerrors.Errorf("failed to get secret; etcd CA bundle"),
 			},
 			lastProbeSuccessTime: now.Add(-3 * time.Minute),
 			expectErr:            "cannot get client for the workload cluster: failed to get secret; etcd CA bundle",
@@ -3476,7 +3476,7 @@ func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
 				),
 				EtcdLeader: &etcd.Member{Name: m.Status.NodeRef.Name},
 			},
-			moveLeaderError: errors.New("failed to forward leadership"),
+			moveLeaderError: pkgerrors.New("failed to forward leadership"),
 			deletingMachine: m,
 			wantTryCandidates: []string{
 				"m-newest",         // etcd heathy, mhc healthy, up-to-date, newest machine

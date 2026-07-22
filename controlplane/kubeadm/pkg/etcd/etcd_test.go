@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,9 +46,9 @@ func TestEtcdMembers_WithErrors(t *testing.T) {
 		MoveLeaderResponse:   &clientv3.MoveLeaderResponse{},
 		MemberRemoveResponse: &clientv3.MemberRemoveResponse{},
 		StatusResponse:       &clientv3.StatusResponse{},
-		MemberListError:      errors.New("something went wrong"),
-		MoveLeaderError:      errors.New("something went wrong"),
-		MemberRemoveError:    errors.New("something went wrong"),
+		MemberListError:      pkgerrors.New("something went wrong"),
+		MoveLeaderError:      pkgerrors.New("something went wrong"),
+		MemberRemoveError:    pkgerrors.New("something went wrong"),
 	}
 
 	client, err := newEtcdClient(ctx, fakeEtcdClient, DefaultCallTimeout)

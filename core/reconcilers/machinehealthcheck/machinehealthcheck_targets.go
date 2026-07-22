@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -297,7 +297,7 @@ func (t *healthCheckTarget) nodeChecks(logger logr.Logger, reconciliationTime ti
 func (r *Reconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, clusterClient client.Reader, cluster *clusterv1.Cluster, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
 	machines, err := r.getMachinesFromMHC(ctx, mhc)
 	if err != nil {
-		return nil, errors.Wrap(err, "error getting machines from MachineHealthCheck")
+		return nil, pkgerrors.Wrap(err, "error getting machines from MachineHealthCheck")
 	}
 	if len(machines) == 0 {
 		return nil, nil
@@ -326,7 +326,7 @@ func (r *Reconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, 
 			node, err := r.getNodeFromMachine(ctx, clusterClient, target.Machine)
 			if err != nil {
 				if !apierrors.IsNotFound(err) {
-					return nil, errors.Wrap(err, "error getting node")
+					return nil, pkgerrors.Wrap(err, "error getting node")
 				}
 
 				// A node has been seen for this machine, but it no longer exists
@@ -346,7 +346,7 @@ func (r *Reconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.Mach
 		&mhc.Spec.Selector, clusterv1.ClusterNameLabel, mhc.Spec.ClusterName,
 	))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to build selector")
+		return nil, pkgerrors.Wrap(err, "failed to build selector")
 	}
 
 	var machineList clusterv1.MachineList
@@ -356,7 +356,7 @@ func (r *Reconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.Mach
 		client.MatchingLabelsSelector{Selector: selector},
 		client.InNamespace(mhc.GetNamespace()),
 	); err != nil {
-		return nil, errors.Wrap(err, "failed to list machines")
+		return nil, pkgerrors.Wrap(err, "failed to list machines")
 	}
 	return machineList.Items, nil
 }

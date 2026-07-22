@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -85,11 +85,11 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, blueprintInfrastructureClusterTemplate *unstructured.Unstructured, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
 	ref, err := alignRefAPIVersion(ctx, r.Client, blueprintInfrastructureClusterTemplate, cluster.Spec.InfrastructureRef, cluster.Namespace, false)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.InfrastructureRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
+		return nil, pkgerrors.Wrapf(err, "failed to read %s %s", cluster.Spec.InfrastructureRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
 	}
 	infra, err := r.getReference(ctx, ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.InfrastructureRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
+		return nil, pkgerrors.Wrapf(err, "failed to read %s %s", cluster.Spec.InfrastructureRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
 	}
 	// check that the referenced object has the ClusterTopologyOwnedLabel label.
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -110,11 +110,11 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintC
 	// Get the control plane object.
 	ref, err := alignRefAPIVersion(ctx, r.Client, blueprintControlPlane.Template, cluster.Spec.ControlPlaneRef, cluster.Namespace, false)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.ControlPlaneRef.Name))
+		return nil, pkgerrors.Wrapf(err, "failed to read %s %s", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.ControlPlaneRef.Name))
 	}
 	res.Object, err = r.getReference(ctx, ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.ControlPlaneRef.Name))
+		return nil, pkgerrors.Wrapf(err, "failed to read %s %s", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.ControlPlaneRef.Name))
 	}
 	// check that the referenced object has the ClusterTopologyOwnedLabel label.
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -133,13 +133,13 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintC
 	// Determine contract version used by the ControlPlane.
 	contractVersion, err := contract.GetContractVersionForVersion(ctx, r.Client, res.Object.GroupVersionKind().GroupKind(), res.Object.GroupVersionKind().Version)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get contract version for the ControlPlane object")
+		return nil, pkgerrors.Wrapf(err, "failed to get contract version for the ControlPlane object")
 	}
 	var machineInfrastructureRef *clusterv1.ContractVersionedObjectReference
 	if contractVersion == "v1beta1" {
 		machineInfrastructureV1Beta1Ref, err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Get(res.Object)
 		if err != nil {
-			return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
+			return res, pkgerrors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
 		}
 		machineInfrastructureRef = &clusterv1.ContractVersionedObjectReference{
 			APIGroup: machineInfrastructureV1Beta1Ref.GroupVersionKind().Group,
@@ -149,16 +149,16 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintC
 	} else {
 		machineInfrastructureRef, err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(res.Object)
 		if err != nil {
-			return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
+			return res, pkgerrors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
 		}
 	}
 	ref, err = alignRefAPIVersion(ctx, r.Client, blueprintControlPlane.InfrastructureMachineTemplate, *machineInfrastructureRef, res.Object.GetNamespace(), true)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
+		return nil, pkgerrors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
 	}
 	res.InfrastructureMachineTemplate, err = r.getReference(ctx, ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
+		return nil, pkgerrors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
 	}
 	// check that the referenced object has the ClusterTopologyOwnedLabel label.
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -174,7 +174,7 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintC
 		if apierrors.IsNotFound(err) {
 			return res, nil
 		}
-		return nil, errors.Wrapf(err, "failed to get MachineHealthCheck for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
+		return nil, pkgerrors.Wrapf(err, "failed to get MachineHealthCheck for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
 	}
 	res.MachineHealthCheck = mhc
 	return res, nil
@@ -200,7 +200,7 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 		client.InNamespace(cluster.Namespace),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read MachineDeployments for managed topology")
+		return nil, pkgerrors.Wrap(err, "failed to read MachineDeployments for managed topology")
 	}
 
 	// Loop over each machine deployment and create the current
@@ -254,17 +254,17 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 
 			bootstrapRef, err := alignRefAPIVersion(ctx, r.Client, mdBluePrintBootstrapTemplate, bootstrapContractVersionedRef, m.Namespace, true)
 			if err != nil {
-				return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Bootstrap reference could not be retrieved", klog.KObj(m)))
+				return nil, pkgerrors.Wrap(err, fmt.Sprintf("MachineDeployment %s Bootstrap reference could not be retrieved", klog.KObj(m)))
 			}
 			infraRef, err := alignRefAPIVersion(ctx, r.Client, mdBluePrintInfrastructureMachineTemplate, infraContractVersionedRef, m.Namespace, true)
 			if err != nil {
-				return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Infrastructure reference could not be retrieved", klog.KObj(m)))
+				return nil, pkgerrors.Wrap(err, fmt.Sprintf("MachineDeployment %s Infrastructure reference could not be retrieved", klog.KObj(m)))
 			}
 
 			// Get the BootstrapTemplate.
 			bootstrapTemplate, err = r.getReference(ctx, bootstrapRef)
 			if err != nil {
-				return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Bootstrap reference could not be retrieved", klog.KObj(m)))
+				return nil, pkgerrors.Wrap(err, fmt.Sprintf("MachineDeployment %s Bootstrap reference could not be retrieved", klog.KObj(m)))
 			}
 			// check that the referenced object has the ClusterTopologyOwnedLabel label.
 			// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -276,7 +276,7 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 			// Get the InfraMachineTemplate.
 			infraMachineTemplate, err = r.getReference(ctx, infraRef)
 			if err != nil {
-				return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Infrastructure reference could not be retrieved", klog.KObj(m)))
+				return nil, pkgerrors.Wrap(err, fmt.Sprintf("MachineDeployment %s Infrastructure reference could not be retrieved", klog.KObj(m)))
 			}
 			// check that the referenced object has the ClusterTopologyOwnedLabel label.
 			// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -295,7 +295,7 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 
 			// Each MachineDeployment isn't required to have a MachineHealthCheck. Ignore the error if it's of the type not found, but return any other error.
 			if !apierrors.IsNotFound(err) {
-				return nil, errors.Wrap(err, fmt.Sprintf("failed to get MachineHealthCheck for MachineDeployment %s", klog.KObj(m)))
+				return nil, pkgerrors.Wrap(err, fmt.Sprintf("failed to get MachineHealthCheck for MachineDeployment %s", klog.KObj(m)))
 			}
 		}
 
@@ -329,7 +329,7 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 		client.InNamespace(cluster.Namespace),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read MachinePools for managed topology")
+		return nil, pkgerrors.Wrap(err, "failed to read MachinePools for managed topology")
 	}
 
 	// Loop over each machine pool and create the current
@@ -378,17 +378,17 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 
 		bootstrapRef, err := alignRefAPIVersion(ctx, r.Client, mpBluePrintBootstrapTemplate, bootstrapContractVersionedRef, m.Namespace, false)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("MachinePool %s Bootstrap reference could not be retrieved", klog.KObj(m)))
+			return nil, pkgerrors.Wrap(err, fmt.Sprintf("MachinePool %s Bootstrap reference could not be retrieved", klog.KObj(m)))
 		}
 		infraRef, err := alignRefAPIVersion(ctx, r.Client, mpBluePrintInfrastructureMachinePoolTemplate, infraContractVersionedRef, m.Namespace, false)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("MachinePool %s Infrastructure reference could not be retrieved", klog.KObj(m)))
+			return nil, pkgerrors.Wrap(err, fmt.Sprintf("MachinePool %s Infrastructure reference could not be retrieved", klog.KObj(m)))
 		}
 
 		// Get the BootstrapObject
 		bootstrapObject, err := r.getReference(ctx, bootstrapRef)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("MachinePool %s Bootstrap reference could not be retrieved", klog.KObj(m)))
+			return nil, pkgerrors.Wrap(err, fmt.Sprintf("MachinePool %s Bootstrap reference could not be retrieved", klog.KObj(m)))
 		}
 		// check that the referenced object has the ClusterTopologyOwnedLabel label.
 		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -400,7 +400,7 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 		// Get the InfraMachinePoolObject.
 		infraMachinePoolObject, err := r.getReference(ctx, infraRef)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("MachinePool %s Infrastructure reference could not be retrieved", klog.KObj(m)))
+			return nil, pkgerrors.Wrap(err, fmt.Sprintf("MachinePool %s Infrastructure reference could not be retrieved", klog.KObj(m)))
 		}
 		// check that the referenced object has the ClusterTopologyOwnedLabel label.
 		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -445,7 +445,7 @@ func alignRefAPIVersion(ctx context.Context, c client.Reader, templateFromCluste
 		var err error
 		apiVersion, err = contract.GetAPIVersion(ctx, c, currentRef.GroupKind())
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to align ref apiVersion")
+			return nil, pkgerrors.Wrapf(err, "failed to align ref apiVersion")
 		}
 	}
 

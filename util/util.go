@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -149,7 +149,7 @@ func IsNodeReady(node *corev1.Node) bool {
 // GetClusterFromMetadata returns the Cluster object (if present) using the object metadata.
 func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
 	if obj.Labels[clusterv1.ClusterNameLabel] == "" {
-		return nil, errors.WithStack(ErrNoCluster)
+		return nil, pkgerrors.WithStack(ErrNoCluster)
 	}
 	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1.ClusterNameLabel])
 }
@@ -162,7 +162,7 @@ func GetOwnerCluster(ctx context.Context, c client.Client, obj metav1.ObjectMeta
 		}
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, pkgerrors.WithStack(err)
 		}
 		if gv.Group == clusterv1.GroupVersion.Group {
 			return GetClusterByName(ctx, c, obj.Namespace, ref.Name)
@@ -180,7 +180,7 @@ func GetClusterByName(ctx context.Context, c client.Client, namespace, name stri
 	}
 
 	if err := c.Get(ctx, key, cluster); err != nil {
-		return nil, errors.Wrapf(err, "failed to get Cluster %s", klog.KRef(namespace, name))
+		return nil, pkgerrors.Wrapf(err, "failed to get Cluster %s", klog.KRef(namespace, name))
 	}
 
 	return cluster, nil
@@ -407,22 +407,22 @@ func refersTo(ref *metav1.OwnerReference, obj client.Object, objGK schema.GroupK
 // value into an object.
 func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, fields ...string) error {
 	if obj == nil || obj.Object == nil {
-		return errors.Errorf("failed to unmarshal unstructured object: object is nil")
+		return pkgerrors.Errorf("failed to unmarshal unstructured object: object is nil")
 	}
 
 	value, found, err := unstructured.NestedFieldNoCopy(obj.Object, fields...)
 	if err != nil {
-		return errors.Wrapf(err, "failed to retrieve field %q from %q", strings.Join(fields, "."), obj.GroupVersionKind())
+		return pkgerrors.Wrapf(err, "failed to retrieve field %q from %q", strings.Join(fields, "."), obj.GroupVersionKind())
 	}
 	if !found || value == nil {
 		return ErrUnstructuredFieldNotFound
 	}
 	valueBytes, err := json.Marshal(value)
 	if err != nil {
-		return errors.Wrapf(err, "failed to json-encode field %q value from %q", strings.Join(fields, "."), obj.GroupVersionKind())
+		return pkgerrors.Wrapf(err, "failed to json-encode field %q value from %q", strings.Join(fields, "."), obj.GroupVersionKind())
 	}
 	if err := json.Unmarshal(valueBytes, v); err != nil {
-		return errors.Wrapf(err, "failed to json-decode field %q value from %q", strings.Join(fields, "."), obj.GroupVersionKind())
+		return pkgerrors.Wrapf(err, "failed to json-decode field %q value from %q", strings.Join(fields, "."), obj.GroupVersionKind())
 	}
 	return nil
 }
@@ -468,11 +468,11 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 	// reflection in every execution of the actual event handler.
 	obj, err := scheme.New(gvk)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to construct object of type %s", gvk)
+		return nil, pkgerrors.Wrapf(err, "failed to construct object of type %s", gvk)
 	}
 	objectList, ok := obj.(client.ObjectList)
 	if !ok {
-		return nil, errors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
+		return nil, pkgerrors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
 	}
 
 	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
@@ -535,11 +535,11 @@ func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, sch
 	// reflection in every execution of the actual event handler.
 	obj, err := scheme.New(gvk)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to construct object of type %s", gvk)
+		return nil, pkgerrors.Wrapf(err, "failed to construct object of type %s", gvk)
 	}
 	objectList, ok := obj.(client.ObjectList)
 	if !ok {
-		return nil, errors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
+		return nil, pkgerrors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
 	}
 
 	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
@@ -599,11 +599,11 @@ func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *ru
 	// reflection in every execution of the actual event handler.
 	obj, err := scheme.New(gvk)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to construct object of type %s", gvk)
+		return nil, pkgerrors.Wrapf(err, "failed to construct object of type %s", gvk)
 	}
 	objectList, ok := obj.(client.ObjectList)
 	if !ok {
-		return nil, errors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
+		return nil, pkgerrors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
 	}
 
 	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
@@ -659,7 +659,7 @@ func isAPINamespaced(gk schema.GroupVersionKind, restmapper meta.RESTMapper) (bo
 
 	switch restMapping.Scope.Name() {
 	case "":
-		return false, errors.New("Scope cannot be identified. Empty scope returned")
+		return false, pkgerrors.New("Scope cannot be identified. Empty scope returned")
 	case meta.RESTScopeNameRoot:
 		return false, nil
 	default:
@@ -762,7 +762,7 @@ func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 		}
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, pkgerrors.WithStack(err)
 		}
 		if gv.Group == clusterv1.GroupVersion.Group {
 			return GetMachinePoolByName(ctx, c, obj.Namespace, ref.Name)
@@ -792,7 +792,7 @@ func GetMachinePoolByLabels(ctx context.Context, c client.Client, namespace stri
 	if poolNameHash, ok := labels[clusterv1.MachinePoolNameLabel]; ok {
 		machinePoolList := &clusterv1.MachinePoolList{}
 		if err := c.List(ctx, machinePoolList, client.InNamespace(namespace), client.MatchingLabels(selector)); err != nil {
-			return nil, errors.Wrapf(err, "failed to list MachinePools using labels %v", selector)
+			return nil, pkgerrors.Wrapf(err, "failed to list MachinePools using labels %v", selector)
 		}
 
 		for _, mp := range machinePoolList.Items {
@@ -801,7 +801,7 @@ func GetMachinePoolByLabels(ctx context.Context, c client.Client, namespace stri
 			}
 		}
 	} else {
-		return nil, errors.Errorf("labels missing required key `%s`", clusterv1.MachinePoolNameLabel)
+		return nil, pkgerrors.Errorf("labels missing required key `%s`", clusterv1.MachinePoolNameLabel)
 	}
 
 	return nil, nil

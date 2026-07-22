@@ -23,7 +23,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	corev1 "k8s.io/api/core/v1"
@@ -245,7 +245,7 @@ func TestRemoveEtcdMember(t *testing.T) {
 		{
 			name:                "returns an error if it fails to create the etcd client",
 			memberToDelete:      &etcd.Member{ID: uint64(1), Name: "cp1"},
-			etcdClientGenerator: &fakeEtcdClientGenerator{err: errors.New("no client")},
+			etcdClientGenerator: &fakeEtcdClientGenerator{err: pkgerrors.New("no client")},
 			expectErr:           true,
 		},
 		{
@@ -254,7 +254,7 @@ func TestRemoveEtcdMember(t *testing.T) {
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				client: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
-						MemberListError: errors.New("cannot get etcd members"),
+						MemberListError: pkgerrors.New("cannot get etcd members"),
 					},
 				},
 			},
@@ -304,7 +304,7 @@ func TestRemoveEtcdMember(t *testing.T) {
 								{Name: "cp2", ID: uint64(2)},
 							},
 						},
-						MemberRemoveError: errors.New("cannot remove etcd members"),
+						MemberRemoveError: pkgerrors.New("cannot remove etcd members"),
 					},
 				},
 			},
@@ -360,7 +360,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 				name:                "returns an error if it can't create an etcd client",
 				fromMember:          "m1",
 				toMember:            "m2",
-				etcdClientGenerator: &fakeEtcdClientGenerator{err: errors.New("no etcdClient")},
+				etcdClientGenerator: &fakeEtcdClientGenerator{err: pkgerrors.New("no etcdClient")},
 				expectErr:           true,
 			},
 			{
@@ -370,7 +370,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 				etcdClientGenerator: &fakeEtcdClientGenerator{
 					client: &etcd.Client{
 						EtcdClient: &fake2.FakeEtcdClient{
-							MemberListError: errors.New("cannot get etcd members"),
+							MemberListError: pkgerrors.New("cannot get etcd members"),
 						},
 					},
 				},
@@ -389,7 +389,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 									{Name: "m2", ID: uint64(2)},
 								},
 							},
-							MoveLeaderError: errors.New("cannot move leadership"),
+							MoveLeaderError: pkgerrors.New("cannot move leadership"),
 						},
 						LeaderID: 1,
 					},

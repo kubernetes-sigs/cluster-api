@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -171,7 +171,7 @@ func (blder *Builder) Complete(ctx context.Context, r reconcile.TypedReconciler[
 // Build builds the Application Controller and returns the Controller it created.
 func (blder *Builder) Build(ctx context.Context, r reconcile.TypedReconciler[reconcile.Request]) (Controller, error) {
 	if feature.Gates.Enabled(feature.ReconcilerRateLimiting) && !feature.Gates.Enabled(feature.PriorityQueue) {
-		return nil, errors.New("if feature gate ReconcilerRateLimiting is enabled, feature gate PriorityQueue must be enabled as well")
+		return nil, pkgerrors.New("if feature gate ReconcilerRateLimiting is enabled, feature gate PriorityQueue must be enabled as well")
 	}
 
 	// Get GVK of the for object.

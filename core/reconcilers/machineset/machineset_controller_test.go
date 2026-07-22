@@ -27,7 +27,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	gomegatypes "github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -2688,7 +2688,7 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 		Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
 			clientObject, ok := obj.(client.Object)
 			if !ok {
-				return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
+				return pkgerrors.Errorf("error during object creation: unexpected ApplyConfiguration")
 			}
 			if clientObject.GetObjectKind().GroupVersionKind().Kind == "Machine" {
 				applyCounter++
@@ -2955,7 +2955,7 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 					Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
 						clientObject, ok := obj.(client.Object)
 						if !ok {
-							return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
+							return pkgerrors.Errorf("error during object creation: unexpected ApplyConfiguration")
 						}
 						if clientObject.GetObjectKind().GroupVersionKind().Kind == "Machine" {
 							*i++
@@ -3577,7 +3577,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			},
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(_ context.Context, _ client.WithWatch, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
-					return errors.New("injected error performing get") // we should not perform any get if in-place update has been already triggered
+					return pkgerrors.New("injected error performing get") // we should not perform any get if in-place update has been already triggered
 				},
 			},
 			wantMachinesNotInPlaceUpdating: nil,
@@ -3593,7 +3593,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 					if obj.GetObjectKind().GroupVersionKind().Kind == builder.GenericInfrastructureMachineKind && key.Name == "m1" {
-						return errors.New("injected error when getting m1-infra")
+						return pkgerrors.New("injected error when getting m1-infra")
 					}
 					return client.Get(ctx, key, obj, opts...)
 				},
@@ -3611,7 +3611,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 					if key.Name == "ms-infra-template" {
-						return errors.New("injected error when getting ms-infra-template")
+						return pkgerrors.New("injected error when getting ms-infra-template")
 					}
 					return client.Get(ctx, key, obj, opts...)
 				},
@@ -3629,7 +3629,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 					if obj.GetObjectKind().GroupVersionKind().Kind == builder.GenericBootstrapConfigKind && key.Name == "m1" {
-						return errors.New("injected error when getting m1-bootstrap")
+						return pkgerrors.New("injected error when getting m1-bootstrap")
 					}
 					return client.Get(ctx, key, obj, opts...)
 				},
@@ -3647,7 +3647,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 					if key.Name == "ms-bootstrap-template" {
-						return errors.New("injected error when getting ms-bootstrap-template")
+						return pkgerrors.New("injected error when getting ms-bootstrap-template")
 					}
 					return client.Get(ctx, key, obj, opts...)
 				},
@@ -3666,10 +3666,10 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 				Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
 					clientObject, ok := obj.(client.Object)
 					if !ok {
-						return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
+						return pkgerrors.Errorf("error during object creation: unexpected ApplyConfiguration")
 					}
 					if clientObject.GetObjectKind().GroupVersionKind().Kind == builder.GenericInfrastructureMachineKind && clientObject.GetName() == "m1" {
-						return errors.New("injected error when applying m1-infra")
+						return pkgerrors.New("injected error when applying m1-infra")
 					}
 					return c.Apply(ctx, obj, opts...)
 				},
@@ -3688,10 +3688,10 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 				Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
 					clientObject, ok := obj.(client.Object)
 					if !ok {
-						return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
+						return pkgerrors.Errorf("error during object creation: unexpected ApplyConfiguration")
 					}
 					if clientObject.GetObjectKind().GroupVersionKind().Kind == builder.GenericBootstrapConfigKind && clientObject.GetName() == "m1" {
-						return errors.New("injected error when applying m1-bootstrap")
+						return pkgerrors.New("injected error when applying m1-bootstrap")
 					}
 					return c.Apply(ctx, obj, opts...)
 				},
@@ -3710,10 +3710,10 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 				Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
 					clientObject, ok := obj.(client.Object)
 					if !ok {
-						return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
+						return pkgerrors.Errorf("error during object creation: unexpected ApplyConfiguration")
 					}
 					if clientObject.GetName() == "m1" {
-						return errors.New("injected error when applying m1")
+						return pkgerrors.New("injected error when applying m1")
 					}
 					return c.Apply(ctx, obj, opts...)
 				},
@@ -3763,7 +3763,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 					if obj.GetObjectKind().GroupVersionKind().Kind == builder.GenericInfrastructureMachineKind && key.Name == "m1" {
-						return errors.New("injected error when getting m1-infra")
+						return pkgerrors.New("injected error when getting m1-infra")
 					}
 					return client.Get(ctx, key, obj, opts...)
 				},

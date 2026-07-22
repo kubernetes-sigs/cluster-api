@@ -24,7 +24,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -90,7 +90,7 @@ func (r *localRepository) GetFile(ctx context.Context, version, fileName string)
 	case latestVersionTag:
 		version, err = latestRelease(ctx, r)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get the latest release")
+			return nil, pkgerrors.Wrapf(err, "failed to get the latest release")
 		}
 	case "":
 		version = r.defaultVersion
@@ -100,14 +100,14 @@ func (r *localRepository) GetFile(ctx context.Context, version, fileName string)
 
 	f, err := os.Stat(absolutePath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, version)
+		return nil, pkgerrors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, version)
 	}
 	if f.IsDir() {
-		return nil, errors.Errorf("invalid path: file %q is actually a directory %q", fileName, absolutePath)
+		return nil, pkgerrors.Errorf("invalid path: file %q is actually a directory %q", fileName, absolutePath)
 	}
 	content, err := os.ReadFile(absolutePath) //nolint:gosec
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, version)
+		return nil, pkgerrors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, version)
 	}
 	return content, nil
 }
@@ -118,7 +118,7 @@ func (r *localRepository) GetVersions(_ context.Context) ([]string, error) {
 	releasesPath := filepath.Join(r.basepath, r.providerLabel)
 	files, err := os.ReadDir(releasesPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to list release directories")
+		return nil, pkgerrors.Wrap(err, "failed to list release directories")
 	}
 	versions := []string{}
 	for _, f := range files {
@@ -140,7 +140,7 @@ func (r *localRepository) GetVersions(_ context.Context) ([]string, error) {
 func newLocalRepository(ctx context.Context, providerConfig config.Provider, configVariablesClient config.VariablesClient) (*localRepository, error) {
 	url, err := url.Parse(providerConfig.URL())
 	if err != nil {
-		return nil, errors.Wrap(err, "invalid url")
+		return nil, pkgerrors.Wrap(err, "invalid url")
 	}
 
 	// gets the path part of the url and check it is an absolute path
@@ -153,14 +153,14 @@ func newLocalRepository(ctx context.Context, providerConfig config.Provider, con
 		path = filepath.FromSlash(strings.TrimPrefix(path, "/"))
 	}
 	if !filepath.IsAbs(path) {
-		return nil, errors.Errorf("invalid path: path %q must be an absolute path", providerConfig.URL())
+		return nil, pkgerrors.Errorf("invalid path: path %q must be an absolute path", providerConfig.URL())
 	}
 
 	// Extracts provider-name, version, componentsPath from the url
 	// NB. format is {basepath}/{provider-name}/{version}/{components.yaml}
 	urlSplit := strings.Split(path, string(os.PathSeparator))
 	if len(urlSplit) < 3 {
-		return nil, errors.Errorf("invalid path: path should be in the form {basepath}/{provider-name}/{version}/{components.yaml}")
+		return nil, pkgerrors.Errorf("invalid path: path should be in the form {basepath}/{provider-name}/{version}/{components.yaml}")
 	}
 
 	componentsPath := urlSplit[len(urlSplit)-1]
@@ -168,12 +168,12 @@ func newLocalRepository(ctx context.Context, providerConfig config.Provider, con
 	if defaultVersion != latestVersionTag {
 		_, err = version.ParseSemantic(defaultVersion)
 		if err != nil {
-			return nil, errors.Errorf("invalid version: %q. Version must obey the syntax and semantics of the \"Semantic Versioning\" specification (http://semver.org/) and path format {basepath}/{provider-name}/{version}/{components.yaml}", defaultVersion)
+			return nil, pkgerrors.Errorf("invalid version: %q. Version must obey the syntax and semantics of the \"Semantic Versioning\" specification (http://semver.org/) and path format {basepath}/{provider-name}/{version}/{components.yaml}", defaultVersion)
 		}
 	}
 	providerID := urlSplit[len(urlSplit)-3]
 	if providerID != providerConfig.ManifestLabel() {
-		return nil, errors.Errorf("invalid path: path %q must contain provider %q in the format {basepath}/{provider-label}/{version}/{components.yaml}", providerConfig.URL(), providerConfig.ManifestLabel())
+		return nil, pkgerrors.Errorf("invalid path: path %q must contain provider %q in the format {basepath}/{provider-label}/{version}/{components.yaml}", providerConfig.URL(), providerConfig.ManifestLabel())
 	}
 
 	// Get the base path, by trimming the last parts which are treated as a separated fields
@@ -193,7 +193,7 @@ func newLocalRepository(ctx context.Context, providerConfig config.Provider, con
 	if defaultVersion == latestVersionTag {
 		repo.defaultVersion, err = latestContractRelease(ctx, repo, clusterv1.GroupVersion.Version)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get latest version")
+			return nil, pkgerrors.Wrap(err, "failed to get latest version")
 		}
 	}
 	return repo, nil

@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -66,7 +66,7 @@ type DevMachineReconciler struct {
 // SetupWithManager will add watches for this controller.
 func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.InMemoryManager == nil || r.APIServerMux == nil || r.ContainerRuntime == nil || r.ClusterCache == nil {
-		return errors.New("Client, InMemoryManager and APIServerMux, ContainerRuntime and ClusterCache must not be nil")
+		return pkgerrors.New("Client, InMemoryManager and APIServerMux, ContainerRuntime and ClusterCache must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "devmachine")
@@ -97,7 +97,7 @@ func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		WatchesRawSource(r.DockerMachineTaskManager.GetSource()).
 		Build(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.controller = c
@@ -144,7 +144,7 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				devMachineWithoutFinalizer := devMachine.DeepCopy()
 				controllerutil.RemoveFinalizer(devMachineWithoutFinalizer, infrav1.MachineFinalizer)
 				if err := r.Client.Patch(ctx, devMachineWithoutFinalizer, client.MergeFrom(devMachine)); err != nil {
-					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DevMachine %s", klog.KObj(devMachine))
+					return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to patch DevMachine %s", klog.KObj(devMachine))
 				}
 			}
 			return ctrl.Result{}, nil

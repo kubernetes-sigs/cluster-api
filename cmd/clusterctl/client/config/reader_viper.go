@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/viper"
 
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -90,7 +90,7 @@ func (v *viperReader) Init(ctx context.Context, path string) error {
 	if path != "" {
 		url, err := url.Parse(path)
 		if err != nil {
-			return errors.Wrap(err, "failed to url parse the config path")
+			return pkgerrors.Wrap(err, "failed to url parse the config path")
 		}
 
 		switch url.Scheme {
@@ -114,7 +114,7 @@ func (v *viperReader) Init(ctx context.Context, path string) error {
 			viper.SetConfigFile(downloadConfigFile)
 		default:
 			if _, err := os.Stat(path); err != nil {
-				return errors.Wrap(err, "failed to check if clusterctl config file exists")
+				return pkgerrors.Wrap(err, "failed to check if clusterctl config file exists")
 			}
 			// Use path file from the flag.
 			viper.SetConfigFile(path)
@@ -145,7 +145,7 @@ func downloadFile(ctx context.Context, url string, filepath string) error {
 	// Create the file
 	out, err := os.Create(filepath) //nolint:gosec // No security issue: filepath is safe.
 	if err != nil {
-		return errors.Wrapf(err, "failed to create the clusterctl config file %s", filepath)
+		return pkgerrors.Wrapf(err, "failed to create the clusterctl config file %s", filepath)
 	}
 	defer out.Close()
 
@@ -155,22 +155,22 @@ func downloadFile(ctx context.Context, url string, filepath string) error {
 	// Get the data
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return errors.Wrapf(err, "failed to download the clusterctl config file from %s: failed to create request", url)
+		return pkgerrors.Wrapf(err, "failed to download the clusterctl config file from %s: failed to create request", url)
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "failed to download the clusterctl config file from %s", url)
+		return pkgerrors.Wrapf(err, "failed to download the clusterctl config file from %s", url)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("failed to download the clusterctl config file from %s got %d", url, resp.StatusCode)
+		return pkgerrors.Errorf("failed to download the clusterctl config file from %s got %d", url, resp.StatusCode)
 	}
 	defer resp.Body.Close()
 
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return errors.Wrap(err, "failed to save the data in the clusterctl config")
+		return pkgerrors.Wrap(err, "failed to save the data in the clusterctl config")
 	}
 
 	return nil
@@ -178,7 +178,7 @@ func downloadFile(ctx context.Context, url string, filepath string) error {
 
 func (v *viperReader) Get(key string) (string, error) {
 	if viper.Get(key) == nil {
-		return "", errors.Errorf("Failed to get value for variable %q. Please set the variable value using os env variables or using the .clusterctl config file", key)
+		return "", pkgerrors.Errorf("Failed to get value for variable %q. Please set the variable value using os env variables or using the .clusterctl config file", key)
 	}
 	return viper.GetString(key), nil
 }

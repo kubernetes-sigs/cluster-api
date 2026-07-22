@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-var errNoAvailableNodes = errors.New("cannot find nodes with matching ProviderIDs in ProviderIDList")
+var errNoAvailableNodes = pkgerrors.New("cannot find nodes with matching ProviderIDs in ProviderIDList")
 
 type getNodeReferencesResult struct {
 	references []corev1.ObjectReference
@@ -117,18 +117,18 @@ func (r *Reconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Resu
 
 	// Return early if nodeRefMap is nil.
 	if s.nodeRefMap == nil {
-		return ctrl.Result{}, errors.New("failed to get Node references")
+		return ctrl.Result{}, pkgerrors.New("failed to get Node references")
 	}
 
 	nodeRefsResult, err := r.getNodeReferences(ctx, mp.Spec.ProviderIDList, ptr.Deref(mp.Spec.Template.Spec.MinReadySeconds, 0), s.nodeRefMap)
 	if err != nil {
-		if errors.Is(err, errNoAvailableNodes) {
+		if pkgerrors.Is(err, errNoAvailableNodes) {
 			log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")
 			// No need to requeue here. Nodes emit an event that triggers reconciliation.
 			return ctrl.Result{}, nil
 		}
 		r.recorder.Event(mp, corev1.EventTypeWarning, "FailedSetNodeRef", err.Error())
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get node references")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get node references")
 	}
 
 	if mp.Status.Deprecated == nil {
@@ -191,7 +191,7 @@ func (r *Reconciler) deleteRetiredNodes(ctx context.Context, c client.Client, no
 	}
 	for _, node := range nodeRefsMap {
 		if err := c.Delete(ctx, node); err != nil && !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to delete Node")
+			return pkgerrors.Wrapf(err, "failed to delete Node")
 		}
 	}
 	return nil

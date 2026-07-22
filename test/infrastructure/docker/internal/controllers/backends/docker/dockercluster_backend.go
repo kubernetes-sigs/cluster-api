@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,7 +48,7 @@ type ClusterBackEndReconciler struct {
 // ReconcileNormal handle docker backend for DevCluster not yet deleted.
 func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster) (ctrl.Result, error) {
 	if dockerCluster.Spec.Backend.Docker == nil {
-		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
+		return ctrl.Result{}, pkgerrors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 
 	// Support FailureDomains
@@ -69,7 +69,7 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 			Reason:  infrav1.DevClusterDockerLoadBalancerNotAvailableReason,
 			Message: fmt.Sprintf("Failed to create helper for managing the externalLoadBalancer: %v", err),
 		})
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
 	}
 
 	// Create the docker container hosting the load balancer.
@@ -81,7 +81,7 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 			Reason:  infrav1.DevClusterDockerLoadBalancerNotAvailableReason,
 			Message: fmt.Sprintf("Failed to create load balancer: %v", err),
 		})
-		return ctrl.Result{}, errors.Wrap(err, "failed to create load balancer")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to create load balancer")
 	}
 
 	// Set APIEndpoints with the load balancer IP so the Cluster API Cluster Controller can pull it
@@ -94,7 +94,7 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 			Reason:  infrav1.DevClusterDockerLoadBalancerNotAvailableReason,
 			Message: fmt.Sprintf("Failed to get ip for the load balancer: %v", err),
 		})
-		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to get ip for the load balancer")
 	}
 
 	if dockerCluster.Spec.ControlPlaneEndpoint.Host == "" {
@@ -118,7 +118,7 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 // ReconcileDelete handle docker backend for delete DevMachines.
 func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster) (ctrl.Result, error) {
 	if dockerCluster.Spec.Backend.Docker == nil {
-		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevClusters without a Docker backend")
+		return ctrl.Result{}, pkgerrors.New("DockerBackendReconciler can't be called for DevClusters without a Docker backend")
 	}
 
 	// Create a helper for managing a docker container hosting the loadbalancer.
@@ -135,7 +135,7 @@ func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster 
 			Message: fmt.Sprintf("Failed to create helper for managing the externalLoadBalancer: %v", err),
 		})
 
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
 	}
 
 	// Set the LoadBalancerAvailableCondition reporting delete is started, and requeue in order to make
@@ -152,7 +152,7 @@ func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster 
 
 	// Delete the docker container hosting the load balancer
 	if err := externalLoadBalancer.Delete(ctx); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to delete load balancer")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to delete load balancer")
 	}
 
 	// Cluster is deleted so remove the finalizer.
@@ -164,7 +164,7 @@ func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster 
 // PatchDevCluster patch a DevCluster.
 func (r *ClusterBackEndReconciler) PatchDevCluster(ctx context.Context, patchHelper *patch.Helper, dockerCluster *infrav1.DevCluster) error {
 	if dockerCluster.Spec.Backend.Docker == nil {
-		return errors.New("DockerBackendReconciler can't be called for DevClusters without a Docker backend")
+		return pkgerrors.New("DockerBackendReconciler can't be called for DevClusters without a Docker backend")
 	}
 
 	// Always update the readyCondition by summarizing the state of other conditions.
@@ -191,7 +191,7 @@ func (r *ClusterBackEndReconciler) PatchDevCluster(ctx context.Context, patchHel
 			),
 		},
 	); err != nil {
-		return errors.Wrapf(err, "failed to set %s condition", infrav1.DevClusterReadyCondition)
+		return pkgerrors.Wrapf(err, "failed to set %s condition", infrav1.DevClusterReadyCondition)
 	}
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.

@@ -21,7 +21,7 @@ import (
 	"io"
 	"text/template"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 )
@@ -36,7 +36,7 @@ type limitedWriter struct {
 
 func (l *limitedWriter) Write(p []byte) (int, error) {
 	if len(p) > l.remaining {
-		return 0, errors.Errorf("rendered output exceeds the %d byte limit", maxRenderedTemplateBytes)
+		return 0, pkgerrors.Errorf("rendered output exceeds the %d byte limit", maxRenderedTemplateBytes)
 	}
 	l.remaining -= len(p)
 	return l.w.Write(p)
@@ -71,11 +71,11 @@ func renderTemplates(files []bootstrapv1.File, data map[string]interface{}) ([]b
 		}
 		tpl, err := template.New(out[i].Path).Parse(out[i].Content)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse template for file %q", out[i].Path)
+			return nil, pkgerrors.Wrapf(err, "failed to parse template for file %q", out[i].Path)
 		}
 		var buf bytes.Buffer
 		if err := tpl.Execute(&limitedWriter{w: &buf, remaining: maxRenderedTemplateBytes}, data); err != nil {
-			return nil, errors.Wrapf(err, "failed to execute template for file %q", out[i].Path)
+			return nil, pkgerrors.Wrapf(err, "failed to execute template for file %q", out[i].Path)
 		}
 		out[i].Content = buf.String()
 		out[i].ContentFormat = ""

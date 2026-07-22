@@ -17,7 +17,7 @@ limitations under the License.
 package util
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -129,7 +129,7 @@ func fixDeploymentImages(o *unstructured.Unstructured, alterImageFunc func(image
 	}
 
 	if err := fixPodSpecImages(&d.Spec.Template.Spec, alterImageFunc); err != nil {
-		return errors.Wrapf(err, "failed to fix containers in deployment %s", d.Name)
+		return pkgerrors.Wrapf(err, "failed to fix containers in deployment %s", d.Name)
 	}
 
 	// Convert typed object back to Unstructured
@@ -148,7 +148,7 @@ func fixDaemonSetImages(o *unstructured.Unstructured, alterImageFunc func(image 
 	}
 
 	if err := fixPodSpecImages(&d.Spec.Template.Spec, alterImageFunc); err != nil {
-		return errors.Wrapf(err, "failed to fix containers in deamonSet %s", d.Name)
+		return pkgerrors.Wrapf(err, "failed to fix containers in deamonSet %s", d.Name)
 	}
 	// Convert typed object back to Unstructured
 	return scheme.Scheme.Convert(d, o, nil)
@@ -156,10 +156,10 @@ func fixDaemonSetImages(o *unstructured.Unstructured, alterImageFunc func(image 
 
 func fixPodSpecImages(podSpec *corev1.PodSpec, alterImageFunc func(image string) (string, error)) error {
 	if err := fixContainersImage(podSpec.Containers, alterImageFunc); err != nil {
-		return errors.Wrapf(err, "failed to fix containers")
+		return pkgerrors.Wrapf(err, "failed to fix containers")
 	}
 	if err := fixContainersImage(podSpec.InitContainers, alterImageFunc); err != nil {
-		return errors.Wrapf(err, "failed to fix init containers")
+		return pkgerrors.Wrapf(err, "failed to fix init containers")
 	}
 	return nil
 }
@@ -169,7 +169,7 @@ func fixContainersImage(containers []corev1.Container, alterImageFunc func(image
 		container := &containers[j]
 		image, err := alterImageFunc(container.Image)
 		if err != nil {
-			return errors.Wrapf(err, "failed to fix image for container %s", container.Name)
+			return pkgerrors.Wrapf(err, "failed to fix image for container %s", container.Name)
 		}
 		container.Image = image
 	}

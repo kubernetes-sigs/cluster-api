@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -80,7 +80,7 @@ func clusterClassNamesFromTemplate(template Template) ([]types.NamespacedName, e
 		case obj.GroupVersionKind().Version == clusterv1.GroupVersion.Version:
 			cluster := &clusterv1.Cluster{}
 			if err := scheme.Scheme.Convert(&obj, cluster, nil); err != nil {
-				return nil, errors.Wrap(err, "failed to convert object to Cluster")
+				return nil, pkgerrors.Wrap(err, "failed to convert object to Cluster")
 			}
 			if !cluster.Spec.Topology.IsDefined() {
 				continue
@@ -89,7 +89,7 @@ func clusterClassNamesFromTemplate(template Template) ([]types.NamespacedName, e
 		case obj.GroupVersionKind().Version == clusterv1beta1.GroupVersion.Version:
 			cluster := &clusterv1beta1.Cluster{}
 			if err := scheme.Scheme.Convert(&obj, cluster, nil); err != nil {
-				return nil, errors.Wrap(err, "failed to convert object to Cluster")
+				return nil, pkgerrors.Wrap(err, "failed to convert object to Cluster")
 			}
 			if cluster.Spec.Topology == nil {
 				continue
@@ -117,7 +117,7 @@ func fetchMissingClusterClassTemplates(ctx context.Context, clusterClassClient r
 	if err := clusterClient.Proxy().CheckClusterAvailable(ctx); err == nil {
 		clusterInitialized, err = clusterClient.ProviderInventory().CheckCAPIInstalled(ctx)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to check if the cluster is initialized")
+			return nil, pkgerrors.Wrap(err, "failed to check if the cluster is initialized")
 		}
 	}
 	var c client.Client
@@ -145,7 +145,7 @@ func fetchMissingClusterClassTemplates(ctx context.Context, clusterClassClient r
 		// Fetch the cluster class to install.
 		clusterClassTemplate, err := clusterClassClient.Get(ctx, class.Name, class.Namespace, listVariablesOnly)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get the cluster class template for %q", class)
+			return nil, pkgerrors.Wrapf(err, "failed to get the cluster class template for %q", class)
 		}
 
 		// If any of the objects in the ClusterClass template already exist in the cluster then
@@ -178,7 +178,7 @@ func clusterClassExists(ctx context.Context, c client.Client, class, targetNames
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}
-		return false, errors.Wrapf(err, "failed to check if ClusterClass %q exists in the cluster", class)
+		return false, pkgerrors.Wrapf(err, "failed to check if ClusterClass %q exists in the cluster", class)
 	}
 	return true, nil
 }

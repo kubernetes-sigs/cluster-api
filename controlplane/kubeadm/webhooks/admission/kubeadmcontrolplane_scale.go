@@ -20,7 +20,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -54,13 +54,13 @@ func (v *ScaleValidator) Handle(ctx context.Context, req admission.Request) admi
 
 	err := v.decoder.Decode(req, scale)
 	if err != nil {
-		return admission.Errored(http.StatusBadRequest, errors.Wrapf(err, "failed to decode Scale resource"))
+		return admission.Errored(http.StatusBadRequest, pkgerrors.Wrapf(err, "failed to decode Scale resource"))
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{}
 	kcpKey := types.NamespacedName{Namespace: scale.Namespace, Name: scale.Name}
 	if err = v.Client.Get(ctx, kcpKey, kcp); err != nil {
-		return admission.Errored(http.StatusInternalServerError, errors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s", scale.Namespace, scale.Name))
+		return admission.Errored(http.StatusInternalServerError, pkgerrors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s", scale.Namespace, scale.Name))
 	}
 
 	if scale.Spec.Replicas <= 0 {

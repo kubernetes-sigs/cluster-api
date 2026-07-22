@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -824,10 +824,10 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 		Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
 			clientObject, ok := obj.(client.Object)
 			if !ok {
-				return errors.Errorf("error during Machine creation: unexpected ApplyConfiguration")
+				return pkgerrors.Errorf("error during Machine creation: unexpected ApplyConfiguration")
 			}
 			if clientObject.GetObjectKind().GroupVersionKind().Kind == "Machine" {
-				return errors.Errorf("fake error during Machine creation")
+				return pkgerrors.Errorf("fake error during Machine creation")
 			}
 			return c.Apply(ctx, obj, opts...)
 		},

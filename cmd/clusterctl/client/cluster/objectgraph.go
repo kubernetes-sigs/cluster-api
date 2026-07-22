@@ -24,7 +24,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -154,7 +154,7 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 	if n.identity.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("Cluster").GroupKind() {
 		cluster := &clusterv1.Cluster{}
 		if err := localScheme.Convert(obj, cluster, nil); err != nil {
-			return errors.Wrapf(err, "failed to convert object %s to Cluster", n.identityStr())
+			return pkgerrors.Wrapf(err, "failed to convert object %s to Cluster", n.identityStr())
 		}
 		if cluster.Spec.Topology.IsDefined() {
 			if n.additionalInfo == nil {
@@ -169,7 +169,7 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 	if n.identity.GroupVersionKind().GroupKind() == addonsv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind() {
 		binding := &addonsv1.ClusterResourceSetBinding{}
 		if err := localScheme.Convert(obj, binding, nil); err != nil {
-			return errors.Wrapf(err, "failed to convert object %s to ClusterResourceSetBinding", n.identityStr())
+			return pkgerrors.Wrapf(err, "failed to convert object %s to ClusterResourceSetBinding", n.identityStr())
 		}
 		if n.additionalInfo == nil {
 			n.additionalInfo = map[string]interface{}{}
@@ -201,7 +201,7 @@ func (o *objectGraph) addObj(obj *unstructured.Unstructured) error {
 	// Adds the node to the Graph.
 	newNode, err := o.objToNode(obj)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create node for object (Kind=%s, Name=%s)", obj.GetKind(), obj.GetName())
+		return pkgerrors.Wrapf(err, "failed to create node for object (Kind=%s, Name=%s)", obj.GetKind(), obj.GetName())
 	}
 
 	// Process OwnerReferences; if the owner object does not exists yet, create a virtual node as a placeholder for it.
@@ -215,13 +215,13 @@ func (o *objectGraph) addObj(obj *unstructured.Unstructured) error {
 func (o *objectGraph) addRestoredObj(obj *unstructured.Unstructured) error {
 	// Add object to graph
 	if _, err := o.objToNode(obj); err != nil {
-		return errors.Wrapf(err, "failed to create node for object (Kind=%s, Name=%s)", obj.GetKind(), obj.GetName())
+		return pkgerrors.Wrapf(err, "failed to create node for object (Kind=%s, Name=%s)", obj.GetKind(), obj.GetName())
 	}
 
 	// Check to ensure node has been added to graph
 	node, found := o.uidToNode[obj.GetUID()]
 	if !found {
-		return errors.Errorf("error adding obj %v with id %v to object graph", obj.GetName(), obj.GetUID())
+		return pkgerrors.Errorf("error adding obj %v with id %v to object graph", obj.GetName(), obj.GetUID())
 	}
 
 	// Copy the raw object yaml to be referenced when restoring object
@@ -278,7 +278,7 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) (*node, error) {
 		existingNode.markObserved()
 
 		if err := o.objInfoToNode(obj, existingNode); err != nil {
-			return nil, errors.Wrapf(err, "failed to add object info to node for object %s", existingNode.identityStr())
+			return nil, pkgerrors.Wrapf(err, "failed to add object info to node for object %s", existingNode.identityStr())
 		}
 
 		return existingNode, nil
@@ -299,7 +299,7 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) (*node, error) {
 		additionalInfo: make(map[string]interface{}),
 	}
 	if err := o.objInfoToNode(obj, newNode); err != nil {
-		return nil, errors.Wrapf(err, "failed to add object info to node for object %s", existingNode.identityStr())
+		return nil, pkgerrors.Wrapf(err, "failed to add object info to node for object %s", existingNode.identityStr())
 	}
 
 	o.uidToNode[newNode.identity.UID] = newNode
@@ -309,7 +309,7 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) (*node, error) {
 func (o *objectGraph) objInfoToNode(obj *unstructured.Unstructured, n *node) error {
 	o.objMetaToNode(obj, n)
 	if err := n.captureAdditionalInformation(obj); err != nil {
-		return errors.Wrapf(err, "failed to capture additional information of object %s", n.identityStr())
+		return pkgerrors.Wrapf(err, "failed to capture additional information of object %s", n.identityStr())
 	}
 	return nil
 }
@@ -424,7 +424,7 @@ func getCRDList(ctx context.Context, proxy Proxy, crdList *apiextensionsv1.Custo
 	}
 
 	if err := c.List(ctx, crdList, client.HasLabels{clusterctlv1.ClusterctlLabel}); err != nil {
-		return errors.Wrap(err, "failed to get the list of CRDs required for the move discovery phase")
+		return pkgerrors.Wrap(err, "failed to get the list of CRDs required for the move discovery phase")
 	}
 	return nil
 }
@@ -479,7 +479,7 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		for i := range objList.Items {
 			obj := objList.Items[i]
 			if err := o.addObj(&obj); err != nil {
-				return errors.Wrapf(err, "failed to add obj (Kind=%s, Name=%s) to graph", obj.GetKind(), obj.GetName())
+				return pkgerrors.Wrapf(err, "failed to add obj (Kind=%s, Name=%s) to graph", obj.GetKind(), obj.GetName())
 			}
 		}
 	}
@@ -514,12 +514,12 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 			APIVersion: clusterv1.GroupVersion.String(),
 		})
 		if err != nil {
-			return errors.Wrap(err, "failed to get ClusterClass")
+			return pkgerrors.Wrap(err, "failed to get ClusterClass")
 		}
 
 		cc := &clusterv1.ClusterClass{}
 		if err := localScheme.Convert(ccUnstructured, cc, nil); err != nil {
-			return errors.Wrap(err, "failed to convert Unstructured to ClusterClass")
+			return pkgerrors.Wrap(err, "failed to convert Unstructured to ClusterClass")
 		}
 
 		errs := []error{}
@@ -546,7 +546,7 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		}
 
 		if err := kerrors.NewAggregate(errs); err != nil {
-			return errors.Wrap(err, "failed to fetch ClusterClass references")
+			return pkgerrors.Wrap(err, "failed to fetch ClusterClass references")
 		}
 
 		discoveredExternalCC.Insert(externalCCKey.String())
@@ -582,11 +582,11 @@ func (o *objectGraph) fetchRef(ctx context.Context, opts wait.Backoff, ref *core
 		obj, err = external.Get(ctx, c, ref)
 		return err
 	}); err != nil {
-		return nil, errors.Wrapf(err, "failed to get referenced %q resource", ref.String())
+		return nil, pkgerrors.Wrapf(err, "failed to get referenced %q resource", ref.String())
 	}
 
 	if err := o.addObj(obj); err != nil {
-		return nil, errors.Wrapf(err, "failed to add obj (Kind=%s, Name=%s) to graph", obj.GetKind(), obj.GetName())
+		return nil, pkgerrors.Wrapf(err, "failed to add obj (Kind=%s, Name=%s) to graph", obj.GetKind(), obj.GetName())
 	}
 
 	return obj, nil
@@ -606,7 +606,7 @@ func getObjList(ctx context.Context, proxy Proxy, typeMeta *metav1.TypeMeta, sel
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to list %q resources", objList.GetObjectKind().GroupVersionKind())
+		return pkgerrors.Wrapf(err, "failed to list %q resources", objList.GetObjectKind().GroupVersionKind())
 	}
 	return nil
 }

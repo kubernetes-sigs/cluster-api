@@ -23,7 +23,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -1274,7 +1274,7 @@ func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
 			desiredVersion:             "v1.33.0",
 			currentControlPlaneVersion: "v1.31.0",
 			currentMinWorkersVersion:   "v1.31.0",
-			extensionError:             errors.New("extension call error"),
+			extensionError:             pkgerrors.New("extension call error"),
 			wantErrMessage:             "failed to get upgrade plan from extension: extension call error",
 		},
 	}

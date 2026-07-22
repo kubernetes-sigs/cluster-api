@@ -20,7 +20,7 @@ import (
 	"context"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -175,7 +175,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 			}
 		}
 		if len(machines) > upgraded {
-			return 0, errors.New("old Machines remain")
+			return 0, pkgerrors.New("old Machines remain")
 		}
 		return upgraded, nil
 	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all control-plane machines in Cluster %s to be upgraded to kubernetes version %s", klog.KObj(input.Cluster), input.KubernetesUpgradeVersion)
@@ -215,7 +215,7 @@ func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input Wai
 			}
 		}
 		if len(machines) > upgraded {
-			return 0, errors.New("old Machines remain")
+			return 0, pkgerrors.New("old Machines remain")
 		}
 		return upgraded, nil
 	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachineDeployment %s Machines to be upgraded to kubernetes version %s", klog.KObj(&input.MachineDeployment), input.KubernetesUpgradeVersion)
@@ -290,7 +290,7 @@ func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCh
 func MachineNodeRefCheck() MachineStatusCheck {
 	return func(machine *clusterv1.Machine) error {
 		if !machine.Status.NodeRef.IsDefined() {
-			return errors.Errorf("NodeRef is not assigned to the machine %s", klog.KObj(machine))
+			return pkgerrors.Errorf("NodeRef is not assigned to the machine %s", klog.KObj(machine))
 		}
 		return nil
 	}
@@ -300,7 +300,7 @@ func MachineNodeRefCheck() MachineStatusCheck {
 func MachinePhaseCheck(expectedPhase string) MachineStatusCheck {
 	return func(machine *clusterv1.Machine) error {
 		if machine.Status.Phase != expectedPhase {
-			return errors.Errorf("Machine %s is not in phase %s", klog.KObj(machine), expectedPhase)
+			return pkgerrors.Errorf("Machine %s is not in phase %s", klog.KObj(machine), expectedPhase)
 		}
 		return nil
 	}

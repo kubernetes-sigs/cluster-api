@@ -22,7 +22,7 @@ import (
 	"sync"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -49,20 +49,20 @@ func (v *StatusVersions) Path() Path {
 func (v *StatusVersions) Get(obj *unstructured.Unstructured) ([]clusterv1.StatusVersion, error) {
 	slice, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), v.path...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(v.path, "."))
+		return nil, pkgerrors.Wrapf(err, "failed to get %s from object", "."+strings.Join(v.path, "."))
 	}
 	if !ok {
-		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(v.path, "."))
+		return nil, pkgerrors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(v.path, "."))
 	}
 
 	versions := make([]clusterv1.StatusVersion, len(slice))
 	s, err := json.Marshal(slice)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to marshall field at %s to json", "."+strings.Join(v.path, "."))
+		return nil, pkgerrors.Wrapf(err, "failed to marshall field at %s to json", "."+strings.Join(v.path, "."))
 	}
 	err = json.Unmarshal(s, &versions)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshall field at %s to json", "."+strings.Join(v.path, "."))
+		return nil, pkgerrors.Wrapf(err, "failed to unmarshall field at %s to json", "."+strings.Join(v.path, "."))
 	}
 
 	var previousParsedVersion semver.Version
@@ -70,15 +70,15 @@ func (v *StatusVersions) Get(obj *unstructured.Unstructured) ([]clusterv1.Status
 	for i, currentVersion := range versions {
 		currentParsedVersion, err := semver.ParseTolerant(currentVersion.Version)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse %s[%d].version from object", "."+strings.Join(v.path, "."), i)
+			return nil, pkgerrors.Wrapf(err, "failed to parse %s[%d].version from object", "."+strings.Join(v.path, "."), i)
 		}
 
 		if previousVersion != "" && version.Compare(currentParsedVersion, previousParsedVersion, version.WithBuildTags()) < 0 {
-			return nil, errors.Errorf("version %q and %q are in the wrong order", previousVersion, currentVersion.Version)
+			return nil, pkgerrors.Errorf("version %q and %q are in the wrong order", previousVersion, currentVersion.Version)
 		}
 
 		if currentVersion.Replicas < 0 {
-			return nil, errors.Errorf("%s[%d].replicas must not be negative", "."+strings.Join(v.path, "."), i)
+			return nil, pkgerrors.Errorf("%s[%d].replicas must not be negative", "."+strings.Join(v.path, "."), i)
 		}
 
 		previousParsedVersion = currentParsedVersion
@@ -103,7 +103,7 @@ func (v *StatusVersions) Set(obj *unstructured.Unstructured, value []clusterv1.S
 		})
 	}
 	if err := unstructured.SetNestedSlice(obj.UnstructuredContent(), interfaces, v.path...); err != nil {
-		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(v.path, "."), obj.GroupVersionKind())
+		return pkgerrors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(v.path, "."), obj.GroupVersionKind())
 	}
 	return nil
 }
@@ -137,7 +137,7 @@ func (c *ControlPlaneContract) IgnorePaths(controlPlane *unstructured.Unstructur
 
 	host, ok, err := unstructured.NestedString(controlPlane.UnstructuredContent(), ControlPlane().ControlPlaneEndpoint().host().Path()...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s", ControlPlane().ControlPlaneEndpoint().host().Path().String())
+		return nil, pkgerrors.Wrapf(err, "failed to retrieve %s", ControlPlane().ControlPlaneEndpoint().host().Path().String())
 	}
 	if ok && host == "" {
 		ignorePaths = append(ignorePaths, ControlPlane().ControlPlaneEndpoint().host().Path())
@@ -145,7 +145,7 @@ func (c *ControlPlaneContract) IgnorePaths(controlPlane *unstructured.Unstructur
 
 	port, ok, err := unstructured.NestedInt64(controlPlane.UnstructuredContent(), ControlPlane().ControlPlaneEndpoint().port().Path()...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s", ControlPlane().ControlPlaneEndpoint().port().Path().String())
+		return nil, pkgerrors.Wrapf(err, "failed to retrieve %s", ControlPlane().ControlPlaneEndpoint().port().Path().String())
 	}
 	if ok && port == 0 {
 		ignorePaths = append(ignorePaths, ControlPlane().ControlPlaneEndpoint().port().Path())
@@ -281,10 +281,10 @@ func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (b
 	// assume that the control plane is being created for the first time.
 	statusVersion, err := c.CurrentStatusVersion(obj)
 	if err != nil {
-		if errors.Is(err, ErrFieldNotFound) {
+		if pkgerrors.Is(err, ErrFieldNotFound) {
 			return true, nil
 		}
-		return false, errors.Wrap(err, "failed to get control plane status version(s)")
+		return false, pkgerrors.Wrap(err, "failed to get control plane status version(s)")
 	}
 	if *statusVersion == "" {
 		return true, nil
@@ -303,16 +303,16 @@ func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (b
 func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool, error) {
 	specVersion, err := c.Version().Get(obj)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to get control plane spec version")
+		return false, pkgerrors.Wrap(err, "failed to get control plane spec version")
 	}
 	specV, err := semver.ParseTolerant(*specVersion)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to parse control plane spec version")
+		return false, pkgerrors.Wrap(err, "failed to parse control plane spec version")
 	}
 
 	statusVersions, err := c.StatusVersions().Get(obj)
-	if err != nil && !errors.Is(err, ErrFieldNotFound) {
-		return false, errors.Wrap(err, "failed to get control plane status.versions")
+	if err != nil && !pkgerrors.Is(err, ErrFieldNotFound) {
+		return false, pkgerrors.Wrap(err, "failed to get control plane status.versions")
 	}
 	if err == nil && len(statusVersions) > 0 {
 		for _, statusVersion := range statusVersions {
@@ -320,7 +320,7 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 			// not all control plane providers support replicas.
 			statusV, err := semver.ParseTolerant(statusVersion.Version)
 			if err != nil {
-				return false, errors.Wrap(err, "failed to parse control plane status version")
+				return false, pkgerrors.Wrap(err, "failed to parse control plane status version")
 			}
 			if version.Compare(specV, statusV, version.WithBuildTags()) >= 1 {
 				return true, nil
@@ -331,20 +331,20 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 
 	statusVersion, err := c.StatusVersion().Get(obj)
 	if err != nil {
-		if errors.Is(err, ErrFieldNotFound) {
+		if pkgerrors.Is(err, ErrFieldNotFound) {
 			// If the status.version(s) is not yet present in the object, it implies the
 			// first machine of the control plane is provisioning. We can reasonably assume
 			// that the control plane is not upgrading at this stage.
 			return false, nil
 		}
-		return false, errors.Wrap(err, "failed to get control plane status.version")
+		return false, pkgerrors.Wrap(err, "failed to get control plane status.version")
 	}
 	if *statusVersion == "" {
 		return false, nil
 	}
 	statusV, err := semver.ParseTolerant(*statusVersion)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to parse control plane status version")
+		return false, pkgerrors.Wrap(err, "failed to parse control plane status version")
 	}
 
 	// NOTE: we are considering the control plane upgrading when the version is greater
@@ -355,7 +355,7 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 // CurrentStatusVersion provides access to the .status.version(s) fields in a ControlPlane object status, if any.
 func (c *ControlPlaneContract) CurrentStatusVersion(obj *unstructured.Unstructured) (*string, error) {
 	statusVersions, err := c.StatusVersions().Get(obj)
-	if err != nil && !errors.Is(err, ErrFieldNotFound) {
+	if err != nil && !pkgerrors.Is(err, ErrFieldNotFound) {
 		return nil, err
 	}
 	if err == nil && len(statusVersions) > 0 {
@@ -382,48 +382,48 @@ func (c *ControlPlaneContract) CurrentStatusVersion(obj *unstructured.Unstructur
 func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contractVersion string) (bool, error) {
 	desiredReplicas, err := c.Replicas().Get(obj)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to get control plane %s", c.Replicas().Path().String())
+		return false, pkgerrors.Wrapf(err, "failed to get control plane %s", c.Replicas().Path().String())
 	}
 
 	statusReplicas, err := c.StatusReplicas().Get(obj)
 	if err != nil {
-		if errors.Is(err, ErrFieldNotFound) {
+		if pkgerrors.Is(err, ErrFieldNotFound) {
 			// status is probably not yet set on the control plane
 			// if status is missing we can consider the control plane to be scaling
 			// so that we can block any operations that expect control plane to be stable.
 			return true, nil
 		}
-		return false, errors.Wrapf(err, "failed to get control plane %s", c.StatusReplicas().Path().String())
+		return false, pkgerrors.Wrapf(err, "failed to get control plane %s", c.StatusReplicas().Path().String())
 	}
 
 	upToDateReplicas, err := c.UpToDateReplicas(contractVersion).Get(obj)
 	if err != nil {
-		if errors.Is(err, ErrFieldNotFound) {
+		if pkgerrors.Is(err, ErrFieldNotFound) {
 			// If updatedReplicas is not set on the control plane
 			// we should consider the control plane to be scaling so that
 			// we block any operation that expect the control plane to be stable.
 			return true, nil
 		}
-		return false, errors.Wrapf(err, "failed to get control plane %s", c.UpToDateReplicas(contractVersion).Path().String())
+		return false, pkgerrors.Wrapf(err, "failed to get control plane %s", c.UpToDateReplicas(contractVersion).Path().String())
 	}
 
 	readyReplicas, err := c.ReadyReplicas().Get(obj)
 	if err != nil {
-		if errors.Is(err, ErrFieldNotFound) {
+		if pkgerrors.Is(err, ErrFieldNotFound) {
 			// If readyReplicas is not set on the control plane
 			// we should consider the control plane to be scaling so that
 			// we block any operation that expect the control plane to be stable.
 			return true, nil
 		}
-		return false, errors.Wrapf(err, "failed to get control plane %s", c.ReadyReplicas().Path().String())
+		return false, pkgerrors.Wrapf(err, "failed to get control plane %s", c.ReadyReplicas().Path().String())
 	}
 
 	var availableReplicas *int32
 	if contractVersion == "v1beta1" {
 		unavailableReplicas, err := c.V1Beta1UnavailableReplicas().Get(obj)
 		if err != nil {
-			if !errors.Is(err, ErrFieldNotFound) {
-				return false, errors.Wrapf(err, "failed to get control plane %s", c.V1Beta1UnavailableReplicas().Path().String())
+			if !pkgerrors.Is(err, ErrFieldNotFound) {
+				return false, pkgerrors.Wrapf(err, "failed to get control plane %s", c.V1Beta1UnavailableReplicas().Path().String())
 			}
 			// If unavailableReplicas is not set on the control plane we assume it is 0.
 			// We have to do this as the following happens after clusterctl move with KCP:
@@ -438,13 +438,13 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contrac
 	} else {
 		availableReplicas, err = c.AvailableReplicas().Get(obj)
 		if err != nil {
-			if errors.Is(err, ErrFieldNotFound) {
+			if pkgerrors.Is(err, ErrFieldNotFound) {
 				// If availableReplicas is not set on the control plane
 				// we should consider the control plane to be scaling so that
 				// we block any operation that expect the control plane to be stable.
 				return true, nil
 			}
-			return false, errors.Wrapf(err, "failed to get control plane %s", c.AvailableReplicas().Path().String())
+			return false, pkgerrors.Wrapf(err, "failed to get control plane %s", c.AvailableReplicas().Path().String())
 		}
 	}
 
@@ -503,17 +503,17 @@ func getNestedRef(obj *unstructured.Unstructured, fields ...string) (*clusterv1.
 	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "apiGroup")...); ok && err == nil {
 		ref.APIGroup = v
 	} else {
-		return nil, errors.Errorf("failed to get %s.apiGroup from %s", strings.Join(fields, "."), obj.GetKind())
+		return nil, pkgerrors.Errorf("failed to get %s.apiGroup from %s", strings.Join(fields, "."), obj.GetKind())
 	}
 	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "kind")...); ok && err == nil {
 		ref.Kind = v
 	} else {
-		return nil, errors.Errorf("failed to get %s.kind from %s", strings.Join(fields, "."), obj.GetKind())
+		return nil, pkgerrors.Errorf("failed to get %s.kind from %s", strings.Join(fields, "."), obj.GetKind())
 	}
 	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "name")...); ok && err == nil {
 		ref.Name = v
 	} else {
-		return nil, errors.Errorf("failed to get %s.name from %s", strings.Join(fields, "."), obj.GetKind())
+		return nil, pkgerrors.Errorf("failed to get %s.name from %s", strings.Join(fields, "."), obj.GetKind())
 	}
 	return ref, nil
 }
@@ -526,7 +526,7 @@ func setNestedRef(obj *unstructured.Unstructured, ref *clusterv1.ContractVersion
 		"apiGroup": ref.APIGroup,
 	}
 	if err := unstructured.SetNestedField(obj.UnstructuredContent(), r, fields...); err != nil {
-		return errors.Wrapf(err, "failed to set object reference on object %v %s",
+		return pkgerrors.Wrapf(err, "failed to set object reference on object %v %s",
 			obj.GroupVersionKind(), klog.KObj(obj))
 	}
 	return nil
@@ -608,19 +608,19 @@ func (m *ReadinessGates) Path() Path {
 func (m *ReadinessGates) Get(obj *unstructured.Unstructured) ([]clusterv1.MachineReadinessGate, error) {
 	unstructuredValue, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), m.Path()...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve control plane %s", "."+m.Path().String())
+		return nil, pkgerrors.Wrapf(err, "failed to retrieve control plane %s", "."+m.Path().String())
 	}
 	if !ok {
-		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+m.Path().String())
+		return nil, pkgerrors.Wrapf(ErrFieldNotFound, "path %s", "."+m.Path().String())
 	}
 
 	var readinessGates []clusterv1.MachineReadinessGate
 	jsonValue, err := json.Marshal(unstructuredValue)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
+		return nil, pkgerrors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
 	}
 	if err := json.Unmarshal(jsonValue, &readinessGates); err != nil {
-		return nil, errors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
+		return nil, pkgerrors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
 	}
 
 	return readinessGates, nil
@@ -636,14 +636,14 @@ func (m *ReadinessGates) Set(obj *unstructured.Unstructured, readinessGates []cl
 
 	jsonValue, err := json.Marshal(readinessGates)
 	if err != nil {
-		return errors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
+		return pkgerrors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
 	}
 	var unstructuredValue []interface{}
 	if err := json.Unmarshal(jsonValue, &unstructuredValue); err != nil {
-		return errors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
+		return pkgerrors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
 	}
 	if err := unstructured.SetNestedSlice(obj.UnstructuredContent(), unstructuredValue, m.Path()...); err != nil {
-		return errors.Wrapf(err, "failed to set control plane %s", "."+m.Path().String())
+		return pkgerrors.Wrapf(err, "failed to set control plane %s", "."+m.Path().String())
 	}
 	return nil
 }
@@ -669,19 +669,19 @@ func (m *Taints) Path() Path {
 func (m *Taints) Get(obj *unstructured.Unstructured) ([]clusterv1.MachineTaint, error) {
 	unstructuredValue, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), m.Path()...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve control plane %s", "."+m.Path().String())
+		return nil, pkgerrors.Wrapf(err, "failed to retrieve control plane %s", "."+m.Path().String())
 	}
 	if !ok {
-		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+m.Path().String())
+		return nil, pkgerrors.Wrapf(ErrFieldNotFound, "path %s", "."+m.Path().String())
 	}
 
 	var taints []clusterv1.MachineTaint
 	jsonValue, err := json.Marshal(unstructuredValue)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
+		return nil, pkgerrors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
 	}
 	if err := json.Unmarshal(jsonValue, &taints); err != nil {
-		return nil, errors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
+		return nil, pkgerrors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
 	}
 
 	return taints, nil
@@ -697,14 +697,14 @@ func (m *Taints) Set(obj *unstructured.Unstructured, taints []clusterv1.MachineT
 
 	jsonValue, err := json.Marshal(taints)
 	if err != nil {
-		return errors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
+		return pkgerrors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
 	}
 	var unstructuredValue []interface{}
 	if err := json.Unmarshal(jsonValue, &unstructuredValue); err != nil {
-		return errors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
+		return pkgerrors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
 	}
 	if err := unstructured.SetNestedSlice(obj.UnstructuredContent(), unstructuredValue, m.Path()...); err != nil {
-		return errors.Wrapf(err, "failed to set control plane %s", "."+m.Path().String())
+		return pkgerrors.Wrapf(err, "failed to set control plane %s", "."+m.Path().String())
 	}
 	return nil
 }

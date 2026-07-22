@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -128,7 +128,7 @@ func init() {
 func validateShowConditions(showConditions string) error {
 	for _, filter := range strings.Split(showConditions, ",") {
 		if strings.TrimSpace(filter) != filter {
-			return errors.Errorf("invalid --show-conditions value %q: whitespace is not allowed", showConditions)
+			return pkgerrors.Errorf("invalid --show-conditions value %q: whitespace is not allowed", showConditions)
 		}
 	}
 	return nil
@@ -166,11 +166,11 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 	switch dc.v1beta2 {
 	case true:
 		if err := cmdtree.PrintObjectTree(tree, os.Stdout); err != nil {
-			return errors.Wrap(err, "failed to print object tree")
+			return pkgerrors.Wrap(err, "failed to print object tree")
 		}
 	default:
 		if err := cmdtree.PrintObjectTreeV1Beta1(tree); err != nil {
-			return errors.Wrap(err, "failed to print object tree v1beta1")
+			return pkgerrors.Wrap(err, "failed to print object tree v1beta1")
 		}
 	}
 

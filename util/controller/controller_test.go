@@ -25,7 +25,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -238,7 +238,7 @@ func TestReconcile(t *testing.T) {
 		// Reconcile will reconcile and return error which will trigger exponential backoff (rate-limiting should not interfere)
 		// This test is using the sourceChannel to include the controller & the priority queue because this is the only way
 		// to test the exponential backoff that is computed by the priority queue.
-		errorToReturn := errors.New("error")
+		errorToReturn := pkgerrors.New("error")
 		var errorLock sync.Mutex
 		r.reconciler = reconcile.Func(func(_ context.Context, _ reconcile.Request) (reconcile.Result, error) {
 			reconcileCounter.Add(1)
@@ -326,7 +326,7 @@ func TestReconcileMetrics(t *testing.T) {
 
 		// Error
 		r.reconciler = reconcile.Func(func(_ context.Context, _ reconcile.Request) (reconcile.Result, error) {
-			return reconcile.Result{RequeueAfter: 5 * time.Second}, errors.New("error") // RequeueAfter should be dropped
+			return reconcile.Result{RequeueAfter: 5 * time.Second}, pkgerrors.New("error") // RequeueAfter should be dropped
 		})
 		res, err = r.Reconcile(t.Context(), req)
 		g.Expect(err).To(HaveOccurred())

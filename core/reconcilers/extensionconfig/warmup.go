@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
@@ -70,7 +70,7 @@ func (r *warmupRunnable) Start(ctx context.Context) error {
 	if r.warmupTimeout == 0 {
 		r.warmupTimeout = defaultWarmupTimeout
 	}
-	ctx, cancel := context.WithTimeoutCause(ctx, r.warmupTimeout, errors.New("warmup timeout expired"))
+	ctx, cancel := context.WithTimeoutCause(ctx, r.warmupTimeout, pkgerrors.New("warmup timeout expired"))
 	defer cancel()
 
 	var warmupErr error
@@ -82,7 +82,7 @@ func (r *warmupRunnable) Start(ctx context.Context) error {
 		return true, nil
 	})
 	if err != nil {
-		return errors.Wrapf(warmupErr, "ExtensionConfig registry warmup timed out after %s", r.warmupTimeout.String())
+		return pkgerrors.Wrapf(warmupErr, "ExtensionConfig registry warmup timed out after %s", r.warmupTimeout.String())
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func (r *warmupRunnable) warmupRegistry(ctx context.Context) error {
 
 	extensionConfigList := runtimev1.ExtensionConfigList{}
 	if err := r.APIReader.List(ctx, &extensionConfigList); err != nil {
-		return errors.Wrapf(err, "failed to list ExtensionConfigs")
+		return pkgerrors.Wrapf(err, "failed to list ExtensionConfigs")
 	}
 
 	var errs []error
@@ -108,14 +108,14 @@ func (r *warmupRunnable) warmupRegistry(ctx context.Context) error {
 		// In readOnly mode only validate instead of reconciling CA bundle and running discovery.
 		if r.ReadOnly {
 			if err := validateExtensionConfig(extensionConfig); err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to validate ExtensionConfig"))
+				errs = append(errs, pkgerrors.Wrapf(err, "failed to validate ExtensionConfig"))
 			}
 		} else {
 			// extensionConfig is equal to original here, but we have to deepcopy so that if extensionConfig is changed original is not changed.
 			original := extensionConfig.DeepCopy()
 			extensionConfig, err := reconcileExtensionConfig(ctx, r.Client, r.RuntimeClient, original, extensionConfig)
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to reconcile ExtensionConfig"))
+				errs = append(errs, pkgerrors.Wrapf(err, "failed to reconcile ExtensionConfig"))
 				continue
 			}
 			extensionConfigList.Items[i] = *extensionConfig

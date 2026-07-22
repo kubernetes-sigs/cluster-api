@@ -20,7 +20,7 @@ package controllers
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -90,7 +90,7 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				dockerClusterWithoutFinalizer := dockerCluster.DeepCopy()
 				controllerutil.RemoveFinalizer(dockerClusterWithoutFinalizer, infrav1.ClusterFinalizer)
 				if err := r.Client.Patch(ctx, dockerClusterWithoutFinalizer, client.MergeFrom(dockerCluster)); err != nil {
-					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DockerCluster %s", klog.KObj(dockerCluster))
+					return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to patch DockerCluster %s", klog.KObj(dockerCluster))
 				}
 			}
 			return ctrl.Result{}, nil
@@ -143,7 +143,7 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager will add watches for this controller.
 func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.ContainerRuntime == nil {
-		return errors.New("Client and ContainerRuntime must not be nil")
+		return pkgerrors.New("Client and ContainerRuntime must not be nil")
 	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockercluster")
 	err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
@@ -156,7 +156,7 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 		).Complete(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.backendReconciler = &dockerbackend.ClusterBackEndReconciler{
@@ -192,7 +192,7 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 			),
 		},
 	); err != nil {
-		return errors.Wrapf(err, "failed to set %s condition", infrav1.DevClusterReadyCondition)
+		return pkgerrors.Wrapf(err, "failed to set %s condition", infrav1.DevClusterReadyCondition)
 	}
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.

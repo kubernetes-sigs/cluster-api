@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -439,7 +439,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		// Check if the MachineSet can update in place; if not, move to the next MachineSet.
 		canUpdateInPlace, err := p.canUpdateMachineSetInPlace(ctx, oldMS, p.newMS)
 		if err != nil {
-			return errors.Wrapf(err, "failed to determine if MachineSet %s can be updated in-place", oldMS.Name)
+			return pkgerrors.Wrapf(err, "failed to determine if MachineSet %s can be updated in-place", oldMS.Name)
 		}
 		log.V(5).Info(fmt.Sprintf("CanUpdate in-place decision for MachineSet %s: %t", klog.KObj(oldMS), canUpdateInPlace), "MachineSet", klog.KObj(oldMS))
 

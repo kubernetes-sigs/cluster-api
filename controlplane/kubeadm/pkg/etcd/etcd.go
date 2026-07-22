@@ -22,7 +22,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
@@ -145,7 +145,7 @@ type ClientConfiguration struct {
 func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error) {
 	dialer, err := proxy.NewDialer(config.Proxy)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to create a dialer for the etcd client connecting to %s", config.Endpoint)
+		return nil, pkgerrors.Wrapf(err, "unable to create a dialer for the etcd client connecting to %s", config.Endpoint)
 	}
 
 	etcdClient, err := clientv3.New(clientv3.Config{
@@ -158,7 +158,7 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 		Logger: config.Logger,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create etcd client")
+		return nil, pkgerrors.Wrap(err, "unable to create etcd client")
 	}
 
 	callTimeout := config.CallTimeout
@@ -177,15 +177,15 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 func newEtcdClient(ctx context.Context, etcdClient etcd, callTimeout time.Duration) (*Client, error) {
 	endpoints := etcdClient.Endpoints()
 	if len(endpoints) == 0 {
-		return nil, errors.New("invalid argument: newEtcdClient cannot be called without any endpoint")
+		return nil, pkgerrors.New("invalid argument: newEtcdClient cannot be called without any endpoint")
 	}
 
-	ctx, cancel := context.WithTimeoutCause(ctx, callTimeout, errors.New("call timeout expired"))
+	ctx, cancel := context.WithTimeoutCause(ctx, callTimeout, pkgerrors.New("call timeout expired"))
 	defer cancel()
 
 	status, err := etcdClient.Status(ctx, endpoints[0])
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get etcd status")
+		return nil, pkgerrors.Wrap(err, "failed to get etcd status")
 	}
 
 	// We don't need to read or handle StatusResponse.Errors here. They
@@ -206,12 +206,12 @@ func (c *Client) Close() error {
 
 // Members retrieves a list of etcd members.
 func (c *Client) Members(ctx context.Context) ([]*Member, error) {
-	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, pkgerrors.New("call timeout expired"))
 	defer cancel()
 
 	response, err := c.EtcdClient.MemberList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get etcd members")
+		return nil, pkgerrors.Wrap(err, "failed to get etcd members")
 	}
 
 	clusterID := response.Header.GetClusterId()
@@ -227,30 +227,30 @@ func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 
 // MoveLeader moves the leader to the provided member ID.
 func (c *Client) MoveLeader(ctx context.Context, newLeaderID uint64) error {
-	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, pkgerrors.New("call timeout expired"))
 	defer cancel()
 
 	_, err := c.EtcdClient.MoveLeader(ctx, newLeaderID)
-	return errors.Wrapf(err, "failed to move etcd leader to: %v", newLeaderID)
+	return pkgerrors.Wrapf(err, "failed to move etcd leader to: %v", newLeaderID)
 }
 
 // RemoveMember removes a given member.
 func (c *Client) RemoveMember(ctx context.Context, id uint64) error {
-	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, pkgerrors.New("call timeout expired"))
 	defer cancel()
 
 	_, err := c.EtcdClient.MemberRemove(ctx, id)
-	return errors.Wrapf(err, "failed to remove etcd member: %v", id)
+	return pkgerrors.Wrapf(err, "failed to remove etcd member: %v", id)
 }
 
 // Alarms retrieves all alarms on a cluster.
 func (c *Client) Alarms(ctx context.Context) ([]MemberAlarm, error) {
-	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, pkgerrors.New("call timeout expired"))
 	defer cancel()
 
 	alarmResponse, err := c.EtcdClient.AlarmList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get etcd alarms")
+		return nil, pkgerrors.Wrap(err, "failed to get etcd alarms")
 	}
 
 	memberAlarms := make([]MemberAlarm, 0, len(alarmResponse.Alarms))

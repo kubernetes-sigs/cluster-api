@@ -20,7 +20,7 @@ package collections
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -38,7 +38,7 @@ func GetFilteredMachinesForCluster(ctx context.Context, c client.Reader, cluster
 			clusterv1.ClusterNameLabel: cluster.Name,
 		},
 	); err != nil {
-		return nil, errors.Wrap(err, "failed to list machines")
+		return nil, pkgerrors.Wrap(err, "failed to list machines")
 	}
 
 	machines := FromMachineList(ml)
@@ -57,7 +57,7 @@ func GetControlPlaneMachinesForCluster(ctx context.Context, c client.Reader, clu
 			clusterv1.MachineControlPlaneLabel: "",
 		},
 	); err != nil {
-		return nil, errors.Wrap(err, "failed to list control plane machines")
+		return nil, pkgerrors.Wrap(err, "failed to list control plane machines")
 	}
 
 	return FromMachineList(ml), nil

@@ -28,7 +28,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -332,10 +332,10 @@ func parseObjects(clusterClassYAML []byte) (map[clusterv1.ClusterClassTemplateRe
 		// Read one YAML document at a time, until io.EOF is returned
 		objectBytes, err := reader.Read()
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if pkgerrors.Is(err, io.EOF) {
 				break
 			}
-			return nil, errors.Wrapf(err, "failed to read YAML")
+			return nil, pkgerrors.Wrapf(err, "failed to read YAML")
 		}
 		if len(objectBytes) == 0 {
 			break
@@ -363,7 +363,7 @@ func parseObjects(clusterClassYAML []byte) (map[clusterv1.ClusterClassTemplateRe
 		// Add the unmarshalled typed object.
 		metaObj, ok := obj.(metav1.Object)
 		if !ok {
-			return nil, errors.Errorf("found an object which is not a metav1.Object")
+			return nil, pkgerrors.Errorf("found an object which is not a metav1.Object")
 		}
 		parsedObjects[clusterv1.ClusterClassTemplateReference{
 			Name:       metaObj.GetName(),
@@ -397,12 +397,12 @@ func findObject[K runtime.Object](objects map[clusterv1.ClusterClassTemplateRefe
 		}
 
 		if alreadyFound {
-			return res, errors.Errorf("found multiple objects matching %v", groupVersionKindName)
+			return res, pkgerrors.Errorf("found multiple objects matching %v", groupVersionKindName)
 		}
 
 		objK, ok := obj.(K)
 		if !ok {
-			return res, errors.Errorf("found an object matching %v, but it has the wrong type", groupVersionKindName)
+			return res, pkgerrors.Errorf("found an object matching %v, but it has the wrong type", groupVersionKindName)
 		}
 		res = objK
 		alreadyFound = true
@@ -443,9 +443,9 @@ func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecata
 		i.runtimeExtension.DiscoverVariables(ctx, reqCopy, resp.(*runtimehooksv1.DiscoverVariablesResponse))
 		if resp.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
 			if resp.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-				return errors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
+				return pkgerrors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
 			}
-			return errors.Errorf("failed to call extension handler: got unknown response status %q", resp.GetStatus())
+			return pkgerrors.Errorf("failed to call extension handler: got unknown response status %q", resp.GetStatus())
 		}
 		return nil
 	case runtimecatalog.HookName(runtimehooksv1.GeneratePatches):
@@ -456,9 +456,9 @@ func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecata
 		i.runtimeExtension.GeneratePatches(ctx, reqCopy, resp.(*runtimehooksv1.GeneratePatchesResponse))
 		if resp.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
 			if resp.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-				return errors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
+				return pkgerrors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
 			}
-			return errors.Errorf("failed to call extension handler: got unknown response status %q", resp.GetStatus())
+			return pkgerrors.Errorf("failed to call extension handler: got unknown response status %q", resp.GetStatus())
 		}
 		return nil
 	case runtimecatalog.HookName(runtimehooksv1.ValidateTopology):
@@ -469,9 +469,9 @@ func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecata
 		i.runtimeExtension.ValidateTopology(ctx, reqCopy, resp.(*runtimehooksv1.ValidateTopologyResponse))
 		if resp.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
 			if resp.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-				return errors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
+				return pkgerrors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
 			}
-			return errors.Errorf("failed to call extension handler: got unknown response status %q", resp.GetStatus())
+			return pkgerrors.Errorf("failed to call extension handler: got unknown response status %q", resp.GetStatus())
 		}
 		return nil
 	}

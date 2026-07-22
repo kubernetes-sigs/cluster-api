@@ -28,7 +28,7 @@ import (
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -694,10 +694,10 @@ func checkLifecycleHookResponses(ctx context.Context, c client.Client, cluster *
 		for hookName, expectedResponse := range expectedHookResponses {
 			actualResponse, ok := responseData[hookName+"-actualResponseStatus"]
 			if !ok {
-				return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(cluster.Namespace, hookResponsesConfigMapName(cluster.Name, extensionConfigName)))
+				return pkgerrors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(cluster.Namespace, hookResponsesConfigMapName(cluster.Name, extensionConfigName)))
 			}
 			if expectedResponse != "" && expectedResponse != actualResponse {
-				return errors.Errorf("hook %s was expected to be %s in configMap got %s", hookName, expectedResponse, actualResponse)
+				return pkgerrors.Errorf("hook %s was expected to be %s in configMap got %s", hookName, expectedResponse, actualResponse)
 			}
 		}
 		return nil
@@ -709,7 +709,7 @@ func checkLifecycleHooksCalledAtLeastOnce(ctx context.Context, c client.Client, 
 	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, cluster, extensionConfigName)
 	hookName := computeHookName(hook, attributes)
 	if _, ok := responseData[hookName+"-actualResponseStatus"]; !ok {
-		return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(cluster.Namespace, hookResponsesConfigMapName(cluster.Name, extensionConfigName)))
+		return pkgerrors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(cluster.Namespace, hookResponsesConfigMapName(cluster.Name, extensionConfigName)))
 	}
 	return nil
 }
@@ -1142,7 +1142,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clust
 			return err
 		}
 		if !topologyConditionCheck() {
-			return errors.Errorf("Blocking condition for %s not found on Cluster object", hookName)
+			return pkgerrors.Errorf("Blocking condition for %s not found on Cluster object", hookName)
 		}
 		return nil
 	}, 30*time.Second, 2*time.Second).Should(Succeed(), "%s has not been called", hookName)

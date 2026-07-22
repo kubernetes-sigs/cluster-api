@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -37,7 +37,7 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 	}{
 		{
 			name:                             "error occurred",
-			reconcileExternalReferencesError: errors.New("failed to set ClusterClass owner reference for KubeadmControlPlaneTemplate test-kcp"),
+			reconcileExternalReferencesError: pkgerrors.New("failed to set ClusterClass owner reference for KubeadmControlPlaneTemplate test-kcp"),
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterClassRefVersionsUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
@@ -120,7 +120,7 @@ func TestSetVariablesReconciledCondition(t *testing.T) {
 	}{
 		{
 			name: "error occurred",
-			variableDiscoveryError: errors.New("VariableDiscovery failed: patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
+			variableDiscoveryError: pkgerrors.New("VariableDiscovery failed: patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
 				"supported values: \"array\", \"boolean\", \"integer\", \"number\", \"object\", \"string\""),
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterClassVariablesReadyCondition,

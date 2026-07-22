@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -74,7 +74,7 @@ func (webhook *ClusterClass) ValidateUpdate(ctx context.Context, oldClusterClass
 func (webhook *ClusterClass) ValidateDelete(ctx context.Context, clusterClass *clusterv1.ClusterClass) (admission.Warnings, error) {
 	clusters, err := webhook.getClustersUsingClusterClass(ctx, clusterClass)
 	if err != nil {
-		return nil, apierrors.NewInternalError(errors.Wrapf(err, "could not retrieve Clusters using ClusterClass"))
+		return nil, apierrors.NewInternalError(pkgerrors.Wrapf(err, "could not retrieve Clusters using ClusterClass"))
 	}
 
 	if len(clusters) > 0 {
@@ -145,7 +145,7 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 		clusters, err := webhook.getClustersUsingClusterClass(ctx, oldClusterClass)
 		if err != nil {
 			allErrs = append(allErrs, field.InternalError(field.NewPath(""),
-				errors.Wrapf(err, "Clusters using ClusterClass %v can not be retrieved", oldClusterClass.Name)))
+				pkgerrors.Wrapf(err, "Clusters using ClusterClass %v can not be retrieved", oldClusterClass.Name)))
 			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
 		}
 

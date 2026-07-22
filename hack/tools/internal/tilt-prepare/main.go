@@ -35,7 +35,7 @@ import (
 	"time"
 
 	"github.com/drone/envsubst/v2"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -203,18 +203,18 @@ func main() {
 func readTiltSettings(path string) (*tiltSettings, error) {
 	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to open tilt-settings file for path: %s", path))
+		return nil, pkgerrors.Wrap(err, fmt.Sprintf("failed to open tilt-settings file for path: %s", path))
 	}
 	defer f.Close()
 
 	data, err := io.ReadAll(f)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read tilt-settings content")
+		return nil, pkgerrors.Wrap(err, "failed to read tilt-settings content")
 	}
 
 	ts := &tiltSettings{}
 	if err := yaml.Unmarshal(data, ts); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal tilt-settings content")
+		return nil, pkgerrors.Wrap(err, "failed to unmarshal tilt-settings content")
 	}
 
 	setTiltSettingsDefaults(ts)
@@ -247,15 +247,15 @@ func setTiltSettingsDefaults(ts *tiltSettings) {
 func allowK8sConfig(ts *tiltSettings) error {
 	config, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
 	if err != nil {
-		return errors.Wrap(err, "failed to load KubeConfig file")
+		return pkgerrors.Wrap(err, "failed to load KubeConfig file")
 	}
 
 	if config.CurrentContext == "" {
-		return errors.New("failed to get current context from the KubeConfig file")
+		return pkgerrors.New("failed to get current context from the KubeConfig file")
 	}
 	context, ok := config.Contexts[config.CurrentContext]
 	if !ok {
-		return errors.Errorf("failed to get context %s from the KubeConfig file", config.CurrentContext)
+		return pkgerrors.Errorf("failed to get context %s from the KubeConfig file", config.CurrentContext)
 	}
 	if strings.HasPrefix(context.Cluster, "kind-") {
 		return nil
@@ -263,7 +263,7 @@ func allowK8sConfig(ts *tiltSettings) error {
 
 	allowed := sets.Set[string]{}.Insert(ts.AllowedContexts...)
 	if !allowed.Has(config.CurrentContext) {
-		return errors.Errorf("context %s from the KubeConfig file is not allowed", config.CurrentContext)
+		return pkgerrors.Errorf("context %s from the KubeConfig file is not allowed", config.CurrentContext)
 	}
 	return nil
 }
@@ -294,7 +294,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 	if ts.DeployCertManager == nil || *ts.DeployCertManager {
 		cfg, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
 		if err != nil {
-			return errors.Wrap(err, "failed to load KubeConfig file")
+			return pkgerrors.Wrap(err, "failed to load KubeConfig file")
 		}
 		// The images can only be preloaded when the cluster is a kind cluster.
 		// Note: Not repeating the validation on the config already done in allowK8sConfig here.
@@ -333,7 +333,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 	for _, p := range ts.ProviderRepos {
 		tiltProviderConfigs, err := loadTiltProvider(p)
 		if err != nil {
-			return errors.Wrapf(err, "failed to load tilt-provider.yaml/json from %s", p)
+			return pkgerrors.Wrapf(err, "failed to load tilt-provider.yaml/json from %s", p)
 		}
 
 		for name, config := range tiltProviderConfigs {
@@ -355,7 +355,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 	for _, providerName := range ts.EnableProviders {
 		config, ok := providers[providerName]
 		if !ok {
-			return errors.Errorf("failed to obtain config for the provider %s, please add the providers path to the provider_repos list in tilt-settings.yaml/json file", providerName)
+			return pkgerrors.Errorf("failed to obtain config for the provider %s, please add the providers path to the provider_repos list in tilt-settings.yaml/json file", providerName)
 		}
 		if ptr.Deref(config.ApplyProviderYaml, true) {
 			kustomizeFolder := path.Join(*config.Context, ptr.Deref(config.KustomizeFolder, "config/default"))
@@ -382,7 +382,7 @@ func loadTiltProvider(providerRepository string) (map[string]tiltProviderConfig,
 	ret := make(map[string]tiltProviderConfig)
 	for _, p := range tiltProviders {
 		if p.Config == nil {
-			return nil, errors.Errorf("tilt-provider.yaml/json file from %s does not contain a config section for provider %s", providerRepository, p.Name)
+			return nil, pkgerrors.Errorf("tilt-provider.yaml/json file from %s does not contain a config section for provider %s", providerRepository, p.Name)
 		}
 
 		// Resolving context, that is a relative path to the repository where the tilt-provider is defined
@@ -415,12 +415,12 @@ func readTiltProvider(path string) ([]tiltProvider, error) {
 	// providerSettings file can be an array and this is done to detect arrays
 	if strings.HasPrefix(string(content), "[") || strings.HasPrefix(string(content), "-") {
 		if err := yaml.Unmarshal(content, &ps); err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("failed to read provider path %s tilt file", path))
+			return nil, pkgerrors.Wrap(err, fmt.Sprintf("failed to read provider path %s tilt file", path))
 		}
 	} else {
 		p := tiltProvider{}
 		if err := yaml.Unmarshal(content, &p); err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("failed to read provider path %s tilt file", path))
+			return nil, pkgerrors.Wrap(err, fmt.Sprintf("failed to read provider path %s tilt file", path))
 		}
 		ps = append(ps, p)
 	}
@@ -436,7 +436,7 @@ func addTiltProviderFile(path string) (string, error) {
 	if _, err := os.Stat(pathAndFile); err == nil {
 		return pathAndFile, nil
 	}
-	return "", errors.Errorf("unable to find a tilt-provider.yaml|json file under %s", path)
+	return "", pkgerrors.Errorf("unable to find a tilt-provider.yaml|json file under %s", path)
 }
 
 type taskFunction func(ctx context.Context, prefix string, errors chan error)
@@ -462,7 +462,7 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 
 	// Create a context to be used for canceling all the tasks when another fails.
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(errors.New("run task group context cancelled"))
+	defer cancel(pkgerrors.New("run task group context cancelled"))
 
 	// Make channels to pass fatal errors in WaitGroup
 	errors := make(chan error)
@@ -535,7 +535,7 @@ func makeTask(name string) taskFunction {
 		cmd.Dir = rootPath
 		cmd.Stderr = &stderr
 		if err := cmd.Run(); err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to run %s: %s", prefix, cmd.Args, stderr.String())
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed to run %s: %s", prefix, cmd.Args, stderr.String())
 		}
 	}
 }
@@ -549,12 +549,12 @@ func preLoadImageTask(image string) taskFunction {
 		// Kubelet pull images on-demand.
 		docker, err := container.NewDockerClient()
 		if err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to create docker client", prefix)
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed to create docker client", prefix)
 			return
 		}
 
 		if err := docker.PullContainerImageIfNotExists(ctx, image); err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to pull %s", prefix, image)
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed to pull %s", prefix, image)
 			return
 		}
 
@@ -579,7 +579,7 @@ func preLoadImageTask(image string) taskFunction {
 		cmd.Dir = rootPath
 		cmd.Stderr = &stderr
 		if err := cmd.Run(); err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to run %s: %s", prefix, cmd.Args, stderr.String())
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed to run %s: %s", prefix, cmd.Args, stderr.String())
 		}
 	}
 }
@@ -589,13 +589,13 @@ func certManagerTask() taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
 		config, err := config.New(ctx, "")
 		if err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed create clusterctl config", prefix)
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed create clusterctl config", prefix)
 			return
 		}
 		cluster := cluster.New(cluster.Kubeconfig{}, config)
 
 		if err := cluster.CertManager().EnsureInstalled(ctx); err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to install cert-manger", prefix)
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed to install cert-manger", prefix)
 		}
 	}
 }
@@ -634,14 +634,14 @@ func cleanupChartTask(path string) taskFunction {
 				chartDir := filepath.Join(chartsDir, helmChart.Name)
 				chartYAMLPath := filepath.Join(chartDir, "Chart.yaml")
 
-				if _, err := os.Stat(chartYAMLPath); err != nil && errors.Is(err, os.ErrNotExist) {
+				if _, err := os.Stat(chartYAMLPath); err != nil && pkgerrors.Is(err, os.ErrNotExist) {
 					// Continue if there is no cached Chart.
 					continue
 				}
 
 				helmChartVersion := helmChart.Version
 				if helmChartVersion == "" {
-					return errors.New("Helm Chart version must be set")
+					return pkgerrors.New("Helm Chart version must be set")
 				}
 
 				// Read Chart.yaml
@@ -673,7 +673,7 @@ func cleanupChartTask(path string) taskFunction {
 			return nil
 		})
 		if err != nil {
-			errCh <- errors.Wrapf(err, "failed to cleanup Chart dir %q", path)
+			errCh <- pkgerrors.Wrapf(err, "failed to cleanup Chart dir %q", path)
 		}
 	}
 }
@@ -696,7 +696,7 @@ func kustomizeTask(path, out string) taskFunction {
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 		if err := cmd.Run(); err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to run %s: %s", prefix, cmd.Args, stderr.String())
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed to run %s: %s", prefix, cmd.Args, stderr.String())
 			return
 		}
 
@@ -721,19 +721,19 @@ func workloadTask(name, workloadType, binaryName, containerName string, liveRelo
 		kustomizeCmd.Stdout = &stdout1
 		kustomizeCmd.Stderr = &stderr1
 		if err := kustomizeCmd.Run(); err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to run %s: %s", prefix, kustomizeCmd.Args, stderr1.String())
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed to run %s: %s", prefix, kustomizeCmd.Args, stderr1.String())
 			return
 		}
 
 		out2, err := envsubst.Eval(stdout1.String(), os.Getenv)
 		if err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to do envsubst on kustomized output", prefix)
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed to do envsubst on kustomized output", prefix)
 			return
 		}
 
 		objs, err := utilyaml.ToUnstructured([]byte(out2))
 		if err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed parse components yaml", prefix)
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed parse components yaml", prefix)
 			return
 		}
 
@@ -761,7 +761,7 @@ func workloadTask(name, workloadType, binaryName, containerName string, liveRelo
 
 		yaml, err := utilyaml.FromUnstructured(objs)
 		if err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed convert unstructured objects to yaml", prefix)
+			errCh <- pkgerrors.Wrapf(err, "[%s] failed convert unstructured objects to yaml", prefix)
 			return
 		}
 
@@ -775,14 +775,14 @@ func workloadTask(name, workloadType, binaryName, containerName string, liveRelo
 // NOTE: Skipping write in case the content is not changed avoids unnecessary Tiltfile reload.
 func writeIfChanged(prefix string, path string, yaml []byte) error {
 	_, err := os.Stat(path)
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return errors.Wrapf(err, "[%s] failed to check if %s exists", prefix, path)
+	if err != nil && !pkgerrors.Is(err, os.ErrNotExist) {
+		return pkgerrors.Wrapf(err, "[%s] failed to check if %s exists", prefix, path)
 	}
 
 	if err == nil {
 		previousYaml, err := os.ReadFile(path) //nolint:gosec
 		if err != nil {
-			return errors.Wrapf(err, "[%s] failed to read existing %s", prefix, path)
+			return pkgerrors.Wrapf(err, "[%s] failed to read existing %s", prefix, path)
 		}
 		if bytes.Equal(previousYaml, yaml) {
 			klog.Infof("[%s] no changes in the generated yaml\n", prefix)
@@ -792,11 +792,11 @@ func writeIfChanged(prefix string, path string, yaml []byte) error {
 
 	err = os.MkdirAll(filepath.Dir(path), 0750)
 	if err != nil {
-		return errors.Wrapf(err, "[%s] failed to create dir %s", prefix, filepath.Dir(path))
+		return pkgerrors.Wrapf(err, "[%s] failed to create dir %s", prefix, filepath.Dir(path))
 	}
 
 	if err := os.WriteFile(path, yaml, 0600); err != nil {
-		return errors.Wrapf(err, "[%s] failed to write %s", prefix, path)
+		return pkgerrors.Wrapf(err, "[%s] failed to write %s", prefix, path)
 	}
 	return nil
 }
@@ -894,7 +894,7 @@ func updateDeployment(prefix string, objs []unstructured.Unstructured, f updateD
 		// Convert Unstructured into a typed object
 		d := &appsv1.Deployment{}
 		if err := scheme.Scheme.Convert(&obj, d, nil); err != nil {
-			return errors.Wrapf(err, "[%s] failed to convert Deployment to typed object", prefix)
+			return pkgerrors.Wrapf(err, "[%s] failed to convert Deployment to typed object", prefix)
 		}
 
 		// Call updater function
@@ -902,7 +902,7 @@ func updateDeployment(prefix string, objs []unstructured.Unstructured, f updateD
 
 		// Convert back to Unstructured
 		if err := scheme.Scheme.Convert(d, &obj, nil); err != nil {
-			return errors.Wrapf(err, "[%s] failed to convert Deployment to unstructured", prefix)
+			return pkgerrors.Wrapf(err, "[%s] failed to convert Deployment to unstructured", prefix)
 		}
 
 		objs[i] = obj
@@ -925,7 +925,7 @@ func getProviderObj(version *string) func(prefix string, objs []unstructured.Uns
 		}
 
 		if manifestLabel == "" {
-			return nil, errors.Errorf(
+			return nil, pkgerrors.Errorf(
 				"Could not find any Namespace object with label %s and therefore failed to deduce provider name and type",
 				clusterv1.ProviderNameLabel)
 		}
@@ -974,7 +974,7 @@ func getProviderObj(version *string) func(prefix string, objs []unstructured.Uns
 
 		providerObj := &unstructured.Unstructured{}
 		if err := scheme.Scheme.Convert(provider, providerObj, nil); err != nil {
-			return nil, errors.Wrapf(err, "[%s] failed to convert Provider to unstructured", prefix)
+			return nil, pkgerrors.Wrapf(err, "[%s] failed to convert Provider to unstructured", prefix)
 		}
 		return providerObj, nil
 	}

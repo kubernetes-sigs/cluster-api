@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -380,7 +380,7 @@ func (ca *clusterAccessor) GetClient(ctx context.Context) (client.Client, error)
 	defer ca.rUnlock(ctx)
 
 	if ca.lockedState.connection == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting client")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting client")
 	}
 
 	return ca.lockedState.connection.cachedClient, nil
@@ -391,7 +391,7 @@ func (ca *clusterAccessor) GetReader(ctx context.Context) (client.Reader, error)
 	defer ca.rUnlock(ctx)
 
 	if ca.lockedState.connection == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting client reader")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting client reader")
 	}
 
 	return ca.lockedState.connection.cachedClient, nil
@@ -403,7 +403,7 @@ func (ca *clusterAccessor) GetUncachedClient(ctx context.Context) (client.Client
 	defer ca.rUnlock(ctx)
 
 	if ca.lockedState.connection == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting uncached client")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting uncached client")
 	}
 
 	return ca.lockedState.connection.uncachedClient, nil
@@ -414,7 +414,7 @@ func (ca *clusterAccessor) GetRESTConfig(ctx context.Context) (*rest.Config, err
 	defer ca.rUnlock(ctx)
 
 	if ca.lockedState.connection == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting REST config")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting REST config")
 	}
 
 	return ca.lockedState.connection.restConfig, nil
@@ -426,11 +426,11 @@ func (ca *clusterAccessor) GetRESTConfig(ctx context.Context) (*rest.Config, err
 // After a re-connect watches will be re-added (assuming the Watch method is called again).
 func (ca *clusterAccessor) Watch(ctx context.Context, watcher Watcher) error {
 	if watcher.Name() == "" {
-		return errors.New("watcher.Name() cannot be empty")
+		return pkgerrors.New("watcher.Name() cannot be empty")
 	}
 
 	if !ca.Connected(ctx) {
-		return errors.WithMessagef(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
+		return pkgerrors.WithMessagef(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
 
 	log := ctrl.LoggerFrom(ctx)
@@ -443,7 +443,7 @@ func (ca *clusterAccessor) Watch(ctx context.Context, watcher Watcher) error {
 
 	// Checking connection again while holding the lock, because maybe Disconnect was called since checking above.
 	if ca.lockedState.connection == nil {
-		return errors.WithMessagef(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
+		return pkgerrors.WithMessagef(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
 
 	// Return early if the watch was already added.
@@ -454,7 +454,7 @@ func (ca *clusterAccessor) Watch(ctx context.Context, watcher Watcher) error {
 
 	log.Info(fmt.Sprintf("Creating watch %s for %T", watcher.Name(), watcher.Object()))
 	if err := watcher.Watch(ca.lockedState.connection.cache); err != nil {
-		return errors.WithMessagef(err, "error creating watch %s for %T", watcher.Name(), watcher.Object())
+		return pkgerrors.WithMessagef(err, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
 
 	ca.lockedState.connection.watches.Insert(watcher.Name())

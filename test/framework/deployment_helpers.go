@@ -32,7 +32,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/prometheus/common/expfmt"
 	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
@@ -447,7 +447,7 @@ func verifyMetrics(data []byte, pod *corev1.Pod) error {
 	parser := expfmt.NewTextParser(model.UTF8Validation)
 	mf, err := parser.TextToMetricFamilies(bytes.NewReader(data))
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse data to metrics families")
+		return pkgerrors.Wrapf(err, "failed to parse data to metrics families")
 	}
 
 	var errs []error
@@ -484,7 +484,7 @@ func verifyMetrics(data []byte, pod *corev1.Pod) error {
 	}
 
 	if len(errs) > 0 {
-		return errors.WithMessagef(kerrors.NewAggregate(errs), "panics occurred in Pod %s", klog.KObj(pod))
+		return pkgerrors.WithMessagef(kerrors.NewAggregate(errs), "panics occurred in Pod %s", klog.KObj(pod))
 	}
 
 	return nil

@@ -20,7 +20,7 @@ package controllers
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -62,7 +62,7 @@ type DevClusterReconciler struct {
 // SetupWithManager will add watches for this controller.
 func (r *DevClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.InMemoryManager == nil || r.APIServerMux == nil || r.ContainerRuntime == nil {
-		return errors.New("Client, InMemoryManager and APIServerMux, ContainerRuntime must not be nil")
+		return pkgerrors.New("Client, InMemoryManager and APIServerMux, ContainerRuntime must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "devcluster")
@@ -76,7 +76,7 @@ func (r *DevClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 		).Complete(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil
 }
@@ -117,7 +117,7 @@ func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				devClusterWithoutFinalizer := devCluster.DeepCopy()
 				controllerutil.RemoveFinalizer(devClusterWithoutFinalizer, infrav1.ClusterFinalizer)
 				if err := r.Client.Patch(ctx, devClusterWithoutFinalizer, client.MergeFrom(devCluster)); err != nil {
-					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DevCluster %s", klog.KObj(devCluster))
+					return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to patch DevCluster %s", klog.KObj(devCluster))
 				}
 			}
 			return ctrl.Result{}, nil

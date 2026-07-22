@@ -23,7 +23,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -3548,7 +3548,7 @@ func TestClusterClassPollingErrors(t *testing.T) {
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 					// Throw an error if the second ClusterClass `class2` used as the new ClusterClass is being retrieved.
 					if key.Name == secondTopology.ClassRef.Name {
-						return errors.New("connection error")
+						return pkgerrors.New("connection error")
 					}
 					return client.Get(ctx, key, obj)
 				},
@@ -3565,7 +3565,7 @@ func TestClusterClassPollingErrors(t *testing.T) {
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 					// Throw an error if the ClusterClass `class1` used as the old ClusterClass is being retrieved.
 					if key.Name == topology.ClassRef.Name {
-						return errors.New("connection error")
+						return pkgerrors.New("connection error")
 					}
 					return client.Get(ctx, key, obj)
 				},

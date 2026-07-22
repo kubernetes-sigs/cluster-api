@@ -23,7 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	corev1 "k8s.io/api/core/v1"
@@ -70,7 +70,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
 				clientFunc: func(_ []string) (*etcd.Client, error) {
 					callCount++
-					return nil, errors.New("fake error")
+					return nil, pkgerrors.New("fake error")
 				},
 			},
 			expectedRetry: true,
@@ -91,7 +91,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
 				clientFunc: func(_ []string) (*etcd.Client, error) {
 					callCount++
-					return nil, errors.New("fake error")
+					return nil, pkgerrors.New("fake error")
 				},
 			},
 			expectedRetry: false,
@@ -178,7 +178,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"),
 			},
-			nodeListError:               errors.New("something went wrong"),
+			nodeListError:               pkgerrors.New("something went wrong"),
 			expectedKCPV1Beta1Condition: v1beta1conditions.UnknownCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterInspectionFailedV1Beta1Reason, "Failed to list Nodes which are hosting the etcd members"),
 			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
 				"m1": {
@@ -262,7 +262,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				fakeNode("n1"),
 			},
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
-				err: errors.New("something went wrong"),
+				err: pkgerrors.New("something went wrong"),
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.UnknownCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterUnknownV1Beta1Reason, "Following Machines are reporting unknown etcd member status: m1"),
 			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
@@ -297,7 +297,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				client: &etcd.Client{
 					EtcdClient: &fake2.FakeEtcdClient{
 						EtcdEndpoints:   []string{},
-						MemberListError: errors.New("something went wrong"),
+						MemberListError: pkgerrors.New("something went wrong"),
 					},
 				},
 			},
@@ -451,10 +451,10 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 								LeaderID: uint64(1),
 							}, nil
 						default:
-							errs = append(errs, errors.New("no client for this node"))
+							errs = append(errs, pkgerrors.New("no client for this node"))
 						}
 					}
-					return nil, errors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
+					return nil, pkgerrors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
 				},
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m2"),
@@ -539,10 +539,10 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 								LeaderID: uint64(1),
 							}, nil
 						default:
-							errs = append(errs, errors.New("no client for this node"))
+							errs = append(errs, pkgerrors.New("no client for this node"))
 						}
 					}
-					return nil, errors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
+					return nil, pkgerrors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
 				},
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.TrueCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition),
@@ -627,10 +627,10 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 								LeaderID: uint64(1),
 							}, nil
 						default:
-							errs = append(errs, errors.New("no client for this node"))
+							errs = append(errs, pkgerrors.New("no client for this node"))
 						}
 					}
-					return nil, errors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
+					return nil, pkgerrors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
 				},
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Etcd member 3 (Name not yet assigned) does not have a corresponding Machine"),
@@ -793,7 +793,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				fakeMachine("m1"),
 			},
 			injectClient: &fakeClient{
-				listErr: errors.New("failed to list Nodes"),
+				listErr: pkgerrors.New("failed to list Nodes"),
 			},
 			expectedKCPV1Beta1Condition: v1beta1conditions.UnknownCondition(controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition, controlplanev1.ControlPlaneComponentsInspectionFailedV1Beta1Reason, "Failed to list Nodes which are hosting control plane components: failed to list Nodes"),
 			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
@@ -1446,7 +1446,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "if gets pod return a generic error should report PodCondition=Unknown, PodInspectionFailed",
 			injectClient: &fakeClient{
-				getErr: errors.New("get failure"),
+				getErr: pkgerrors.New("get failure"),
 			},
 			node:                     fakeNode(nodeName),
 			expectedV1Beta1Condition: *v1beta1conditions.UnknownCondition(condition, controlplanev1.PodInspectionFailedV1Beta1Reason, "Failed to get Pod status"),

@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -134,12 +134,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
 		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
 		// to have some buffer.
-		return errors.New("Client, SecretCachingClient and ClusterCache must not be nil and " +
+		return pkgerrors.New("Client, SecretCachingClient and ClusterCache must not be nil and " +
 			"EtcdDialTimeout and EtcdCallTimeout must not be 0 and " +
 			"RemoteConditionsGracePeriod must not be < 2m")
 	}
 	if feature.Gates.Enabled(feature.InPlaceUpdates) && r.RuntimeClient == nil {
-		return errors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
+		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "kubeadmcontrolplane")
@@ -161,13 +161,13 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod))).
 		Build(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
 		mgr.GetScheme(), mgr.GetConfig(), mgr.GetHTTPClient())
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadmcontrolplane-controller")
@@ -206,7 +206,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	if err != nil {
 		// It should be an issue to be investigated if the controller get the NotFound status.
 		// So, it should return the error.
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve owner Cluster")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve owner Cluster")
 	}
 	if cluster == nil {
 		log.Info("Cluster Controller has not yet set OwnerRef")
@@ -247,19 +247,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		// Always attempt to update status.
 		if err := r.updateStatus(ctx, controlPlane); err != nil {
 			var connFailure *pkg.RemoteClusterConnectionError
-			if errors.As(err, &connFailure) {
+			if pkgerrors.As(err, &connFailure) {
 				log.Info(fmt.Sprintf("Could not connect to workload cluster to fetch status: %s", err.Error()))
 			} else {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.WithMessage(err, "failed to update KubeadmControlPlane status")})
+				reterr = kerrors.NewAggregate([]error{reterr, pkgerrors.WithMessage(err, "failed to update KubeadmControlPlane status")})
 			}
 		}
 
 		if err := r.updateV1Beta1Status(ctx, controlPlane); err != nil {
 			var connFailure *pkg.RemoteClusterConnectionError
-			if errors.As(err, &connFailure) {
+			if pkgerrors.As(err, &connFailure) {
 				log.Info(fmt.Sprintf("Could not connect to workload cluster to fetch deprecated v1beta1 status: %s", err.Error()))
 			} else {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.WithMessage(err, "failed to update KubeadmControlPlane deprecated v1beta1 status")})
+				reterr = kerrors.NewAggregate([]error{reterr, pkgerrors.WithMessage(err, "failed to update KubeadmControlPlane deprecated v1beta1 status")})
 			}
 		}
 
@@ -269,7 +269,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
 		if err := patchKubeadmControlPlane(ctx, patchHelper, kcp, patchOpts...); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to patch KubeadmControlPlane")})
+			reterr = kerrors.NewAggregate([]error{reterr, pkgerrors.Wrap(err, "failed to patch KubeadmControlPlane")})
 		}
 
 		// Only requeue if there is no error, Requeue or RequeueAfter and the object does not have a deletion timestamp.
@@ -333,7 +333,7 @@ func (r *Reconciler) initControlPlaneScope(ctx context.Context, cluster *cluster
 
 	ownedMachines := controlPlaneMachines.Filter(collections.OwnedMachines(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind()))
 	if kcp.DeletionTimestamp.IsZero() && len(ownedMachines) != len(controlPlaneMachines) {
-		err := errors.New("not all control plane machines are owned by this KubeadmControlPlane, refusing to operate in mixed management mode")
+		err := pkgerrors.New("not all control plane machines are owned by this KubeadmControlPlane, refusing to operate in mixed management mode")
 		log.Error(err, "KCP cannot reconcile")
 		return nil, false, err
 	}
@@ -467,7 +467,7 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil // Note: Requeue is not needed, changes to Machines trigger another reconcile.
 		}
-		return ctrl.Result{}, errors.Wrap(err, "failed to sync Machines")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to sync Machines")
 	}
 	if stopReconcile {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // Explicitly requeue as we are not watching for changes to BootstrapConfig and InfraMachine objects.
@@ -571,7 +571,7 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		// Pick the Machine that we should scale down.
 		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, collections.Machines{})
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to select machine for scale down")
+			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to select machine for scale down")
 		}
 		return r.scaleDownControlPlane(ctx, controlPlane, machineToDelete)
 	}
@@ -590,7 +590,7 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 
 	// Update CoreDNS deployment.
 	if err := workloadCluster.UpdateCoreDNS(ctx, controlPlane.KCP); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to update CoreDNS deployment")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to update CoreDNS deployment")
 	}
 
 	// Reconcile certificate expiry for Machines that don't have the expiry annotation on KubeadmConfig yet.
@@ -623,7 +623,7 @@ func (r *Reconciler) reconcileClusterCertificates(ctx context.Context, controlPl
 				Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			})
-			return errors.Wrap(err, "error in look up or create cluster certificates")
+			return pkgerrors.Wrap(err, "error in look up or create cluster certificates")
 		}
 	} else {
 		if err := certificates.LookupCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster)); err != nil {
@@ -635,7 +635,7 @@ func (r *Reconciler) reconcileClusterCertificates(ctx context.Context, controlPl
 				Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			})
-			return errors.Wrap(err, "error in look up cluster certificates")
+			return pkgerrors.Wrap(err, "error in look up cluster certificates")
 		}
 
 		missingCertificates := []string{}
@@ -671,7 +671,7 @@ func (r *Reconciler) reconcileClusterCertificates(ctx context.Context, controlPl
 			Message: "Please check controller logs for errors",
 		})
 
-		return errors.Wrap(err, "error in ensuring cluster certificates ownership")
+		return pkgerrors.Wrap(err, "error in ensuring cluster certificates ownership")
 	}
 
 	v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition)
@@ -770,7 +770,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 
 		// Note: It's not critical that the next Reconcile observes the deletion, so we don't wait for the cache.
 		if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
-			errs = append(errs, errors.Wrapf(err, "failed to delete control plane Machine %s", klog.KObj(machineToDelete)))
+			errs = append(errs, pkgerrors.Wrapf(err, "failed to delete control plane Machine %s", klog.KObj(machineToDelete)))
 		}
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
@@ -848,7 +848,7 @@ func (r *Reconciler) removePreTerminateHookAnnotationFromMachine(ctx context.Con
 	machineOriginal := machine.DeepCopy()
 	delete(machine.Annotations, controlplanev1.PreTerminateHookCleanupAnnotation)
 	if err := r.Client.Patch(ctx, machine, client.MergeFrom(machineOriginal)); err != nil {
-		return errors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(machine))
+		return pkgerrors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(machine))
 	}
 	return nil
 }
@@ -912,7 +912,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, controlPlane *pkg.Control
 			// Update Machine to propagate in-place mutable fields from KCP.
 			updatedMachine, err := r.updateMachine(ctx, m, controlPlane.KCP, controlPlane.Cluster)
 			if err != nil {
-				return false, errors.Wrapf(err, "failed to update Machine: %s", klog.KObj(m))
+				return false, pkgerrors.Wrapf(err, "failed to update Machine: %s", klog.KObj(m))
 			}
 			// Note: Ensure ControlPlane has the latest version of the Machine. This is required because
 			//       e.g. the in-place update code that is called later has to use the latest version of the Machine.
@@ -952,11 +952,11 @@ func (r *Reconciler) syncMachines(ctx context.Context, controlPlane *pkg.Control
 				//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
 				//       be removed with CAPI v1.15.
 				if err := ssa.MigrateManagedFields(ctx, r.Client, infraMachine, kcpManagerName, kcpMetadataManagerName); err != nil {
-					return false, errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
+					return false, pkgerrors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
 				}
 				// Update in-place mutating fields on InfrastructureMachine.
 				if err := r.updateLabelsAndAnnotations(ctx, infraMachine, infraMachine.GroupVersionKind(), controlPlane.KCP, controlPlane.Cluster); err != nil {
-					return false, errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
+					return false, pkgerrors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
 				}
 			}
 		}
@@ -978,11 +978,11 @@ func (r *Reconciler) syncMachines(ctx context.Context, controlPlane *pkg.Control
 				//       Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
 				//       be removed with CAPI v1.15.
 				if err := ssa.MigrateManagedFields(ctx, r.Client, kubeadmConfig, kcpManagerName, kcpMetadataManagerName); err != nil {
-					return false, errors.Wrapf(err, "failed to clean up managedFields of KubeadmConfig %s", klog.KObj(kubeadmConfig))
+					return false, pkgerrors.Wrapf(err, "failed to clean up managedFields of KubeadmConfig %s", klog.KObj(kubeadmConfig))
 				}
 				// Update in-place mutating fields on BootstrapConfig.
 				if err := r.updateLabelsAndAnnotations(ctx, kubeadmConfig, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"), controlPlane.KCP, controlPlane.Cluster); err != nil {
-					return false, errors.Wrapf(err, "failed to update KubeadmConfig %s", klog.KObj(kubeadmConfig))
+					return false, pkgerrors.Wrapf(err, "failed to update KubeadmConfig %s", klog.KObj(kubeadmConfig))
 				}
 			}
 		}
@@ -1045,7 +1045,7 @@ func (r *Reconciler) reconcileControlPlaneAndMachinesConditions(ctx context.Cont
 			EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownReason,
 			Message:                             "Remote connection not established yet",
 		})
-		return errors.Errorf("connection to the workload cluster not established yet")
+		return pkgerrors.Errorf("connection to the workload cluster not established yet")
 	}
 
 	// Remote conditions grace period is counted from the later of last probe success and control plane initialized.
@@ -1061,12 +1061,12 @@ func (r *Reconciler) reconcileControlPlaneAndMachinesConditions(ctx context.Cont
 			EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownReason,
 			Message:                             lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime),
 		})
-		return errors.Errorf("connection to the workload cluster is down")
+		return pkgerrors.Errorf("connection to the workload cluster is down")
 	}
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		if errors.Is(err, clustercache.ErrClusterNotConnected) {
+		if pkgerrors.Is(err, clustercache.ErrClusterNotConnected) {
 			// If conditions are not set, set them to ConnectionDown.
 			// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
 			// However, if connection errors persist more than r.RemoteConditionsGracePeriod, conditions will be overridden.
@@ -1082,7 +1082,7 @@ func (r *Reconciler) reconcileControlPlaneAndMachinesConditions(ctx context.Cont
 				EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownReason,
 				Message:                             lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime),
 			})
-			return errors.Wrap(err, "cannot get client for the workload cluster")
+			return pkgerrors.Wrap(err, "cannot get client for the workload cluster")
 		}
 
 		// Overwrite conditions to InspectionFailed.
@@ -1096,7 +1096,7 @@ func (r *Reconciler) reconcileControlPlaneAndMachinesConditions(ctx context.Cont
 			EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedReason,
 			Message:                             "Please check controller logs for errors",
 		})
-		return errors.Wrap(err, "cannot get client for the workload cluster")
+		return pkgerrors.Wrap(err, "cannot get client for the workload cluster")
 	}
 
 	// Update conditions status
@@ -1278,7 +1278,7 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 
 	// If for any reason KCP failed to get the list of nodes, it is not possible to connect to etcd to perform any operation.
 	if controlPlane.NodeListError != nil {
-		return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable to reconcile etcd members")
+		return ctrl.Result{}, pkgerrors.Wrap(controlPlane.NodeListError, "unable to reconcile etcd members")
 	}
 
 	// Potential inconsistencies between the list of members and the list of Machine/Node are
@@ -1343,7 +1343,7 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "cannot get remote client to workload cluster")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "cannot get remote client to workload cluster")
 	}
 
 	sortedUnexpectedMembers := unexpectedMembers.UnsortedList()
@@ -1361,12 +1361,12 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	if etcdMemberToBeDeleted.Name != "" {
 		addEtcdMember := false
 		if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted.Name) {
-			return ctrl.Result{}, errors.Errorf("etcd member %s does not have a corresponding Machine, it must be removed from the cluster but this operation can lead to quorum loss. Please check the etcd status", etcdMemberToBeDeletedMsg)
+			return ctrl.Result{}, pkgerrors.Errorf("etcd member %s does not have a corresponding Machine, it must be removed from the cluster but this operation can lead to quorum loss. Please check the etcd status", etcdMemberToBeDeletedMsg)
 		}
 	}
 
 	if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted, controlPlane.Nodes); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member %s. Please check the etcd status", etcdMemberToBeDeletedMsg)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to remove etcd member %s. Please check the etcd status", etcdMemberToBeDeletedMsg)
 	}
 
 	log.Info("Etcd member without a corresponding Machine removed from the cluster", "member", etcdMemberToBeDeletedMsg)
@@ -1398,7 +1398,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 
 	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse Kubernetes version %q", controlPlane.KCP.Spec.Version)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to parse Kubernetes version %q", controlPlane.KCP.Spec.Version)
 	}
 
 	// Return early if there are other pre-terminate hooks for the Machine.
@@ -1460,12 +1460,12 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 
 	// Unable to proceed if for any reason KCP failed to get the list of nodes (it is not possible to connect to etcd).
 	if controlPlane.NodeListError != nil {
-		return ctrl.Result{}, errors.Wrap(controlPlane.NodeListError, "unable to remove pre-terminate hook")
+		return ctrl.Result{}, pkgerrors.Wrap(controlPlane.NodeListError, "unable to remove pre-terminate hook")
 	}
 
 	// No op if for any reason the etcdMember list is not populated at this stage.
 	if len(controlPlane.EtcdMembers) == 0 {
-		return ctrl.Result{}, errors.New("unable to remove pre-terminate hook, etcd member list is empty")
+		return ctrl.Result{}, pkgerrors.New("unable to remove pre-terminate hook, etcd member list is empty")
 	}
 
 	// If etcd is managed by KCP, check target etcd cluster.
@@ -1495,7 +1495,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s: failed to create client to workload cluster", klog.KObj(deletingMachine))
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to remove etcd member for deleting Machine %s: failed to create client to workload cluster", klog.KObj(deletingMachine))
 	}
 
 	// Note: In regular deletion cases (remediation, scale down) the leader should have been already moved.
@@ -1517,7 +1517,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 	}
 	if etcdMemberToBeDeleted != nil {
 		if err := workloadCluster.RemoveEtcdMember(ctx, etcdMemberToBeDeleted, controlPlane.Nodes); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
 		}
 	}
 
@@ -1532,7 +1532,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 func (r *Reconciler) forwardEtcdLeadership(ctx context.Context, workloadCluster pkg.WorkloadCluster, controlPlane *pkg.ControlPlane, deletingMachine *clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	if controlPlane.EtcdLeader == nil {
-		return errors.New("unable to move etcd leadership, failed to detect etcd leader")
+		return pkgerrors.New("unable to move etcd leadership, failed to detect etcd leader")
 	}
 
 	// No-op if the deleting machine not yet provisioned (we cannot infer the etcd member name yet).
@@ -1549,7 +1549,7 @@ func (r *Reconciler) forwardEtcdLeadership(ctx context.Context, workloadCluster 
 	// Get candidate machines
 	candidateMachines := getCandidatesForEtcdLeadership(controlPlane.Machines, deletingMachine)
 	if len(candidateMachines) == 0 {
-		return errors.New("unable to move etcd leadership, no candidate machines for etcd leadership found")
+		return pkgerrors.New("unable to move etcd leadership, no candidate machines for etcd leadership found")
 	}
 
 	// Try to move leadership to one of the candidateMachines.
@@ -1561,7 +1561,7 @@ func (r *Reconciler) forwardEtcdLeadership(ctx context.Context, workloadCluster 
 		log.Info("Moved etcd leadership", "previousLeaderMachine", klog.KObj(deletingMachine), "newLeaderMachine", klog.KObj(m))
 		return nil
 	}
-	return errors.New("failed to move etcd leadership")
+	return pkgerrors.New("failed to move etcd leadership")
 }
 
 func getCandidatesForEtcdLeadership(machines collections.Machines, deletingMachine *clusterv1.Machine) []*clusterv1.Machine {
@@ -1647,7 +1647,7 @@ func (r *Reconciler) reconcileCertificateExpiries(ctx context.Context, controlPl
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to reconcile certificate expiries: cannot get remote client to workload cluster")
+		return pkgerrors.Wrap(err, "failed to reconcile certificate expiries: cannot get remote client to workload cluster")
 	}
 
 	for _, m := range machines {
@@ -1675,7 +1675,7 @@ func (r *Reconciler) reconcileCertificateExpiries(ctx context.Context, controlPl
 		log.V(4).Info("Reconciling certificate expiry")
 		certificateExpiry, err := workloadCluster.GetAPIServerCertificateExpiry(ctx, kubeadmConfig, nodeName)
 		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine %s", klog.KObj(m))
+			return pkgerrors.Wrapf(err, "failed to reconcile certificate expiry for Machine %s", klog.KObj(m))
 		}
 		expiry := certificateExpiry.Format(time.RFC3339)
 
@@ -1688,7 +1688,7 @@ func (r *Reconciler) reconcileCertificateExpiries(ctx context.Context, controlPl
 		kubeadmConfig.SetAnnotations(annotations)
 
 		if err := r.Client.Patch(ctx, kubeadmConfig, client.MergeFrom(original)); err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine %s", klog.KObj(m))
+			return pkgerrors.Wrapf(err, "failed to reconcile certificate expiry for Machine %s", klog.KObj(m))
 		}
 	}
 
@@ -1701,15 +1701,15 @@ func (r *Reconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.Kube
 	uncached := controlplanev1.KubeadmControlPlane{}
 	err := r.APIReader.Get(ctx, client.ObjectKey{Namespace: kcp.Namespace, Name: kcp.Name}, &uncached)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check whether %v/%v was deleted before adoption", kcp.GetNamespace(), kcp.GetName())
+		return pkgerrors.Wrapf(err, "failed to check whether %v/%v was deleted before adoption", kcp.GetNamespace(), kcp.GetName())
 	}
 	if !uncached.DeletionTimestamp.IsZero() {
-		return errors.Errorf("%v/%v has just been deleted at %v", kcp.GetNamespace(), kcp.GetName(), kcp.GetDeletionTimestamp())
+		return pkgerrors.Errorf("%v/%v has just been deleted at %v", kcp.GetNamespace(), kcp.GetName(), kcp.GetDeletionTimestamp())
 	}
 
 	kcpVersion, err := semver.ParseTolerant(kcp.Spec.Version)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
+		return pkgerrors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
 	}
 
 	for _, m := range machines {
@@ -1717,7 +1717,7 @@ func (r *Reconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.Kube
 
 		// TODO instead of returning error here, we should instead Event and add a watch on potentially adoptable Machines
 		if !ref.IsDefined() || ref.Kind != "KubeadmConfig" {
-			return errors.Errorf("unable to adopt Machine %v/%v: expected a ConfigRef of kind KubeadmConfig but instead found %v", m.Namespace, m.Name, ref)
+			return pkgerrors.Errorf("unable to adopt Machine %v/%v: expected a ConfigRef of kind KubeadmConfig but instead found %v", m.Namespace, m.Name, ref)
 		}
 
 		if m.Spec.Version == "" {
@@ -1727,7 +1727,7 @@ func (r *Reconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.Kube
 
 		machineVersion, err := semver.ParseTolerant(m.Spec.Version)
 		if err != nil {
-			return errors.Wrapf(err, "failed to parse kubernetes version %q", m.Spec.Version)
+			return pkgerrors.Wrapf(err, "failed to parse kubernetes version %q", m.Spec.Version)
 		}
 
 		if !util.IsSupportedVersionSkew(kcpVersion, machineVersion) {
@@ -1770,7 +1770,7 @@ func (r *Reconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.Kube
 func (r *Reconciler) adoptOwnedSecrets(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, currentOwner *bootstrapv1.KubeadmConfig, clusterName string) error {
 	secrets := corev1.SecretList{}
 	if err := r.Client.List(ctx, &secrets, client.InNamespace(kcp.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName}); err != nil {
-		return errors.Wrap(err, "error finding secrets for adoption")
+		return pkgerrors.Wrap(err, "error finding secrets for adoption")
 	}
 
 	kcpRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
@@ -1793,7 +1793,7 @@ func (r *Reconciler) adoptOwnedSecrets(ctx context.Context, kcp *controlplanev1.
 		original := s.DeepCopy()
 		s.SetOwnerReferences(util.ReplaceOwnerRef(s.GetOwnerReferences(), currentOwner, kcpRef))
 		if err := r.Client.Patch(ctx, s, client.MergeFrom(original)); err != nil {
-			return errors.Wrapf(err, "error changing secret %v ownership from KubeadmConfig/%v to KubeadmControlPlane/%v", s.Name, currentOwner.GetName(), kcp.Name)
+			return pkgerrors.Wrapf(err, "error changing secret %v ownership from KubeadmConfig/%v to KubeadmControlPlane/%v", s.Name, currentOwner.GetName(), kcp.Name)
 		}
 	}
 	return nil
@@ -1830,7 +1830,7 @@ func (r *Reconciler) ensureCertificatesOwnerRef(ctx context.Context, certificate
 		}
 
 		if err := r.Client.Patch(ctx, c.Secret, client.MergeFrom(original)); err != nil {
-			return errors.Wrapf(err, "failed to set ownerReference")
+			return pkgerrors.Wrapf(err, "failed to set ownerReference")
 		}
 	}
 	return nil

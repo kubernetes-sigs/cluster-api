@@ -28,7 +28,7 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -99,7 +99,7 @@ type Options struct {
 // New creates a new runtime webhook server based on the given Options.
 func New(options Options) (*Server, error) {
 	if options.Catalog == nil {
-		return nil, errors.Errorf("catalog is required")
+		return nil, pkgerrors.Errorf("catalog is required")
 	}
 	if options.Port <= 0 {
 		options.Port = DefaultPort
@@ -168,7 +168,7 @@ type ExtensionHandler struct {
 func (s *Server) AddExtensionHandler(handler ExtensionHandler) error {
 	gvh, err := s.catalog.GroupVersionHook(handler.Hook)
 	if err != nil {
-		return errors.Wrapf(err, "hook %q does not exist in catalog", runtimecatalog.HookName(handler.Hook))
+		return pkgerrors.Wrapf(err, "hook %q does not exist in catalog", runtimecatalog.HookName(handler.Hook))
 	}
 	handler.gvh = gvh
 
@@ -190,7 +190,7 @@ func (s *Server) AddExtensionHandler(handler ExtensionHandler) error {
 
 	handlerPath := runtimecatalog.GVHToPath(handler.gvh, handler.Name)
 	if _, ok := s.handlers[handlerPath]; ok {
-		return errors.Errorf("there is already a handler registered for path %q", handlerPath)
+		return pkgerrors.Errorf("there is already a handler registered for path %q", handlerPath)
 	}
 
 	s.handlers[handlerPath] = handler
@@ -205,13 +205,13 @@ func (s *Server) validateHandler(handler ExtensionHandler) error {
 
 	// Validate handler function signature.
 	if handlerFuncType.Kind() != reflect.Func {
-		return errors.Errorf("HandlerFunc must be a func")
+		return pkgerrors.Errorf("HandlerFunc must be a func")
 	}
 	if handlerFuncType.NumIn() != 3 {
-		return errors.Errorf("HandlerFunc must have three input parameter")
+		return pkgerrors.Errorf("HandlerFunc must have three input parameter")
 	}
 	if handlerFuncType.NumOut() != 0 {
-		return errors.Errorf("HandlerFunc must have no output parameter")
+		return pkgerrors.Errorf("HandlerFunc must have no output parameter")
 	}
 
 	// Get hook and handler request and response types.
@@ -223,24 +223,24 @@ func (s *Server) validateHandler(handler ExtensionHandler) error {
 
 	// Validate handler request and response are pointers.
 	if handlerRequestType.Kind() != reflect.Pointer {
-		return errors.Errorf("HandlerFunc request type must be a pointer")
+		return pkgerrors.Errorf("HandlerFunc request type must be a pointer")
 	}
 	if handlerResponseType.Kind() != reflect.Pointer {
-		return errors.Errorf("HandlerFunc response type must be a pointer")
+		return pkgerrors.Errorf("HandlerFunc response type must be a pointer")
 	}
 
 	// Validate first handler parameter is a context
 	// TODO: improve check, how to check if param is a specific interface?
 	if handlerContextType.Name() != "Context" {
-		return errors.Errorf("HandlerFunc first parameter must be Context but is %s", handlerContextType.Name())
+		return pkgerrors.Errorf("HandlerFunc first parameter must be Context but is %s", handlerContextType.Name())
 	}
 
 	// Validate hook and handler request and response types are equal.
 	if hookRequestType != handlerRequestType {
-		return errors.Errorf("HandlerFunc request type must be *%s but is *%s", hookRequestType.Elem().Name(), handlerRequestType.Elem().Name())
+		return pkgerrors.Errorf("HandlerFunc request type must be *%s but is *%s", hookRequestType.Elem().Name(), handlerRequestType.Elem().Name())
 	}
 	if hookResponseType != handlerResponseType {
-		return errors.Errorf("HandlerFunc response type must be *%s but is *%s", hookResponseType.Elem().Name(), handlerResponseType.Elem().Name())
+		return pkgerrors.Errorf("HandlerFunc response type must be *%s but is *%s", hookResponseType.Elem().Name(), handlerResponseType.Elem().Name())
 	}
 
 	return nil

@@ -23,7 +23,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -86,7 +86,7 @@ func isSupportedTargetVersion(version string) bool {
 
 func runConvert(args []string) error {
 	if !isSupportedTargetVersion(convertOpts.toVersion) {
-		return errors.Errorf("invalid --to-version value %q. Supported versions are: %s", convertOpts.toVersion, strings.Join(client.SupportedTargetVersions, ", "))
+		return pkgerrors.Errorf("invalid --to-version value %q. Supported versions are: %s", convertOpts.toVersion, strings.Join(client.SupportedTargetVersions, ", "))
 	}
 
 	fmt.Fprintln(os.Stderr, "WARNING: This command is EXPERIMENTAL and may be removed in a future release!")
@@ -97,7 +97,7 @@ func runConvert(args []string) error {
 	if len(args) == 0 {
 		inputBytes, err = io.ReadAll(os.Stdin)
 		if err != nil {
-			return errors.Wrap(err, "failed to read from stdin")
+			return pkgerrors.Wrap(err, "failed to read from stdin")
 		}
 	} else {
 		sourceFile := args[0]
@@ -105,14 +105,14 @@ func runConvert(args []string) error {
 		// command accepts user-provided file path by design.
 		inputBytes, err = os.ReadFile(sourceFile)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read input file %q", sourceFile)
+			return pkgerrors.Wrapf(err, "failed to read input file %q", sourceFile)
 		}
 	}
 
 	ctx := context.Background()
 	c, err := client.New(ctx, "")
 	if err != nil {
-		return errors.Wrap(err, "failed to create clusterctl client")
+		return pkgerrors.Wrap(err, "failed to create clusterctl client")
 	}
 
 	result, err := c.Convert(ctx, client.ConvertOptions{
@@ -120,16 +120,16 @@ func runConvert(args []string) error {
 		ToVersion: convertOpts.toVersion,
 	})
 	if err != nil {
-		return errors.Wrap(err, "conversion failed")
+		return pkgerrors.Wrap(err, "conversion failed")
 	}
 
 	if convertOpts.output == "" {
 		if _, err := os.Stdout.Write(result.Output); err != nil {
-			return errors.Wrap(err, "failed to write to stdout")
+			return pkgerrors.Wrap(err, "failed to write to stdout")
 		}
 	} else {
 		if err := os.WriteFile(convertOpts.output, result.Output, 0600); err != nil {
-			return errors.Wrapf(err, "failed to write output file %q", convertOpts.output)
+			return pkgerrors.Wrapf(err, "failed to write output file %q", convertOpts.output)
 		}
 	}
 

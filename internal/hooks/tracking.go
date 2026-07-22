@@ -21,7 +21,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,7 +51,7 @@ func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, upda
 		obj = obj.DeepCopyObject().(client.Object)
 	}
 	if err := c.Patch(ctx, obj, client.MergeFrom(orig)); err != nil {
-		return errors.Wrapf(err, "failed to mark %q hook(s) as pending", strings.Join(hookNames, ","))
+		return pkgerrors.Wrapf(err, "failed to mark %q hook(s) as pending", strings.Join(hookNames, ","))
 	}
 
 	return nil
@@ -121,7 +121,7 @@ func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, updateR
 		obj = obj.DeepCopyObject().(client.Object)
 	}
 	if err := c.Patch(ctx, obj, client.MergeFrom(orig)); err != nil {
-		return errors.Wrapf(err, "failed to mark %q hook as done", hookName)
+		return pkgerrors.Wrapf(err, "failed to mark %q hook as done", hookName)
 	}
 
 	return nil
@@ -147,7 +147,7 @@ func MarkAsOkToDelete(ctx context.Context, c client.Client, obj client.Object, u
 
 	gvk, err := apiutil.GVKForObject(obj, c.Scheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to mark %s as ok to delete: failed to get GVK for object", klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "failed to mark %s as ok to delete: failed to get GVK for object", klog.KObj(obj))
 	}
 
 	orig := obj.DeepCopyObject().(client.Object)
@@ -165,7 +165,7 @@ func MarkAsOkToDelete(ctx context.Context, c client.Client, obj client.Object, u
 		obj = obj.DeepCopyObject().(client.Object)
 	}
 	if err := c.Patch(ctx, obj, client.MergeFrom(orig)); err != nil {
-		return errors.Wrapf(err, "failed to mark %s %s as ok to delete", gvk.Kind, klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "failed to mark %s %s as ok to delete", gvk.Kind, klog.KObj(obj))
 	}
 
 	return nil

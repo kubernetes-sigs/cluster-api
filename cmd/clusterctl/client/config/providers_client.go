@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/drone/envsubst/v2"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -517,19 +517,19 @@ func (p *providersClient) List() ([]Provider, error) {
 
 	userDefinedProviders := []configProvider{}
 	if err := p.reader.UnmarshalKey(ProvidersConfigKey, &userDefinedProviders); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal providers from the clusterctl configuration file")
+		return nil, pkgerrors.Wrap(err, "failed to unmarshal providers from the clusterctl configuration file")
 	}
 
 	for _, u := range userDefinedProviders {
 		var err error
 		u.URL, err = envsubst.Eval(u.URL, os.Getenv)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to evaluate url: %q", u.URL)
+			return nil, pkgerrors.Wrapf(err, "unable to evaluate url: %q", u.URL)
 		}
 
 		provider := NewProvider(u.Name, u.URL, u.Type)
 		if err := validateProvider(provider); err != nil {
-			return nil, errors.Wrapf(err, "error validating configuration for the %s with name %s. Please fix the providers value in clusterctl configuration file", provider.Type(), provider.Name())
+			return nil, pkgerrors.Wrapf(err, "error validating configuration for the %s with name %s. Please fix the providers value in clusterctl configuration file", provider.Type(), provider.Name())
 		}
 
 		override := false
@@ -566,31 +566,31 @@ func (p *providersClient) Get(name string, providerType clusterctlv1.ProviderTyp
 		}
 	}
 
-	return nil, errors.Errorf("failed to get configuration for the %s with name %s. Please check the provider name and/or add configuration for new providers using the .clusterctl config file", providerType, name)
+	return nil, pkgerrors.Errorf("failed to get configuration for the %s with name %s. Please check the provider name and/or add configuration for new providers using the .clusterctl config file", providerType, name)
 }
 
 func validateProvider(r Provider) error {
 	if r.Name() == "" {
-		return errors.New("name value cannot be empty")
+		return pkgerrors.New("name value cannot be empty")
 	}
 
 	if r.Name() != strings.ToLower(r.Name()) {
-		return errors.Errorf("provider name %s must be in lower case", r.Name())
+		return pkgerrors.Errorf("provider name %s must be in lower case", r.Name())
 	}
 
 	if (r.Name() == ClusterAPIProviderName) != (r.Type() == clusterctlv1.CoreProviderType) {
-		return errors.Errorf("name %s must be used with the %s type (name: %s, type: %s)", ClusterAPIProviderName, clusterctlv1.CoreProviderType, r.Name(), r.Type())
+		return pkgerrors.Errorf("name %s must be used with the %s type (name: %s, type: %s)", ClusterAPIProviderName, clusterctlv1.CoreProviderType, r.Name(), r.Type())
 	}
 
 	if errMsgs := validation.IsDNS1123Subdomain(r.Name()); len(errMsgs) != 0 {
-		return errors.Errorf("invalid provider name: %s", strings.Join(errMsgs, "; "))
+		return pkgerrors.Errorf("invalid provider name: %s", strings.Join(errMsgs, "; "))
 	}
 	if r.URL() == "" {
-		return errors.New("provider URL value cannot be empty")
+		return pkgerrors.New("provider URL value cannot be empty")
 	}
 
 	if _, err := url.Parse(r.URL()); err != nil {
-		return errors.Wrap(err, "error parsing provider URL")
+		return pkgerrors.Wrap(err, "error parsing provider URL")
 	}
 
 	switch r.Type() {
@@ -603,7 +603,7 @@ func validateProvider(r Provider) error {
 		clusterctlv1.AddonProviderType:
 		break
 	default:
-		return errors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s, %s, %s, %s]",
+		return pkgerrors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s, %s, %s, %s]",
 			clusterctlv1.CoreProviderType,
 			clusterctlv1.BootstrapProviderType,
 			clusterctlv1.InfrastructureProviderType,

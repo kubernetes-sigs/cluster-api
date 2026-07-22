@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -84,7 +84,7 @@ func TestGetResourceNotFound(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	_, err := Get(ctx, fakeClient, testResourceReference)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(apierrors.IsNotFound(errors.Cause(err))).To(BeTrue())
+	g.Expect(apierrors.IsNotFound(pkgerrors.Cause(err))).To(BeTrue())
 }
 
 func TestGetObjectFromContractVersionedRef(t *testing.T) {
@@ -180,7 +180,7 @@ func TestCloneTemplateResourceNotFound(t *testing.T) {
 		ClusterName: testClusterName,
 	})
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(apierrors.IsNotFound(errors.Cause(err))).To(BeTrue())
+	g.Expect(apierrors.IsNotFound(pkgerrors.Cause(err))).To(BeTrue())
 }
 
 func TestCloneTemplateResourceFound(t *testing.T) {

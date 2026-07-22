@@ -19,7 +19,7 @@ package clusterresourcesetbinding
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,7 +50,7 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil {
-		return errors.New("Client must not be nil")
+		return pkgerrors.New("Client must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clusterresourcesetbinding")
@@ -64,7 +64,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	return nil
@@ -162,16 +162,16 @@ func getClusterNameFromOwnerRef(obj metav1.ObjectMeta) (string, error) {
 		}
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return "", errors.Wrap(err, "failed to find cluster name in ownerRefs")
+			return "", pkgerrors.Wrap(err, "failed to find cluster name in ownerRefs")
 		}
 
 		if gv.Group != clusterv1.GroupVersion.Group {
 			continue
 		}
 		if ref.Name == "" {
-			return "", errors.New("failed to find cluster name in ownerRefs: ref name is empty")
+			return "", pkgerrors.New("failed to find cluster name in ownerRefs: ref name is empty")
 		}
 		return ref.Name, nil
 	}
-	return "", errors.New("failed to find cluster name in ownerRefs: no cluster ownerRef")
+	return "", pkgerrors.New("failed to find cluster name in ownerRefs: no cluster ownerRef")
 }

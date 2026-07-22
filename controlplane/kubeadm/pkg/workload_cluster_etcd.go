@@ -19,7 +19,7 @@ package pkg
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
@@ -62,14 +62,14 @@ func (w *Workload) RemoveEtcdMember(ctx context.Context, m *etcd.Member, nodes [
 	}
 	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, remainingNodes)
 	if err != nil {
-		return errors.Wrap(err, "failed to create etcd client")
+		return pkgerrors.Wrap(err, "failed to create etcd client")
 	}
 	defer etcdClient.Close()
 
 	// List etcd members. This checks that the member is healthy, because the request goes through consensus.
 	members, err := etcdClient.Members(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to list etcd members using etcd client")
+		return pkgerrors.Wrap(err, "failed to list etcd members using etcd client")
 	}
 	member := etcdutil.MemberForID(members, m.ID)
 
@@ -80,11 +80,11 @@ func (w *Workload) RemoveEtcdMember(ctx context.Context, m *etcd.Member, nodes [
 
 	// This is a safeguard preventing from removing the last member in an etcd-cluster.
 	if len(members) == 1 {
-		return errors.New("cannot remove the last etcd member in the cluster")
+		return pkgerrors.New("cannot remove the last etcd member in the cluster")
 	}
 
 	if err := etcdClient.RemoveMember(ctx, member.ID); err != nil {
-		return errors.Wrap(err, "failed to remove member from etcd")
+		return pkgerrors.Wrap(err, "failed to remove member from etcd")
 	}
 
 	return nil
@@ -96,13 +96,13 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, fromMember, toMemb
 	// Note: This works on the assumption that member name is equal to the node name (kubeadm).
 	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{fromMember})
 	if err != nil {
-		return errors.Wrap(err, "failed to create etcd client")
+		return pkgerrors.Wrap(err, "failed to create etcd client")
 	}
 	defer etcdClient.Close()
 
 	members, err := etcdClient.Members(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to list etcd members using etcd client")
+		return pkgerrors.Wrap(err, "failed to list etcd members using etcd client")
 	}
 
 	currentMember := etcdutil.MemberForName(members, fromMember)
@@ -114,10 +114,10 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, fromMember, toMemb
 	// Move the leader to the provided candidate.
 	nextLeader := etcdutil.MemberForName(members, toMember)
 	if nextLeader == nil {
-		return errors.Errorf("failed to get etcd member for leader candidate %q", toMember)
+		return pkgerrors.Errorf("failed to get etcd member for leader candidate %q", toMember)
 	}
 	if err := etcdClient.MoveLeader(ctx, nextLeader.ID); err != nil {
-		return errors.Wrap(err, "failed to move leader")
+		return pkgerrors.Wrap(err, "failed to move leader")
 	}
 	return nil
 }

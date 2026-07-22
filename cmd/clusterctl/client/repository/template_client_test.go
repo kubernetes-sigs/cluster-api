@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -172,7 +172,7 @@ func Test_templates_Get(t *testing.T) {
 					WithDefaultVersion("v1.0").
 					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
-				processor:             test.NewFakeProcessor().WithGetVariablesErr(errors.New("cannot get vars")).WithTemplateName("cluster-template.yaml"),
+				processor:             test.NewFakeProcessor().WithGetVariablesErr(pkgerrors.New("cannot get vars")).WithTemplateName("cluster-template.yaml"),
 			},
 			args: args{
 				targetNamespace:   "ns1",

@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -102,11 +102,11 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil {
-		return errors.New("Client, APIReader and ClusterCache must not be nil")
+		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil")
 	}
 
 	if feature.Gates.Enabled(feature.RuntimeSDK) && r.RuntimeClient == nil {
-		return errors.New("RuntimeClient must not be nil")
+		return pkgerrors.New("RuntimeClient must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "topology/cluster")
@@ -142,7 +142,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Build(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.externalTracker = external.ObjectTracker{
@@ -162,7 +162,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		cache.New[desiredstate.GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute),
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed creating desired state generator")
+		return pkgerrors.Wrap(err, "failed creating desired state generator")
 	}
 
 	r.controller = c
@@ -292,7 +292,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	defer func() {
 		if err := r.reconcileStatus(s, cluster, reterr); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to reconcile cluster topology conditions")})
+			reterr = kerrors.NewAggregate([]error{reterr, pkgerrors.Wrap(err, "failed to reconcile cluster topology conditions")})
 			return
 		}
 		options := []patch.Option{
@@ -336,7 +336,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	clusterClass := &clusterv1.ClusterClass{}
 	key := s.Current.Cluster.GetClassKey()
 	if err := r.Client.Get(ctx, key, clusterClass); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve ClusterClass %s", key)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve ClusterClass %s", key)
 	}
 
 	s.Blueprint.ClusterClass = clusterClass
@@ -346,10 +346,10 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	// in the Cluster.
 	if !conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReadyCondition) ||
 		conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReadyCondition) {
-		return ctrl.Result{}, errors.Errorf("ClusterClass is not successfully reconciled: status of %s condition on ClusterClass must be \"True\"", clusterv1.ClusterClassVariablesReadyCondition)
+		return ctrl.Result{}, pkgerrors.Errorf("ClusterClass is not successfully reconciled: status of %s condition on ClusterClass must be \"True\"", clusterv1.ClusterClassVariablesReadyCondition)
 	}
 	if clusterClass.GetGeneration() != clusterClass.Status.ObservedGeneration {
-		return ctrl.Result{}, errors.Errorf("ClusterClass is not successfully reconciled: ClusterClass.status.observedGeneration must be %d, but is %d", clusterClass.GetGeneration(), clusterClass.Status.ObservedGeneration)
+		return ctrl.Result{}, pkgerrors.Errorf("ClusterClass is not successfully reconciled: ClusterClass.status.observedGeneration must be %d, but is %d", clusterClass.GetGeneration(), clusterClass.Status.ObservedGeneration)
 	}
 
 	// Default and Validate the Cluster variables based on information from the ClusterClass.
@@ -363,13 +363,13 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	// and store it in the request scope.
 	s.Blueprint, err = r.getBlueprint(ctx, s.Current.Cluster, s.Blueprint.ClusterClass)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "error reading the ClusterClass")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "error reading the ClusterClass")
 	}
 
 	// Gets the current state of the Cluster and store it in the request scope.
 	s.Current, err = r.getCurrentState(ctx, s)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "error reading current state of the Cluster topology")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "error reading current state of the Cluster topology")
 	}
 
 	// The cluster topology is yet to be created. Call the BeforeClusterCreate hook before proceeding.
@@ -385,7 +385,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 
 	// Setup watches for InfrastructureCluster and ControlPlane CRs when they exist.
 	if err := r.setupDynamicWatches(ctx, s); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "error creating dynamic watch")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "error creating dynamic watch")
 	}
 
 	anyManagedFieldIssueMitigated, err := r.migrateClusterAndMitigateManagedFieldsIssue(ctx, s)
@@ -399,12 +399,12 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	// Computes the desired state of the Cluster and store it in the request scope.
 	s.Desired, err = r.desiredStateGenerator.Generate(ctx, s)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "error computing the desired state of the Cluster topology")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "error computing the desired state of the Cluster topology")
 	}
 
 	// Reconciles current and desired state of the Cluster
 	if err := r.reconcileState(ctx, s); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "error reconciling the Cluster topology")
+		return ctrl.Result{}, pkgerrors.Wrap(err, "error reconciling the Cluster topology")
 	}
 
 	// requeueAfter will not be 0 if any of the runtime hooks returns a blocking response.
@@ -426,7 +426,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 			predicates.ResourceIsChanged(scheme, *r.externalTracker.PredicateLogger),
 			predicates.ResourceIsTopologyOwned(scheme, *r.externalTracker.PredicateLogger),
 		); err != nil {
-			return errors.Wrap(err, "error watching Infrastructure CR")
+			return pkgerrors.Wrap(err, "error watching Infrastructure CR")
 		}
 	}
 	if s.Current.ControlPlane.Object != nil {
@@ -436,7 +436,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 			predicates.ResourceIsChanged(scheme, *r.externalTracker.PredicateLogger),
 			predicates.ResourceIsTopologyOwned(scheme, *r.externalTracker.PredicateLogger),
 		); err != nil {
-			return errors.Wrap(err, "error watching ControlPlane CR")
+			return pkgerrors.Wrap(err, "error watching ControlPlane CR")
 		}
 	}
 	return nil

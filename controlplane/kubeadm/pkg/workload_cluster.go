@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -104,7 +104,7 @@ func (w *Workload) getNodesWithControlPlaneLabel(ctx context.Context) ([]*Node, 
 func (w *Workload) getConfigMap(ctx context.Context, configMap client.ObjectKey) (*corev1.ConfigMap, error) {
 	original := &corev1.ConfigMap{}
 	if err := w.Client.Get(ctx, configMap, original); err != nil {
-		return nil, errors.Wrapf(err, "error getting %s/%s configmap from target cluster", configMap.Namespace, configMap.Name)
+		return nil, pkgerrors.Wrapf(err, "error getting %s/%s configmap from target cluster", configMap.Namespace, configMap.Name)
 	}
 	return original.DeepCopy(), nil
 }
@@ -177,17 +177,17 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 		key := client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
 		configMap, err := w.getConfigMap(ctx, key)
 		if err != nil {
-			return errors.Wrap(err, "failed to get kubeadmConfigMap")
+			return pkgerrors.Wrap(err, "failed to get kubeadmConfigMap")
 		}
 
 		currentData, ok := configMap.Data[clusterConfigurationKey]
 		if !ok {
-			return errors.Errorf("unable to find %q in the kubeadm-config ConfigMap", clusterConfigurationKey)
+			return pkgerrors.Errorf("unable to find %q in the kubeadm-config ConfigMap", clusterConfigurationKey)
 		}
 
 		currentObj, currentUpstreamData, err := kubeadmtypes.UnmarshalClusterConfiguration(currentData)
 		if err != nil {
-			return errors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterConfigurationKey)
+			return pkgerrors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterConfigurationKey)
 		}
 
 		updatedObj := currentObj.DeepCopy()
@@ -206,11 +206,11 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 		if !reflect.DeepEqual(currentObj, updatedObj) || !reflect.DeepEqual(currentUpstreamData, updatedUpstreamData) {
 			updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(updatedObj, version, updatedUpstreamData)
 			if err != nil {
-				return errors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterConfigurationKey)
+				return pkgerrors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterConfigurationKey)
 			}
 			configMap.Data[clusterConfigurationKey] = updatedData
 			if err := w.Client.Update(ctx, configMap); err != nil {
-				return errors.Wrap(err, "failed to upgrade cluster configuration in the kubeadmConfigMap")
+				return pkgerrors.Wrap(err, "failed to upgrade cluster configuration in the kubeadmConfigMap")
 			}
 		}
 		return nil
@@ -233,7 +233,7 @@ func (w *Workload) HasKubeadmConfig(ctx context.Context) (bool, error) {
 // GetAPIServerCertificateExpiry returns the certificate expiry of the apiserver on the given node.
 func (w *Workload) GetAPIServerCertificateExpiry(ctx context.Context, kubeadmConfig *bootstrapv1.KubeadmConfig, nodeName string) (*time.Time, error) {
 	// Create a context with 15 second timeout
-	ctx, cancel := context.WithTimeoutCause(ctx, 15*time.Second, errors.New("timeout getting API server certificate expiry"))
+	ctx, cancel := context.WithTimeoutCause(ctx, 15*time.Second, pkgerrors.New("timeout getting API server certificate expiry"))
 	defer cancel()
 
 	// Create a proxy.
@@ -247,13 +247,13 @@ func (w *Workload) GetAPIServerCertificateExpiry(ctx context.Context, kubeadmCon
 	// Create a dialer.
 	dialer, err := proxy.NewDialer(p)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to get certificate expiry for kube-apiserver on Node/%s: failed to create dialer", nodeName)
+		return nil, pkgerrors.Wrapf(err, "unable to get certificate expiry for kube-apiserver on Node/%s: failed to create dialer", nodeName)
 	}
 
 	// Dial to the kube-apiserver.
 	rawConn, err := dialer.DialContextWithAddr(ctx, staticPodName("kube-apiserver", nodeName))
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to get certificate expiry for kube-apiserver on Node/%s: unable to dial to kube-apiserver", nodeName)
+		return nil, pkgerrors.Wrapf(err, "unable to get certificate expiry for kube-apiserver on Node/%s: unable to dial to kube-apiserver", nodeName)
 	}
 
 	// Execute a TLS handshake over the connection to the kube-apiserver.
@@ -261,7 +261,7 @@ func (w *Workload) GetAPIServerCertificateExpiry(ctx context.Context, kubeadmCon
 	conn := tls.Client(rawConn, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec // Intentionally not verifying the server cert here.
 	if err := conn.HandshakeContext(ctx); err != nil {
 		_ = rawConn.Close()
-		return nil, errors.Wrapf(err, "unable to get certificate expiry for kube-apiserver on Node/%s: TLS handshake with the kube-apiserver failed", nodeName)
+		return nil, pkgerrors.Wrapf(err, "unable to get certificate expiry for kube-apiserver on Node/%s: TLS handshake with the kube-apiserver failed", nodeName)
 	}
 	defer conn.Close()
 
@@ -273,7 +273,7 @@ func (w *Workload) GetAPIServerCertificateExpiry(ctx context.Context, kubeadmCon
 		}
 	}
 	if kubeAPIServerCert == nil {
-		return nil, errors.Errorf("unable to get certificate expiry for kube-apiserver on Node/%s: couldn't get peer certificate with cn=%q", nodeName, kubeadmAPIServerCertCommonName)
+		return nil, pkgerrors.Errorf("unable to get certificate expiry for kube-apiserver on Node/%s: couldn't get peer certificate with cn=%q", nodeName, kubeadmAPIServerCertCommonName)
 	}
 	return &kubeAPIServerCert.NotAfter, nil
 }
@@ -340,11 +340,11 @@ func newClientCert(caCert *x509.Certificate, key crypto.Signer, caKey crypto.Sig
 
 	b, err := x509.CreateCertificate(rand.Reader, &tmpl, caCert, key.Public(), caKey)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create signed client certificate: %+v", tmpl)
+		return nil, pkgerrors.Wrapf(err, "failed to create signed client certificate: %+v", tmpl)
 	}
 
 	c, err := x509.ParseCertificate(b)
-	return c, errors.WithStack(err)
+	return c, pkgerrors.WithStack(err)
 }
 
 func staticPodName(component, nodeName string) string {
@@ -365,7 +365,7 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 			// if kube-proxy is missing, return without errors
 			return nil
 		}
-		return errors.Wrapf(err, "failed to determine if %s daemonset already exists", kubeProxyKey)
+		return pkgerrors.Wrapf(err, "failed to determine if %s daemonset already exists", kubeProxyKey)
 	}
 
 	container := findKubeProxyContainer(ds)

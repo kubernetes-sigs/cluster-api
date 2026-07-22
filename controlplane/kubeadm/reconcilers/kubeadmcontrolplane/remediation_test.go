@@ -24,7 +24,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -186,10 +186,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				return err
 			}
 			if c := v1beta1conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition); c != nil {
-				return errors.Errorf("condition %s still exists", clusterv1.MachineOwnerRemediatedV1Beta1Condition)
+				return pkgerrors.Errorf("condition %s still exists", clusterv1.MachineOwnerRemediatedV1Beta1Condition)
 			}
 			if c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition); c != nil {
-				return errors.Errorf("condition %s still exists", clusterv1.MachineOwnerRemediatedCondition)
+				return pkgerrors.Errorf("condition %s still exists", clusterv1.MachineOwnerRemediatedCondition)
 			}
 			return nil
 		}, 10*time.Second).Should(Succeed())
@@ -2847,19 +2847,19 @@ func assertMachineV1beta1Condition(ctx context.Context, g *WithT, m *clusterv1.M
 		}
 		c := v1beta1conditions.Get(m, t)
 		if c == nil {
-			return errors.Errorf("condition %q was nil", t)
+			return pkgerrors.Errorf("condition %q was nil", t)
 		}
 		if c.Status != status {
-			return errors.Errorf("condition %q status %q did not match %q", t, c.Status, status)
+			return pkgerrors.Errorf("condition %q status %q did not match %q", t, c.Status, status)
 		}
 		if c.Reason != reason {
-			return errors.Errorf("condition %q reason %q did not match %q", t, c.Reason, reason)
+			return pkgerrors.Errorf("condition %q reason %q did not match %q", t, c.Reason, reason)
 		}
 		if c.Severity != severity {
-			return errors.Errorf("condition %q severity %q did not match %q", t, c.Status, status)
+			return pkgerrors.Errorf("condition %q severity %q did not match %q", t, c.Status, status)
 		}
 		if c.Message != message {
-			return errors.Errorf("condition %q message %q did not match %q", t, c.Message, message)
+			return pkgerrors.Errorf("condition %q message %q did not match %q", t, c.Message, message)
 		}
 		return nil
 	}, 10*time.Second).Should(Succeed())
@@ -2872,16 +2872,16 @@ func assertMachineCondition(ctx context.Context, g *WithT, m *clusterv1.Machine,
 		}
 		c := conditions.Get(m, t)
 		if c == nil {
-			return errors.Errorf("condition %q was nil", t)
+			return pkgerrors.Errorf("condition %q was nil", t)
 		}
 		if c.Status != status {
-			return errors.Errorf("condition %q status %q did not match %q", t, c.Status, status)
+			return pkgerrors.Errorf("condition %q status %q did not match %q", t, c.Status, status)
 		}
 		if c.Reason != reason {
-			return errors.Errorf("condition %q reason %q did not match %q", t, c.Reason, reason)
+			return pkgerrors.Errorf("condition %q reason %q did not match %q", t, c.Reason, reason)
 		}
 		if c.Message != message {
-			return errors.Errorf("condition %q message %q did not match %q", t, c.Message, message)
+			return pkgerrors.Errorf("condition %q message %q did not match %q", t, c.Message, message)
 		}
 		return nil
 	}, 10*time.Second).Should(Succeed())

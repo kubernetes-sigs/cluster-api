@@ -25,7 +25,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -1867,13 +1867,13 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 
 		// check if managed fields and well know annotations have been removed from the Cluster parameter included in the payload lifecycle hooks calls.
 		if cluster.GetManagedFields() != nil {
-			return errors.New("managedFields should have been cleaned up")
+			return pkgerrors.New("managedFields should have been cleaned up")
 		}
 		if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
-			return errors.New("last-applied-configuration annotation should have been cleaned up")
+			return pkgerrors.New("last-applied-configuration annotation should have been cleaned up")
 		}
 		if _, ok := cluster.Annotations[conversionutil.DataAnnotation]; ok {
-			return errors.New("conversion annotation should have been cleaned up")
+			return pkgerrors.New("conversion annotation should have been cleaned up")
 		}
 
 		// Check the Cluster parameter has been cleaned up as expected.
@@ -1891,7 +1891,7 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		originalClusterCopy.Status.Conditions = nil
 
 		if !apiequality.Semantic.DeepEqual(originalClusterCopy, &cluster) {
-			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, &cluster))
+			return pkgerrors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, &cluster))
 		}
 		return nil
 	}

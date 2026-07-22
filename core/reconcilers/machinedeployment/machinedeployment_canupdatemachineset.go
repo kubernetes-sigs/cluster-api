@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -82,7 +82,7 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 		return false, nil
 	}
 	if len(extensionHandlers) > 1 {
-		return false, errors.Errorf("found multiple CanUpdateMachineSet hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		return false, pkgerrors.Errorf("found multiple CanUpdateMachineSet hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
 	}
 
 	entry := CanUpdateMachineSetCacheEntry{
@@ -127,7 +127,7 @@ func (p *rolloutPlanner) canExtensionsUpdateMachineSet(ctx context.Context, oldM
 	// Create the CanUpdateMachineSet request.
 	req, err := createRequest(oldMS, newMS, templateObjects)
 	if err != nil {
-		return false, nil, errors.Wrapf(err, "failed to generate CanUpdateMachineSet request")
+		return false, nil, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachineSet request")
 	}
 
 	var reasons []string
@@ -140,14 +140,14 @@ func (p *rolloutPlanner) canExtensionsUpdateMachineSet(ctx context.Context, oldM
 
 		// Apply patches from the CanUpdateMachineSet response to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
-			return false, nil, errors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachineSet request", extensionHandler)
+			return false, nil, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachineSet request", extensionHandler)
 		}
 
 		// Check if current and desired objects are now matching.
 		var matches bool
 		matches, reasons, err = matchesMachineSet(req)
 		if err != nil {
-			return false, nil, errors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
+			return false, nil, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
 		}
 		if matches {
 			return true, nil, nil
@@ -260,7 +260,7 @@ func matchesMachineSet(req *runtimehooksv1.CanUpdateMachineSetRequest) (bool, []
 	var reasons []string
 	match, diff, err := matchesMachineSetSpec(&req.Current.MachineSet, &req.Desired.MachineSet)
 	if err != nil {
-		return false, nil, errors.Wrapf(err, "failed to match MachineSet")
+		return false, nil, pkgerrors.Wrapf(err, "failed to match MachineSet")
 	}
 	if !match {
 		reasons = append(reasons, fmt.Sprintf("MachineSet cannot be updated in-place: %s", diff))
@@ -268,7 +268,7 @@ func matchesMachineSet(req *runtimehooksv1.CanUpdateMachineSetRequest) (bool, []
 	if req.Current.BootstrapConfigTemplate.Object != nil && req.Desired.BootstrapConfigTemplate.Object != nil {
 		match, diff, err = matchesUnstructuredSpec(req.Current.BootstrapConfigTemplate, req.Desired.BootstrapConfigTemplate)
 		if err != nil {
-			return false, nil, errors.Wrapf(err, "failed to match %s", req.Current.BootstrapConfigTemplate.Object.GetObjectKind().GroupVersionKind().Kind)
+			return false, nil, pkgerrors.Wrapf(err, "failed to match %s", req.Current.BootstrapConfigTemplate.Object.GetObjectKind().GroupVersionKind().Kind)
 		}
 		if !match {
 			reasons = append(reasons, fmt.Sprintf("%s cannot be updated in-place: %s", req.Current.BootstrapConfigTemplate.Object.GetObjectKind().GroupVersionKind().Kind, diff))
@@ -276,7 +276,7 @@ func matchesMachineSet(req *runtimehooksv1.CanUpdateMachineSetRequest) (bool, []
 	}
 	match, diff, err = matchesUnstructuredSpec(req.Current.InfrastructureMachineTemplate, req.Desired.InfrastructureMachineTemplate)
 	if err != nil {
-		return false, nil, errors.Wrapf(err, "failed to match %s", req.Current.InfrastructureMachineTemplate.Object.GetObjectKind().GroupVersionKind().Kind)
+		return false, nil, pkgerrors.Wrapf(err, "failed to match %s", req.Current.InfrastructureMachineTemplate.Object.GetObjectKind().GroupVersionKind().Kind)
 	}
 	if !match {
 		reasons = append(reasons, fmt.Sprintf("%s cannot be updated in-place: %s", req.Current.InfrastructureMachineTemplate.Object.GetObjectKind().GroupVersionKind().Kind, diff))
@@ -313,33 +313,33 @@ func matchesUnstructuredSpec(patched, desired runtime.RawExtension) (equal bool,
 	//       applyPatchToObject are always setting objects as Unstructured.
 	patchedUnstructured, ok := patched.Object.(*unstructured.Unstructured)
 	if !ok {
-		return false, "", errors.Errorf("patched object is not an Unstructured")
+		return false, "", pkgerrors.Errorf("patched object is not an Unstructured")
 	}
 	desiredUnstructured, ok := desired.Object.(*unstructured.Unstructured)
 	if !ok {
-		return false, "", errors.Errorf("desired object is not an Unstructured")
+		return false, "", pkgerrors.Errorf("desired object is not an Unstructured")
 	}
 
 	// Note: Wrapping Unstructured spec.template.specs in an Unstructured for proper formatting of the diff.
 	patchedSpecTemplateSpec, foundPatched, err := unstructured.NestedFieldNoCopy(patchedUnstructured.Object, "spec", "template", "spec")
 	if err != nil {
-		return false, "", errors.Errorf("could not read spec.template.spec from patched object")
+		return false, "", pkgerrors.Errorf("could not read spec.template.spec from patched object")
 	}
 	desiredSpecTemplateSpec, foundDesired, err := unstructured.NestedFieldNoCopy(desiredUnstructured.Object, "spec", "template", "spec")
 	if err != nil {
-		return false, "", errors.Errorf("could not read spec.template.spec from desired object")
+		return false, "", pkgerrors.Errorf("could not read spec.template.spec from desired object")
 	}
 
 	cleanedUpPatchedUnstructured := &unstructured.Unstructured{Object: map[string]interface{}{}}
 	if foundPatched {
 		if err := unstructured.SetNestedField(cleanedUpPatchedUnstructured.Object, patchedSpecTemplateSpec, "spec", "template", "spec"); err != nil {
-			return false, "", errors.Errorf("could not write spec.template.spec to patched object for comparison")
+			return false, "", pkgerrors.Errorf("could not write spec.template.spec to patched object for comparison")
 		}
 	}
 	cleanedUpDesiredUnstructured := &unstructured.Unstructured{Object: map[string]interface{}{}}
 	if foundDesired {
 		if err := unstructured.SetNestedField(cleanedUpDesiredUnstructured.Object, desiredSpecTemplateSpec, "spec", "template", "spec"); err != nil {
-			return false, "", errors.Errorf("could not write spec.template.spec to desired object for comparison")
+			return false, "", pkgerrors.Errorf("could not write spec.template.spec to desired object for comparison")
 		}
 	}
 
@@ -359,23 +359,23 @@ func (p *rolloutPlanner) getTemplateObjects(ctx context.Context, oldMS, newMS *c
 
 	templateObjects.CurrentInfraMachineTemplate, err = external.GetObjectFromContractVersionedRef(ctx, p.Client, oldMS.Spec.Template.Spec.InfrastructureRef, oldMS.Namespace)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(oldMS.Spec.Template.Spec.InfrastructureRef.Kind, "InfrastructureMachineTemplate"), oldMS.Name)
+		return nil, pkgerrors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(oldMS.Spec.Template.Spec.InfrastructureRef.Kind, "InfrastructureMachineTemplate"), oldMS.Name)
 	}
 	templateObjects.DesiredInfraMachineTemplate, err = external.GetObjectFromContractVersionedRef(ctx, p.Client, newMS.Spec.Template.Spec.InfrastructureRef, newMS.Namespace)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(newMS.Spec.Template.Spec.InfrastructureRef.Kind, "InfrastructureMachineTemplate"), newMS.Name)
+		return nil, pkgerrors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(newMS.Spec.Template.Spec.InfrastructureRef.Kind, "InfrastructureMachineTemplate"), newMS.Name)
 	}
 
 	if oldMS.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		templateObjects.CurrentBootstrapConfigTemplate, err = external.GetObjectFromContractVersionedRef(ctx, p.Client, oldMS.Spec.Template.Spec.Bootstrap.ConfigRef, oldMS.Namespace)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(oldMS.Spec.Template.Spec.Bootstrap.ConfigRef.Kind, "BootstrapConfigTemplate"), oldMS.Name)
+			return nil, pkgerrors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(oldMS.Spec.Template.Spec.Bootstrap.ConfigRef.Kind, "BootstrapConfigTemplate"), oldMS.Name)
 		}
 	}
 	if newMS.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		templateObjects.DesiredBootstrapConfigTemplate, err = external.GetObjectFromContractVersionedRef(ctx, p.Client, newMS.Spec.Template.Spec.Bootstrap.ConfigRef, newMS.Namespace)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(newMS.Spec.Template.Spec.Bootstrap.ConfigRef.Kind, "BootstrapConfigTemplate"), newMS.Name)
+			return nil, pkgerrors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(newMS.Spec.Template.Spec.Bootstrap.ConfigRef.Kind, "BootstrapConfigTemplate"), newMS.Name)
 		}
 	}
 

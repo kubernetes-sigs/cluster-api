@@ -27,7 +27,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v82/github"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -78,10 +78,10 @@ func newTemplateClient(input TemplateClientInput) *templateClient {
 
 func (t *templateClient) GetFromConfigMap(ctx context.Context, configMapNamespace, configMapName, configMapDataKey, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
 	if configMapNamespace == "" {
-		return nil, errors.New("invalid GetFromConfigMap operation: missing configMapNamespace value")
+		return nil, pkgerrors.New("invalid GetFromConfigMap operation: missing configMapNamespace value")
 	}
 	if configMapName == "" {
-		return nil, errors.New("invalid GetFromConfigMap operation: missing configMapName value")
+		return nil, pkgerrors.New("invalid GetFromConfigMap operation: missing configMapName value")
 	}
 
 	c, err := t.proxy.NewClient(ctx)
@@ -96,12 +96,12 @@ func (t *templateClient) GetFromConfigMap(ctx context.Context, configMapNamespac
 	}
 
 	if err := c.Get(ctx, key, configMap); err != nil {
-		return nil, errors.Wrapf(err, "error reading ConfigMap %s/%s", configMapNamespace, configMapName)
+		return nil, pkgerrors.Wrapf(err, "error reading ConfigMap %s/%s", configMapNamespace, configMapName)
 	}
 
 	data, ok := configMap.Data[configMapDataKey]
 	if !ok {
-		return nil, errors.Errorf("the ConfigMap %s/%s does not have the %q data key", configMapNamespace, configMapName, configMapDataKey)
+		return nil, pkgerrors.Errorf("the ConfigMap %s/%s does not have the %q data key", configMapNamespace, configMapName, configMapDataKey)
 	}
 
 	return repository.NewTemplate(repository.TemplateInput{
@@ -115,12 +115,12 @@ func (t *templateClient) GetFromConfigMap(ctx context.Context, configMapNamespac
 
 func (t *templateClient) GetFromURL(ctx context.Context, templateURL, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
 	if templateURL == "" {
-		return nil, errors.New("invalid GetFromURL operation: missing templateURL value")
+		return nil, pkgerrors.New("invalid GetFromURL operation: missing templateURL value")
 	}
 
 	content, err := t.getURLContent(ctx, templateURL)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid GetFromURL operation")
+		return nil, pkgerrors.Wrapf(err, "invalid GetFromURL operation")
 	}
 
 	return repository.NewTemplate(repository.TemplateInput{
@@ -136,14 +136,14 @@ func (t *templateClient) getURLContent(ctx context.Context, templateURL string) 
 	if templateURL == "-" {
 		b, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read stdin")
+			return nil, pkgerrors.Wrapf(err, "failed to read stdin")
 		}
 		return b, nil
 	}
 
 	rURL, err := url.Parse(templateURL)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse %q", templateURL)
+		return nil, pkgerrors.Wrapf(err, "failed to parse %q", templateURL)
 	}
 
 	if rURL.Scheme == "https" {
@@ -157,20 +157,20 @@ func (t *templateClient) getURLContent(ctx context.Context, templateURL string) 
 		return t.getLocalFileContent(rURL)
 	}
 
-	return nil, errors.Errorf("unable to read content from %q. Only reading from GitHub and local file system is supported", templateURL)
+	return nil, pkgerrors.Errorf("unable to read content from %q. Only reading from GitHub and local file system is supported", templateURL)
 }
 
 func (t *templateClient) getLocalFileContent(rURL *url.URL) ([]byte, error) {
 	f, err := os.Stat(rURL.Path) //nolint:gosec // G703: rURL.Path comes from a parsed URL, not raw user input.
 	if err != nil {
-		return nil, errors.Errorf("failed to read file %q", rURL.Path)
+		return nil, pkgerrors.Errorf("failed to read file %q", rURL.Path)
 	}
 	if f.IsDir() {
-		return nil, errors.Errorf("invalid path: file %q is actually a directory", rURL.Path)
+		return nil, pkgerrors.Errorf("invalid path: file %q is actually a directory", rURL.Path)
 	}
 	content, err := os.ReadFile(rURL.Path) //nolint:gosec // G703: rURL.Path comes from a parsed URL, not raw user input.
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read file %q", rURL.Path)
+		return nil, pkgerrors.Wrapf(err, "failed to read file %q", rURL.Path)
 	}
 
 	return content, nil
@@ -180,7 +180,7 @@ func (t *templateClient) getGitHubFileContent(ctx context.Context, rURL *url.URL
 	// Check if the path is in the expected format,
 	urlSplit := strings.Split(strings.TrimPrefix(rURL.Path, "/"), "/")
 	if len(urlSplit) < 5 {
-		return nil, errors.Errorf(
+		return nil, pkgerrors.Errorf(
 			"invalid GitHub url %q: a GitHub url should be in on of these the forms\n"+
 				"- https://github.com/{owner}/{repository}/blob/{branch}/{path-to-file}\n"+
 				"- https://github.com/{owner}/{repository}/releases/download/{tag}/{asset-file-name}", rURL,
@@ -225,14 +225,14 @@ func getGithubFileContentFromCode(ctx context.Context, ghClient *github.Client, 
 		return nil, handleGithubErr(err, "failed to get %q", fullPath)
 	}
 	if fileContent == nil {
-		return nil, errors.Errorf("%q does not return a valid file content", fullPath)
+		return nil, pkgerrors.Errorf("%q does not return a valid file content", fullPath)
 	}
 	if fileContent.Encoding == nil || *fileContent.Encoding != "base64" {
-		return nil, errors.Errorf("invalid encoding detected for %q. Only base64 encoding supported", fullPath)
+		return nil, pkgerrors.Errorf("invalid encoding detected for %q. Only base64 encoding supported", fullPath)
 	}
 	content, err := base64.StdEncoding.DecodeString(*fileContent.Content)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to decode file %q", fullPath)
+		return nil, pkgerrors.Wrapf(err, "failed to decode file %q", fullPath)
 	}
 	return content, nil
 }
@@ -250,7 +250,7 @@ func (t *templateClient) getRawURLFileContent(ctx context.Context, rURL string) 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("failed to get file, got %d", response.StatusCode)
+		return nil, pkgerrors.Errorf("failed to get file, got %d", response.StatusCode)
 	}
 
 	content, err := io.ReadAll(response.Body)
@@ -276,7 +276,7 @@ func getGithubAssetFromRelease(ctx context.Context, ghClient *github.Client, pat
 		if asset.GetName() == assetName {
 			rc, _, err = ghClient.Repositories.DownloadReleaseAsset(ctx, owner, repo, asset.GetID(), ghClient.Client())
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to download file %q", path)
+				return nil, pkgerrors.Wrapf(err, "failed to download file %q", path)
 			}
 			break
 		}
@@ -303,12 +303,12 @@ func getGitHubClient(ctx context.Context, configVariablesClient config.Variables
 	return github.NewClient(authenticatingHTTPClient), nil
 }
 
-var errRateLimit = errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
+var errRateLimit = pkgerrors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
 
 // handleGithubErr wraps error messages.
 func handleGithubErr(err error, message string, args ...interface{}) error {
 	if _, ok := err.(*github.RateLimitError); ok {
 		return errRateLimit
 	}
-	return errors.Wrapf(err, message, args...)
+	return pkgerrors.Wrapf(err, message, args...)
 }

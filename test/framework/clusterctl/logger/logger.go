@@ -23,7 +23,7 @@ import (
 	"io"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // Provides a logr.Logger to use during e2e tests.
@@ -89,7 +89,7 @@ func flatten(values []interface{}) (string, error) {
 	var msgValue string
 	var errorValue error
 	if len(values)%2 == 1 {
-		return "", errors.New("log entry cannot have odd number off keyAndValues")
+		return "", pkgerrors.New("log entry cannot have odd number off keyAndValues")
 	}
 
 	keys := make([]string, 0, len(values)/2)
@@ -142,7 +142,7 @@ func flatten(values []interface{}) (string, error) {
 func pretty(value interface{}) (string, error) {
 	jb, err := json.Marshal(value)
 	if err != nil {
-		return "", errors.Wrapf(err, "Failed to marshal %s", value)
+		return "", pkgerrors.Wrapf(err, "Failed to marshal %s", value)
 	}
 	return string(jb), nil
 }

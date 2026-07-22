@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,12 +33,12 @@ import (
 func createToken(ctx context.Context, c client.Client, ttl time.Duration) (string, error) {
 	token, err := bootstraputil.GenerateBootstrapToken()
 	if err != nil {
-		return "", errors.Wrap(err, "unable to generate bootstrap token")
+		return "", pkgerrors.Wrap(err, "unable to generate bootstrap token")
 	}
 
 	substrs := bootstraputil.BootstrapTokenRegexp.FindStringSubmatch(token)
 	if len(substrs) != 3 {
-		return "", errors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
+		return "", pkgerrors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
 	}
 	tokenID := substrs[1]
 	tokenSecret := substrs[2]
@@ -71,7 +71,7 @@ func createToken(ctx context.Context, c client.Client, ttl time.Duration) (strin
 func getToken(ctx context.Context, c client.Client, token string) (*corev1.Secret, error) {
 	substrs := bootstraputil.BootstrapTokenRegexp.FindStringSubmatch(token)
 	if len(substrs) != 3 {
-		return nil, errors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
+		return nil, pkgerrors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
 	}
 	tokenID := substrs[1]
 
@@ -82,7 +82,7 @@ func getToken(ctx context.Context, c client.Client, token string) (*corev1.Secre
 	}
 
 	if secret.Data == nil {
-		return nil, errors.Errorf("Invalid bootstrap secret %q, remove the token from the kubeadm config to re-create", secretName)
+		return nil, pkgerrors.Errorf("Invalid bootstrap secret %q, remove the token from the kubeadm config to re-create", secretName)
 	}
 	return secret, nil
 }

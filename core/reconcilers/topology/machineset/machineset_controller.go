@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -64,7 +64,7 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil {
-		return errors.New("Client and APIReader must not be nil")
+		return pkgerrors.New("Client and APIReader must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "topology/machineset")
@@ -90,7 +90,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		Complete(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	return nil
@@ -119,7 +119,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get MachineSet/%s", req.Name)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get MachineSet/%s", req.Name)
 	}
 
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KRef(ms.Namespace, ms.Spec.ClusterName))
@@ -183,7 +183,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, ms *clusterv1.MachineS
 	if err := r.Client.Get(ctx, *mdName, md); err != nil {
 		if !apierrors.IsNotFound(err) {
 			// Error reading the object - requeue the request.
-			return errors.Wrapf(err, "failed to get MachineDeployment/%s", mdName.Name)
+			return pkgerrors.Wrapf(err, "failed to get MachineDeployment/%s", mdName.Name)
 		}
 		// If the MachineDeployment doesn't exist anymore, set md to nil, so we can handle that case correctly below.
 		md = nil
@@ -198,11 +198,11 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, ms *clusterv1.MachineS
 	// Delete unused templates.
 	ref := ms.Spec.Template.Spec.Bootstrap.ConfigRef
 	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, ms.Namespace); err != nil {
-		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ms.Namespace, ref.Name), klog.KObj(ms))
+		return pkgerrors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ms.Namespace, ref.Name), klog.KObj(ms))
 	}
 	ref = ms.Spec.Template.Spec.InfrastructureRef
 	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, ms.Namespace); err != nil {
-		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ms.Namespace, ref.Name), klog.KObj(ms))
+		return pkgerrors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ms.Namespace, ref.Name), klog.KObj(ms))
 	}
 
 	// Note: It can happen that both MachineSet controllers are going through reconcileDelete at the same time.
@@ -235,7 +235,7 @@ func getMachineDeploymentName(ms *clusterv1.MachineSet) (*types.NamespacedName, 
 		}
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, errors.Errorf("could not calculate MachineDeployment name for MachineSet %s: invalid apiVersion %q: %v",
+			return nil, pkgerrors.Errorf("could not calculate MachineDeployment name for MachineSet %s: invalid apiVersion %q: %v",
 				klog.KObj(ms), ref.APIVersion, err)
 		}
 		if gv.Group == clusterv1.GroupVersion.Group {
@@ -246,5 +246,5 @@ func getMachineDeploymentName(ms *clusterv1.MachineSet) (*types.NamespacedName, 
 	// Note: Once we set an owner reference to a MachineDeployment in a MachineSet it stays there
 	// and is not deleted when the MachineDeployment is deleted. So we assume there's something wrong,
 	// if we couldn't find a MachineDeployment owner reference.
-	return nil, errors.Errorf("could not calculate MachineDeployment name for MachineSet %s", klog.KObj(ms))
+	return nil, pkgerrors.Errorf("could not calculate MachineDeployment name for MachineSet %s", klog.KObj(ms))
 }

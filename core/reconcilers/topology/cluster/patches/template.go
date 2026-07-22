@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -86,7 +86,7 @@ func (t *requestItemBuilder) Build() (*runtimehooksv1.GeneratePatchesRequestItem
 
 	jsonObj, err := json.Marshal(t.template)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal template to JSON")
+		return nil, pkgerrors.Wrap(err, "failed to marshal template to JSON")
 	}
 
 	tpl.Object = runtime.RawExtension{
@@ -122,13 +122,13 @@ func getTemplateAsUnstructured(req *runtimehooksv1.GeneratePatchesRequest, holde
 	requestItem := getRequestItem(req, holderKind, holderFieldPath, topologyNames)
 
 	if requestItem == nil {
-		return nil, errors.Errorf("failed to get request item with holder kind %q, holder field path %q, MD topology name %q, and MP topology name %q", holderKind, holderFieldPath, topologyNames.mdTopologyName, topologyNames.mpTopologyName)
+		return nil, pkgerrors.Errorf("failed to get request item with holder kind %q, holder field path %q, MD topology name %q, and MP topology name %q", holderKind, holderFieldPath, topologyNames.mdTopologyName, topologyNames.mpTopologyName)
 	}
 
 	// Unmarshal the template.
 	template, err := bytesToUnstructured(requestItem.Object.Raw)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to convert template to Unstructured")
+		return nil, pkgerrors.Wrapf(err, "failed to convert template to Unstructured")
 	}
 
 	return template, nil
@@ -178,7 +178,7 @@ func bytesToUnstructured(b []byte) (*unstructured.Unstructured, error) {
 	// Unmarshal the JSON.
 	u := &unstructured.Unstructured{}
 	if _, _, err := unstructuredDecoder.Decode(b, nil, u); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal object from json")
+		return nil, pkgerrors.Wrap(err, "failed to unmarshal object from json")
 	}
 
 	return u, nil

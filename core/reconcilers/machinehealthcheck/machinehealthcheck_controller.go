@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,7 +100,7 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.ClusterCache == nil {
-		return errors.New("Client and ClusterCache must not be nil")
+		return pkgerrors.New("Client and ClusterCache must not be nil")
 	}
 
 	rateLimit := 15 * time.Second
@@ -132,7 +132,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WithRateLimitInterval(rateLimit).
 		Build(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	r.controller = c
@@ -263,7 +263,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	logger.V(3).Info("Finding targets")
 	targets, err := r.getTargetsFromMHC(ctx, logger, remoteClient, cluster, m)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to fetch targets from MachineHealthCheck")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to fetch targets from MachineHealthCheck")
 	}
 	totalTargets := len(targets)
 	m.Status.ExpectedMachines = ptr.To(int32(totalTargets))
@@ -287,7 +287,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	// check MHC current health against UnhealthyLessThanOrEqualTo
 	remediationAllowed, remediationCount, err := isAllowedRemediation(m)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error checking if remediation is allowed")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "error checking if remediation is allowed")
 	}
 
 	if !remediationAllowed {
@@ -358,7 +358,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 				}},
 			}
 			if err := t.patchHelper.Patch(ctx, t.Machine, patchOpts...); err != nil {
-				errList = append(errList, errors.Wrapf(err, "failed to patch machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
+				errList = append(errList, pkgerrors.Wrapf(err, "failed to patch machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
 				continue
 			}
 		}
@@ -421,8 +421,8 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 			// Get remediation request object
 			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
 			if err != nil {
-				if !apierrors.IsNotFound(errors.Cause(err)) {
-					wrappedErr := errors.Wrapf(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName)
+				if !apierrors.IsNotFound(pkgerrors.Cause(err)) {
+					wrappedErr := pkgerrors.Wrapf(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName)
 					errList = append(errList, wrappedErr)
 				}
 				continue
@@ -431,7 +431,7 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 			if obj.GetDeletionTimestamp() == nil {
 				// Issue a delete for remediation request.
 				if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
-					errList = append(errList, errors.Wrapf(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name))
+					errList = append(errList, pkgerrors.Wrapf(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name))
 					continue
 				}
 			}
@@ -450,7 +450,7 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 		}
 		if err := t.patchHelper.Patch(ctx, t.Machine, patchOpts...); err != nil {
 			logger.Error(err, "failed to patch healthy machine status for machine", "Machine", klog.KObj(t.Machine))
-			errList = append(errList, errors.Wrapf(err, "failed to patch healthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
+			errList = append(errList, pkgerrors.Wrapf(err, "failed to patch healthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
 		}
 	}
 	return errList
@@ -491,7 +491,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 						Reason:  clusterv1.MachineExternallyRemediatedRemediationTemplateNotFoundReason,
 						Message: fmt.Sprintf("Error retrieving remediation template %s %s", m.Spec.Remediation.TemplateRef.Kind, klog.KRef(m.Namespace, m.Spec.Remediation.TemplateRef.Name)),
 					})
-					errList = append(errList, errors.Wrapf(err, "error retrieving remediation template %v %q for machine %q in namespace %q within cluster %q", m.Spec.Remediation.TemplateRef.GroupVersionKind(), m.Spec.Remediation.TemplateRef.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
+					errList = append(errList, pkgerrors.Wrapf(err, "error retrieving remediation template %v %q for machine %q in namespace %q within cluster %q", m.Spec.Remediation.TemplateRef.GroupVersionKind(), m.Spec.Remediation.TemplateRef.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
 					return errList
 				}
 
@@ -504,7 +504,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 				}
 				to, err := external.GenerateTemplate(generateTemplateInput)
 				if err != nil {
-					errList = append(errList, errors.Wrapf(err, "failed to create template for remediation request %v %q for machine %q in namespace %q within cluster %q", m.Spec.Remediation.TemplateRef.GroupVersionKind(), m.Spec.Remediation.TemplateRef.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
+					errList = append(errList, pkgerrors.Wrapf(err, "failed to create template for remediation request %v %q for machine %q in namespace %q within cluster %q", m.Spec.Remediation.TemplateRef.GroupVersionKind(), m.Spec.Remediation.TemplateRef.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
 					return errList
 				}
 
@@ -527,7 +527,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 						Reason:  clusterv1.MachineExternallyRemediatedRemediationRequestCreationFailedReason,
 						Message: "Please check controller logs for errors",
 					})
-					errList = append(errList, errors.Wrapf(err, "error creating remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName))
+					errList = append(errList, pkgerrors.Wrapf(err, "error creating remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName))
 					return errList
 				}
 
@@ -567,7 +567,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 			}},
 		}
 		if err := t.patchHelper.Patch(ctx, t.Machine, patchOpts...); err != nil {
-			errList = append(errList, errors.Wrapf(err, "failed to patch unhealthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
+			errList = append(errList, pkgerrors.Wrapf(err, "failed to patch unhealthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
 			continue
 		}
 		r.recorder.Eventf(
@@ -701,7 +701,7 @@ func getMachineFromNode(ctx context.Context, c client.Client, nodeName string) (
 		machineList,
 		client.MatchingFields{index.MachineNodeNameField: nodeName},
 	); err != nil {
-		return nil, errors.Wrap(err, "failed getting machine list")
+		return nil, pkgerrors.Wrap(err, "failed getting machine list")
 	}
 	// TODO(vincepri): Remove this loop once controller runtime fake client supports
 	// adding indexes on objects.
@@ -713,7 +713,7 @@ func getMachineFromNode(ctx context.Context, c client.Client, nodeName string) (
 		}
 	}
 	if len(items) != 1 {
-		return nil, errors.Errorf("expecting one machine for node %v, got %v", nodeName, machineNames(items))
+		return nil, pkgerrors.Errorf("expecting one machine for node %v, got %v", nodeName, machineNames(items))
 	}
 	return items[0], nil
 }
@@ -773,7 +773,7 @@ func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
 	}
 
 	if maxVal < minVal {
-		return 0, 0, errors.Errorf("max value %d cannot be less than min value %d for unhealthyRange", maxVal, minVal)
+		return 0, 0, pkgerrors.Errorf("max value %d cannot be less than min value %d for unhealthyRange", maxVal, minVal)
 	}
 
 	return int(minVal), int(maxVal), nil
@@ -803,7 +803,7 @@ func (r *Reconciler) getExternalRemediationRequest(ctx context.Context, m *clust
 	}
 	remediationReq, err := external.Get(ctx, r.Client, remediationRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve external remediation request object")
+		return nil, pkgerrors.Wrapf(err, "failed to retrieve external remediation request object")
 	}
 	return remediationReq, nil
 }

@@ -24,7 +24,7 @@ import (
 
 	dockercontainer "github.com/moby/moby/api/types/container"
 	dockersystem "github.com/moby/moby/api/types/system"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
@@ -190,7 +190,7 @@ func GetClusterIPFamily(c *clusterv1.Cluster) (ClusterIPFamily, error) {
 	if podsIPFamily == DualStackIPFamily {
 		return DualStackIPFamily, nil
 	} else if podsIPFamily != servicesIPFamily {
-		return InvalidIPFamily, errors.New("pods and services IP family mismatch")
+		return InvalidIPFamily, pkgerrors.New("pods and services IP family mismatch")
 	}
 
 	return podsIPFamily, nil
@@ -198,7 +198,7 @@ func GetClusterIPFamily(c *clusterv1.Cluster) (ClusterIPFamily, error) {
 
 func ipFamilyForCIDRStrings(cidrs []string) (ClusterIPFamily, error) {
 	if len(cidrs) > 2 {
-		return InvalidIPFamily, errors.New("too many CIDRs specified")
+		return InvalidIPFamily, pkgerrors.New("too many CIDRs specified")
 	}
 	var foundIPv4 bool
 	var foundIPv6 bool

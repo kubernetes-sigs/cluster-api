@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -168,7 +168,7 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 			Name:      input.ControlPlane.GetName(),
 		}
 		if err := input.Getter.Get(ctx, key, controlplane); err != nil {
-			return false, errors.Wrapf(err, "failed to get KCP")
+			return false, pkgerrors.Wrapf(err, "failed to get KCP")
 		}
 
 		desiredReplicas := ptr.Deref(controlplane.Spec.Replicas, 0)
@@ -435,7 +435,7 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 			}
 		}
 		if len(machines.Items) != nodeRefCount {
-			return -1, errors.New("Machine count does not match existing nodes count")
+			return -1, pkgerrors.New("Machine count does not match existing nodes count")
 		}
 		return nodeRefCount, nil
 	}, input.WaitForControlPlane...).Should(Equal(int(input.Replicas)), "Timed out waiting for %d replicas to exist for control-plane %s", int(input.Replicas), klog.KObj(input.ControlPlane))

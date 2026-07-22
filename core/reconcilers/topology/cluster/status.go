@@ -21,7 +21,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
@@ -234,7 +234,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 
 		cpVersion, err := contract.ControlPlane().Version().Get(s.Desired.ControlPlane.Object)
 		if err != nil {
-			return errors.Wrap(err, "failed to get control plane spec version")
+			return pkgerrors.Wrap(err, "failed to get control plane spec version")
 		}
 
 		// If any of the lifecycle hooks are blocking the upgrade surface it as a first detail.

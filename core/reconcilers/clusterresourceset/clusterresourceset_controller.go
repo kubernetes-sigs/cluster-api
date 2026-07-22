@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +55,7 @@ import (
 )
 
 // ErrSecretTypeNotSupported signals that a Secret is not supported.
-var ErrSecretTypeNotSupported = errors.New("unsupported secret type")
+var ErrSecretTypeNotSupported = pkgerrors.New("unsupported secret type")
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;patch;update;delete
@@ -73,7 +73,7 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
 	if r.Client == nil || r.ClusterCache == nil {
-		return errors.New("Client and ClusterCache must not be nil")
+		return pkgerrors.New("Client and ClusterCache must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clusterresourceset")
@@ -111,7 +111,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	return nil
@@ -228,7 +228,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, clusters []*clusterv1.
 		}
 		if err := r.Client.Get(ctx, clusterResourceSetBindingKey, clusterResourceSetBinding); err != nil {
 			if !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to get ClusterResourceSetBinding during ClusterResourceSet deletion")
+				return pkgerrors.Wrapf(err, "failed to get ClusterResourceSetBinding during ClusterResourceSet deletion")
 			}
 			controllerutil.RemoveFinalizer(crs, addonsv1.ClusterResourceSetFinalizer)
 			return nil
@@ -264,7 +264,7 @@ func (r *Reconciler) getClustersByClusterResourceSetSelector(ctx context.Context
 	clusterList := &clusterv1.ClusterList{}
 	selector, err := metav1.LabelSelectorAsSelector(&clusterResourceSet.Spec.ClusterSelector)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to convert selector")
+		return nil, pkgerrors.Wrap(err, "unable to convert selector")
 	}
 
 	// If a ClusterResourceSet has a nil or empty selector, it should match nothing, not everything.
@@ -274,7 +274,7 @@ func (r *Reconciler) getClustersByClusterResourceSetSelector(ctx context.Context
 	}
 
 	if err := r.Client.List(ctx, clusterList, client.InNamespace(clusterResourceSet.Namespace), client.MatchingLabelsSelector{Selector: selector}); err != nil {
-		return nil, errors.Wrap(err, "failed to list clusters")
+		return nil, pkgerrors.Wrap(err, "failed to list clusters")
 	}
 
 	clusters := []*clusterv1.Cluster{}
@@ -306,7 +306,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 	for i, resource := range clusterResourceSet.Spec.Resources {
 		unstructuredObj, err := r.getResource(ctx, resource, cluster.GetNamespace())
 		if err != nil {
-			if errors.Is(err, ErrSecretTypeNotSupported) {
+			if pkgerrors.Is(err, ErrSecretTypeNotSupported) {
 				v1beta1conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedV1Beta1Condition, addonsv1.WrongSecretTypeV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 				conditions.Set(clusterResourceSet, metav1.Condition{
 					Type:    addonsv1.ClusterResourceSetResourcesAppliedCondition,
@@ -357,7 +357,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 		// Note only the ClusterResourceSetBinding spec will be patched as it does not have a status field, and so
 		// using the patch helper is unnecessary.
 		if err := r.Client.Patch(ctx, clusterResourceSetBinding, patch); err != nil {
-			rerr = kerrors.NewAggregate([]error{rerr, errors.Wrapf(err, "failed to patch ClusterResourceSetBinding %s", klog.KObj(clusterResourceSetBinding))})
+			rerr = kerrors.NewAggregate([]error{rerr, pkgerrors.Wrapf(err, "failed to patch ClusterResourceSetBinding %s", klog.KObj(clusterResourceSetBinding))})
 		}
 	}()
 

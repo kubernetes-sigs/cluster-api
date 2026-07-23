@@ -173,11 +173,13 @@ Add an optional `version` field to `MachineDeploymentTopology` and `MachinePoolT
 // Once set, the field can be unset only if the MD/MP version is equal to Cluster.spec.topology.version.
 //
 // +optional
-Version *string `json:"version,omitempty"`
+// +kubebuilder:validation:MinLength=1
+// +kubebuilder:validation:MaxLength=256
+Version string `json:"version,omitempty"`
 ```
 
 The feature as a whole is guarded by a new feature gate — proposed name
-`WorkerVersionPinning` — that we will register (defaulted off) when we implement,
+`ClusterTopologyWorkerVersionPinning` — that we will register (defaulted off) when we implement,
 following the existing `ClusterTopology` gate in
 [`feature/feature.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/feature/feature.go).
 Cluster API gates behavior in controller and webhook code rather than via a field-level codegen

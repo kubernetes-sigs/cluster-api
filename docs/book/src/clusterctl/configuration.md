@@ -112,7 +112,7 @@ cert-manager:
   ...
 ```
 
-This will use the provided timeout value to wait for the externally installed cert-manager installation and **not** install cert-manager.  If the externally provisioned cert-manager installation fails, clusterctl will fail to initialize the management cluster.
+If the `externallyProvisioned` flag is set, clusterctl will not install cert-manager but only test if it is proper working. If cert-manager is not working the test will be repeated until `timeout` expires; after that clusterctl int will stop and report an error.
 
 ## Migrating to user-managed cert-manager
 

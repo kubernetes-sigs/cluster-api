@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -121,7 +122,7 @@ func flatten(values []interface{}) (string, error) {
 			val[k] = v
 		}
 	}
-	str := ""
+	str := time.Now().Format("15:04:05.000000") + " "
 	str += msgValue
 	if errorValue != nil {
 		if msgValue != "" {

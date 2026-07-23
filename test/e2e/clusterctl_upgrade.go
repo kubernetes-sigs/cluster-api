@@ -123,9 +123,12 @@ type ClusterctlUpgradeSpecInput struct {
 	// PreCleanupManagementCluster hook can be used for extra steps that might be required from providers, for example, remove conflicting service (such as DHCP) running on
 	// the target management cluster and run it on bootstrap (before the latter resumes LCM) if both clusters share the same LAN
 	PreCleanupManagementCluster func(managementClusterProxy framework.ClusterProxy)
-	MgmtFlavor                  string
-	CNIManifestPath             string
-	WorkloadFlavor              string
+	// PreCleanupManagementClusterProviders hook can be used to run code before the providers on the management cluster are cleaned up.
+	// This is for example used in core Cluster API to dump secrets, which might not be safe in general.
+	PreCleanupManagementClusterProviders func(managementClusterProxy framework.ClusterProxy)
+	MgmtFlavor                           string
+	CNIManifestPath                      string
+	WorkloadFlavor                       string
 	// WorkloadKubernetesVersion is Kubernetes version used to create the workload cluster, e.g. `v1.25.0`
 	WorkloadKubernetesVersion string
 
@@ -786,6 +789,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 	AfterEach(func() {
 		if testNamespace != nil {
+			if input.PreCleanupManagementClusterProviders != nil {
+				By("Running PreCleanupManagementClusterProviders steps against the management cluster")
+				input.PreCleanupManagementClusterProviders(managementClusterProxy)
+			}
 			// Dump all the logs from the workload cluster before deleting them.
 			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, testNamespace, &clusterv1.Cluster{
 				// DumpAllResourcesAndLogs only uses Namespace + Name from the Cluster object.

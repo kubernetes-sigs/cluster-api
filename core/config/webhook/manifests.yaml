@@ -270,6 +270,25 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-apiextensions-k8s-io-v1-customresourcedefinition
+  failurePolicy: Ignore
+  name: validation.customresourcedefinition.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - apiextensions.k8s.io
+    apiVersions:
+    - v1
+    operations:
+    - UPDATE
+    resources:
+    - customresourcedefinitions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig
   failurePolicy: Fail
   matchPolicy: Equivalent

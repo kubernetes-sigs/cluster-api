@@ -102,6 +102,18 @@ If no value is specified, or the format is invalid, the default value of 10 minu
 
 Please note that the configuration above will be considered also when doing `clusterctl upgrade plan` or `clusterctl upgrade apply`.
 
+For situations when you are using your own cert-manager installation, you can tell clusterctl init that cert-manager is already installed by adding a field to the clusterctl config file, for example:
+
+```yaml
+cert-manager:
+  ...
+  externallyProvisioned: true
+  timeout: 15m
+  ...
+```
+
+If the `externallyProvisioned` flag is set, clusterctl will not install cert-manager but only test if it is proper working. If cert-manager is not working the test will be repeated until `timeout` expires; after that clusterctl int will stop and report an error.
+
 ## Migrating to user-managed cert-manager
 
 You may want to migrate to a user-managed cert-manager further down the line, after initialising cert-manager on the management cluster through `clusterctl`.

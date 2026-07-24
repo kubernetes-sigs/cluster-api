@@ -18,6 +18,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/drone/envsubst/v2"
@@ -62,15 +63,17 @@ func newCertManagerClient(reader Reader) *certManagerClient {
 
 // configCertManager mirrors config.CertManager interface and allows serialization of the corresponding info.
 type configCertManager struct {
-	URL     string `json:"url,omitempty"`
-	Version string `json:"version,omitempty"`
-	Timeout string `json:"timeout,omitempty"`
+	URL                   string `json:"url,omitempty"`
+	Version               string `json:"version,omitempty"`
+	Timeout               string `json:"timeout,omitempty"`
+	ExternallyProvisioned string `json:"externallyProvisioned,omitempty"`
 }
 
 func (p *certManagerClient) Get() (CertManager, error) {
 	url := CertManagerDefaultURL
 	version := CertManagerDefaultVersion
 	timeout := CertManagerDefaultTimeout.String()
+	externallyProvisioned := false
 
 	userCertManager := &configCertManager{}
 	if err := p.reader.UnmarshalKey(CertManagerConfigKey, &userCertManager); err != nil {
@@ -91,6 +94,12 @@ func (p *certManagerClient) Get() (CertManager, error) {
 	if userCertManager.Timeout != "" {
 		timeout = userCertManager.Timeout
 	}
+	if userCertManager.ExternallyProvisioned != "" {
+		externallyProvisioned, err = strconv.ParseBool(userCertManager.ExternallyProvisioned)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return NewCertManager(url, version, timeout), nil
+	return NewCertManager(url, version, timeout, externallyProvisioned), nil
 }

@@ -45,9 +45,10 @@ type configProvider struct {
 // configCertManager is a mirror of config.CertManager, re-implemented here in order to
 // avoid circular dependencies between pkg/client/config and pkg/internal/test.
 type configCertManager struct {
-	URL     string `json:"url,omitempty"`
-	Version string `json:"version,omitempty"`
-	Timeout string `json:"timeout,omitempty"`
+	URL                   string `json:"url,omitempty"`
+	Version               string `json:"version,omitempty"`
+	Timeout               string `json:"timeout,omitempty"`
+	ExternallyProvisioned bool   `json:"externallyProvisioned,omitempty"`
 }
 
 // imageMeta is a mirror of config.imageMeta, re-implemented here in order to
@@ -107,11 +108,12 @@ func (f *FakeReader) WithProvider(name string, ttype clusterctlv1.ProviderType, 
 	return f
 }
 
-func (f *FakeReader) WithCertManager(url, version, timeout string) *FakeReader {
+func (f *FakeReader) WithCertManager(url, version, timeout string, externallyProvisioned bool) *FakeReader {
 	f.certManager = configCertManager{
-		URL:     url,
-		Version: version,
-		Timeout: timeout,
+		URL:                   url,
+		Version:               version,
+		Timeout:               timeout,
+		ExternallyProvisioned: externallyProvisioned,
 	}
 
 	yaml, _ := yaml.Marshal(f.certManager)

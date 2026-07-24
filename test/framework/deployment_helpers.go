@@ -483,6 +483,12 @@ func verifyMetrics(data []byte, pod *corev1.Pod) error {
 		}
 	}
 
+	for _, c := range pod.Status.ContainerStatuses {
+		if c.RestartCount > 0 {
+			errs = append(errs, fmt.Errorf("container %s restarted %d times (check logs for more details)", c.Name, c.RestartCount))
+		}
+	}
+
 	if len(errs) > 0 {
 		return pkgerrors.WithMessagef(kerrors.NewAggregate(errs), "panics occurred in Pod %s", klog.KObj(pod))
 	}

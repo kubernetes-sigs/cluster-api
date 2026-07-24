@@ -20,7 +20,7 @@ jobs:
         branch: [ main, release-1.13, release-1.12 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # tag=v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # tag=v7.0.1
         with:
           ref: ${{ matrix.branch }}
           fetch-depth: 0

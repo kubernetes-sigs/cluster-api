@@ -20,7 +20,6 @@
   - [Reviews](#reviews)
   - [Approvals](#approvals)
 - [Features and bugs](#features-and-bugs)
-- [Experiments](#experiments)
 - [Breaking Changes](#breaking-changes)
 - [Dependency Licence Management](#dependency-licence-management)
 - [API conventions](#api-conventions)
@@ -298,44 +297,6 @@ will be removed and replaced by one of the following:
 - `triage/unresolved`: Indicates an issue that can not or will not be resolved.
 
 For big feature, API and contract amendments, we follow the CAEP process as outlined below.
-
-## Experiments
-
-Proof of concepts, code experiments, or other initiatives can live under the `exp` folder or behind a feature gate.
-
-- Experiments SHOULD not modify any of the publicly exposed APIs (e.g. CRDs).
-- Experiments SHOULD not modify any existing CRD types outside the experimental API group(s).
-- Experiments SHOULD not modify any existing command line contracts.
-- Experiments MUST not cause any breaking changes to existing (non-experimental) Go APIs.
-- Experiments SHOULD introduce utility helpers in the go APIs for experiments that cross multiple components
-  and require support from bootstrap, control plane, or infrastructure providers.
-- Experiments follow a strict lifecycle: Alpha -> Beta prior to Graduation.
-  - Alpha-stage experiments:
-    - SHOULD not be enabled by default and any feature gates MUST be marked as 'Alpha'
-    - MUST be associated with a CAEP that is merged and in at least a provisional state
-    - MAY be considered inactive and marked as deprecated if the following does not happen within the course of 1 minor release cycle:
-      - Transition to Beta-stage
-      - Active development towards progressing to Beta-stage
-      - Either direct or downstream user evaluation
-    - Any deprecated Alpha-stage experiment MAY be removed in the next minor release.
-  - Beta-stage experiments:
-    - SHOULD be enabled by default, and any feature gates MUST be marked as 'Beta'
-    - MUST be associated with a CAEP that is at least in the experimental state
-    - MUST support conversions for any type changes
-    - MUST remain backwards compatible unless updates are coinciding with a breaking Cluster API release
-    - MAY be considered inactive and marked as deprecated if the following does not happen within the course of 1 minor release cycle:
-      - Graduate
-      - Active development towards Graduation
-      - Either direct or downstream user consumption
-    - Any deprecated Beta-stage experiment MAY be removed after being deprecated for an entire minor release.
-- Experiment Graduation MUST coincide with a breaking Cluster API release
-- Experiment Graduation checklist:
-  - [ ] MAY provide a way to be disabled, any feature gates MUST be marked as 'GA'
-  - [ ] MUST undergo a full Kubernetes-style API review and update the CAEP with the plan to address any issues raised
-  - [ ] CAEP MUST be in an implementable state and is fully up-to-date with the current implementation
-  - [ ] CAEP MUST define transition plan for moving out of the experimental api group and code directories
-  - [ ] CAEP MUST define any upgrade steps required for Existing Management and Workload Clusters
-  - [ ] CAEP MUST define any upgrade steps required to be implemented by out-of-tree bootstrap, control plane, and infrastructure providers.
 
 ## Breaking Changes
 

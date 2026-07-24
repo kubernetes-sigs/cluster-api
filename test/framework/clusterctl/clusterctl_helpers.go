@@ -128,6 +128,14 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			})
 		}
 	}
+
+	// Provider Deployments being available doesn't guarantee that cert-manager's cainjector already
+	// injected the CA bundle into the provider webhook configurations. Wait for the injection to be
+	// completed, otherwise webhook calls for objects created right after init fail with
+	// "tls: failed to verify certificate: x509: certificate signed by unknown authority".
+	framework.WaitForWebhookCABundleInjection(ctx, framework.WaitForWebhookCABundleInjectionInput{
+		Lister: client,
+	}, intervals...)
 }
 
 // UpgradeManagementClusterAndWaitInput is the input type for UpgradeManagementClusterAndWait.
@@ -213,6 +221,14 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 			MetricsPath: filepath.Join(input.LogFolder, "metrics", deployment.GetNamespace()),
 		})
 	}
+
+	// Provider Deployments being available doesn't guarantee that cert-manager's cainjector already
+	// injected the CA bundle into the provider webhook configurations. Wait for the injection to be
+	// completed, otherwise webhook calls for objects created right after the upgrade fail with
+	// "tls: failed to verify certificate: x509: certificate signed by unknown authority".
+	framework.WaitForWebhookCABundleInjection(ctx, framework.WaitForWebhookCABundleInjectionInput{
+		Lister: client,
+	}, intervals...)
 }
 
 // ApplyClusterTemplateAndWaitInput is the input type for ApplyClusterTemplateAndWait.

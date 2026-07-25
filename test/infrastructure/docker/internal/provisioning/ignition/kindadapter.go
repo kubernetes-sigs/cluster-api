@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 
@@ -94,7 +94,7 @@ func getActions(userData []byte) ([]provisioning.Cmd, error) {
 
 		commands = append(commands, []provisioning.Cmd{
 			// Idempotently create the directory.
-			{Cmd: "mkdir", Args: []string{"-p", filepath.Dir(f.Path)}},
+			{Cmd: "mkdir", Args: []string{"-p", path.Dir(f.Path)}},
 			// Write the file.
 			{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat > %s /dev/stdin", f.Path)}, Stdin: contents},
 			// Set file permissions.

@@ -53,7 +53,7 @@ func TestRealUseCase(t *testing.T) {
     "systemd": {
       "units": [
         {
-          "contents": "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+          "contents": "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/bin/bash /etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
           "enabled": true,
           "name": "kubeadm.service"
         }

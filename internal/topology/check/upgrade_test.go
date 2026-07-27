@@ -63,6 +63,56 @@ func TestIsMachineDeploymentUpgrading(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "should return false if kubelet version has a build suffix",
+			md: builder.MachineDeployment("ns", "md1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				Build(),
+			machines: []*clusterv1.Machine{
+				builder.Machine("ns", "machine1").
+					WithClusterName("cluster1").
+					WithVersion("v1.2.3").
+					Build(),
+				func() *clusterv1.Machine {
+					m := builder.Machine("ns", "machine2").
+						WithClusterName("cluster1").
+						WithVersion("v1.2.3").
+						Build()
+					m.Status.NodeInfo = &corev1.NodeSystemInfo{
+						KubeletVersion: "v1.2.3+test",
+					}
+					return m
+				}(),
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "should return true if the kubelet version of one of the machines refers to another Kubernetes version",
+			md: builder.MachineDeployment("ns", "md1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				Build(),
+			machines: []*clusterv1.Machine{
+				builder.Machine("ns", "machine1").
+					WithClusterName("cluster1").
+					WithVersion("v1.2.3").
+					Build(),
+				func() *clusterv1.Machine {
+					m := builder.Machine("ns", "machine2").
+						WithClusterName("cluster1").
+						WithVersion("v1.2.3").
+						Build()
+					m.Status.NodeInfo = &corev1.NodeSystemInfo{
+						KubeletVersion: "v1.2.2+test",
+					}
+					return m
+				}(),
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
 			name: "should return true if at least one of the machines of MachineDeployment has a different version",
 			md: builder.MachineDeployment("ns", "md1").
 				WithClusterName("cluster1").
@@ -180,6 +230,64 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 				},
 			},
 			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "should return false if all the nodes of MachinePool have a build suffix in the kubelet version",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				WithStatus(clusterv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{
+						{Name: "node1"},
+						{Name: "node2"},
+					},
+				}).
+				Build(),
+			nodes: []*corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "node1"},
+					Status: corev1.NodeStatus{
+						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3+test"},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "node2"},
+					Status: corev1.NodeStatus{
+						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3+test"},
+					},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "should return true if the kubelet version of one of the nodes refers to another Kubernetes version",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				WithStatus(clusterv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{
+						{Name: "node1"},
+						{Name: "node2"},
+					},
+				}).
+				Build(),
+			nodes: []*corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "node1"},
+					Status: corev1.NodeStatus{
+						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3+test"},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "node2"},
+					Status: corev1.NodeStatus{
+						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.2+test"},
+					},
+				},
+			},
+			want:    true,
 			wantErr: false,
 		},
 		{

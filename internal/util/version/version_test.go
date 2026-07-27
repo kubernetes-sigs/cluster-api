@@ -27,6 +27,71 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
+func TestKubeletVersionMatches(t *testing.T) {
+	tests := []struct {
+		name           string
+		kubeletVersion string
+		desiredVersion string
+		want           bool
+	}{
+		{
+			name:           "matches for equal versions",
+			kubeletVersion: "v1.33.1",
+			desiredVersion: "v1.33.1",
+			want:           true,
+		},
+		{
+			name:           "matches if only the build metadata differs",
+			kubeletVersion: "v1.33.1+test",
+			desiredVersion: "v1.33.1+test.0",
+			want:           true,
+		},
+		{
+			name:           "matches if only one of the versions has build metadata",
+			kubeletVersion: "v1.33.1+test",
+			desiredVersion: "v1.33.1",
+			want:           true,
+		},
+		{
+			name:           "does not match for a different patch version",
+			kubeletVersion: "v1.33.0+test",
+			desiredVersion: "v1.33.1+test.0",
+			want:           false,
+		},
+		{
+			name:           "does not match for a different minor version",
+			kubeletVersion: "v1.32.1",
+			desiredVersion: "v1.33.1",
+			want:           false,
+		},
+		{
+			name:           "does not match if the pre-release differs",
+			kubeletVersion: "v1.33.1-alpha.1",
+			desiredVersion: "v1.33.1",
+			want:           false,
+		},
+		{
+			name:           "falls back to string comparison for unparsable versions",
+			kubeletVersion: "not-a-version",
+			desiredVersion: "v1.33.1",
+			want:           false,
+		},
+		{
+			name:           "falls back to string comparison for equal unparsable versions",
+			kubeletVersion: "not-a-version",
+			desiredVersion: "not-a-version",
+			want:           true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(KubeletVersionMatches(tt.kubeletVersion, tt.desiredVersion)).To(Equal(tt.want))
+		})
+	}
+}
+
 func TestAggregateStatusVersions(t *testing.T) {
 	t.Run("returns nil for empty versions", func(t *testing.T) {
 		g := NewWithT(t)
@@ -105,6 +170,20 @@ func TestVersionsFromMachines(t *testing.T) {
 			{Version: "v1.30.0", Replicas: 1},
 			{Version: "v1.31.1", Replicas: 3},
 			{Version: "v1.32.0", Replicas: 1},
+		}))
+	})
+
+	t.Run("keeps the spec version if the kubelet version only differs in build metadata", func(t *testing.T) {
+		g := NewWithT(t)
+
+		machines := []*clusterv1.Machine{
+			{Spec: clusterv1.MachineSpec{Version: "v1.33.1+test.0"}, Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.33.1+test"}}},
+			{Spec: clusterv1.MachineSpec{Version: "v1.33.1+test.0"}, Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.33.0+test"}}},
+		}
+
+		g.Expect(VersionsFromMachines(machines)).To(Equal([]clusterv1.StatusVersion{
+			{Version: "v1.33.0+test", Replicas: 1},
+			{Version: "v1.33.1+test.0", Replicas: 1},
 		}))
 	})
 

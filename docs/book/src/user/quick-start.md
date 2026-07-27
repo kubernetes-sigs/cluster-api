@@ -673,7 +673,7 @@ kubectl wait pods -n metallb-system -l app=metallb,component=speaker --for=condi
 Now, we'll create the `IPAddressPool` and the `L2Advertisement` custom resources. For that, we'll need to set the IP
 range. First, we'll read the `kind` network in order to find its subnet:
 ```bash
-SUBNET=$(docker network inspect -f '{{range .IPAM.Config}}{{if .Gateway}}{{.Subnet}}{{end}}{{end}}' kind)
+SUBNET=$(docker network inspect kind | jq -r 'first(.[0].IPAM.Config[].Subnet | select(test("^[0-9]+\\.")))')
 PREFIX=$(echo $SUBNET | sed -E 's|^([0-9]+\.[0-9]+)\..*$|\1|g')
 
 cat <<EOF | kubectl apply -f -

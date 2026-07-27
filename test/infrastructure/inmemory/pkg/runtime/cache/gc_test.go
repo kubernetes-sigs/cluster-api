@@ -75,8 +75,8 @@ func Test_cache_gc(t *testing.T) {
 		return false
 	}, 5*time.Second, 200*time.Millisecond).Should(BeTrue(), "object should be garbage collected")
 
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.resourceGroupsLock.RLock()
+	defer c.resourceGroupsLock.RUnlock()
 
 	g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must exists in object tracker for foo")
 	g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey("baz"), "object baz must not exist in object tracker for foo")

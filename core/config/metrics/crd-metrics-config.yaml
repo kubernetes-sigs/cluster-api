@@ -110,23 +110,6 @@ spec:
       help: Information about a kubeadmconfig.
       name: info
     - each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-      help: Owner references.
-      name: owner
-    - each:
         stateSet:
           labelName: status
           labelsFromPath:
@@ -358,23 +341,6 @@ spec:
       help: Information about a clusterclass.
       name: info
     - each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-      help: Owner references.
-      name: owner
-    - each:
         stateSet:
           labelName: status
           labelsFromPath:
@@ -522,23 +488,6 @@ spec:
         type: Info
       help: Information about a machine.
       name: info
-    - each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-      help: Owner references.
-      name: owner
     - each:
         gauge:
           nilIsZero: true
@@ -695,23 +644,6 @@ spec:
         type: Info
       help: Information about a machinedeployment.
       name: info
-    - each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-      help: Owner references.
-      name: owner
     - each:
         gauge:
           nilIsZero: true
@@ -896,6 +828,11 @@ spec:
     - each:
         info:
           labelsFromPath:
+            # This label is already configured for MHC above, but without this label MHC objects
+            # without triggerIf don't show up because they don't have any labels (see below).
+            cluster_name:
+              - spec
+              - clusterName
             remediation_triggerif_unhealthyinrange:
             - spec
             - remediation
@@ -910,23 +847,6 @@ spec:
         type: Info
       help: Information about a machinehealthcheck.
       name: info
-    - each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-      help: Owner references.
-      name: owner
     - each:
         stateSet:
           labelName: status
@@ -1077,23 +997,6 @@ spec:
         type: Info
       help: Information about a machinepool.
       name: info
-    - each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-      help: Owner references.
-      name: owner
     - each:
         gauge:
           nilIsZero: false
@@ -1276,23 +1179,6 @@ spec:
       help: Information about a machineset.
       name: info
     - each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-      help: Owner references.
-      name: owner
-    - each:
         gauge:
           nilIsZero: true
           path:
@@ -1431,23 +1317,6 @@ spec:
         type: Info
       help: Information about a kubeadmcontrolplane.
       name: info
-    - each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-      help: Owner references.
-      name: owner
     - each:
         gauge:
           nilIsZero: false

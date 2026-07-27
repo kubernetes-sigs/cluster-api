@@ -71,9 +71,13 @@ type InformEventHandler interface {
 type cache struct {
 	scheme *runtime.Scheme
 
-	lock           sync.RWMutex
-	resourceGroups map[string]*resourceGroupTracker
-	informers      map[schema.GroupVersionKind]Informer
+	// resourceGroupsLock protects resourceGroups.
+	resourceGroupsLock sync.RWMutex
+	resourceGroups     map[string]*resourceGroupTracker
+
+	// informersLock protects informers.
+	informersLock sync.RWMutex
+	informers     map[schema.GroupVersionKind]Informer
 
 	garbageCollectorRequeueAfter             time.Duration
 	garbageCollectorRequeueAfterJitterFactor float64
@@ -156,8 +160,8 @@ func (c *cache) Start(ctx context.Context) error {
 }
 
 func (c *cache) AddResourceGroup(name string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.resourceGroupsLock.Lock()
+	defer c.resourceGroupsLock.Unlock()
 	if _, ok := c.resourceGroups[name]; ok {
 		return
 	}
@@ -169,14 +173,14 @@ func (c *cache) AddResourceGroup(name string) {
 }
 
 func (c *cache) DeleteResourceGroup(name string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.resourceGroupsLock.Lock()
+	defer c.resourceGroupsLock.Unlock()
 	delete(c.resourceGroups, name)
 }
 
 func (c *cache) resourceGroupTracker(resourceGroup string) *resourceGroupTracker {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.resourceGroupsLock.RLock()
+	defer c.resourceGroupsLock.RUnlock()
 	return c.resourceGroups[resourceGroup]
 }
 

@@ -94,8 +94,8 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(obj.Annotations).To(HaveKey(lastSyncTimeAnnotation))
 
 			// Check internal state of the tracker is as expected.
-			c.lock.RLock()
-			defer c.lock.RUnlock()
+			c.resourceGroupsLock.RLock()
+			defer c.resourceGroupsLock.RUnlock()
 
 			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must exists in object tracker for foo")
 			key := types.NamespacedName{Name: "bar"}
@@ -185,8 +185,8 @@ func Test_cache_client(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Check internal state of the tracker is as expected.
-				c.lock.RLock()
-				defer c.lock.RUnlock()
+				c.resourceGroupsLock.RLock()
+				defer c.resourceGroupsLock.RUnlock()
 
 				parentRef := ownReference{gvk: cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "parent"}}
 				g.Expect(c.resourceGroups["foo"].ownedObjects).To(HaveKey(parentRef), "there should be ownedObjects for parent")
@@ -571,8 +571,8 @@ func Test_cache_client(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Check internal state of the tracker
-				c.lock.RLock()
-				defer c.lock.RUnlock()
+				c.resourceGroupsLock.RLock()
+				defer c.resourceGroupsLock.RUnlock()
 
 				parent1Ref := ownReference{gvk: cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "parent1"}}
 				g.Expect(c.resourceGroups["foo"].ownedObjects).ToNot(HaveKey(parent1Ref), "there should not be ownedObjects for parent1")
@@ -668,8 +668,8 @@ func Test_cache_client(t *testing.T) {
 			err := c.Delete("foo", obj)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			c.lock.RLock()
-			defer c.lock.RUnlock()
+			c.resourceGroupsLock.RLock()
+			defer c.resourceGroupsLock.RUnlock()
 
 			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must exist in object tracker for foo")
 			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "bar"}), "Object bar must not exist in object tracker for foo")
@@ -767,8 +767,8 @@ func Test_cache_client(t *testing.T) {
 			err = c.Delete("foo", obj)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			c.lock.RLock()
-			defer c.lock.RUnlock()
+			c.resourceGroupsLock.RLock()
+			defer c.resourceGroupsLock.RUnlock()
 
 			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must exist in object tracker for foo")
 			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "parent3"}), "Object parent3 must not exist in object tracker for foo")

@@ -103,8 +103,8 @@ func (c *cache) startSyncer(ctx context.Context) error {
 func (c *cache) syncGroup(ctx context.Context) {
 	log := ctrl.LoggerFrom(ctx)
 
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.resourceGroupsLock.RLock()
+	defer c.resourceGroupsLock.RUnlock()
 	i := 0
 	for resourceGroup, tracker := range c.resourceGroups {
 		i += c.syncResourceGroupTracker(ctx, resourceGroup, tracker)

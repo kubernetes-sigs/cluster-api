@@ -1001,7 +1001,6 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			},
 			expectedNotes: map[string][]string{
 				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
-				"ms2": {"surge 1 allowed to create availability for in-place updates"},
 			},
 		},
 		{
@@ -1970,7 +1969,14 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 		}
 
 		// Check if we are at the desired state
-		if current.Equal(desired) {
+		inPlaceInProgress := false
+		for _, m := range current.machines() {
+			if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+				inPlaceInProgress = true
+				break
+			}
+		}
+		if current.Equal(desired) && !inPlaceInProgress {
 			fLogger.Logf("[Test] Final state\n%s", current.summary())
 			break
 		}

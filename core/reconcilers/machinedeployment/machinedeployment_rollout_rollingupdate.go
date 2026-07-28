@@ -487,23 +487,48 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		return nil
 	}
 
-	// Check if the current scale up intent is using maxSurge.
-	scaleUpCount := p.scaleIntents[p.newMS.Name] - ptr.Deref(p.newMS.Spec.Replicas, 0)
-	scaleUpCountWithoutMaxSurge := max(scaleUpCount-mdutil.MaxSurge(*p.md), 0)
-	maxSurgeUsed := scaleUpCount - scaleUpCountWithoutMaxSurge
+	// The newMS is scaling up, check if the current scale up intent is using maxSurge.
+	// We consider that scale up intent is using maxSurge when the target total number of replicas will be greater than md.spec replicas,
+	// more specifically:
+	//
+	// The target total number of replicas is computed considering existing replicas and scale intents (it mimics the computation
+	// in mdutil.TotalMachineSetsReplicaSum +/- scale intent).
+	//
+	// If the target total number of replicas is greater than md.spec.replicas, it means that there will be exceeding replicas,
+	// due to one of the following reasons:
+	// - reconcileNewMachineSet used maxSurge when setting the scale intent for the newMS (note that reconcileNewMachineSet can also change set the scale intent for the newMS the user scaled up/down md.spec.replicas).
+	// - The user scaled down md.spec.replicas and exceeding replicas are not yet deleted.
+	//
+	// The actual amount of maxSurge slots used can be identified by looking at the number of replicas
+	// being added to the new MS, and picking the min between this value and the number of exceeding replicas.
+	totalReplicas := int32(0)
+	for _, ms := range append(p.oldMSs, p.newMS) {
+		if ms != nil {
+			replicas := ptr.Deref(ms.Spec.Replicas, 0)
+			if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
+				replicas = scaleIntent
+			}
+			totalReplicas += max(replicas, ptr.Deref(ms.Status.Replicas, 0))
+		}
+	}
+	exceedingReplicas := max(totalReplicas-ptr.Deref(p.md.Spec.Replicas, 0), 0)
+
+	scaleUpCount := max(p.scaleIntents[p.newMS.Name]-ptr.Deref(p.newMS.Spec.Replicas, 0), 0)
+	maxSurgeUsed := min(scaleUpCount, exceedingReplicas)
+
+	// If current scale up intent for the newMS is not using maxSurge, no need to revisit it (we have to create new machines).
 	if maxSurgeUsed <= 0 {
-		// current scale up intent for the newMS is not using maxSurge, no need to revisit it.
 		return nil
 	}
 
-	// Otherwise, the current scale up intent for the newMS is using maxSurge.
+	// The current scale up intent for the newMS is using maxSurge.
 	// In this case, rollout planner must prioritize in-place updates over creation of new Machines.
-	// So it is required to revisit the scale up intent for the newMS and defer creation of new
-	// Machines due to maxSurge if possible.
-	newScaleUpCount := scaleUpCountWithoutMaxSurge
+	// As a consequence, it is required to revisit the scale up intent for the newMS and defer as much as possible
+	// of the creation of new Machines due to maxSurge.
+	newScaleUpCount := max(scaleUpCount-maxSurgeUsed, 0)
 
 	// If the revisited scale up count for the newMS is 0 and the newMS is not already scaling up from a previous reconcile (no scale up at all),
-	// check if the rollout planner is required to use one slot from MaxSurge e.g. to start a rollout.
+	// check if the rollout planner is required to use one slot from MaxSurge e.g. to start or unblock a rollout.
 	// Note: Rollout planner will use one slot from MaxSurge - one and not more - only if:
 	// - The rollout is not progressing in other ways (on top of newMS not scaling from a previous reconcile, there are also no oldMS scaling down)
 	// - There are no in-place updates in progress (the rollout planner must wait for in-place updates to complete or fail/go

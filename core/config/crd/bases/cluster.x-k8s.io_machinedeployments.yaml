@@ -635,6 +635,9 @@ spec:
             - selector
             - template
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachineDeployment.
             properties:
@@ -1486,6 +1489,9 @@ spec:
             - selector
             - template
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachineDeployment.
             minProperties: 1

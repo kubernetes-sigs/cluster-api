@@ -202,17 +202,6 @@ func (webhook *MachineDeployment) validate(newMD *clusterv1.MachineDeployment) e
 		}
 	}
 
-	if newMD.Spec.ClusterName != newMD.Spec.Template.Spec.ClusterName {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				specPath.Child("clusterName"),
-				newMD.Spec.ClusterName,
-				"spec.clusterName and spec.template.spec.clusterName must be set to the same value",
-			),
-		)
-	}
-
 	allErrs = append(allErrs, validateRolloutStrategy(specPath.Child("rollout", "strategy"), newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge)...)
 	allErrs = append(allErrs, validateRemediationMaxInFlight(specPath.Child("remediation"), newMD.Spec.Remediation.MaxInFlight)...)
 

@@ -23,8 +23,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -51,6 +55,7 @@ import (
 
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryapi "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/api"
 	inmemoryproxy "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/proxy"
 	"sigs.k8s.io/cluster-api/util/certs"
 )
@@ -136,6 +141,97 @@ func TestMux(t *testing.T) {
 
 	err = wcmux.DeleteWorkloadClusterListener(wcl)
 	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestAPI_DebugHandler(t *testing.T) {
+	t.Parallel()
+	g := NewWithT(t)
+
+	ports := getCustomPorts()
+	wcmux, _ := setupWorkloadClusterListener(g, ports)
+	defer func() { _ = wcmux.Shutdown(ctx) }()
+
+	debugBaseURL := fmt.Sprintf("http://127.0.0.1:%d", ports.DebugPort)
+	namespace, name := "default", "workload-cluster1"
+	resourceGroup := klog.KRef(namespace, name).String()
+
+	err := wcmux.RegisterResourceGroup("workload-cluster1-controlPlaneEndpoint", resourceGroup)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	t.Run("ping", func(t *testing.T) {
+		g := NewWithT(t)
+
+		resp, err := http.Get(debugBaseURL + "/") //nolint:noctx
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		body, err := io.ReadAll(resp.Body)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(strings.TrimSpace(string(body))).To(Equal(`"ok"`))
+	})
+
+	t.Run("listeners", func(t *testing.T) {
+		g := NewWithT(t)
+
+		resp, err := http.Get(debugBaseURL + "/listeners") //nolint:noctx
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		listeners := map[string]string{}
+		g.Expect(json.NewDecoder(resp.Body).Decode(&listeners)).To(Succeed())
+		g.Expect(listeners).To(HaveKey("workload-cluster1-controlPlaneEndpoint"))
+	})
+
+	t.Run("getListener for an unknown cluster returns 404", func(t *testing.T) {
+		g := NewWithT(t)
+
+		resp, err := http.Get(debugBaseURL + "/namespaces/default/clusters/does-not-exist") //nolint:noctx
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
+	})
+
+	t.Run("getListener for a registered cluster", func(t *testing.T) {
+		g := NewWithT(t)
+
+		resp, err := http.Get(fmt.Sprintf("%s/namespaces/%s/clusters/%s", debugBaseURL, namespace, name)) //nolint:noctx
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		info := &inmemoryapi.WorkloadClusterListenerDebugInfo{}
+		g.Expect(json.NewDecoder(resp.Body).Decode(info)).To(Succeed())
+		g.Expect(info.ResourceGroup).To(Equal(resourceGroup))
+		g.Expect(info.ListenerActive).To(BeTrue())
+		g.Expect(info.APIServers).To(ContainElement("kube-apiserver-1"))
+		g.Expect(info.EtcdMembers).To(ContainElement("etcd-1"))
+	})
+
+	t.Run("startOrStopListener stops and restarts the listener", func(t *testing.T) {
+		g := NewWithT(t)
+
+		listenerURL := fmt.Sprintf("%s/namespaces/%s/clusters/%s/listener", debugBaseURL, namespace, name)
+
+		resp, err := http.Post(listenerURL, "text/plain", strings.NewReader("stop")) //nolint:noctx,gosec
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		stoppedInfo := &inmemoryapi.WorkloadClusterListenerDebugInfo{}
+		g.Expect(json.NewDecoder(resp.Body).Decode(stoppedInfo)).To(Succeed())
+		g.Expect(stoppedInfo.ListenerActive).To(BeFalse())
+
+		resp, err = http.Post(listenerURL, "text/plain", strings.NewReader("start")) //nolint:noctx,gosec
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		startedInfo := &inmemoryapi.WorkloadClusterListenerDebugInfo{}
+		g.Expect(json.NewDecoder(resp.Body).Decode(startedInfo)).To(Succeed())
+		g.Expect(startedInfo.ListenerActive).To(BeTrue())
+	})
 }
 
 func TestAPI_corev1_CRUD(t *testing.T) {

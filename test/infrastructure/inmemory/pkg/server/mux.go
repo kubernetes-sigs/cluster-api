@@ -325,17 +325,21 @@ func (m *WorkloadClustersMux) ResourceGroupByWorkloadCluster(wclName string) (st
 	return resourceGroup, nil
 }
 
-// WorkloadClusterByResourceGroup returns the WorkloadClusterListener that serves resources from a given resource.
-func (m *WorkloadClustersMux) WorkloadClusterByResourceGroup(resouceGroup string) (string, error) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
+// GetWorkloadClusterListenerNameByResourceGroup returns the name of the WorkloadClusterListener that serves resources from a given resourceGroup.
+func (m *WorkloadClustersMux) GetWorkloadClusterListenerNameByResourceGroup(resourceGroup string) (string, error) {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
 
+	return m.getWorkloadClusterListenerNameByResourceGroupLocked(resourceGroup)
+}
+
+func (m *WorkloadClustersMux) getWorkloadClusterListenerNameByResourceGroupLocked(resourceGroup string) (string, error) {
 	for wclName, wcl := range m.workloadClusterListeners {
-		if wcl.ResourceGroup() == resouceGroup {
+		if wcl.ResourceGroup() == resourceGroup {
 			return wclName, nil
 		}
 	}
-	return "", pkgerrors.Errorf("resourceGroup with name %s not yet registered to a workloadClusterListener", resouceGroup)
+	return "", pkgerrors.Errorf("resourceGroup with name %s not yet registered to a workloadClusterListener", resourceGroup)
 }
 
 // AddAPIServer mimics adding an API server instance behind the WorkloadClusterListener.
@@ -449,11 +453,15 @@ func (m *WorkloadClustersMux) AddAPIServer(wclName, podName string, caCert *x509
 	return nil
 }
 
-// StartListener starts the listener for a wcl cluster.
-func (m *WorkloadClustersMux) StartListener(wclName string) error {
+// StartWorkloadClusterListenerForResourceGroup starts the WorkloadClusterListener for a resourceGroup.
+func (m *WorkloadClustersMux) StartWorkloadClusterListenerForResourceGroup(resourceGroup string) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
+	wclName, err := m.getWorkloadClusterListenerNameByResourceGroupLocked(resourceGroup)
+	if err != nil {
+		return nil
+	}
 	wcl, ok := m.workloadClusterListeners[wclName]
 	if !ok {
 		return pkgerrors.Errorf("workloadClusterListener with name %s must be initialized before being started", wclName)
@@ -500,10 +508,15 @@ func (m *WorkloadClustersMux) DeleteAPIServer(wclName, podName string) error {
 	return nil
 }
 
-// StopListener stops the listener for a wcl cluster.
-func (m *WorkloadClustersMux) StopListener(wclName string) error {
+// StopWorkloadClusterListenerForResourceGroup stops the WorkloadClusterListener for a resourceGroup.
+func (m *WorkloadClustersMux) StopWorkloadClusterListenerForResourceGroup(resourceGroup string) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
+
+	wclName, err := m.getWorkloadClusterListenerNameByResourceGroupLocked(resourceGroup)
+	if err != nil {
+		return nil
+	}
 
 	wcl, ok := m.workloadClusterListeners[wclName]
 	if !ok {
@@ -594,10 +607,15 @@ func (m *WorkloadClustersMux) DeleteEtcdMember(wclName, podName string) error {
 	return nil
 }
 
-// GetCluster return debug info for a wcl cluster.
-func (m *WorkloadClustersMux) GetCluster(wclName string) *inmemoryapi.ClusterDebugInfo {
+// GetWorkloadClusterListenerDebugInfoForResourceGroup return debug info for a resourceGroup.
+func (m *WorkloadClustersMux) GetWorkloadClusterListenerDebugInfoForResourceGroup(resourceGroup string) *inmemoryapi.WorkloadClusterListenerDebugInfo {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
+
+	wclName, err := m.getWorkloadClusterListenerNameByResourceGroupLocked(resourceGroup)
+	if err != nil {
+		return nil
+	}
 
 	wcl, ok := m.workloadClusterListeners[wclName]
 	if !ok {
@@ -608,7 +626,7 @@ func (m *WorkloadClustersMux) GetCluster(wclName string) *inmemoryapi.ClusterDeb
 	etcdMembers := wcl.etcdMembers.UnsortedList()
 	sort.Strings(apiServers)
 	sort.Strings(etcdMembers)
-	return &inmemoryapi.ClusterDebugInfo{
+	return &inmemoryapi.WorkloadClusterListenerDebugInfo{
 		Host:           wcl.host,
 		Port:           wcl.port,
 		ListenerActive: wcl.listener != nil,
@@ -618,8 +636,8 @@ func (m *WorkloadClustersMux) GetCluster(wclName string) *inmemoryapi.ClusterDeb
 	}
 }
 
-// ListListeners implements api.DebugInfoProvider.
-func (m *WorkloadClustersMux) ListListeners() map[string]string {
+// ListWorkloadClusterListeners provides debug info for WorkloadClusterListeners.
+func (m *WorkloadClustersMux) ListWorkloadClusterListeners() map[string]string {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -629,6 +647,7 @@ func (m *WorkloadClustersMux) ListListeners() map[string]string {
 		if l.listener == nil {
 			ret[k] += " (stopped)"
 		}
+		ret[k] += ", resourceGroup: " + l.resourceGroup
 	}
 	return ret
 }

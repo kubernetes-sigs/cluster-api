@@ -69,6 +69,7 @@ type ClusterResourceSetSpec struct {
 
 	// strategy is the strategy to be used during applying resources. Defaults to ApplyOnce. This field is immutable.
 	// +kubebuilder:validation:Enum=ApplyOnce;Reconcile
+	// +kubebuilder:validation:XValidation:rule="oldSelf == '' || oldSelf == self",message="field is immutable"
 	// +optional
 	Strategy string `json:"strategy,omitempty"`
 }

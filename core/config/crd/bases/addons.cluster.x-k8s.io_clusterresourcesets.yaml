@@ -131,6 +131,9 @@ spec:
                 - ApplyOnce
                 - Reconcile
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == '' || oldSelf == self
             required:
             - clusterSelector
             type: object
@@ -394,6 +397,9 @@ spec:
                 - ApplyOnce
                 - Reconcile
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == '' || oldSelf == self
             required:
             - clusterSelector
             - resources

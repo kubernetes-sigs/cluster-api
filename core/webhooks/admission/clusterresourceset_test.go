@@ -88,66 +88,6 @@ func TestClusterResourceSetLabelSelectorAsSelectorValidation(t *testing.T) {
 	}
 }
 
-func TestClusterResourceSetStrategyImmutable(t *testing.T) {
-	tests := []struct {
-		name        string
-		oldStrategy string
-		newStrategy string
-		expectErr   bool
-	}{
-		{
-			name:        "when the Strategy has not changed",
-			oldStrategy: string(addonsv1.ClusterResourceSetStrategyApplyOnce),
-			newStrategy: string(addonsv1.ClusterResourceSetStrategyApplyOnce),
-			expectErr:   false,
-		},
-		{
-			name:        "when the Strategy has changed",
-			oldStrategy: string(addonsv1.ClusterResourceSetStrategyApplyOnce),
-			newStrategy: "",
-			expectErr:   true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			newClusterResourceSet := &addonsv1.ClusterResourceSet{
-				Spec: addonsv1.ClusterResourceSetSpec{
-					ClusterSelector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"test": "test",
-						},
-					},
-					Strategy: tt.newStrategy,
-				},
-			}
-
-			oldClusterResourceSet := &addonsv1.ClusterResourceSet{
-				Spec: addonsv1.ClusterResourceSetSpec{
-					ClusterSelector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"test": "test",
-						},
-					},
-					Strategy: tt.oldStrategy,
-				},
-			}
-			webhook := ClusterResourceSet{}
-
-			warnings, err := webhook.ValidateUpdate(ctx, oldClusterResourceSet, newClusterResourceSet)
-			if tt.expectErr {
-				g.Expect(err).To(HaveOccurred())
-				g.Expect(warnings).To(BeEmpty())
-				return
-			}
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(warnings).To(BeEmpty())
-		})
-	}
-}
-
 func TestClusterResourceSetClusterSelectorImmutable(t *testing.T) {
 	tests := []struct {
 		name               string

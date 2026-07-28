@@ -91,13 +91,6 @@ func (webhook *ClusterResourceSet) validate(oldCRS, newCRS *addonsv1.ClusterReso
 		)
 	}
 
-	if oldCRS != nil && oldCRS.Spec.Strategy != "" && oldCRS.Spec.Strategy != newCRS.Spec.Strategy {
-		allErrs = append(
-			allErrs,
-			field.Invalid(field.NewPath("spec", "strategy"), newCRS.Spec.Strategy, "field is immutable"),
-		)
-	}
-
 	if oldCRS != nil && !reflect.DeepEqual(oldCRS.Spec.ClusterSelector, newCRS.Spec.ClusterSelector) {
 		allErrs = append(
 			allErrs,

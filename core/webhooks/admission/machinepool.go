@@ -139,17 +139,6 @@ func (webhook *MachinePool) validate(newObj *clusterv1.MachinePool) error {
 		)
 	}
 
-	if newObj.Spec.ClusterName != newObj.Spec.Template.Spec.ClusterName {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				specPath.Child("clusterName"),
-				newObj.Spec.ClusterName,
-				"spec.clusterName and spec.template.spec.clusterName must be set to the same value",
-			),
-		)
-	}
-
 	if newObj.Spec.Template.Spec.Version != "" {
 		if !strings.HasPrefix(newObj.Spec.Template.Spec.Version, "v") {
 			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), newObj.Spec.Template.Spec.Version, "must start with v"))

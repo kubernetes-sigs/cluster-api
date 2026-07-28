@@ -17,8 +17,9 @@ require (
 	github.com/flatcar/ignition v0.36.2
 	github.com/go-logr/logr v1.4.3
 	github.com/gobuffalo/flect v1.0.3
-	// Note: This must be kept in sync with the version used by k8s.io.
-	github.com/google/cel-go v0.26.0
+	// Note: Bumped above the version pulled in by k8s.io/apiserver to address GHSA-gcjh-h69q-9w9g.
+	// Keep at the minimum version that fixes the CVE; re-evaluate when k8s.io catches up.
+	github.com/google/cel-go v0.29.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v53 v53.2.0
 	github.com/olekukonko/tablewriter v1.0.9
@@ -35,7 +36,7 @@ require (
 	go.etcd.io/etcd/client/pkg/v3 v3.6.6
 	go.etcd.io/etcd/client/v3 v3.6.6
 	go.uber.org/zap v1.27.1
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
+	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/text v0.33.0
 	gomodules.xyz/jsonpatch/v2 v2.5.0
@@ -65,7 +66,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/ajeddeloh/go-json v0.0.0-20200220154158-5ae607161559 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
-	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
+	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -125,7 +126,6 @@ require (
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/vincent-petithory/dataurl v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect

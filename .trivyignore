@@ -28,3 +28,6 @@ CVE-2026-33814
 CVE-2026-39821
 CVE-2026-42502
 CVE-2026-42506
+# GHSA-hrxh-6v49-42gf: gRPC-Go xDS RBAC and HTTP/2 vulnerabilities
+# This issue is only exploitable if workload cluster etcd is taken over, otherwise it is only used in test code
+GHSA-hrxh-6v49-42gf

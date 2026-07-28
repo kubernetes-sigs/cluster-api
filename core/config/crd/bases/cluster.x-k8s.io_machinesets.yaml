@@ -80,6 +80,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               deletePolicy:
                 description: |-
                   deletePolicy defines the policy used to identify nodes to delete when downscaling.
@@ -827,6 +830,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               deletion:
                 description: deletion contains configuration options for MachineSet
                   deletion.

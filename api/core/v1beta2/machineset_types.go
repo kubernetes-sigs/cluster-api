@@ -64,6 +64,7 @@ type MachineSetSpec struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	ClusterName string `json:"clusterName,omitempty"`
 
 	// replicas is the number of desired replicas.

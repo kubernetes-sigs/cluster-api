@@ -122,12 +122,12 @@ func (webhook *MachineSet) Default(ctx context.Context, m *clusterv1.MachineSet)
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *MachineSet) ValidateCreate(_ context.Context, m *clusterv1.MachineSet) (admission.Warnings, error) {
-	return nil, webhook.validate(nil, m)
+	return nil, webhook.validate(m)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *MachineSet) ValidateUpdate(_ context.Context, oldMS, newMS *clusterv1.MachineSet) (admission.Warnings, error) {
-	return nil, webhook.validate(oldMS, newMS)
+func (webhook *MachineSet) ValidateUpdate(_ context.Context, _, newMS *clusterv1.MachineSet) (admission.Warnings, error) {
+	return nil, webhook.validate(newMS)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
@@ -135,7 +135,7 @@ func (webhook *MachineSet) ValidateDelete(_ context.Context, _ *clusterv1.Machin
 	return nil, nil
 }
 
-func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
+func (webhook *MachineSet) validate(newMS *clusterv1.MachineSet) error {
 	var allErrs field.ErrorList
 	specPath := field.NewPath("spec")
 
@@ -174,16 +174,6 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 		if err := validateSkippedMachineSetPreflightChecks(newMS); err != nil {
 			allErrs = append(allErrs, err)
 		}
-	}
-
-	if oldMS != nil && oldMS.Spec.ClusterName != newMS.Spec.ClusterName {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				specPath.Child("clusterName"),
-				"field is immutable",
-			),
-		)
 	}
 
 	if newMS.Spec.ClusterName != newMS.Spec.Template.Spec.ClusterName {

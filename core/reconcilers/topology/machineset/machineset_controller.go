@@ -210,13 +210,14 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, ms *clusterv1.MachineS
 	// likely complete reconcileDelete after the regular MachineSet controller. In that case it might happen
 	// that removing the finalizer here would try to re-add the finalizer of the other controller and then the
 	// request to the apiserver fails with: "Forbidden: no new finalizers can be added if the object is being deleted"
+	// This error can be detected via apierrors.IsInvalid.
 	msKey := client.ObjectKeyFromObject(ms)
-	return retry.RetryOnConflict(wait.Backoff{
+	return retry.OnError(wait.Backoff{
 		Steps:    3,
 		Duration: 50 * time.Millisecond,
 		Factor:   1.0,
 		Jitter:   0.1,
-	}, func() error {
+	}, apierrors.IsInvalid, func() error {
 		if err := r.Client.Get(ctx, msKey, ms); err != nil {
 			return client.IgnoreNotFound(err)
 		}

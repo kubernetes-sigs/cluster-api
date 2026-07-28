@@ -138,12 +138,12 @@ func (webhook *MachineDeployment) Default(ctx context.Context, m *clusterv1.Mach
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
 func (webhook *MachineDeployment) ValidateCreate(_ context.Context, m *clusterv1.MachineDeployment) (admission.Warnings, error) {
-	return nil, webhook.validate(nil, m)
+	return nil, webhook.validate(m)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *MachineDeployment) ValidateUpdate(_ context.Context, oldMD, newMD *clusterv1.MachineDeployment) (admission.Warnings, error) {
-	return nil, webhook.validate(oldMD, newMD)
+func (webhook *MachineDeployment) ValidateUpdate(_ context.Context, _, newMD *clusterv1.MachineDeployment) (admission.Warnings, error) {
+	return nil, webhook.validate(newMD)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
@@ -151,7 +151,7 @@ func (webhook *MachineDeployment) ValidateDelete(_ context.Context, _ *clusterv1
 	return nil, nil
 }
 
-func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeployment) error {
+func (webhook *MachineDeployment) validate(newMD *clusterv1.MachineDeployment) error {
 	var allErrs field.ErrorList
 	// The MachineDeployment name is used as a label value. This check ensures names which are not be valid label values are rejected.
 	if errs := validation.IsValidLabelValue(newMD.Name); len(errs) != 0 {
@@ -200,16 +200,6 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		if err := validateSkippedMachineSetPreflightChecks(newMD); err != nil {
 			allErrs = append(allErrs, err)
 		}
-	}
-
-	if oldMD != nil && oldMD.Spec.ClusterName != newMD.Spec.ClusterName {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				specPath.Child("clusterName"),
-				"field is immutable",
-			),
-		)
 	}
 
 	if newMD.Spec.ClusterName != newMD.Spec.Template.Spec.ClusterName {

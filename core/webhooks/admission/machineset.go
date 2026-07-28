@@ -176,17 +176,6 @@ func (webhook *MachineSet) validate(newMS *clusterv1.MachineSet) error {
 		}
 	}
 
-	if newMS.Spec.ClusterName != newMS.Spec.Template.Spec.ClusterName {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				specPath.Child("clusterName"),
-				newMS.Spec.ClusterName,
-				"spec.clusterName and spec.template.spec.clusterName must be set to the same value",
-			),
-		)
-	}
-
 	if newMS.Spec.Template.Spec.Version != "" {
 		if !strings.HasPrefix(newMS.Spec.Template.Spec.Version, "v") {
 			allErrs = append(

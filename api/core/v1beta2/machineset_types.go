@@ -59,6 +59,7 @@ const (
 )
 
 // MachineSetSpec defines the desired state of MachineSet.
+// +kubebuilder:validation:XValidation:rule="self.clusterName == self.template.spec.clusterName",message="spec.clusterName must match spec.template.spec.clusterName"
 type MachineSetSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
 	// +required

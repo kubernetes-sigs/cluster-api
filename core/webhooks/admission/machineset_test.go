@@ -371,56 +371,6 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 	}
 }
 
-func TestMachineSetClusterNamesEqual(t *testing.T) {
-	tests := []struct {
-		name                        string
-		specClusterName             string
-		specTemplateSpecClusterName string
-		expectErr                   bool
-	}{
-		{
-			name:                        "clusterName fields are set to the same value",
-			specClusterName:             "foo",
-			specTemplateSpecClusterName: "foo",
-			expectErr:                   false,
-		},
-		{
-			name:                        "clusterName fields are set to different values",
-			specClusterName:             "foo",
-			specTemplateSpecClusterName: "bar",
-			expectErr:                   true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			ms := &clusterv1.MachineSet{
-				Spec: clusterv1.MachineSetSpec{
-					ClusterName: tt.specClusterName,
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							ClusterName: tt.specTemplateSpecClusterName,
-							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("data-secret"),
-							},
-						},
-					},
-				},
-			}
-
-			warnings, err := (&MachineSet{}).ValidateCreate(ctx, ms)
-			if tt.expectErr {
-				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
-			}
-			g.Expect(warnings).To(BeEmpty())
-		})
-	}
-}
-
 func TestMachineSetVersionValidation(t *testing.T) {
 	tests := []struct {
 		name      string

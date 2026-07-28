@@ -512,6 +512,9 @@ spec:
             - clusterName
             - selector
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachineSet.
             properties:
@@ -1268,6 +1271,9 @@ spec:
             - selector
             - template
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachineSet.
             minProperties: 1

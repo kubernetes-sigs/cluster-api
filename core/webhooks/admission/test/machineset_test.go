@@ -53,3 +53,18 @@ func TestMachineSetClusterNameImmutable(t *testing.T) {
 	actualMS.Spec.Template.Spec.Version = "v1.20.0"
 	g.Expect(env.Update(ctx, actualMS)).To(Succeed())
 }
+
+func TestMachineSetClusterNameMatchesTemplate(t *testing.T) {
+	g := NewWithT(t)
+
+	ms := builder.MachineSet("default", "machineset-clustername-mismatch").
+		WithBootstrapTemplate(builder.BootstrapTemplate("default", "bootstrap-template-ms-clustername-mismatch").Build()).
+		Build()
+	ms.Spec.ClusterName = "cluster1"
+	ms.Spec.Template.Spec.ClusterName = "cluster2"
+
+	// A MachineSet whose spec.clusterName does not match spec.template.spec.clusterName must be rejected by the CEL rule.
+	err := env.CreateAndWait(ctx, ms)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("spec.clusterName must match spec.template.spec.clusterName"))
+}

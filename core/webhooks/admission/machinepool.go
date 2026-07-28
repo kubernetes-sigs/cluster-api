@@ -105,20 +105,20 @@ func (webhook *MachinePool) Default(ctx context.Context, m *clusterv1.MachinePoo
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *MachinePool) ValidateCreate(_ context.Context, mp *clusterv1.MachinePool) (admission.Warnings, error) {
-	return nil, webhook.validate(nil, mp)
+	return nil, webhook.validate(mp)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *MachinePool) ValidateUpdate(_ context.Context, oldMP, newMP *clusterv1.MachinePool) (admission.Warnings, error) {
-	return nil, webhook.validate(oldMP, newMP)
+func (webhook *MachinePool) ValidateUpdate(_ context.Context, _, newMP *clusterv1.MachinePool) (admission.Warnings, error) {
+	return nil, webhook.validate(newMP)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *MachinePool) ValidateDelete(_ context.Context, mp *clusterv1.MachinePool) (admission.Warnings, error) {
-	return nil, webhook.validate(nil, mp)
+	return nil, webhook.validate(mp)
 }
 
-func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) error {
+func (webhook *MachinePool) validate(newObj *clusterv1.MachinePool) error {
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the web hook
 	// must prevent creating newObj objects when the feature flag is disabled.
 	specPath := field.NewPath("spec")
@@ -136,15 +136,6 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 				specPath.Child("template", "spec", "bootstrap"),
 				"expected either spec.template.spec.bootstrap.dataSecretName or spec.template.spec.bootstrap.configRef to be populated",
 			),
-		)
-	}
-
-	if oldObj != nil && oldObj.Spec.ClusterName != newObj.Spec.ClusterName {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				specPath.Child("clusterName"),
-				"field is immutable"),
 		)
 	}
 

@@ -77,6 +77,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               failureDomains:
                 description: failureDomains is the list of failure domains this MachinePool
                   should be attached to.
@@ -793,6 +796,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               failureDomains:
                 description: failureDomains is the list of failure domains this MachinePool
                   should be attached to.

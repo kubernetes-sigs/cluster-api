@@ -135,6 +135,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               failureDomain:
                 description: |-
                   failureDomain is the failure domain the machine will be created in.
@@ -871,6 +874,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               deletion:
                 description: deletion contains configuration options for Machine deletion.
                 minProperties: 1

@@ -91,7 +91,6 @@ func Test_cache_client(t *testing.T) {
 			// Check all the computed fields have been updated on the object.
 			g.Expect(obj.CreationTimestamp.IsZero()).To(BeFalse())
 			g.Expect(obj.ResourceVersion).ToNot(BeEmpty())
-			g.Expect(obj.Annotations).To(HaveKey(lastSyncTimeAnnotation))
 
 			// Check internal state of the tracker is as expected.
 			c.resourceGroupsLock.RLock()
@@ -106,7 +105,6 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(r.GetName()).To(Equal("bar"), "name must be equal to object tracker key")
 			g.Expect(r.GetResourceVersion()).To(Equal("1"), "resourceVersion must be set")
 			g.Expect(r.GetCreationTimestamp()).ToNot(BeZero(), "creation timestamp must be set")
-			g.Expect(r.GetAnnotations()).To(HaveKey(lastSyncTimeAnnotation), "last sync annotation must exists")
 
 			g.Expect(h.Events()).To(ContainElement("foo, CloudMachine=bar, Created"))
 		})
@@ -273,7 +271,6 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(obj.GetName()).To(Equal("bar"), "name must be equal to object tracker key")
 			g.Expect(obj.GetResourceVersion()).To(Equal("2"), "resourceVersion must be set")
 			g.Expect(obj.GetCreationTimestamp()).ToNot(BeZero(), "creation timestamp must be set")
-			g.Expect(obj.GetAnnotations()).To(HaveKey(lastSyncTimeAnnotation), "last sync annotation must be set")
 		})
 	})
 
@@ -368,11 +365,9 @@ func Test_cache_client(t *testing.T) {
 
 			i1 := obj.Items[0]
 			g.Expect(i1.GetObjectKind().GroupVersionKind()).To(Equal(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
-			g.Expect(i1.GetAnnotations()).To(HaveKey(lastSyncTimeAnnotation), "last sync annotation must be present")
 
 			i2 := obj.Items[1]
 			g.Expect(i2.GetObjectKind().GroupVersionKind()).To(Equal(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
-			g.Expect(i2.GetAnnotations()).To(HaveKey(lastSyncTimeAnnotation), "last sync annotation must be present")
 		})
 
 		// TODO: test filtering by labels
@@ -473,7 +468,6 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check all the computed fields are as expected.
-			g.Expect(objBefore.GetAnnotations()[lastSyncTimeAnnotation]).ToNot(Equal(objUpdate.GetAnnotations()[lastSyncTimeAnnotation]), "last sync version must be changed")
 			objBefore.Annotations = objUpdate.Annotations
 			g.Expect(objBefore.GetResourceVersion()).ToNot(Equal(objUpdate.GetResourceVersion()), "Object version must be changed")
 			objBefore.SetResourceVersion(objUpdate.GetResourceVersion())
@@ -710,7 +704,6 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(objBefore.GetDeletionTimestamp().IsZero()).To(BeTrue(), "deletion timestamp before delete must not be set")
 			g.Expect(objAfterUpdate.GetDeletionTimestamp().IsZero()).To(BeFalse(), "deletion timestamp after delete must be set")
 			objBefore.DeletionTimestamp = objAfterUpdate.DeletionTimestamp
-			g.Expect(objBefore.GetAnnotations()[lastSyncTimeAnnotation]).ToNot(Equal(objAfterUpdate.GetAnnotations()[lastSyncTimeAnnotation]), "last sync version must be changed")
 			objBefore.Annotations = objAfterUpdate.Annotations
 			g.Expect(objBefore.GetResourceVersion()).ToNot(Equal(objAfterUpdate.GetResourceVersion()), "Object version must be changed")
 			objBefore.SetResourceVersion(objAfterUpdate.GetResourceVersion())

@@ -79,8 +79,10 @@ type MachineSetSpec struct {
 	// selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
 	// It must match the machine template's labels.
+	// This field is immutable.
 	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
 	// +required
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	Selector metav1.LabelSelector `json:"selector"`
 
 	// template is the object that describes the machine that will be created if

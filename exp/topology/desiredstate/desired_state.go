@@ -458,12 +458,12 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	// NOTE: If taints value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
 	// does not implement support for this field and the ControlPlane object is generated without taints.
 	if s.Blueprint.Topology.ControlPlane.Taints != nil {
-		if err := contract.ControlPlane().MachineTemplate().Taints().Set(controlPlane, s.Blueprint.Topology.ControlPlane.Taints); err != nil {
-			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints().Path())
+		if err := contract.ControlPlane().MachineTemplate().Taints(contractVersion).Set(controlPlane, s.Blueprint.Topology.ControlPlane.Taints); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints(contractVersion).Path())
 		}
 	} else if s.Blueprint.ClusterClass.Spec.ControlPlane.Taints != nil {
-		if err := contract.ControlPlane().MachineTemplate().Taints().Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.Taints); err != nil {
-			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints().Path())
+		if err := contract.ControlPlane().MachineTemplate().Taints(contractVersion).Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.Taints); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints(contractVersion).Path())
 		}
 	}
 

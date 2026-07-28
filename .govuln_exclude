@@ -2,3 +2,9 @@
 GO-2026-4918
 # GO-2026-5026: This should not be an issue where idna.ToASCII is used in KCP
 GO-2026-5026
+# GO-2026-5970 This issue is only exploitable if workload cluster etcd is taken over, the occurences in util/record and runtime-openapi-gen are false positives because the input is safe, otherwise it is only used in test code
+GO-2026-5970
+# GO-2026-6061 This issue is only exploitable if workload cluster etcd is taken over, otherwise it is only used in test code
+GO-2026-6061
+# GO-2026-5506 The fix requires otel/sdk v1.41.0 which requires Go 1.25, not available on this release branch. This is only exploitable via a malicious HTTP server sending crafted baggage headers.
+GO-2026-5506

@@ -67,3 +67,45 @@ func TestClusterResourceSetStrategyImmutable(t *testing.T) {
 	actualCRS.Annotations["test.cluster.x-k8s.io/unrelated"] = "value"
 	g.Expect(env.Update(ctx, actualCRS)).To(Succeed())
 }
+
+func TestClusterResourceSetClusterSelectorImmutable(t *testing.T) {
+	g := NewWithT(t)
+
+	crs := &addonsv1.ClusterResourceSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "crs-clusterselector-immutable",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: addonsv1.ClusterResourceSetSpec{
+			ClusterSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"foo": "bar"},
+			},
+			Resources: []addonsv1.ResourceRef{
+				{Name: "crs-clusterselector-immutable-resource", Kind: "Secret"},
+			},
+			Strategy: string(addonsv1.ClusterResourceSetStrategyApplyOnce),
+		},
+	}
+
+	g.Expect(env.CreateAndWait(ctx, crs)).To(Succeed())
+	t.Cleanup(func() {
+		g.Expect(env.CleanupAndWait(ctx, crs)).To(Succeed())
+	})
+
+	actualCRS := &addonsv1.ClusterResourceSet{}
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: crs.Namespace, Name: crs.Name}, actualCRS)).To(Succeed())
+
+	// Changing spec.clusterSelector on update must be rejected by the CEL immutability rule.
+	actualCRS.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"foo": "different"}}
+	err := env.Update(ctx, actualCRS)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("field is immutable"))
+
+	// An update that leaves spec.clusterSelector unchanged must still be allowed.
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: crs.Namespace, Name: crs.Name}, actualCRS)).To(Succeed())
+	if actualCRS.Annotations == nil {
+		actualCRS.Annotations = map[string]string{}
+	}
+	actualCRS.Annotations["test.cluster.x-k8s.io/unrelated"] = "value"
+	g.Expect(env.Update(ctx, actualCRS)).To(Succeed())
+}

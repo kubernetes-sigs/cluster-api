@@ -99,6 +99,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               resources:
                 description: resources is a list of Secrets/ConfigMaps where each
                   contains 1 or more resources to be applied to remote clusters.
@@ -363,6 +366,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               resources:
                 description: resources is a list of Secrets/ConfigMaps where each
                   contains 1 or more resources to be applied to remote clusters.

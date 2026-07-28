@@ -18,7 +18,6 @@ package admission
 
 import (
 	"context"
-	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,12 +57,12 @@ func (webhook *ClusterResourceSet) Default(_ context.Context, crs *addonsv1.Clus
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *ClusterResourceSet) ValidateCreate(_ context.Context, newCRS *addonsv1.ClusterResourceSet) (admission.Warnings, error) {
-	return nil, webhook.validate(nil, newCRS)
+	return nil, webhook.validate(newCRS)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ClusterResourceSet) ValidateUpdate(_ context.Context, oldCRS, newCRS *addonsv1.ClusterResourceSet) (admission.Warnings, error) {
-	return nil, webhook.validate(oldCRS, newCRS)
+func (webhook *ClusterResourceSet) ValidateUpdate(_ context.Context, _, newCRS *addonsv1.ClusterResourceSet) (admission.Warnings, error) {
+	return nil, webhook.validate(newCRS)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
@@ -71,7 +70,7 @@ func (webhook *ClusterResourceSet) ValidateDelete(_ context.Context, _ *addonsv1
 	return nil, nil
 }
 
-func (webhook *ClusterResourceSet) validate(oldCRS, newCRS *addonsv1.ClusterResourceSet) error {
+func (webhook *ClusterResourceSet) validate(newCRS *addonsv1.ClusterResourceSet) error {
 	var allErrs field.ErrorList
 
 	// Validate selector parses as Selector
@@ -88,13 +87,6 @@ func (webhook *ClusterResourceSet) validate(oldCRS, newCRS *addonsv1.ClusterReso
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec", "clusterSelector"), newCRS.Spec.ClusterSelector, "selector must not be empty"),
-		)
-	}
-
-	if oldCRS != nil && !reflect.DeepEqual(oldCRS.Spec.ClusterSelector, newCRS.Spec.ClusterSelector) {
-		allErrs = append(
-			allErrs,
-			field.Invalid(field.NewPath("spec", "clusterSelector"), newCRS.Spec.ClusterSelector, "field is immutable"),
 		)
 	}
 

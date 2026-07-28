@@ -73,6 +73,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               maxUnhealthy:
                 anyOf:
                 - type: integer
@@ -623,6 +626,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               remediation:
                 description: |-
                   remediation configures if and how remediations are triggered if a Machine is unhealthy.

@@ -80,12 +80,12 @@ func (webhook *MachineHealthCheck) Default(_ context.Context, m *clusterv1.Machi
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
 func (webhook *MachineHealthCheck) ValidateCreate(_ context.Context, m *clusterv1.MachineHealthCheck) (admission.Warnings, error) {
-	return nil, webhook.validate(nil, m)
+	return nil, webhook.validate(m)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *MachineHealthCheck) ValidateUpdate(_ context.Context, oldM, newM *clusterv1.MachineHealthCheck) (admission.Warnings, error) {
-	return nil, webhook.validate(oldM, newM)
+func (webhook *MachineHealthCheck) ValidateUpdate(_ context.Context, _, newM *clusterv1.MachineHealthCheck) (admission.Warnings, error) {
+	return nil, webhook.validate(newM)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
@@ -93,7 +93,7 @@ func (webhook *MachineHealthCheck) ValidateDelete(_ context.Context, _ *clusterv
 	return nil, nil
 }
 
-func (webhook *MachineHealthCheck) validate(oldMHC, newMHC *clusterv1.MachineHealthCheck) error {
+func (webhook *MachineHealthCheck) validate(newMHC *clusterv1.MachineHealthCheck) error {
 	var allErrs field.ErrorList
 	specPath := field.NewPath("spec")
 
@@ -118,13 +118,6 @@ func (webhook *MachineHealthCheck) validate(oldMHC, newMHC *clusterv1.MachineHea
 		allErrs = append(
 			allErrs,
 			field.Invalid(specPath.Child("selector"), newMHC.Spec.Selector, "cannot specify a cluster selector other than the one specified by ClusterName"))
-	}
-
-	if oldMHC != nil && oldMHC.Spec.ClusterName != newMHC.Spec.ClusterName {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(specPath.Child("clusterName"), "field is immutable"),
-		)
 	}
 
 	allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(specPath, newMHC.Spec.Checks.NodeStartupTimeoutSeconds)...)

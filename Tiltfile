@@ -251,6 +251,7 @@ def build_go_binary(context, reload_deps, debug, go_main, binary_name, label):
         ),
         deps = live_reload_deps,
         labels = [label],
+        allow_parallel = True,
     )
 
 def build_docker_image(image, context, binary_name, additional_docker_build_commands, additional_docker_helper_commands, port_forwards):

@@ -271,7 +271,9 @@ type MachineDeploymentSpec struct {
 	// selector is the label selector for machines. Existing MachineSets whose machines are
 	// selected by this will be the ones affected by this deployment.
 	// It must match the machine template's labels.
+	// This field is immutable.
 	// +required
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	Selector metav1.LabelSelector `json:"selector,omitempty,omitzero"`
 
 	// template describes the machines that will be created.

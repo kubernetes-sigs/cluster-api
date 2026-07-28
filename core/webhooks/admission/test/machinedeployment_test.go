@@ -68,3 +68,36 @@ func TestMachineDeploymentClusterNameMatchesTemplate(t *testing.T) {
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("spec.clusterName must match spec.template.spec.clusterName"))
 }
+
+func TestMachineDeploymentSelectorImmutable(t *testing.T) {
+	g := NewWithT(t)
+
+	md := builder.MachineDeployment("default", "machinedeployment-selector-immutable").
+		WithClusterName("cluster1").
+		WithBootstrapTemplate(builder.BootstrapTemplate("default", "bootstrap-template-md-selector-immutable").Build()).
+		Build()
+	md.Spec.Selector.MatchLabels["foo"] = "bar"
+	md.Spec.Template.Labels["foo"] = "bar"
+
+	g.Expect(env.CreateAndWait(ctx, md)).To(Succeed())
+	t.Cleanup(func() {
+		g.Expect(env.CleanupAndWait(ctx, md)).To(Succeed())
+	})
+
+	actualMD := &clusterv1.MachineDeployment{}
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: md.Namespace, Name: md.Name}, actualMD)).To(Succeed())
+
+	// Changing spec.selector on update must be rejected by the CEL immutability rule.
+	// This closes the same class of bug as OCPBUGS-38218 (already fixed for MachineSet):
+	// changing the selector on an existing MachineDeployment would orphan the Machines
+	// owned by its MachineSets.
+	actualMD.Spec.Selector.MatchLabels["foo"] = "different"
+	err := env.Update(ctx, actualMD)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("field is immutable"))
+
+	// An update that leaves spec.selector unchanged must still be allowed.
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: md.Namespace, Name: md.Name}, actualMD)).To(Succeed())
+	actualMD.Spec.Template.Spec.Version = "v1.20.0"
+	g.Expect(env.Update(ctx, actualMD)).To(Succeed())
+}

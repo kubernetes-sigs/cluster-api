@@ -184,6 +184,7 @@ spec:
                   selector is the label selector for machines. Existing MachineSets whose machines are
                   selected by this will be the ones affected by this deployment.
                   It must match the machine template's labels.
+                  This field is immutable.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -228,6 +229,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               strategy:
                 description: |-
                   strategy is the deployment strategy to use to replace existing machines with
@@ -1127,6 +1131,7 @@ spec:
                   selector is the label selector for machines. Existing MachineSets whose machines are
                   selected by this will be the ones affected by this deployment.
                   It must match the machine template's labels.
+                  This field is immutable.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -1171,6 +1176,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               template:
                 description: template describes the machines that will be created.
                 properties:

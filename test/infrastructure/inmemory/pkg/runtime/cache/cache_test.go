@@ -64,7 +64,6 @@ func Test_cache_scale(t *testing.T) {
 	defer cancel()
 
 	c := NewCache(scheme).(*cache)
-	c.syncPeriod = testDuration / 10                        // force a shorter sync period
 	c.garbageCollectorRequeueAfter = 500 * time.Millisecond // force a shorter gc requeueAfter
 	err := c.Start(ctx)
 	g.Expect(err).ToNot(HaveOccurred())

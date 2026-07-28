@@ -111,18 +111,3 @@ func (c *cache) informDelete(resourceGroup string, obj client.Object) {
 		}
 	}
 }
-
-func (c *cache) informSync(resourceGroup string, obj client.Object) {
-	c.informersLock.RLock()
-	defer c.informersLock.RUnlock()
-
-	if i, ok := c.informers[obj.GetObjectKind().GroupVersionKind()]; ok {
-		i := i.(*informer)
-		i.lock.RLock()
-		defer i.lock.RUnlock()
-
-		for _, h := range i.handlers {
-			h.OnUpdate(resourceGroup, obj, obj)
-		}
-	}
-}

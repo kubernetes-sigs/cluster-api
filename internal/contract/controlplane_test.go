@@ -503,7 +503,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).To(BeComparableTo(readinessGates))
 	})
 
-	t.Run("Manages spec.machineTemplate.taints (v1beta2 contract)", func(t *testing.T) {
+	t.Run("Manages spec.machineTemplate.taints (v1beta1 contract)", func(t *testing.T) {
 		g := NewWithT(t)
 
 		taints := []clusterv1.MachineTaint{
@@ -511,12 +511,12 @@ func TestControlPlane(t *testing.T) {
 			{Key: "bar", Effect: "NoExecute", Propagation: clusterv1.MachineTaintPropagationOnInitialization},
 		}
 
-		g.Expect(ControlPlane().MachineTemplate().Taints().Path()).To(Equal(Path{"spec", "machineTemplate", "spec", "taints"}))
+		g.Expect(ControlPlane().MachineTemplate().Taints("v1beta1").Path()).To(Equal(Path{"spec", "machineTemplate", "taints"}))
 
-		err := ControlPlane().MachineTemplate().Taints().Set(obj, taints)
+		err := ControlPlane().MachineTemplate().Taints("v1beta1").Set(obj, taints)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := ControlPlane().MachineTemplate().Taints().Get(obj)
+		got, err := ControlPlane().MachineTemplate().Taints("v1beta1").Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(got).To(BeComparableTo(taints))
@@ -525,24 +525,69 @@ func TestControlPlane(t *testing.T) {
 		obj2 := &unstructured.Unstructured{Object: map[string]interface{}{}}
 		taints = nil
 
-		err = ControlPlane().MachineTemplate().Taints().Set(obj2, taints)
+		err = ControlPlane().MachineTemplate().Taints("v1beta1").Set(obj2, taints)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		_, ok, err := unstructured.NestedSlice(obj2.UnstructuredContent(), ControlPlane().MachineTemplate().Taints().Path()...)
+		_, ok, err := unstructured.NestedSlice(obj2.UnstructuredContent(), ControlPlane().MachineTemplate().Taints("v1beta1").Path()...)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ok).To(BeFalse())
 
-		_, err = ControlPlane().MachineTemplate().Taints().Get(obj2)
+		_, err = ControlPlane().MachineTemplate().Taints("v1beta1").Get(obj2)
 		g.Expect(err).To(HaveOccurred())
 
 		// Empty taints are set.
 		obj3 := &unstructured.Unstructured{Object: map[string]interface{}{}}
 		taints = []clusterv1.MachineTaint{}
 
-		err = ControlPlane().MachineTemplate().Taints().Set(obj3, taints)
+		err = ControlPlane().MachineTemplate().Taints("v1beta1").Set(obj3, taints)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err = ControlPlane().MachineTemplate().Taints().Get(obj3)
+		got, err = ControlPlane().MachineTemplate().Taints("v1beta1").Get(obj3)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(BeComparableTo(taints))
+	})
+
+	t.Run("Manages spec.machineTemplate.taints (v1beta2 contract)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		taints := []clusterv1.MachineTaint{
+			{Key: "foo", Effect: "NoSchedule", Propagation: clusterv1.MachineTaintPropagationAlways},
+			{Key: "bar", Effect: "NoExecute", Propagation: clusterv1.MachineTaintPropagationOnInitialization},
+		}
+
+		g.Expect(ControlPlane().MachineTemplate().Taints("v1beta2").Path()).To(Equal(Path{"spec", "machineTemplate", "spec", "taints"}))
+
+		err := ControlPlane().MachineTemplate().Taints("v1beta2").Set(obj, taints)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().MachineTemplate().Taints("v1beta2").Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(BeComparableTo(taints))
+
+		// Nil taints are not set.
+		obj2 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		taints = nil
+
+		err = ControlPlane().MachineTemplate().Taints("v1beta2").Set(obj2, taints)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		_, ok, err := unstructured.NestedSlice(obj2.UnstructuredContent(), ControlPlane().MachineTemplate().Taints("v1beta2").Path()...)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ok).To(BeFalse())
+
+		_, err = ControlPlane().MachineTemplate().Taints("v1beta2").Get(obj2)
+		g.Expect(err).To(HaveOccurred())
+
+		// Empty taints are set.
+		obj3 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		taints = []clusterv1.MachineTaint{}
+
+		err = ControlPlane().MachineTemplate().Taints("v1beta2").Set(obj3, taints)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err = ControlPlane().MachineTemplate().Taints("v1beta2").Get(obj3)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(got).To(BeComparableTo(taints))

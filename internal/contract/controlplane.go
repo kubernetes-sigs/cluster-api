@@ -549,7 +549,13 @@ func (m *ReadinessGates) Set(obj *unstructured.Unstructured, readinessGates []cl
 }
 
 // Taints provides access to control plane's Taints.
-func (c *ControlPlaneMachineTemplate) Taints() *Taints {
+func (c *ControlPlaneMachineTemplate) Taints(contractVersion string) *Taints {
+	if contractVersion == "v1beta1" {
+		return &Taints{
+			path: []string{"spec", "machineTemplate", "taints"},
+		}
+	}
+
 	return &Taints{
 		path: []string{"spec", "machineTemplate", "spec", "taints"},
 	}

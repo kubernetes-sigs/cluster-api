@@ -19,8 +19,6 @@ package admission
 import (
 	"context"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -43,30 +41,16 @@ type ClusterResourceSetBinding struct{}
 var _ admission.Validator[*addonsv1.ClusterResourceSetBinding] = &ClusterResourceSetBinding{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ClusterResourceSetBinding) ValidateCreate(_ context.Context, newBinding *addonsv1.ClusterResourceSetBinding) (admission.Warnings, error) {
-	return nil, webhook.validate(nil, newBinding)
+func (webhook *ClusterResourceSetBinding) ValidateCreate(_ context.Context, _ *addonsv1.ClusterResourceSetBinding) (admission.Warnings, error) {
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ClusterResourceSetBinding) ValidateUpdate(_ context.Context, oldBinding, newBinding *addonsv1.ClusterResourceSetBinding) (admission.Warnings, error) {
-	return nil, webhook.validate(oldBinding, newBinding)
+func (webhook *ClusterResourceSetBinding) ValidateUpdate(_ context.Context, _, _ *addonsv1.ClusterResourceSetBinding) (admission.Warnings, error) {
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *ClusterResourceSetBinding) ValidateDelete(_ context.Context, _ *addonsv1.ClusterResourceSetBinding) (admission.Warnings, error) {
 	return nil, nil
-}
-
-func (webhook *ClusterResourceSetBinding) validate(oldCRSB, newCRSB *addonsv1.ClusterResourceSetBinding) error {
-	var allErrs field.ErrorList
-
-	if oldCRSB != nil && oldCRSB.Spec.ClusterName != "" && oldCRSB.Spec.ClusterName != newCRSB.Spec.ClusterName {
-		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec", "clusterName"), newCRSB.Spec.ClusterName, "field is immutable"))
-	}
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(addonsv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind(), newCRSB.Name, allErrs)
 }

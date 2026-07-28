@@ -58,6 +58,7 @@ type IPAddressClaim struct {
 
 	// spec is the desired state of IPAddressClaim.
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	Spec IPAddressClaimSpec `json:"spec,omitempty"`
 	// status is the observed state of IPAddressClaim.
 	// +optional

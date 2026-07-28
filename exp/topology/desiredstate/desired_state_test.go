@@ -1910,6 +1910,12 @@ func TestComputeMachineDeployment(t *testing.T) {
 				Version: version,
 			},
 		},
+		Status: clusterv1.ClusterStatus{
+			FailureDomains: []clusterv1.FailureDomain{
+				{Name: "A"},
+				{Name: "B"},
+			},
+		},
 	}
 
 	blueprint := &scope.ClusterBlueprint{
@@ -2434,6 +2440,81 @@ func TestComputeMachineDeployment(t *testing.T) {
 		// Check that UnhealthyMachineConditions are set as expected.
 		g.Expect(actual.MachineHealthCheck.Spec.Checks.UnhealthyMachineConditions).To(BeComparableTo(unhealthyMachineConditions))
 	})
+
+	t.Run("Should error if failureDomain is not found in Cluster.Status.FailureDomains", func(t *testing.T) {
+		g := NewWithT(t)
+		s := scope.New(cluster)
+		s.Blueprint = blueprint
+
+		mdTopologyWithInvalidFD := clusterv1.MachineDeploymentTopology{
+			Class:         "linux-worker",
+			Name:          "invalid-fd-pool",
+			FailureDomain: "non-existent-fd",
+		}
+
+		e := generator{}
+		_, err := e.computeMachineDeployment(ctx, s, mdTopologyWithInvalidFD)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("non-existent-fd"))
+	})
+
+	t.Run("Should defer creation if failureDomain is set but Cluster.Status.FailureDomains is empty", func(t *testing.T) {
+		g := NewWithT(t)
+		clusterWithoutFDs := cluster.DeepCopy()
+		clusterWithoutFDs.Status.FailureDomains = nil
+
+		s := scope.New(clusterWithoutFDs)
+		s.Blueprint = blueprint
+
+		mdTopologyWithFD := clusterv1.MachineDeploymentTopology{
+			Class:         "linux-worker",
+			Name:          "deferred-fd-pool",
+			FailureDomain: "A",
+		}
+
+		e := generator{}
+		_, err := e.computeMachineDeployment(ctx, s, mdTopologyWithFD)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(s.UpgradeTracker.MachineDeployments.IsPendingCreate("deferred-fd-pool")).To(BeTrue())
+	})
+
+	t.Run("Should not defer if failureDomain is set, status is empty, but MD already exists", func(t *testing.T) {
+		g := NewWithT(t)
+		clusterWithoutFDs := cluster.DeepCopy()
+		clusterWithoutFDs.Status.FailureDomains = nil
+
+		s := scope.New(clusterWithoutFDs)
+		s.Blueprint = blueprint
+		s.UpgradeTracker.MachineDeployments.UpgradePlan = []string{version}
+		// Simulate an existing MachineDeployment with matching version.
+		s.Current.MachineDeployments = map[string]*scope.MachineDeploymentState{
+			"existing-fd-pool": {
+				Object: &clusterv1.MachineDeployment{
+					ObjectMeta: metav1.ObjectMeta{Name: "existing-fd-pool"},
+					Spec: clusterv1.MachineDeploymentSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: version,
+							},
+						},
+					},
+				},
+				BootstrapTemplate:             workerBootstrapTemplate.DeepCopy(),
+				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate.DeepCopy(),
+			},
+		}
+
+		mdTopologyWithFD := clusterv1.MachineDeploymentTopology{
+			Class:         "linux-worker",
+			Name:          "existing-fd-pool",
+			FailureDomain: "A",
+		}
+
+		e := generator{}
+		_, err := e.computeMachineDeployment(ctx, s, mdTopologyWithFD)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(s.UpgradeTracker.MachineDeployments.IsPendingCreate("existing-fd-pool")).To(BeFalse())
+	})
 }
 
 func TestComputeMachinePool(t *testing.T) {
@@ -2476,6 +2557,12 @@ func TestComputeMachinePool(t *testing.T) {
 		Spec: clusterv1.ClusterSpec{
 			Topology: clusterv1.Topology{
 				Version: version,
+			},
+		},
+		Status: clusterv1.ClusterStatus{
+			FailureDomains: []clusterv1.FailureDomain{
+				{Name: "A"},
+				{Name: "B"},
 			},
 		},
 	}
@@ -2817,6 +2904,81 @@ func TestComputeMachinePool(t *testing.T) {
 				g.Expect(obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
 			})
 		}
+	})
+
+	t.Run("Should error if failureDomain is not found in Cluster.Status.FailureDomains", func(t *testing.T) {
+		g := NewWithT(t)
+		s := scope.New(cluster)
+		s.Blueprint = blueprint
+
+		mpTopologyWithInvalidFD := clusterv1.MachinePoolTopology{
+			Class:          "linux-worker",
+			Name:           "invalid-fd-pool",
+			FailureDomains: []string{"non-existent-fd"},
+		}
+
+		e := generator{}
+		_, err := e.computeMachinePool(ctx, s, mpTopologyWithInvalidFD)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("non-existent-fd"))
+	})
+
+	t.Run("Should defer creation if failureDomains is set but Cluster.Status.FailureDomains is empty", func(t *testing.T) {
+		g := NewWithT(t)
+		clusterWithoutFDs := cluster.DeepCopy()
+		clusterWithoutFDs.Status.FailureDomains = nil
+
+		s := scope.New(clusterWithoutFDs)
+		s.Blueprint = blueprint
+
+		mpTopologyWithFD := clusterv1.MachinePoolTopology{
+			Class:          "linux-worker",
+			Name:           "deferred-fd-pool",
+			FailureDomains: []string{"A"},
+		}
+
+		e := generator{}
+		_, err := e.computeMachinePool(ctx, s, mpTopologyWithFD)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(s.UpgradeTracker.MachinePools.IsPendingCreate("deferred-fd-pool")).To(BeTrue())
+	})
+
+	t.Run("Should not defer if failureDomains is set, status is empty, but MP already exists", func(t *testing.T) {
+		g := NewWithT(t)
+		clusterWithoutFDs := cluster.DeepCopy()
+		clusterWithoutFDs.Status.FailureDomains = nil
+
+		s := scope.New(clusterWithoutFDs)
+		s.Blueprint = blueprint
+		s.UpgradeTracker.MachinePools.UpgradePlan = []string{version}
+		// Simulate an existing MachinePool.
+		s.Current.MachinePools = map[string]*scope.MachinePoolState{
+			"existing-fd-pool": {
+				Object: &clusterv1.MachinePool{
+					ObjectMeta: metav1.ObjectMeta{Name: "existing-fd-pool"},
+					Spec: clusterv1.MachinePoolSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: version,
+							},
+						},
+					},
+				},
+				BootstrapObject:                 workerBootstrapConfig.DeepCopy(),
+				InfrastructureMachinePoolObject: workerInfrastructureMachinePool.DeepCopy(),
+			},
+		}
+
+		mpTopologyWithFD := clusterv1.MachinePoolTopology{
+			Class:          "linux-worker",
+			Name:           "existing-fd-pool",
+			FailureDomains: []string{"A"},
+		}
+
+		e := generator{}
+		_, err := e.computeMachinePool(ctx, s, mpTopologyWithFD)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(s.UpgradeTracker.MachinePools.IsPendingCreate("existing-fd-pool")).To(BeFalse())
 	})
 }
 

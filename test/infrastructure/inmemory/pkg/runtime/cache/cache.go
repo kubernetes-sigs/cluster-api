@@ -84,10 +84,6 @@ type cache struct {
 	garbageCollectorConcurrency              int
 	garbageCollectorQueue                    workqueue.TypedRateLimitingInterface[any]
 
-	syncPeriod      time.Duration
-	syncConcurrency int
-	syncQueue       workqueue.TypedRateLimitingInterface[any]
-
 	started bool
 }
 
@@ -129,8 +125,6 @@ func NewCache(scheme *runtime.Scheme) Cache {
 		garbageCollectorRequeueAfter:             30 * time.Second, // TODO:Expose as option
 		garbageCollectorRequeueAfterJitterFactor: 0.3,              // TODO: Expose as option
 		garbageCollectorConcurrency:              1,                // TODO: Expose as option
-		syncPeriod:                               10 * time.Minute, // TODO:Expose as option
-		syncConcurrency:                          1,                // TODO: Expose as option
 	}
 }
 
@@ -148,9 +142,6 @@ func (c *cache) Start(ctx context.Context) error {
 	log.Info("Starting cache")
 
 	if err := c.startGarbageCollector(ctx); err != nil {
-		return err
-	}
-	if err := c.startSyncer(ctx); err != nil {
 		return err
 	}
 

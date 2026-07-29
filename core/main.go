@@ -578,7 +578,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
+			// Concurrency 25 should work in all cases, not adding a command-line arg as this
+			// Reconciler will be merged into the regular MachineDeployment reconciler.
+		}).SetupWithManager(ctx, mgr, concurrency(25)); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MachineDeploymentTopology")
 			os.Exit(1)
 		}
@@ -587,7 +589,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
+			// Concurrency 25 should work in all cases, not adding a command-line arg as this
+			// Reconciler will be merged into the regular MachineSet reconciler.
+		}).SetupWithManager(ctx, mgr, concurrency(25)); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MachineSetTopology")
 			os.Exit(1)
 		}

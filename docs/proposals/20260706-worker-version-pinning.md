@@ -337,12 +337,8 @@ Skew between MD/MPs and the control plane is bounded by the
 at admission by the validating webhooks and backstopped by the existing MachineSet preflight
 checks (`KubeadmVersionSkew`, `ControlPlaneVersionSkew` in
 [`machineset_preflight.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/machineset/machineset_preflight.go)).
-The kubeadm-specific constraint (the kubeadm binary must match the control plane version) is not
-solved in core Cluster API: the groundwork in
-[#13433](https://github.com/kubernetes-sigs/cluster-api/pull/13433) exposes the control plane
-version to bootstrap `spec.files` as a `{{ .controlPlane.version }}` template variable, and the
-operator supplies a file that installs the matching kubeadm binary. The kubeadm JoinConfiguration
-API version continues to follow the joining Machine's own version.
+The kubeadm-specific constraint (the kubeadm binary must match the control plane version) is
+covered by the Key prerequisite above and is not solved in core Cluster API by this proposal.
 
 Because this feature shifts responsibility for installing the matching kubeadm binary onto the
 operator (and relaxes the MachineSet version-skew preflight checks), the

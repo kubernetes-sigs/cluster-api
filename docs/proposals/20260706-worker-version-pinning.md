@@ -224,9 +224,7 @@ standard guide for adding a new field to an existing API version.
   which the topology controller computes in `computeMachineDeploymentVersion` /
   `computeMachinePoolVersion`. Once those functions target the pinned version for a pinned MD/MP,
   patches automatically render with that version. This is why version-aware patches are a goal,
-  not a non-goal: skipping it would render patches with the wrong version. Note this is distinct
-  from the kubeadm-binary propagation in [#13433](https://github.com/kubernetes-sigs/cluster-api/pull/13433),
-  which exposes `{{ .controlPlane.version }}` to bootstrap `spec.files` — a separate path.
+  not a non-goal: skipping it would render patches with the wrong version.
 - **Preflight checks:** the MachineSet-level preflight checks that enforce version alignment
   today must be relaxed for MD/MPs with a pinned version (while still enforcing the
   Kubernetes skew policy). In

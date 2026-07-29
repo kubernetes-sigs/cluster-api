@@ -96,16 +96,12 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// CAPD specific flags.
-	devMachineConcurrency            int
-	devClusterConcurrency            int
-	devMachineTemplateConcurrency    int
-	devMachinePoolConcurrency        int
-	dockerMachineConcurrency         int
-	dockerMachineTemplateConcurrency int
-	dockerMachinePoolConcurrency     int
-	dockerClusterConcurrency         int
-	clusterCacheConcurrency          int
-	skipCRDMigrationPhases           []string
+	devMachineConcurrency         int
+	devClusterConcurrency         int
+	devMachineTemplateConcurrency int
+	devMachinePoolConcurrency     int
+	clusterCacheConcurrency       int
+	skipCRDMigrationPhases        []string
 )
 
 func init() {
@@ -152,18 +148,6 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
 		"Enable block profiling")
-
-	fs.IntVar(&dockerMachineConcurrency, "dockermachine-concurrency", 100,
-		"Number of DockerMachines to process simultaneously")
-
-	fs.IntVar(&dockerClusterConcurrency, "dockercluster-concurrency", 50,
-		"Number of DockerClusters to process simultaneously")
-
-	fs.IntVar(&dockerMachineTemplateConcurrency, "dockermachinetemplate-concurrency", 50,
-		"Number of DockerMachineTemplates to process simultaneously")
-
-	fs.IntVar(&dockerMachinePoolConcurrency, "dockermachinepool-concurrency", 50,
-		"Number of DockerMachinePools to process simultaneously")
 
 	fs.IntVar(&devMachineConcurrency, "devmachine-concurrency", 50,
 		"Number of DevMachines to process simultaneously")
@@ -223,9 +207,8 @@ func InitFlags(fs *pflag.FlagSet) {
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 // ADD CRD RBAC for CRD Migrator.
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=devclusters.infrastructure.cluster.x-k8s.io;devclustertemplates.infrastructure.cluster.x-k8s.io;devmachinepools.infrastructure.cluster.x-k8s.io;devmachinepooltemplates.infrastructure.cluster.x-k8s.io;devmachines.infrastructure.cluster.x-k8s.io;devmachinetemplates.infrastructure.cluster.x-k8s.io;dockerclusters.infrastructure.cluster.x-k8s.io;dockerclustertemplates.infrastructure.cluster.x-k8s.io;dockermachinepools.infrastructure.cluster.x-k8s.io;dockermachinepooltemplates.infrastructure.cluster.x-k8s.io;dockermachines.infrastructure.cluster.x-k8s.io;dockermachinetemplates.infrastructure.cluster.x-k8s.io
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=devclusters.infrastructure.cluster.x-k8s.io;devclustertemplates.infrastructure.cluster.x-k8s.io;devmachinepools.infrastructure.cluster.x-k8s.io;devmachinepooltemplates.infrastructure.cluster.x-k8s.io;devmachines.infrastructure.cluster.x-k8s.io;devmachinetemplates.infrastructure.cluster.x-k8s.io
 // ADD CR RBAC for CRD Migrator.
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockerclustertemplates;dockermachinetemplates;dockermachinepooltemplates,verbs=get;list;watch;patch;update
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devclustertemplates;devmachinepooltemplates,verbs=get;list;watch;patch;update
 
 func main() {
@@ -412,18 +395,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// Note: The kubebuilder RBAC markers above has to be kept in sync
 	// with the CRDs that should be migrated by this provider.
 	crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{
-		&infrav1.DockerCluster{}:         {UseCache: true, UseStatusForStorageVersionMigration: true},
-		&infrav1.DockerClusterTemplate{}: {UseCache: false},
-		&infrav1.DockerMachine{}:         {UseCache: true, UseStatusForStorageVersionMigration: true},
-		&infrav1.DockerMachineTemplate{}: {UseCache: false},
-		&infrav1.DevCluster{}:            {UseCache: true, UseStatusForStorageVersionMigration: true},
-		&infrav1.DevClusterTemplate{}:    {UseCache: false},
-		&infrav1.DevMachine{}:            {UseCache: true, UseStatusForStorageVersionMigration: true},
-		&infrav1.DevMachineTemplate{}:    {UseCache: false},
+		&infrav1.DevCluster{}:         {UseCache: true, UseStatusForStorageVersionMigration: true},
+		&infrav1.DevClusterTemplate{}: {UseCache: false},
+		&infrav1.DevMachine{}:         {UseCache: true, UseStatusForStorageVersionMigration: true},
+		&infrav1.DevMachineTemplate{}: {UseCache: false},
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
-		crdMigratorConfig[&infrav1.DockerMachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true}
-		crdMigratorConfig[&infrav1.DockerMachinePoolTemplate{}] = crdmigrator.ByObjectConfig{UseCache: false}
 		crdMigratorConfig[&infrav1.DevMachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true}
 		crdMigratorConfig[&infrav1.DevMachinePoolTemplate{}] = crdmigrator.ByObjectConfig{UseCache: false}
 	}
@@ -456,52 +433,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err != nil {
 		setupLog.Error(err, "Unable to create workload clusters mux")
 		os.Exit(1)
-	}
-
-	if err := (&controllers.DockerMachineReconciler{
-		Client:           mgr.GetClient(),
-		ContainerRuntime: runtimeClient,
-		ClusterCache:     clusterCache,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{
-		MaxConcurrentReconciles: dockerMachineConcurrency,
-		ReconciliationTimeout:   6 * time.Minute, // increase reconciliation timeout because the DockerMachineReconciler performs long operations like kubeadm init/join, image copy, etc.
-	}); err != nil {
-		setupLog.Error(err, "Unable to create controller", "controller", "DockerMachine")
-		os.Exit(1)
-	}
-
-	if err := (&controllers.DockerClusterReconciler{
-		Client:           mgr.GetClient(),
-		ContainerRuntime: runtimeClient,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{
-		MaxConcurrentReconciles: dockerClusterConcurrency,
-	}); err != nil {
-		setupLog.Error(err, "Unable to create controller", "controller", "DockerCluster")
-		os.Exit(1)
-	}
-
-	if err := (&controllers.DockerMachineTemplateReconciler{
-		Client:           mgr.GetClient(),
-		ContainerRuntime: runtimeClient,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{
-		MaxConcurrentReconciles: dockerMachineTemplateConcurrency,
-	}); err != nil {
-		setupLog.Error(err, "Unable to create controller", "controller", "DockerMachineTemplate")
-		os.Exit(1)
-	}
-
-	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&controllers.DockerMachinePoolReconciler{
-			Client:           mgr.GetClient(),
-			ContainerRuntime: runtimeClient,
-			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: dockerMachinePoolConcurrency}); err != nil {
-			setupLog.Error(err, "Unable to create controller", "controller", "DockerMachinePool")
-			os.Exit(1)
-		}
 	}
 
 	if err := (&controllers.DevMachineReconciler{
@@ -556,26 +487,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if err := (&infrawebhooks.DockerMachine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerMachine")
-		os.Exit(1)
-	}
-
-	if err := (&infrawebhooks.DockerMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerMachineTemplate")
-		os.Exit(1)
-	}
-
-	if err := (&infrawebhooks.DockerCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerCluster")
-		os.Exit(1)
-	}
-
-	if err := (&infrawebhooks.DockerClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerClusterTemplate")
-		os.Exit(1)
-	}
-
 	if err := (&infrawebhooks.DevMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "DevMachine")
 		os.Exit(1)

@@ -23,11 +23,14 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 )
+
+var ctx = ctrl.SetupSignalHandler()
 
 func TestDevClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)

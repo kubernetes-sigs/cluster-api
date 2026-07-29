@@ -16,13 +16,7 @@ limitations under the License.
 
 package v1beta2
 
-func (*DockerCluster) Hub()             {}
-func (*DockerClusterTemplate) Hub()     {}
-func (*DockerMachine) Hub()             {}
-func (*DockerMachineTemplate) Hub()     {}
-func (*DevCluster) Hub()                {}
-func (*DevClusterTemplate) Hub()        {}
-func (*DevMachine) Hub()                {}
-func (*DevMachineTemplate) Hub()        {}
-func (*DockerMachinePool) Hub()         {}
-func (*DockerMachinePoolTemplate) Hub() {}
+func (*DevCluster) Hub()         {}
+func (*DevClusterTemplate) Hub() {}
+func (*DevMachine) Hub()         {}
+func (*DevMachineTemplate) Hub() {}

@@ -23,6 +23,11 @@ import (
 )
 
 const (
+	// MachinePoolFinalizer allows ReconcileDockerMachinePool to clean up resources.
+	MachinePoolFinalizer = "dockermachinepool.infrastructure.cluster.x-k8s.io"
+)
+
+const (
 	// ReplicasReadyCondition reports an aggregate of current status of the replicas controlled by the MachinePool.
 	ReplicasReadyCondition string = "ReplicasReady"
 
@@ -73,7 +78,7 @@ type DevMachinePoolList struct {
 	Items           []DevMachinePool `json:"items"`
 }
 
-// DockerMachinePoolBackendSpec defines the desired state of DockerMachine.
+// DockerMachinePoolBackendSpec defines the desired state of a DevMachinePool's docker backend.
 type DockerMachinePoolBackendSpec struct {
 	// CustomImage allows customizing the container image that is used for
 	// running the machine

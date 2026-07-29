@@ -261,6 +261,22 @@ type DevMachineBackendSpec struct {
 	InMemory *InMemoryMachineBackendSpec `json:"inMemory,omitempty"`
 }
 
+// Mount specifies a host volume to mount into a container.
+// This is a simplified version of kind v1alpha4.Mount types.
+type Mount struct {
+	// Path of the mount within the container.
+	ContainerPath string `json:"containerPath,omitempty"`
+
+	// Path of the mount on the host. If the hostPath doesn't exist, then runtimes
+	// should report error. If the hostpath is a symbolic link, runtimes should
+	// follow the symlink and mount the real destination to container.
+	HostPath string `json:"hostPath,omitempty"`
+
+	// If set, the mount is read-only.
+	// +optional
+	Readonly bool `json:"readOnly,omitempty"`
+}
+
 // DockerMachineBackendSpec defines a backend for a DevMachine using docker containers.
 type DockerMachineBackendSpec struct {
 	// customImage allows customizing the container image that is used for

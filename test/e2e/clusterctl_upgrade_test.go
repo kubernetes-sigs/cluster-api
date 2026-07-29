@@ -43,9 +43,9 @@ var (
 )
 
 // Note: This test should be changed during "prepare main branch", it should test n-3 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-3 latest stable release
-	version := "1.11"
+	version := "1.12"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -65,8 +65,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>cu
 			InitWithProvidersContract:       "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:            "v1.34.0",
-			WorkloadKubernetesVersion:            "v1.34.0",
+			InitWithKubernetesVersion:            "v1.35.0",
+			WorkloadKubernetesVersion:            "v1.35.0",
 			MgmtFlavor:                           "topology",
 			WorkloadFlavor:                       "in-memory-topology",
 			UseKindForManagementCluster:          true,
@@ -76,9 +76,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>cu
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-2 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.13=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-2 latest stable release
-	version := "1.12"
+	version := "1.13"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -107,8 +107,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>cu
 			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:            "v1.35.0",
-			WorkloadKubernetesVersion:            "v1.35.0",
+			InitWithKubernetesVersion:            "v1.36.1",
+			WorkloadKubernetesVersion:            "v1.36.1",
 			MgmtFlavor:                           "topology",
 			WorkloadFlavor:                       "in-memory-topology",
 			UseKindForManagementCluster:          true,
@@ -118,9 +118,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>cu
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.13=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.14=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
-	version := "1.13"
+	version := "1.14"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -154,9 +154,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.13=>cu
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.13=>current) on K8S latest ci mgmt cluster [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.14=>current) on K8S latest ci mgmt cluster [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
-	version := "1.13"
+	version := "1.14"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {

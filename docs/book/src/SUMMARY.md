@@ -115,6 +115,7 @@
       - [Labels and Annotations](reference/api/labels-and-annotations.md)
       - [CRD relationships](reference/api/crd-relationships.md)
       - [Metadata propagation](reference/api/metadata-propagation.md)
+      - [Taint propagation](reference/api/taint-propagation.md)
       - [Owner References](reference/api/owner-references.md)
       - [CRD API Reference (v1beta2)](reference/api/crd-api-reference.md)
       - [CRD API Reference (deprecated versions)](reference/api/crd-api-reference-v1beta1.md)

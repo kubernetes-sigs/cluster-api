@@ -11,9 +11,7 @@ Currently Cluster API has the following experimental features:
 * `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](./ignition.md)
 * `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)
 * `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](./machineset-preflight-checks.md)
-* `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`):
-  * Allows in-place propagation of taints to nodes using the taint fields within Machines, MachineSets, and MachineDeployments.
-  * In future this feature is planned to also cover topology clusters and KCP. See the proposal [Propagating taints from Cluster API to Nodes](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20250513-propogate-taints.md) for more information.
+* `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`): [Taint propagation](../../reference/api/taint-propagation.md)
 * `MachineWaitForVolumeDetachConsiderVolumeAttachments` (env var: `EXP_MACHINE_WAITFORVOLUMEDETACH_CONSIDER_VOLUMEATTACHMENTS`):
   * During Machine drain the Machine controller waits for volumes to be detached. Per default, the controller considers
     `Nodes.status.volumesAttached` and `VolumesAttachments`. This feature flag allows to opt-out from considering `VolumeAttachments`.

@@ -225,17 +225,6 @@ standard guide for adding a new field to an existing API version.
   `computeMachinePoolVersion`. Once those functions target the pinned version for a pinned MD/MP,
   patches automatically render with that version. This is why version-aware patches are a goal,
   not a non-goal: skipping it would render patches with the wrong version.
-- **Preflight checks:** the MachineSet-level preflight checks that enforce version alignment
-  today must be relaxed for MD/MPs with a pinned version (while still enforcing the
-  Kubernetes skew policy). In
-  [`machineset_preflight.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/machineset/machineset_preflight.go)
-  these are `KubeadmVersionSkew` (requires the worker minor to equal the control plane minor;
-  kubeadm bootstrap only) and `ControlPlaneVersionSkew` (requires the worker version to equal
-  the control plane version). They run on scale-up and can be bypassed today via the
-  `machineset.cluster.x-k8s.io/skip-preflight-checks` annotation
-  ([`common_types.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/api/core/v1beta2/common_types.go));
-  the feature should manage this automatically rather than requiring users to set the annotation
-  by hand.
 
 Key prerequisite — joining Machines at an older minor version — is being addressed
 independently. kubeadm requires the kubeadm binary to match the control plane version. The
@@ -280,9 +269,7 @@ flowchart TD
 
 No new security surface. The `version` field is part of the existing `Cluster` topology spec
 and is governed by the same RBAC as the rest of `Cluster.spec.topology`; it stores no secret or
-sensitive data. The feature relaxes the MachineSet version-skew preflight checks only within the
-Kubernetes version skew policy, so it does not weaken existing guardrails beyond what that policy
-already permits.
+sensitive data.
 
 ### Risks and Mitigations
 
@@ -337,12 +324,6 @@ checks (`KubeadmVersionSkew`, `ControlPlaneVersionSkew` in
 [`machineset_preflight.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/machineset/machineset_preflight.go)).
 The kubeadm-specific constraint (the kubeadm binary must match the control plane version) is
 covered by the Key prerequisite above and is not solved in core Cluster API by this proposal.
-
-Because this feature shifts responsibility for installing the matching kubeadm binary onto the
-operator (and relaxes the MachineSet version-skew preflight checks), the
-[experimental features documentation](https://cluster-api.sigs.k8s.io/tasks/experimental-features/experimental-features)
-in the Cluster API book will be updated to clearly document this contract and the relaxed
-preflight behavior, to avoid user surprise.
 
 ## Implementation History
 

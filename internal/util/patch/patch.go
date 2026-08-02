@@ -205,6 +205,14 @@ type CopyFieldsInput struct {
 type CopyFieldsInputField struct {
 	Src  []string
 	Dest []string
+	// MergeMap, if true and both the src and the existing dest values for this field are
+	// map[string]interface{} (e.g. metadata.labels, metadata.annotations), merges src into the
+	// existing dest map instead of replacing it wholesale. This avoids silently dropping keys that
+	// already exist on dest but are not present in src (e.g. labels/annotations set on dest by an
+	// earlier computation step, before src is copied over as part of applying a patch).
+	// Fields that are not map[string]interface{} on either side (e.g. spec) are unaffected and keep
+	// the previous full-replace behavior.
+	MergeMap bool
 }
 
 type preservedField struct {
@@ -238,6 +246,27 @@ func CopyFields(in CopyFieldsInput) error {
 			continue
 		} else if err != nil {
 			return pkgerrors.Wrapf(err, "failed to get field %q from %s %s", strings.Join(field.Src, "."), in.Src.GetKind(), klog.KObj(in.Src))
+		}
+
+		if field.MergeMap {
+			if srcMap, ok := fieldValue.(map[string]interface{}); ok {
+				destValue, destFound, err := unstructured.NestedFieldNoCopy(in.Dest.Object, field.Dest...)
+				if err != nil {
+					return pkgerrors.Wrapf(err, "failed to get field %q from %s %s", strings.Join(field.Dest, "."), in.Dest.GetKind(), klog.KObj(in.Dest))
+				}
+				if destFound {
+					if destMap, ok := destValue.(map[string]interface{}); ok {
+						merged := make(map[string]interface{}, len(destMap)+len(srcMap))
+						for k, v := range destMap {
+							merged[k] = v
+						}
+						for k, v := range srcMap {
+							merged[k] = v
+						}
+						fieldValue = merged
+					}
+				}
+			}
 		}
 
 		// Set fieldValue in dest.

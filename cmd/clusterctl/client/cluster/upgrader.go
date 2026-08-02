@@ -559,10 +559,6 @@ func scaleDownDeployment(ctx context.Context, c client.Client, deploy appsv1.Dep
 // checkClusterClassRefs checks that upgrading providers won't break any
 // ClusterClass by dropping CRD apiVersions still pinned in templateRefs.
 func (u *providerUpgrader) checkClusterClassRefs(ctx context.Context, upgradePlan *UpgradePlan) error {
-	if len(upgradePlan.Providers) == 0 {
-		return nil
-	}
-
 	log := logf.Log
 
 	c, err := u.proxy.NewClient(ctx)

@@ -2231,6 +2231,7 @@ func autoConvert_v1beta2_MachineDeletionStatus_To_v1beta1_MachineDeletionStatus(
 	// WARNING: in.WaitForNodeVolumeDetachStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.WaitForPreDrainHookStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.WaitForPreTerminateHookStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
+	// WARNING: in.NodeDeletionStartTime requires manual conversion: does not exist in peer-type
 	return nil
 }
 

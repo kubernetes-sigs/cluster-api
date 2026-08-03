@@ -69,5 +69,12 @@ func ConvertMachineDeploymentHubToV1Beta1(ctx context.Context, src *clusterv1.Ma
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
+	// Note: Only put the fields into the conversion annotation that are actually restored in
+	// ConvertMachineDeploymentV1Beta1ToHub to reduce memory usage.
+	src = &clusterv1.MachineDeployment{
+		Spec: clusterv1.MachineDeploymentSpec{
+			Paused: src.Spec.Paused,
+		},
+	}
 	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }

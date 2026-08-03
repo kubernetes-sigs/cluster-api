@@ -116,6 +116,16 @@ func ConvertClusterHubToV1Beta1(ctx context.Context, src *clusterv1.Cluster, dst
 
 	dropEmptyStringsCluster(dst)
 
+	// Note: Only put the fields into the conversion annotation that are actually restored in
+	// ConvertClusterV1Beta1ToHub to reduce memory usage.
+	src = &clusterv1.Cluster{
+		Spec: clusterv1.ClusterSpec{
+			Paused: src.Spec.Paused,
+		},
+		Status: clusterv1.ClusterStatus{
+			Initialization: src.Status.Initialization,
+		},
+	}
 	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 

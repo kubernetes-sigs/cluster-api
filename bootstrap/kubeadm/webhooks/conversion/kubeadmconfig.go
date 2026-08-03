@@ -226,8 +226,89 @@ func ConvertKubeadmConfigHubToV1Beta1(ctx context.Context, src *bootstrapv1.Kube
 	dropEmptyStringsKubeadmConfigSpec(&dst.Spec)
 	dropEmptyStringsKubeadmConfigStatus(&dst.Status)
 
-	// Preserve Hub data on down-conversion except for metadata.
+	// Note: Only put the fields into the conversion annotation that are actually restored in
+	// ConvertKubeadmConfigV1Beta1ToHub to reduce memory usage.
+	src = &bootstrapv1.KubeadmConfig{
+		Spec: MinimalKubeadmConfigSpecForRestore(&src.Spec),
+		Status: bootstrapv1.KubeadmConfigStatus{
+			Initialization: src.Status.Initialization,
+		},
+	}
 	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
+}
+
+// MinimalKubeadmConfigSpecForRestore returns a KubeadmConfigSpec that only contains the fields that
+// are actually read back from the conversion annotation by RestoreBoolIntentKubeadmConfigSpec and
+// RestoreKubeadmConfigSpec. This is used to reduce the amount of data stored in the conversion annotation.
+func MinimalKubeadmConfigSpecForRestore(src *bootstrapv1.KubeadmConfigSpec) bootstrapv1.KubeadmConfigSpec {
+	return bootstrapv1.KubeadmConfigSpec{
+		ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+			APIServer: bootstrapv1.APIServer{
+				ExtraVolumes: minimalHostPathMountsForRestore(src.ClusterConfiguration.APIServer.ExtraVolumes),
+			},
+			ControllerManager: bootstrapv1.ControllerManager{
+				ExtraVolumes: minimalHostPathMountsForRestore(src.ClusterConfiguration.ControllerManager.ExtraVolumes),
+			},
+			Scheduler: bootstrapv1.Scheduler{
+				ExtraVolumes: minimalHostPathMountsForRestore(src.ClusterConfiguration.Scheduler.ExtraVolumes),
+			},
+		},
+		InitConfiguration: bootstrapv1.InitConfiguration{
+			Timeouts: src.InitConfiguration.Timeouts,
+		},
+		JoinConfiguration: bootstrapv1.JoinConfiguration{
+			Timeouts: src.JoinConfiguration.Timeouts,
+			Discovery: bootstrapv1.Discovery{
+				BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+					UnsafeSkipCAVerification: src.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification,
+				},
+				File: bootstrapv1.FileDiscovery{
+					KubeConfig: bootstrapv1.FileDiscoveryKubeConfig{
+						Cluster: bootstrapv1.KubeConfigCluster{
+							InsecureSkipTLSVerify: src.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify,
+						},
+						User: bootstrapv1.KubeConfigUser{
+							Exec: bootstrapv1.KubeConfigAuthExec{
+								ProvideClusterInfo: src.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo,
+							},
+						},
+					},
+				},
+			},
+		},
+		Files: minimalFilesForRestore(src.Files),
+		Ignition: bootstrapv1.IgnitionSpec{
+			ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
+				Strict: src.Ignition.ContainerLinuxConfig.Strict,
+			},
+		},
+	}
+}
+
+// minimalHostPathMountsForRestore returns a slice of HostPathMount that only contains the fields
+// needed to restore the ReadOnly bool intent (HostPath is used to find the matching entry).
+func minimalHostPathMountsForRestore(volumes []bootstrapv1.HostPathMount) []bootstrapv1.HostPathMount {
+	if volumes == nil {
+		return nil
+	}
+	out := make([]bootstrapv1.HostPathMount, len(volumes))
+	for i, v := range volumes {
+		out[i] = bootstrapv1.HostPathMount{HostPath: v.HostPath, ReadOnly: v.ReadOnly}
+	}
+	return out
+}
+
+// minimalFilesForRestore returns a slice of File that only contains the fields needed to restore
+// the Append bool intent (Path is used to find the matching entry).
+func minimalFilesForRestore(files []bootstrapv1.File) []bootstrapv1.File {
+	if files == nil {
+		return nil
+	}
+	out := make([]bootstrapv1.File, len(files))
+	for i, f := range files {
+		out[i] = bootstrapv1.File{Path: f.Path, Append: f.Append}
+	}
+	return out
 }
 
 // ConvertKubeadmConfigSpecHubToV1Beta1 converts a hub KubeadmConfigSpec to a v1beta1 KubeadmConfigSpec.

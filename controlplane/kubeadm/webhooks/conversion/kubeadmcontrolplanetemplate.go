@@ -76,6 +76,19 @@ func ConvertKubeadmControlPlaneTemplateHubToV1Beta1(ctx context.Context, src *co
 
 	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.Template.Spec.KubeadmConfigSpec)
 
-	// Preserve Hub data on down-conversion except for metadata.
+	// Note: Only put the fields into the conversion annotation that are actually restored in
+	// ConvertKubeadmControlPlaneTemplateV1Beta1ToHub to reduce memory usage.
+	src = &controlplanev1.KubeadmControlPlaneTemplate{
+		Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
+			Template: controlplanev1.KubeadmControlPlaneTemplateResource{
+				Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
+					KubeadmConfigSpec: bootstrapconversion.MinimalKubeadmConfigSpecForRestore(&src.Spec.Template.Spec.KubeadmConfigSpec),
+					Remediation: controlplanev1.KubeadmControlPlaneRemediationSpec{
+						RetryPeriodSeconds: src.Spec.Template.Spec.Remediation.RetryPeriodSeconds,
+					},
+				},
+			},
+		},
+	}
 	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }

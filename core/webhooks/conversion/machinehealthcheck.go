@@ -61,5 +61,14 @@ func ConvertMachineHealthCheckHubToV1Beta1(_ context.Context, src *clusterv1.Mac
 		dst.Spec.RemediationTemplate.Namespace = src.Namespace
 	}
 
+	// Note: Only put the fields into the conversion annotation that are actually restored in
+	// ConvertMachineHealthCheckV1Beta1ToHub to reduce memory usage.
+	src = &clusterv1.MachineHealthCheck{
+		Status: clusterv1.MachineHealthCheckStatus{
+			ExpectedMachines:    src.Status.ExpectedMachines,
+			CurrentHealthy:      src.Status.CurrentHealthy,
+			RemediationsAllowed: src.Status.RemediationsAllowed,
+		},
+	}
 	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }

@@ -278,10 +278,7 @@ func TestGetLatestAPIVersionFromContract(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			u := &unstructured.Unstructured{}
-			u.SetLabels(tt.crdLabels)
-
-			contractVersion, apiVersion, err := GetLatestContractAndAPIVersionFromContract(u, tt.currentContractVersion)
+			contractVersion, apiVersion, err := GetLatestContractAndAPIVersionFromContract(tt.crdLabels, "crd-name", tt.currentContractVersion)
 
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())

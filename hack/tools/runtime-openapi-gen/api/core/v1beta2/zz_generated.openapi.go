@@ -1920,7 +1920,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineDeletionSpec(re
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2277,7 +2277,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineDeletionSpec
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2955,7 +2955,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeletionSpec(ref common.Referenc
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2994,6 +2994,12 @@ func schema_cluster_api_api_core_v1beta2_MachineDeletionStatus(ref common.Refere
 					"waitForPreTerminateHookStartTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "waitForPreTerminateHookStartTime is the time when waiting for pre-terminate hooks started and is used to determine if the pre-terminate hooks are taking too long. Only present when the Machine has a deletionTimestamp and waiting for pre-terminate hooks had been started.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"nodeDeletionStartTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionStartTime is the time when the deletion of the Node started and is used to determine if the nodeDeletionTimeoutSeconds is exceeded. Only present when the Machine has a deletionTimestamp and deleting the Node had been started.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
@@ -3446,7 +3452,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSp
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -4293,7 +4299,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineDeletio
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

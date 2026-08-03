@@ -3485,9 +3485,12 @@ func TestNodeDeletion(t *testing.T) {
 	testCases := []struct {
 		name                   string
 		deletionTimeoutSeconds *int32
+		nodeDeletionStartTime  *metav1.Time
 		resultErr              bool
 		clusterDeleted         bool
 		expectNodeDeletion     bool
+		expectFinalizer        bool
+		expectStartTimeSet     bool
 		expectDeletingReason   string
 		createFakeClient       func(...client.Object) client.Client
 	}{
@@ -3496,6 +3499,7 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeoutSeconds: ptr.To(int32(1)),
 			resultErr:              false,
 			expectNodeDeletion:     true,
+			expectStartTimeSet:     true,
 			expectDeletingReason:   clusterv1.MachineDeletingDeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
@@ -3509,6 +3513,8 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeoutSeconds: ptr.To(int32(60 * 60)),
 			resultErr:              true,
 			expectNodeDeletion:     false,
+			expectFinalizer:        true,
+			expectStartTimeSet:     true,
 			expectDeletingReason:   clusterv1.MachineDeletingDeletingNodeReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
@@ -3523,6 +3529,24 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeoutSeconds: ptr.To(int32(0)), // should lead to infinite timeout
 			resultErr:              true,
 			expectNodeDeletion:     false,
+			expectFinalizer:        true,
+			expectStartTimeSet:     true,
+			expectDeletingReason:   clusterv1.MachineDeletingDeletingNodeReason,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				fc := fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+				return fakeClientWithNodeDeletionErr{fc}
+			},
+		},
+		{
+			name:                   "should retry when the timeout has not expired since node deletion started",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			expectFinalizer:        true,
+			expectStartTimeSet:     true,
 			expectDeletingReason:   clusterv1.MachineDeletingDeletingNodeReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
@@ -3535,8 +3559,10 @@ func TestNodeDeletion(t *testing.T) {
 		{
 			name:                   "should not return an error when timeout is expired and node deletion fails",
 			deletionTimeoutSeconds: ptr.To(int32(1)),
+			nodeDeletionStartTime:  &metav1.Time{Time: deletionTime},
 			resultErr:              false,
 			expectNodeDeletion:     false,
+			expectStartTimeSet:     true,
 			expectDeletingReason:   clusterv1.DeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
@@ -3569,14 +3595,16 @@ func TestNodeDeletion(t *testing.T) {
 
 			m := testMachine.DeepCopy()
 			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
+			if tc.nodeDeletionStartTime != nil {
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: *tc.nodeDeletionStartTime}
+			}
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 
 			r := &Reconciler{
-				Client:                   fakeClient,
-				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
-				recorder:                 record.NewFakeRecorder(10),
-				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+				Client:       fakeClient,
+				ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
+				recorder:     record.NewFakeRecorder(10),
 			}
 
 			cluster := testCluster.DeepCopy()
@@ -3600,6 +3628,13 @@ func TestNodeDeletion(t *testing.T) {
 					n := &corev1.Node{}
 					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
 				}
+			}
+			g.Expect(controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer)).To(Equal(tc.expectFinalizer))
+			if tc.expectStartTimeSet {
+				g.Expect(m.Status.Deletion).ToNot(BeNil())
+				g.Expect(m.Status.Deletion.NodeDeletionStartTime.IsZero()).To(BeFalse())
+			} else {
+				g.Expect(m.Status.Deletion == nil || m.Status.Deletion.NodeDeletionStartTime.IsZero()).To(BeTrue())
 			}
 			g.Expect(s.deletingReason).To(Equal(tc.expectDeletingReason))
 		})
@@ -3705,10 +3740,9 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 
 			r := &Reconciler{
-				Client:                   fakeClient,
-				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
-				recorder:                 record.NewFakeRecorder(10),
-				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+				Client:       fakeClient,
+				ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
+				recorder:     record.NewFakeRecorder(10),
 			}
 
 			s := &scope{

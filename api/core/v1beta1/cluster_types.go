@@ -623,7 +623,7 @@ type ControlPlaneTopology struct {
 	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
 	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
@@ -769,7 +769,7 @@ type MachineDeploymentTopology struct {
 	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
 	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`

@@ -391,7 +391,7 @@ type ControlPlaneClassMachineDeletionSpec struct {
 	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
 	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// NOTE: This value can be overridden while defining a Cluster.Topology.
 	// +optional
@@ -712,7 +712,7 @@ type MachineDeploymentClassMachineDeletionSpec struct {
 	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
 	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional

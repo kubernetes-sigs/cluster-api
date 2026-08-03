@@ -545,7 +545,7 @@ type MachineDeletionSpec struct {
 	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
 	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
@@ -772,6 +772,12 @@ type MachineDeletionStatus struct {
 	// Only present when the Machine has a deletionTimestamp and waiting for pre-terminate hooks had been started.
 	// +optional
 	WaitForPreTerminateHookStartTime metav1.Time `json:"waitForPreTerminateHookStartTime,omitempty,omitzero"`
+
+	// nodeDeletionStartTime is the time when the deletion of the Node started and is used to determine
+	// if the nodeDeletionTimeoutSeconds is exceeded.
+	// Only present when the Machine has a deletionTimestamp and deleting the Node had been started.
+	// +optional
+	NodeDeletionStartTime metav1.Time `json:"nodeDeletionStartTime,omitempty,omitzero"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.

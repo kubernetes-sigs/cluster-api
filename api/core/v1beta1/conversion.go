@@ -1865,6 +1865,9 @@ func Convert_v1beta1_MachineDeletionStatus_To_v1beta2_MachineDeletionStatus(in *
 	if in.WaitForPreTerminateHookStartTime != nil && !reflect.DeepEqual(in.WaitForPreTerminateHookStartTime, &metav1.Time{}) {
 		out.WaitForPreTerminateHookStartTime = *in.WaitForPreTerminateHookStartTime
 	}
+	if in.NodeDeletionStartTime != nil && !reflect.DeepEqual(in.NodeDeletionStartTime, &metav1.Time{}) {
+		out.NodeDeletionStartTime = *in.NodeDeletionStartTime
+	}
 	return nil
 }
 
@@ -1880,6 +1883,9 @@ func Convert_v1beta2_MachineDeletionStatus_To_v1beta1_MachineDeletionStatus(in *
 	}
 	if !reflect.DeepEqual(in.WaitForPreTerminateHookStartTime, metav1.Time{}) {
 		out.WaitForPreTerminateHookStartTime = new(in.WaitForPreTerminateHookStartTime)
+	}
+	if !reflect.DeepEqual(in.NodeDeletionStartTime, metav1.Time{}) {
+		out.NodeDeletionStartTime = new(in.NodeDeletionStartTime)
 	}
 	return nil
 }

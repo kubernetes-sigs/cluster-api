@@ -29,7 +29,7 @@ Machine deletion can be broken down into the following phases:
 8. Machine controller deletes the `InfrastructureMachine` object (e.g. `DockerMachine`) of the Machine and waits until it is gone
 9. Machine controller deletes the `BootstrapConfig` object (e.g. `KubeadmConfig`) of the machine and waits until it is gone
 10. Machine controller deletes the Node object in the workload cluster
-    * Node deletion will be retried until either the Node object is gone or `Machine.spec.nodeDeletionTimeout` is expired (`0` means no timeout, but the field defaults to 10s)
+    * Node deletion will be retried until either the Node object is gone or `Machine.spec.deletion.nodeDeletionTimeoutSeconds` is expired, measured from when the Node deletion started (`0` means no timeout, but the field defaults to 10s)
     * Note: Nodes are usually also deleted by [cloud controller managers](https://kubernetes.io/docs/concepts/architecture/cloud-controller/), which is why Cluster API per default only tries to delete Nodes for 10s.
 
 Note: There are cases where Node drain, wait for volume detach and Node deletion is skipped. For these please take a look at the 

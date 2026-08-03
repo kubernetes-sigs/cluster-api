@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -116,10 +115,6 @@ type Reconciler struct {
 	recorder       record.EventRecorder
 	logRateLimiter *logutil.Limiter
 
-	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
-	// during a single reconciliation.
-	nodeDeletionRetryTimeout time.Duration
-
 	updateMachineCache   cache.Cache[UpdateMachineCacheEntry]
 	externalObjectsCache cache.Cache[externalObjectsCacheEntry]
 
@@ -153,10 +148,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	mdToMachines, err := util.MachineDeploymentToObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
-	}
-
-	if r.nodeDeletionRetryTimeout.Nanoseconds() == 0 {
-		r.nodeDeletionRetryTimeout = 10 * time.Second
 	}
 
 	c, err := capicontrollerutil.NewControllerManagedBy(mgr, *r.predicateLog).
@@ -666,25 +657,24 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	if isDeleteNodeAllowed {
 		log.Info(fmt.Sprintf("Deleting Node %s", m.Status.NodeRef.Name), "Node", klog.KRef("", m.Status.NodeRef.Name))
 
-		var deleteNodeErr error
-		waitErr := wait.PollUntilContextTimeout(ctx, 2*time.Second, r.nodeDeletionRetryTimeout, true, func(ctx context.Context) (bool, error) {
-			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(pkgerrors.Cause(deleteNodeErr)) {
-				return false, nil
-			}
-			return true, nil
-		})
-		if waitErr != nil {
-			log.Error(deleteNodeErr, "Timed out deleting Node", "Node", klog.KRef("", m.Status.NodeRef.Name))
+		if m.Status.Deletion == nil {
+			m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+		}
+		if m.Status.Deletion.NodeDeletionStartTime.IsZero() {
+			m.Status.Deletion.NodeDeletionStartTime = metav1.Now()
+		}
+
+		if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(pkgerrors.Cause(err)) {
 			v1beta1conditions.MarkFalse(m, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
-			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's Node: %v", deleteNodeErr)
+			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's Node: %v", err)
 
 			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
-			if m.Spec.Deletion.NodeDeletionTimeoutSeconds == nil || *m.Spec.Deletion.NodeDeletionTimeoutSeconds == 0 || m.DeletionTimestamp.Add(time.Duration(*m.Spec.Deletion.NodeDeletionTimeoutSeconds)*time.Second).After(time.Now()) {
+			if !r.nodeDeletionTimeoutExceeded(m) {
 				s.deletingReason = clusterv1.MachineDeletingDeletingNodeReason
 				s.deletingMessage = "Error deleting Node, please check controller logs for errors"
-				return ctrl.Result{}, deleteNodeErr
+				return ctrl.Result{}, err
 			}
-			log.Info("Node deletion timeout expired, continuing without Node deletion.")
+			log.Error(err, "Node deletion timeout expired, continuing without Node deletion", "Node", klog.KRef("", m.Status.NodeRef.Name))
 		}
 	}
 
@@ -782,6 +772,25 @@ func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine)
 	now := time.Now()
 	diff := now.Sub(machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Time)
 	return diff.Seconds() >= float64(*machine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)
+}
+
+// nodeDeletionTimeoutExceeded returns False if either NodeDeletionTimeoutSeconds is set to nil or <=0 OR
+// NodeDeletionStartTime is not set on the Machine. Otherwise returns true if the timeout is expired
+// since the NodeDeletionStartTime.
+func (r *Reconciler) nodeDeletionTimeoutExceeded(machine *clusterv1.Machine) bool {
+	// if the NodeDeletionTimeoutSeconds type is not set by user
+	if machine.Status.Deletion == nil || machine.Spec.Deletion.NodeDeletionTimeoutSeconds == nil || *machine.Spec.Deletion.NodeDeletionTimeoutSeconds <= 0 {
+		return false
+	}
+
+	// if the NodeDeletionStartTime does not exist
+	if machine.Status.Deletion.NodeDeletionStartTime.IsZero() {
+		return false
+	}
+
+	now := time.Now()
+	diff := now.Sub(machine.Status.Deletion.NodeDeletionStartTime.Time)
+	return diff.Seconds() >= float64(*machine.Spec.Deletion.NodeDeletionTimeoutSeconds)
 }
 
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil

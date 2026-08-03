@@ -43,9 +43,6 @@ Week 13:
 
 Week 14:
 * [ ] [Release Lead] [Cut the v1.6.0-beta.1 release](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/release-lead#repeatedly-cut-a-release)
-* [ ] [Release Lead] [Set a tentative release date for the next minor release](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/release-lead#set-a-tentative-release-date-for-the-next-minor-release)
-* [ ] [Release Lead] [Assemble next release team](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/release-lead#set-a-tentative-release-date-for-the-next-minor-release)
-* [ ] [Release Lead] Select release lead for the next release cycle
 
 Week 15:
 
@@ -56,6 +53,9 @@ Week 16:
 * [ ] [Release Lead] [Update milestone applier and GitHub Actions](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/release-lead#update-milestone-applier-and-github-actions)
 * [ ] [CI Manager] [Setup jobs and dashboards for the release-1.6 release branch](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/ci-signal#setup-jobs-and-dashboards-for-a-new-release-branch)
 * [ ] [Communications Manager] [Ensure the book for the new release is available](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/communications#ensure-the-book-for-the-new-release-is-available)
+* [ ] [Release Lead] [Set a tentative release date for the next minor release](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/release-lead#set-a-tentative-release-date-for-the-next-minor-release)
+* [ ] [Release Lead] [Assemble next release team](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/release-lead#set-a-tentative-release-date-for-the-next-minor-release)
+* [ ] [Release Lead] Select release lead for the next release cycle
 
 Week 17:
 * [ ] [Release Lead] [Cut the v1.6.0-rc.1 release](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/release-lead#repeatedly-cut-a-release)

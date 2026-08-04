@@ -31,3 +31,6 @@ CVE-2026-42506
 # GHSA-hrxh-6v49-42gf: gRPC-Go xDS RBAC and HTTP/2 vulnerabilities
 # This issue is only exploitable if workload cluster etcd is taken over, otherwise it is only used in test code
 GHSA-hrxh-6v49-42gf
+# CVE-2026-56852: x/text norm.Iter infinite loop, only reached via cases.Title() on
+# hardcoded strings in util/record and exp/runtime/catalog, not attacker input.
+CVE-2026-56852

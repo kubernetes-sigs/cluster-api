@@ -354,6 +354,12 @@ linters:
           - staticcheck
         text: 'SA1019: .*Docker.* is deprecated: .* Use Dev.* instead\.'
 
+      # TODO: Excludes for the deprecated status.ready field in machine pool resources, can be removed
+      # when compatibility with the deprecated v1beta1 contract is dropped.
+      - linters:
+          - staticcheck
+        text: 'SA1019: devMachinePool.Status.Ready is deprecated'
+
       # TODO: Excludes that can be removed once the code organization proposal has been implemented.
       - linters:
           - revive

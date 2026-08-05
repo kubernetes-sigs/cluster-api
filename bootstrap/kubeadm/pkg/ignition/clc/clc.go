@@ -42,6 +42,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/coreos/go-systemd/v22/unit"
 	clct "github.com/flatcar/container-linux-config-transpiler/config"
 	ignition "github.com/flatcar/ignition/config/v2_3"
 	ignitionTypes "github.com/flatcar/ignition/config/v2_3/types"
@@ -148,7 +149,9 @@ storage:
       mount:
         device: {{ .Device }}
         format: {{ .Filesystem }}
-        wipe_filesystem: {{ .Overwrite }}
+        {{- with .Overwrite }}
+        wipe_filesystem: {{ . }}
+        {{- end }}
         label: {{ .Label }}
         {{- if .ExtraOpts }}
         options:
@@ -201,9 +204,9 @@ storage:
       {{ end -}}
       contents:
         {{ if eq .Encoding "base64" -}}
-        inline: !!binary |
+        inline: !!binary |2
         {{- else -}}
-        inline: |
+        inline: |2
         {{- end }}
           {{ .Content | Indent 10 }}
     {{- end }}
@@ -274,8 +277,13 @@ func defaultTemplateFuncMap() template.FuncMap {
 	}
 }
 
+// mountpointName returns the systemd unit name for a given mount path, without
+// the ".mount" suffix. systemd requires mount units to be named after the
+// escaped mount point, and refuses to load a unit whose name does not match its
+// Where= setting, so the path has to be escaped the same way `systemd-escape
+// --path` does it.
 func mountpointName(name string) string {
-	return strings.TrimPrefix(strings.ReplaceAll(name, "/", "-"), "-")
+	return unit.UnitNamePathEscape(name)
 }
 
 func templateYAMLIndent(i int, input string) string {

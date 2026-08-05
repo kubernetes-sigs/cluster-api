@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
@@ -203,4 +204,34 @@ func TestMachineTaintValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMachineClusterNameImmutable(t *testing.T) {
+	g := NewWithT(t)
+
+	infraMachine := builder.InfrastructureMachine("default", "infrastructure-machine-clustername-immutable").Build()
+	machine := builder.Machine("default", "machine-clustername-immutable").
+		WithClusterName("cluster1").
+		WithBootstrapTemplate(builder.BootstrapTemplate("default", "bootstrap-template-clustername-immutable").Build()).
+		WithInfrastructureMachine(infraMachine).
+		Build()
+
+	g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
+	t.Cleanup(func() {
+		g.Expect(env.CleanupAndWait(ctx, machine)).To(Succeed())
+	})
+
+	actualMachine := &clusterv1.Machine{}
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}, actualMachine)).To(Succeed())
+
+	// Changing spec.clusterName on update must be rejected by the CEL immutability rule.
+	actualMachine.Spec.ClusterName = "cluster2"
+	err := env.Update(ctx, actualMachine)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("field is immutable"))
+
+	// An update that leaves spec.clusterName unchanged must still be allowed.
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}, actualMachine)).To(Succeed())
+	actualMachine.Spec.Version = "v1.20.0"
+	g.Expect(env.Update(ctx, actualMachine)).To(Succeed())
 }

@@ -18,16 +18,12 @@ package admission
 
 import (
 	"context"
-	"fmt"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/internal/util/compare"
 )
 
 // SetupWebhookWithManager sets up IPAddressClaim webhooks.
@@ -52,15 +48,7 @@ func (webhook *IPAddressClaim) ValidateCreate(_ context.Context, _ *ipamv1.IPAdd
 }
 
 // ValidateUpdate implements webhook.CustomValidator.
-func (webhook *IPAddressClaim) ValidateUpdate(_ context.Context, oldClaim, newClaim *ipamv1.IPAddressClaim) (admission.Warnings, error) {
-	equal, diff, err := compare.Diff(oldClaim.Spec, newClaim.Spec)
-	if err != nil {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new IPAddressClaim spec: %v", err))
-	}
-	if !equal {
-		return nil, field.Forbidden(field.NewPath("spec"), fmt.Sprintf("IPAddressClaim spec is immutable. Diff: %s", diff))
-	}
-
+func (webhook *IPAddressClaim) ValidateUpdate(_ context.Context, _, _ *ipamv1.IPAddressClaim) (admission.Warnings, error) {
 	return nil, nil
 }
 

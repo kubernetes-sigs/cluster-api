@@ -65,11 +65,13 @@ const (
 */
 
 // MachinePoolSpec defines the desired state of MachinePool.
+// +kubebuilder:validation:XValidation:rule="self.clusterName == self.template.spec.clusterName",message="spec.clusterName must match spec.template.spec.clusterName"
 type MachinePoolSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	ClusterName string `json:"clusterName"`
 
 	// replicas is the number of desired machines. Defaults to 1.

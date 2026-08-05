@@ -79,12 +79,12 @@ func DefaultMachineNodeDeletionTimeoutSeconds(m *clusterv1.Machine) {
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
 func (webhook *Machine) ValidateCreate(_ context.Context, m *clusterv1.Machine) (admission.Warnings, error) {
-	return nil, webhook.validate(nil, m)
+	return nil, webhook.validate(m)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Machine) ValidateUpdate(_ context.Context, oldM, newM *clusterv1.Machine) (admission.Warnings, error) {
-	return nil, webhook.validate(oldM, newM)
+func (webhook *Machine) ValidateUpdate(_ context.Context, _, newM *clusterv1.Machine) (admission.Warnings, error) {
+	return nil, webhook.validate(newM)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
@@ -92,7 +92,7 @@ func (webhook *Machine) ValidateDelete(_ context.Context, _ *clusterv1.Machine) 
 	return nil, nil
 }
 
-func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
+func (webhook *Machine) validate(newM *clusterv1.Machine) error {
 	var allErrs field.ErrorList
 	specPath := field.NewPath("spec")
 	if !newM.Spec.Bootstrap.ConfigRef.IsDefined() && newM.Spec.Bootstrap.DataSecretName == nil {
@@ -106,13 +106,6 @@ func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 				),
 			)
 		}
-	}
-
-	if oldM != nil && oldM.Spec.ClusterName != newM.Spec.ClusterName {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(specPath.Child("clusterName"), "field is immutable"),
-		)
 	}
 
 	if newM.Spec.Version != "" {

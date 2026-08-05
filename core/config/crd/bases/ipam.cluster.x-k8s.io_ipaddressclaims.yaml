@@ -78,6 +78,9 @@ spec:
             required:
             - poolRef
             type: object
+            x-kubernetes-validations:
+            - message: field is immutable
+              rule: oldSelf == self
           status:
             description: status is the observed state of IPAddressClaim.
             properties:
@@ -223,6 +226,9 @@ spec:
             required:
             - poolRef
             type: object
+            x-kubernetes-validations:
+            - message: field is immutable
+              rule: oldSelf == self
           status:
             description: status is the observed state of IPAddressClaim.
             properties:
@@ -447,6 +453,9 @@ spec:
             required:
             - poolRef
             type: object
+            x-kubernetes-validations:
+            - message: field is immutable
+              rule: oldSelf == self
           status:
             description: status is the observed state of IPAddressClaim.
             minProperties: 1

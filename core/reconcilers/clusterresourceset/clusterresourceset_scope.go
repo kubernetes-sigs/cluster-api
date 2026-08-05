@@ -73,7 +73,6 @@ func newResourceReconcileScope(
 		clusterResourceSet: clusterResourceSet,
 		resourceRef:        resourceRef,
 		resourceSetBinding: resourceSetBinding,
-		data:               normalizedData,
 		normalizedObjs:     objs,
 		computedHash:       computeHash(normalizedData),
 	}
@@ -93,7 +92,6 @@ type baseResourceReconcileScope struct {
 	resourceRef        addonsv1.ResourceRef
 	resourceSetBinding *addonsv1.ResourceSetBinding
 	normalizedObjs     []unstructured.Unstructured
-	data               [][]byte
 	computedHash       string
 }
 

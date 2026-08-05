@@ -54,6 +54,8 @@ type Options struct {
 	// with the following name format: "<cluster-name>-kubeconfig".
 	// Ideally this is a client that caches only kubeconfig secrets, it is highly recommended to avoid caching all secrets.
 	// An example on how to create an ideal secret caching client can be found in the core Cluster API controller main.go file.
+	// Note: The kubeconfig Secret is not only read when connecting, it is also read periodically
+	// (at most once per health probe interval per Cluster) to detect kubeconfig changes, e.g. token rotations.
 	SecretClient client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
@@ -516,6 +518,27 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 		}
 	}
 
+	// Sync the kubeconfig Secret before running the health probe. This allows token-only
+	// changes to be applied in place so the probe uses the refreshed token.
+	if connected {
+		lastKubeconfigSyncTime := accessor.GetLastKubeconfigSyncTime(ctx)
+
+		// Requeue, if the kubeconfig was already synced within the HealthProbe.Interval.
+		// This rate-limits kubeconfig Secret reads, which is important if the SecretClient is not cached.
+		if requeueAfter, requeue := shouldRequeue(time.Now(), lastKubeconfigSyncTime, accessor.config.HealthProbe.Interval); requeue {
+			log.V(6).Info(fmt.Sprintf("Requeuing after %s as kubeconfig was already synced within the last %s",
+				requeueAfter.Truncate(time.Second/10), accessor.config.HealthProbe.Interval))
+			requeueAfterDurations = append(requeueAfterDurations, requeueAfter)
+		} else if accessor.SyncKubeconfig(ctx) {
+			accessor.Disconnect(ctx)
+			didDisconnect = true
+			connected = false
+
+			log.V(6).Info("Requeuing immediately (disconnected after kubeconfig changed)")
+			requeueAfterDurations = append(requeueAfterDurations, 1*time.Millisecond)
+		}
+	}
+
 	// Run the health probe, if connected.
 	if connected {
 		healthCheckingState := accessor.GetHealthCheckingState(ctx)
@@ -642,6 +665,8 @@ func (cc *clusterCache) cleanupMetricsForCluster(cluster client.ObjectKey) {
 	connectionUp.DeleteLabelValues(cluster.Name, cluster.Namespace)
 	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "success")
 	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "error")
+	kubeconfigSyncTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "token_refreshed")
+	kubeconfigSyncTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "reconnect")
 }
 
 func (cc *clusterCache) cleanupForCluster(ctx context.Context, cluster client.ObjectKey) {

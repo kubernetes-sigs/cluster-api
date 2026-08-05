@@ -329,6 +329,9 @@ linters:
         text: 'SA1019: .* is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
       - linters:
           - staticcheck
+        text: 'SA1019: .* is deprecated: This (condition|reason) is deprecated and is going to be removed when support for v1beta1 is dropped\.'
+      - linters:
+          - staticcheck
         text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
       - linters:
           - staticcheck

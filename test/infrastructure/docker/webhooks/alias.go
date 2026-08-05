@@ -22,38 +22,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/webhooks"
 )
 
-// DockerCluster implements a validating and defaulting webhook for DockerCluster.
-type DockerCluster struct{}
-
-// SetupWebhookWithManager sets up DockerCluster webhooks.
-func (webhook *DockerCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.DockerCluster{}).SetupWebhookWithManager(mgr)
-}
-
-// DockerClusterTemplate implements a validating webhook for DockerClusterTemplate.
-type DockerClusterTemplate struct{}
-
-// SetupWebhookWithManager sets up DockerClusterTemplate webhooks.
-func (webhook *DockerClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.DockerClusterTemplate{}).SetupWebhookWithManager(mgr)
-}
-
-// DockerMachine implements a validating and defaulting webhook for DockerMachine.
-type DockerMachine struct{}
-
-// SetupWebhookWithManager sets up DockerMachine webhooks.
-func (webhook *DockerMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.DockerMachine{}).SetupWebhookWithManager(mgr)
-}
-
-// DockerMachineTemplate implements a validating webhook for DockerMachineTemplate.
-type DockerMachineTemplate struct{}
-
-// SetupWebhookWithManager sets up DockerMachineTemplate webhooks.
-func (webhook *DockerMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.DockerMachineTemplate{}).SetupWebhookWithManager(mgr)
-}
-
 // DevCluster implements a validating and defaulting webhook for DevCluster.
 type DevCluster struct{}
 

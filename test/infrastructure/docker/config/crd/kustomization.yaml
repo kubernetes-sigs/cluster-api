@@ -11,12 +11,6 @@ labels:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- bases/infrastructure.cluster.x-k8s.io_dockermachines.yaml
-- bases/infrastructure.cluster.x-k8s.io_dockerclusters.yaml
-- bases/infrastructure.cluster.x-k8s.io_dockermachinetemplates.yaml
-- bases/infrastructure.cluster.x-k8s.io_dockermachinepools.yaml
-- bases/infrastructure.cluster.x-k8s.io_dockerclustertemplates.yaml
-- bases/infrastructure.cluster.x-k8s.io_dockermachinepooltemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_devmachines.yaml
 - bases/infrastructure.cluster.x-k8s.io_devclusters.yaml
 - bases/infrastructure.cluster.x-k8s.io_devclustertemplates.yaml
@@ -28,12 +22,6 @@ resources:
 patches:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
-- path: patches/webhook_in_dockermachinepools.yaml
-- path: patches/webhook_in_dockermachines.yaml
-- path: patches/webhook_in_dockermachinetemplates.yaml
-- path: patches/webhook_in_dockerclusters.yaml
-- path: patches/webhook_in_dockerclustertemplates.yaml
-- path: patches/webhook_in_dockermachinepooltemplates.yaml
 - path: patches/webhook_in_devmachines.yaml
 - path: patches/webhook_in_devmachinetemplates.yaml
 - path: patches/webhook_in_devclusters.yaml

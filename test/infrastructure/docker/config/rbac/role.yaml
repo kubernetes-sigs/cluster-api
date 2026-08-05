@@ -38,12 +38,6 @@ rules:
   - devmachinepooltemplates.infrastructure.cluster.x-k8s.io
   - devmachines.infrastructure.cluster.x-k8s.io
   - devmachinetemplates.infrastructure.cluster.x-k8s.io
-  - dockerclusters.infrastructure.cluster.x-k8s.io
-  - dockerclustertemplates.infrastructure.cluster.x-k8s.io
-  - dockermachinepools.infrastructure.cluster.x-k8s.io
-  - dockermachinepooltemplates.infrastructure.cluster.x-k8s.io
-  - dockermachines.infrastructure.cluster.x-k8s.io
-  - dockermachinetemplates.infrastructure.cluster.x-k8s.io
   resources:
   - customresourcedefinitions
   - customresourcedefinitions/status
@@ -90,9 +84,6 @@ rules:
   - devclusters
   - devmachinepools
   - devmachines
-  - dockerclusters
-  - dockermachinepools
-  - dockermachines
   verbs:
   - create
   - delete
@@ -114,16 +105,6 @@ rules:
   - devmachines/status
   - devmachinetemplates
   - devmachinetemplates/status
-  - dockerclusters/finalizers
-  - dockerclusters/status
-  - dockerclustertemplates
-  - dockermachinepools/finalizers
-  - dockermachinepools/status
-  - dockermachinepooltemplates
-  - dockermachines/finalizers
-  - dockermachines/status
-  - dockermachinetemplates
-  - dockermachinetemplates/status
   verbs:
   - get
   - list

@@ -1487,6 +1487,74 @@ func TestSetUpToDateCondition(t *testing.T) {
 			expectCondition:   nil,
 		},
 		{
+			name:              "stale condition removed when MachineDeployment is gone",
+			machineDeployment: nil,
+			machineSet:        &clusterv1.MachineSet{},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: "deleted-machinedeployment",
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:               clusterv1.MachineUpToDateCondition,
+							Status:             metav1.ConditionTrue,
+							Reason:             clusterv1.MachineUpToDateReason,
+							LastTransitionTime: metav1.NewTime(reconciliationTime),
+						},
+					},
+				},
+			},
+			expectCondition: nil,
+		},
+		{
+			name:              "stale condition removed when MachineSet is gone",
+			machineDeployment: nil,
+			machineSet:        nil,
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: "deleted-machinedeployment",
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:               clusterv1.MachineUpToDateCondition,
+							Status:             metav1.ConditionFalse,
+							Reason:             clusterv1.MachineNotUpToDateReason,
+							LastTransitionTime: metav1.NewTime(reconciliationTime),
+						},
+					},
+				},
+			},
+			expectCondition: nil,
+		},
+		{
+			name:              "condition not removed for control plane machines",
+			machineDeployment: nil,
+			machineSet:        nil,
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:               clusterv1.MachineUpToDateCondition,
+							Status:             metav1.ConditionTrue,
+							Reason:             clusterv1.MachineUpToDateReason,
+							LastTransitionTime: metav1.NewTime(reconciliationTime),
+						},
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineUpToDateReason,
+			},
+		},
+		{
 			name: "up-to-date",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{

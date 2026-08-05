@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
+	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -723,7 +724,8 @@ func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1
 		return
 	}
 
-	if m.Status.NodeInfo != nil && m.Status.NodeInfo.KubeletVersion != "" && m.Status.NodeInfo.KubeletVersion != m.Spec.Version {
+	if m.Status.NodeInfo != nil && m.Status.NodeInfo.KubeletVersion != "" &&
+		!internalversion.KubeletVersionMatches(m.Status.NodeInfo.KubeletVersion, m.Spec.Version) {
 		conditions.Set(m, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionFalse,

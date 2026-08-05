@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -1146,7 +1147,8 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *pkg.Cont
 			continue
 		}
 
-		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" && machine.Status.NodeInfo.KubeletVersion != machine.Spec.Version {
+		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" &&
+			!internalversion.KubeletVersionMatches(machine.Status.NodeInfo.KubeletVersion, machine.Spec.Version) {
 			conditions.Set(machine, metav1.Condition{
 				Type:   clusterv1.MachineUpToDateCondition,
 				Status: metav1.ConditionFalse,

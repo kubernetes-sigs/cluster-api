@@ -1339,6 +1339,101 @@ func TestMachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(t *testing
 				Build(),
 			wantErr: false,
 		},
+		{
+			name: "fail if MachineDeploymentTopology failureDomain is not in Cluster.Status.FailureDomains",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithStatusFailureDomains(
+					clusterv1.FailureDomain{Name: "fd1"},
+					clusterv1.FailureDomain{Name: "fd2"},
+				).
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("workers1").
+								WithClass("aa").
+								WithFailureDomain("non-existent").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "pass if MachineDeploymentTopology failureDomain matches Cluster.Status.FailureDomains",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithStatusFailureDomains(
+					clusterv1.FailureDomain{Name: "fd1"},
+					clusterv1.FailureDomain{Name: "fd2"},
+				).
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("workers1").
+								WithClass("aa").
+								WithFailureDomain("fd1").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "skip failureDomain validation when Cluster.Status.FailureDomains is not yet populated",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("workers1").
+								WithClass("aa").
+								WithFailureDomain("fd1").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1511,6 +1606,101 @@ func TestMachinePoolTopologiesAreUniqueAndDefinedInClusterClass(t *testing.T) {
 						WithMachinePool(
 							builder.MachinePoolTopology("workers2").
 								WithClass("aa").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "fail if MachinePoolTopology failureDomain is not in Cluster.Status.FailureDomains",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithStatusFailureDomains(
+					clusterv1.FailureDomain{Name: "fd1"},
+					clusterv1.FailureDomain{Name: "fd2"},
+				).
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachinePool(
+							builder.MachinePoolTopology("pool1").
+								WithClass("aa").
+								WithFailureDomains("non-existent").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "pass if MachinePoolTopology failureDomains match Cluster.Status.FailureDomains",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithStatusFailureDomains(
+					clusterv1.FailureDomain{Name: "fd1"},
+					clusterv1.FailureDomain{Name: "fd2"},
+				).
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachinePool(
+							builder.MachinePoolTopology("pool1").
+								WithClass("aa").
+								WithFailureDomains("fd1", "fd2").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "skip failureDomains validation when Cluster.Status.FailureDomains is not yet populated",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachinePool(
+							builder.MachinePoolTopology("pool1").
+								WithClass("aa").
+								WithFailureDomains("fd1").
 								Build()).
 						Build()).
 				Build(),

@@ -2909,6 +2909,12 @@ func schema_cluster_api_api_core_v1beta2_MachineDeletionStatus(ref common.Refere
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
+					"nodeDeletionStartTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionStartTime is the time when the deletion of the Node started and is used to determine if the nodeDeletionTimeoutSeconds is exceeded. Only present when the Machine has a deletionTimestamp and deleting the Node had been started.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
 				},
 			},
 		},

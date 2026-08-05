@@ -66,8 +66,8 @@ func (i PreserveFields) ApplyToHelper(opts *PatchOptions) {
 func patchObject(ctx context.Context, dest, src *unstructured.Unstructured, opts ...PatchOption) error {
 	return patchUnstructured(ctx, dest, src, []patchUnstructuredFields{
 		{Src: []string{"spec", "template", "spec"}, Dest: []string{"spec"}},
-		{Src: []string{"spec", "template", "metadata", "labels"}, Dest: []string{"metadata", "labels"}},
-		{Src: []string{"spec", "template", "metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
+		{Src: []string{"spec", "template", "metadata", "labels"}, Dest: []string{"metadata", "labels"}, MergeMap: true},
+		{Src: []string{"spec", "template", "metadata", "annotations"}, Dest: []string{"metadata", "annotations"}, MergeMap: true},
 	}, opts...)
 }
 
@@ -77,17 +77,18 @@ func patchObject(ctx context.Context, dest, src *unstructured.Unstructured, opts
 // BootstrapTemplate.spec.template.spec while preserving fields configured via opts.fieldsToPreserve.
 func patchTemplate(ctx context.Context, dest, src *unstructured.Unstructured, opts ...PatchOption) error {
 	return patchUnstructured(ctx, dest, src, []patchUnstructuredFields{
-		{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
-		{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
+		{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}, MergeMap: true},
+		{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}, MergeMap: true},
 		{Src: []string{"spec", "template", "spec"}, Dest: []string{"spec", "template", "spec"}},
-		{Src: []string{"spec", "template", "metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}},
-		{Src: []string{"spec", "template", "metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}},
+		{Src: []string{"spec", "template", "metadata", "labels"}, Dest: []string{"spec", "template", "metadata", "labels"}, MergeMap: true},
+		{Src: []string{"spec", "template", "metadata", "annotations"}, Dest: []string{"spec", "template", "metadata", "annotations"}, MergeMap: true},
 	}, opts...)
 }
 
 type patchUnstructuredFields struct {
-	Src  []string
-	Dest []string
+	Src      []string
+	Dest     []string
+	MergeMap bool
 }
 
 // patchUnstructured overwrites original.destSpecPath with modified.srcSpecPath.
@@ -104,8 +105,9 @@ func patchUnstructured(ctx context.Context, dest, src *unstructured.Unstructured
 	fields := make([]patchutil.CopyFieldsInputField, 0, len(patchFields))
 	for _, patchField := range patchFields {
 		fields = append(fields, patchutil.CopyFieldsInputField{
-			Src:  patchField.Src,
-			Dest: patchField.Dest,
+			Src:      patchField.Src,
+			Dest:     patchField.Dest,
+			MergeMap: patchField.MergeMap,
 		})
 	}
 

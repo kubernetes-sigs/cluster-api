@@ -3255,6 +3255,20 @@ spec:
                                   - name
                                   x-kubernetes-list-type: map
                               type: object
+                            version:
+                              description: |-
+                                version is the optional Kubernetes version for this MachineDeployment.
+                                When set, it overrides Cluster.spec.topology.version for this MachineDeployment only,
+                                enabling manual version management and upgrade scheduling.
+
+                                Skew between this version and the control plane version is enforced according to the
+                                Kubernetes version skew policy.
+
+                                If unset, the MachineDeployment uses Cluster.spec.topology.version.
+                                Once set, the field can be unset only if this version is equal to Cluster.spec.topology.version.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
                           required:
                           - class
                           - name
@@ -3478,6 +3492,20 @@ spec:
                                   - name
                                   x-kubernetes-list-type: map
                               type: object
+                            version:
+                              description: |-
+                                version is the optional Kubernetes version for this MachinePool.
+                                When set, it overrides Cluster.spec.topology.version for this MachinePool only,
+                                enabling manual version management and upgrade scheduling.
+
+                                Skew between this version and the control plane version is enforced according to the
+                                Kubernetes version skew policy.
+
+                                If unset, the MachinePool uses Cluster.spec.topology.version.
+                                Once set, the field can be unset only if this version is equal to Cluster.spec.topology.version.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
                           required:
                           - class
                           - name

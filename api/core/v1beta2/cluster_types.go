@@ -900,6 +900,21 @@ type MachineDeploymentTopology struct {
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name,omitempty"`
 
+	// version is the optional Kubernetes version for this MachineDeployment.
+	// When set, it overrides Cluster.spec.topology.version for this MachineDeployment only,
+	// enabling manual version management and upgrade scheduling.
+	//
+	// Skew between this version and the control plane version is enforced according to the
+	// Kubernetes version skew policy.
+	//
+	// If unset, the MachineDeployment uses Cluster.spec.topology.version.
+	// Once set, the field can be unset only if this version is equal to Cluster.spec.topology.version.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
+
 	// failureDomain is the failure domain the machines will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
@@ -1246,6 +1261,21 @@ type MachinePoolTopology struct {
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name,omitempty"`
+
+	// version is the optional Kubernetes version for this MachinePool.
+	// When set, it overrides Cluster.spec.topology.version for this MachinePool only,
+	// enabling manual version management and upgrade scheduling.
+	//
+	// Skew between this version and the control plane version is enforced according to the
+	// Kubernetes version skew policy.
+	//
+	// If unset, the MachinePool uses Cluster.spec.topology.version.
+	// Once set, the field can be unset only if this version is equal to Cluster.spec.topology.version.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
 
 	// failureDomains is the list of failure domains the machine pool will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.

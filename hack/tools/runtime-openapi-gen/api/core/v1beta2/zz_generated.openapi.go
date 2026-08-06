@@ -3856,6 +3856,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 							Format:      "",
 						},
 					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the optional Kubernetes version for this MachineDeployment. When set, it overrides Cluster.spec.topology.version for this MachineDeployment only, enabling manual version management and upgrade scheduling.\n\nSkew between this version and the control plane version is enforced according to the Kubernetes version skew policy.\n\nIf unset, the MachineDeployment uses Cluster.spec.topology.version. Once set, the field can be unset only if this version is equal to Cluster.spec.topology.version.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"failureDomain": {
 						SchemaProps: spec.SchemaProps{
 							Description: "failureDomain is the failure domain the machines will be created in. Must match a key in the FailureDomains map stored on the cluster object.",
@@ -5751,6 +5758,13 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name is the unique identifier for this MachinePoolTopology. The value is used with other unique identifiers to create a MachinePool's Name (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length, the values are hashed together.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the optional Kubernetes version for this MachinePool. When set, it overrides Cluster.spec.topology.version for this MachinePool only, enabling manual version management and upgrade scheduling.\n\nSkew between this version and the control plane version is enforced according to the Kubernetes version skew policy.\n\nIf unset, the MachinePool uses Cluster.spec.topology.version. Once set, the field can be unset only if this version is equal to Cluster.spec.topology.version.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

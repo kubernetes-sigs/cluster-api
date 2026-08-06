@@ -357,6 +357,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	dynamicCache := setup.NewDynamicCache(mgr, watchNamespace, controllerName)
+
 	crdMigratorSkipPhases := make([]crdmigrator.Phase, 0, len(skipCRDMigrationPhases))
 	for _, p := range skipCRDMigrationPhases {
 		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
@@ -429,6 +431,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		APIReader:                   mgr.GetAPIReader(),
 		SecretCachingClient:         secretCachingClient,
 		ClusterCache:                clusterCache,
+		DynamicCache:                dynamicCache,
 		WatchFilterValue:            watchFilterValue,
 		EtcdDialTimeout:             etcdDialTimeout,
 		EtcdCallTimeout:             etcdCallTimeout,

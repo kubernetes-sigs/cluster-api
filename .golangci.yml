@@ -221,6 +221,11 @@ linters:
           alias: clusterv1beta1
         - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2
           alias: clusterv1
+        # CAPI contract
+        - pkg: sigs.k8s.io/cluster-api/internal/contract/api/v1beta1
+          alias: contractv1beta1
+        - pkg: sigs.k8s.io/cluster-api/internal/contract/api/v1beta2
+          alias: contractv1
         # CAPI addons
         - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
           alias: addonsv1beta1

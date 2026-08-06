@@ -37,6 +37,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
@@ -119,8 +120,8 @@ type PreflightCheckResults struct {
 }
 
 // NewControlPlane returns an instantiated ControlPlane.
-func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
-	infraMachines, err := getInfraMachines(ctx, client, ownedMachines)
+func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, dynamicCache *external.DynamicCache, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
+	infraMachines, err := getInfraMachines(ctx, dynamicCache, ownedMachines)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +143,7 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 	machinesNotUptoDate := make(collections.Machines, len(ownedMachines))
 	machinesUpToDateResults := map[string]UpToDateResult{}
 	for _, m := range ownedMachines {
-		upToDate, upToDateResult, err := UpToDate(ctx, client, cluster, m, kcp, &reconciliationTime, infraMachines, kubeadmConfigs)
+		upToDate, upToDateResult, err := UpToDate(ctx, dynamicCache, client, cluster, m, kcp, &reconciliationTime, infraMachines, kubeadmConfigs)
 		if err != nil {
 			return nil, err
 		}
@@ -291,10 +292,10 @@ func (c *ControlPlane) UpToDateMachines() collections.Machines {
 }
 
 // getInfraMachines fetches the InfraMachine for each machine in the collection and returns a map of machine.Name -> InfraMachine.
-func getInfraMachines(ctx context.Context, cl client.Client, machines collections.Machines) (map[string]*unstructured.Unstructured, error) {
+func getInfraMachines(ctx context.Context, dynamicCache *external.DynamicCache, machines collections.Machines) (map[string]*unstructured.Unstructured, error) {
 	result := map[string]*unstructured.Unstructured{}
 	for _, m := range machines {
-		infraMachine, err := external.GetObjectFromContractVersionedRef(ctx, cl, m.Spec.InfrastructureRef, m.Namespace)
+		infraMachine, err := dynamicCache.GetUnstructured(ctx, m.Spec.InfrastructureRef, m.Namespace, setup.DynamicCacheInfraMachineCacheOptionsID)
 		if err != nil {
 			if apierrors.IsNotFound(pkgerrors.Cause(err)) {
 				continue

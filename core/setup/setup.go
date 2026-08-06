@@ -34,7 +34,10 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	contractv1beta1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta1"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -129,4 +132,34 @@ func CreateSecretCachingClient(mgr ctrl.Manager) (client.Client, error) {
 			Reader: mgr.GetCache(),
 		},
 	})
+}
+
+const (
+	DynamicCacheInfraMachineCacheOptionsID    external.ObjectType = "DynamicCacheInfraMachineCacheOptions"
+	DynamicCacheBootstrapConfigCacheOptionsID external.ObjectType = "DynamicCacheBootstrapConfigCacheOptions"
+)
+
+func NewDynamicCache(mgr ctrl.Manager, watchNamespace, controllerName string) *external.DynamicCache {
+	return external.NewDynamicCache(mgr, mgr.GetClient(), map[external.ObjectType]external.DynamicCacheOptions{
+		DynamicCacheInfraMachineCacheOptionsID: {
+			ContractObj: map[string]client.Object{
+				"v1beta1": &contractv1beta1.InfraMachine{},
+				"v1beta2": &contractv1.InfraMachine{},
+			},
+			ContractObjList: map[string]client.ObjectList{
+				"v1beta1": &contractv1beta1.InfraMachineList{},
+				"v1beta2": &contractv1.InfraMachineList{},
+			},
+		},
+		DynamicCacheBootstrapConfigCacheOptionsID: {
+			ContractObj: map[string]client.Object{
+				"v1beta1": &contractv1beta1.BootstrapConfig{},
+				"v1beta2": &contractv1.BootstrapConfig{},
+			},
+			ContractObjList: map[string]client.ObjectList{
+				"v1beta1": &contractv1beta1.BootstrapConfigList{},
+				"v1beta2": &contractv1.BootstrapConfigList{},
+			},
+		},
+	}, watchNamespace, controllerName)
 }

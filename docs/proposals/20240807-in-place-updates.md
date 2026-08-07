@@ -21,7 +21,7 @@ reviewers:
   - "@elmiko"
   - "@wking"
 creation-date: "2024-08-07"
-last-updated: "2024-08-07"
+last-updated: "2026-07-20"
 status: experimental
 ---
 
@@ -50,8 +50,10 @@ status: experimental
     - [Story 4](#story-4)
     - [Story 5](#story-5)
     - [Story 6](#story-6)
+    - [Story 7](#story-7)
   - [High level flow](#high-level-flow)
   - [Deciding the update strategy](#deciding-the-update-strategy)
+  - [Configurable fallback strategy](#configurable-fallback-strategy)
   - [MachineDeployment updates](#machinedeployment-updates)
   - [KCP updates](#kcp-updates)
   - [Machine updates](#machine-updates)
@@ -197,6 +199,9 @@ As a cluster operator, I want to update machine attributes supported by my infra
 #### Story 6
 As a cluster service provider, I want guidance/documentation on how to write external update extension for my own use case.
 
+#### Story 7
+As a cluster operator whose Machines are expensive or destructive to replace (e.g. nodes with local storage, bare metal, or license-bound nodes), I want to declare that a given KubeadmControlPlane or MachineDeployment must only be updated in-place: when the update cannot proceed in-place, the rollout stops and reports why instead of replacing Machines. I accept that, in exchange, the cluster may stay not-fully-updated until I intervene.
+
 ### High level flow
 
 ```mermaid
@@ -276,6 +281,33 @@ The changes supported by an updater can be the complete set of desired changes, 
 If the combination of the updaters can handle ALL the desired changes then CAPI will determine that the update can be performed in-place. 
 
 If ANY of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, it will fallback to the rolling update strategy, replacing machines as needed. 
+
+### Configurable fallback strategy
+
+The `inPlaceFallback` field on `KubeadmControlPlane` and `MachineDeployment` controls whether CAPI falls back to rolling replacement when an in-place update cannot proceed:
+
+```yaml
+spec:
+  rollout:
+    strategy:
+      type: RollingUpdate
+    # Replace (default) | Stop
+    inPlaceFallback: Stop
+```
+
+| `inPlaceFallback` | In-place can proceed | In-place cannot proceed |
+|---|---|---|
+| `Replace` (default) | update in-place | fall back to rolling update (replace Machines) |
+| `Stop` | update in-place | stop: surface a condition and wait |
+
+Scope and boundaries:
+
+- `inPlaceFallback` only governs the decision phase — whether in-place is attempted at all remains governed by the `InPlaceUpdates` feature gate and registered extensions. Execution-phase failure handling and retries are unchanged.
+- `Stop` blocks only the implicit rollout-driven fallback — this includes both the case where the extension cannot cover the full diff and the case where KCP preflight checks flag the candidate Machine. Explicit replacement operations continue as today: user-initiated scale down, `cluster.x-k8s.io/delete-machine`, MachineHealthCheck remediation, and certificate-driven rollouts.
+- `inPlaceFallback` is orthogonal to `maxSurge` / `maxUnavailable`: when `Stop` is set and in-place can proceed, CAPI may still create a temporary buffer Machine to satisfy availability constraints (e.g. `maxUnavailable=0`). To avoid any temporary Machine creation, set `maxSurge=0` on KCP (requires `replicas >= 3`) or `maxUnavailable >= 1` on MachineDeployment.
+- Single-node control planes are out of scope, consistent with the existing single-node Non-Goal.
+
+When `Stop` is set, the cluster may remain not-fully-updated until the user intervenes; the blocked state is surfaced via conditions.
 
 ### MachineDeployment updates
 
@@ -751,6 +783,7 @@ we will provide a way to toggle the in-place possibly though the API.
 - [x] 2024-08: Open proposal [PR](https://github.com/kubernetes-sigs/cluster-api/pull/11029).
 - [x] 2025-04: Proposal merged
 - [x] 2025-12: Update proposal after first implementation
+- [ ] 2026-07: Proposed configurable fallback strategy (fail-closed / predictable rollouts) as a follow-up iteration.
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

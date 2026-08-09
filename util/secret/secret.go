@@ -56,16 +56,14 @@ func Name(cluster string, suffix Purpose) string {
 // ParseSecretName return the cluster name and the suffix Purpose in name is a valid cluster secret,
 // otherwise it return error.
 func ParseSecretName(name string) (string, Purpose, error) {
-	separatorPos := strings.LastIndex(name, "-")
-	if separatorPos == -1 {
-		return "", "", pkgerrors.Errorf("%q is not a valid cluster secret name. The purpose suffix is missing", name)
-	}
-	clusterName := name[:separatorPos]
-	purposeSuffix := Purpose(name[separatorPos+1:])
 	for _, purpose := range allSecretPurposes {
-		if purpose == purposeSuffix {
-			return clusterName, purposeSuffix, nil
+		suffix := "-" + string(purpose)
+		if strings.HasSuffix(name, suffix) {
+			return strings.TrimSuffix(name, suffix), purpose, nil
 		}
+	}
+	if !strings.Contains(name, "-") {
+		return "", "", pkgerrors.Errorf("%q is not a valid cluster secret name. The purpose suffix is missing", name)
 	}
 	return "", "", pkgerrors.Errorf("%q is not a valid cluster secret name. Invalid purpose suffix", name)
 }

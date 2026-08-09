@@ -19,6 +19,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"os"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
@@ -40,6 +41,13 @@ const HAProxyPort = 8404
 
 // DefaultNetwork is the default network name to use in kind.
 const DefaultNetwork = "kind"
+
+func getDockerNetwork() string {
+	if network := os.Getenv("DOCKER_NETWORK"); network != "" {
+		return network
+	}
+	return DefaultNetwork
+}
 
 // haproxyEntrypoint is the entrypoint used to start the haproxy load balancer container.
 var haproxyEntrypoint = []string{"haproxy", "-W", "-db", "-f", "/usr/local/etc/haproxy/haproxy.cfg"}
@@ -168,7 +176,7 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 		Volumes:      map[string]string{"/var": ""},
 		Mounts:       generateMountInfo(opts.Mounts),
 		PortMappings: generatePortMappings(opts.PortMappings),
-		Network:      DefaultNetwork,
+		Network:      getDockerNetwork(),
 		Tmpfs: map[string]string{
 			"/tmp": "", // various things depend on working /tmp
 			"/run": "", // systemd wants a writable /run

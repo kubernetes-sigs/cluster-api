@@ -129,7 +129,6 @@ docker                     InfrastructureProvider     https://github.com/kuberne
 gcp                        InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/                      infrastructure-components.yaml
 harvester-harvester        InfrastructureProvider     https://github.com/rancher-sandbox/cluster-api-provider-harvester/releases/latest/                infrastructure-components.yaml
 hetzner                    InfrastructureProvider     https://github.com/syself/cluster-api-provider-hetzner/releases/latest/                           infrastructure-components.yaml
-hivelocity-hivelocity      InfrastructureProvider     https://github.com/hivelocity/cluster-api-provider-hivelocity/releases/latest/                    infrastructure-components.yaml
 huawei                     InfrastructureProvider     https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei/releases/latest/              infrastructure-components.yaml
 ibmcloud                   InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/                 infrastructure-components.yaml
 ionoscloud-ionoscloud      InfrastructureProvider     https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/releases/latest/                   infrastructure-components.yaml
@@ -287,10 +286,6 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: hetzner
   ProviderType: InfrastructureProvider
   URL: https://github.com/syself/cluster-api-provider-hetzner/releases/latest/
-- File: infrastructure-components.yaml
-  Name: hivelocity-hivelocity
-  ProviderType: InfrastructureProvider
-  URL: https://github.com/hivelocity/cluster-api-provider-hivelocity/releases/latest/
 - File: infrastructure-components.yaml
   Name: huawei
   ProviderType: InfrastructureProvider

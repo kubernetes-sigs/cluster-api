@@ -60,9 +60,6 @@ Cluster API Google Cloud Provider
 ### CAPH
 Cluster API Provider Hetzner
 
-### CAPHV
-Cluster API Provider Hivelocity
-
 ### CAPHW
 Cluster API Provider Huawei
 

@@ -301,9 +301,9 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 					log.Logf("Error getting pod %s, container %s: %v", klog.KRef(pod.Namespace, pod.Name), container.Name, err)
 					return true, nil
 				}
-				// On retries, stop if the container has terminated (e.g.
-				// completed init container or pod terminated during upgrade).
-				// This also covers pods in Succeeded/Failed phase.
+				// On retries, stop if the container has terminated for good (e.g.
+				// completed init container, or pod terminated/being deleted during
+				// upgrade). This also covers pods in Succeeded/Failed phase.
 				// Skip this check on the first attempt so we still capture
 				// historical logs from already-completed containers.
 				if streamed && containerHasTerminated(actual, container.Name) {
@@ -339,16 +339,40 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 }
 
 // containerHasTerminated checks whether a specific container (regular or init)
-// has terminated in the given pod.
+// has terminated for good in the given pod, i.e. it is not expected to produce
+// any more logs.
 func containerHasTerminated(pod *corev1.Pod, containerName string) bool {
 	// Check pod phase first — if the whole pod is done, all containers are done.
 	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
 		return true
 	}
-	for _, cs := range append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...) {
+
+	// Init containers only ever run once per pod: the pod does not reach the
+	// Running phase until all init containers have completed successfully, so
+	// observing one here (with the pod Running) always means it is done for
+	// good and won't run again for this pod.
+	for _, cs := range pod.Status.InitContainerStatuses {
 		if cs.Name == containerName {
 			return cs.State.Terminated != nil
 		}
+	}
+
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.Name != containerName {
+			continue
+		}
+		if cs.State.Terminated == nil {
+			return false
+		}
+		// Unlike init containers, a regular container's Terminated state alone
+		// doesn't guarantee it is done for good: with restartPolicy Always or
+		// OnFailure it may be about to be restarted by kubelet (e.g. after a
+		// crash), in which case more logs are still expected. Only with
+		// restartPolicy Never is kubelet guaranteed not to restart it.
+		if pod.Spec.RestartPolicy != corev1.RestartPolicyNever {
+			return false
+		}
+		return true
 	}
 	return false
 }

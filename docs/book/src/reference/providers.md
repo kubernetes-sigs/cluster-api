@@ -54,6 +54,7 @@ source of inspiration and ideas for others.
 - [Huawei Cloud](https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [IONOS Cloud](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud)
+- [Kairos Fleet](https://github.com/kairos-io/cluster-api-provider-kairos-fleet)
 - [KubeKey](https://github.com/kubesphere/kubekey)
 - [k0smotron RemoteMachine (SSH)](https://github.com/k0sproject/k0smotron)
 - [KubeSwift](https://github.com/kubeswift-io/cluster-api-provider-kubeswift)

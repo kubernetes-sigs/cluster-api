@@ -180,7 +180,7 @@ const (
 	// AutoscalerMinSizeAnnotation defines the minimum node group size.
 	// The annotation is used by autoscaler.
 	// The annotation is copied from kubernetes/autoscaler.
-	// Ref:https://github.com/kubernetes/autoscaler/blob/d8336cca37dbfa5d1cb7b7e453bd511172d6e5e7/cluster-autoscaler/cloudprovider/clusterapi/clusterapi_utils.go#L256-L259
+	// Ref:https://github.com/kubernetes-sigs/cluster-autoscaler/blob/562c02c17afedc1a1699b6c772018c009e790e41/pkg/cloudprovider/clusterapi/clusterapi_utils.go#L329-L332
 	// Note: With the Kubernetes autoscaler it is possible to use different annotations by configuring a different
 	// "Cluster API group" than "cluster.x-k8s.io" via the "CAPI_GROUP" environment variable.
 	// We only handle the default group in our implementation.
@@ -190,7 +190,7 @@ const (
 	// AutoscalerMaxSizeAnnotation defines the maximum node group size.
 	// The annotations is used by the autoscaler.
 	// The annotation definition is copied from kubernetes/autoscaler.
-	// Ref:https://github.com/kubernetes/autoscaler/blob/d8336cca37dbfa5d1cb7b7e453bd511172d6e5e7/cluster-autoscaler/cloudprovider/clusterapi/clusterapi_utils.go#L264-L267
+	// Ref:https://github.com/kubernetes-sigs/cluster-autoscaler/blob/562c02c17afedc1a1699b6c772018c009e790e41/pkg/cloudprovider/clusterapi/clusterapi_utils.go#L337-L340
 	// Note: With the Kubernetes autoscaler it is possible to use different annotations by configuring a different
 	// "Cluster API group" than "cluster.x-k8s.io" via the "CAPI_GROUP" environment variable.
 	// We only handle the default group in our implementation.

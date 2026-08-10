@@ -87,6 +87,7 @@ const (
 	RKE2BootstrapProviderName                = "rke2"
 	K0smotronBootstrapProviderName           = "k0sproject-k0smotron"
 	CanonicalKubernetesBootstrapProviderName = "canonical-kubernetes"
+	KairosBootstrapProviderName              = "kairos-io"
 )
 
 // ControlPlane providers.
@@ -101,6 +102,7 @@ const (
 	K0smotronControlPlaneProviderName           = "k0sproject-k0smotron"
 	CanonicalKubernetesControlPlaneProviderName = "canonical-kubernetes"
 	HCPControlPlaneProviderName                 = "hosted-control-plane"
+	KairosControlPlaneProviderName              = "kairos-io"
 )
 
 // IPAM providers.
@@ -397,6 +399,11 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/canonical/cluster-api-k8s/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
+		&provider{
+			name:         KairosBootstrapProviderName,
+			url:          "https://github.com/kairos-io/cluster-api-provider-kairos/releases/latest/bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
 
 		// ControlPlane providers
 		&provider{
@@ -447,6 +454,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         HCPControlPlaneProviderName,
 			url:          "https://github.com/teutonet/cluster-api-provider-hosted-control-plane/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         KairosControlPlaneProviderName,
+			url:          "https://github.com/kairos-io/cluster-api-provider-kairos/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 

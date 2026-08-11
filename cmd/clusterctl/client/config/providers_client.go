@@ -48,7 +48,6 @@ const (
 	// Note: harvester is currently on rancher-sandbox, but the plan is to move it on the harvester GitHub org (also owned by Rancher).
 	HarvesterProviderName      = "harvester-harvester"
 	HetznerProviderName        = "hetzner"
-	HivelocityProviderName     = "hivelocity-hivelocity"
 	HuaweiProviderName         = "huawei"
 	OutscaleProviderName       = "outscale"
 	IBMCloudProviderName       = "ibmcloud"
@@ -274,11 +273,6 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         HetznerProviderName,
 			url:          "https://github.com/syself/cluster-api-provider-hetzner/releases/latest/infrastructure-components.yaml",
-			providerType: clusterctlv1.InfrastructureProviderType,
-		},
-		&provider{
-			name:         HivelocityProviderName,
-			url:          "https://github.com/hivelocity/cluster-api-provider-hivelocity/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

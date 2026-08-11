@@ -103,6 +103,7 @@ cluster-api                CoreProvider               https://github.com/myorg/m
 another-provider           BootstrapProvider          ./                                                                                                bootstrap-components.yaml
 canonical-kubernetes       BootstrapProvider          https://github.com/canonical/cluster-api-k8s/releases/latest/                                     bootstrap-components.yaml
 k0sproject-k0smotron       BootstrapProvider          https://github.com/k0sproject/k0smotron/releases/latest/                                          bootstrap-components.yaml
+kairos-io                  BootstrapProvider          https://github.com/kairos-io/cluster-api-provider-kairos/releases/latest/                         bootstrap-components.yaml
 kubeadm                    BootstrapProvider          https://github.com/kubernetes-sigs/cluster-api/releases/latest/                                   bootstrap-components.yaml
 kubekey-k3s                BootstrapProvider          https://github.com/kubesphere/kubekey/releases/latest/                                            bootstrap-components.yaml
 microk8s                   BootstrapProvider          https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/             bootstrap-components.yaml
@@ -111,6 +112,7 @@ talos                      BootstrapProvider          https://github.com/siderol
 canonical-kubernetes       ControlPlaneProvider       https://github.com/canonical/cluster-api-k8s/releases/latest/                                     control-plane-components.yaml
 hosted-control-plane       ControlPlaneProvider       https://github.com/teutonet/cluster-api-provider-hosted-control-plane/releases/latest/            control-plane-components.yaml
 k0sproject-k0smotron       ControlPlaneProvider       https://github.com/k0sproject/k0smotron/releases/latest/                                          control-plane-components.yaml
+kairos-io                  ControlPlaneProvider       https://github.com/kairos-io/cluster-api-provider-kairos/releases/latest/                         control-plane-components.yaml
 kamaji                     ControlPlaneProvider       https://github.com/clastix/cluster-api-control-plane-provider-kamaji/releases/latest/             control-plane-components.yaml
 kubeadm                    ControlPlaneProvider       https://github.com/kubernetes-sigs/cluster-api/releases/latest/                                   control-plane-components.yaml
 kubekey-k3s                ControlPlaneProvider       https://github.com/kubesphere/kubekey/releases/latest/                                            control-plane-components.yaml
@@ -183,6 +185,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   ProviderType: BootstrapProvider
   URL: https://github.com/k0sproject/k0smotron/releases/latest/
 - File: bootstrap-components.yaml
+  Name: kairos-io
+  ProviderType: BootstrapProvider
+  URL: https://github.com/kairos-io/cluster-api-provider-kairos/releases/latest/
+- File: bootstrap-components.yaml
   Name: kubeadm
   ProviderType: BootstrapProvider
   URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
@@ -214,6 +220,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: k0sproject-k0smotron
   ProviderType: ControlPlaneProvider
   URL: https://github.com/k0sproject/k0smotron/releases/latest/
+- File: control-plane-components.yaml
+  Name: kairos-io
+  ProviderType: ControlPlaneProvider
+  URL: https://github.com/kairos-io/cluster-api-provider-kairos/releases/latest/
 - File: control-plane-components.yaml
   Name: kamaji
   ProviderType: ControlPlaneProvider

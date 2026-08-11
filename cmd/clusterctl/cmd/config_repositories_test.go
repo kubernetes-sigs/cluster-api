@@ -135,6 +135,7 @@ huawei                     InfrastructureProvider     https://github.com/HuaweiC
 ibmcloud                   InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/                 infrastructure-components.yaml
 ionoscloud-ionoscloud      InfrastructureProvider     https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/releases/latest/                   infrastructure-components.yaml
 k0sproject-k0smotron       InfrastructureProvider     https://github.com/k0sproject/k0smotron/releases/latest/                                          infrastructure-components.yaml
+kairos-io-fleet            InfrastructureProvider     https://github.com/kairos-io/cluster-api-provider-kairos-fleet/releases/latest/                   infrastructure-components.yaml
 kubekey                    InfrastructureProvider     https://github.com/kubesphere/kubekey/releases/latest/                                            infrastructure-components.yaml
 kubeswift-io               InfrastructureProvider     https://github.com/kubeswift-io/cluster-api-provider-kubeswift/releases/latest/                   infrastructure-components.yaml
 kubevirt                   InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/                 infrastructure-components.yaml
@@ -312,6 +313,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: k0sproject-k0smotron
   ProviderType: InfrastructureProvider
   URL: https://github.com/k0sproject/k0smotron/releases/latest/
+- File: infrastructure-components.yaml
+  Name: kairos-io-fleet
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kairos-io/cluster-api-provider-kairos-fleet/releases/latest/
 - File: infrastructure-components.yaml
   Name: kubekey
   ProviderType: InfrastructureProvider

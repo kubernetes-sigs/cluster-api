@@ -76,6 +76,7 @@ const (
 	ScalewayProviderName       = "scaleway"
 	MetalStackProviderName     = "metal-stack"
 	OxideProviderName          = "oxide"
+	KairosFleetProviderName    = "kairos-io-fleet"
 )
 
 // Bootstrap providers.
@@ -360,6 +361,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         KubeSwiftProviderName,
 			url:          "https://github.com/kubeswift-io/cluster-api-provider-kubeswift/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         KairosFleetProviderName,
+			url:          "https://github.com/kairos-io/cluster-api-provider-kairos-fleet/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

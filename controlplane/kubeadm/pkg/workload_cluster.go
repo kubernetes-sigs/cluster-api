@@ -224,10 +224,13 @@ func (w *Workload) HasKubeadmConfig(ctx context.Context) (bool, error) {
 		Name:      kubeadmConfigKey,
 		Namespace: metav1.NamespaceSystem,
 	}
-	err := w.Client.Get(ctx, key, &corev1.ConfigMap{})
-	// TODO: Consider if this should only return false if the error is IsNotFound.
-	// TODO: Consider adding a third state of 'unknown' when there is an error retrieving the config map.
-	return err == nil, nil
+	if err := w.Client.Get(ctx, key, &corev1.ConfigMap{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, pkgerrors.Wrap(err, "failed to check if the kubeadm-config ConfigMap exists")
+	}
+	return true, nil
 }
 
 // GetAPIServerCertificateExpiry returns the certificate expiry of the apiserver on the given node.

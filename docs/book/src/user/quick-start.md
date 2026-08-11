@@ -273,7 +273,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeSwift,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Huawei,IBM Cloud,IONOS Cloud,K0smotron,Kairos Fleet,KubeKey,KubeSwift,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -628,6 +628,19 @@ clusterctl init --infrastructure k0sproject-k0smotron
 ```
 
 {{#/tab }}
+{{#tab Kairos Fleet}}
+
+Kairos Fleet claims already-enrolled Kairos nodes from an [AuroraBoot](https://github.com/kairos-io/AuroraBoot)
+fleet rather than provisioning machines, so no cloud credentials are required. Ensure an
+AuroraBoot instance is reachable with enrolled, unclaimed nodes. As an infrastructure provider
+for Kairos nodes, it is used together with the Kairos bootstrap and control-plane providers.
+
+```bash
+# Initialize the management cluster
+clusterctl init --bootstrap kairos-io --control-plane kairos-io --infrastructure kairos-io-fleet
+```
+
+{{#/tab }}
 {{#tab KubeKey}}
 
 ```bash
@@ -950,7 +963,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeSwift,KubeVirt,Metal3,metal-stack,Nutanix,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,Kairos Fleet,KubeKey,KubeSwift,KubeVirt,Metal3,metal-stack,Nutanix,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1253,6 +1266,18 @@ For more configuration options check our list of [available variables](https://g
 {{#tab K0smotron}}
 
 Please visit the [K0smotron provider] for more information.
+
+{{#/tab }}
+{{#tab Kairos Fleet}}
+
+The default `cluster-template.yaml` variables have defaults; only the control-plane endpoint
+is operator-supplied. Point the provider at your AuroraBoot fleet:
+```bash
+export CONTROL_PLANE_ENDPOINT_HOST=<your-control-plane-host>
+export AURORABOOT_URL=http://<auroraboot-host>:8080
+```
+
+Please visit the [cluster-api-provider-kairos-fleet](https://github.com/kairos-io/cluster-api-provider-kairos-fleet) repository for more information.
 
 {{#/tab }}
 {{#tab KubeKey}}

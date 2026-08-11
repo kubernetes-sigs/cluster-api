@@ -90,6 +90,9 @@ Cluster API Provider Nested
 ### CAPX
 Cluster API Provider Nutanix
 
+### CAPKF
+Cluster API Provider Kairos Fleet
+
 ### CAPKK
 Cluster API Provider KubeKey
 

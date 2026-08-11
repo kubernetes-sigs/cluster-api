@@ -45,6 +45,12 @@ Cluster API Provider AWS
 ### CABPK
 Cluster API Bootstrap Provider Kubeadm
 
+### CABPKairos
+Cluster API Bootstrap Provider Kairos
+
+### CACPKairos
+Cluster API Control Plane Provider Kairos
+
 ### CAPC
 Cluster API Provider CloudStack
 

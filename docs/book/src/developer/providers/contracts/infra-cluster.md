@@ -598,4 +598,4 @@ is implemented in InfraCluster controllers:
 [implementation best practices]: ../best-practices.md
 [infrastructure Provider Security Guidance]: ../security-guidelines.md
 [InfraCluster: pausing]: #infracluster-pausing
-[Cluster API v1.11 migration notes]: ../migrations/v1.10-to-v1.11.md
+[Cluster API v1.11 migration notes]: https://release-1-11.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.10-to-v1.11

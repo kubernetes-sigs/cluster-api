@@ -1014,4 +1014,4 @@ is implemented in ControlPlane controllers:
 [Clusterctl support]: #clusterctl-support
 [ControlPlane: pausing]: #controlplane-pausing
 [implementation best practices]: ../best-practices.md
-[Cluster API v1.11 migration notes]: ../migrations/v1.10-to-v1.11.md
+[Cluster API v1.11 migration notes]: https://release-1-11.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.10-to-v1.11

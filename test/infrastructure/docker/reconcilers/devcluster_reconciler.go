@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controllers implements controller functionality.
-package controllers
+// Package reconcilers implements controller functionality.
+package reconcilers
 
 import (
 	"context"
@@ -33,9 +33,9 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends"
-	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/docker"
-	inmemorybackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/inmemory"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends"
+	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends/docker"
+	inmemorybackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends/inmemory"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
@@ -47,8 +47,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// DevClusterReconciler reconciles a DevCluster object.
-type DevClusterReconciler struct {
+// DevCluster reconciles a DevCluster object.
+type DevCluster struct {
 	client.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
@@ -60,7 +60,7 @@ type DevClusterReconciler struct {
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *DevClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *DevCluster) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.InMemoryManager == nil || r.APIServerMux == nil || r.ContainerRuntime == nil {
 		return pkgerrors.New("Client, InMemoryManager and APIServerMux, ContainerRuntime must not be nil")
 	}
@@ -86,7 +86,7 @@ func (r *DevClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;update;patch
 
-func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *DevCluster) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 
@@ -163,7 +163,7 @@ func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return backendReconciler.ReconcileNormal(ctx, cluster, devCluster)
 }
 
-func (r *DevClusterReconciler) backendReconcilerFactory(_ context.Context, devCluster *infrav1.DevCluster) backends.DevClusterBackendReconciler {
+func (r *DevCluster) backendReconcilerFactory(_ context.Context, devCluster *infrav1.DevCluster) backends.DevClusterBackendReconciler {
 	if devCluster.Spec.Backend.InMemory != nil {
 		return &inmemorybackend.ClusterBackendReconciler{
 			Client:          r.Client,

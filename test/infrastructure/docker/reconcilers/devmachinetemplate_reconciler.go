@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package reconcilers
 
 import (
 	"context"
@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// DevMachineTemplateReconciler reconciles a DevMachineTemplate object.
-type DevMachineTemplateReconciler struct {
+// DevMachineTemplate reconciles a DevMachineTemplate object.
+type DevMachineTemplate struct {
 	client.Client
 	ContainerRuntime container.Runtime
 
@@ -47,7 +47,7 @@ type DevMachineTemplateReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates/status,verbs=get;watch;list;update;patch
 
 // Reconcile reconciles the DevMachineTemplate to set the capcity information.
-func (r *DevMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *DevMachineTemplate) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the DevMachineTemplate instance
@@ -88,7 +88,7 @@ func fetchSystemResourceCapacity(ctx context.Context, containerRuntime container
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *DevMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *DevMachineTemplate) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.ContainerRuntime == nil {
 		return pkgerrors.New("Client and ContainerRuntime must not be nil")
 	}

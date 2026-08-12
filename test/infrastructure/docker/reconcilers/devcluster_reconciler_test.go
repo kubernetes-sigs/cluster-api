@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package reconcilers
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 )
 
-func TestDevClusterReconciler_ExternallyManaged(t *testing.T) {
+func TestDevCluster_ExternallyManaged(t *testing.T) {
 	g := NewWithT(t)
 
 	devCluster := &infrav1.DevCluster{
@@ -49,7 +49,7 @@ func TestDevClusterReconciler_ExternallyManaged(t *testing.T) {
 		WithObjects(devCluster).
 		Build()
 
-	r := &DevClusterReconciler{
+	r := &DevCluster{
 		Client: c,
 	}
 

@@ -94,6 +94,7 @@ source of inspiration and ideas for others.
 
 ## Runtime Extensions
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-runtime-extensions-nutanix/)
+- [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 
 ## API Adopters
 

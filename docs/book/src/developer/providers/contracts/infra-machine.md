@@ -672,7 +672,7 @@ is implemented in InfraMachine controllers:
 [implementation best practices]: ../best-practices.md
 [infrastructure Provider Security Guidance]: ../security-guidelines.md
 [Server Side Apply]: https://kubernetes.io/docs/reference/using-api/server-side-apply/
-[the DevMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/devmachinetemplate.go
+[the DevMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/webhooks/admission/devmachinetemplate.go
 [Cluster API v1.11 migration notes]: https://release-1-11.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.10-to-v1.11
 [Opt-in Autoscaling from Zero]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
 [InfraMachine: pausing]: #inframachine-pausing

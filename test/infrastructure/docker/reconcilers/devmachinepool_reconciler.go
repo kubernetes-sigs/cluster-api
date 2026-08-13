@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package reconcilers
 
 import (
 	"context"
@@ -38,8 +38,8 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends"
-	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/docker"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends"
+	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
@@ -51,8 +51,8 @@ const (
 	devMachinePoolControllerName = "devmachinepool-controller"
 )
 
-// DevMachinePoolReconciler reconciles a DevMachinePool object.
-type DevMachinePoolReconciler struct {
+// DevMachinePool reconciles a DevMachinePool object.
+type DevMachinePool struct {
 	Client           client.Client
 	ContainerRuntime container.Runtime
 
@@ -65,7 +65,7 @@ type DevMachinePoolReconciler struct {
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *DevMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *DevMachinePool) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.ContainerRuntime == nil {
 		return pkgerrors.New("Client and ContainerRuntime must not be nil")
 	}
@@ -116,7 +116,7 @@ func (r *DevMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctr
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 
-func (r *DevMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *DevMachinePool) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 
@@ -209,7 +209,7 @@ func (r *DevMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return backendReconciler.ReconcileNormal(ctx, cluster, machinePool, devMachinePool)
 }
 
-func (r *DevMachinePoolReconciler) backendReconcilerFactory() backends.DevMachinePoolBackendReconciler {
+func (r *DevMachinePool) backendReconcilerFactory() backends.DevMachinePoolBackendReconciler {
 	return dockerbackend.NewDockerMachinePoolBackEndReconciler(
 		r.Client,
 		r.ContainerRuntime,

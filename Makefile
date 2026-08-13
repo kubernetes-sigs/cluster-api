@@ -387,8 +387,8 @@ generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifest
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
 		paths=./ \
 		paths=./api/... \
-		paths=./internal/controllers/... \
-		paths=./internal/webhooks/... \
+		paths=./reconcilers/... \
+		paths=./webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \

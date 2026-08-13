@@ -59,8 +59,8 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/controllers"
-	infrawebhooks "sigs.k8s.io/cluster-api/test/infrastructure/docker/webhooks"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers"
+	infrawebhooks "sigs.k8s.io/cluster-api/test/infrastructure/docker/webhooks/admission"
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
@@ -435,7 +435,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&controllers.DevMachineReconciler{
+	if err := (&reconcilers.DevMachine{
 		Client:           mgr.GetClient(),
 		WatchFilterValue: watchFilterValue,
 		ContainerRuntime: runtimeClient,
@@ -450,7 +450,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&controllers.DevClusterReconciler{
+	if err := (&reconcilers.DevCluster{
 		Client:           mgr.GetClient(),
 		WatchFilterValue: watchFilterValue,
 		ContainerRuntime: runtimeClient,
@@ -463,7 +463,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&controllers.DevMachineTemplateReconciler{
+	if err := (&reconcilers.DevMachineTemplate{
 		Client:           mgr.GetClient(),
 		ContainerRuntime: runtimeClient,
 		WatchFilterValue: watchFilterValue,
@@ -475,7 +475,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&controllers.DevMachinePoolReconciler{
+		if err := (&reconcilers.DevMachinePool{
 			Client:           mgr.GetClient(),
 			ContainerRuntime: runtimeClient,
 			WatchFilterValue: watchFilterValue,

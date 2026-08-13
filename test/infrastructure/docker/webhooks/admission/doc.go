@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,17 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
-
-import (
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-)
-
-func init() {
-	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
-}
+// Package admission implements docker infrastructure webhooks.
+package admission

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package reconcilers
 
 import (
 	"context"
@@ -34,9 +34,9 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends"
-	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/docker"
-	inmemorybackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/inmemory"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends"
+	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends/docker"
+	inmemorybackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends/inmemory"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
@@ -48,8 +48,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// DevMachineReconciler reconciles a DevMachine object.
-type DevMachineReconciler struct {
+// DevMachine reconciles a DevMachine object.
+type DevMachine struct {
 	client.Client
 	controller capicontrollerutil.Controller
 
@@ -64,7 +64,7 @@ type DevMachineReconciler struct {
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *DevMachine) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.InMemoryManager == nil || r.APIServerMux == nil || r.ContainerRuntime == nil || r.ClusterCache == nil {
 		return pkgerrors.New("Client, InMemoryManager and APIServerMux, ContainerRuntime and ClusterCache must not be nil")
 	}
@@ -111,7 +111,7 @@ func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
 // Reconcile handles DevMachine events.
-func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *DevMachine) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 
 	// Fetch the DevMachine instance.
@@ -222,7 +222,7 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return backendReconciler.ReconcileNormal(ctx, cluster, devCluster, machine, devMachine)
 }
 
-func (r *DevMachineReconciler) backendReconcilerFactory(_ context.Context, devMachine *infrav1.DevMachine) backends.DevMachineBackendReconciler {
+func (r *DevMachine) backendReconcilerFactory(_ context.Context, devMachine *infrav1.DevMachine) backends.DevMachineBackendReconciler {
 	if devMachine.Spec.Backend.InMemory != nil {
 		return &inmemorybackend.MachineBackendReconciler{
 			Client:          r.Client,
@@ -241,7 +241,7 @@ func (r *DevMachineReconciler) backendReconcilerFactory(_ context.Context, devMa
 
 // DevClusterToDevMachines is a handler.ToRequestsFunc to be used to enqueue
 // requests for reconciliation of DevMachines.
-func (r *DevMachineReconciler) DevClusterToDevMachines(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *DevMachine) DevClusterToDevMachines(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 	c, ok := o.(*infrav1.DevCluster)
 	if !ok {

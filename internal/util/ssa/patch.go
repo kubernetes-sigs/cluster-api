@@ -47,9 +47,12 @@ func (w WithDryRun) ApplyToOptions(in *Options) {
 // The original and modified object will be used to generate an
 // identifier for the request.
 // The cache will be used to cache the result of the request.
+// In some cases we never read the modified object after ssa.Patch, so
+// SkipUpdateModifiedOnCacheHit allows to avoid unnecessary memory allocations.
 type WithCachingProxy struct {
-	Cache    Cache
-	Original client.Object
+	Cache                        Cache
+	Original                     client.Object
+	SkipUpdateModifiedOnCacheHit bool
 }
 
 // ApplyToOptions applies WithCachingProxy to the given Options.
@@ -57,14 +60,16 @@ func (w WithCachingProxy) ApplyToOptions(in *Options) {
 	in.WithCachingProxy = true
 	in.Cache = w.Cache
 	in.Original = w.Original
+	in.SkipUpdateModifiedOnCacheHit = w.SkipUpdateModifiedOnCacheHit
 }
 
 // Options contains the options for the Patch func.
 type Options struct {
-	WithDryRun       bool
-	WithCachingProxy bool
-	Cache            Cache
-	Original         client.Object
+	WithDryRun                   bool
+	WithCachingProxy             bool
+	Cache                        Cache
+	SkipUpdateModifiedOnCacheHit bool
+	Original                     client.Object
 }
 
 // Patch executes an SSA patch.
@@ -101,6 +106,11 @@ func Patch(ctx context.Context, c WriterWithScheme, fieldManager string, modifie
 		if options.Cache.Has(requestIdentifier, gvk.Kind) {
 			// Refresh the cache entry so we don't have to execute the Apply again after the cache TTL.
 			options.Cache.Add(requestIdentifier)
+
+			// In some cases we never read the modified object after ssa.Patch, so let's avoid unnecessary memory allocations.
+			if options.SkipUpdateModifiedOnCacheHit {
+				return nil
+			}
 
 			// If the request is cached return the original object.
 			if err := c.Scheme().Convert(options.Original, modified, ctx); err != nil {

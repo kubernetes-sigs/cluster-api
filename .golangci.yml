@@ -424,7 +424,7 @@ linters:
       - linters:
           - revive
         # Ignoring stylistic checks for generated code
-        path: bootstrap/kubeadm/pkg/types/upstreamv1beta3/conversion.go|bootstrap/kubeadm/pkg/types/upstreamv1beta4/conversion.go|internal/topology/upgrade/test/t1/v1beta1/conversion.go|internal/topology/upgrade/test/t2/v1beta1/conversion.go|test/infrastructure/docker/api/v1beta1/conversion.go
+        path: bootstrap/kubeadm/pkg/types/upstreamv1beta4/conversion.go|internal/topology/upgrade/test/t1/v1beta1/conversion.go|internal/topology/upgrade/test/t2/v1beta1/conversion.go|test/infrastructure/docker/api/v1beta1/conversion.go
         # By convention, receiver names in a method should reflect their identity.
         text: 'receiver-naming: receiver name'
       - linters:

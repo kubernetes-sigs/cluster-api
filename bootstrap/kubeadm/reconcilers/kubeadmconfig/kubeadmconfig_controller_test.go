@@ -54,8 +54,8 @@ import (
 )
 
 const (
-	testK8sVersion     = "v1.30.1"
-	testSkewK8sVersion = "v1.31.0"
+	testK8sVersion     = "v1.31.1"
+	testSkewK8sVersion = "v1.32.0"
 )
 
 // MachineToBootstrapMapFunc return kubeadm bootstrap configref name when configref exists.

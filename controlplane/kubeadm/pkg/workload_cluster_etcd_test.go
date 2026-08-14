@@ -48,7 +48,7 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 		{
 			name: "it should set external etcd configuration with external etcd",
 			clusterConfigurationData: utilyaml.Raw(`
-				apiVersion: kubeadm.k8s.io/v1beta3
+				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration
 				etcd:
 				  external: {}
@@ -61,7 +61,7 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 			},
 			wantClusterConfiguration: utilyaml.Raw(`
 				apiServer: {}
-				apiVersion: kubeadm.k8s.io/v1beta3
+				apiVersion: kubeadm.k8s.io/v1beta4
 				controllerManager: {}
 				dns: {}
 				etcd:
@@ -72,8 +72,9 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 				    - 1.2.3.4
 				    keyFile: /tmp/key_file.key
 				kind: ClusterConfiguration
-				kubernetesVersion: v1.23.1
+				kubernetesVersion: v1.31.1
 				networking: {}
+				proxy: {}
 				scheduler: {}
 				`),
 		},
@@ -95,7 +96,7 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.23.1"), w.UpdateEtcdExternalInKubeadmConfigMap(tt.externalEtcd))
+			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.31.1"), w.UpdateEtcdExternalInKubeadmConfigMap(tt.externalEtcd))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var actualConfig corev1.ConfigMap
@@ -117,43 +118,6 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 		localEtcd                bootstrapv1.LocalEtcd
 		wantClusterConfiguration string
 	}{
-		{
-			name:    "it should set local etcd configuration with local etcd (<1.31)",
-			version: semver.MustParse("1.23.1"),
-			clusterConfigurationData: utilyaml.Raw(`
-				apiVersion: kubeadm.k8s.io/v1beta3
-				kind: ClusterConfiguration
-				etcd:
-				  local: {}
-				`),
-			localEtcd: bootstrapv1.LocalEtcd{
-				ImageRepository: "example.com/k8s",
-				ImageTag:        "v1.6.0",
-				ExtraArgs: []bootstrapv1.Arg{
-					{
-						Name:  "foo",
-						Value: ptr.To("bar"),
-					},
-				},
-			},
-			wantClusterConfiguration: utilyaml.Raw(`
-				apiServer: {}
-				apiVersion: kubeadm.k8s.io/v1beta3
-				controllerManager: {}
-				dns: {}
-				etcd:
-				  local:
-				    dataDir: ""
-				    extraArgs:
-				      foo: bar
-				    imageRepository: example.com/k8s
-				    imageTag: v1.6.0
-				kind: ClusterConfiguration
-				kubernetesVersion: v1.23.1
-				networking: {}
-				scheduler: {}
-				`),
-		},
 		{
 			name:    "it should set local etcd configuration with local etcd (>=1.31)",
 			version: semver.MustParse("1.31.1"),

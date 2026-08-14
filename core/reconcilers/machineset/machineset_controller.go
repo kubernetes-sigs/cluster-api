@@ -1344,7 +1344,7 @@ func (r *Reconciler) updateLabelsAndAnnotations(ctx context.Context, c ssa.Write
 	updatedObject.SetLabels(machineLabelsFromMachineSet(machineSet))
 	updatedObject.SetAnnotations(machineAnnotationsFromMachineSet(machineSet))
 
-	return ssa.Patch(ctx, c, machineSetMetadataManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj})
+	return ssa.Patch(ctx, c, machineSetMetadataManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj, SkipUpdateModifiedOnCacheHit: true})
 }
 
 func (r *Reconciler) getOwnerMachineDeployment(ctx context.Context, machineSet *clusterv1.MachineSet) (*clusterv1.MachineDeployment, error) {

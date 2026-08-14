@@ -57,15 +57,6 @@ const (
 	// beta: v1.9
 	MachineSetPreflightChecks featuregate.Feature = "MachineSetPreflightChecks"
 
-	// MachineWaitForVolumeDetachConsiderVolumeAttachments is a feature gate that controls if the Machine controller
-	// also considers VolumeAttachments in addition to Nodes.status.volumesAttached when waiting for volumes to be detached.
-	//
-	// beta: v1.9
-	// GA: v1.13
-	//
-	// Deprecated: MachineWaitForVolumeDetachConsiderVolumeAttachments feature is now GA and the corresponding feature flag will be removed in the v1.15 release.
-	MachineWaitForVolumeDetachConsiderVolumeAttachments featuregate.Feature = "MachineWaitForVolumeDetachConsiderVolumeAttachments"
-
 	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
 	// instead of the default queue implementation.
 	//
@@ -105,7 +96,6 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
-	MachineWaitForVolumeDetachConsiderVolumeAttachments: {Default: true, PreRelease: featuregate.GA},
 	PriorityQueue:                  {Default: true, PreRelease: featuregate.GA},
 	ReconcilerRateLimiting:         {Default: true, PreRelease: featuregate.GA},
 	MachinePool:                    {Default: true, PreRelease: featuregate.Beta},

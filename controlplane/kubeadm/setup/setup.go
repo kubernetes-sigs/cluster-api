@@ -65,6 +65,7 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace 
 	return cache.Options{
 		DefaultNamespaces: watchNamespaces,
 		SyncPeriod:        &syncPeriod,
+		DefaultTransform:  cache.TransformStripManagedFields(),
 		ByObject: map[client.Object]cache.ByObject{
 			// Note: Only Secrets with the cluster name label are cached.
 			// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).
@@ -92,12 +93,18 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace 
 						m.Spec = clusterv1.MachineSpec{}
 						m.Status = clusterv1.MachineStatus{}
 					}
+					// Note: Intentionally keeping the managedFields for CP Machines for ssa.MitigateManagedFieldsIssue/MigrateManagedFields.
 					return in, nil
 				},
 			},
 			&bootstrapv1.KubeadmConfig{}: {
 				// Only cache CP Machine KubeadmConfigs.
 				Label: controlPlaneMachineSelector,
+				Transform: func(in any) (any, error) {
+					// Note: Intentionally keeping the managedFields for CP Machine KubeadmConfigs for ssa.MitigateManagedFieldsIssue/MigrateManagedFields.
+					// This Transform here is needed to overwrite the DefaultTransform above.
+					return in, nil
+				},
 			},
 		},
 		NewInformer: capicontrollerutil.NewInformerFunc(scheme, informerName),
@@ -222,6 +229,8 @@ func DynamicCacheOptions() map[dynamiccache.ObjectType]dynamiccache.ByObjectType
 		DynamicCacheInfraMachineObjectType: {
 			// Only cache CP Machine InfraMachines.
 			Label: controlPlaneMachineSelector,
+			// Note: Intentionally keeping the managedFields for CP Machine InfraMachines for ssa.MitigateManagedFieldsIssue/MigrateManagedFields.
+			// There is no Transform needed here as there is no DefaultTransform.
 		},
 		DynamicCacheInfraMachineTemplateObjectType: {
 			Transform: func(in any) (any, error) {

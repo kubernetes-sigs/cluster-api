@@ -48,6 +48,7 @@ type Reconciler struct {
 	WatchFilterValue string
 }
 
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil {
 		return pkgerrors.New("Client must not be nil")
@@ -70,6 +71,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	return nil
 }
 
+// Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 

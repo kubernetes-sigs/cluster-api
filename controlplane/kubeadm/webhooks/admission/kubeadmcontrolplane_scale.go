@@ -31,6 +31,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 )
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	v.decoder = admission.NewDecoder(mgr.GetScheme())
 

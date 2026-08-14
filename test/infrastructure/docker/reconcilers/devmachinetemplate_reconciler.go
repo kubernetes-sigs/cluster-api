@@ -46,7 +46,7 @@ type DevMachineTemplate struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates,verbs=get;list;watch;patch;update
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates/status,verbs=get;watch;list;update;patch
 
-// Reconcile reconciles the DevMachineTemplate to set the capcity information.
+// Reconcile reconciles the passed in object.
 func (r *DevMachineTemplate) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -87,7 +87,7 @@ func fetchSystemResourceCapacity(ctx context.Context, containerRuntime container
 	}, nil
 }
 
-// SetupWithManager will add watches for this controller.
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *DevMachineTemplate) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.ContainerRuntime == nil {
 		return pkgerrors.New("Client and ContainerRuntime must not be nil")

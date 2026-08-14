@@ -64,7 +64,7 @@ type DevMachinePool struct {
 	ssaCache        ssa.Cache
 }
 
-// SetupWithManager will add watches for this controller.
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *DevMachinePool) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.ContainerRuntime == nil {
 		return pkgerrors.New("Client and ContainerRuntime must not be nil")
@@ -116,6 +116,7 @@ func (r *DevMachinePool) SetupWithManager(ctx context.Context, mgr ctrl.Manager,
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 
+// Reconcile reconciles the passed in object.
 func (r *DevMachinePool) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)

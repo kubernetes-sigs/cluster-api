@@ -452,7 +452,7 @@ const (
 	defaultRequeueAfter = 10 * time.Second
 )
 
-// Reconcile reconciles Clusters and manages corresponding clusterAccessors.
+// Reconcile reconciles the passed in object.
 func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	clusterKey := client.ObjectKey{Namespace: req.Namespace, Name: req.Name}

@@ -33,6 +33,7 @@ import (
 // DevCluster implements a validating and defaulting webhook for DevCluster.
 type DevCluster struct{}
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *DevCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.DevCluster{}).
 		WithDefaulter(webhook).

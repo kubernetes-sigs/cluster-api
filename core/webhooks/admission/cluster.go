@@ -50,7 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
-// SetupWebhookWithManager sets up Cluster webhooks.
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	if webhook.decoder == nil {
 		webhook.decoder = admission.NewDecoder(mgr.GetScheme())

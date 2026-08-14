@@ -48,6 +48,7 @@ type reconcilerWrapper struct {
 	consistencyStore  consistencyStore
 }
 
+// Reconcile reconciles the passed in object.
 func (r *reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	if !feature.Gates.Enabled(feature.ReconcilerRateLimiting) {
 		return r.reconciler.Reconcile(ctx, req)

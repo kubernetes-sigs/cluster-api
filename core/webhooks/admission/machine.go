@@ -36,6 +36,7 @@ import (
 
 const defaultNodeDeletionTimeoutSeconds = int32(10)
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.Machine{}).
 		WithDefaulter(webhook).

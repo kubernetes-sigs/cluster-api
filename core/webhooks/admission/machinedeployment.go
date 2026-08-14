@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 )
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	if webhook.decoder == nil {
 		webhook.decoder = admission.NewDecoder(mgr.GetScheme())

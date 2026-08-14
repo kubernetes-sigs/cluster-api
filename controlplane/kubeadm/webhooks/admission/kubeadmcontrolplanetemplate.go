@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 )
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *KubeadmControlPlaneTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &controlplanev1.KubeadmControlPlaneTemplate{}).
 		WithValidator(webhook).

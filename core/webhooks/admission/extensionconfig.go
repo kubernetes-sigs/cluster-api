@@ -38,6 +38,7 @@ import (
 // ExtensionConfig is the webhook for runtimev1.ExtensionConfig.
 type ExtensionConfig struct{}
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &runtimev1.ExtensionConfig{}).
 		WithDefaulter(webhook).

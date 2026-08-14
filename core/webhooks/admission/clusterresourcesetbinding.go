@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 )
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &addonsv1.ClusterResourceSetBinding{}).
 		WithValidator(webhook).

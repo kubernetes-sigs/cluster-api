@@ -59,7 +59,7 @@ type DevCluster struct {
 	APIServerMux     *inmemoryserver.WorkloadClustersMux
 }
 
-// SetupWithManager will add watches for this controller.
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *DevCluster) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.InMemoryManager == nil || r.APIServerMux == nil || r.ContainerRuntime == nil {
 		return pkgerrors.New("Client, InMemoryManager and APIServerMux, ContainerRuntime must not be nil")
@@ -86,6 +86,7 @@ func (r *DevCluster) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;update;patch
 
+// Reconcile reconciles the passed in object.
 func (r *DevCluster) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)

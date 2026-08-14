@@ -47,6 +47,7 @@ func SetMinNodeStartupTimeoutSeconds(d int32) {
 	minNodeStartupTimeoutSeconds = d
 }
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachineHealthCheck{}).
 		WithDefaulter(webhook).

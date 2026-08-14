@@ -62,6 +62,7 @@ type Reconciler struct {
 	WatchFilterValue string
 }
 
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil {
 		return pkgerrors.New("Client and APIReader must not be nil")

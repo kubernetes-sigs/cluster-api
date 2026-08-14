@@ -33,6 +33,7 @@ import (
 // ClusterResourceSet implements a validation and defaulting webhook for ClusterResourceSet.
 type ClusterResourceSet struct{}
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &addonsv1.ClusterResourceSet{}).
 		WithDefaulter(webhook).

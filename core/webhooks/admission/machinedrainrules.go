@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 )
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *MachineDrainRule) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachineDrainRule{}).
 		WithValidator(webhook).

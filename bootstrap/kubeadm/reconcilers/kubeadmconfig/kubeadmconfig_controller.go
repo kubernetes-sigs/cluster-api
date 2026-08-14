@@ -150,7 +150,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	return nil
 }
 
-// Reconcile handles KubeadmConfig events.
+// Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 

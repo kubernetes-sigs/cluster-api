@@ -349,11 +349,6 @@ linters:
         text: 'imported as ".*" but must be ".*" according to config'
         path: util/deprecated/v1beta1/.*\.go$
 
-      # TODO: Excludes that can be removed once the code organization proposal has been implemented.
-      - linters:
-          - revive
-        text: 'exported: exported method .*\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported'
-
       # Exclude rules that we are going to keep permanently.
       - linters:
           - revive

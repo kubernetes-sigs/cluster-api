@@ -100,6 +100,7 @@ type Reconciler struct {
 	ssaCache ssa.Cache
 }
 
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil {
 		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil")
@@ -262,6 +263,7 @@ func machineDeploymentChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logge
 	}
 }
 
+// Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}

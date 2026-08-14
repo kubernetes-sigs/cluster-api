@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	if webhook.decoder == nil {
 		webhook.decoder = admission.NewDecoder(mgr.GetScheme())

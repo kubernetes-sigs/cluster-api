@@ -30,6 +30,7 @@ import (
 // DevMachine implements a validating and defaulting webhook for DevMachine.
 type DevMachine struct{}
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *DevMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.DevMachine{}).
 		WithDefaulter(webhook).

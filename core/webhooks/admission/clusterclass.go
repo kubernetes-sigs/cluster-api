@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.ClusterClass{}).
 		WithValidator(webhook).

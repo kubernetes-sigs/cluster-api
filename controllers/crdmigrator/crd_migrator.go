@@ -111,6 +111,7 @@ type ByObjectConfig struct {
 	UseStatusForStorageVersionMigration bool
 }
 
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, controllerOptions controller.Options) error {
 	if err := r.setup(ctx, mgr.GetScheme()); err != nil {
 		return err
@@ -176,6 +177,7 @@ func (r *CRDMigrator) setup(ctx context.Context, scheme *runtime.Scheme) error {
 	return nil
 }
 
+// Reconcile reconciles the passed in object.
 func (r *CRDMigrator) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	migrationConfig, ok := r.configByCRDName[req.Name]
 	if !ok {

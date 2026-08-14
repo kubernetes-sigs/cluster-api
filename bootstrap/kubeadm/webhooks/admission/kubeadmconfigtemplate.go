@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/topology"
 )
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *KubeadmConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &bootstrapv1.KubeadmConfigTemplate{}).
 		WithDefaulter(webhook).

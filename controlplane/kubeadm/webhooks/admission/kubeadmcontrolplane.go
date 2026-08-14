@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &controlplanev1.KubeadmControlPlane{}).
 		WithDefaulter(webhook).

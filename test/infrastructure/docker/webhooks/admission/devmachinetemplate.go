@@ -34,6 +34,7 @@ import (
 // +kubebuilder:object:generate=false
 type DevMachineTemplate struct{}
 
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *DevMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.DevMachineTemplate{}).
 		WithDefaulter(webhook).

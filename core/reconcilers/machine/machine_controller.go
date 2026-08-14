@@ -120,6 +120,7 @@ type Reconciler struct {
 	predicateLog *logr.Logger
 }
 
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil || r.RemoteConditionsGracePeriod < 2*time.Minute {
 		// A minimum of 2m is enforced to ensure the ClusterCache always drops the connection before the grace period is reached.
@@ -187,6 +188,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	return nil
 }
 
+// Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ctrl.Result, reterr error) {
 	// Fetch the Machine instance
 	m := &clusterv1.Machine{}

@@ -63,7 +63,7 @@ type DevMachine struct {
 	DockerMachineTaskManager *dockerbackend.TaskManager
 }
 
-// SetupWithManager will add watches for this controller.
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *DevMachine) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.InMemoryManager == nil || r.APIServerMux == nil || r.ContainerRuntime == nil || r.ClusterCache == nil {
 		return pkgerrors.New("Client, InMemoryManager and APIServerMux, ContainerRuntime and ClusterCache must not be nil")
@@ -110,7 +110,7 @@ func (r *DevMachine) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch;patch;
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
-// Reconcile handles DevMachine events.
+// Reconcile reconciles the passed in object.
 func (r *DevMachine) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 

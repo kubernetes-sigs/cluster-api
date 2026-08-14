@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 )
 
-// SetupWebhookWithManager sets up IPAddress webhooks.
+// SetupWebhookWithManager sets up the webhook with the Manager.
 func (webhook *IPAddress) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &ipamv1.IPAddress{}).
 		WithValidator(webhook).

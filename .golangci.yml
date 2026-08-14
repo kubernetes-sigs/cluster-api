@@ -310,11 +310,6 @@ linters:
       - zz_generated.*\.go$
       - vendored_openapi\.go$
     rules:
-      # TODO: Excludes that can be removed as part of the Cluster API v1.15 release.
-      - linters:
-          - staticcheck
-        text: 'SA1019: feature.MachineWaitForVolumeDetachConsiderVolumeAttachments is deprecated'
-
       # TODO: Excludes that can be removed once we bumped to controller-runtime v0.25.
       - linters:
           - staticcheck

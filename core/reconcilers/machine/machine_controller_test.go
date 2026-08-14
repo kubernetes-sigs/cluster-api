@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
@@ -48,7 +47,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -2289,7 +2287,6 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		name                     string
 		node                     *corev1.Node
 		remoteObjects            []client.Object
-		featureGateDisabled      bool
 		expected                 ctrl.Result
 		expectedDeletingReason   string
 		expectedDeletingMessage  string
@@ -2445,28 +2442,6 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
-		},
-		{
-			name: "Node has volumes attached according to volumeattachments (but ignored because feature gate is disabled)",
-			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
-				Status: corev1.NodeStatus{
-					Conditions: []corev1.NodeCondition{
-						{
-							Type:   corev1.NodeReady,
-							Status: corev1.ConditionTrue,
-						},
-					},
-				},
-			},
-			remoteObjects: []client.Object{
-				volumeAttachment,
-				persistentVolume,
-			},
-			featureGateDisabled: true,
-			expected:            ctrl.Result{},
 		},
 		{
 			name: "Node has volumes attached according to volumeattachments but without a pv",
@@ -2650,10 +2625,6 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			if tt.featureGateDisabled {
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineWaitForVolumeDetachConsiderVolumeAttachments, false)
-			}
 
 			fakeClient := fake.NewClientBuilder().WithObjects(testCluster).Build()
 

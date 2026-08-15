@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -73,9 +74,10 @@ const (
 
 // Reconciler reconciles a MachinePool object.
 type Reconciler struct {
-	Client       client.Client
-	APIReader    client.Reader
-	ClusterCache clustercache.ClusterCache
+	Client          client.Client
+	APIReader       client.Reader
+	ClusterCache    clustercache.ClusterCache
+	PreflightChecks sets.Set[clusterv1.MachinePoolPreflightCheck]
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -188,6 +190,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 				clusterv1.BootstrapReadyV1Beta1Condition,
 				clusterv1.InfrastructureReadyV1Beta1Condition,
 				clusterv1.ReplicasReadyV1Beta1Condition,
+				clusterv1.PreflightCheckSucceededV1Beta1Condition,
 			),
 		)
 
@@ -199,6 +202,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 				clusterv1.BootstrapReadyV1Beta1Condition,
 				clusterv1.InfrastructureReadyV1Beta1Condition,
 				clusterv1.ReplicasReadyV1Beta1Condition,
+				clusterv1.PreflightCheckSucceededV1Beta1Condition,
 			}},
 			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedCondition,
@@ -228,6 +232,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	reconcileNormal := append(alwaysReconcile,
 		wrapErrMachinePoolReconcileFunc(r.reconcileBootstrap, "failed to reconcile bootstrap config"),
 		wrapErrMachinePoolReconcileFunc(r.reconcileInfrastructure, "failed to reconcile infrastructure"),
+		wrapErrMachinePoolReconcileFunc(r.reconcilePreflightChecks, "failed to reconcile preflight checks"),
 		wrapErrMachinePoolReconcileFunc(r.getMachinesForMachinePool, "failed to get Machines for MachinePool"),
 		wrapErrMachinePoolReconcileFunc(r.reconcileNodeRefs, "failed to reconcile nodeRefs"),
 		wrapErrMachinePoolReconcileFunc(r.setMachinesUptoDate, "failed to set machines up to date"),

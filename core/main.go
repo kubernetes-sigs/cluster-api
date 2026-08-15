@@ -137,6 +137,7 @@ var (
 	clusterResourceSetConcurrency    int
 	machineHealthCheckConcurrency    int
 	machineSetPreflightChecks        []string
+	machinePoolPreflightChecks       []string
 	skipCRDMigrationPhases           []string
 	additionalSyncMachineLabels      []string
 	additionalSyncMachineAnnotations []string
@@ -238,6 +239,13 @@ func InitFlags(fs *pflag.FlagSet) {
 		"List of MachineSet preflight checks that should be run. Per default all of them are enabled."+
 			"Set this flag to only enable a subset of them. The MachineSet preflight checks can be then also disabled"+
 			"on MachineSets via the 'machineset.cluster.x-k8s.io/skip-preflight-checks' annotation."+
+			"Valid values are: All or a list of KubeadmVersionSkew, KubernetesVersionSkew, ControlPlaneIsStable, ControlPlaneVersionSkew")
+
+	fs.StringSliceVar(&machinePoolPreflightChecks, "machinepool-preflight-checks", []string{
+		string(clusterv1.MachinePoolPreflightCheckAll)},
+		"List of MachinePool preflight checks that should be run. Per default all of them are enabled."+
+			"Set this flag to only enable a subset of them. The MachinePool preflight checks can be then also disabled"+
+			"on MachinePools via the 'machinepool.cluster.x-k8s.io/skip-preflight-checks' annotation."+
 			"Valid values are: All or a list of KubeadmVersionSkew, KubernetesVersionSkew, ControlPlaneIsStable, ControlPlaneVersionSkew")
 
 	fs.StringSliceVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
@@ -700,10 +708,30 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
+		machinePoolPreflightChecksSet := sets.Set[clusterv1.MachinePoolPreflightCheck]{}
+		supportedMachinePoolPreflightChecks := sets.New[clusterv1.MachinePoolPreflightCheck](
+			clusterv1.MachinePoolPreflightCheckAll,
+			clusterv1.MachinePoolPreflightCheckKubeadmVersionSkew,
+			clusterv1.MachinePoolPreflightCheckKubernetesVersionSkew,
+			clusterv1.MachinePoolPreflightCheckControlPlaneIsStable,
+			clusterv1.MachinePoolPreflightCheckControlPlaneVersionSkew,
+		)
+		for _, c := range machinePoolPreflightChecks {
+			if c == "" {
+				continue
+			}
+			preflightCheck := clusterv1.MachinePoolPreflightCheck(c)
+			if !supportedMachinePoolPreflightChecks.Has(preflightCheck) {
+				setupLog.Error(err, "Unable to create controller: invalid preflight check configured via --machinepool-preflight-checks", "controller", "MachinePool")
+				os.Exit(1)
+			}
+			machinePoolPreflightChecksSet.Insert(preflightCheck)
+		}
 		if err := (&machinepool.Reconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			ClusterCache:     clusterCache,
+			PreflightChecks:  machinePoolPreflightChecksSet,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(machinePoolConcurrency)); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MachinePool")

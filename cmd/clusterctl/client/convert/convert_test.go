@@ -27,11 +27,14 @@ import (
 
 func TestConverter_Convert(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
-		toVersion   string
-		wantErr     bool
-		wantV1Beta2 bool
+		name          string
+		input         string
+		toVersion     string
+		wantErr       bool
+		wantV1Beta2   bool
+		wantConverted int
+		wantPassed    int
+		wantList      bool
 	}{
 		{
 			name: "convert v1beta1 cluster to v1beta2",
@@ -46,8 +49,10 @@ spec:
       cidrBlocks:
       - 192.168.0.0/16
 `,
-			toVersion:   "v1beta2",
-			wantV1Beta2: true,
+			toVersion:     "v1beta2",
+			wantV1Beta2:   true,
+			wantConverted: 1,
+			wantPassed:    0,
 		},
 		{
 			name: "pass through v1beta2 cluster unchanged",
@@ -62,7 +67,9 @@ spec:
       cidrBlocks:
       - 192.168.0.0/16
 `,
-			toVersion: "v1beta2",
+			toVersion:     "v1beta2",
+			wantConverted: 0,
+			wantPassed:    1,
 		},
 		{
 			name: "pass through non-CAPI resource",
@@ -74,7 +81,9 @@ metadata:
 data:
   key: value
 `,
-			toVersion: "v1beta2",
+			toVersion:     "v1beta2",
+			wantConverted: 0,
+			wantPassed:    1,
 		},
 		{
 			name: "convert multi-document YAML",
@@ -90,8 +99,30 @@ metadata:
   name: test-machine
   namespace: default
 `,
-			toVersion:   "v1beta2",
-			wantV1Beta2: true,
+			toVersion:     "v1beta2",
+			wantV1Beta2:   true,
+			wantConverted: 2,
+			wantPassed:    0,
+		},
+		{
+			name: "convert resources in generic List",
+			input: `apiVersion: v1
+kind: List
+items:
+- apiVersion: cluster.x-k8s.io/v1beta1
+  kind: Cluster
+  metadata:
+    name: test-cluster
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: test-config
+`,
+			toVersion:     "v1beta2",
+			wantV1Beta2:   true,
+			wantConverted: 1,
+			wantPassed:    1,
+			wantList:      true,
 		},
 		{
 			name: "invalid YAML",
@@ -117,10 +148,14 @@ kind: Cluster
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result.Output).ToNot(BeEmpty())
+			g.Expect(result.Converted).To(Equal(tt.wantConverted))
+			g.Expect(result.PassedThrough).To(Equal(tt.wantPassed))
 
 			if tt.wantV1Beta2 {
 				g.Expect(string(result.Output)).To(ContainSubstring("cluster.x-k8s.io/v1beta2"))
-				g.Expect(result.Converted).To(BeNumerically(">", 0))
+			}
+			if tt.wantList {
+				g.Expect(string(result.Output)).To(ContainSubstring("kind: List"))
 			}
 		})
 	}

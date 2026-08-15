@@ -316,6 +316,20 @@ spec:
     MachineDeploymentClass because another `VSphereMachineTemplate` will be generated for each MachineDeployment using this class.
   * It does not make sense patching `KubeadmControlPlaneTemplate.metadata.labels` because this field will be ignored 
      when generating the `KubeadmControlPlane` object for a Cluster (`KubeadmControlPlane` derives from `KubeadmControlPlaneTemplate.spec.template`).
+* A JSON patch that targets `metadata.labels` or `metadata.annotations` as a whole (e.g. 
+  `path: /spec/template/metadata/labels`) replaces the entire map, the same way a patch fully replaces any 
+  other field it targets. It does not merge with labels/annotations the topology has already set, so it can 
+  silently drop them. To add or change a single label/annotation without touching the others, target that 
+  specific key instead:
+  ```yaml
+        jsonPatches:
+        - op: add
+          path: /spec/template/metadata/labels/example.com~1cost-center
+          value: eng-42
+  ```
+  (Per [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901#section-3), `/` in a label/annotation key must be
+  escaped as `~1` in the JSON pointer path, e.g. `example.com/cost-center` becomes
+  `example.com~1cost-center`.)
 * Only `add`, `remove` and `replace` operations are supported.
 * It's only possible to append and prepend to arrays. Insertions at a specific index are 
   not supported.

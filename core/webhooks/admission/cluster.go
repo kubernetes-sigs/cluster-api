@@ -680,7 +680,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 	// Validate ControlPlane MachineHealthCheck if defined.
 	if cluster.Spec.Topology.ControlPlane.HealthCheck.IsDefined() {
 		// Ensure ControlPlane does not define a MachineHealthCheck if the ClusterClass does not define MachineInfrastructure.
-		if !clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
+		if !clusterClass.Spec.ControlPlane.MachineInfrastructure.IsDefined() {
 			allErrs = append(allErrs, field.Forbidden(
 				fldPath,
 				"can be only set if spec.controlPlane.machineInfrastructure is set in ClusterClass",

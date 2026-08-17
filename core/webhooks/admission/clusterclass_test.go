@@ -714,6 +714,25 @@ func TestClusterClassValidation(t *testing.T) {
 				Build(),
 		},
 		{
+			name: "create pass if valid machineHealthCheck defined for ControlPlane with inline MachineInfrastructure template set",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineInlineTemplate(clusterv1.ClusterClassTemplate{
+					APIVersion: builder.InfrastructureGroupVersion.String(),
+					Kind:       "GenericInfrastructureMachineTemplate",
+				}).
+				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To(int32(60)),
+					},
+				}).
+				Build(),
+		},
+		{
 			name: "create fail if MachineHealthCheck defined for ControlPlane with MachineInfrastructure unset",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(

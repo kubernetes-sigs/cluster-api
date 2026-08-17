@@ -1690,6 +1690,29 @@ _Appears in:_
 | `schema` _[VariableSchema](#variableschema)_ | schema defines the schema of the variable. |  | Required: \{\} <br /> |
 
 
+#### ClusterClassTemplate
+
+
+
+ClusterClassTemplate is a minimal ClusterClass template.
+
+
+
+_Appears in:_
+- [ControlPlaneClass](#controlplaneclass)
+- [ControlPlaneClassMachineInfrastructureTemplate](#controlplaneclassmachineinfrastructuretemplate)
+- [InfrastructureClass](#infrastructureclass)
+- [MachineDeploymentClassBootstrapTemplate](#machinedeploymentclassbootstraptemplate)
+- [MachineDeploymentClassInfrastructureTemplate](#machinedeploymentclassinfrastructuretemplate)
+- [MachinePoolClassBootstrapTemplate](#machinepoolclassbootstraptemplate)
+- [MachinePoolClassInfrastructureTemplate](#machinepoolclassinfrastructuretemplate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | apiVersion of the template.<br />apiVersion must be fully qualified domain name followed by / and a version. |  | MaxLength: 317 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
+| `kind` _string_ | kind of the template.<br />kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character. |  | MaxLength: 63 <br />MinLength: 1 <br />Pattern: `^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$` <br />Required: \{\} <br /> |
+
+
 #### ClusterClassTemplateReference
 
 
@@ -2168,7 +2191,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `metadata` _[ObjectMeta](#objectmeta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
-| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef contains the reference to a provider-specific control plane template. |  | Required: \{\} <br /> |
+| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef contains the reference to a provider-specific control plane template. |  | Optional: \{\} <br /> |
+| `template` _[ClusterClassTemplate](#clusterclasstemplate)_ | template contains a provider-specific control plane template. |  | Optional: \{\} <br /> |
 | `machineInfrastructure` _[ControlPlaneClassMachineInfrastructureTemplate](#controlplaneclassmachineinfrastructuretemplate)_ | machineInfrastructure defines the metadata and infrastructure information<br />for control plane machines.<br />This field is supported if and only if the control plane provider template<br />referenced above is Machine based and supports setting replicas. |  | Optional: \{\} <br /> |
 | `healthCheck` _[ControlPlaneClassHealthCheck](#controlplaneclasshealthcheck)_ | healthCheck defines a MachineHealthCheck for this ControlPlaneClass.<br />This field is supported if and only if the ControlPlane provider template<br />referenced above is Machine based and supports setting replicas. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `naming` _[ControlPlaneClassNamingSpec](#controlplaneclassnamingspec)_ | naming allows changing the naming pattern used when creating the control plane provider object. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
@@ -2282,7 +2306,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef is a required reference to the template for a MachineInfrastructure of a ControlPlane. |  | Required: \{\} <br /> |
+| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef contains the reference to the template for a MachineInfrastructure of a ControlPlane. |  | Optional: \{\} <br /> |
+| `template` _[ClusterClassTemplate](#clusterclasstemplate)_ | template contains a provider-specific template for a MachineInfrastructure of a ControlPlane. |  | Optional: \{\} <br /> |
 
 
 #### ControlPlaneClassNamingSpec
@@ -2521,7 +2546,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef contains the reference to a provider-specific infrastructure cluster template. |  | Required: \{\} <br /> |
+| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef contains the reference to a provider-specific infrastructure cluster template. |  | Optional: \{\} <br /> |
+| `template` _[ClusterClassTemplate](#clusterclasstemplate)_ | template contains a provider-specific infrastructure cluster template. |  | Optional: \{\} <br /> |
 | `naming` _[InfrastructureClassNamingSpec](#infrastructureclassnamingspec)_ | naming allows changing the naming pattern used when creating the infrastructure cluster object. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 
 
@@ -2797,7 +2823,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef is a required reference to the BootstrapTemplate for a MachineDeployment. |  | Required: \{\} <br /> |
+| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef contains the reference to the BootstrapTemplate for a MachineDeployment. |  | Optional: \{\} <br /> |
+| `template` _[ClusterClassTemplate](#clusterclasstemplate)_ | template contains a provider-specific BootstrapTemplate for a MachineDeployment. |  | Optional: \{\} <br /> |
 
 
 #### MachineDeploymentClassHealthCheck
@@ -2887,7 +2914,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef is a required reference to the InfrastructureTemplate for a MachineDeployment. |  | Required: \{\} <br /> |
+| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef contains the reference to the InfrastructureTemplate for a MachineDeployment. |  | Optional: \{\} <br /> |
+| `template` _[ClusterClassTemplate](#clusterclasstemplate)_ | template contains a provider-specific InfrastructureTemplate for a MachineDeployment. |  | Optional: \{\} <br /> |
 
 
 #### MachineDeploymentClassMachineDeletionSpec
@@ -3860,7 +3888,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef is a required reference to the BootstrapTemplate for a MachinePool. |  | Required: \{\} <br /> |
+| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef contains the reference to the BootstrapTemplate for a MachinePool. |  | Optional: \{\} <br /> |
+| `template` _[ClusterClassTemplate](#clusterclasstemplate)_ | template contains a provider-specific BootstrapTemplate for a MachinePool. |  | Optional: \{\} <br /> |
 
 
 #### MachinePoolClassInfrastructureTemplate
@@ -3876,7 +3905,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef is a required reference to the InfrastructureTemplate for a MachinePool. |  | Required: \{\} <br /> |
+| `templateRef` _[ClusterClassTemplateReference](#clusterclasstemplatereference)_ | templateRef contains the reference to the InfrastructureTemplate for a MachinePool. |  | Optional: \{\} <br /> |
+| `template` _[ClusterClassTemplate](#clusterclasstemplate)_ | template contains a provider-specific InfrastructureTemplate for a MachinePool. |  | Optional: \{\} <br /> |
 
 
 #### MachinePoolClassMachineDeletionSpec

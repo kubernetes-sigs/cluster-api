@@ -22,8 +22,8 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/klog/v2"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 )
 
@@ -35,7 +35,26 @@ func (r *Reconciler) getReference(ctx context.Context, ref *corev1.ObjectReferen
 
 	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {
-		return nil, pkgerrors.Wrapf(err, "failed to retrieve %s %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
+		return nil, err
 	}
 	return obj, nil
+}
+
+// getTemplate gets the object referenced in ref or creates a minimal Unstructured based on template.
+func (r *Reconciler) getTemplate(ctx context.Context, templateRef clusterv1.ClusterClassTemplateReference, namespace string, template clusterv1.ClusterClassTemplate) (*unstructured.Unstructured, error) {
+	switch {
+	case templateRef.IsDefined():
+		obj, err := external.Get(ctx, r.Client, templateRef.ToObjectReference(namespace))
+		if err != nil {
+			return nil, err
+		}
+		return obj, nil
+	case template.IsDefined():
+		u := &unstructured.Unstructured{}
+		u.SetAPIVersion(template.APIVersion)
+		u.SetKind(template.Kind)
+		return u, nil
+	}
+
+	return nil, pkgerrors.New("neither templateRef nor template is set")
 }

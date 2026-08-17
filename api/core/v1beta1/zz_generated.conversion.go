@@ -1749,6 +1749,7 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *v1be
 		return err
 	}
 	// WARNING: in.TemplateRef requires manual conversion: does not exist in peer-type
+	// WARNING: in.Template requires manual conversion: does not exist in peer-type
 	// WARNING: in.MachineInfrastructure requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate vs *sigs.k8s.io/cluster-api/api/core/v1beta1.LocalObjectTemplate)
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Naming requires manual conversion: does not exist in peer-type

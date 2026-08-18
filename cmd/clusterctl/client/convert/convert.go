@@ -19,8 +19,10 @@ package convert
 
 import (
 	pkgerrors "github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 )
@@ -73,6 +75,16 @@ func (c *Converter) Convert(input []byte, toVersion string) (Result, error) {
 	var converted, passedThrough int
 	for i := range docs {
 		doc := &docs[i]
+		if isGenericList(doc.gvk) {
+			docConverted, docPassedThrough, err := c.convertGenericList(doc, targetGV)
+			if err != nil {
+				return Result{}, err
+			}
+			converted += docConverted
+			passedThrough += docPassedThrough
+			continue
+		}
+
 		if !doc.convertible {
 			passedThrough++
 			continue
@@ -96,4 +108,55 @@ func (c *Converter) Convert(input []byte, toVersion string) (Result, error) {
 		Converted:     converted,
 		PassedThrough: passedThrough,
 	}, nil
+}
+
+func (c *Converter) convertGenericList(doc *document, targetGV schema.GroupVersion) (int, int, error) {
+	obj, ok := doc.object.(*unstructured.Unstructured)
+	if !ok {
+		return 0, 0, pkgerrors.Errorf("failed to convert List at index %d: expected unstructured object, got %T", doc.index, doc.object)
+	}
+	list, err := obj.ToList()
+	if err != nil {
+		return 0, 0, pkgerrors.Wrapf(err, "failed to decode List at index %d", doc.index)
+	}
+
+	typedDecoder := serializer.NewCodecFactory(c.scheme).UniversalDeserializer()
+	items := make([]interface{}, len(list.Items))
+	var converted, passedThrough int
+	for i := range list.Items {
+		gvk := list.Items[i].GroupVersionKind()
+		if !c.sourceGVs[gvk.GroupVersion()] {
+			items[i] = list.Items[i].Object
+			passedThrough++
+			continue
+		}
+
+		rawItem, err := list.Items[i].MarshalJSON()
+		if err != nil {
+			return 0, 0, pkgerrors.Wrapf(err, "failed to marshal List item at index %d", i)
+		}
+		item := runtime.Object(&list.Items[i])
+		if typedItem, _, decodeErr := typedDecoder.Decode(rawItem, &gvk, nil); decodeErr == nil {
+			item = typedItem
+		}
+		convertedItem, err := convertResource(item, targetGV, c.scheme)
+		if err != nil {
+			return 0, 0, pkgerrors.Wrapf(err, "failed to convert List item %s at index %d", gvk.String(), i)
+		}
+		items[i], err = runtime.DefaultUnstructuredConverter.ToUnstructured(convertedItem)
+		if err != nil {
+			return 0, 0, pkgerrors.Wrapf(err, "failed to serialize List item at index %d", i)
+		}
+		converted++
+	}
+
+	if converted == 0 {
+		return 0, 1, nil
+	}
+	obj.Object["items"] = items
+	return converted, passedThrough, nil
+}
+
+func isGenericList(gvk schema.GroupVersionKind) bool {
+	return gvk.Group == "" && gvk.Version == "v1" && gvk.Kind == "List"
 }

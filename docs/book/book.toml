@@ -12,6 +12,8 @@ additional-css = ["theme/css/custom.css"]
 
 [output.html.redirect]
 "/tasks/upgrade.html" = "/tasks/upgrading-cluster-api-versions.html"
+"/developer/providers/migrations/v1.10-to-v1.11.html" = "https://release-1-11.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.10-to-v1.11"
+"/developer/providers/migrations/v1.11-to-v1.12.html" = "https://release-1-12.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.11-to-v1.12"
 "/agenda.html" = "/agenda/2026.html"
 "/agenda/2026.html" = "https://docs.google.com/document/d/1fKOcbdlRNlpsVViv2cyKNv3HUHxpf-C4EIZVStsfTT0"
 "/agenda/2025.html" = "https://docs.google.com/document/d/1GgFbaYs-H6J5HSQ6a7n4aKpk0nDLE2hgG2NSOM9YIRw"

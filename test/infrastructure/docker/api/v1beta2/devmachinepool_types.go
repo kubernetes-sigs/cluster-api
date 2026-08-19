@@ -54,7 +54,7 @@ const (
 	DevMachinePoolReadyUnknownReason = clusterv1.ReadyUnknownReason
 )
 
-// +kubebuilder:resource:path=devmachinepools,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=devmachinepools,shortName=devmp,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
@@ -100,10 +100,16 @@ type DockerMachinePoolBackendSpec struct {
 type DevMachinePoolSpec struct {
 	// ProviderID is the identification ID of the Machine Pool
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	ProviderID string `json:"providerID,omitempty"`
 
 	// ProviderIDList is the list of identification IDs of machine instances managed by this Machine Pool
 	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=10000
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=512
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 
 	// backend contains the details used to build a replica machine within the Machine Pool
@@ -128,6 +134,11 @@ type DevMachinePoolStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
+	// initialization provides observations of the DevMachinePool initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
+	// +optional
+	Initialization DevMachinePoolInitializationStatus `json:"initialization,omitempty,omitzero"`
+
 	// Ready denotes that the machine pool is ready
 	// +optional
 	Ready bool `json:"ready"`
@@ -147,6 +158,15 @@ type DevMachinePoolStatus struct {
 	// Instances contains the status for each instance in the pool.
 	// +optional
 	Instances []DevMachinePoolInstanceStatus `json:"instances,omitempty"`
+}
+
+// DevMachinePoolInitializationStatus provides observations of the DevMachinePool initialization process.
+// +kubebuilder:validation:MinProperties=1
+type DevMachinePoolInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the MachinePool's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract and is used to orchestrate initial MachinePool provisioning.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // DevMachinePoolInstanceStatus contains status information about a DevMachinePool instances.

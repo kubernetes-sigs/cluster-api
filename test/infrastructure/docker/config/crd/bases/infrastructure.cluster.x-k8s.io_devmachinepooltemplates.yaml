@@ -127,13 +127,19 @@ spec:
                       providerID:
                         description: ProviderID is the identification ID of the Machine
                           Pool
+                        maxLength: 512
+                        minLength: 1
                         type: string
                       providerIDList:
                         description: ProviderIDList is the list of identification
                           IDs of machine instances managed by this Machine Pool
                         items:
+                          maxLength: 512
+                          minLength: 1
                           type: string
+                        maxItems: 10000
                         type: array
+                        x-kubernetes-list-type: atomic
                     type: object
                 required:
                 - spec

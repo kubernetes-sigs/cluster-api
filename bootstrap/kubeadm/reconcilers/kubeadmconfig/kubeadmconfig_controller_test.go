@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -519,6 +520,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 		SecretCachingClient: myclient,
 		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
+		controller:          capicontrollerutil.NewFakeController(),
 	}
 
 	request := ctrl.Request{
@@ -530,6 +532,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	s := &corev1.Secret{}
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: configName}, s)).ToNot(Succeed())
 
+	triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "control-plane-init-cfg")
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
@@ -551,7 +554,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 }
 
 // If a control plane has no JoinConfiguration, then we will create a default and no error will occur.
-func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidConfiguration(t *testing.T) {
+func TestKubeadmConfigReconciler_Reconcile_NoErrorIfJoiningControlPlaneHasInvalidConfiguration(t *testing.T) {
 	g := NewWithT(t)
 	// TODO: extract this kind of code into a setup function that puts the state of objects into an initialized controlplane (implies secrets exist)
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
@@ -580,6 +583,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 		SecretCachingClient: myclient,
 		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
+		controller:          capicontrollerutil.NewFakeController(),
 	}
 
 	request := ctrl.Request{
@@ -588,8 +592,13 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 			Name:      controlPlaneJoinConfig.Name,
 		},
 	}
+	// First reconcile only sets discovery.
 	_, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
+	// Second reconcile creates bootstrap data secret and sets dataSecretCreated and conditions.
+	_, err = k.Reconcile(ctx, request)
+	g.Expect(err).ToNot(HaveOccurred())
+
 	actualConfig := &bootstrapv1.KubeadmConfig{}
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: controlPlaneJoinConfig.Namespace, Name: controlPlaneJoinConfig.Name}, actualConfig)).To(Succeed())
 	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
@@ -644,7 +653,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigCertificatesAvailableCondition)
 }
 
-func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsReady(t *testing.T) {
+func TestReconcileIfJoinCertificatesAvailableConditionInNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
@@ -701,6 +710,7 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 				SecretCachingClient: myclient,
 				ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
+				controller:          capicontrollerutil.NewFakeController(),
 			}
 
 			request := ctrl.Request{
@@ -709,6 +719,7 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 					Name:      rt.configName,
 				},
 			}
+			triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, rt.configName)
 			result, err := k.Reconcile(ctx, request)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
@@ -777,6 +788,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 				SecretCachingClient: myclient,
 				ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
+				controller:          capicontrollerutil.NewFakeController(),
 			}
 
 			request := ctrl.Request{
@@ -785,6 +797,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 					Name:      rt.configName,
 				},
 			}
+			triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, rt.configName)
 			result, err := k.Reconcile(ctx, request)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
@@ -878,12 +891,18 @@ func TestBootstrapDataFormat(t *testing.T) {
 				SecretCachingClient: myclient,
 				ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
+				controller:          capicontrollerutil.NewFakeController(),
 			}
 			request := ctrl.Request{
 				NamespacedName: client.ObjectKey{
 					Namespace: metav1.NamespaceDefault,
 					Name:      configName,
 				},
+			}
+
+			if tc.clusterInitialized {
+				// For join we have to reconcile discovery first.
+				triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, configName)
 			}
 
 			// Reconcile the KubeadmConfig resource.
@@ -959,6 +978,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 		SecretCachingClient: myclient,
 		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
+		controller:          capicontrollerutil.NewFakeController(),
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -991,6 +1011,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 
 	err := myclient.Create(ctx, secret)
 	g.Expect(err).ToNot(HaveOccurred())
+	triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "worker-join-cfg")
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
@@ -1038,6 +1059,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 		KubeadmInitLock:     &myInitLocker{},
 		TokenTTL:            DefaultTokenTTL,
 		ClusterCache:        clustercache.NewFakeClusterCache(remoteClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		controller:          capicontrollerutil.NewFakeController(),
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1045,6 +1067,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 			Name:      "worker-join-cfg",
 		},
 	}
+	triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "worker-join-cfg")
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
@@ -1061,6 +1084,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 			Name:      "control-plane-join-cfg",
 		},
 	}
+	triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "control-plane-join-cfg")
 	result, err = k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
@@ -1279,6 +1303,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		KubeadmInitLock:     &myInitLocker{},
 		TokenTTL:            DefaultTokenTTL,
 		ClusterCache:        clustercache.NewFakeClusterCache(remoteClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		controller:          capicontrollerutil.NewFakeController(),
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1286,6 +1311,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 			Name:      "workerpool-join-cfg",
 		},
 	}
+	triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "workerpool-join-cfg")
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
@@ -1471,6 +1497,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 			KubeadmInitLock:     &myInitLocker{},
 			TokenTTL:            DefaultTokenTTL,
 			ClusterCache:        clustercache.NewFakeClusterCache(remoteClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+			controller:          capicontrollerutil.NewFakeController(),
 		}
 		request := ctrl.Request{
 			NamespacedName: client.ObjectKey{
@@ -1478,6 +1505,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 				Name:      "worker-join-cfg",
 			},
 		}
+		triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "worker-join-cfg")
 		result, err := k.Reconcile(ctx, request)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
@@ -1544,6 +1572,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 			KubeadmInitLock:     &myInitLocker{},
 			TokenTTL:            DefaultTokenTTL,
 			ClusterCache:        clustercache.NewFakeClusterCache(remoteClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+			controller:          capicontrollerutil.NewFakeController(),
 		}
 		request := ctrl.Request{
 			NamespacedName: client.ObjectKey{
@@ -1551,6 +1580,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 				Name:      "workerpool-join-cfg",
 			},
 		}
+		triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "workerpool-join-cfg")
 		result, err := k.Reconcile(ctx, request)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
@@ -1605,21 +1635,28 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 		},
 	}
 	testcases := []struct {
-		name              string
-		cluster           *clusterv1.Cluster
-		config            *bootstrapv1.KubeadmConfig
-		validateDiscovery func(*WithT, *bootstrapv1.KubeadmConfig) error
+		name                          string
+		cluster                       *clusterv1.Cluster
+		config                        *bootstrapv1.KubeadmConfig
+		validatePassedInKubeadmConfig bool
+		validateDiscovery             func(*WithT, *bootstrapv1.KubeadmConfig) error
+		wantResult                    ctrl.Result
 	}{
 		{
 			name:    "Automatically generate token if discovery not specified",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "config1",
+				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapToken,
 					},
 				},
 			},
+			wantResult: ctrl.Result{RequeueAfter: 1 * time.Second},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken.Token).NotTo(Equal(""))
@@ -1632,6 +1669,10 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.File",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "config1",
+				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1642,6 +1683,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 					},
 				},
 			},
+			wantResult: ctrl.Result{},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken.IsDefined()).To(BeFalse())
@@ -1652,6 +1694,10 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.File.KubeConfig",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "config1",
+				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1669,6 +1715,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 					},
 				},
 			},
+			wantResult: ctrl.Result{},
+			// In this code path we just modify the passed in KubeadmConfig and don't write to the apiserver.
+			validatePassedInKubeadmConfig: true,
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken.IsDefined()).To(BeFalse())
@@ -1682,6 +1731,10 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.BootstrapToken.APIServerEndpoint",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "config1",
+				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1693,6 +1746,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 					},
 				},
 			},
+			wantResult: ctrl.Result{RequeueAfter: 1 * time.Second},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken.APIServerEndpoint).To(Equal("bar.com:6443"))
@@ -1703,6 +1757,10 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.BootstrapToken.Token",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "config1",
+				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1714,6 +1772,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 					},
 				},
 			},
+			wantResult: ctrl.Result{RequeueAfter: 1 * time.Second},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken.Token).To(Equal("abcdef.0123456789abcdef"))
@@ -1724,6 +1783,10 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.BootstrapToken.CACertHashes",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "config1",
+				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1734,6 +1797,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 					},
 				},
 			},
+			wantResult: ctrl.Result{RequeueAfter: 1 * time.Second},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
 				g.Expect(d.BootstrapToken.CACertHashes).To(BeComparableTo(caHash))
@@ -1746,12 +1810,13 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fakeClient := fake.NewClientBuilder().Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tc.config).Build()
 			k := &Reconciler{
 				Client:              fakeClient,
 				SecretCachingClient: fakeClient,
 				ClusterCache:        clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: tc.cluster.Name, Namespace: tc.cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
+				controller:          capicontrollerutil.NewFakeController(),
 			}
 
 			res, err := k.reconcileDiscovery(ctx, tc.cluster, tc.config, secret.Certificates{
@@ -1763,11 +1828,18 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 					},
 				},
 			})
-			g.Expect(res.IsZero()).To(BeTrue())
+			g.Expect(res).To(Equal(tc.wantResult))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			err = tc.validateDiscovery(g, tc.config)
-			g.Expect(err).ToNot(HaveOccurred())
+			if tc.validatePassedInKubeadmConfig {
+				err = tc.validateDiscovery(g, tc.config)
+				g.Expect(err).ToNot(HaveOccurred())
+			} else {
+				config := tc.config.DeepCopy()
+				g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(config), config)).To(Succeed())
+				err = tc.validateDiscovery(g, config)
+				g.Expect(err).ToNot(HaveOccurred())
+			}
 		})
 	}
 }
@@ -2526,6 +2598,85 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 	}
 }
 
+func TestKubeadmConfigReconciler_getControlPlaneVersion(t *testing.T) {
+	t.Run("returns empty when ControlPlaneRef is not defined", func(t *testing.T) {
+		ctx := t.Context()
+		g := NewWithT(t)
+		cluster := builder.Cluster(metav1.NamespaceDefault, "c").Build()
+		r := &Reconciler{APIReader: fake.NewClientBuilder().Build()}
+		v, err := r.getControlPlaneVersion(ctx, cluster)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(v).To(BeEmpty())
+	})
+
+	t.Run("returns version when control plane exists", func(t *testing.T) {
+		ctx := t.Context()
+		g := NewWithT(t)
+		scheme := runtime.NewScheme()
+		g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+		g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+		cp := builder.TestControlPlane(metav1.NamespaceDefault, "cp").WithVersion("v1.30.0").Build()
+		crd := builder.TestControlPlaneCRD.DeepCopy()
+		cluster := builder.Cluster(metav1.NamespaceDefault, "c").Build()
+		cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
+			APIGroup: builder.ControlPlaneGroupVersion.Group,
+			Kind:     builder.TestControlPlaneKind,
+			Name:     "cp",
+		}
+
+		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cp, cluster).Build()
+		r := &Reconciler{APIReader: c}
+		v, err := r.getControlPlaneVersion(ctx, cluster)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(v).To(Equal("v1.30.0"))
+	})
+
+	t.Run("returns error when control plane object is missing", func(t *testing.T) {
+		ctx := t.Context()
+		g := NewWithT(t)
+		scheme := runtime.NewScheme()
+		g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+		g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+		crd := builder.TestControlPlaneCRD.DeepCopy()
+		cluster := builder.Cluster(metav1.NamespaceDefault, "c").Build()
+		cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
+			APIGroup: builder.ControlPlaneGroupVersion.Group,
+			Kind:     builder.TestControlPlaneKind,
+			Name:     "missing",
+		}
+
+		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cluster).Build()
+		r := &Reconciler{APIReader: c}
+		_, err := r.getControlPlaneVersion(ctx, cluster)
+		g.Expect(err).To(HaveOccurred())
+	})
+
+	t.Run("returns empty when control plane has no spec.version", func(t *testing.T) {
+		ctx := t.Context()
+		g := NewWithT(t)
+		scheme := runtime.NewScheme()
+		g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+		g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+		cp := builder.TestControlPlane(metav1.NamespaceDefault, "cp").Build()
+		crd := builder.TestControlPlaneCRD.DeepCopy()
+		cluster := builder.Cluster(metav1.NamespaceDefault, "c").Build()
+		cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
+			APIGroup: builder.ControlPlaneGroupVersion.Group,
+			Kind:     builder.TestControlPlaneKind,
+			Name:     "cp",
+		}
+
+		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cp, cluster).Build()
+		r := &Reconciler{APIReader: c}
+		v, err := r.getControlPlaneVersion(ctx, cluster)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(v).To(BeEmpty())
+	})
+}
+
 // test utils.
 
 // newWorkerMachineForCluster returns a Machine with the passed Cluster's information and a pre-configured name.
@@ -2754,10 +2905,15 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 				SecretCachingClient: myclient,
 				ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
+				controller:          capicontrollerutil.NewFakeController(),
 			}
 
 			key := client.ObjectKey{Namespace: tt.config.Namespace, Name: tt.config.Name}
+			// First reconcile only sets discovery.
 			_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+			g.Expect(err).ToNot(HaveOccurred())
+			// Second reconcile creates bootstrap data secret and sets dataSecretCreated and conditions.
+			_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
 			g.Expect(err).ToNot(HaveOccurred())
 
 			newConfig := &bootstrapv1.KubeadmConfig{}
@@ -2823,10 +2979,15 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions_WorkerJoinWithCont
 		APIReader:           myclient,
 		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
+		controller:          capicontrollerutil.NewFakeController(),
 	}
 
 	key := client.ObjectKeyFromObject(kubeadmConfig)
+	// First reconcile only sets discovery.
 	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	g.Expect(err).ToNot(HaveOccurred())
+	// Second reconcile creates bootstrap data secret and sets dataSecretCreated and conditions.
+	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	newConfig := &bootstrapv1.KubeadmConfig{}
@@ -2838,4 +2999,19 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions_WorkerJoinWithCont
 		g.Expect(c).ToNot(BeNil(), "condition %s is missing", conditionType)
 		g.Expect(c.Status).To(Equal(metav1.ConditionTrue))
 	}
+}
+
+func triggerAndVerifyFirstReconcileToSetDiscovery(g Gomega, k *Reconciler, c client.WithWatch, request reconcile.Request, name string) {
+	// First reconcile.
+	result, err := k.Reconcile(ctx, request)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result.RequeueAfter).To(Equal(1 * time.Second))
+
+	// First reconcile only sets discovery.
+	cfg, err := getKubeadmConfig(c, name, metav1.NamespaceDefault)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token).ToNot(BeEmpty())
+	g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint).ToNot(BeEmpty())
+	g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes).ToNot(BeEmpty())
+	g.Expect(ptr.Deref(cfg.Status.Initialization.DataSecretCreated, false)).To(BeFalse())
 }

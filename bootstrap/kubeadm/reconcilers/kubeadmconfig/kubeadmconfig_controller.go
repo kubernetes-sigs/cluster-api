@@ -98,6 +98,8 @@ type Reconciler struct {
 
 	// TokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
 	TokenTTL time.Duration
+
+	controller capicontrollerutil.Controller
 }
 
 // Scope is a scoped struct used during reconciliation.
@@ -144,9 +146,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 	).WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmconfig", r.ClusterToKubeadmConfigs))
 
-	if err := b.Complete(ctx, r); err != nil {
+	c, err := b.Build(ctx, r)
+	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
+
+	r.controller = c
 	return nil
 }
 
@@ -1280,21 +1285,44 @@ func (r *Reconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.
 		return r.reconcileDiscoveryFile(ctx, cluster, config, certificates)
 	}
 
-	// otherwise it is necessary to ensure token discovery is properly configured
+	// Otherwise it is necessary to ensure token discovery is properly configured
+
+	// If we have to update any discovery fields we directly patch the KubeadmConfig here, requeue and defer
+	// the next reconcile until the cache is up-to-date. So the next reconcile will observe all fields set.
+	// This avoids a race condition where we would create another token in the next reconcile because of a stale cache.
+	// For more details, see: https://github.com/kubernetes-sigs/cluster-api/issues/12253#issuecomment-3571962010
+
+	// Note: Using DeepCopy to avoid writing back to the config during Patch which would add resourceVersion,
+	// managedFields etc. and then leads to issues with the patchHelper that is called in defer in Reconcile.
+	// Also By making all changes here on a copy of config the patchHelper won't detect any spec changes and won't
+	// issue redundant spec patches.
+	config = config.DeepCopy()
+	original := config.DeepCopy()
+
+	var updated bool
 
 	// calculate the ca cert hashes if they are not already set
 	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
-		hashes, err := certificates.GetByPurpose(secret.ClusterCA).Hashes()
+		clusterCACertificate := certificates.GetByPurpose(secret.ClusterCA)
+		if clusterCACertificate == nil {
+			return ctrl.Result{}, fmt.Errorf("failed to generate Cluster CA certificate hashes: failed to get cluster CA")
+		}
+		hashes, err := clusterCACertificate.Hashes()
 		if err != nil {
-			log.Error(err, "Unable to generate Cluster CA certificate hashes")
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to generate Cluster CA certificate hashes: %w", err)
 		}
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes = hashes
+		updated = true
+	}
+	// If the BootstrapToken does not contain any CACertHashes then force skip CA Verification
+	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
+		log.Info("No CAs were provided. Falling back to insecure discover method by skipping CA Cert validation")
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = ptr.To(true)
+		updated = true
 	}
 
 	// if BootstrapToken already contains an APIServerEndpoint, respect it; otherwise inject the APIServerEndpoint endpoint defined in cluster status
-	apiServerEndpoint := config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint
-	if apiServerEndpoint == "" {
+	if apiServerEndpoint := config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint; apiServerEndpoint == "" {
 		if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
 			log.V(1).Info("Waiting for Cluster Controller to set Cluster.Spec.ControlPlaneEndpoint")
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
@@ -1303,6 +1331,7 @@ func (r *Reconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.
 		apiServerEndpoint = cluster.Spec.ControlPlaneEndpoint.String()
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = apiServerEndpoint
 		log.V(3).Info("Altering JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint", "apiServerEndpoint", apiServerEndpoint)
+		updated = true
 	}
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
@@ -1319,12 +1348,15 @@ func (r *Reconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.
 
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
 		log.V(3).Info("Altering JoinConfiguration.Discovery.BootstrapToken.Token")
+		updated = true
 	}
 
-	// If the BootstrapToken does not contain any CACertHashes then force skip CA Verification
-	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
-		log.Info("No CAs were provided. Falling back to insecure discover method by skipping CA Cert validation")
-		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = ptr.To(true)
+	if updated {
+		if err := r.Client.Patch(ctx, config, client.MergeFrom(original)); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to patch KubeadmConfig to set discovery fields: %w", err)
+		}
+		r.controller.DeferNextReconcileUntilCacheUpToDate(config, capicontrollerutil.StructuredObject(bootstrapv1.GroupVersion, "KubeadmConfig"), config.ResourceVersion)
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	return ctrl.Result{}, nil

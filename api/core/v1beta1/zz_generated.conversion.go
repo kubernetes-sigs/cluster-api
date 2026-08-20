@@ -2426,6 +2426,7 @@ func autoConvert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentT
 	}
 	out.Class = in.Class
 	out.Name = in.Name
+	out.Version = in.Version
 	if err := v1.Convert_Pointer_string_To_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
@@ -2451,6 +2452,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentT
 	}
 	out.Class = in.Class
 	out.Name = in.Name
+	out.Version = in.Version
 	if err := v1.Convert_string_To_Pointer_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
@@ -3040,6 +3042,7 @@ func autoConvert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(in *
 	}
 	out.Class = in.Class
 	out.Name = in.Name
+	out.Version = in.Version
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
@@ -3057,6 +3060,7 @@ func autoConvert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *
 	}
 	out.Class = in.Class
 	out.Name = in.Name
+	out.Version = in.Version
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.Taints = *(*[]MachineTaint)(unsafe.Pointer(&in.Taints))

@@ -720,6 +720,24 @@ type MachineDeploymentTopology struct {
 	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
 
+	// version is the optional Kubernetes version for this MachineDeployment.
+	// When set, it overrides Cluster.spec.topology.version for this MachineDeployment only,
+	// enabling manual version management and upgrade scheduling.
+	//
+	// It cannot be greater than Cluster.spec.topology.version and it cannot be decreased.
+	// Skew between this version and the control plane version is enforced according to the
+	// Kubernetes version skew policy.
+	//
+	// If unset, the MachineDeployment uses Cluster.spec.topology.version and is upgraded together with
+	// the Cluster whenever Cluster.spec.topology.version changes.
+	// Once set, the MachineDeployment is upgraded only by changing this field, and the field can be
+	// unset only if this version is equal to Cluster.spec.topology.version.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
+
 	// failureDomain is the failure domain the machines will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
@@ -865,6 +883,24 @@ type MachinePoolTopology struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
+
+	// version is the optional Kubernetes version for this MachinePool.
+	// When set, it overrides Cluster.spec.topology.version for this MachinePool only,
+	// enabling manual version management and upgrade scheduling.
+	//
+	// It cannot be greater than Cluster.spec.topology.version and it cannot be decreased.
+	// Skew between this version and the control plane version is enforced according to the
+	// Kubernetes version skew policy.
+	//
+	// If unset, the MachinePool uses Cluster.spec.topology.version and is upgraded together with
+	// the Cluster whenever Cluster.spec.topology.version changes.
+	// Once set, the MachinePool is upgraded only by changing this field, and the field can be
+	// unset only if this version is equal to Cluster.spec.topology.version.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
 
 	// failureDomains is the list of failure domains the machine pool will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.

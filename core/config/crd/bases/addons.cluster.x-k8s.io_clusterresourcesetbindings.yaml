@@ -116,6 +116,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == '' || oldSelf == self
             type: object
         type: object
     served: true
@@ -226,6 +229,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == '' || oldSelf == self
             required:
             - clusterName
             type: object

@@ -258,6 +258,26 @@ func (webhook *ClusterClass) validateKubernetesVersionsOfClusters(clusters []clu
 					c.Spec.Topology.Version, c.Name),
 			))
 		}
+
+		// Same for the versions used by MachineDeployments/MachinePools. Without this a version
+		// could be removed here, and from then on every update to that Cluster would be rejected
+		// by ValidateClusterForClusterClass.
+		for _, md := range c.Spec.Topology.Workers.MachineDeployments {
+			if md.Version != "" && !kubernetesVersions.Has(md.Version) {
+				allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "kubernetesVersions"),
+					fmt.Sprintf("Kubernetes Version %s is used by MachineDeployment %s of Cluster %q but not set in ClusterClass",
+						md.Version, md.Name, c.Name),
+				))
+			}
+		}
+		for _, mp := range c.Spec.Topology.Workers.MachinePools {
+			if mp.Version != "" && !kubernetesVersions.Has(mp.Version) {
+				allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "kubernetesVersions"),
+					fmt.Sprintf("Kubernetes Version %s is used by MachinePool %s of Cluster %q but not set in ClusterClass",
+						mp.Version, mp.Name, c.Name),
+				))
+			}
+		}
 	}
 
 	return allErrs

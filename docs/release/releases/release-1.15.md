@@ -33,7 +33,7 @@ After CAPI v1.15.0, the .1 release will follow up to add support for Kubernetes 
  
 | **Role**                                         | **Lead (GitHub / Slack ID)** | **Team member(s) (GitHub / Slack ID)** |
 |--------------------------------------------------|------------------------------|----------------------------------------|
-| Release Lead                                     | TBD                          | TBD                                    |
-| Communications/Docs/Release Notes Manager        | TBD                          | TBD                                    |
-| CI Signal/Bug Triage/Automation Manager          | TBD                          | TBD                                    |
+| Release Lead                                     | Ira Pandey ([@irapandey](https://github.com/irapandey) / `@irapandey`)                     | Aman Shrivastava ([@aman4433](https://github.com/aman4433) / `@AmanShrivastava`) <br> Arshadd Banoo ([@arshadd-b](https://github.com/arshadd-b) / `@arshadda`) <br>
+| Communications/Docs/Release Notes Manager        | Omar Nasser ([@naseyro](https://github.com/naseyro) / `@naseyro`)                         | Agustina Barbetta ([@aibarbetta](https://github.com/aibarbetta) / `@aibarbetta`) <br> Vishal Anarase ([@vishalanarase](https://github.com/vishalanarase) / `@Vishal Anarase`) <br>                                   |
+| CI Signal/Bug Triage/Automation Manager          | Lennart Jern ([lentzi90](https://github.com/lentzi90) / `@Lennart Jern`)                          | Tharun Jagadeesh ([@tsj-30](https://github.com/tsj-30) / `@Tharun Jagadeesh`) <br> Pranshu Srivastava ([@rexagod](https://github.com/rexagod) / `@rex`)  <br>  Miltiadis Alexis  ([@miltalex](https://github.com/miltalex) / `@Miltiadis Alexis`) <br>                       |
 | Emeritus Advisor                                 | TBD                          | TBD                                    |

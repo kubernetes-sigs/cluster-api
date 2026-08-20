@@ -71,7 +71,32 @@ func ConvertClusterV1Beta1ToHub(_ context.Context, src *clusterv1beta1.Cluster, 
 	if !reflect.DeepEqual(initialization, clusterv1.ClusterInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}
+
+	// Recover fields that do not exist in v1beta1.
+	if ok {
+		restoreWorkerVersions(restored, dst)
+	}
 	return nil
+}
+
+// restoreWorkerVersions restores the MachineDeployment/MachinePool topology versions, which do not
+// exist in v1beta1. Topologies are matched by name, because v1beta1 clients can reorder the lists.
+func restoreWorkerVersions(restored, dst *clusterv1.Cluster) {
+	restoredMDVersions := map[string]string{}
+	for _, md := range restored.Spec.Topology.Workers.MachineDeployments {
+		restoredMDVersions[md.Name] = md.Version
+	}
+	for i, md := range dst.Spec.Topology.Workers.MachineDeployments {
+		dst.Spec.Topology.Workers.MachineDeployments[i].Version = restoredMDVersions[md.Name]
+	}
+
+	restoredMPVersions := map[string]string{}
+	for _, mp := range restored.Spec.Topology.Workers.MachinePools {
+		restoredMPVersions[mp.Name] = mp.Version
+	}
+	for i, mp := range dst.Spec.Topology.Workers.MachinePools {
+		dst.Spec.Topology.Workers.MachinePools[i].Version = restoredMPVersions[mp.Name]
+	}
 }
 
 // ConvertClusterHubToV1Beta1 converts a hub Cluster to a v1beta1 Cluster.

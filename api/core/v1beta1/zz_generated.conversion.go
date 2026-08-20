@@ -2274,6 +2274,7 @@ func autoConvert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClas
 		return err
 	}
 	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNaming requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/core/v1beta1.MachineDeploymentClassMachineNamingStrategy vs sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingSpec)
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
@@ -2294,6 +2295,7 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClas
 		return err
 	}
 	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNaming requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingSpec vs *sigs.k8s.io/cluster-api/api/core/v1beta1.MachineDeploymentClassMachineNamingStrategy)
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.Taints = *(*[]MachineTaint)(unsafe.Pointer(&in.Taints))
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
@@ -2462,6 +2464,7 @@ func autoConvert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentT
 		return err
 	}
 	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNaming requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/core/v1beta1.MachineDeploymentTopologyMachineNamingStrategy vs sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingSpec)
 	// WARNING: in.Variables requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/core/v1beta1.MachineDeploymentVariables vs sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables)
 	return nil
 }
@@ -2477,6 +2480,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentT
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNaming requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingSpec vs *sigs.k8s.io/cluster-api/api/core/v1beta1.MachineDeploymentTopologyMachineNamingStrategy)
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.Taints = *(*[]MachineTaint)(unsafe.Pointer(&in.Taints))
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))

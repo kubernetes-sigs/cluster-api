@@ -919,6 +919,12 @@ type MachineDeploymentTopology struct {
 	// +optional
 	HealthCheck MachineDeploymentTopologyHealthCheck `json:"healthCheck,omitempty,omitzero"`
 
+	// machineNaming allows changing the naming pattern used when creating Machines within this MachineDeployment.
+	// If not defined, the value from the MachineDeploymentClass will be used.
+	// If neither is defined, Machines will use the default naming pattern.
+	// +optional
+	MachineNaming MachineNamingSpec `json:"machineNaming,omitempty,omitzero"`
+
 	// deletion contains configuration options for Machine deletion.
 	// +optional
 	Deletion MachineDeploymentTopologyMachineDeletionSpec `json:"deletion,omitempty,omitzero"`

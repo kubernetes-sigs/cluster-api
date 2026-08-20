@@ -21,8 +21,6 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -86,9 +84,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
-	if err := r.updateClusterReference(ctx, binding); err != nil {
-		return ctrl.Result{}, err
-	}
+
 	cluster, err := util.GetClusterByName(ctx, r.Client, req.Namespace, binding.Spec.ClusterName)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -123,57 +119,4 @@ func (r *Reconciler) clusterToClusterResourceSetBinding(_ context.Context, o cli
 			},
 		},
 	}
-}
-
-// updateClusterReference updates how the ClusterResourceSetBinding references the Cluster.
-// Before 1.4 cluster name was stored as an ownerReference. This function migrates the cluster name to the spec.clusterName and removes the Cluster OwnerReference.
-// Ref: https://github.com/kubernetes-sigs/cluster-api/issues/7669.
-func (r *Reconciler) updateClusterReference(ctx context.Context, binding *addonsv1.ClusterResourceSetBinding) error {
-	original := binding.DeepCopy()
-
-	// If the `.spec.clusterName` is not set, take the value from the ownerReference.
-	if binding.Spec.ClusterName == "" {
-		// Update the clusterName field of the existing ClusterResourceSetBindings with ownerReferences.
-		// More details please refer to: https://github.com/kubernetes-sigs/cluster-api/issues/7669.
-		clusterName, err := getClusterNameFromOwnerRef(binding.ObjectMeta)
-		if err != nil {
-			return err
-		}
-		binding.Spec.ClusterName = clusterName
-	}
-
-	// Remove the Cluster OwnerReference if it exists. This is a no-op if the OwnerReference does not exist.
-	// TODO: (killianmuldoon) This can be removed in CAPI v1beta2.
-	binding.OwnerReferences = util.RemoveOwnerRef(binding.OwnerReferences, metav1.OwnerReference{
-		APIVersion: clusterv1.GroupVersion.String(),
-		Kind:       "Cluster",
-		Name:       binding.Spec.ClusterName,
-	})
-
-	if binding.Spec.ClusterName == original.Spec.ClusterName && len(binding.OwnerReferences) == len(original.OwnerReferences) {
-		return nil
-	}
-
-	return r.Client.Patch(ctx, binding, client.MergeFrom(original))
-}
-
-func getClusterNameFromOwnerRef(obj metav1.ObjectMeta) (string, error) {
-	for _, ref := range obj.GetOwnerReferences() {
-		if ref.Kind != "Cluster" {
-			continue
-		}
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return "", pkgerrors.Wrap(err, "failed to find cluster name in ownerRefs")
-		}
-
-		if gv.Group != clusterv1.GroupVersion.Group {
-			continue
-		}
-		if ref.Name == "" {
-			return "", pkgerrors.New("failed to find cluster name in ownerRefs: ref name is empty")
-		}
-		return ref.Name, nil
-	}
-	return "", pkgerrors.New("failed to find cluster name in ownerRefs: no cluster ownerRef")
 }

@@ -33,15 +33,6 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/core-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
-    files:
-      - sourcePath: "../data/shared/v1.11/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/core-components.yaml"
     type: "url"
@@ -60,7 +51,16 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.13/metadata.yaml"
-  - name: v1.14.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/core-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.14/metadata.yaml"
+  - name: v1.15.99 # next; use manifest from source files
     value: ../../../core/config/default
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
@@ -68,15 +68,6 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/bootstrap-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
-    files:
-      - sourcePath: "../data/shared/v1.11/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/bootstrap-components.yaml"
     type: "url"
@@ -95,7 +86,16 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.13/metadata.yaml"
-  - name: v1.14.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.14/metadata.yaml"
+  - name: v1.15.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
@@ -103,15 +103,6 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/control-plane-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
-    files:
-      - sourcePath: "../data/shared/v1.11/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/control-plane-components.yaml"
     type: "url"
@@ -130,7 +121,16 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.13/metadata.yaml"
-  - name: v1.14.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.14/metadata.yaml"
+  - name: v1.15.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
@@ -138,17 +138,6 @@ providers:
 - name: docker
   type: InfrastructureProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/infrastructure-components-development.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
-    files:
-      - sourcePath: "../data/shared/v1.11/metadata.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.11/cluster-template-in-memory-topology.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1.11/clusterclass-in-memory.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/infrastructure-components-development.yaml"
     type: "url"
@@ -171,7 +160,18 @@ providers:
       - sourcePath: "../data/shared/v1.13/metadata.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.13/cluster-template-in-memory-topology.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.13/clusterclass-in-memory.yaml"
-  - name: v1.14.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/infrastructure-components-development.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.14/metadata.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.14/cluster-template-in-memory-topology.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.14/clusterclass-in-memory.yaml"
+  - name: v1.15.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     files:
     # Add cluster templates
@@ -207,7 +207,7 @@ providers:
 - name: test-extension
   type: RuntimeExtensionProvider
   versions:
-    - name: v1.14.99 # next; use manifest from source files
+    - name: v1.15.99 # next; use manifest from source files
       value: ../../../test/extension/config/default
       files:
       - sourcePath: "../data/shared/main/metadata.yaml"

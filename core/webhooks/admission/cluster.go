@@ -28,6 +28,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -44,6 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
+	"sigs.k8s.io/cluster-api/internal/topology/pinning"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -263,6 +265,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	}
 
 	allErrs = append(allErrs, validateTopologyVersion(newCluster.Spec.Topology, fldPath)...)
+	allErrs = append(allErrs, validateTopologyWorkerVersionsFeatureGate(oldCluster, newCluster, fldPath)...)
 
 	// metadata in topology should be valid
 	allErrs = append(allErrs, validateTopologyMetadata(newCluster.Spec.Topology, fldPath)...)
@@ -366,7 +369,8 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	return allWarnings, allErrs
 }
 
-// validateTopologyVersion validates the versions defined in the topology independently of any
+// validateTopologyVersion validates the versions defined in the topology, from
+// Cluster.spec.topology.version down to the MachineDeployments/MachinePools, independently of any
 // previous state of the Cluster. It is the entry point for version validation on create; on update
 // it runs in addition to validateTopologyVersionUpdate.
 func validateTopologyVersion(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
@@ -394,11 +398,14 @@ func validateTopologyVersion(topology clusterv1.Topology, fldPath *field.Path) f
 		)
 	}
 
+	allErrs = append(allErrs, validateTopologyWorkerVersions(topology, fldPath)...)
+
 	return allErrs
 }
 
-// validateTopologyVersionUpdate validates changes to the versions defined in the topology. It is the
-// entry point for version validation on update.
+// validateTopologyVersionUpdate validates changes to the versions defined in the topology, from
+// Cluster.spec.topology.version down to the MachineDeployments/MachinePools. It is the entry point
+// for version validation on update.
 // Note: The ClusterClass must not be nil.
 func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass, fldPath *field.Path) (admission.Warnings, field.ErrorList) {
 	var allWarnings admission.Warnings
@@ -450,6 +457,8 @@ func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, oldCl
 	if err := webhook.validateClusterVersionUpdate(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, newCluster, oldCluster, shouldValidateVersionCeiling); err != nil {
 		allErrs = append(allErrs, err)
 	}
+
+	allErrs = append(allErrs, webhook.validateTopologyWorkerVersionsUpdate(ctx, oldCluster, newCluster, fldPath)...)
 
 	return allWarnings, allErrs
 }
@@ -594,7 +603,9 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 			return pkgerrors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to parse version %s", md.Name, md.Spec.Template.Spec.Version)
 		}
 
-		if mdVersion.String() != oldVersion.String() {
+		// A MachineDeployment pinning its own version intentionally runs a different version than
+		// the Cluster topology, so only check if it is actually upgrading.
+		if pinning.MachineDeploymentTopologyVersion(oldCluster.Spec.Topology, md.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]) == "" && mdVersion.String() != oldVersion.String() {
 			mdUpgradingNames = append(mdUpgradingNames, md.Name)
 			continue
 		}
@@ -650,7 +661,9 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 			return pkgerrors.Wrapf(err, "failed to check if MachinePool %s is upgrading: failed to parse version %s", mp.Name, mp.Spec.Template.Spec.Version)
 		}
 
-		if mpVersion.String() != oldVersion.String() {
+		// A MachinePool pinning its own version intentionally runs a different version than the
+		// Cluster topology, so only check if it is actually upgrading.
+		if pinning.MachinePoolTopologyVersion(oldCluster.Spec.Topology, mp.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]) == "" && mpVersion.String() != oldVersion.String() {
 			mpUpgradingNames = append(mpUpgradingNames, mp.Name)
 			continue
 		}
@@ -698,6 +711,312 @@ func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) fi
 	}
 
 	return allErrs
+}
+
+// validateTopologyWorkerVersions validates the MachineDeployment/MachinePool topology versions
+// independently of any previous state of the Cluster.
+func validateTopologyWorkerVersions(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
+
+	for _, md := range topology.Workers.MachineDeployments {
+		fldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("version")
+		allErrs = append(allErrs, validateWorkerVersion(md.Version, md.Metadata.Annotations, topology.Version, fldPath)...)
+	}
+
+	for _, mp := range topology.Workers.MachinePools {
+		fldPath := fldPath.Child("workers", "machinePools").Key(mp.Name).Child("version")
+		allErrs = append(allErrs, validateWorkerVersion(mp.Version, mp.Metadata.Annotations, topology.Version, fldPath)...)
+	}
+
+	return allErrs
+}
+
+// validateTopologyWorkerVersionsFeatureGate rejects setting or changing the version of a
+// MachineDeployment/MachinePool while the ClusterTopologyWorkerVersionPinning feature gate is
+// disabled. A version that is already set is still honored and can be unset, so disabling the
+// feature gate never leaves a Cluster that cannot be updated.
+func validateTopologyWorkerVersionsFeatureGate(oldCluster, newCluster *clusterv1.Cluster, fldPath *field.Path) field.ErrorList {
+	if feature.Gates.Enabled(feature.ClusterTopologyWorkerVersionPinning) {
+		return nil
+	}
+
+	oldMDVersions := map[string]string{}
+	oldMPVersions := map[string]string{}
+	if oldCluster != nil {
+		for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
+			oldMDVersions[md.Name] = md.Version
+		}
+		for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
+			oldMPVersions[mp.Name] = mp.Version
+		}
+	}
+
+	var allErrs field.ErrorList
+	forbidden := fmt.Sprintf("can be set only if the %s feature flag is enabled", feature.ClusterTopologyWorkerVersionPinning)
+	for _, md := range newCluster.Spec.Topology.Workers.MachineDeployments {
+		if md.Version != "" && md.Version != oldMDVersions[md.Name] {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("version"), forbidden))
+		}
+	}
+	for _, mp := range newCluster.Spec.Topology.Workers.MachinePools {
+		if mp.Version != "" && mp.Version != oldMPVersions[mp.Name] {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("workers", "machinePools").Key(mp.Name).Child("version"), forbidden))
+		}
+	}
+
+	return allErrs
+}
+
+func validateWorkerVersion(workerVersion string, annotations map[string]string, topologyVersion string, fldPath *field.Path) field.ErrorList {
+	if workerVersion == "" {
+		return nil
+	}
+
+	var allErrs field.ErrorList
+	if !strings.HasPrefix(workerVersion, "v") {
+		allErrs = append(allErrs, field.Invalid(fldPath, workerVersion, "must start with v"))
+	}
+	// Note: parsed strictly, exactly like Cluster.spec.topology.version. A tolerantly parsed version
+	// like "v1.34" would be admitted here and then rejected by the MachineDeployment/MachinePool
+	// webhook once the topology controller propagates it, leaving the topology unreconcilable.
+	workerSemVer, workerErr := semver.Parse(strings.TrimPrefix(workerVersion, "v"))
+	if workerErr != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath, workerVersion, "must be a valid semantic version"))
+	}
+
+	// The version is bounded by the version the Cluster manages the control plane to, because a
+	// MachineDeployment/MachinePool with its own version is not upgraded by the cluster-level rollout.
+	// These are the only bounds on create and for a newly added topology, where there is neither a
+	// previous version nor a control plane object to compare against.
+	// Note: pre-releases are compared too, so that a worker never runs a newer version than the
+	// control plane, as required by the Kubernetes version skew policy.
+	// Note: an unparsable topology version is already reported for spec.topology.version.
+	topologySemVer, topologyErr := semver.Parse(strings.TrimPrefix(topologyVersion, "v"))
+	if workerErr == nil && topologyErr == nil {
+		switch {
+		case version.Compare(workerSemVer, topologySemVer) > 0:
+			allErrs = append(allErrs, field.Invalid(fldPath, workerVersion,
+				fmt.Sprintf("version cannot be greater than Cluster.spec.topology.version %q", topologyVersion)))
+		case !version.WorkerVersionSkewSupported(topologySemVer, workerSemVer):
+			allErrs = append(allErrs, field.Invalid(fldPath, workerVersion,
+				fmt.Sprintf("version does not conform to the Kubernetes version skew policy with Cluster.spec.topology.version %q", topologyVersion)))
+		}
+	}
+
+	// A MachineDeployment/MachinePool with its own version is excluded from the cluster-level upgrade
+	// sequence, so the annotations controlling that sequence would have no effect and are likely a mistake.
+	for _, annotation := range []string{clusterv1.ClusterTopologyDeferUpgradeAnnotation, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation} {
+		if _, ok := annotations[annotation]; ok {
+			allErrs = append(allErrs, field.Invalid(fldPath, workerVersion, fmt.Sprintf("cannot be set together with the %s annotation", annotation)))
+		}
+	}
+
+	return allErrs
+}
+
+// validateTopologyWorkerVersionsUpdate validates changes to the MachineDeployment/MachinePool
+// topology versions. The control plane and the MachineDeployments/MachinePools are read only if at
+// least one version is set or changed to another version; unsetting a version never depends on them.
+func (webhook *Cluster) validateTopologyWorkerVersionsUpdate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster, fldPath *field.Path) field.ErrorList {
+	changes := workerVersionChanges(oldCluster, newCluster, fldPath)
+	if len(changes) == 0 {
+		return nil
+	}
+
+	var controlPlaneVersion *semver.Version
+	var mdVersions, mpVersions map[string]string
+	for _, change := range changes {
+		if change.newVersion == "" {
+			continue
+		}
+
+		// The version the control plane currently runs is the ceiling for every version, in addition
+		// to Cluster.spec.topology.version: a MachineDeployment/MachinePool with its own version is
+		// rolled out as soon as the version changes, without waiting for an in-progress control plane
+		// upgrade to complete, so it must never get ahead of the control plane.
+		// Note: if the control plane cannot be read the change is rejected, because it cannot be validated.
+		var err error
+		controlPlaneVersion, err = getControlPlaneVersion(ctx, webhook.Client, oldCluster)
+		if err != nil {
+			return field.ErrorList{field.InternalError(fldPath.Child("workers"), pkgerrors.Wrap(err, "failed to validate MachineDeployment/MachinePool versions"))}
+		}
+
+		// The version a MachineDeployment/MachinePool currently runs is the floor for its version, so
+		// that setting a version never downgrades it.
+		// Note: same as above, if they cannot be read the change is rejected.
+		mdVersions, mpVersions, err = currentWorkerVersions(ctx, webhook.Client, oldCluster)
+		if err != nil {
+			return field.ErrorList{field.InternalError(fldPath.Child("workers"), pkgerrors.Wrap(err, "failed to validate MachineDeployment/MachinePool versions"))}
+		}
+		break
+	}
+
+	var allErrs field.ErrorList
+	for _, change := range changes {
+		currentVersion := mdVersions[change.topologyName]
+		if change.isMachinePool {
+			currentVersion = mpVersions[change.topologyName]
+		}
+		allErrs = append(allErrs, webhook.validateWorkerVersionUpdate(change, controlPlaneVersion, currentVersion, newCluster.Spec.Topology.Version)...)
+	}
+
+	return allErrs
+}
+
+// currentWorkerVersions returns the versions the MachineDeployments/MachinePools of the Cluster
+// currently run, keyed by their topology name.
+func currentWorkerVersions(ctx context.Context, ctrlClient client.Reader, cluster *clusterv1.Cluster) (map[string]string, map[string]string, error) {
+	listOptions := []client.ListOption{
+		client.MatchingLabels{
+			clusterv1.ClusterNameLabel:          cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		},
+		client.InNamespace(cluster.Namespace),
+	}
+
+	mds := &clusterv1.MachineDeploymentList{}
+	if err := ctrlClient.List(ctx, mds, listOptions...); err != nil {
+		return nil, nil, pkgerrors.Wrap(err, "failed to get MachineDeployments")
+	}
+	mdVersions := map[string]string{}
+	for _, md := range mds.Items {
+		mdVersions[md.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]] = md.Spec.Template.Spec.Version
+	}
+
+	mps := &clusterv1.MachinePoolList{}
+	if err := ctrlClient.List(ctx, mps, listOptions...); err != nil {
+		return nil, nil, pkgerrors.Wrap(err, "failed to get MachinePools")
+	}
+	mpVersions := map[string]string{}
+	for _, mp := range mps.Items {
+		mpVersions[mp.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]] = mp.Spec.Template.Spec.Version
+	}
+
+	return mdVersions, mpVersions, nil
+}
+
+// workerVersionChange is a change to the version pinned on a MachineDeployment/MachinePool topology.
+type workerVersionChange struct {
+	topologyName  string
+	isMachinePool bool
+	oldVersion    string
+	newVersion    string
+	fldPath       *field.Path
+}
+
+func workerVersionChanges(oldCluster, newCluster *clusterv1.Cluster, fldPath *field.Path) []workerVersionChange {
+	var changes []workerVersionChange
+
+	oldMDVersions := map[string]string{}
+	for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
+		oldMDVersions[md.Name] = md.Version
+	}
+	for _, md := range newCluster.Spec.Topology.Workers.MachineDeployments {
+		oldVersion, ok := oldMDVersions[md.Name]
+		if !ok || oldVersion == md.Version {
+			continue
+		}
+		changes = append(changes, workerVersionChange{
+			topologyName: md.Name,
+			oldVersion:   oldVersion,
+			newVersion:   md.Version,
+			fldPath:      fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("version"),
+		})
+	}
+
+	oldMPVersions := map[string]string{}
+	for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
+		oldMPVersions[mp.Name] = mp.Version
+	}
+	for _, mp := range newCluster.Spec.Topology.Workers.MachinePools {
+		oldVersion, ok := oldMPVersions[mp.Name]
+		if !ok || oldVersion == mp.Version {
+			continue
+		}
+		changes = append(changes, workerVersionChange{
+			topologyName:  mp.Name,
+			isMachinePool: true,
+			oldVersion:    oldVersion,
+			newVersion:    mp.Version,
+			fldPath:       fldPath.Child("workers", "machinePools").Key(mp.Name).Child("version"),
+		})
+	}
+
+	return changes
+}
+
+func (webhook *Cluster) validateWorkerVersionUpdate(change workerVersionChange, controlPlaneVersion *semver.Version, currentVersion, topologyVersion string) field.ErrorList {
+	// Unpinning returns the MachineDeployment/MachinePool to cluster-managed versioning, which is
+	// only safe once it is already at the version the Cluster manages it to.
+	if change.newVersion == "" {
+		if change.oldVersion != topologyVersion {
+			return field.ErrorList{field.Invalid(change.fldPath, change.newVersion,
+				fmt.Sprintf("version can be unset only if it is equal to Cluster.spec.topology.version %q, current version is %q", topologyVersion, change.oldVersion))}
+		}
+		return nil
+	}
+
+	newVersion, err := semver.ParseTolerant(change.newVersion)
+	if err != nil {
+		// Note: already reported by validateTopologyWorkerVersions.
+		return nil
+	}
+
+	var allErrs field.ErrorList
+	if change.oldVersion != "" {
+		oldVersion, err := semver.ParseTolerant(change.oldVersion)
+		if err != nil {
+			return field.ErrorList{field.Invalid(change.fldPath, change.oldVersion, "old version must be a valid semantic version")}
+		}
+		if version.Compare(newVersion, oldVersion, version.WithoutPreReleases()) < 0 {
+			allErrs = append(allErrs, field.Invalid(change.fldPath, change.newVersion,
+				fmt.Sprintf("version cannot be decreased from %q to %q", change.oldVersion, change.newVersion)))
+		}
+	}
+
+	// Setting a version must never downgrade a running MachineDeployment/MachinePool. This also
+	// covers the first time a version is set, when there is no previous version to compare to.
+	if currentVersion != "" {
+		runningVersion, err := semver.ParseTolerant(currentVersion)
+		if err != nil {
+			return field.ErrorList{field.Invalid(change.fldPath, currentVersion, "current version must be a valid semantic version")}
+		}
+		if version.Compare(newVersion, runningVersion, version.WithoutPreReleases()) < 0 {
+			allErrs = append(allErrs, field.Invalid(change.fldPath, change.newVersion,
+				fmt.Sprintf("version cannot be lower than the version currently running %q", currentVersion)))
+		}
+	}
+
+	if controlPlaneVersion != nil {
+		if version.Compare(newVersion, *controlPlaneVersion) > 0 {
+			allErrs = append(allErrs, field.Invalid(change.fldPath, change.newVersion,
+				fmt.Sprintf("version cannot be greater than the control plane version %q", controlPlaneVersion)))
+		} else if !version.WorkerVersionSkewSupported(*controlPlaneVersion, newVersion) {
+			allErrs = append(allErrs, field.Invalid(change.fldPath, change.newVersion,
+				fmt.Sprintf("version does not conform to the Kubernetes version skew policy: it cannot be more than %d minor versions older than the control plane version %q", version.MaxWorkerMinorVersionSkew, controlPlaneVersion)))
+		}
+	}
+
+	return allErrs
+}
+
+func getControlPlaneVersion(ctx context.Context, ctrlClient client.Reader, cluster *clusterv1.Cluster) (*semver.Version, error) {
+	cp, err := external.GetObjectFromContractVersionedRef(ctx, ctrlClient, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to get control plane object")
+	}
+
+	cpVersionString, err := contract.ControlPlane().Version().Get(cp)
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to get control plane version")
+	}
+
+	cpVersion, err := semver.ParseTolerant(*cpVersionString)
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to parse control plane version %s", *cpVersionString)
+	}
+
+	return &cpVersion, nil
 }
 
 func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
@@ -950,21 +1269,33 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 		return field.ErrorList{field.InternalError(field.NewPath(""), pkgerrors.New("ClusterClass can not be nil"))}
 	}
 
-	// If the ClusterClass defines a list of versions, check the version is one of them.
+	// If the ClusterClass defines a list of versions, check the versions are one of them.
 	if len(clusterClass.Spec.KubernetesVersions) > 0 {
-		found := false
-		for _, clusterClassVersion := range clusterClass.Spec.KubernetesVersions {
-			if clusterClassVersion == cluster.Spec.Topology.Version {
-				found = true
-				break
-			}
-		}
-		if !found {
+		versions := sets.New(clusterClass.Spec.KubernetesVersions...)
+		if !versions.Has(cluster.Spec.Topology.Version) {
 			allErrs = append(allErrs, field.Invalid(
 				field.NewPath("spec", "topology", "version"),
 				cluster.Spec.Topology.Version,
 				"version must match one of the versions defined in the ClusterClass",
 			))
+		}
+		for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+			if md.Version != "" && !versions.Has(md.Version) {
+				allErrs = append(allErrs, field.Invalid(
+					field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("version"),
+					md.Version,
+					"version must match one of the versions defined in the ClusterClass",
+				))
+			}
+		}
+		for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
+			if mp.Version != "" && !versions.Has(mp.Version) {
+				allErrs = append(allErrs, field.Invalid(
+					field.NewPath("spec", "topology", "workers", "machinePools").Key(mp.Name).Child("version"),
+					mp.Version,
+					"version must match one of the versions defined in the ClusterClass",
+				))
+			}
 		}
 	}
 

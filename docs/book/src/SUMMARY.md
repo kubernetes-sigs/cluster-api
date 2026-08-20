@@ -35,6 +35,7 @@
             - [Writing a ClusterClass](./tasks/experimental-features/cluster-class/write-clusterclass.md)
             - [Changing a ClusterClass](./tasks/experimental-features/cluster-class/change-clusterclass.md)
             - [Operating a managed Cluster](./tasks/experimental-features/cluster-class/operate-cluster.md)
+            - [Worker Version Pinning](./tasks/experimental-features/worker-version-pinning.md)
         - [Runtime SDK](tasks/experimental-features/runtime-sdk/index.md)
             - [Implementing Runtime Extensions](./tasks/experimental-features/runtime-sdk/implement-extensions.md)
             - [Implementing In-Place Update Hooks Extensions](./tasks/experimental-features/runtime-sdk/implement-in-place-update-hooks.md)

@@ -960,6 +960,78 @@ func TestComputeUpgradePlan(t *testing.T) {
 	}
 }
 
+func TestComputeUpgradePlanWithPinnedWorkers(t *testing.T) {
+	// A MachineDeployment/MachinePool pinning its own version must not contribute to
+	// minWorkersVersion. Otherwise it keeps the first version of the workers upgrade plan at the
+	// current control plane version forever, which makes the control plane wait for workers to
+	// upgrade and blocks it from advancing.
+	tests := []struct {
+		name                  string
+		versionPinning        bool
+		machineDeployments    map[string]string // topology name -> version
+		pinnedVersions        map[string]string // topology name -> pinned version
+		wantMinWorkersVersion string
+	}{
+		{
+			name:                  "includes machine deployments that do not pin a version",
+			versionPinning:        true,
+			machineDeployments:    map[string]string{"md1": "v1.31.0"},
+			wantMinWorkersVersion: "v1.31.0",
+		},
+		{
+			name:                  "excludes machine deployments that pin a version",
+			versionPinning:        true,
+			machineDeployments:    map[string]string{"md1": "v1.31.0"},
+			pinnedVersions:        map[string]string{"md1": "v1.31.0"},
+			wantMinWorkersVersion: "",
+		},
+		{
+			name:                  "considers only machine deployments that do not pin a version",
+			versionPinning:        true,
+			machineDeployments:    map[string]string{"md1": "v1.31.0", "md2": "v1.32.0"},
+			pinnedVersions:        map[string]string{"md1": "v1.31.0"},
+			wantMinWorkersVersion: "v1.32.0",
+		},
+		{
+			name:                  "includes pinned machine deployments if the feature gate is disabled",
+			versionPinning:        false,
+			machineDeployments:    map[string]string{"md1": "v1.31.0"},
+			pinnedVersions:        map[string]string{"md1": "v1.31.0"},
+			wantMinWorkersVersion: "v1.31.0",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, tt.versionPinning)
+
+			topology := clusterv1.Topology{Version: "v1.33.0"}
+			currentMDs := map[string]*scope.MachineDeploymentState{}
+			for name, version := range tt.machineDeployments {
+				topology.Workers.MachineDeployments = append(topology.Workers.MachineDeployments,
+					builder.MachineDeploymentTopology(name).WithVersion(tt.pinnedVersions[name]).Build())
+				currentMDs[name] = &scope.MachineDeploymentState{
+					Object: builder.MachineDeployment("test1", name).WithVersion(version).Build(),
+				}
+			}
+
+			s := &scope.Scope{
+				Blueprint:      &scope.ClusterBlueprint{Topology: topology},
+				Current:        &scope.ClusterState{MachineDeployments: currentMDs},
+				UpgradeTracker: scope.NewUpgradeTracker(),
+			}
+			s.Current.ControlPlane = &scope.ControlPlaneState{
+				Object: builder.ControlPlane("test1", "cp1").
+					WithSpecFields(map[string]interface{}{"spec.version": "v1.32.0"}).Build(),
+			}
+
+			g.Expect(ComputeUpgradePlan(ctx, s, GetUpgradePlanOneMinor)).To(Succeed())
+			g.Expect(s.UpgradeTracker.MinWorkersVersion).To(Equal(tt.wantMinWorkersVersion))
+		})
+	}
+}
+
 func TestGetUpgradePlanOneMinor(t *testing.T) {
 	tests := []struct {
 		name                        string

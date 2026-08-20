@@ -729,6 +729,37 @@ func TestMachineDeployment(t *testing.T) {
 			},
 		},
 		{
+			// builtin.machineDeployment.version must report the version the MachineDeployment
+			// actually runs, which for a pinned MachineDeployment is its pinned version and not
+			// Cluster.spec.topology.version. It is read from the MachineDeployment, so this works
+			// without the patch engine knowing about pinning.
+			name:                        "Should calculate MachineDeployment variables with the pinned version",
+			variableDefinitionsForPatch: map[string]bool{},
+			mdTopology: &clusterv1.MachineDeploymentTopology{
+				Replicas: ptr.To[int32](3),
+				Name:     "md-topology",
+				Class:    "md-class",
+				Version:  "v1.20.6",
+			},
+			md: builder.MachineDeployment(metav1.NamespaceDefault, "md1").
+				WithReplicas(3).
+				WithVersion("v1.20.6").
+				Build(),
+			want: []runtimehooksv1.Variable{
+				{
+					Name: runtimehooksv1.BuiltinsName,
+					Value: toJSONCompact(`{
+					"machineDeployment":{
+						"version": "v1.20.6",
+						"class": "md-class",
+						"name": "md1",
+						"topologyName": "md-topology",
+						"replicas":3
+					}}`),
+				},
+			},
+		},
+		{
 			name: "Should calculate MachineDeployment variables based on the variables defined for the patch",
 			variableDefinitionsForPatch: map[string]bool{
 				"location": true,

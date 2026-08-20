@@ -309,6 +309,85 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 	}, timeout).Should(Succeed())
 }
 
+// TestClusterReconciler_reconcileWorkerVersionPinning verifies that a MachineDeployment pinning its
+// own version is not upgraded by a Cluster.spec.topology.version change and keeps reconciling other
+// changes while it holds back.
+func TestClusterReconciler_reconcileWorkerVersionPinning(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, true)
+	g := NewWithT(t)
+	timeout := 300 * time.Second
+
+	ns, err := env.CreateNamespace(ctx, "test-topology-worker-version-pinning")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	cleanup, err := setupTestEnvForIntegrationTests(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+	defer func() {
+		g.Expect(cleanup()).To(Succeed())
+	}()
+
+	// getMachineDeployment returns the MachineDeployment for the given MachineDeployment topology name.
+	getMachineDeployment := func(g Gomega, mdTopologyName string) *clusterv1.MachineDeployment {
+		mds := &clusterv1.MachineDeploymentList{}
+		g.Expect(env.List(ctx, mds, client.InNamespace(ns.Name), client.MatchingLabels{
+			clusterv1.ClusterNameLabel:                          clusterName1,
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopologyName,
+		})).To(Succeed())
+		g.Expect(mds.Items).To(HaveLen(1))
+		return &mds.Items[0]
+	}
+
+	// patchCluster applies mutate to the current Cluster, retrying on conflicts.
+	patchCluster := func(mutate func(cluster *clusterv1.Cluster)) {
+		g.Eventually(func(g Gomega) {
+			cluster := &clusterv1.Cluster{}
+			g.Expect(env.Get(ctx, client.ObjectKey{Name: clusterName1, Namespace: ns.Name}, cluster)).To(Succeed())
+			patchHelper, err := patch.NewHelper(cluster, env.Client)
+			g.Expect(err).ToNot(HaveOccurred())
+			mutate(cluster)
+			g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
+		}, timeout).Should(Succeed())
+	}
+
+	g.Eventually(func(g Gomega) {
+		g.Expect(getMachineDeployment(g, "mdm1").Spec.Template.Spec.Version).To(Equal("v1.22.2"))
+		g.Expect(getMachineDeployment(g, "mdm2").Spec.Template.Spec.Version).To(Equal("v1.22.2"))
+	}, timeout).Should(Succeed())
+
+	// Pin mdm1 to the version it is already running: this must not trigger a rollout.
+	patchCluster(func(cluster *clusterv1.Cluster) {
+		cluster.Spec.Topology.Workers.MachineDeployments[0].Version = "v1.22.2"
+	})
+
+	// Upgrade the Cluster.
+	// Note: the control plane is not reconciled by a provider in this test, so it never reports the
+	// propagated version. Skip the version validation that depends on it.
+	patchCluster(func(cluster *clusterv1.Cluster) {
+		if cluster.Annotations == nil {
+			cluster.Annotations = map[string]string{}
+		}
+		cluster.Annotations[clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation] = ""
+		cluster.Spec.Topology.Version = "v1.23.0"
+	})
+
+	// The pinned MachineDeployment must hold at its pinned version, and must still pick up other
+	// changes while the Cluster is at a different version.
+	replicas := int32(5)
+	patchCluster(func(cluster *clusterv1.Cluster) {
+		cluster.Spec.Topology.Workers.MachineDeployments[0].Replicas = &replicas
+	})
+
+	g.Eventually(func(g Gomega) {
+		md := getMachineDeployment(g, "mdm1")
+		g.Expect(md.Spec.Template.Spec.Version).To(Equal("v1.22.2"), "pinned MachineDeployment should hold its pinned version")
+		g.Expect(md.Spec.Replicas).To(Equal(&replicas), "pinned MachineDeployment should still reconcile other changes")
+	}, timeout).Should(Succeed())
+
+	// Note: raising the pin is not covered here because it requires a control plane that actually
+	// completes the upgrade, which no provider does in this test. It is covered by the e2e test.
+}
+
 func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)

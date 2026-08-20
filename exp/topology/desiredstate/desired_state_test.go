@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
@@ -2845,6 +2846,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		beforeWorkersUpgradeHookBlocking     bool
 		topologyVersion                      string
 		upgradePlan                          []string
+		versionPinning                       bool
 		expectedVersion                      string
 		expectPendingCreate                  bool
 		expectPendingUpgrade                 bool
@@ -2999,11 +3001,95 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			expectedVersion:               "v1.2.2",
 			expectPendingUpgrade:          true,
 		},
+
+		// A pinned MachineDeployment manages its own version, so none of the cluster-level upgrade
+		// gates apply to it and it is never tracked as pending or upgrading.
+		{
+			name:                          "should return the pinned version if the machine deployment pins a version",
+			versionPinning:                true,
+			machineDeploymentTopology:     clusterv1.MachineDeploymentTopology{Name: "md-topology-1", Version: "v1.2.2"},
+			currentMachineDeploymentState: currentMachineDeploymentState,
+			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
+			expectedVersion:               "v1.2.2",
+		},
+		{
+			name:                          "should return the pinned version if the machine deployment pins a version and the control plane is not stable",
+			versionPinning:                true,
+			machineDeploymentTopology:     clusterv1.MachineDeploymentTopology{Name: "md-topology-1", Version: "v1.2.2"},
+			currentMachineDeploymentState: currentMachineDeploymentState,
+			controlPlaneUpgrading:         true,
+			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
+			expectedVersion:               "v1.2.2",
+		},
+		{
+			name:                                 "should return the pinned version if the machine deployment pins a version and a lifecycle hook is blocking",
+			versionPinning:                       true,
+			machineDeploymentTopology:            clusterv1.MachineDeploymentTopology{Name: "md-topology-1", Version: "v1.2.2"},
+			currentMachineDeploymentState:        currentMachineDeploymentState,
+			afterControlPlaneUpgradeHookBlocking: true,
+			topologyVersion:                      "v1.2.3",
+			upgradePlan:                          []string{"v1.2.3"},
+			expectedVersion:                      "v1.2.2",
+		},
+		{
+			name:                             "should return the pinned version if the machine deployment pins a version and the BeforeWorkersUpgrade hook is blocking",
+			versionPinning:                   true,
+			machineDeploymentTopology:        clusterv1.MachineDeploymentTopology{Name: "md-topology-1", Version: "v1.2.2"},
+			currentMachineDeploymentState:    currentMachineDeploymentState,
+			beforeWorkersUpgradeHookBlocking: true,
+			topologyVersion:                  "v1.2.3",
+			upgradePlan:                      []string{"v1.2.3"},
+			expectedVersion:                  "v1.2.2",
+		},
+		{
+			name:                          "should return the pinned version if the machine deployment pins a version and the upgrade concurrency limit is reached",
+			versionPinning:                true,
+			machineDeploymentTopology:     clusterv1.MachineDeploymentTopology{Name: "md-topology-1", Version: "v1.2.2"},
+			currentMachineDeploymentState: currentMachineDeploymentState,
+			upgradingMachineDeployments:   []string{"upgrading-md1", "upgrading-md2"},
+			upgradeConcurrency:            2,
+			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
+			expectedVersion:               "v1.2.2",
+		},
+		{
+			name:                          "should return the raised pinned version if the machine deployment pins a newer version",
+			versionPinning:                true,
+			machineDeploymentTopology:     clusterv1.MachineDeploymentTopology{Name: "md-topology-1", Version: "v1.2.3"},
+			currentMachineDeploymentState: currentMachineDeploymentState,
+			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
+			expectedVersion:               "v1.2.3",
+		},
+		{
+			// The new MachineDeployment must be created at the pinned version, otherwise it would be
+			// created at the topology version and immediately rolled back down to the pin.
+			name:                      "should return the pinned version if creating a new machine deployment that pins a version",
+			versionPinning:            true,
+			machineDeploymentTopology: clusterv1.MachineDeploymentTopology{Name: "md-topology-1", Version: "v1.2.2"},
+			controlPlaneUpgrading:     true,
+			topologyVersion:           "v1.2.3",
+			expectedVersion:           "v1.2.2",
+			expectPendingCreate:       true,
+		},
+		{
+			name:                          "should ignore the pinned version if the feature gate is disabled",
+			versionPinning:                false,
+			machineDeploymentTopology:     clusterv1.MachineDeploymentTopology{Name: "md-topology-1", Version: "v1.2.2"},
+			currentMachineDeploymentState: currentMachineDeploymentState,
+			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
+			expectedVersion:               "v1.2.3",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, tt.versionPinning)
 
 			s := &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
@@ -3049,6 +3135,11 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(version).To(Equal(tt.expectedVersion))
 
+			// A pinned MachineDeployment is excluded from the shared upgrade machinery.
+			if tt.versionPinning && tt.machineDeploymentTopology.Version != "" {
+				g.Expect(s.UpgradeTracker.MachineDeployments.UpgradingNames()).ToNot(ContainElement(mdName), "pinned MachineDeployment should not be marked as upgrading")
+			}
+
 			if tt.currentMachineDeploymentState != nil {
 				// Verify that if the upgrade is pending it is captured in the upgrade tracker.
 				if tt.expectPendingUpgrade {
@@ -3066,6 +3157,37 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestComputeMachineDeploymentVersionWithInPlaceUpdates verifies version pinning also holds when
+// the InPlaceUpdates feature gate is enabled, as the two gates can be toggled independently.
+func TestComputeMachineDeploymentVersionWithInPlaceUpdates(t *testing.T) {
+	g := NewWithT(t)
+
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, true)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+
+	s := &scope.Scope{
+		Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
+			Version:      "v1.2.3",
+			ControlPlane: clusterv1.ControlPlaneTopology{Replicas: ptr.To[int32](2)},
+		}},
+		Current: &scope.ClusterState{
+			ControlPlane: &scope.ControlPlaneState{Object: builder.ControlPlane("test1", "cp1").Build()},
+		},
+		UpgradeTracker:      scope.NewUpgradeTracker(),
+		HookResponseTracker: scope.NewHookResponseTracker(),
+	}
+	s.UpgradeTracker.MachineDeployments.UpgradePlan = []string{"v1.2.3"}
+
+	mdTopology := clusterv1.MachineDeploymentTopology{Name: "md-topology-1", Version: "v1.2.2"}
+	currentMDState := &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-1").WithVersion("v1.2.2").Build()}
+
+	e := generator{}
+	version, err := e.computeMachineDeploymentVersion(ctx, s, mdTopology, currentMDState)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(version).To(Equal("v1.2.2"))
+	g.Expect(s.UpgradeTracker.MachineDeployments.IsPendingUpgrade("md-1")).To(BeFalse())
 }
 
 func TestComputeMachinePoolVersion(t *testing.T) {
@@ -3090,6 +3212,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 		beforeWorkersUpgradeHookBlocking     bool
 		topologyVersion                      string
 		upgradePlan                          []string
+		versionPinning                       bool
 		expectedVersion                      string
 		expectPendingCreate                  bool
 		expectPendingUpgrade                 bool
@@ -3244,11 +3367,62 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			expectedVersion:         "v1.2.2",
 			expectPendingUpgrade:    true,
 		},
+
+		// A pinned MachinePool manages its own version, so none of the cluster-level upgrade gates
+		// apply to it and it is never tracked as pending or upgrading.
+		{
+			name:                    "should return the pinned version if the machine pool pins a version",
+			versionPinning:          true,
+			machinePoolTopology:     clusterv1.MachinePoolTopology{Name: "mp-topology-1", Version: "v1.2.2"},
+			currentMachinePoolState: currentMachinePoolState,
+			topologyVersion:         "v1.2.3",
+			upgradePlan:             []string{"v1.2.3"},
+			expectedVersion:         "v1.2.2",
+		},
+		{
+			name:                    "should return the pinned version if the machine pool pins a version and the control plane is not stable",
+			versionPinning:          true,
+			machinePoolTopology:     clusterv1.MachinePoolTopology{Name: "mp-topology-1", Version: "v1.2.2"},
+			currentMachinePoolState: currentMachinePoolState,
+			controlPlaneUpgrading:   true,
+			topologyVersion:         "v1.2.3",
+			upgradePlan:             []string{"v1.2.3"},
+			expectedVersion:         "v1.2.2",
+		},
+		{
+			name:                    "should return the raised pinned version if the machine pool pins a newer version",
+			versionPinning:          true,
+			machinePoolTopology:     clusterv1.MachinePoolTopology{Name: "mp-topology-1", Version: "v1.2.3"},
+			currentMachinePoolState: currentMachinePoolState,
+			topologyVersion:         "v1.2.3",
+			upgradePlan:             []string{"v1.2.3"},
+			expectedVersion:         "v1.2.3",
+		},
+		{
+			name:                  "should return the pinned version if creating a new machine pool that pins a version",
+			versionPinning:        true,
+			machinePoolTopology:   clusterv1.MachinePoolTopology{Name: "mp-topology-1", Version: "v1.2.2"},
+			controlPlaneUpgrading: true,
+			topologyVersion:       "v1.2.3",
+			expectedVersion:       "v1.2.2",
+			expectPendingCreate:   true,
+		},
+		{
+			name:                    "should ignore the pinned version if the feature gate is disabled",
+			versionPinning:          false,
+			machinePoolTopology:     clusterv1.MachinePoolTopology{Name: "mp-topology-1", Version: "v1.2.2"},
+			currentMachinePoolState: currentMachinePoolState,
+			topologyVersion:         "v1.2.3",
+			upgradePlan:             []string{"v1.2.3"},
+			expectedVersion:         "v1.2.3",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, tt.versionPinning)
 
 			s := &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
@@ -3294,6 +3468,11 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(version).To(Equal(tt.expectedVersion))
 
+			// A pinned MachinePool is excluded from the shared upgrade machinery.
+			if tt.versionPinning && tt.machinePoolTopology.Version != "" {
+				g.Expect(s.UpgradeTracker.MachinePools.UpgradingNames()).ToNot(ContainElement(mpName), "pinned MachinePool should not be marked as upgrading")
+			}
+
 			if tt.currentMachinePoolState != nil {
 				// Verify that if the upgrade is pending it is captured in the upgrade tracker.
 				if tt.expectPendingUpgrade {
@@ -3311,6 +3490,107 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPinnedWorkerNames(t *testing.T) {
+	// These sets are used to keep a rolling pinned MachineDeployment/MachinePool out of the upgrade
+	// tracker, so that it does not block the control plane. They are keyed by topology name on the
+	// way in and must return *object* names, because that is what the tracker records.
+	tests := []struct {
+		name               string
+		versionPinning     bool
+		machineDeployments map[string]string // topology name -> pinned version
+		currentObjects     map[string]string // topology name -> object name
+		nilObject          string            // topology name whose state has no object
+		want               []string
+	}{
+		{
+			name:               "returns the object name of a pinned MachineDeployment, not its topology name",
+			versionPinning:     true,
+			machineDeployments: map[string]string{"md-topology-1": "v1.31.0"},
+			currentObjects:     map[string]string{"md-topology-1": "cluster1-md-topology-1-abcde"},
+			want:               []string{"cluster1-md-topology-1-abcde"},
+		},
+		{
+			name:               "excludes MachineDeployments that do not pin a version",
+			versionPinning:     true,
+			machineDeployments: map[string]string{"md-topology-1": "", "md-topology-2": "v1.31.0"},
+			currentObjects:     map[string]string{"md-topology-1": "md-1-obj", "md-topology-2": "md-2-obj"},
+			want:               []string{"md-2-obj"},
+		},
+		{
+			// A current MachineDeployment whose topology entry was removed must count as unpinned
+			// rather than panic or be excluded.
+			name:               "treats a MachineDeployment with no topology entry as unpinned",
+			versionPinning:     true,
+			machineDeployments: map[string]string{},
+			currentObjects:     map[string]string{"orphaned-topology": "orphaned-obj"},
+			want:               []string{},
+		},
+		{
+			name:               "skips states that have no object yet",
+			versionPinning:     true,
+			machineDeployments: map[string]string{"md-topology-1": "v1.31.0"},
+			currentObjects:     map[string]string{},
+			nilObject:          "md-topology-1",
+			want:               []string{},
+		},
+		{
+			name:               "returns nothing if the feature gate is disabled",
+			versionPinning:     false,
+			machineDeployments: map[string]string{"md-topology-1": "v1.31.0"},
+			currentObjects:     map[string]string{"md-topology-1": "md-1-obj"},
+			want:               []string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, tt.versionPinning)
+
+			topology := clusterv1.Topology{Version: "v1.34.0"}
+			for topologyName, pinnedVersion := range tt.machineDeployments {
+				topology.Workers.MachineDeployments = append(topology.Workers.MachineDeployments,
+					builder.MachineDeploymentTopology(topologyName).WithVersion(pinnedVersion).Build())
+				topology.Workers.MachinePools = append(topology.Workers.MachinePools,
+					builder.MachinePoolTopology(topologyName).WithVersion(pinnedVersion).Build())
+			}
+
+			currentMDs := scope.MachineDeploymentsStateMap{}
+			currentMPs := scope.MachinePoolsStateMap{}
+			for topologyName, objectName := range tt.currentObjects {
+				currentMDs[topologyName] = &scope.MachineDeploymentState{
+					Object: builder.MachineDeployment("test1", objectName).WithVersion("v1.31.0").Build(),
+				}
+				currentMPs[topologyName] = &scope.MachinePoolState{
+					Object: builder.MachinePool("test1", objectName).WithVersion("v1.31.0").Build(),
+				}
+			}
+			if tt.nilObject != "" {
+				currentMDs[tt.nilObject] = &scope.MachineDeploymentState{}
+				currentMPs[tt.nilObject] = &scope.MachinePoolState{}
+			}
+
+			s := &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{Topology: topology},
+				Current:   &scope.ClusterState{MachineDeployments: currentMDs, MachinePools: currentMPs},
+			}
+
+			g.Expect(sets.List(pinnedMachineDeploymentNames(s))).To(ConsistOf(toAnySlice(tt.want)...))
+			g.Expect(sets.List(pinnedMachinePoolNames(s))).To(ConsistOf(toAnySlice(tt.want)...))
+		})
+	}
+}
+
+// toAnySlice converts names to a slice usable with ConsistOf, which needs no elements for an empty
+// expectation.
+func toAnySlice(names []string) []any {
+	out := make([]any, 0, len(names))
+	for _, n := range names {
+		out = append(out, n)
+	}
+	return out
 }
 
 func TestIsMachineDeploymentDeferred(t *testing.T) {

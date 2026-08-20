@@ -191,6 +191,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-runtimesdk-v1beta1.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-kcp-only.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-kubeadm-version.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-worker-version-pinning.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-autoscaler.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-taints.yaml"
@@ -249,6 +250,7 @@ variables:
   EXP_RECONCILER_RATE_LIMITING: "true"
   EXP_IN_PLACE_UPDATES: "true"
   EXP_MACHINE_TAINT_PROPAGATION: "true"
+  EXP_CLUSTER_TOPOLOGY_WORKER_VERSION_PINNING: "true"
   CAPI_DIAGNOSTICS_ADDRESS: ":8080"
   CAPI_INSECURE_DIAGNOSTICS: "true"
 

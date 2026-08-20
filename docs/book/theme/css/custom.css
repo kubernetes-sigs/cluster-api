@@ -315,39 +315,10 @@ aside.note {
     margin-top: 1em;
 }
 
-aside.note > * {
-    margin-left: 1em;
-    margin-right: 1em;
-}
-
 /* note title */
 aside.note > h1 {
-    border-bottom: 1px solid var(--searchbar-border-color);
-    margin: 0;
-    padding: 0.5em 1em;
     font-size: 100%;
     font-weight: normal;
-    background: var(--quote-bg);
-}
-
-/* warning notes */
-aside.note.warning > h1 {
-    background: var(--warning-note-background-color, #fcf8f2);
-}
-aside.note.warning > h1::before {
-    /* TODO(directxman12): fill in these colors in theme.
-     * If you're good with colors, feel free to play around with this
-     * in dark mode. */
-    content: "!";
-    color: var(--warning-note-color, #f0ad4e);
-    margin-right: 1em;
-    font-size: 100%;
-    vertical-align: middle;
-    font-weight: bold;
-    padding-left: 0.6em;
-    padding-right: 0.6em;
-    border-radius: 50%;
-    border: 2px solid var(--warning-note-color, #f0ad4e);
 }
 
 /* literate source citations */
@@ -415,7 +386,28 @@ cite.literate-source > a::before {
 .tabset > input:nth-child(51):checked ~ .tab-panels > .tab-panel:nth-child(26),
 .tabset > input:nth-child(53):checked ~ .tab-panels > .tab-panel:nth-child(27),
 .tabset > input:nth-child(55):checked ~ .tab-panels > .tab-panel:nth-child(28),
-.tabset > input:nth-child(57):checked ~ .tab-panels > .tab-panel:nth-child(29){
+.tabset > input:nth-child(57):checked ~ .tab-panels > .tab-panel:nth-child(29),
+.tabset > input:nth-child(59):checked ~ .tab-panels > .tab-panel:nth-child(30),
+.tabset > input:nth-child(61):checked ~ .tab-panels > .tab-panel:nth-child(31),
+.tabset > input:nth-child(63):checked ~ .tab-panels > .tab-panel:nth-child(32),
+.tabset > input:nth-child(65):checked ~ .tab-panels > .tab-panel:nth-child(33),
+.tabset > input:nth-child(67):checked ~ .tab-panels > .tab-panel:nth-child(34),
+.tabset > input:nth-child(69):checked ~ .tab-panels > .tab-panel:nth-child(35),
+.tabset > input:nth-child(71):checked ~ .tab-panels > .tab-panel:nth-child(36),
+.tabset > input:nth-child(73):checked ~ .tab-panels > .tab-panel:nth-child(37),
+.tabset > input:nth-child(75):checked ~ .tab-panels > .tab-panel:nth-child(38),
+.tabset > input:nth-child(77):checked ~ .tab-panels > .tab-panel:nth-child(39),
+.tabset > input:nth-child(79):checked ~ .tab-panels > .tab-panel:nth-child(40),
+.tabset > input:nth-child(81):checked ~ .tab-panels > .tab-panel:nth-child(41),
+.tabset > input:nth-child(83):checked ~ .tab-panels > .tab-panel:nth-child(42),
+.tabset > input:nth-child(85):checked ~ .tab-panels > .tab-panel:nth-child(43),
+.tabset > input:nth-child(87):checked ~ .tab-panels > .tab-panel:nth-child(44),
+.tabset > input:nth-child(89):checked ~ .tab-panels > .tab-panel:nth-child(45),
+.tabset > input:nth-child(91):checked ~ .tab-panels > .tab-panel:nth-child(46),
+.tabset > input:nth-child(93):checked ~ .tab-panels > .tab-panel:nth-child(47),
+.tabset > input:nth-child(95):checked ~ .tab-panels > .tab-panel:nth-child(48),
+.tabset > input:nth-child(97):checked ~ .tab-panels > .tab-panel:nth-child(49),
+.tabset > input:nth-child(99):checked ~ .tab-panels > .tab-panel:nth-child(50){
   display: block;
 }
 

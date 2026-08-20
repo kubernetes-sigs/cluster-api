@@ -30,11 +30,6 @@ import (
 )
 
 const (
-	// ClusterAdminsGroupAndClusterRoleBinding is the name of the Group used for kubeadm generated cluster
-	// admin credentials and the name of the ClusterRoleBinding that binds the same Group to the "cluster-admin"
-	// built-in ClusterRole.
-	ClusterAdminsGroupAndClusterRoleBinding = "kubeadm:cluster-admins"
-
 	// KubeletAPIAdminClusterRoleBindingName is the name of the ClusterRoleBinding for the apiserver kubelet client.
 	KubeletAPIAdminClusterRoleBindingName = "kubeadm:apiserver-kubelet-client"
 
@@ -72,30 +67,6 @@ func (w *Workload) EnsureKubeadmPermissions(ctx context.Context, targetVersion s
 	// have been introduced to kubeadm, so upgrade will keep working also in case the changes are backported to older versions.
 	if version.Compare(targetVersion, semver.Version{Major: 1, Minor: 38, Patch: 0}, version.WithoutPreReleases()) >= 0 {
 		return nil
-	}
-
-	// Kubeadm added this role with K8s 1.29 when introducing
-	// a cleaner split between kubeadm:cluster-admins and system:masters.
-	// Rif https://github.com/kubernetes/kubernetes/pull/121305
-	// This change can be dropped when the min supported Kubernetes version in Cluster API >= 1.30.
-	err := w.EnsureResource(ctx, &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: ClusterAdminsGroupAndClusterRoleBinding,
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: rbacv1.GroupName,
-			Kind:     "ClusterRole",
-			Name:     "cluster-admin",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind: rbacv1.GroupKind,
-				Name: ClusterAdminsGroupAndClusterRoleBinding,
-			},
-		},
-	})
-	if err != nil {
-		return err
 	}
 
 	// Kubeadm introduced this role with K8s 1.37 when reducing

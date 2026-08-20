@@ -36,28 +36,12 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 		wantObjs      []client.Object
 	}{
 		{
-			name:          "Add kubeadm:cluster-admins and kubeadm:apiserver-kubelet-client ClusterRoleBinding for K8s <= 1.37",
+			name:          "Add kubeadm:apiserver-kubelet-client ClusterRoleBinding for K8s <= 1.37",
 			objs:          nil,
 			targetVersion: semver.MustParse("1.37.5"),
 			wantObjs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: ClusterAdminsGroupAndClusterRoleBinding,
-					},
-					RoleRef: rbacv1.RoleRef{
-						APIGroup: rbacv1.GroupName,
-						Kind:     "ClusterRole",
-						Name:     "cluster-admin",
-					},
-					Subjects: []rbacv1.Subject{
-						{
-							Kind: rbacv1.GroupKind,
-							Name: ClusterAdminsGroupAndClusterRoleBinding,
-						},
-					},
-				},
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
 						Name: KubeletAPIAdminClusterRoleBindingName,
 					},
 					RoleRef: rbacv1.RoleRef{
@@ -75,14 +59,8 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			},
 		},
 		{
-			name: "Ignore kubeadm:cluster-admins and kubeadm:apiserver-kubelet-client ClusterRoleBinding if they already exist for K8s <= 1.37 (kubeadm started adding those roles in patch versions)",
+			name: "Ignore kubeadm:apiserver-kubelet-client ClusterRoleBinding if they already exist for K8s <= 1.37 (kubeadm started adding those roles in patch versions)",
 			objs: []client.Object{
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: ClusterAdminsGroupAndClusterRoleBinding,
-					},
-					// Intentionally using a different ClusterRoleBinding to check that it is not changed.
-				},
 				&rbacv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: KubeletAPIAdminClusterRoleBindingName,
@@ -94,25 +72,14 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			wantObjs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: ClusterAdminsGroupAndClusterRoleBinding,
-					},
-				},
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
 						Name: KubeletAPIAdminClusterRoleBindingName,
 					},
 				},
 			},
 		},
 		{
-			name: "Ignore kubeadm:cluster-admins and kubeadm:apiserver-kubelet-client ClusterRoleBinding if they already exist for K8s >= 1.38 (kubeadm should add those roles or KCP in a previous update)",
+			name: "Ignore kubeadm:apiserver-kubelet-client ClusterRoleBinding if they already exist for K8s >= 1.38 (kubeadm should add those roles or KCP in a previous update)",
 			objs: []client.Object{
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: ClusterAdminsGroupAndClusterRoleBinding,
-					},
-					// Intentionally using a different ClusterRoleBinding to check that it is not changed.
-				},
 				&rbacv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: KubeletAPIAdminClusterRoleBindingName,
@@ -124,45 +91,24 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			wantObjs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: ClusterAdminsGroupAndClusterRoleBinding,
-					},
-				},
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
 						Name: KubeletAPIAdminClusterRoleBindingName,
 					},
 				},
 			},
 		},
 		{
-			name:          "Do not add kubeadm:cluster-admins and kubeadm:apiserver-kubelet-client ClusterRoleBinding for K8s >= 1.38 (this should never happen, kubeadm should add those roles or KCP in a previous update)",
+			name:          "Do not add kubeadm:apiserver-kubelet-client ClusterRoleBinding for K8s >= 1.38 (this should never happen, kubeadm should add those roles or KCP in a previous update)",
 			objs:          nil,
 			targetVersion: semver.MustParse("1.38.0"),
 			wantObjs:      nil,
 		},
 		{
-			name:          "Add both ClusterRoleBindings for K8s < 1.29 (no lower bound, applied even before kubeadm introduced them)",
+			name:          "Add kubeadm:apiserver-kubelet-client ClusterRoleBindings for K8s < 1.29 (no lower bound, applied even before kubeadm introduced them)",
 			objs:          nil,
 			targetVersion: semver.MustParse("1.28.0"),
 			wantObjs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: ClusterAdminsGroupAndClusterRoleBinding,
-					},
-					RoleRef: rbacv1.RoleRef{
-						APIGroup: rbacv1.GroupName,
-						Kind:     "ClusterRole",
-						Name:     "cluster-admin",
-					},
-					Subjects: []rbacv1.Subject{
-						{
-							Kind: rbacv1.GroupKind,
-							Name: ClusterAdminsGroupAndClusterRoleBinding,
-						},
-					},
-				},
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
 						Name: KubeletAPIAdminClusterRoleBindingName,
 					},
 					RoleRef: rbacv1.RoleRef{
@@ -180,80 +126,10 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			},
 		},
 		{
-			name:          "Do not add kubeadm:cluster-admins and kubeadm:apiserver-kubelet-client ClusterRoleBinding for K8s 1.38 pre-release (pre-releases are treated as >= 1.38 via WithoutPreReleases)",
+			name:          "Do not add kubeadm:apiserver-kubelet-client ClusterRoleBinding for K8s 1.38 pre-release (pre-releases are treated as >= 1.38 via WithoutPreReleases)",
 			objs:          nil,
 			targetVersion: semver.MustParse("1.38.0-beta.0"),
 			wantObjs:      nil,
-		},
-		{
-			name: "Add only kubeadm:apiserver-kubelet-client when kubeadm:cluster-admins already exists for K8s <= 1.37",
-			objs: []client.Object{
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: ClusterAdminsGroupAndClusterRoleBinding,
-					},
-					// Intentionally using a different ClusterRoleBinding to check that it is not changed.
-				},
-			},
-			targetVersion: semver.MustParse("1.37.0"),
-			wantObjs: []client.Object{
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: ClusterAdminsGroupAndClusterRoleBinding,
-					},
-				},
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: KubeletAPIAdminClusterRoleBindingName,
-					},
-					RoleRef: rbacv1.RoleRef{
-						APIGroup: rbacv1.GroupName,
-						Kind:     "ClusterRole",
-						Name:     KubeletAPIAdminClusterRoleName,
-					},
-					Subjects: []rbacv1.Subject{
-						{
-							Kind: rbacv1.UserKind,
-							Name: APIServerKubeletClientCertCommonName,
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Add only kubeadm:cluster-admins when kubeadm:apiserver-kubelet-client already exists for K8s <= 1.37",
-			objs: []client.Object{
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: KubeletAPIAdminClusterRoleBindingName,
-					},
-					// Intentionally using a different ClusterRoleBinding to check that it is not changed.
-				},
-			},
-			targetVersion: semver.MustParse("1.37.0"),
-			wantObjs: []client.Object{
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: KubeletAPIAdminClusterRoleBindingName,
-					},
-				},
-				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: ClusterAdminsGroupAndClusterRoleBinding,
-					},
-					RoleRef: rbacv1.RoleRef{
-						APIGroup: rbacv1.GroupName,
-						Kind:     "ClusterRole",
-						Name:     "cluster-admin",
-					},
-					Subjects: []rbacv1.Subject{
-						{
-							Kind: rbacv1.GroupKind,
-							Name: ClusterAdminsGroupAndClusterRoleBinding,
-						},
-					},
-				},
-			},
 		},
 	}
 

@@ -99,10 +99,6 @@ func (f *fakeWorkloadCluster) GetAPIServerCertificateExpiry(_ context.Context, _
 	return f.APIServerCertificateExpiry, nil
 }
 
-func (f *fakeWorkloadCluster) AllowClusterAdminPermissions(_ context.Context, _ semver.Version) error {
-	return nil
-}
-
 func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
 	return nil
 }

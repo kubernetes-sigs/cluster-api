@@ -39,8 +39,8 @@ esac
 # digests are pinned here and must be updated whenever MDBOOK_VERSION is bumped.
 EXPECTED_SHA256=""
 case "${VERSION}-${RELEASE_NAME}" in
-  v0.4.11-x86_64-apple-darwin.tar.gz)       EXPECTED_SHA256="16615a2b4b5e623f35d27c24fd6651b8e80cdcb315176c3c8feba07161442811" ;;
-  v0.4.11-x86_64-unknown-linux-gnu.tar.gz)  EXPECTED_SHA256="d26c32fa09e0199ffa30705beb05a16b17a2fb2e96977de277f96695f6185049" ;;
+  v0.5.4-x86_64-apple-darwin.tar.gz)       EXPECTED_SHA256="a47d7bf0d5d670cff9ee6cce95537cbeb62dc10704d9e7131ffbd13e2b59a5de" ;;
+  v0.5.4-x86_64-unknown-linux-gnu.tar.gz)  EXPECTED_SHA256="3f28de05dafca9d0f2eab99c662116b0e37b89b1d96a08f8f430b9eeae958cd7" ;;
   *) echo "No known sha256 digest for mdbook-${VERSION}-${RELEASE_NAME}, refusing to install an unverified binary" && exit 1 ;;
 esac
 

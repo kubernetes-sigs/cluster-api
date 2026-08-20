@@ -37,7 +37,7 @@ $(RELEASELINK): $(TOOLS_DIR)/go.mod
 # Only set MDBOOK if it's not set as an environment variable
 MDBOOK ?= $(TOOLS_BIN_DIR)/mdbook
 $(MDBOOK):
-	$(MDBOOK_INSTALL) v0.4.11 $(TOOLS_BIN_DIR)
+	$(MDBOOK_INSTALL) v0.5.4 $(TOOLS_BIN_DIR)
 
 RUNTIME_OPENAPI_GEN_BIN := runtime-openapi-gen
 RUNTIME_OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN))

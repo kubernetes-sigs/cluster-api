@@ -281,17 +281,33 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	ready, err := external.IsReady(infraConfig)
+	// Determine contract version used by the InfraMachinePool.
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, infraConfig.GroupVersionKind().GroupKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	mp.Status.Initialization.InfrastructureProvisioned = ptr.To(ready)
+	// Determine if the InfraMachinePool is provisioned.
+	var provisioned bool
+	if provisionedPtr, err := contract.InfrastructureMachinePool().Provisioned(contractVersion).Get(infraConfig); err != nil {
+		if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
+			return ctrl.Result{}, err
+		}
+	} else {
+		provisioned = *provisionedPtr
+	}
+	if provisioned && !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
+		log.Info("Infrastructure provider has completed provisioning", infraConfig.GetKind(), klog.KObj(infraConfig))
+	}
+
+	// Note: initialization.infrastructureProvisioned is never updated after provisioning is completed,
+	// even if the InfraMachinePool later reports not provisioned (e.g. while scaling).
+	mp.Status.Initialization.InfrastructureProvisioned = ptr.To(provisioned || ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false))
 
 	// Report a summary of current status of the infrastructure object defined for this machine pool.
 	v1beta1conditions.SetMirror(mp, clusterv1.InfrastructureReadyV1Beta1Condition,
 		v1beta1conditions.UnstructuredGetter(infraConfig),
-		v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
+		v1beta1conditions.WithFallbackValue(provisioned, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 	)
 
 	clusterClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
@@ -310,22 +326,29 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	if !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
-		log.Info("Infrastructure provider is not yet ready", infraConfig.GetKind(), klog.KObj(infraConfig))
+		log.Info(fmt.Sprintf("Waiting for infrastructure provider to set %s on %s",
+			contract.InfrastructureMachinePool().Provisioned(contractVersion).Path().String(), infraConfig.GetKind()),
+			infraConfig.GetKind(), klog.KObj(infraConfig))
 		return ctrl.Result{}, nil
 	}
 
-	var providerIDList []string
 	// Get Spec.ProviderIDList from the infrastructure provider.
-	if err := util.UnstructuredUnmarshalField(infraConfig, &providerIDList, "spec", "providerIDList"); err != nil && !pkgerrors.Is(err, util.ErrUnstructuredFieldNotFound) {
-		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve data from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+	var providerIDList []string
+	if providerIDListPtr, err := contract.InfrastructureMachinePool().ProviderIDList().Get(infraConfig); err != nil {
+		if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve data from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+		}
+	} else {
+		providerIDList = *providerIDListPtr
 	}
 
 	// Get and set Status.Replicas from the infrastructure provider.
-	err = util.UnstructuredUnmarshalField(infraConfig, &mp.Status.Replicas, "status", "replicas")
-	if err != nil {
-		if !pkgerrors.Is(err, util.ErrUnstructuredFieldNotFound) {
+	if replicas, err := contract.InfrastructureMachinePool().Replicas().Get(infraConfig); err != nil {
+		if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve replicas from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 		}
+	} else {
+		mp.Status.Replicas = replicas
 	}
 
 	if len(providerIDList) == 0 && ptr.Deref(mp.Status.Replicas, 0) != 0 {
@@ -360,15 +383,16 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 	log := ctrl.LoggerFrom(ctx)
 	mp := s.machinePool
 
-	var infraMachineKind string
-	if err := util.UnstructuredUnmarshalField(infraMachinePool, &infraMachineKind, "status", "infrastructureMachineKind"); err != nil {
-		if pkgerrors.Is(err, util.ErrUnstructuredFieldNotFound) {
+	infraMachineKindPtr, err := contract.InfrastructureMachinePool().InfrastructureMachineKind().Get(infraMachinePool)
+	if err != nil {
+		if pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			log.V(4).Info("MachinePool Machines not supported, no infraMachineKind found")
 			return nil
 		}
 
 		return pkgerrors.Wrapf(err, "failed to retrieve infraMachineKind from infrastructure provider for MachinePool %s", klog.KObj(mp))
 	}
+	infraMachineKind := *infraMachineKindPtr
 
 	infraMachineSelector := metav1.LabelSelector{
 		MatchLabels: map[string]string{

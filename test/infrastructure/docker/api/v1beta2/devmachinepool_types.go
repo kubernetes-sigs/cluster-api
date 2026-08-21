@@ -54,7 +54,7 @@ const (
 	DevMachinePoolReadyUnknownReason = clusterv1.ReadyUnknownReason
 )
 
-// +kubebuilder:resource:path=devmachinepools,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=devmachinepools,shortName=devmp,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
@@ -100,10 +100,16 @@ type DockerMachinePoolBackendSpec struct {
 type DevMachinePoolSpec struct {
 	// ProviderID is the identification ID of the Machine Pool
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	ProviderID string `json:"providerID,omitempty"`
 
 	// ProviderIDList is the list of identification IDs of machine instances managed by this Machine Pool
 	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=10000
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=512
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 
 	// backend contains the details used to build a replica machine within the Machine Pool

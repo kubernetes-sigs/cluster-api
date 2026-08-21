@@ -77,5 +77,12 @@ func ConvertMachinePoolHubToV1Beta1(ctx context.Context, src *clusterv1.MachineP
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
+	// Note: Only put the fields into the conversion annotation that are actually restored in
+	// ConvertMachinePoolV1Beta1ToHub to reduce memory usage.
+	src = &clusterv1.MachinePool{
+		Status: clusterv1.MachinePoolStatus{
+			Initialization: src.Status.Initialization,
+		},
+	}
 	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }

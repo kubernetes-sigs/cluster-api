@@ -106,7 +106,13 @@ func ConvertIPAddressClaimHubToV1Alpha1(_ context.Context, src *ipamv1.IPAddress
 		dst.Labels[clusterv1.ClusterNameLabel] = src.Spec.ClusterName
 	}
 
-	// Preserve Hub data on down-conversion except for metadata
+	// Note: Only put the fields into the conversion annotation that are actually restored in
+	// ConvertIPAddressClaimV1Alpha1ToHub to reduce memory usage.
+	src = &ipamv1.IPAddressClaim{
+		Status: ipamv1.IPAddressClaimStatus{
+			Conditions: src.Status.Conditions,
+		},
+	}
 	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }
 

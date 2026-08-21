@@ -69,6 +69,14 @@ func ConvertKubeadmConfigTemplateHubToV1Beta1(ctx context.Context, src *bootstra
 
 	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.Template.Spec)
 
-	// Preserve Hub data on down-conversion except for metadata.
+	// Note: Only put the fields into the conversion annotation that are actually restored in
+	// ConvertKubeadmConfigTemplateV1Beta1ToHub to reduce memory usage.
+	src = &bootstrapv1.KubeadmConfigTemplate{
+		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
+			Template: bootstrapv1.KubeadmConfigTemplateResource{
+				Spec: MinimalKubeadmConfigSpecForRestore(&src.Spec.Template.Spec),
+			},
+		},
+	}
 	return conversionutil.MarshalDataUnsafeNoCopy(src, dst)
 }

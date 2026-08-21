@@ -24,9 +24,11 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -38,8 +40,11 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
+	"sigs.k8s.io/cluster-api/core/setup"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/labels/format"
@@ -102,6 +107,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			"status": map[string]interface{}{},
 		},
 	}
+	defaultBootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind)
 
 	defaultInfra := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -120,6 +126,12 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		},
 	}
 
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+	scheme.AddKnownTypeWithName(defaultBootstrapConfigGVK, &contractv1.BootstrapConfig{})
+
 	t.Run("Should set OwnerReference and cluster name label on external objects", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -128,10 +140,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -170,11 +183,12 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -211,10 +225,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -267,10 +282,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		// Set NodeRef.
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -339,10 +355,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		// Set NodeRef.
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -389,10 +406,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		// Set NodeRef.
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -442,10 +460,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		// Set NodeRef.
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -512,10 +531,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			{Kind: "Node", Name: "machinepool-test-node-3"},
 		}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -588,10 +608,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.SetDeletionTimestamp(&deletionTimestamp)
 		machinepool.Finalizers = []string{clusterv1.MachinePoolFinalizer}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -662,10 +683,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		}
 		machinePool.Status.Replicas = ptr.To(int32(1))
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -758,10 +780,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		}
 		machinePool.Status.Replicas = ptr.To(int32(1))
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -1098,9 +1121,17 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			}
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
-			fakeClient := fake.NewClientBuilder().WithObjects(tc.machinepool, bootstrapConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+			bootstrapConfigGVK := bootstrapConfig.GroupVersionKind()
+
+			scheme := runtime.NewScheme()
+			_ = corev1.AddToScheme(scheme)
+			_ = apiextensionsv1.AddToScheme(scheme)
+			_ = clusterv1.AddToScheme(scheme)
+			scheme.AddKnownTypeWithName(bootstrapConfigGVK, &contractv1.BootstrapConfig{})
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.machinepool, bootstrapConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 			r := &Reconciler{
-				Client: fakeClient,
+				Client:       fakeClient,
+				DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
@@ -1400,14 +1431,16 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(env.CreateAndWait(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
 
 			r := &Reconciler{
-				Client:   env,
-				ssaCache: ssa.NewCache(testController),
+				Client:       env,
+				DynamicCache: dynamicCache,
+				ssaCache:     ssa.NewCache(testController),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          env.Scheme(),
 					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
+				controller: externalfake.Controller{},
 			}
 			scope := &scope{
 				machinePool: &machinePool,
@@ -1469,14 +1502,16 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(env.CreateAndWait(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
 
 			r := &Reconciler{
-				Client:   env,
-				ssaCache: ssa.NewCache(testController),
+				Client:       env,
+				DynamicCache: dynamicCache,
+				ssaCache:     ssa.NewCache(testController),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          env.Scheme(),
 					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
+				controller: externalfake.Controller{},
 			}
 
 			scope := &scope{
@@ -1780,6 +1815,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			},
 		},
 	}
+	defaultBootstrapConfigGVK := defaultBootstrap.GroupVersionKind()
 
 	defaultInfra := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -1795,6 +1831,12 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			},
 		},
 	}
+
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+	scheme.AddKnownTypeWithName(defaultBootstrapConfigGVK, &contractv1.BootstrapConfig{})
 
 	t.Run("Should set `ScalingDown` when scaling to zero", func(t *testing.T) {
 		g := NewWithT(t)
@@ -1838,9 +1880,10 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			ClusterCache: clustercache.NewFakeClusterCache(env.GetClient(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			recorder:     record.NewFakeRecorder(32),
 			externalTracker: external.ObjectTracker{
@@ -1849,6 +1892,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				Scheme:          fakeClient.Scheme(),
 				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 			},
+			controller: externalfake.Controller{},
 		}
 
 		scope := &scope{
@@ -1906,10 +1950,11 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, int64(0), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(env.GetClient(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			recorder:     record.NewFakeRecorder(32),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
@@ -1957,11 +2002,12 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err := unstructured.SetNestedField(infraConfig.Object, int64(0), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			recorder:     record.NewFakeRecorder(32),
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -2004,11 +2050,12 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err := unstructured.SetNestedField(infraConfig.Object, int64(0), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			recorder:     record.NewFakeRecorder(32),
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
@@ -2073,10 +2120,11 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(env.GetClient(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+			DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			recorder:     record.NewFakeRecorder(32),
 			externalTracker: external.ObjectTracker{
 				Controller:      externalfake.Controller{},

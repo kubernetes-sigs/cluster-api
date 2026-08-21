@@ -32,12 +32,7 @@ import (
 
 // NewInformerFunc provides a new informer func that can be used for cache.Options that configures the
 // informer with an identifier and an informerMetricsProvider for proper logs and metrics.
-func NewInformerFunc(scheme *runtime.Scheme, controllerName string) func(cache.ListerWatcher, runtime.Object, time.Duration, cache.Indexers) cache.SharedIndexInformer {
-	informerName, err := cache.NewInformerName(controllerName)
-	if err != nil {
-		panic("cache.NewInformerName was called twice with the same name, that should never happen")
-	}
-
+func NewInformerFunc(scheme *runtime.Scheme, informerName *cache.InformerName) func(cache.ListerWatcher, runtime.Object, time.Duration, cache.Indexers) cache.SharedIndexInformer {
 	return func(lw cache.ListerWatcher, exampleObject runtime.Object, defaultEventHandlerResyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 		// controller-runtime is using cache.NewSharedIndexInformer per default. This is duplicating
 		// cache.NewSharedIndexInformer and additionally setting the Identifier and InformerMetricsProvider

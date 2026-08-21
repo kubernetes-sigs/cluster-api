@@ -26,14 +26,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -163,17 +164,40 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 		}
 	}
 
+	// Note: We are not caching the full InfraMachine object, only the contract InfraMachine in the dynamicCache.
+	// During in-place update we need the full object so we get it here and cache it temporarily.
+	infraMachineCacheEntry, ok := r.contractObjectsCache.Has(contractObjectsCacheKey(s.infraMachineGVK, s.infraMachine))
+	if !ok || s.infraMachine.GetResourceVersion() != infraMachineCacheEntry.obj.GetResourceVersion() {
+		infraMachineCacheEntry.obj, err = external.GetObjectFromContractVersionedRef(ctx, r.APIReader, s.machine.Spec.InfrastructureRef, s.machine.Namespace)
+		if err != nil {
+			return ctrl.Result{}, "", err
+		}
+	}
+	r.contractObjectsCache.Add(infraMachineCacheEntry) // Add to cache or extend expiry of cache entry on cache hit.
+
 	// Note: When building request message, dropping status; Runtime extension should treat UpdateMachine
 	// requests as desired state; it is up to them to compare with current state and perform necessary actions.
 	request := &runtimehooksv1.UpdateMachineRequest{
 		Desired: runtimehooksv1.UpdateMachineRequestObjects{
 			Machine:               *cleanupMachine(s.machine),
-			InfrastructureMachine: runtime.RawExtension{Object: cleanupUnstructured(s.infraMachine)},
+			InfrastructureMachine: runtime.RawExtension{Object: cleanupUnstructured(infraMachineCacheEntry.obj)},
 		},
 	}
 
+	var bootstrapConfigCacheEntry contractObjectsCacheEntry
 	if s.bootstrapConfig != nil {
-		request.Desired.BootstrapConfig = runtime.RawExtension{Object: cleanupUnstructured(s.bootstrapConfig)}
+		// Note: We are not caching the full BootstrapConfig object, only the contract BootstrapConfig in the dynamicCache.
+		// During in-place update we need the full object so we get it here and cache it temporarily.
+		bootstrapConfigCacheEntry, ok = r.contractObjectsCache.Has(contractObjectsCacheKey(s.bootstrapConfigGVK, s.bootstrapConfig))
+		if !ok || s.bootstrapConfig.GetResourceVersion() != bootstrapConfigCacheEntry.obj.GetResourceVersion() {
+			bootstrapConfigCacheEntry.obj, err = external.GetObjectFromContractVersionedRef(ctx, r.APIReader, s.machine.Spec.Bootstrap.ConfigRef, s.machine.Namespace)
+			if err != nil {
+				return ctrl.Result{}, "", err
+			}
+		}
+		r.contractObjectsCache.Add(bootstrapConfigCacheEntry) // Add to cache or extend expiry of cache entry on cache hit.
+
+		request.Desired.BootstrapConfig = runtime.RawExtension{Object: cleanupUnstructured(bootstrapConfigCacheEntry.obj)}
 	}
 
 	response := &runtimehooksv1.UpdateMachineResponse{}
@@ -189,6 +213,12 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 		return ctrl.Result{RequeueAfter: requeueAfter}, response.GetMessage(), nil
 	}
 
+	// Cleanup cache proactively instead of waiting for the expiry
+	r.contractObjectsCache.Delete(infraMachineCacheEntry)
+	if s.bootstrapConfig != nil {
+		r.contractObjectsCache.Delete(bootstrapConfigCacheEntry)
+	}
+
 	log.Info("UpdateMachine hook completed successfully")
 	return ctrl.Result{}, response.GetMessage(), nil
 }
@@ -198,20 +228,28 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := r.removeInPlaceUpdateAnnotation(ctx, s.machine); err != nil {
+	if err := r.removeInPlaceUpdateAnnotation(ctx, r.Client, "Machine", s.machine); err != nil {
 		return err
 	}
 
 	if s.infraMachine == nil {
 		log.Info("InfraMachine not found during in-place update completion, skipping annotation removal")
 	} else {
-		if err := r.removeInPlaceUpdateAnnotation(ctx, s.infraMachine); err != nil {
+		c, ok := r.DynamicCache.GetWriter(ctx, s.infraMachineGVK)
+		if !ok {
+			return pkgerrors.Errorf("failed to remove %s annotation from %s %s: failed to create client", clusterv1.UpdateInProgressAnnotation, s.infraMachineGVK.Kind, klog.KObj(s.infraMachine))
+		}
+		if err := r.removeInPlaceUpdateAnnotation(ctx, c, s.infraMachineGVK.Kind, s.infraMachine); err != nil {
 			return err
 		}
 	}
 
 	if s.bootstrapConfig != nil {
-		if err := r.removeInPlaceUpdateAnnotation(ctx, s.bootstrapConfig); err != nil {
+		c, ok := r.DynamicCache.GetWriter(ctx, s.bootstrapConfigGVK)
+		if !ok {
+			return pkgerrors.Errorf("failed to remove %s annotation from %s %s: failed to create client", clusterv1.UpdateInProgressAnnotation, s.bootstrapConfigGVK.Kind, klog.KObj(s.bootstrapConfig))
+		}
+		if err := r.removeInPlaceUpdateAnnotation(ctx, c, s.bootstrapConfigGVK.Kind, s.bootstrapConfig); err != nil {
 			return err
 		}
 	}
@@ -227,15 +265,10 @@ func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope) error 
 }
 
 // removeInPlaceUpdateAnnotation removes the in-place update annotation from an object and patches it immediately.
-func (r *Reconciler) removeInPlaceUpdateAnnotation(ctx context.Context, obj client.Object) error {
+func (r *Reconciler) removeInPlaceUpdateAnnotation(ctx context.Context, c client.Writer, kind string, obj client.Object) error {
 	annotations := obj.GetAnnotations()
 	if _, exists := annotations[clusterv1.UpdateInProgressAnnotation]; !exists {
 		return nil
-	}
-
-	gvk, err := apiutil.GVKForObject(obj, r.Client.Scheme())
-	if err != nil {
-		return pkgerrors.Wrapf(err, "failed to remove %s annotation from object %s", clusterv1.UpdateInProgressAnnotation, klog.KObj(obj))
 	}
 
 	// Note: DeepCopy object to not modify the passed-in object which can lead to conflict errors later on.
@@ -244,8 +277,8 @@ func (r *Reconciler) removeInPlaceUpdateAnnotation(ctx context.Context, obj clie
 	delete(annotations, clusterv1.UpdateInProgressAnnotation)
 	obj.SetAnnotations(annotations)
 
-	if err := r.Client.Patch(ctx, obj, client.MergeFrom(orig)); err != nil {
-		return pkgerrors.Wrapf(err, "failed to remove %s annotation from %s %s", clusterv1.UpdateInProgressAnnotation, gvk.Kind, klog.KObj(obj))
+	if err := c.Patch(ctx, obj, client.MergeFrom(orig)); err != nil {
+		return pkgerrors.Wrapf(err, "failed to remove %s annotation from %s %s", clusterv1.UpdateInProgressAnnotation, kind, klog.KObj(obj))
 	}
 
 	return nil
@@ -281,4 +314,18 @@ func cleanupUnstructured(u *unstructured.Unstructured) *unstructured.Unstructure
 	cleanedUpU.SetLabels(u.GetLabels())
 	cleanedUpU.SetAnnotations(u.GetAnnotations())
 	return cleanedUpU
+}
+
+// contractObjectsCacheEntry is an Entry for the contractObjectsCache.
+type contractObjectsCacheEntry struct {
+	obj *unstructured.Unstructured
+}
+
+// Key returns the cache key of a contractObjectsCacheEntry.
+func (r contractObjectsCacheEntry) Key() string {
+	return fmt.Sprintf("%s: %s", r.obj.GroupVersionKind(), klog.KObj(r.obj))
+}
+
+func contractObjectsCacheKey(objGVK schema.GroupVersionKind, obj client.Object) string {
+	return fmt.Sprintf("%s: %s", objGVK, klog.KObj(obj))
 }

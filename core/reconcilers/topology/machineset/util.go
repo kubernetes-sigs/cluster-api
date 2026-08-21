@@ -95,13 +95,13 @@ func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse
 		return nil
 	}
 
-	apiVersion, err := contract.GetAPIVersion(ctx, c, ref.GroupKind())
+	_, refGVK, err := contract.GetGVKFromGK(ctx, c, ref.GroupKind())
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to delete %s %s", ref.Kind, klog.KRef(namespace, ref.Name))
 	}
 	deleteRef := &corev1.ObjectReference{
-		APIVersion: apiVersion,
-		Kind:       ref.Kind,
+		APIVersion: refGVK.GroupVersion().String(),
+		Kind:       refGVK.Kind,
 		Namespace:  namespace,
 		Name:       ref.Name,
 	}

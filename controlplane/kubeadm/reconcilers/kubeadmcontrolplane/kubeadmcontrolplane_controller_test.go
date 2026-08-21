@@ -53,10 +53,12 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	controlplaneadmission "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/feature"
@@ -1164,10 +1166,11 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 	r := &Reconciler{
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
+		DynamicCache:        dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 		managementCluster:   managementCluster,
 	}
 
-	controlPlane, err := pkg.NewControlPlane(ctx, managementCluster, fakeClient, cluster, kcp, ownedMachines)
+	controlPlane, err := pkg.NewControlPlane(ctx, managementCluster, r.DynamicCache, fakeClient, cluster, kcp, ownedMachines)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = r.reconcileCertificateExpiries(ctx, controlPlane)
@@ -1348,6 +1351,7 @@ kubernetesVersion: metav1.16.1
 		Client:              env,
 		APIReader:           env,
 		SecretCachingClient: secretCachingClient,
+		DynamicCache:        dynamicCache,
 		controller:          capicontrollerutil.NewFakeController(),
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
@@ -1587,6 +1591,7 @@ kubernetesVersion: metav1.16.1`,
 		Client:              env,
 		APIReader:           env,
 		SecretCachingClient: secretCachingClient,
+		DynamicCache:        dynamicCache,
 		controller:          capicontrollerutil.NewFakeController(),
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
@@ -2365,7 +2370,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines up to date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					defaultMachine1.DeepCopy(),
 				))
 				if err != nil {
@@ -2449,7 +2454,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines in place updating, machine not up-to-date date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					func() *clusterv1.Machine {
 						m := defaultMachine1.DeepCopy()
 						m.Annotations = map[string]string{
@@ -2540,7 +2545,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines.spec.version out of sync with kubeletVersion, machine not up-to-date date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					func() *clusterv1.Machine {
 						m := defaultMachine1.DeepCopy()
 						m.Status.NodeInfo = &corev1.NodeSystemInfo{KubeletVersion: "v1.30.0"}
@@ -2629,7 +2634,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines not up to date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					defaultMachine1NotUpToDate.DeepCopy(),
 				))
 				if err != nil {
@@ -2797,7 +2802,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "connection down, set conditions as they haven't been set before (probe did not succeed yet)",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					defaultMachine1.DeepCopy(),
 				))
 				if err != nil {

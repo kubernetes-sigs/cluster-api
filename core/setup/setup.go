@@ -28,19 +28,23 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
+	toolscache "k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	contractv1beta1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta1"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 // ManagerCacheOptions provides cache.Options for the manager.
-func ManagerCacheOptions(scheme *runtime.Scheme, controllerName string, watchNamespace string, syncPeriod time.Duration) cache.Options {
+func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace string, syncPeriod time.Duration) cache.Options {
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
 		watchNamespaces = map[string]cache.Config{
@@ -50,6 +54,11 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName string, watchNam
 
 	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
 	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
+
+	informerName, err := toolscache.NewInformerName(controllerName)
+	if err != nil {
+		panic("cache.NewInformerName was called twice with the same name, that should never happen")
+	}
 
 	return cache.Options{
 		DefaultNamespaces: watchNamespaces,
@@ -72,7 +81,7 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName string, watchNam
 				},
 			},
 		},
-		NewInformer: capicontrollerutil.NewInformerFunc(scheme, controllerName),
+		NewInformer: capicontrollerutil.NewInformerFunc(scheme, informerName),
 	}
 }
 
@@ -129,4 +138,41 @@ func CreateSecretCachingClient(mgr ctrl.Manager) (client.Client, error) {
 			Reader: mgr.GetCache(),
 		},
 	})
+}
+
+// Object types used to configure the DynamicCache below.
+const (
+	DynamicCacheInfraMachineObjectType    dynamiccache.ObjectType = "DynamicCacheInfraMachineObjectType"
+	DynamicCacheBootstrapConfigObjectType dynamiccache.ObjectType = "DynamicCacheBootstrapConfigObjectType"
+)
+
+// NewDynamicCache creates a new DynamicCache for the core CAPI controller.
+func NewDynamicCache(mgr ctrl.Manager, controllerName, watchNamespace string) dynamiccache.DynamicCache {
+	return dynamiccache.New(mgr, mgr.GetClient(), DynamicCacheOptions(), controllerName, watchNamespace)
+}
+
+// DynamicCacheOptions returns the DynamicCache options used by the core CAPI controller.
+func DynamicCacheOptions() map[dynamiccache.ObjectType]dynamiccache.ByObjectTypeOptions {
+	return map[dynamiccache.ObjectType]dynamiccache.ByObjectTypeOptions{
+		DynamicCacheInfraMachineObjectType: {
+			ContractObj: map[string]client.Object{
+				"v1beta1": &contractv1beta1.InfraMachine{},
+				"v1beta2": &contractv1.InfraMachine{},
+			},
+			ContractObjList: map[string]client.ObjectList{
+				"v1beta1": &contractv1beta1.InfraMachineList{},
+				"v1beta2": &contractv1.InfraMachineList{},
+			},
+		},
+		DynamicCacheBootstrapConfigObjectType: {
+			ContractObj: map[string]client.Object{
+				"v1beta1": &contractv1beta1.BootstrapConfig{},
+				"v1beta2": &contractv1.BootstrapConfig{},
+			},
+			ContractObjList: map[string]client.ObjectList{
+				"v1beta1": &contractv1beta1.BootstrapConfigList{},
+				"v1beta2": &contractv1.BootstrapConfigList{},
+			},
+		},
+	}
 }

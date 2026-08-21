@@ -36,7 +36,9 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types/upstream"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -1395,7 +1397,8 @@ func TestMatchesInfraMachine(t *testing.T) {
 		}
 		scheme := runtime.NewScheme()
 		_ = apiextensionsv1.AddToScheme(scheme)
-		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestInfrastructureMachineTemplateCRD, infraMachineTemplate).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestInfrastructureMachineTemplateCRD, infraMachineTemplate).Build()
+		c := dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions())
 
 		t.Run("by returning true if annotations don't exist", func(t *testing.T) {
 			g := NewWithT(t)
@@ -1503,7 +1506,8 @@ func TestMatchesInfraMachine(t *testing.T) {
 		}
 		scheme := runtime.NewScheme()
 		_ = apiextensionsv1.AddToScheme(scheme)
-		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestInfrastructureMachineTemplateCRD).Build()
+		c := dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions())
 
 		g := NewWithT(t)
 		reason, _, _, match, err := matchesInfraMachine(t.Context(), c, infraConfigs, kcp, &clusterv1.Cluster{}, m)
@@ -1796,7 +1800,8 @@ func TestUpToDate(t *testing.T) {
 
 			scheme := runtime.NewScheme()
 			_ = apiextensionsv1.AddToScheme(scheme)
-			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestInfrastructureMachineTemplateCRD, infraMachineTemplate1, infraMachineTemplate2).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestInfrastructureMachineTemplateCRD, infraMachineTemplate1, infraMachineTemplate2).Build()
+			c := dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions())
 
 			upToDate, res, err := UpToDate(t.Context(), c, &clusterv1.Cluster{}, tt.machine, tt.kcp, &reconciliationTime, tt.infraConfigs, tt.machineConfigs)
 			g.Expect(err).ToNot(HaveOccurred())

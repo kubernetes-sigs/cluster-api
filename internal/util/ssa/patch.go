@@ -70,7 +70,7 @@ type Options struct {
 // Patch executes an SSA patch.
 // If WithCachingProxy is set and the request didn't change the object
 // we will cache this result, so subsequent calls don't have to run SSA again.
-func Patch(ctx context.Context, c client.Client, fieldManager string, modified client.Object, opts ...Option) error {
+func Patch(ctx context.Context, c WriterWithScheme, fieldManager string, modified client.Object, opts ...Option) error {
 	// Calculate the options.
 	options := &Options{}
 	for _, opt := range opts {

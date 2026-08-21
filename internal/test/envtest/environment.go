@@ -403,10 +403,18 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
 	controlplaneconversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
-		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
+		_, gvk, err := contract.GetGVKFromGK(ctx, mgr.GetClient(), gk)
+		if err != nil {
+			return "", err
+		}
+		return gvk.GroupVersion().String(), nil
 	})
 	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
-		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
+		_, gvk, err := contract.GetGVKFromGK(ctx, mgr.GetClient(), gk)
+		if err != nil {
+			return "", err
+		}
+		return gvk.GroupVersion().String(), nil
 	})
 
 	if err := (&coreadmission.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {

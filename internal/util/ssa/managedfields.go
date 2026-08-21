@@ -137,7 +137,7 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 // Note: We have to call this func for every Machine created with CAPI <= v1.11 once.
 // Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
 // be removed with CAPI v1.15.
-func MigrateManagedFields(ctx context.Context, c client.Client, object client.Object, fieldManager, metadataFieldManager string) error {
+func MigrateManagedFields(ctx context.Context, c WriterWithScheme, object client.Object, fieldManager, metadataFieldManager string) error {
 	objectKey := client.ObjectKeyFromObject(object)
 	objectGVK, err := apiutil.GVKForObject(object, c.Scheme())
 	if err != nil {

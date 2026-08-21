@@ -38,13 +38,14 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 )
 
 func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
-	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+	setupFunc := func(t *testing.T, g *WithT) *corev1.Namespace {
 		t.Helper()
 
 		t.Log("Creating the namespace")
@@ -62,17 +63,25 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	namespace := setup(t, g)
+	namespace := setupFunc(t, g)
 	defer teardown(t, g, namespace)
 
 	cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
 	g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
 	kcp.UID = types.UID(util.RandomString(10))
+	// Note: Wait additionally until dynamicCache is up-to-date, CreateAndWait above only waits until
+	// the regular cache in the manager is up-to-date.
+	g.Eventually(func(g Gomega) {
+		_, err := dynamicCache.GetUnstructured(ctx, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(),
+			client.ObjectKeyFromObject(genericInfrastructureMachineTemplate), setup.DynamicCacheInfraMachineTemplateObjectType)
+		g.Expect(err).ToNot(HaveOccurred())
+	}).WithTimeout(5 * time.Second).To(Succeed())
 
 	r := &Reconciler{
-		Client:     env,
-		controller: capicontrollerutil.NewFakeController(),
-		recorder:   record.NewFakeRecorder(32),
+		Client:       env,
+		DynamicCache: dynamicCache,
+		controller:   capicontrollerutil.NewFakeController(),
+		recorder:     record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &pkg.Management{Client: env},
 			Workload:   &fakeWorkloadCluster{},
@@ -153,6 +162,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		r := &Reconciler{
 			Client:            env,
+			DynamicCache:      dynamicCache,
 			managementCluster: fmc,
 			controller:        capicontrollerutil.NewFakeController(),
 			recorder:          record.NewFakeRecorder(32),
@@ -225,6 +235,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		r := &Reconciler{
 			Client:              env,
 			SecretCachingClient: secretCachingClient,
+			DynamicCache:        dynamicCache,
 			controller:          fc,
 			managementCluster:   fmc,
 			recorder:            record.NewFakeRecorder(32),

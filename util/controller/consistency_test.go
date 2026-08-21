@@ -135,7 +135,7 @@ func TestOwnerRecord_IsReady(t *testing.T) {
 }
 
 func TestConsistencyStore_New(t *testing.T) {
-	store := newConsistencyStore(nil, nil)
+	store := newConsistencyStore(nil, nil, nil)
 	require.NotNil(t, store)
 	require.NotNil(t, store.writes)
 	assert.Empty(t, store.writes)
@@ -144,7 +144,7 @@ func TestConsistencyStore_New(t *testing.T) {
 }
 
 func TestConsistencyStore_EnsureWrittenRecord(t *testing.T) {
-	store := newConsistencyStore(nil, nil)
+	store := newConsistencyStore(nil, nil, nil)
 	owner := types.NamespacedName{Name: "owner1"}
 	uid1 := types.UID("uid-1")
 	uid2 := types.UID("uid-2")
@@ -174,7 +174,7 @@ func TestConsistencyStore_EnsureWrittenRecord(t *testing.T) {
 }
 
 func TestConsistencyStore_EnsureWrittenRecord_Concurrent(t *testing.T) {
-	store := newConsistencyStore(nil, nil)
+	store := newConsistencyStore(nil, nil, nil)
 	owner := types.NamespacedName{Name: "owner1"}
 	uid1 := types.UID("uid-1")
 	uid2 := types.UID("uid-2")
@@ -224,7 +224,7 @@ func TestConsistencyStore_EnsureWrittenRecord_Concurrent(t *testing.T) {
 }
 
 func TestConsistencyStore_WroteAt(t *testing.T) {
-	store := newConsistencyStore(nil, nil)
+	store := newConsistencyStore(nil, nil, nil)
 	owner := types.NamespacedName{Name: "owner1"}
 	uid1 := types.UID("uid-1")
 	gvktPod := StructuredObject(schema.GroupVersion{Group: "", Version: "v1"}, "Pod")
@@ -243,7 +243,7 @@ func TestConsistencyStore_WroteAt(t *testing.T) {
 }
 
 func TestConsistencyStore_Clear(t *testing.T) {
-	store := newConsistencyStore(nil, nil)
+	store := newConsistencyStore(nil, nil, nil)
 	owner1 := types.NamespacedName{Name: "owner1"}
 	owner2 := types.NamespacedName{Name: "owner2"}
 	uid1 := types.UID("uid-1")
@@ -333,7 +333,7 @@ func TestConsistencyStore_getStore(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)
 
-	c := newConsistencyStore(scheme, &fakeInformerGetter{})
+	c := newConsistencyStore(scheme, &fakeInformerGetter{}, nil)
 
 	// Get store of *clusterv1.Machine informer.
 	store, err := getStore(t.Context(), c, StructuredObject(clusterv1.GroupVersion, "Machine"))
@@ -360,6 +360,28 @@ func TestConsistencyStore_getStore(t *testing.T) {
 	assert.Equal(t, clusterv1.GroupVersion.WithKind("Machine"), p.GroupVersionKind())
 
 	assert.Len(t, c.stores, 3)
+
+	// Get store of clusterv1.MachineSet informer in a DynamicCache, but the DynamicCache is not configured.
+	dynGVK := clusterv1.GroupVersion.WithKind("MachineSet")
+	_, err = getStore(t.Context(), c, DynamicCacheStructuredObject(dynGVK))
+	assert.ErrorContains(t, err, "DynamicCache not configured")
+
+	// Get store of clusterv1.MachineSet informer in a DynamicCache, but the DynamicCache doesn't have a
+	// corresponding Cache.
+	cMissingCache := newConsistencyStore(scheme, &fakeInformerGetter{}, &fakeDynamicCache{exists: false})
+	_, err = getStore(t.Context(), cMissingCache, DynamicCacheStructuredObject(dynGVK))
+	assert.ErrorContains(t, err, "DynamicCache does not have a corresponding Cache")
+
+	// Get store of clusterv1.MachineSet informer in a DynamicCache.
+	dynObj := &unstructured.Unstructured{}
+	dynObj.SetGroupVersionKind(dynGVK)
+	cDynamic := newConsistencyStore(scheme, &fakeInformerGetter{}, &fakeDynamicCache{cache: &fakeCache{obj: dynObj}, exists: true})
+	store, err = getStore(t.Context(), cDynamic, DynamicCacheStructuredObject(dynGVK))
+	assert.Nil(t, err)
+	dynObj, ok = store.(*fakeStore).obj.(*unstructured.Unstructured)
+	assert.True(t, ok)
+	assert.Equal(t, dynGVK, dynObj.GroupVersionKind())
+	assert.Len(t, cDynamic.stores, 1)
 }
 
 type fakeInformerGetter struct{}
@@ -382,4 +404,24 @@ func (f *fakeInformer) GetStore() cache.Store {
 type fakeStore struct {
 	obj client.Object
 	cache.Store
+}
+
+type fakeDynamicCache struct {
+	cache  ctrlcache.Cache
+	exists bool
+}
+
+func (f *fakeDynamicCache) GetCache(_ context.Context, _ schema.GroupVersionKind) (ctrlcache.Cache, bool) {
+	return f.cache, f.exists
+}
+
+var _ ctrlcache.Cache = &fakeCache{}
+
+type fakeCache struct {
+	obj client.Object
+	ctrlcache.Cache
+}
+
+func (f *fakeCache) GetInformerForKind(_ context.Context, _ schema.GroupVersionKind, _ ...ctrlcache.InformerGetOption) (ctrlcache.Informer, error) {
+	return &fakeInformer{obj: f.obj}, nil
 }

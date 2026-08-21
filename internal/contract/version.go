@@ -95,22 +95,26 @@ func GetContractVersion(ctx context.Context, c client.Reader, gk schema.GroupKin
 	return contractVersion, nil
 }
 
-// GetAPIVersion gets the latest compatible apiVersion from a CRD based on the current contract Version.
-func GetAPIVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, error) {
+// GetGVKFromGK gets the latest compatible apiVersion from a CRD based on the current contract Version.
+func GetGVKFromGK(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, schema.GroupVersionKind, error) {
 	crdMetadata, err := GetGKMetadata(ctx, c, gk)
 	if err != nil {
-		return "", pkgerrors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
+		// Note: Intentionally using %v instead of %w here so that this is not detected as a NotFound error.
+		// Some consumers are using this func in combination with a Get and they only want to surface the actual
+		// Get as a NotFound error.
+		return "", schema.GroupVersionKind{}, fmt.Errorf("failed to get GVK from GK: %v", err)
 	}
 
-	_, version, err := GetLatestContractAndAPIVersionFromContract(crdMetadata, Version)
+	contractVersion, latestAPIVersion, err := GetLatestContractAndAPIVersionFromContract(crdMetadata, Version)
 	if err != nil {
-		return "", pkgerrors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
+		return "", schema.GroupVersionKind{}, fmt.Errorf("failed to get GVK from GK: %w", err)
 	}
 
-	return schema.GroupVersion{
+	return contractVersion, schema.GroupVersionKind{
 		Group:   gk.Group,
-		Version: version,
-	}.String(), nil
+		Version: latestAPIVersion,
+		Kind:    gk.Kind,
+	}, nil
 }
 
 // GetLatestContractAndAPIVersionFromContract gets the latest compatible contract version and apiVersion from a CRD based on

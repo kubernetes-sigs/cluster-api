@@ -149,6 +149,15 @@ func MigrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, c client.C
 	return true, nil
 }
 
+// WriterWithScheme is a client.Writer with an additional Scheme method.
+type WriterWithScheme interface {
+	// Writer knows how to create, delete, and update Kubernetes objects.
+	client.Writer
+
+	// Scheme returns the scheme this client is using.
+	Scheme() *runtime.Scheme
+}
+
 // MitigateManagedFieldsIssue mitigates the managedField apiserver issue,
 // where apiserver drops managedFields of an object under certain circumstances:
 // https://github.com/kubernetes/kubernetes/issues/136919
@@ -183,7 +192,7 @@ func MigrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, c client.C
 //
 // We should keep this logic until the issue has been fixed in apiserver and our minimal supported
 // Kubernetes version has the fix.
-func MitigateManagedFieldsIssue(ctx context.Context, c client.Client, obj client.Object, fieldManager string) (bool, error) {
+func MitigateManagedFieldsIssue(ctx context.Context, c WriterWithScheme, obj client.Object, fieldManager string) (bool, error) {
 	if util.IsNil(obj) {
 		// Return if object is nil.
 		return false, nil

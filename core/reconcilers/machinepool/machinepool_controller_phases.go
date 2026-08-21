@@ -25,8 +25,11 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
@@ -39,7 +42,9 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -102,6 +107,61 @@ func (r *Reconciler) reconcilePhase(mp *clusterv1.MachinePool) {
 	if !mp.DeletionTimestamp.IsZero() {
 		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseDeleting)
 	}
+}
+
+// reconcileExternalBootstrap handles Bootstrap objects referenced by a MachinePool.
+func (r *Reconciler) reconcileExternalBootstrap(ctx context.Context, m *clusterv1.MachinePool, ref clusterv1.ContractVersionedObjectReference) (schema.GroupVersionKind, client.Object, error) {
+	key := client.ObjectKey{Namespace: m.Namespace, Name: ref.Name}
+	objGVK, obj, err := r.DynamicCache.GetContractObject(ctx, ref.GroupKind(), key, setup.DynamicCacheBootstrapConfigObjectType)
+	if err != nil {
+		return schema.GroupVersionKind{}, nil, err
+	}
+
+	// Ensure we add a watch to the external object, if there isn't one already.
+	if err := r.DynamicCache.Watch(ctx, "machinepool", r.controller, objGVK.GroupKind(), setup.DynamicCacheBootstrapConfigObjectType,
+		handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.MachinePool{})); err != nil {
+		return schema.GroupVersionKind{}, nil, err
+	}
+
+	desiredOwnerRef := metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "MachinePool",
+		Name:       m.Name,
+		UID:        m.UID,
+		Controller: ptr.To(true),
+	}
+
+	if util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) &&
+		obj.GetLabels()[clusterv1.ClusterNameLabel] == m.Spec.ClusterName {
+		return objGVK, obj, nil
+	}
+
+	original := obj.DeepCopyObject().(client.Object)
+
+	// Set external object ControllerReference to the MachinePool.
+	if err := controllerutil.SetControllerReference(m, obj, r.Client.Scheme()); err != nil {
+		return schema.GroupVersionKind{}, nil, err
+	}
+
+	// Set the Cluster label.
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
+	obj.SetLabels(labels)
+
+	c, ok := r.DynamicCache.GetWriter(ctx, objGVK)
+	if !ok {
+		return schema.GroupVersionKind{}, nil, pkgerrors.Errorf("failed to create client for %s %s",
+			objGVK.Kind, klog.KObj(obj))
+	}
+
+	if err := c.Patch(ctx, obj, client.MergeFrom(original)); err != nil {
+		return schema.GroupVersionKind{}, nil, err
+	}
+
+	return objGVK, obj, nil
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a MachinePool.
@@ -182,56 +242,66 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	log := ctrl.LoggerFrom(ctx)
 	m := s.machinePool
 	// Call generic external reconciler if we have an external reference.
-	var bootstrapConfig *unstructured.Unstructured
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
-		bootstrapReconcileResult, err := r.reconcileExternal(ctx, m, m.Spec.Template.Spec.Bootstrap.ConfigRef)
+		bootstrapConfigGVK, obj, err := r.reconcileExternalBootstrap(ctx, m, m.Spec.Template.Spec.Bootstrap.ConfigRef)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		bootstrapConfig = bootstrapReconcileResult.Result
+		bootstrapConfig := obj.(contractapi.BootstrapConfig)
+
+		// Set failure reason and message, if any.
+		if failureReason := bootstrapConfig.GetFailureReason(); failureReason != "" {
+			machineStatusFailure := capierrors.MachinePoolStatusFailure(failureReason)
+			if m.Status.Deprecated != nil {
+				m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
+			}
+			if m.Status.Deprecated.V1Beta1 != nil {
+				m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
+			}
+			m.Status.Deprecated.V1Beta1.FailureReason = &machineStatusFailure
+		}
+		if failureMessage := bootstrapConfig.GetFailureMessage(); failureMessage != "" {
+			if m.Status.Deprecated != nil {
+				m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
+			}
+			if m.Status.Deprecated.V1Beta1 != nil {
+				m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
+			}
+			m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
+				fmt.Sprintf("Failure detected from referenced resource %s %s: %s",
+					bootstrapConfigGVK.Kind, obj.GetName(), failureMessage),
+			)
+		}
 
 		// If the bootstrap config is being deleted, return early.
 		if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
 			return ctrl.Result{}, nil
 		}
 
-		// Determine contract version used by the BootstrapConfig.
-		contractVersion, err := contract.GetContractVersion(ctx, r.Client, bootstrapConfig.GroupVersionKind().GroupKind())
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
 		// Determine if the data secret was created.
-		var dataSecretCreated bool
-		if dataSecretCreatedPtr, err := contract.Bootstrap().DataSecretCreated(contractVersion).Get(bootstrapConfig); err != nil {
-			if !pkgerrors.Is(err, contract.ErrFieldNotFound) {
-				return ctrl.Result{}, err
-			}
-		} else {
-			dataSecretCreated = *dataSecretCreatedPtr
-		}
+		dataSecretCreated := bootstrapConfig.GetDataSecretCreated()
 
 		// Report a summary of current status of the bootstrap object defined for this machine pool.
 		v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyV1Beta1Condition,
-			v1beta1conditions.UnstructuredGetter(bootstrapConfig),
+			v1beta1conditions.UnstructuredGetter(toUnstructuredWithReadyConditions(bootstrapConfigGVK, bootstrapConfig)),
 			v1beta1conditions.WithFallbackValue(dataSecretCreated, clusterv1.WaitingForDataSecretFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 		)
 
 		if !dataSecretCreated {
-			log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig))
+			log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", bootstrapConfigGVK.Kind, klog.KObj(bootstrapConfig))
 			m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(dataSecretCreated)
 			return ctrl.Result{}, nil
 		}
 
 		// Get and set the name of the secret containing the bootstrap data.
-		secretName, err := contract.Bootstrap().DataSecretName().Get(bootstrapConfig)
-		if err != nil {
-			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
-		} else if secretName == nil {
-			return ctrl.Result{}, pkgerrors.Errorf("retrieved empty dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
+		secretName := bootstrapConfig.GetDataSecretName()
+		if secretName == "" {
+			return ctrl.Result{}, pkgerrors.Errorf("got empty %s field from %s %s",
+				contract.Bootstrap().DataSecretName().Path().String(),
+				bootstrapConfigGVK.Kind, klog.KObj(bootstrapConfig))
 		}
 
-		m.Spec.Template.Spec.Bootstrap.DataSecretName = secretName
+		m.Spec.Template.Spec.Bootstrap.DataSecretName = new(secretName)
 		m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 		return ctrl.Result{}, nil
 	}
@@ -378,23 +448,32 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 	}
 
 	log.V(4).Info("Reconciling MachinePool Machines", "infrastructureMachineKind", infraMachineKind, "infrastructureMachineSelector", infraMachineSelector)
-	var infraMachineList unstructured.UnstructuredList
 
-	// Get the list of infraMachines, which are maintained by the InfraMachinePool controller.
-	infraMachineList.SetAPIVersion(infraMachinePool.GetAPIVersion())
-	infraMachineList.SetKind(infraMachineKind + "List")
-	if err := r.Client.List(ctx, &infraMachineList, client.InNamespace(mp.Namespace), client.MatchingLabels(infraMachineSelector.MatchLabels)); err != nil {
+	gk := schema.GroupKind{
+		Group: s.machinePool.Spec.Template.Spec.InfrastructureRef.APIGroup,
+		Kind:  infraMachineKind,
+	}
+	infraMachineGVK, objList, err := r.DynamicCache.ListContractObjects(ctx, gk, setup.DynamicCacheInfraMachineObjectType, client.InNamespace(mp.Namespace), client.MatchingLabels(infraMachineSelector.MatchLabels))
+	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to list infra machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
 
-	// Add watcher for infraMachine, if there isn't one already; this will allow this controller to reconcile
-	// immediately changes made by the InfraMachinePool controller.
-	sampleInfraMachine := &unstructured.Unstructured{}
-	sampleInfraMachine.SetAPIVersion(infraMachinePool.GetAPIVersion())
-	sampleInfraMachine.SetKind(infraMachineKind)
+	infraMachineList := []contractapi.InfraMachine{}
+	err = meta.EachListItem(objList, func(obj runtime.Object) error {
+		infraMachineObj, ok := obj.(contractapi.InfraMachine)
+		if !ok {
+			return fmt.Errorf("unexpected object in list")
+		}
+		infraMachineList = append(infraMachineList, infraMachineObj)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
 	// Add watcher for infraMachine, if there isn't one already.
-	if err := r.externalTracker.Watch(log, sampleInfraMachine, handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper), predicates.ResourceIsChanged(r.Client.Scheme(), *r.externalTracker.PredicateLogger)); err != nil {
+	if err := r.DynamicCache.Watch(ctx, "machinepool", r.controller, infraMachineGVK.GroupKind(), setup.DynamicCacheInfraMachineObjectType,
+		handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper)); err != nil {
 		return err
 	}
 
@@ -405,7 +484,7 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 		return err
 	}
 
-	if err := r.createOrUpdateMachines(ctx, s, machineList.Items, infraMachineList.Items); err != nil {
+	if err := r.createOrUpdateMachines(ctx, s, machineList.Items, infraMachineGVK, infraMachineList); err != nil {
 		return pkgerrors.Wrapf(err, "failed to create machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
 
@@ -413,7 +492,7 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 }
 
 // createOrUpdateMachines creates a MachinePool Machine for each infraMachine if it doesn't already exist and sets the owner reference and infraRef.
-func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machines []clusterv1.Machine, infraMachines []unstructured.Unstructured) error {
+func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machines []clusterv1.Machine, infraMachineGVK schema.GroupVersionKind, infraMachines []contractapi.InfraMachine) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Construct a set of names of infraMachines that already have a Machine.
@@ -425,14 +504,13 @@ func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machi
 
 	createdMachines := []clusterv1.Machine{}
 	var errs []error
-	for i := range infraMachines {
-		infraMachine := &infraMachines[i]
-
+	for _, infraMachine := range infraMachines {
 		// Get Spec.ProviderID from the infraMachine.
-		var providerID string
+		providerID := infraMachine.GetProviderID()
 		var node *corev1.Node
-		if err := util.UnstructuredUnmarshalField(infraMachine, &providerID, "spec", "providerID"); err != nil {
-			log.V(4).Info("could not retrieve providerID for infraMachine", "infraMachine", klog.KObj(infraMachine))
+
+		if providerID == "" {
+			log.V(4).Info("Could not retrieve providerID from InfraMachine", infraMachineGVK.Kind, klog.KObj(infraMachine))
 		} else {
 			// Retrieve the Node for the infraMachine from the nodeRefsMap using the providerID.
 			node = s.nodeRefMap[providerID]
@@ -440,9 +518,9 @@ func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machi
 
 		// If infraMachine already has a Machine, update it if needed.
 		if existingMachine, ok := infraMachineToMachine[infraMachine.GetName()]; ok {
-			log.V(2).Info("Patching existing Machine for infraMachine", infraMachine.GetKind(), klog.KObj(infraMachine), "Machine", klog.KObj(&existingMachine))
+			log.V(2).Info("Patching existing Machine for infraMachine", infraMachineGVK.Kind, klog.KObj(infraMachine), "Machine", klog.KObj(&existingMachine))
 
-			desiredMachine := r.computeDesiredMachine(s.machinePool, infraMachine, &existingMachine, node)
+			desiredMachine := r.computeDesiredMachine(s.machinePool, infraMachineGVK, infraMachine.GetName(), &existingMachine, node)
 			if err := ssa.Patch(ctx, r.Client, MachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: &existingMachine}); err != nil {
 				log.Error(err, "failed to update Machine", "Machine", klog.KObj(desiredMachine))
 				errs = append(errs, pkgerrors.Wrapf(err, "failed to update Machine %q", klog.KObj(desiredMachine)))
@@ -450,7 +528,7 @@ func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machi
 		} else {
 			// Otherwise create a new Machine for the infraMachine.
 			log.Info("Creating new Machine for infraMachine", "infraMachine", klog.KObj(infraMachine))
-			machine := r.computeDesiredMachine(s.machinePool, infraMachine, nil, node)
+			machine := r.computeDesiredMachine(s.machinePool, infraMachineGVK, infraMachine.GetName(), nil, node)
 
 			if err := ssa.Patch(ctx, r.Client, MachinePoolControllerName, machine); err != nil {
 				errs = append(errs, pkgerrors.Wrapf(err, "failed to create new Machine for infraMachine %q in namespace %q", infraMachine.GetName(), infraMachine.GetNamespace()))
@@ -472,11 +550,11 @@ func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machi
 
 // computeDesiredMachine constructs the desired Machine for an infraMachine.
 // If the Machine exists, it ensures the Machine always owned by the MachinePool.
-func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachine *unstructured.Unstructured, existingMachine *clusterv1.Machine, existingNode *corev1.Node) *clusterv1.Machine {
+func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachineGVK schema.GroupVersionKind, infraMachineName string, existingMachine *clusterv1.Machine, existingNode *corev1.Node) *clusterv1.Machine {
 	infraRef := clusterv1.ContractVersionedObjectReference{
-		APIGroup: infraMachine.GroupVersionKind().Group,
-		Kind:     infraMachine.GetKind(),
-		Name:     infraMachine.GetName(),
+		APIGroup: infraMachineGVK.Group,
+		Kind:     infraMachineGVK.Kind,
+		Name:     infraMachineName,
 	}
 
 	var kubernetesVersion string
@@ -486,7 +564,7 @@ func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachi
 
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: infraMachine.GetName(),
+			Name: infraMachineName,
 			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(mp, machinePoolKind)},
 			Namespace:       mp.Namespace,
@@ -605,4 +683,24 @@ func (r *Reconciler) getNodeRefMap(ctx context.Context, c client.Client) (map[st
 	}
 
 	return nodeRefsMap, nil
+}
+
+// StatusWithReadyConditionsGetter is a client.Object that exposes a status with the Ready conditions.
+type StatusWithReadyConditionsGetter interface {
+	client.Object
+	GetStatusWithReadyConditions() any
+}
+
+func toUnstructuredWithReadyConditions(gvk schema.GroupVersionKind, g StatusWithReadyConditionsGetter) *unstructured.Unstructured {
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"status": g.GetStatusWithReadyConditions(),
+		},
+	}
+	u.SetGroupVersionKind(gvk)
+	u.SetNamespace(g.GetNamespace())
+	u.SetName(g.GetName())
+	u.SetLabels(g.GetLabels())
+	u.SetAnnotations(g.GetAnnotations())
+	return u
 }

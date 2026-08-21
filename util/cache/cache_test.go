@@ -57,6 +57,16 @@ func TestCache(t *testing.T) {
 	g.Expect(ok).To(BeTrue())
 	g.Expect(entryFromCache).To(Equal(entry))
 
+	c.Delete(entry)
+
+	_, ok = c.Has(entry.Key())
+	g.Expect(ok).To(BeFalse())
+
+	c.Add(entry)
+
+	_, ok = c.Has(entry.Key())
+	g.Expect(ok).To(BeTrue())
+
 	tests := []struct {
 		requeueAfter              time.Duration
 		expectedRetryAfterSeconds int32

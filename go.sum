@@ -63,8 +63,8 @@ github.com/clipperhouse/uax29/v2 v2.6.0 h1:z0cDbUV+aPASdFb2/ndFnS9ts/WNXgTNNGFoK
 github.com/clipperhouse/uax29/v2 v2.6.0/go.mod h1:Wn1g7MK6OoeDT0vL+Q0SQLDz/KpfsVRgg6W7ihQeh4g=
 github.com/coredns/caddy v1.1.1 h1:2eYKZT7i6yxIfGP3qLJoJ7HAsDJqYB+X68g4NYjSrE0=
 github.com/coredns/caddy v1.1.1/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
-github.com/coredns/corefile-migration v1.0.34 h1:Evzog/Av6/EQVy/xEAVZo2wsYAWMirIlunDfXxLg5Hk=
-github.com/coredns/corefile-migration v1.0.34/go.mod h1:56DPqONc3njpVPsdilEnfijCwNGC3/kTJLl7i7SPavY=
+github.com/coredns/corefile-migration v1.0.35 h1:kZ4NRtenBmavOkFHCBCekxhrvoEzwAKRlNnD+9daVkI=
+github.com/coredns/corefile-migration v1.0.35/go.mod h1:56DPqONc3njpVPsdilEnfijCwNGC3/kTJLl7i7SPavY=
 github.com/coreos/go-semver v0.1.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
 github.com/coreos/go-semver v0.3.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
 github.com/coreos/go-semver v0.3.1 h1:yi21YpKnrx1gt5R+la8n5WgS0kCrsPp33dmEyHReZr4=

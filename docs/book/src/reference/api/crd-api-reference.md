@@ -2098,6 +2098,7 @@ _Appears in:_
 | `TopologyReconciled` | TopologyReconciledV1Beta1Condition provides evidence about the reconciliation of a Cluster topology into<br />the managed objects of the Cluster.<br />Status false means that for any reason, the values defined in Cluster.spec.topology are not yet applied to<br />managed objects on the Cluster; status true means that Cluster.spec.topology have been applied to<br />the objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).<br /> |
 | `RefVersionsUpToDate` | ClusterClassRefVersionsUpToDateV1Beta1Condition documents if the references in the ClusterClass are<br />up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from<br />the corresponding CRD).<br /> |
 | `ReplicasReady` | ReplicasReadyV1Beta1Condition reports an aggregate of current status of the replicas controlled by the MachinePool.<br /> |
+| `PreflightCheckSucceeded` | PreflightCheckSucceededV1Beta1Condition documents the result of the MachinePool preflight checks.<br /> |
 
 
 #### Conditions
@@ -3967,6 +3968,8 @@ MachinePoolList contains a list of MachinePool.
 | `kind` _string_ | `MachinePoolList` | | |
 | `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  | Optional: \{\} <br /> |
 | `items` _[MachinePool](#machinepool) array_ | items is the list of MachinePools. |  |  |
+
+
 
 
 

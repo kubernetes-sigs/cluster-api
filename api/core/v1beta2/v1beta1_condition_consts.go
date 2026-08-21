@@ -389,4 +389,7 @@ const (
 	// WaitingForReplicasReadyV1Beta1Reason (Severity=Info) documents a machinepool waiting for the required replicas
 	// to be ready.
 	WaitingForReplicasReadyV1Beta1Reason = "WaitingForReplicasReady"
+
+	// PreflightCheckSucceededV1Beta1Condition documents the result of the MachinePool preflight checks.
+	PreflightCheckSucceededV1Beta1Condition ConditionType = "PreflightCheckSucceeded"
 )

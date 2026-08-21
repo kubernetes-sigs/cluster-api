@@ -31,6 +31,26 @@ type orderedStatusVersion struct {
 	order int
 }
 
+// KubeletVersionMatches returns true if the kubelet version reported by a Node matches the
+// desired Kubernetes version of the corresponding Machine.
+//
+// Note: kubelet reports the version its binary was built with, and this version can carry build
+// metadata that differs from the build metadata of the desired version even though both refer to
+// the same Kubernetes release (e.g. kubelet reports "v1.33.1+test" while the desired version is
+// "v1.33.1"). Both versions are therefore compared as semver versions, which per the semver
+// spec ignores build metadata; otherwise such a Machine would be considered updating forever.
+//
+// Note: If one of the versions cannot be parsed as a semver version we fall back to a string
+// comparison, so an unparsable version never silently matches everything.
+func KubeletVersionMatches(kubeletVersion, desiredVersion string) bool {
+	kubeletSemver, kubeletErr := semver.ParseTolerant(kubeletVersion)
+	desiredSemver, desiredErr := semver.ParseTolerant(desiredVersion)
+	if kubeletErr != nil || desiredErr != nil {
+		return kubeletVersion == desiredVersion
+	}
+	return capiversion.Compare(kubeletSemver, desiredSemver) == 0
+}
+
 // AggregateStatusVersions returns versions aggregated by version.
 func AggregateStatusVersions(versions []clusterv1.StatusVersion) []clusterv1.StatusVersion {
 	if len(versions) == 0 {
@@ -89,7 +109,13 @@ func VersionsFromMachines(machines []*clusterv1.Machine) []clusterv1.StatusVersi
 		}
 
 		version := machine.Spec.Version
-		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" {
+		// Note: We only surface the kubelet version if it actually refers to another Kubernetes
+		// release than the desired version. Otherwise a kubelet reporting only a different build
+		// metadata than the desired version (e.g. "v1.33.1+k0s" vs "v1.33.1+k0s.0") would show up
+		// as an additional status version and make consumers like ControlPlaneContract.IsUpgrading
+		// consider the object upgrading forever.
+		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" &&
+			!KubeletVersionMatches(machine.Status.NodeInfo.KubeletVersion, machine.Spec.Version) {
 			version = machine.Status.NodeInfo.KubeletVersion
 		}
 

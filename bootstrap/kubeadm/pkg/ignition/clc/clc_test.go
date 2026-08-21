@@ -18,6 +18,8 @@ limitations under the License.
 package clc_test
 
 import (
+	"net/url"
+	"strings"
 	"testing"
 
 	ignition "github.com/flatcar/ignition/config/v2_3"
@@ -647,4 +649,158 @@ func TestRender(t *testing.T) {
 			t.Errorf("expected data to be returned on config with warnings")
 		}
 	})
+}
+
+func TestRenderMountUnitNames(t *testing.T) {
+	tests := []struct {
+		mountPoint string
+		wantUnit   string
+	}{
+		{
+			mountPoint: "/var/lib/testdir",
+			wantUnit:   "var-lib-testdir.mount",
+		},
+		{
+			mountPoint: "/var/lib/etcd-data",
+			wantUnit:   `var-lib-etcd\x2ddata.mount`,
+		},
+		{
+			mountPoint: "/mnt/data-disk",
+			wantUnit:   `mnt-data\x2ddisk.mount`,
+		},
+		{
+			mountPoint: "/var/lib/containerd/",
+			wantUnit:   "var-lib-containerd.mount",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.mountPoint, func(t *testing.T) {
+			input := &cloudinit.BaseUserData{
+				KubeadmCommand: "kubeadm join",
+				DiskSetup: &bootstrapv1.DiskSetup{
+					Filesystems: []bootstrapv1.Filesystem{
+						{
+							Device:     "/dev/disk/azure/scsi1/lun0",
+							Filesystem: "ext4",
+							Label:      "test_disk",
+							Overwrite:  ptr.To(true),
+						},
+					},
+				},
+				Mounts: []bootstrapv1.MountPoints{{"test_disk", tt.mountPoint}},
+			}
+
+			ignitionBytes, _, err := clc.Render(input, &bootstrapv1.ContainerLinuxConfig{}, "foo")
+			if err != nil {
+				t.Fatalf("rendering: %v", err)
+			}
+
+			ign, reports, err := ignition.Parse(ignitionBytes)
+			if err != nil {
+				t.Fatalf("Parsing generated Ignition: %v", err)
+			}
+
+			if reports.IsFatal() {
+				t.Fatalf("Generated Ignition has fatal reports: %s", reports)
+			}
+
+			var got []string
+			for _, unit := range ign.Systemd.Units {
+				if unit.Name == "kubeadm.service" {
+					continue
+				}
+				got = append(got, unit.Name)
+			}
+
+			if diff := cmp.Diff([]string{tt.wantUnit}, got); diff != "" {
+				t.Fatalf("Mount unit name mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestRenderOptionalFilesystemOverwrite(t *testing.T) {
+	tests := []struct {
+		name      string
+		overwrite *bool
+	}{
+		{name: "overwrite set to true", overwrite: ptr.To(true)},
+		{name: "overwrite set to false", overwrite: ptr.To(false)},
+		{name: "overwrite not set", overwrite: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := &cloudinit.BaseUserData{
+				KubeadmCommand: "kubeadm join",
+				DiskSetup: &bootstrapv1.DiskSetup{
+					Filesystems: []bootstrapv1.Filesystem{
+						{
+							Device:     "/dev/disk/azure/scsi1/lun0",
+							Filesystem: "ext4",
+							Label:      "test_disk",
+							Overwrite:  tt.overwrite,
+						},
+					},
+				},
+			}
+
+			if _, _, err := clc.Render(input, &bootstrapv1.ContainerLinuxConfig{}, "foo"); err != nil {
+				t.Fatalf("rendering: %v", err)
+			}
+		})
+	}
+}
+
+func TestRenderIndentedFileContent(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{name: "first line indented with spaces", content: "  foo: bar\nbaz: qux\n"},
+		{name: "first line indented with a tab", content: "\tfoo: bar\nbaz: qux\n"},
+		{name: "content indented deeper than the following lines", content: "    foo: bar\n  baz: qux\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := &cloudinit.BaseUserData{
+				KubeadmCommand: "kubeadm join",
+				WriteFiles: []bootstrapv1.File{
+					{
+						Path:        "/etc/testfile.yaml",
+						Content:     tt.content,
+						Permissions: "0644",
+					},
+				},
+			}
+
+			ignitionBytes, _, err := clc.Render(input, &bootstrapv1.ContainerLinuxConfig{}, "foo")
+			if err != nil {
+				t.Fatalf("rendering: %v", err)
+			}
+
+			ign, _, err := ignition.Parse(ignitionBytes)
+			if err != nil {
+				t.Fatalf("Parsing generated Ignition: %v", err)
+			}
+
+			var source string
+			for _, file := range ign.Storage.Files {
+				if file.Path == "/etc/testfile.yaml" {
+					source = file.Contents.Source
+				}
+			}
+
+			got, err := url.PathUnescape(strings.TrimPrefix(source, "data:,"))
+			if err != nil {
+				t.Fatalf("Decoding file contents: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.content, got); diff != "" {
+				t.Fatalf("File contents mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }

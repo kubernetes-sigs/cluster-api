@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	goruntime "runtime"
+	"slices"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
@@ -32,6 +33,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -69,6 +71,7 @@ import (
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
+	secretcertwatcher "sigs.k8s.io/cluster-api/util/certwatcher"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
@@ -101,6 +104,7 @@ var (
 	runtimeExtensionKeyFile     string
 	healthAddr                  string
 	managerOptions              = flags.ManagerOptions{}
+	webhookCertificateOptions   = flags.WebhookCertificateOptions{}
 	logOptions                  = logs.NewOptions()
 	// KCP specific flags.
 	remoteConditionsGracePeriod    time.Duration
@@ -212,6 +216,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Logging level for etcd client. Possible values are: debug, info, warn, error, dpanic, panic, fatal.")
 
 	flags.AddManagerOptions(fs, &managerOptions)
+	flags.AddWebhookCertificateOptions(fs, &webhookCertificateOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -273,6 +278,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Setup the context that's going to be used in controllers and for the manager.
+	ctx := ctrl.SetupSignalHandler()
+
+	webhookTLSOptions := slices.Clone(tlsOptions)
+	var webhookCertificateWatcher *secretcertwatcher.Watcher
+	if webhookCertificateOptions.SecretName != "" {
+		webhookCertificateWatcher, err = secretcertwatcher.New(ctx, restConfig, types.NamespacedName{
+			Namespace: webhookCertificateOptions.SecretNamespace,
+			Name:      webhookCertificateOptions.SecretName,
+		})
+		if err != nil {
+			setupLog.Error(err, "Unable to start manager")
+			os.Exit(1)
+		}
+		webhookTLSOptions = append(webhookTLSOptions, webhookCertificateWatcher.TLSConfig)
+	}
+
 	if enableContentionProfiling {
 		goruntime.SetBlockProfileRate(1)
 	}
@@ -302,7 +324,7 @@ func main() {
 				CertDir:  webhookCertDir,
 				CertName: webhookCertName,
 				KeyName:  webhookKeyName,
-				TLSOpts:  tlsOptions,
+				TLSOpts:  webhookTLSOptions,
 			},
 		),
 	}
@@ -313,8 +335,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup the context that's going to be used in controllers and for the manager.
-	ctx := ctrl.SetupSignalHandler()
+	if webhookCertificateWatcher != nil {
+		if err := mgr.Add(webhookCertificateWatcher); err != nil {
+			setupLog.Error(err, "Unable to add webhook certificate Secret watcher to manager")
+			os.Exit(1)
+		}
+	}
 
 	setupChecks(mgr)
 	setupReconcilers(ctx, mgr)

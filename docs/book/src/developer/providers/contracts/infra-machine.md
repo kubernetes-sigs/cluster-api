@@ -54,6 +54,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [InfraMachine: addresses]                                            | No        |                                      |
 | [InfraMachine: initialization completed]                             | Yes       |                                      |
 | [InfraMachine: conditions]                                           | No        |                                      |
+| [InfraMachine: interruptible]                                        | No        |                                      |
 | [InfraMachine: terminal failures]                                    | No        |                                      |
 | [InfraMachine: support for in-place changes]                         | No        |                                      |
 | [InfraMachineTemplate, InfraMachineTemplateList resource definition] | Yes       |                                      |
@@ -384,6 +385,27 @@ the implication of this choice which are described both in the [Cluster API v1.1
 
 </aside>
 
+### InfraMachine: interruptible
+
+In case the Machine is backed by a non-guaranteed instance, e.g. a spot instance on a cloud provider, infrastructure
+providers can surface this by setting `status.interruptible` to `true` in the InfraMachine resource.
+
+```go
+type FooMachineStatus struct {
+    // interruptible reports that this machine can be interrupted.
+    // +optional
+    Interruptible *bool `json:"interruptible,omitempty"`
+
+    // See other rules for more details about mandatory/optional fields in InfraMachine status.
+    // Other fields SHOULD be added based on the needs of your provider.
+}
+```
+
+Once `status.interruptible` is set to `true`, the Machine controller will add the `cluster.x-k8s.io/interruptible`
+label to the corresponding Node; this can then be used, for example, by a DaemonSet dedicated to gracefully
+handling the termination of workloads running on interruptible instances.
+
+
 ### InfraMachine: terminal failures
 
 Starting from the v1beta2 contract version, there is no more special treatment for provider's terminal failures within Cluster API.
@@ -662,6 +684,7 @@ is implemented in InfraMachine controllers:
 [Improving status in CAPI resources]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md
 [InfraMachine: conditions]: #inframachine-conditions
 [Kubernetes API Conventions]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+[InfraMachine: interruptible]: #inframachine-interruptible
 [InfraMachine: terminal failures]: #inframachine-terminal-failures
 [InfraMachineTemplate, InfraMachineTemplateList resource definition]: #inframachinetemplate-inframachinetemplatelist-resource-definition
 [InfraMachineTemplate: support for SSA dry run]: #inframachinetemplate-support-for-ssa-dry-run

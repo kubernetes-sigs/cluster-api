@@ -452,9 +452,9 @@ func (ca *clusterAccessor) Watch(ctx context.Context, watcher Watcher) error {
 		return nil
 	}
 
-	log.Info(fmt.Sprintf("Creating watch %s for %T", watcher.Name(), watcher.Object()))
+	log.Info(fmt.Sprintf("Creating %T watch for watcher: %s", watcher.Object(), watcher.Name()))
 	if err := watcher.Watch(ca.lockedState.connection.cache); err != nil {
-		return pkgerrors.WithMessagef(err, "error creating watch %s for %T", watcher.Name(), watcher.Object())
+		return pkgerrors.WithMessagef(err, "error creating %T watch for watcher: %s", watcher.Object(), watcher.Name())
 	}
 
 	ca.lockedState.connection.watches.Insert(watcher.Name())

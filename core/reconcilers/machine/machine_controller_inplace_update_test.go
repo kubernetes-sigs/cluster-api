@@ -22,9 +22,11 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,18 +37,26 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
+	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/feature"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/util/cache"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestReconcileInPlaceUpdate(t *testing.T) {
+	infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
+	bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
+
 	tests := []struct {
 		name                  string
 		featureEnabled        bool
 		machine               *clusterv1.Machine
-		infraMachine          *unstructured.Unstructured
-		bootstrapConfig       *unstructured.Unstructured
+		infraMachine          contractapi.InfraMachine
+		bootstrapConfig       contractapi.BootstrapConfig
 		updateMachineResponse *runtimehooksv1.UpdateMachineResponse
 		wantResult            ctrl.Result
 		wantErr               bool
@@ -69,13 +79,13 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				return machine
 			}(),
-			infraMachine: func() *unstructured.Unstructured {
-				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
+			infraMachine: func() contractapi.InfraMachine {
+				infra := newTestInfraMachine("infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
 				return infra
 			}(),
-			bootstrapConfig: func() *unstructured.Unstructured {
-				bootstrap := newTestUnstructured("GenericBootstrapConfig", "bootstrap.cluster.x-k8s.io/v1beta2", "bootstrap")
+			bootstrapConfig: func() contractapi.BootstrapConfig {
+				bootstrap := newTestBootstrapConfig("bootstrap")
 				bootstrap.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
 				return bootstrap
 			}(),
@@ -88,13 +98,13 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				g.Expect(updatedMachine.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation))
 
 				updatedInfra := &unstructured.Unstructured{}
-				updatedInfra.SetGroupVersionKind(s.infraMachine.GroupVersionKind())
+				updatedInfra.SetGroupVersionKind(s.infraMachineGVK)
 				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.infraMachine), updatedInfra)).To(Succeed())
 				g.Expect(updatedInfra.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
 
 				if s.bootstrapConfig != nil {
 					updatedBootstrap := &unstructured.Unstructured{}
-					updatedBootstrap.SetGroupVersionKind(s.bootstrapConfig.GroupVersionKind())
+					updatedBootstrap.SetGroupVersionKind(s.bootstrapConfigGVK)
 					g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.bootstrapConfig), updatedBootstrap)).To(Succeed())
 					g.Expect(updatedBootstrap.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
 				}
@@ -135,13 +145,18 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine := newTestMachine()
 				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
+				machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraMachineGVK.Group,
+					Kind:     infraMachineGVK.Kind,
+					Name:     "infra",
+				}
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 				return machine
 			}(),
-			infraMachine: func() *unstructured.Unstructured {
-				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
+			infraMachine: func() contractapi.InfraMachine {
+				infra := newTestInfraMachine("infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
 				return infra
 			}(),
@@ -165,18 +180,28 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine := newTestMachine()
 				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
+				machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraMachineGVK.Group,
+					Kind:     infraMachineGVK.Kind,
+					Name:     "infra",
+				}
+				machine.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{
+					APIGroup: bootstrapConfigGVK.Group,
+					Kind:     bootstrapConfigGVK.Kind,
+					Name:     "bootstrap",
+				}
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 				return machine
 			}(),
-			infraMachine: func() *unstructured.Unstructured {
-				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
+			infraMachine: func() contractapi.InfraMachine {
+				infra := newTestInfraMachine("infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
 				return infra
 			}(),
-			bootstrapConfig: func() *unstructured.Unstructured {
-				bootstrap := newTestUnstructured("GenericBootstrapConfig", "bootstrap.cluster.x-k8s.io/v1beta2", "bootstrap")
+			bootstrapConfig: func() contractapi.BootstrapConfig {
+				bootstrap := newTestBootstrapConfig("bootstrap")
 				bootstrap.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
 				return bootstrap
 			}(),
@@ -199,13 +224,13 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				g.Expect(updatedMachine.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation))
 
 				updatedInfra := &unstructured.Unstructured{}
-				updatedInfra.SetGroupVersionKind(s.infraMachine.GroupVersionKind())
+				updatedInfra.SetGroupVersionKind(s.infraMachineGVK)
 				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.infraMachine), updatedInfra)).To(Succeed())
 				g.Expect(updatedInfra.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
 
 				if s.bootstrapConfig != nil {
 					updatedBootstrap := &unstructured.Unstructured{}
-					updatedBootstrap.SetGroupVersionKind(s.bootstrapConfig.GroupVersionKind())
+					updatedBootstrap.SetGroupVersionKind(s.bootstrapConfigGVK)
 					g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.bootstrapConfig), updatedBootstrap)).To(Succeed())
 					g.Expect(updatedBootstrap.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
 				}
@@ -219,16 +244,19 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, tt.featureEnabled)
 
 			scheme := runtime.NewScheme()
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
 			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			scheme.AddKnownTypeWithName(infraMachineGVK, &contractv1.InfraMachine{})
+			scheme.AddKnownTypeWithName(bootstrapConfigGVK, &contractv1.BootstrapConfig{})
 			var objects []ctrlclient.Object
 			if tt.machine != nil {
 				objects = append(objects, tt.machine)
 			}
 			if tt.infraMachine != nil {
-				objects = append(objects, tt.infraMachine)
+				objects = append(objects, tt.infraMachine, builder.GenericInfrastructureMachineCRD.DeepCopy())
 			}
 			if tt.bootstrapConfig != nil {
-				objects = append(objects, tt.bootstrapConfig)
+				objects = append(objects, tt.bootstrapConfig, builder.GenericBootstrapConfigCRD.DeepCopy())
 			}
 
 			var runtimeClient *fakeruntimeclient.RuntimeClient
@@ -249,15 +277,21 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 					Build()
 			}
 
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
 			r := &Reconciler{
-				Client:        fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build(),
-				RuntimeClient: runtimeClient,
-				hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+				Client:               fakeClient,
+				APIReader:            fakeClient,
+				DynamicCache:         dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
+				RuntimeClient:        runtimeClient,
+				hookCache:            cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+				contractObjectsCache: cache.New[contractObjectsCacheEntry](ctx, 1*time.Hour),
 			}
 			s := &scope{
-				machine:         tt.machine,
-				infraMachine:    tt.infraMachine,
-				bootstrapConfig: tt.bootstrapConfig,
+				machine:            tt.machine,
+				infraMachine:       tt.infraMachine,
+				infraMachineGVK:    infraMachineGVK,
+				bootstrapConfig:    tt.bootstrapConfig,
+				bootstrapConfigGVK: bootstrapConfigGVK,
 			}
 
 			result, err := r.reconcileInPlaceUpdate(t.Context(), s)
@@ -383,13 +417,29 @@ func TestCallUpdateMachineHook(t *testing.T) {
 				Build()
 
 			r := &Reconciler{
-				RuntimeClient: runtimeClient,
-				hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+				RuntimeClient:        runtimeClient,
+				hookCache:            cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+				contractObjectsCache: cache.New[contractObjectsCacheEntry](ctx, 1*time.Hour),
 			}
+			infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
+			bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
+
 			scope := &scope{
-				machine:      newTestMachine(),
-				infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra"),
+				machine:            newTestMachine(),
+				infraMachine:       newTestInfraMachine("infra"),
+				infraMachineGVK:    infraMachineGVK,
+				bootstrapConfig:    newTestBootstrapConfig("bootstrap"),
+				bootstrapConfigGVK: bootstrapConfigGVK,
 			}
+			// Note: Warm up the cache to also test the code path with a warmed up cache.
+			// Without a cache hit callUpdateMachineHook below would fail because Reconciler.APIReader is not set.
+			// TestReconcileInPlaceUpdate in contrast is testing the code path with an empty cache.
+			infraMachineUnstructured := newTestUnstructured(scope.infraMachineGVK, scope.infraMachine.GetName())
+			infraMachineUnstructured.SetResourceVersion(scope.infraMachine.GetResourceVersion())
+			r.contractObjectsCache.Add(contractObjectsCacheEntry{obj: infraMachineUnstructured})
+			bootstrapConfigUnstructured := newTestUnstructured(scope.bootstrapConfigGVK, scope.bootstrapConfig.GetName())
+			bootstrapConfigUnstructured.SetResourceVersion(scope.bootstrapConfig.GetResourceVersion())
+			r.contractObjectsCache.Add(contractObjectsCacheEntry{obj: bootstrapConfigUnstructured})
 
 			result, message, err := r.callUpdateMachineHook(t.Context(), scope)
 
@@ -462,7 +512,7 @@ func TestRemoveInPlaceUpdateAnnotation(t *testing.T) {
 
 			r := &Reconciler{Client: client}
 
-			g.Expect(r.removeInPlaceUpdateAnnotation(t.Context(), machine)).To(Succeed())
+			g.Expect(r.removeInPlaceUpdateAnnotation(t.Context(), client, "Machine", machine)).To(Succeed())
 
 			g.Expect(client.Get(ctx, ctrlclient.ObjectKeyFromObject(machine), machine)).To(Succeed())
 			g.Expect(machine.Annotations).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
@@ -562,10 +612,36 @@ func newTestMachine() *clusterv1.Machine {
 	}
 }
 
-func newTestUnstructured(kind, apiVersion, name string) *unstructured.Unstructured {
+func newTestInfraMachine(name string) contractapi.InfraMachine {
+	return &contractv1.InfraMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       "default",
+			Name:            name,
+			ResourceVersion: "2",
+		},
+		Spec: contractv1.InfraMachineSpec{
+			ProviderID: "provider-id",
+		},
+	}
+}
+
+func newTestBootstrapConfig(name string) contractapi.BootstrapConfig {
+	return &contractv1.BootstrapConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       "default",
+			Name:            name,
+			ResourceVersion: "3",
+		},
+		Status: contractv1.BootstrapConfigStatus{
+			DataSecretName: "data-secret-name",
+		},
+	}
+}
+
+func newTestUnstructured(gvk schema.GroupVersionKind, name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
-	u.SetAPIVersion(apiVersion)
-	u.SetKind(kind)
+	u.SetAPIVersion(gvk.GroupVersion().String())
+	u.SetKind(gvk.Kind)
 	u.SetNamespace("default")
 	u.SetName(name)
 	u.SetLabels(map[string]string{})

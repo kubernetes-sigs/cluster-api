@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -59,6 +60,13 @@ type Builder struct {
 	forObject         client.Object
 	controllerName    string
 	rateLimitInterval time.Duration
+	dynamicCache      DynamicCache
+}
+
+// DynamicCache is a scoped-down interface from dynamiccache.DynamicCache that only has the GetCache func.
+type DynamicCache interface {
+	// GetCache returns a Cache for the given GroupVersionKind.
+	GetCache(ctx context.Context, objGVK schema.GroupVersionKind) (ctrlcache.Cache, bool)
 }
 
 // NewControllerManagedBy returns a new controller builder that will be started by the provided Manager.
@@ -146,10 +154,17 @@ func (blder *Builder) Named(name string) *Builder {
 	return blder
 }
 
+// WithDynamicCache adds the DynamicCache. This is required to allow Defer* methods on the
+// controller to defer until stores in the DynamicCache are up-to-date.
+func (blder *Builder) WithDynamicCache(dynamicCache DynamicCache) *Builder {
+	blder.dynamicCache = dynamicCache
+	return blder
+}
+
 // Controller is the controller-runtime Controller interface with
 // additional methods to defer the next reconcile for a request / object.
 type Controller interface {
-	controller.Controller
+	controller.TypedController[reconcile.Request]
 	DeferNextReconcile(req reconcile.Request, reconcileAfter time.Time)
 	DeferNextReconcileForObject(obj metav1.Object, reconcileAfter time.Time)
 
@@ -245,7 +260,7 @@ func (blder *Builder) Build(ctx context.Context, r reconcile.TypedReconciler[rec
 	reconcileCache := cache.New[reconcileCacheEntry](ctx, cache.DefaultTTL)
 
 	// Create consistencyStore.
-	consistencyStore := newConsistencyStore(blder.mgr.GetScheme(), blder.mgr.GetCache())
+	consistencyStore := newConsistencyStore(blder.mgr.GetScheme(), blder.mgr.GetCache(), blder.dynamicCache)
 
 	c, err := blder.builder.Build(&reconcilerWrapper{
 		name:              controllerName,

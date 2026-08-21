@@ -35,7 +35,7 @@ updates:
   # Ignore controller-runtime as its upgraded manually.
   - dependency-name: "sigs.k8s.io/controller-runtime"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
-    # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
+  # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
   - dependency-name: "k8s.io/*"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   - dependency-name: "github.com/prometheus/*"
@@ -47,12 +47,14 @@ updates:
   # Note: We have to keep this 100% in sync with k8s.io, so we get exactly the behavior
   # that the k8s.io CEL code expects.
   - dependency-name: "github.com/google/cel-go"
-    # Ignore kind as its upgraded manually.
+  # Ignore kind as its upgraded manually.
   - dependency-name: "sigs.k8s.io/kind"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
-    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
+  # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
   - dependency-name: "sigs.k8s.io/kustomize/api"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  # Ignore as we are using a commit for this dependency and dependabot somehow tries to bump to an old sig.k8s.io/kubebuilder tag and fails.
+  - dependency-name: "sigs.k8s.io/kubebuilder/docs/book/utils"
   commit-message:
     prefix: ":seedling:"
   labels:

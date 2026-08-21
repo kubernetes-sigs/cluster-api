@@ -40,8 +40,10 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -358,6 +360,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	r := &Reconciler{
 		Client:              env,
 		SecretCachingClient: secretCachingClient,
+		DynamicCache:        dynamicCache,
 		ssaCache:            ssa.NewCache("test-controller"),
 		controller:          capicontrollerutil.NewFakeController(),
 		recorder:            record.NewFakeRecorder(32),
@@ -478,7 +481,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 		g.Expect(cmp).To(BeNumerically(">=", 0))
 	}).Should(Succeed())
 
-	controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, collections.FromMachines(&m))
+	controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, collections.FromMachines(&m))
 	g.Expect(err).ToNot(HaveOccurred())
 	stopReconcile, err := r.syncMachines(ctx, controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -654,6 +657,7 @@ func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
 	r := &Reconciler{
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
+		DynamicCache:        dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 		recorder:            record.NewFakeRecorder(32),
 	}
 
@@ -666,7 +670,7 @@ func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
 		Status:   corev1.ConditionFalse,
 		Severity: clusterv1.ConditionSeverityError,
 		Reason:   controlplanev1.InfrastructureTemplateCloningFailedV1Beta1Reason,
-		Message:  "failed to create InfraMachine: failed to compute desired InfraMachine: failed to retrieve GenericInfrastructureMachineTemplate default/something_invalid: genericinfrastructuremachinetemplates.infrastructure.cluster.x-k8s.io \"something_invalid\" not found",
+		Message:  "failed to create InfraMachine: failed to compute desired InfraMachine: failed to get Unstructured GenericInfrastructureMachineTemplate default/something_invalid: genericinfrastructuremachinetemplates.infrastructure.cluster.x-k8s.io \"something_invalid\" not found",
 	}))
 	// No objects should exist.
 	machineList := &clusterv1.MachineList{}
@@ -737,6 +741,7 @@ func TestCloneConfigsAndGenerateMachineFailKubeadmConfigCreation(t *testing.T) {
 	r := &Reconciler{
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
+		DynamicCache:        dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 		recorder:            record.NewFakeRecorder(32),
 		// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 		//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
@@ -836,6 +841,7 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 	r := &Reconciler{
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
+		DynamicCache:        dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 		recorder:            record.NewFakeRecorder(32),
 		// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 		//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.

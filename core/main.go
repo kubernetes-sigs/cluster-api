@@ -454,6 +454,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		os.Exit(1)
 	}
 
+	dynamicCache := setup.NewDynamicCache(mgr, controllerName, watchNamespace)
+
 	// Note: The kubebuilder RBAC markers above has to be kept in sync
 	// with the CRDs that should be migrated by this provider.
 	crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{
@@ -651,6 +653,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		Client:                           mgr.GetClient(),
 		APIReader:                        mgr.GetAPIReader(),
 		ClusterCache:                     clusterCache,
+		DynamicCache:                     dynamicCache,
 		RuntimeClient:                    runtimeClient,
 		WatchFilterValue:                 watchFilterValue,
 		RemoteConditionsGracePeriod:      remoteConditionsGracePeriod,
@@ -683,6 +686,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),
 		ClusterCache:     clusterCache,
+		DynamicCache:     dynamicCache,
 		PreflightChecks:  machineSetPreflightChecksSet,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineSetConcurrency)); err != nil {
@@ -704,6 +708,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			ClusterCache:     clusterCache,
+			DynamicCache:     dynamicCache,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(machinePoolConcurrency)); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MachinePool")
@@ -742,7 +747,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader coreadmission.ClusterCacheReader) {
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
 	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
-		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
+		_, gvk, err := contract.GetGVKFromGK(ctx, mgr.GetClient(), gk)
+		if err != nil {
+			return "", err
+		}
+		return gvk.GroupVersion().String(), nil
 	})
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook

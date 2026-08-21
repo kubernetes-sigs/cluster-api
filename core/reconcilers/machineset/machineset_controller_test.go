@@ -51,9 +51,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -1488,8 +1491,9 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	reconciler := &Reconciler{
 		// Note: Ensure the fieldManager defaults to manager like in prod.
 		//       Otherwise it defaults to the binary name which is not manager in tests.
-		Client:   client.WithFieldOwner(env.Client, "manager"),
-		ssaCache: ssa.NewCache("test-controller"),
+		Client:       client.WithFieldOwner(env.Client, "manager"),
+		DynamicCache: dynamicCache,
+		ssaCache:     ssa.NewCache("test-controller"),
 	}
 	s := &scope{
 		machineSet: ms,
@@ -2620,6 +2624,12 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 			},
 		},
 	}
+	bootstrapResourceGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
+	bootstrapResourceGVKList := schema.GroupVersionKind{
+		Group:   builder.BootstrapGroupVersion.Group,
+		Version: builder.BootstrapGroupVersion.Version,
+		Kind:    builder.GenericBootstrapConfigKind + "List",
+	}
 	bootstrapTmpl := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"spec": map[string]interface{}{
@@ -2651,6 +2661,12 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 			"size": "3xlarge",
 		},
 	}
+	infraResourceGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
+	infraResourceGVKList := schema.GroupVersionKind{
+		Group:   builder.InfrastructureGroupVersion.Group,
+		Version: builder.InfrastructureGroupVersion.Version,
+		Kind:    builder.GenericInfrastructureMachineKind + "List",
+	}
 	infraTmpl := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"spec": map[string]interface{}{
@@ -2673,6 +2689,10 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 	scheme := runtime.NewScheme()
 	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	scheme.AddKnownTypeWithName(infraResourceGVK, &contractv1.InfraMachine{})
+	scheme.AddKnownTypeWithName(infraResourceGVKList, &contractv1.InfraMachineList{})
+	scheme.AddKnownTypeWithName(bootstrapResourceGVK, &contractv1.BootstrapConfig{})
+	scheme.AddKnownTypeWithName(bootstrapResourceGVKList, &contractv1.BootstrapConfigList{})
 
 	applyCounter := 0
 	failDelete := true
@@ -2708,9 +2728,10 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 	}).Build()
 
 	r := &Reconciler{
-		Client:     fakeClient,
-		controller: capicontrollerutil.NewFakeController(),
-		recorder:   record.NewFakeRecorder(32),
+		Client:       fakeClient,
+		DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
+		controller:   capicontrollerutil.NewFakeController(),
+		recorder:     record.NewFakeRecorder(32),
 		// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 		//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
 		disableRemoveManagedFieldsForLabelsAndAnnotations: true,
@@ -3516,6 +3537,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 	bootstrapObj.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
 	bootstrapObj.SetNamespace(metav1.NamespaceDefault)
 	bootstrapObj.SetName("bootstrap")
+	bootstrapObjGVK := bootstrapObj.GroupVersionKind()
 
 	// Create infrastructure template resource.
 	infraResource := map[string]interface{}{
@@ -3544,6 +3566,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 	infraObj.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
 	infraObj.SetNamespace(metav1.NamespaceDefault)
 	infraObj.SetName("infra")
+	infraObjGVK := infraObj.GroupVersionKind()
 
 	tests := []struct {
 		name                           string
@@ -3592,7 +3615,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			},
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-					if obj.GetObjectKind().GroupVersionKind().Kind == builder.GenericInfrastructureMachineKind && key.Name == "m1" {
+					if _, ok := obj.(*contractv1.InfraMachine); ok && key.Name == "m1" {
 						return pkgerrors.New("injected error when getting m1-infra")
 					}
 					return client.Get(ctx, key, obj, opts...)
@@ -3628,7 +3651,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			},
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-					if obj.GetObjectKind().GroupVersionKind().Kind == builder.GenericBootstrapConfigKind && key.Name == "m1" {
+					if _, ok := obj.(*contractv1.BootstrapConfig); ok && key.Name == "m1" {
 						return pkgerrors.New("injected error when getting m1-bootstrap")
 					}
 					return client.Get(ctx, key, obj, opts...)
@@ -3762,7 +3785,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			},
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-					if obj.GetObjectKind().GroupVersionKind().Kind == builder.GenericInfrastructureMachineKind && key.Name == "m1" {
+					if _, ok := obj.(*contractv1.InfraMachine); ok && key.Name == "m1" {
 						return pkgerrors.New("injected error when getting m1-infra")
 					}
 					return client.Get(ctx, key, obj, opts...)
@@ -3853,11 +3876,17 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 					objs = append(objs, mBootstrapObj)
 				}
 			}
-			fakeClient := fake.NewClientBuilder().WithObjects(objs...).WithInterceptorFuncs(tt.interceptorFuncs).Build()
+			scheme := runtime.NewScheme()
+			_ = apiextensionsv1.AddToScheme(scheme)
+			_ = clusterv1.AddToScheme(scheme)
+			scheme.AddKnownTypeWithName(bootstrapObjGVK, &contractv1.BootstrapConfig{})
+			scheme.AddKnownTypeWithName(infraObjGVK, &contractv1.InfraMachine{})
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).WithInterceptorFuncs(tt.interceptorFuncs).Build()
 			r := &Reconciler{
-				Client:     fakeClient,
-				controller: capicontrollerutil.NewFakeController(),
-				recorder:   record.NewFakeRecorder(32),
+				Client:       fakeClient,
+				DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
+				controller:   capicontrollerutil.NewFakeController(),
+				recorder:     record.NewFakeRecorder(32),
 			}
 			s := &scope{
 				machineSet: tt.ms,
@@ -4543,6 +4572,7 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 	bootstrapObj.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
 	bootstrapObj.SetNamespace(metav1.NamespaceDefault)
 	bootstrapObj.SetName("current-machine")
+	bootstrapObjGVK := bootstrapObj.GroupVersionKind()
 
 	infraObj := &unstructured.Unstructured{
 		Object: infraResource["spec"].(map[string]interface{}),
@@ -4551,6 +4581,7 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 	infraObj.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
 	infraObj.SetNamespace(metav1.NamespaceDefault)
 	infraObj.SetName("current-machine")
+	infraObjGVK := infraObj.GroupVersionKind()
 
 	// Create a Machine with a different version and failure domain
 	machine := &clusterv1.Machine{
@@ -4577,6 +4608,8 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 		},
 	}
 
+	scheme.AddKnownTypeWithName(bootstrapObjGVK, &contractv1.BootstrapConfig{})
+	scheme.AddKnownTypeWithName(infraObjGVK, &contractv1.InfraMachine{})
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		builder.GenericBootstrapConfigCRD,
 		builder.GenericInfrastructureMachineCRD,
@@ -4591,8 +4624,9 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 		machine,
 	).Build()
 	msr := &Reconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:       fakeClient,
+		DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
+		recorder:     record.NewFakeRecorder(32),
 	}
 
 	s := &scope{

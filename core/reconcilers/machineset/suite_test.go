@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,6 +39,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	machinecontroller "sigs.k8s.io/cluster-api/core/reconcilers/machine"
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
@@ -50,9 +52,10 @@ const (
 )
 
 var (
-	env        *envtest.Environment
-	ctx        = ctrl.SetupSignalHandler()
-	fakeScheme = runtime.NewScheme()
+	env          *envtest.Environment
+	ctx          = ctrl.SetupSignalHandler()
+	fakeScheme   = runtime.NewScheme()
+	dynamicCache dynamiccache.DynamicCache
 )
 
 func init() {
@@ -87,12 +90,15 @@ func TestMain(m *testing.M) {
 			clusterCache.(interface{ Shutdown() }).Shutdown()
 		}()
 
+		dynamicCache = setup.NewDynamicCache(mgr, "test-controller-manager", "")
+
 		if err := (&Reconciler{
 			// Note: Ensure the fieldManager defaults to manager like in prod.
 			//       Otherwise it defaults to the binary name which is not manager in tests.
 			Client:       client.WithFieldOwner(mgr.GetClient(), "manager"),
 			APIReader:    mgr.GetAPIReader(),
 			ClusterCache: clusterCache,
+			DynamicCache: dynamicCache,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
 		}
@@ -102,6 +108,7 @@ func TestMain(m *testing.M) {
 			Client:                      client.WithFieldOwner(mgr.GetClient(), "manager"),
 			APIReader:                   mgr.GetAPIReader(),
 			ClusterCache:                clusterCache,
+			DynamicCache:                withFieldOwnerWriter(dynamicCache, "manager"),
 			RemoteConditionsGracePeriod: 5 * time.Minute,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
@@ -121,6 +128,38 @@ func TestMain(m *testing.M) {
 		SetupIndexes:         setupIndexes,
 		SetupReconcilers:     setupReconcilers,
 	}))
+}
+
+type dynamicCacheWithFieldOwnerWriter struct {
+	dynamiccache.DynamicCache
+	fieldOwner string
+}
+
+func withFieldOwnerWriter(c dynamiccache.DynamicCache, fieldOwner string) dynamiccache.DynamicCache {
+	return &dynamicCacheWithFieldOwnerWriter{
+		DynamicCache: c,
+		fieldOwner:   fieldOwner,
+	}
+}
+
+func (dc *dynamicCacheWithFieldOwnerWriter) GetWriter(ctx context.Context, objGVK schema.GroupVersionKind) (dynamiccache.WriterWithScheme, bool) {
+	w, ok := dc.DynamicCache.GetWriter(ctx, objGVK)
+	if !ok {
+		return nil, false
+	}
+	return &clientWithFieldOwner{
+		WriterWithScheme: w,
+		fieldOwner:       dc.fieldOwner,
+	}, true
+}
+
+type clientWithFieldOwner struct {
+	fieldOwner string
+	dynamiccache.WriterWithScheme
+}
+
+func (f *clientWithFieldOwner) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	return f.WriterWithScheme.Patch(ctx, obj, patch, append([]client.PatchOption{client.FieldOwner(f.fieldOwner)}, opts...)...)
 }
 
 func fakeBootstrapRefDataSecretCreated(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]interface{}, g *WithT) {

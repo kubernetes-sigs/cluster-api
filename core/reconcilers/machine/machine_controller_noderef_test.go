@@ -1335,14 +1335,14 @@ func newFakeMachineSpec(clusterName string) clusterv1.MachineSpec {
 		ClusterName: clusterName,
 		Bootstrap: clusterv1.Bootstrap{
 			ConfigRef: clusterv1.ContractVersionedObjectReference{
-				APIGroup: "bootstrap.cluster.x-k8s.io",
-				Kind:     "KubeadmConfigTemplate",
+				APIGroup: builder.BootstrapGroupVersion.Group,
+				Kind:     builder.GenericBootstrapConfigTemplateKind,
 				Name:     fmt.Sprintf("%s-md-0", clusterName),
 			},
 		},
 		InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-			APIGroup: "infrastructure.cluster.x-k8s.io",
-			Kind:     "FakeMachineTemplate",
+			APIGroup: builder.InfrastructureGroupVersion.Group,
+			Kind:     builder.GenericInfrastructureMachineTemplateKind,
 			Name:     fmt.Sprintf("%s-md-0", clusterName),
 		},
 	}

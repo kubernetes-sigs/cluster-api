@@ -38,9 +38,11 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -93,6 +95,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	r := &Reconciler{
 		Client:              env,
 		SecretCachingClient: secretCachingClient,
+		DynamicCache:        dynamicCache,
 		controller:          fc,
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
@@ -254,6 +257,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	r := &Reconciler{
 		Client:                          fakeClient,
 		SecretCachingClient:             fakeClient,
+		DynamicCache:                    dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 		machineClientWithDeleteResponse: capicontrollerutil.NewClientWithDeleteResponseFromClient(fakeClient),
 		managementCluster:               fmc,
 	}

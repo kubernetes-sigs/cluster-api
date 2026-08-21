@@ -230,13 +230,13 @@ func addControlPlane(ctx context.Context, c client.Client, cluster *clusterv1.Cl
 			if err != nil {
 				return nil //nolint:nilerr // intentionally ignoring the error here because infraRef in CP is optional
 			}
-			apiVersion, err := contract.GetAPIVersion(ctx, c, currentRef.GroupKind())
+			_, currentRefGVK, err := contract.GetGVKFromGK(ctx, c, currentRef.GroupKind())
 			if err != nil {
 				return err
 			}
 			infrastructureObjectRef = &corev1.ObjectReference{
-				APIVersion: apiVersion,
-				Kind:       currentRef.Kind,
+				APIVersion: currentRefGVK.GroupVersion().String(),
+				Kind:       currentRefGVK.Kind,
 				Namespace:  controlPlane.GetNamespace(),
 				Name:       currentRef.Name,
 			}
@@ -286,26 +286,26 @@ func addMachineDeploymentToObjectTree(ctx context.Context, c client.Client, clus
 
 			// md.Spec.Template.Spec.Bootstrap.ConfigRef is optional
 			if md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
-				apiVersion, err := contract.GetAPIVersion(ctx, c, md.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
+				_, bootstrapRefGVK, err := contract.GetGVKFromGK(ctx, c, md.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
 				if err != nil {
 					return err
 				}
 				bootstrapTemplateRefObject := ObjectReferenceObject(&corev1.ObjectReference{
-					APIVersion: apiVersion,
-					Kind:       md.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
+					APIVersion: bootstrapRefGVK.GroupVersion().String(),
+					Kind:       bootstrapRefGVK.Kind,
 					Namespace:  md.Namespace,
 					Name:       md.Spec.Template.Spec.Bootstrap.ConfigRef.Name,
 				})
 				tree.Add(templateParent, bootstrapTemplateRefObject, ObjectMetaName("BootstrapConfigTemplate"))
 			}
 
-			apiVersion, err := contract.GetAPIVersion(ctx, c, md.Spec.Template.Spec.InfrastructureRef.GroupKind())
+			_, infrastructureRefGVK, err := contract.GetGVKFromGK(ctx, c, md.Spec.Template.Spec.InfrastructureRef.GroupKind())
 			if err != nil {
 				return err
 			}
 			machineTemplateRefObject := ObjectReferenceObject(&corev1.ObjectReference{
-				APIVersion: apiVersion,
-				Kind:       md.Spec.Template.Spec.InfrastructureRef.Kind,
+				APIVersion: infrastructureRefGVK.GroupVersion().String(),
+				Kind:       infrastructureRefGVK.Kind,
 				Namespace:  md.Namespace,
 				Name:       md.Spec.Template.Spec.InfrastructureRef.Name,
 			})

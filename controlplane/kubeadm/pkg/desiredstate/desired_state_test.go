@@ -34,6 +34,8 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -786,8 +788,9 @@ func Test_ComputeDesiredInfraMachine(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = apiextensionsv1.AddToScheme(scheme)
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(infrastructureMachineTemplate.DeepCopy(), builder.GenericInfrastructureMachineTemplateCRD).Build()
+	dynamicCache := dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions())
 
-	infraMachine, err := ComputeDesiredInfraMachine(t.Context(), fakeClient, kcp, cluster, "machine-1", nil)
+	infraMachine, err := ComputeDesiredInfraMachine(t.Context(), dynamicCache, kcp, cluster, "machine-1", nil)
 	g.Expect(err).ToNot(HaveOccurred())
 	expectedInfraMachine := expectedInfraMachineWithoutOwner.DeepCopy()
 	// New InfraMachine should have KCP ownerReference.
@@ -799,7 +802,7 @@ func Test_ComputeDesiredInfraMachine(t *testing.T) {
 	}})
 	g.Expect(infraMachine).To(BeComparableTo(expectedInfraMachine))
 
-	infraMachine, err = ComputeDesiredInfraMachine(t.Context(), fakeClient, kcp, cluster, "machine-1", preExistingInfraMachineOwnedByMachine)
+	infraMachine, err = ComputeDesiredInfraMachine(t.Context(), dynamicCache, kcp, cluster, "machine-1", preExistingInfraMachineOwnedByMachine)
 	g.Expect(err).ToNot(HaveOccurred())
 	// If there is a pre-existing InfraMachine that is owned by a Machine, the computed InfraMachine
 	// should have no ownerReferences, so we don't overwrite the ownerReference set by the Machine controller.

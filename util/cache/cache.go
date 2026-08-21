@@ -59,6 +59,9 @@ type Cache[E Entry] interface {
 	// Len returns the number of entries in the cache.
 	Len() int
 
+	// Delete deletes the given entry from the Cache.
+	Delete(entry E)
+
 	// DeleteAll deletes all entries from the cache.
 	DeleteAll()
 }
@@ -114,6 +117,13 @@ func (r *cache[E]) Has(key string) (E, bool) {
 
 func (r *cache[E]) Len() int {
 	return len(r.ListKeys())
+}
+
+// Delete deletes the given entry to the Cache.
+func (r *cache[E]) Delete(entry E) {
+	// Note: We can ignore the error here because the key func we pass into NewTTLStore never
+	// returns errors.
+	_ = r.Store.Delete(entry)
 }
 
 func (r *cache[E]) DeleteAll() {

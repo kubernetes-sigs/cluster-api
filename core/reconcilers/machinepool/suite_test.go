@@ -29,14 +29,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 	"sigs.k8s.io/cluster-api/util/index"
 )
 
 var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
+	env          *envtest.Environment
+	ctx          = ctrl.SetupSignalHandler()
+	dynamicCache dynamiccache.DynamicCache
 )
 
 func TestMain(m *testing.M) {
@@ -65,10 +67,13 @@ func TestMain(m *testing.M) {
 			clusterCache.(interface{ Shutdown() }).Shutdown()
 		}()
 
+		dynamicCache = setup.NewDynamicCache(mgr, "test-controller-manager", "")
+
 		if err := (&Reconciler{
 			Client:       mgr.GetClient(),
 			APIReader:    mgr.GetAPIReader(),
 			ClusterCache: clusterCache,
+			DynamicCache: dynamicCache,
 			recorder:     mgr.GetEventRecorderFor("machinepool-controller"),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to set up machine pool reconciler: %v", err))

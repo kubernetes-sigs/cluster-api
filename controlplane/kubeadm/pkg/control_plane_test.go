@@ -120,7 +120,7 @@ func TestControlPlane(t *testing.T) {
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m5"},
 				}},
 		}
-		controlPlane, err := NewControlPlane(ctx, nil, env.GetClient(), cluster, kcp, machines)
+		controlPlane, err := NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), cluster, kcp, machines)
 		g.Expect(err).NotTo(HaveOccurred())
 
 		g.Expect(controlPlane.Machines).To(HaveLen(5))

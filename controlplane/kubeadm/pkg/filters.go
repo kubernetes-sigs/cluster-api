@@ -24,12 +24,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bootstrapadmission "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -51,7 +51,7 @@ type UpToDateResult struct {
 // If not, messages explaining why are provided with different level of detail for logs and conditions.
 func UpToDate(
 	ctx context.Context,
-	c client.Client,
+	dynamicCache dynamiccache.DynamicCache,
 	cluster *clusterv1.Cluster,
 	machine *clusterv1.Machine,
 	kcp *controlplanev1.KubeadmControlPlane,
@@ -92,7 +92,7 @@ func UpToDate(
 
 	// Machines that do not match with KCP config.
 	// Note: matchesMachineSpec will update res with desired and current objects if necessary.
-	matches, specLogMessages, specConditionMessages, err := matchesMachineSpec(ctx, c, infraMachines, kubeadmConfigs, kcp, cluster, machine, res)
+	matches, specLogMessages, specConditionMessages, err := matchesMachineSpec(ctx, dynamicCache, infraMachines, kubeadmConfigs, kcp, cluster, machine, res)
 	if err != nil {
 		return false, nil, pkgerrors.Wrapf(err, "failed to determine if Machine %s is up-to-date", machine.Name)
 	}
@@ -120,7 +120,7 @@ func UpToDate(
 // - are not relevant for the rollout decision (ex: failureDomain).
 func matchesMachineSpec(
 	ctx context.Context,
-	c client.Client,
+	dynamicCache dynamiccache.DynamicCache,
 	infraMachines map[string]*unstructured.Unstructured,
 	kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig,
 	kcp *controlplanev1.KubeadmControlPlane,
@@ -158,7 +158,7 @@ func matchesMachineSpec(
 		conditionMessages = append(conditionMessages, "KubeadmConfig is not up-to-date")
 	}
 
-	reason, currentInfraMachine, desiredInfraMachine, matches, err := matchesInfraMachine(ctx, c, infraMachines, kcp, cluster, machine)
+	reason, currentInfraMachine, desiredInfraMachine, matches, err := matchesInfraMachine(ctx, dynamicCache, infraMachines, kcp, cluster, machine)
 	if err != nil {
 		return false, nil, nil, pkgerrors.Wrapf(err, "failed to match Machine")
 	}
@@ -182,7 +182,7 @@ func matchesMachineSpec(
 // criteria, because changes to labels and annotations are propagated in-place to the infrastructure machines.
 func matchesInfraMachine(
 	ctx context.Context,
-	c client.Client,
+	dynamicCache dynamiccache.DynamicCache,
 	infraMachines map[string]*unstructured.Unstructured,
 	kcp *controlplanev1.KubeadmControlPlane,
 	cluster *clusterv1.Cluster,
@@ -203,7 +203,7 @@ func matchesInfraMachine(
 		return "", nil, nil, true, nil
 	}
 
-	desiredInfraMachine, err := desiredstate.ComputeDesiredInfraMachine(ctx, c, kcp, cluster, machine.Name, currentInfraMachine)
+	desiredInfraMachine, err := desiredstate.ComputeDesiredInfraMachine(ctx, dynamicCache, kcp, cluster, machine.Name, currentInfraMachine)
 	if err != nil {
 		// If kcp is deleting, tolerate missing infra template (it should not be considered unmatching, no new machines will be created),
 		if !kcp.DeletionTimestamp.IsZero() && apierrors.IsNotFound(err) {

@@ -42,8 +42,11 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
+	"sigs.k8s.io/cluster-api/core/setup"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -751,6 +754,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			},
 		},
 	}
+	bootstrapConfigGVK := bootstrapConfig.GroupVersionKind()
 
 	infraConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -840,8 +844,15 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 				objs = append(objs, infraConfig)
 			}
 
+			scheme := runtime.NewScheme()
+			_ = corev1.AddToScheme(scheme)
+			_ = apiextensionsv1.AddToScheme(scheme)
+			_ = clusterv1.AddToScheme(scheme)
+			scheme.AddKnownTypeWithName(bootstrapConfigGVK, &contractv1.BootstrapConfig{})
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:       fakeClient,
+				DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			}
 
 			ok, err := r.reconcileDeleteExternal(ctx, machinePool)
@@ -913,6 +924,7 @@ func TestMachinePoolConditions(t *testing.T) {
 	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(clientgoscheme.AddToScheme(scheme)).To(Succeed())
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind), &contractv1.BootstrapConfig{})
 
 	testCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
@@ -1187,6 +1199,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				Client:       clientFake,
 				APIReader:    clientFake,
 				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				DynamicCache: dynamiccache.NewFakeDynamicCache(clientFake, setup.DynamicCacheOptions()),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},

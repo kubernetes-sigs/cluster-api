@@ -33,9 +33,9 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -131,7 +131,8 @@ func (r *Reconciler) reconcileExternalReference(ctx context.Context, controlPlan
 		return nil
 	}
 
-	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, controlPlane.KCP.Namespace)
+	key := client.ObjectKey{Namespace: controlPlane.KCP.Namespace, Name: ref.Name}
+	obj, err := r.DynamicCache.GetUnstructured(ctx, ref.GroupKind(), key, setup.DynamicCacheInfraMachineTemplateObjectType)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			controlPlane.InfraMachineTemplateIsNotFound = true
@@ -220,7 +221,7 @@ func (r *Reconciler) cleanupFromGeneration(ctx context.Context, objects ...clien
 }
 
 func (r *Reconciler) createInfraMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, name string) (*unstructured.Unstructured, clusterv1.ContractVersionedObjectReference, error) {
-	infraMachine, err := desiredstate.ComputeDesiredInfraMachine(ctx, r.Client, kcp, cluster, name, nil)
+	infraMachine, err := desiredstate.ComputeDesiredInfraMachine(ctx, r.DynamicCache, kcp, cluster, name, nil)
 	if err != nil {
 		return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create InfraMachine")
 	}

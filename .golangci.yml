@@ -320,6 +320,11 @@ linters:
           - staticcheck
         text: 'SA1019: (env|mgr).GetEventRecorderFor is deprecated'
 
+      # TODO: Excludes that can be removed as part of the Cluster API v1.17 release.
+      - linters:
+          - staticcheck
+        text: 'SA1019: feature.(PriorityQueue|ReconcilerRateLimiting) is deprecated'
+
       # TODO: Excludes for v1beta1, can be removed once v1beta1 has been removed (current plan: Cluster API v1.19).
       - linters:
           - staticcheck

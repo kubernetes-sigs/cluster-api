@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -940,6 +941,12 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		failureDomain = machineDeploymentTopology.FailureDomain
 	}
 
+	if failureDomain != "" {
+		if err := validateFailureDomain(s, failureDomain, machineDeploymentTopology.Name, currentMachineDeployment == nil || currentMachineDeployment.Object == nil, s.UpgradeTracker.MachineDeployments.MarkPendingCreate); err != nil {
+			return nil, err
+		}
+	}
+
 	deletionOrder := machineDeploymentClass.Deletion.Order
 	if machineDeploymentTopology.Deletion.Order != "" {
 		deletionOrder = machineDeploymentTopology.Deletion.Order
@@ -1305,6 +1312,12 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 	failureDomains := machinePoolClass.FailureDomains
 	if machinePoolTopology.FailureDomains != nil {
 		failureDomains = machinePoolTopology.FailureDomains
+	}
+
+	for _, fd := range failureDomains {
+		if err := validateFailureDomain(s, fd, machinePoolTopology.Name, currentMachinePool == nil || currentMachinePool.Object == nil, s.UpgradeTracker.MachinePools.MarkPendingCreate); err != nil {
+			return nil, err
+		}
 	}
 
 	nodeDrainTimeout := machinePoolClass.Deletion.NodeDrainTimeoutSeconds
@@ -1705,4 +1718,32 @@ func cleanupCluster(cluster *clusterv1.Cluster) *clusterv1.Cluster {
 	}
 	cluster.Status = clusterv1.ClusterStatus{}
 	return cluster
+}
+
+// clusterFailureDomainNames returns the set of failure domain names from Cluster.Status.FailureDomains.
+func clusterFailureDomainNames(s *scope.Scope) sets.Set[string] {
+	fds := sets.New[string]()
+	for _, fd := range s.Current.Cluster.Status.FailureDomains {
+		fds.Insert(fd.Name)
+	}
+	return fds
+}
+
+// validateFailureDomain validates a failureDomain value against the failure domains reported
+// in Cluster.Status.FailureDomains. If failure domains are not yet reported and this is a new
+// resource, creation is deferred via markPendingCreate. If failure domains are reported but the
+// value doesn't match, an error is returned.
+func validateFailureDomain(s *scope.Scope, failureDomain, topologyName string, isNew bool, markPendingCreate func(string)) error {
+	if len(s.Current.Cluster.Status.FailureDomains) == 0 {
+		if isNew {
+			markPendingCreate(topologyName)
+		}
+		return nil
+	}
+
+	if !clusterFailureDomainNames(s).Has(failureDomain) {
+		return fmt.Errorf("failureDomain %q specified in topology %q does not match any failure domain defined in Cluster.status.failureDomains %v",
+			failureDomain, topologyName, clusterFailureDomainNames(s).UnsortedList())
+	}
+	return nil
 }

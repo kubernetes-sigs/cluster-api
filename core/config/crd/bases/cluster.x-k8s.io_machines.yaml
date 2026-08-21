@@ -1199,6 +1199,13 @@ spec:
                   deletion contains information relating to removal of the Machine.
                   Only present when the Machine has a deletionTimestamp and drain or wait for volume detach started.
                 properties:
+                  nodeDeletionStartTime:
+                    description: |-
+                      nodeDeletionStartTime is the time when the deletion of the Node started and is used to determine
+                      if the nodeDeletionTimeoutSeconds is exceeded.
+                      Only present when the Machine has a deletionTimestamp and deleting the Node had been started.
+                    format: date-time
+                    type: string
                   nodeDrainStartTime:
                     description: |-
                       nodeDrainStartTime is the time when the drain of the node started and is used to determine

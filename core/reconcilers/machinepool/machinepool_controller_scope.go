@@ -46,17 +46,33 @@ type scope struct {
 
 	// machines holds a list of the machines associated with this machine pool.
 	machines []*clusterv1.Machine
+
+	// getMachinesForMachinePoolSucceeded is true if the machines associated with this machine pool
+	// were successfully listed.
+	getMachinesForMachinePoolSucceeded bool
 }
 
-func (s *scope) hasMachinePoolMachines() (bool, error) {
+type machinePoolMachinesState int
+
+const (
+	machinePoolMachinesStateUnknown machinePoolMachinesState = iota
+	machinePoolMachinesStateNotSupported
+	machinePoolMachinesStateSupported
+)
+
+func (s *scope) machinePoolMachinesState() (machinePoolMachinesState, error) {
 	if s.infraMachinePool == nil {
-		return false, errors.New("infra machine pool not set on scope")
+		return machinePoolMachinesStateUnknown, errors.New("infra machine pool not set on scope")
 	}
 
 	machineKind, found, err := unstructured.NestedString(s.infraMachinePool.Object, "status", "infrastructureMachineKind")
 	if err != nil {
-		return false, fmt.Errorf("failed to lookup infrastructureMachineKind: %w", err)
+		return machinePoolMachinesStateUnknown, fmt.Errorf("failed to lookup infrastructureMachineKind: %w", err)
 	}
 
-	return found && (machineKind != ""), nil
+	if !found || machineKind == "" {
+		return machinePoolMachinesStateNotSupported, nil
+	}
+
+	return machinePoolMachinesStateSupported, nil
 }

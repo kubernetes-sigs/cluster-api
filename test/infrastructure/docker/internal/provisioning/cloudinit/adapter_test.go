@@ -93,16 +93,13 @@ write_files:
     owner: root:root
     path: /etc/kubernetes/pki/sa.key
     permissions: '0600'
--   content: "---\napiServer:\n  certSANs:\n  - '10.0.0.223'\n  - test1-apiserver-329764956.us-west-2.elb.amazonaws.com\n\
-        \  extraArgs:\n    cloud-provider: aws\napiVersion: kubeadm.k8s.io/v1beta3\n\
-        certificatesDir: \"\"\nclusterName: test1\ncontrolPlaneEndpoint: test1-apiserver-329764956.us-west-2.elb.amazonaws.com:6443\n\
-        controllerManager:\n  extraArgs:\n    cloud-provider: aws\ndns:\n  type: \"\
+-   content: "---\napiServer:\n  certSANs:\n  - '10.0.0.223'\n  - test1-apiserver-329764956.us-west-2.elb.amazonaws.com\napiVersion: kubeadm.k8s.io/v1beta4\n\
+        certificatesDir: \"\"\nclusterName: test1\ncontrolPlaneEndpoint: test1-apiserver-329764956.us-west-2.elb.amazonaws.com:6443\ndns:\n  type: \"\
         \"\netcd: {}\nimageRepository: \"\"\nkind: ClusterConfiguration\nkubernetesVersion:\
-        \ v1.16.0\nnetworking:\n  dnsDomain: cluster.local\n  podSubnet: 192.168.0.0/16\n\
-        \  serviceSubnet: 10.96.0.0/12\nscheduler: {}\n\n---\napiVersion: kubeadm.k8s.io/v1beta3\n\
+        \ v1.31.0\nnetworking:\n  dnsDomain: cluster.local\n  podSubnet: 192.168.0.0/16\n\
+        \  serviceSubnet: 10.96.0.0/12\nscheduler: {}\n\n---\napiVersion: kubeadm.k8s.io/v1beta4\n\
         kind: InitConfiguration\nlocalAPIEndpoint:\n  advertiseAddress: \"\"\n  bindPort:\
-        \ 0\nnodeRegistration:\n  criSocket: unix:///var/run/containerd/containerd.sock\n\
-        \  kubeletExtraArgs:\n    cloud-provider: aws\n  name: 'ip-10-0-0-223.us-west-2.compute.internal'\n"
+        \ 0\nnodeRegistration:\n  criSocket: unix:///var/run/containerd/containerd.sock\n  name: 'ip-10-0-0-223.us-west-2.compute.internal'\n"
     owner: root:root
     path: /run/kubeadm/kubeadm.yaml
     permissions: '0640'
@@ -143,7 +140,7 @@ write_files:
 		{Cmd: "chmod", Args: []string{"0640", "/run/kubeadm/kubeadm.yaml"}, Retry: 5},
 	}
 
-	commands, err := RawCloudInitToProvisioningCommands(cloudData, kind.Mapping{KubernetesVersion: semver.MustParse("1.23.0")})
+	commands, err := RawCloudInitToProvisioningCommands(cloudData, kind.Mapping{KubernetesVersion: semver.MustParse("1.31.0")})
 
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(commands).To(HaveLen(len(expectedCmds)))

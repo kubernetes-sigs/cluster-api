@@ -31,6 +31,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/yaml"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -814,6 +815,7 @@ func TestHasKubeadmConfig(t *testing.T) {
 	tests := []struct {
 		name                   string
 		objs                   []client.Object
+		getErr                 error
 		expectErr              bool
 		expectHasKubeadmConfig bool
 	}{
@@ -829,12 +831,27 @@ func TestHasKubeadmConfig(t *testing.T) {
 			expectErr:              false,
 			expectHasKubeadmConfig: true,
 		},
+		{
+			// Note: an error other than NotFound must be surfaced instead of being
+			// reported as "the cluster does not have a kubeadm config".
+			name:      "Returns an error if getting the kubeadm config fails",
+			objs:      []client.Object{kconf},
+			getErr:    apierrors.NewInternalError(errors.New("internal error")),
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
+			if tt.getErr != nil {
+				fakeClient = interceptor.NewClient(fakeClient, interceptor.Funcs{
+					Get: func(_ context.Context, _ client.WithWatch, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
+						return tt.getErr
+					},
+				})
+			}
 			w := &Workload{
 				Client: fakeClient,
 			}

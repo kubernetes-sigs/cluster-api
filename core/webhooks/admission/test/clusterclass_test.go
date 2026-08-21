@@ -17,6 +17,7 @@ limitations under the License.
 package test
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -527,6 +528,174 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 	// Attempt to delete ClusterClass "class3" which is in use.
 	// Expect an error here as the webhook should not allow the deletion of an existing ClusterClass.
 	g.Expect(env.Delete(ctx, class)).To(Not(Succeed()))
+}
+
+// TestClusterClassWebhook_TemplateRefOrTemplate tests the CEL rule, present on every ClusterClass struct that
+// carries both a templateRef and a template field, requiring that exactly one of the two is set.
+func TestClusterClassWebhook_TemplateRefOrTemplate(t *testing.T) {
+	g := NewWithT(t)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
+	ns, err := env.CreateNamespace(ctx, "test-clusterclass-webhook-template")
+	g.Expect(err).ToNot(HaveOccurred())
+	t.Cleanup(func() {
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+	})
+
+	const celErrMsg = "either templateRef or template must be set, but not both"
+
+	tests := []struct {
+		name       string
+		mutate     func(*clusterv1.ClusterClass) // Note: The base ClusterClass has all templateRefs set
+		wantErrMsg string
+	}{
+		{
+			name:   "baseline ClusterClass using templateRef everywhere is valid",
+			mutate: func(*clusterv1.ClusterClass) {},
+		},
+		{
+			name: "infrastructure: neither templateRef nor template is invalid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				cc.Spec.Infrastructure.TemplateRef = clusterv1.ClusterClassTemplateReference{}
+				// Set naming so the (otherwise empty) infrastructure struct is still sent to the API server.
+				cc.Spec.Infrastructure.Naming.Template = "{{ .cluster.name }}"
+			},
+			wantErrMsg: celErrMsg,
+		},
+		{
+			name: "infrastructure: both templateRef and template is invalid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				cc.Spec.Infrastructure.Template = clusterv1.ClusterClassTemplate{
+					APIVersion: cc.Spec.Infrastructure.TemplateRef.APIVersion,
+					Kind:       cc.Spec.Infrastructure.TemplateRef.Kind,
+				}
+			},
+			wantErrMsg: celErrMsg,
+		},
+		{
+			name: "controlPlane: neither templateRef nor template is invalid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				cc.Spec.ControlPlane.TemplateRef = clusterv1.ClusterClassTemplateReference{}
+			},
+			wantErrMsg: celErrMsg,
+		},
+		{
+			name: "controlPlane: both templateRef and template is invalid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				cc.Spec.ControlPlane.Template = clusterv1.ClusterClassTemplate{
+					APIVersion: cc.Spec.ControlPlane.TemplateRef.APIVersion,
+					Kind:       cc.Spec.ControlPlane.TemplateRef.Kind,
+				}
+			},
+			wantErrMsg: celErrMsg,
+		},
+		// Note: In the following cases the neither case cannot be tested as we cannot send empty objects via the Go types.
+		{
+			name: "controlPlane.machineInfrastructure: both templateRef and template is invalid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				mi := &cc.Spec.ControlPlane.MachineInfrastructure
+				mi.Template = clusterv1.ClusterClassTemplate{
+					APIVersion: mi.TemplateRef.APIVersion,
+					Kind:       mi.TemplateRef.Kind,
+				}
+			},
+			wantErrMsg: celErrMsg,
+		},
+		{
+			name: "workers.machineDeployments.bootstrap: both templateRef and template is invalid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				bootstrap := &cc.Spec.Workers.MachineDeployments[0].Bootstrap
+				bootstrap.Template = clusterv1.ClusterClassTemplate{
+					APIVersion: bootstrap.TemplateRef.APIVersion,
+					Kind:       bootstrap.TemplateRef.Kind,
+				}
+			},
+			wantErrMsg: celErrMsg,
+		},
+		{
+			name: "workers.machineDeployments.infrastructure: both templateRef and template is invalid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				infrastructure := &cc.Spec.Workers.MachineDeployments[0].Infrastructure
+				infrastructure.Template = clusterv1.ClusterClassTemplate{
+					APIVersion: infrastructure.TemplateRef.APIVersion,
+					Kind:       infrastructure.TemplateRef.Kind,
+				}
+			},
+			wantErrMsg: celErrMsg,
+		},
+		{
+			name: "workers.machinePools.bootstrap: both templateRef and template is invalid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				bootstrap := &cc.Spec.Workers.MachinePools[0].Bootstrap
+				bootstrap.Template = clusterv1.ClusterClassTemplate{
+					APIVersion: bootstrap.TemplateRef.APIVersion,
+					Kind:       bootstrap.TemplateRef.Kind,
+				}
+			},
+			wantErrMsg: celErrMsg,
+		},
+		{
+			name: "workers.machinePools.infrastructure: both templateRef and template is invalid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				infrastructure := &cc.Spec.Workers.MachinePools[0].Infrastructure
+				infrastructure.Template = clusterv1.ClusterClassTemplate{
+					APIVersion: infrastructure.TemplateRef.APIVersion,
+					Kind:       infrastructure.TemplateRef.Kind,
+				}
+			},
+			wantErrMsg: celErrMsg,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			clusterClass := clusterClassForTemplateRefOrTemplateTest(ns.Name, fmt.Sprintf("cel-templateref-or-template-%d", i))
+			tt.mutate(clusterClass)
+
+			err := env.Create(ctx, clusterClass)
+
+			if tt.wantErrMsg != "" {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(ContainSubstring(tt.wantErrMsg))
+				return
+			}
+
+			g.Expect(err).ToNot(HaveOccurred())
+			t.Cleanup(func() {
+				g.Expect(env.Cleanup(ctx, clusterClass)).To(Succeed())
+			})
+		})
+	}
+}
+
+// clusterClassForTemplateRefOrTemplateTest returns a ClusterClass that satisfies every webhook and CRD validation
+// rule other than the templateRef/template CEL rules, using templateRef (not template) everywhere. This way,
+// failures caused by the mutations in TestClusterClassWebhook_TemplateRefOrTemplate can only be caused by the CEL rules.
+func clusterClassForTemplateRefOrTemplateTest(namespace, name string) *clusterv1.ClusterClass {
+	return builder.ClusterClass(namespace, name).
+		WithInfrastructureClusterTemplate(
+			builder.InfrastructureClusterTemplate(namespace, infrastructureClusterTemplateName1).Build()).
+		WithControlPlaneTemplate(
+			builder.ControlPlaneTemplate(namespace, controlPlaneTemplateName1).Build()).
+		WithControlPlaneInfrastructureMachineTemplate(
+			builder.InfrastructureMachineTemplate(namespace, infrastructureMachineTemplateName1).Build()).
+		WithWorkerMachineDeploymentClasses(
+			*builder.MachineDeploymentClass("md1").
+				WithInfrastructureTemplate(
+					builder.InfrastructureMachineTemplate(namespace, infrastructureMachineTemplateName1).Build()).
+				WithBootstrapTemplate(
+					builder.BootstrapTemplate(namespace, bootstrapTemplateName1).Build()).
+				Build()).
+		WithWorkerMachinePoolClasses(
+			*builder.MachinePoolClass("mp1").
+				WithInfrastructureTemplate(
+					builder.InfrastructureMachineTemplate(namespace, infrastructureMachineTemplateName1).Build()).
+				WithBootstrapTemplate(
+					builder.BootstrapTemplate(namespace, bootstrapTemplateName1).Build()).
+				Build()).
+		Build()
 }
 
 // createTemplates builds and then creates all required ClusterClass templates in the envtest API server.

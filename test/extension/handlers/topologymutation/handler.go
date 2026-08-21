@@ -25,6 +25,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
@@ -99,9 +100,14 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 	topologymutation.WalkTemplates(ctx, h.decoder, req, resp, func(ctx context.Context, obj runtime.Object, variables map[string]apiextensionsv1.JSON, _ runtimehooksv1.HolderReference) error {
 		log := ctrl.LoggerFrom(ctx)
 
+		backend := req.Settings["backend"]
+		if backend == "" {
+			backend = "docker"
+		}
+
 		switch obj.(type) {
 		case *infrav1.DevClusterTemplate:
-			if err := patchDevClusterTemplate(ctx, obj, variables); err != nil {
+			if err := patchDevClusterTemplate(ctx, obj, variables, backend); err != nil {
 				log.Error(err, "Error patching DevClusterTemplate")
 				return pkgerrors.Wrap(err, "error patching DevClusterTemplate")
 			}
@@ -126,7 +132,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			// the patchDevMachineTemplate func shows how to implement different patches for DevMachineTemplate
 			// linked to ControlPlane or for DevMachineTemplate linked to MachineDeployment classes; another option
 			// is to check the holderRef value and call this func or more specialized func conditionally.
-			if err := patchDevMachineTemplate(ctx, obj, variables); err != nil {
+			if err := patchDevMachineTemplate(ctx, obj, variables, backend); err != nil {
 				log.Error(err, "Error patching DevMachineTemplate")
 				return pkgerrors.Wrap(err, "error patching DevMachineTemplate")
 			}
@@ -143,7 +149,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 // patchDevClusterTemplate patches the DevClusterTemplate.
 // It sets the LoadBalancer.ImageRepository if the imageRepository variable is provided.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchDevClusterTemplate(_ context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDevClusterTemplate(_ context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON, backend string) error {
 	imageRepo, err := topologymutation.GetStringVariable(templateVariables, "imageRepository")
 	if err != nil {
 		if topologymutation.IsNotFoundError(err) {
@@ -155,6 +161,12 @@ func patchDevClusterTemplate(_ context.Context, obj runtime.Object, templateVari
 	devClusterTemplate, ok := obj.(*infrav1.DevClusterTemplate)
 	if !ok {
 		return pkgerrors.New("object is not a DevClusterTemplate")
+	}
+
+	if backend == "inMemory" {
+		if devClusterTemplate.Spec.Template.Spec.Backend.InMemory == nil {
+			devClusterTemplate.Spec.Template.Spec.Backend.InMemory = &infrav1.InMemoryClusterBackendSpec{}
+		}
 	}
 
 	if devClusterTemplate.Spec.Template.ObjectMeta.Labels == nil {
@@ -432,7 +444,7 @@ func convertToKubeadmConfigFiles(files []fileVariable) []bootstrapv1.File {
 // the DevMachineTemplate belongs to.
 // NOTE: this patch is not required anymore after the introduction of the kind mapper in kind, however we keep it
 // as example of version aware patches.
-func patchDevMachineTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDevMachineTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON, backend string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	labels.AddLabels(obj.(metav1.Object), map[string]string{"top-level-label-1": "top-level-label-value-1"})
@@ -441,6 +453,52 @@ func patchDevMachineTemplate(ctx context.Context, obj runtime.Object, templateVa
 	devMachineTemplate, ok := obj.(*infrav1.DevMachineTemplate)
 	if !ok {
 		return pkgerrors.New("object is not a DevMachineTemplate")
+	}
+
+	if backend == "inMemory" {
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory == nil {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory = &infrav1.InMemoryMachineBackendSpec{}
+		}
+
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.VM == nil {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.VM = &infrav1.InMemoryVMSpec{}
+		}
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.VM.Provisioning.StartupDuration.Duration == 0 {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.VM.Provisioning.StartupDuration = metav1.Duration{Duration: 10 * time.Second}
+		}
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.VM.Provisioning.StartupJitter == "" {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.VM.Provisioning.StartupJitter = "0.2"
+		}
+
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Node == nil {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Node = &infrav1.InMemoryNodeSpec{}
+		}
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Node.Provisioning.StartupDuration.Duration == 0 {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Node.Provisioning.StartupDuration = metav1.Duration{Duration: 2 * time.Second}
+		}
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Node.Provisioning.StartupJitter == "" {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Node.Provisioning.StartupJitter = "0.2"
+		}
+
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.APIServer == nil {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.APIServer = &infrav1.InMemoryAPIServerSpec{}
+		}
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.APIServer.Provisioning.StartupDuration.Duration == 0 {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.APIServer.Provisioning.StartupDuration = metav1.Duration{Duration: 2 * time.Second}
+		}
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.APIServer.Provisioning.StartupJitter == "" {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.APIServer.Provisioning.StartupJitter = "0.2"
+		}
+
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Etcd == nil {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Etcd = &infrav1.InMemoryEtcdSpec{}
+		}
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Etcd.Provisioning.StartupDuration.Duration == 0 {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Etcd.Provisioning.StartupDuration = metav1.Duration{Duration: 2 * time.Second}
+		}
+		if devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Etcd.Provisioning.StartupJitter == "" {
+			devMachineTemplate.Spec.Template.Spec.Backend.InMemory.Etcd.Provisioning.StartupJitter = "0.2"
+		}
 	}
 
 	// If the DevMachineTemplate belongs to the ControlPlane, set the images using the ControlPlane version.

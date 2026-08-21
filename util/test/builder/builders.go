@@ -336,28 +336,29 @@ func (m *MachinePoolTopologyBuilder) Build() clusterv1.MachinePoolTopology {
 
 // ClusterClassBuilder holds the variables and objects required to build a clusterv1.ClusterClass.
 type ClusterClassBuilder struct {
-	namespace                                 string
-	name                                      string
-	annotations                               map[string]string
-	infrastructureClusterTemplate             *unstructured.Unstructured
-	controlPlaneMetadata                      *clusterv1.ObjectMeta
-	controlPlaneReadinessGates                []clusterv1.MachineReadinessGate
-	controlPlaneTaints                        []clusterv1.MachineTaint
-	controlPlaneTemplate                      *unstructured.Unstructured
-	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
-	controlPlaneMHC                           clusterv1.ControlPlaneClassHealthCheck
-	controlPlaneNodeDrainTimeout              *int32
-	controlPlaneNodeVolumeDetachTimeout       *int32
-	controlPlaneNodeDeletionTimeout           *int32
-	controlPlaneNaming                        *clusterv1.ControlPlaneClassNamingSpec
-	infraClusterNaming                        *clusterv1.InfrastructureClassNamingSpec
-	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
-	machinePoolClasses                        []clusterv1.MachinePoolClass
-	variables                                 []clusterv1.ClusterClassVariable
-	statusVariables                           []clusterv1.ClusterClassStatusVariable
-	patches                                   []clusterv1.ClusterClassPatch
-	conditions                                []metav1.Condition
-	versions                                  []string
+	namespace                                       string
+	name                                            string
+	annotations                                     map[string]string
+	infrastructureClusterTemplate                   *unstructured.Unstructured
+	controlPlaneMetadata                            *clusterv1.ObjectMeta
+	controlPlaneReadinessGates                      []clusterv1.MachineReadinessGate
+	controlPlaneTaints                              []clusterv1.MachineTaint
+	controlPlaneTemplate                            *unstructured.Unstructured
+	controlPlaneInfrastructureMachineTemplate       *unstructured.Unstructured
+	controlPlaneInfrastructureMachineTemplateInline *clusterv1.ClusterClassTemplate
+	controlPlaneMHC                                 clusterv1.ControlPlaneClassHealthCheck
+	controlPlaneNodeDrainTimeout                    *int32
+	controlPlaneNodeVolumeDetachTimeout             *int32
+	controlPlaneNodeDeletionTimeout                 *int32
+	controlPlaneNaming                              *clusterv1.ControlPlaneClassNamingSpec
+	infraClusterNaming                              *clusterv1.InfrastructureClassNamingSpec
+	machineDeploymentClasses                        []clusterv1.MachineDeploymentClass
+	machinePoolClasses                              []clusterv1.MachinePoolClass
+	variables                                       []clusterv1.ClusterClassVariable
+	statusVariables                                 []clusterv1.ClusterClassStatusVariable
+	patches                                         []clusterv1.ClusterClassPatch
+	conditions                                      []metav1.Condition
+	versions                                        []string
 }
 
 // ClusterClass returns a ClusterClassBuilder with the given name and namespace.
@@ -410,6 +411,12 @@ func (c *ClusterClassBuilder) WithControlPlaneTaints(taints []clusterv1.MachineT
 // WithControlPlaneInfrastructureMachineTemplate adds the ControlPlane's InfrastructureMachineTemplate to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *unstructured.Unstructured) *ClusterClassBuilder {
 	c.controlPlaneInfrastructureMachineTemplate = t
+	return c
+}
+
+// WithControlPlaneInfrastructureMachineInlineTemplate sets the ControlPlane's MachineInfrastructure inline template on the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineInlineTemplate(template clusterv1.ClusterClassTemplate) *ClusterClassBuilder {
+	c.controlPlaneInfrastructureMachineTemplateInline = &template
 	return c
 }
 
@@ -546,6 +553,11 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	if c.controlPlaneInfrastructureMachineTemplate != nil {
 		obj.Spec.ControlPlane.MachineInfrastructure = clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 			TemplateRef: objToClusterClassTemplateRef(c.controlPlaneInfrastructureMachineTemplate),
+		}
+	}
+	if c.controlPlaneInfrastructureMachineTemplateInline != nil {
+		obj.Spec.ControlPlane.MachineInfrastructure = clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+			Template: *c.controlPlaneInfrastructureMachineTemplateInline,
 		}
 	}
 	if c.controlPlaneNaming != nil {

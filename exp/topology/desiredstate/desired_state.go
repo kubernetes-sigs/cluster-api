@@ -237,7 +237,9 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 // corresponding template defined in the blueprint.
 func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.InfrastructureClusterTemplate
-	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.Infrastructure.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	// Note: If the Template is configured via template instead of templateRef in the ClusterClass
+	// the name annotation on the generated object will be empty.
+	templateClonedFromRef := contract.ObjToRef(s.Blueprint.InfrastructureClusterTemplate)
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.InfrastructureRef
 
@@ -275,7 +277,9 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 // that should be referenced by the ControlPlane object.
 func (g *generator) computeControlPlaneInfrastructureMachineTemplate(ctx context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.ControlPlane.InfrastructureMachineTemplate
-	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	// Note: If the Template is configured via template instead of templateRef in the ClusterClass
+	// the name annotation on the generated object will be empty.
+	templateClonedFromRef := contract.ObjToRef(s.Blueprint.ControlPlane.InfrastructureMachineTemplate)
 	cluster := s.Current.Cluster
 
 	// Check if the current control plane object has a machineTemplate.infrastructureRef already defined.
@@ -320,7 +324,9 @@ func (g *generator) computeControlPlaneInfrastructureMachineTemplate(ctx context
 // corresponding template defined in the blueprint.
 func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, infrastructureMachineTemplate *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.ControlPlane.Template
-	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	// Note: If the Template is configured via template instead of templateRef in the ClusterClass
+	// the name annotation on the generated object will be empty.
+	templateClonedFromRef := contract.ObjToRef(s.Blueprint.ControlPlane.Template)
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.ControlPlaneRef
 
@@ -845,7 +851,9 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 	var err error
 	desiredMachineDeployment.BootstrapTemplate, err = templateToTemplate(templateToInput{
-		template:              machineDeploymentBlueprint.BootstrapTemplate,
+		template: machineDeploymentBlueprint.BootstrapTemplate,
+		// Note: If the Template is configured via template instead of templateRef in the ClusterClass
+		// the name annotation on the generated object will be empty.
 		templateClonedFromRef: contract.ObjToRef(machineDeploymentBlueprint.BootstrapTemplate),
 		cluster:               s.Current.Cluster,
 		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.BootstrapTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name)),
@@ -873,7 +881,9 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		currentInfraMachineTemplateRef = &currentMachineDeployment.Object.Spec.Template.Spec.InfrastructureRef
 	}
 	desiredMachineDeployment.InfrastructureMachineTemplate, err = templateToTemplate(templateToInput{
-		template:              machineDeploymentBlueprint.InfrastructureMachineTemplate,
+		template: machineDeploymentBlueprint.InfrastructureMachineTemplate,
+		// Note: If the Template is configured via template instead of templateRef in the ClusterClass
+		// the name annotation on the generated object will be empty.
 		templateClonedFromRef: contract.ObjToRef(machineDeploymentBlueprint.InfrastructureMachineTemplate),
 		cluster:               s.Current.Cluster,
 		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.InfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name)),
@@ -1242,7 +1252,9 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 	}
 	var err error
 	desiredMachinePool.BootstrapObject, err = templateToObject(templateToInput{
-		template:              machinePoolBlueprint.BootstrapTemplate,
+		template: machinePoolBlueprint.BootstrapTemplate,
+		// Note: If the Template is configured via template instead of templateRef in the ClusterClass
+		// the name annotation on the generated object will be empty.
 		templateClonedFromRef: contract.ObjToRef(machinePoolBlueprint.BootstrapTemplate),
 		cluster:               s.Current.Cluster,
 		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.BootstrapConfigNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name)),
@@ -1270,7 +1282,9 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 		currentInfraMachinePoolRef = &currentMachinePool.Object.Spec.Template.Spec.InfrastructureRef
 	}
 	desiredMachinePool.InfrastructureMachinePoolObject, err = templateToObject(templateToInput{
-		template:              machinePoolBlueprint.InfrastructureMachinePoolTemplate,
+		template: machinePoolBlueprint.InfrastructureMachinePoolTemplate,
+		// Note: If the Template is configured via template instead of templateRef in the ClusterClass
+		// the name annotation on the generated object will be empty.
 		templateClonedFromRef: contract.ObjToRef(machinePoolBlueprint.InfrastructureMachinePoolTemplate),
 		cluster:               s.Current.Cluster,
 		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.InfrastructureMachinePoolNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name)),

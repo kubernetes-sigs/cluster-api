@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
+	"sigs.k8s.io/cluster-api/internal/topology/pinning"
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -143,6 +145,11 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 	if err != nil {
 		return nil, pkgerrors.Wrap(err, "failed to check if any MachineDeployment is upgrading")
 	}
+	// Note: MachineDeployments pinning their own version are excluded, so that rolling out a pinned
+	// MachineDeployment does not block the control plane, consume the cluster-level upgrade
+	// concurrency or delay the AfterClusterUpgrade hook. Their rollout is still surfaced by the
+	// Cluster RollingOut condition.
+	mdUpgradingNames = sets.List(sets.New(mdUpgradingNames...).Difference(pinnedMachineDeploymentNames(s)))
 	s.UpgradeTracker.MachineDeployments.MarkUpgrading(mdUpgradingNames...)
 
 	// Mark all the MachinePools that are currently upgrading.
@@ -173,6 +180,7 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 			if err != nil {
 				return nil, pkgerrors.Wrap(err, "failed to check if any MachinePool is upgrading")
 			}
+			mpUpgradingNames = sets.List(sets.New(mpUpgradingNames...).Difference(pinnedMachinePoolNames(s)))
 			s.UpgradeTracker.MachinePools.MarkUpgrading(mpUpgradingNames...)
 		}
 	}
@@ -1083,6 +1091,11 @@ func (g *generator) computeMachineDeploymentVersion(ctx context.Context, s *scop
 	log := ctrl.LoggerFrom(ctx)
 
 	topologyVersion := s.Blueprint.Topology.Version
+
+	// A machine deployment pinning its own version manages its version independently of the
+	// cluster-level rollout, so the pinned version is always the desired version.
+	pinnedVersion := pinning.MachineDeploymentVersion(machineDeploymentTopology)
+
 	// If creating a new machine deployment, mark it as pending if the control plane is not
 	// yet stable. Creating a new MD while the control plane is upgrading can lead to unexpected race conditions.
 	// Example: join could fail if the load balancers are slow in detecting when CP machines are
@@ -1091,7 +1104,18 @@ func (g *generator) computeMachineDeploymentVersion(ctx context.Context, s *scop
 		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) || s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
 			s.UpgradeTracker.MachineDeployments.MarkPendingCreate(machineDeploymentTopology.Name)
 		}
+		if pinnedVersion != "" {
+			return pinnedVersion, nil
+		}
 		return topologyVersion, nil
+	}
+
+	// Return early if the machine deployment pins a version.
+	// Note: it is deliberately not tracked as pending or upgrading. Tracking it as pending upgrade
+	// would freeze its other changes, and tracking it as upgrading would block the control plane
+	// from advancing and consume the cluster-level upgrade concurrency.
+	if pinnedVersion != "" {
+		return pinnedVersion, nil
 	}
 
 	// Get the current version of the machine deployment.
@@ -1160,6 +1184,34 @@ func (g *generator) computeMachineDeploymentVersion(ctx context.Context, s *scop
 		"MachineDeployment", klog.KObj(currentMDState.Object),
 	)
 	return nextVersion, nil
+}
+
+// pinnedMachineDeploymentNames returns the names of the MachineDeployment objects pinning their own version.
+func pinnedMachineDeploymentNames(s *scope.Scope) sets.Set[string] {
+	names := sets.Set[string]{}
+	for mdTopologyName, md := range s.Current.MachineDeployments {
+		if md.Object == nil {
+			continue
+		}
+		if pinning.MachineDeploymentVersionByTopologyName(s.Blueprint.Topology, mdTopologyName) != "" {
+			names.Insert(md.Object.Name)
+		}
+	}
+	return names
+}
+
+// pinnedMachinePoolNames returns the names of the MachinePool objects pinning their own version.
+func pinnedMachinePoolNames(s *scope.Scope) sets.Set[string] {
+	names := sets.Set[string]{}
+	for mpTopologyName, mp := range s.Current.MachinePools {
+		if mp.Object == nil {
+			continue
+		}
+		if pinning.MachinePoolVersionByTopologyName(s.Blueprint.Topology, mpTopologyName) != "" {
+			names.Insert(mp.Object.Name)
+		}
+	}
+	return names
 }
 
 // isMachineDeploymentDeferred returns true if the upgrade for the mdTopology is deferred.
@@ -1413,6 +1465,10 @@ func (g *generator) computeMachinePoolVersion(ctx context.Context, s *scope.Scop
 	log := ctrl.LoggerFrom(ctx)
 
 	topologyVersion := s.Blueprint.Topology.Version
+	// A machine pool pinning its own version manages its version independently of the cluster-level
+	// rollout, so the pinned version is always the desired version.
+	pinnedVersion := pinning.MachinePoolVersion(machinePoolTopology)
+
 	// If creating a new machine pool, mark it as pending if the control plane is not
 	// yet stable. Creating a new MP while the control plane is upgrading can lead to unexpected race conditions.
 	// Example: join could fail if the load balancers are slow in detecting when CP machines are
@@ -1421,7 +1477,18 @@ func (g *generator) computeMachinePoolVersion(ctx context.Context, s *scope.Scop
 		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) || s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
 			s.UpgradeTracker.MachinePools.MarkPendingCreate(machinePoolTopology.Name)
 		}
+		if pinnedVersion != "" {
+			return pinnedVersion, nil
+		}
 		return topologyVersion, nil
+	}
+
+	// Return early if the machine pool pins a version.
+	// Note: it is deliberately not tracked as pending or upgrading. Tracking it as pending upgrade
+	// would freeze its other changes, and tracking it as upgrading would block the control plane
+	// from advancing and consume the cluster-level upgrade concurrency.
+	if pinnedVersion != "" {
+		return pinnedVersion, nil
 	}
 
 	// Get the current version of the machine pool.

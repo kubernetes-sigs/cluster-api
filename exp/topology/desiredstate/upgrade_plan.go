@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/topology/pinning"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -71,8 +72,14 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 		return pkgerrors.Wrapf(err, "failed to parse ControlPlane version %s", *v)
 	}
 
+	// Note: MachineDeployments/MachinePools pinning their own version are excluded, because they are
+	// not upgraded by the cluster-level rollout. Including them would keep the workers upgrade plan
+	// at their version and block the control plane from advancing.
 	var minWorkersSemVer *semver.Version
-	for _, md := range s.Current.MachineDeployments {
+	for mdTopologyName, md := range s.Current.MachineDeployments {
+		if pinning.MachineDeploymentVersionByTopologyName(s.Blueprint.Topology, mdTopologyName) != "" {
+			continue
+		}
 		if md.Object.Spec.Template.Spec.Version != "" {
 			currentSemVer, err := semver.ParseTolerant(md.Object.Spec.Template.Spec.Version)
 			if err != nil {
@@ -84,7 +91,10 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 		}
 	}
 
-	for _, mp := range s.Current.MachinePools {
+	for mpTopologyName, mp := range s.Current.MachinePools {
+		if pinning.MachinePoolVersionByTopologyName(s.Blueprint.Topology, mpTopologyName) != "" {
+			continue
+		}
 		if mp.Object.Spec.Template.Spec.Version != "" {
 			currentSemVer, err := semver.ParseTolerant(mp.Object.Spec.Template.Spec.Version)
 			if err != nil {

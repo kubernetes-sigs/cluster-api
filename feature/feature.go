@@ -89,6 +89,13 @@ const (
 	//
 	// alpha: v1.12
 	MachineTaintPropagation featuregate.Feature = "MachineTaintPropagation"
+
+	// ClusterTopologyWorkerVersionPinning is a feature gate for pinning the Kubernetes version of
+	// individual MachineDeployments/MachinePools in a managed topology, so they can be upgraded
+	// independently of Cluster.spec.topology.version.
+	//
+	// alpha: v1.15
+	ClusterTopologyWorkerVersionPinning featuregate.Feature = "ClusterTopologyWorkerVersionPinning"
 )
 
 func init() {
@@ -109,4 +116,6 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},
 	InPlaceUpdates:                 {Default: false, PreRelease: featuregate.Alpha},
 	MachineTaintPropagation:        {Default: false, PreRelease: featuregate.Alpha},
+
+	ClusterTopologyWorkerVersionPinning: {Default: false, PreRelease: featuregate.Alpha},
 }

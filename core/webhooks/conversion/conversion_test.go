@@ -207,6 +207,16 @@ func hubClusterSpec(in *clusterv1.ClusterSpec, c randfill.Continue) {
 		in.ControlPlaneRef.APIGroup = gvk.Group
 		in.ControlPlaneRef.Kind = gvk.Kind
 	}
+
+	// Ensure unique MachineDeployment/MachinePool topology names. The API enforces uniqueness via
+	// listType=map, and conversion restores the hub-only version field by name, so duplicates would
+	// make the round trip lossy at random.
+	for i := range in.Topology.Workers.MachineDeployments {
+		in.Topology.Workers.MachineDeployments[i].Name = fmt.Sprintf("md-%d-%s", i, in.Topology.Workers.MachineDeployments[i].Name)
+	}
+	for i := range in.Topology.Workers.MachinePools {
+		in.Topology.Workers.MachinePools[i].Name = fmt.Sprintf("mp-%d-%s", i, in.Topology.Workers.MachinePools[i].Name)
+	}
 }
 
 func hubClusterStatus(in *clusterv1.ClusterStatus, c randfill.Continue) {

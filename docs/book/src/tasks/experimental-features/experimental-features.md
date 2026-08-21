@@ -11,11 +11,7 @@ Currently Cluster API has the following experimental features:
 * `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](./ignition.md)
 * `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)
 * `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](./machineset-preflight-checks.md)
-* `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`): [Taint propagation](../../reference/api/taint-propagation.md)
-* `MachineWaitForVolumeDetachConsiderVolumeAttachments` (env var: `EXP_MACHINE_WAITFORVOLUMEDETACH_CONSIDER_VOLUMEATTACHMENTS`):
-  * During Machine drain the Machine controller waits for volumes to be detached. Per default, the controller considers
-    `Nodes.status.volumesAttached` and `VolumesAttachments`. This feature flag allows to opt-out from considering `VolumeAttachments`.
-    The feature gate was added to allow to opt-out in case unforeseen issues occur with `VolumeAttachments`.
+* `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`): [Taint propagation](../../reference/api/taint-propagation.md)  
 * `PriorityQueue` (env var: `EXP_PRIORITY_QUEUE`): Enables the usage of the controller-runtime PriorityQueue: https://github.com/kubernetes-sigs/controller-runtime/issues/2374
 * `ReconcilerRateLimiting` (env var: `EXP_RECONCILER_RATE_LIMITING`): Enables reconciler rate-limiting: https://github.com/kubernetes-sigs/cluster-api/issues/13005
   * Note: starting from CAPI v1.12.4 `ReconcilerRateLimiting` also requires `PriorityQueue`

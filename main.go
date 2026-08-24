@@ -444,25 +444,25 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 	// Note: The kubebuilder RBAC markers above has to be kept in sync
 	// with the CRDs that should be migrated by this provider.
 	crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{
-		&addonsv1.ClusterResourceSetBinding{}: {UseCache: true},
-		&addonsv1.ClusterResourceSet{}:        {UseCache: true, UseStatusForStorageVersionMigration: true},
-		&clusterv1.Cluster{}:                  {UseCache: true, UseStatusForStorageVersionMigration: true},
-		&clusterv1.MachineDeployment{}:        {UseCache: true, UseStatusForStorageVersionMigration: true},
-		&clusterv1.MachineDrainRule{}:         {UseCache: true},
-		&clusterv1.MachineHealthCheck{}:       {UseCache: true, UseStatusForStorageVersionMigration: true},
-		&clusterv1.Machine{}:                  {UseCache: true, UseStatusForStorageVersionMigration: true},
-		&clusterv1.MachineSet{}:               {UseCache: true, UseStatusForStorageVersionMigration: true},
+		&addonsv1.ClusterResourceSetBinding{}: {UseCache: false},
+		&addonsv1.ClusterResourceSet{}:        {UseCache: false, UseStatusForStorageVersionMigration: true},
+		&clusterv1.Cluster{}:                  {UseCache: false, UseStatusForStorageVersionMigration: true},
+		&clusterv1.MachineDeployment{}:        {UseCache: false, UseStatusForStorageVersionMigration: true},
+		&clusterv1.MachineDrainRule{}:         {UseCache: false},
+		&clusterv1.MachineHealthCheck{}:       {UseCache: false, UseStatusForStorageVersionMigration: true},
+		&clusterv1.Machine{}:                  {UseCache: false, UseStatusForStorageVersionMigration: true},
+		&clusterv1.MachineSet{}:               {UseCache: false, UseStatusForStorageVersionMigration: true},
 		&ipamv1.IPAddress{}:                   {UseCache: false},
 		&ipamv1.IPAddressClaim{}:              {UseCache: false, UseStatusForStorageVersionMigration: true},
 	}
 	if feature.Gates.Enabled(feature.ClusterTopology) {
-		crdMigratorConfig[&clusterv1.ClusterClass{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
+		crdMigratorConfig[&clusterv1.ClusterClass{}] = crdmigrator.ByObjectConfig{UseCache: false, UseStatusForStorageVersionMigration: true}
 	}
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		crdMigratorConfig[&runtimev1.ExtensionConfig{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
+		crdMigratorConfig[&runtimev1.ExtensionConfig{}] = crdmigrator.ByObjectConfig{UseCache: false, UseStatusForStorageVersionMigration: true}
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
-		crdMigratorConfig[&clusterv1.MachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
+		crdMigratorConfig[&clusterv1.MachinePool{}] = crdmigrator.ByObjectConfig{UseCache: false, UseStatusForStorageVersionMigration: true}
 	}
 	crdMigratorSkipPhases := []crdmigrator.Phase{}
 	for _, p := range skipCRDMigrationPhases {

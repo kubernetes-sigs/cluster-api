@@ -153,6 +153,19 @@ const (
 	// the MachineSet.
 	MachineSetSkipPreflightChecksAnnotation = "machineset.cluster.x-k8s.io/skip-preflight-checks"
 
+	// MachinePoolSkipPreflightChecksAnnotation is the annotation used to provide a comma-separated list of
+	// preflight checks that should be skipped during the MachinePool reconciliation.
+	// Supported items are:
+	// - KubeadmVersionSkew (skips the kubeadm version skew preflight check)
+	// - KubernetesVersionSkew (skips the kubernetes version skew preflight check)
+	// - ControlPlaneIsStable (skips checking that the control plane is neither provisioning nor upgrading)
+	// - ControlPlaneVersionSkew (skips checking that the MachinePool version matches the control plane version)
+	// - All (skips all preflight checks)
+	// Example: "machinepool.cluster.x-k8s.io/skip-preflight-checks": "ControlPlaneIsStable,KubernetesVersionSkew".
+	// Note: The annotation can also be set on the MachinePool's BootstrapConfigTemplate, but the annotation on the
+	// MachinePool takes precedence over the one on the BootstrapConfigTemplate.
+	MachinePoolSkipPreflightChecksAnnotation = "machinepool.cluster.x-k8s.io/skip-preflight-checks"
+
 	// ClusterSecretType defines the type of secret created by core components.
 	// Note: This is used by core CAPI, CAPBK, and KCP to determine whether a secret is created by the controllers
 	// themselves or supplied by the user (e.g. bring your own certificates).
@@ -257,6 +270,43 @@ const (
 	// The preflight check is only run if the Cluster has a managed topology, a ControlPlane is used (controlPlaneRef
 	// must exist in the Cluster), the ControlPlane has a version and the MachineSet has a version.
 	MachineSetPreflightCheckControlPlaneVersionSkew MachineSetPreflightCheck = "ControlPlaneVersionSkew"
+)
+
+// MachinePoolPreflightCheck defines a valid MachinePool preflight check.
+type MachinePoolPreflightCheck string
+
+const (
+	// MachinePoolPreflightCheckAll can be used to represent all the MachinePool preflight checks.
+	MachinePoolPreflightCheckAll MachinePoolPreflightCheck = "All"
+
+	// MachinePoolPreflightCheckKubeadmVersionSkew is the name of the preflight check that verifies if the MachinePool
+	// conforms to the kubeadm version skew policy that requires the kubelet to be at the same minor version as the
+	// control plane.
+	// The preflight check is only run if a ControlPlane is used (controlPlaneRef must exist in the Cluster), the
+	// ControlPlane has a version, the MachinePool has a version and the MachinePool uses the Kubeadm bootstrap provider.
+	MachinePoolPreflightCheckKubeadmVersionSkew MachinePoolPreflightCheck = "KubeadmVersionSkew"
+
+	// MachinePoolPreflightCheckKubernetesVersionSkew is the name of the preflight check that verifies if the MachinePool
+	// conforms to the Kubernetes version skew policy that requires the kubelet to be at a version that is not more than 3
+	// minor versions lower than the ControlPlane version.
+	// The preflight check is only run if a ControlPlane is used (controlPlaneRef must exist in the Cluster), the
+	// ControlPlane has a version and the MachinePool has a version.
+	MachinePoolPreflightCheckKubernetesVersionSkew MachinePoolPreflightCheck = "KubernetesVersionSkew"
+
+	// MachinePoolPreflightCheckControlPlaneIsStable is the name of the preflight check that verifies if the control plane
+	// is not provisioning and not upgrading. For Clusters with a managed topology it also checks if a control plane
+	// upgrade is pending.
+	// The preflight check is only run if a ControlPlane is used (controlPlaneRef must exist in the Cluster) and the
+	// ControlPlane has a version.
+	MachinePoolPreflightCheckControlPlaneIsStable MachinePoolPreflightCheck = "ControlPlaneIsStable"
+
+	// MachinePoolPreflightCheckControlPlaneVersionSkew is the name of the preflight check that verifies if the
+	// MachinePool has exactly the same version as the control plane. The idea behind this check is that it doesn't make
+	// sense to keep a MachinePool at an old version, if we already know based on the control plane version that the
+	// MachinePool has to be upgraded soon.
+	// The preflight check is only run if the Cluster has a managed topology, a ControlPlane is used (controlPlaneRef must
+	// exist in the Cluster), the ControlPlane has a version and the MachinePool has a version.
+	MachinePoolPreflightCheckControlPlaneVersionSkew MachinePoolPreflightCheck = "ControlPlaneVersionSkew"
 )
 
 // NodeOutdatedRevisionTaint can be added to Nodes at rolling updates in general triggered by updating MachineDeployment

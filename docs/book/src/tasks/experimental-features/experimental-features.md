@@ -10,6 +10,7 @@ Currently Cluster API has the following experimental features:
   * See the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md) for more details.
 * `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](./ignition.md)
 * `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)
+* `MachinePoolPreflightChecks` (env var: `EXP_MACHINE_POOL_PREFLIGHT_CHECKS`): [MachinePoolPreflightChecks](./machinepool-preflight-checks.md)
 * `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](./machineset-preflight-checks.md)
 * `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`): [Taint propagation](../../reference/api/taint-propagation.md)
 * `MachineWaitForVolumeDetachConsiderVolumeAttachments` (env var: `EXP_MACHINE_WAITFORVOLUMEDETACH_CONSIDER_VOLUMEATTACHMENTS`):

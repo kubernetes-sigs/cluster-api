@@ -95,6 +95,11 @@ const (
 	//
 	// alpha: v1.12
 	MachineTaintPropagation featuregate.Feature = "MachineTaintPropagation"
+
+	// MachinePoolPreflightChecks is a feature gate for the MachinePool preflight checks functionality.
+	//
+	// alpha: v1.14
+	MachinePoolPreflightChecks featuregate.Feature = "MachinePoolPreflightChecks"
 )
 
 func init() {
@@ -115,4 +120,5 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},
 	InPlaceUpdates:                 {Default: false, PreRelease: featuregate.Alpha},
 	MachineTaintPropagation:        {Default: false, PreRelease: featuregate.Alpha},
+	MachinePoolPreflightChecks:     {Default: false, PreRelease: featuregate.Alpha},
 }

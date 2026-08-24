@@ -27,15 +27,16 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -46,10 +47,11 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/external"
-	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
+	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/contract"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -797,6 +799,7 @@ func TestMachineOwnerReference(t *testing.T) {
 			mr := &Reconciler{
 				Client:       c,
 				APIReader:    c,
+				DynamicCache: dynamiccache.NewFakeDynamicCache(c, setup.DynamicCacheOptions()),
 				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
 			}
 
@@ -972,12 +975,7 @@ func TestReconcileRequest(t *testing.T) {
 				Client:       clientFake,
 				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				recorder:     record.NewFakeRecorder(10),
-				externalTracker: external.ObjectTracker{
-					Controller:      externalfake.Controller{},
-					Cache:           &informertest.FakeInformers{},
-					Scheme:          clientFake.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
-				},
+				DynamicCache: dynamiccache.NewFakeDynamicCache(clientFake, setup.DynamicCacheOptions()),
 			}
 
 			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
@@ -993,6 +991,8 @@ func TestReconcileRequest(t *testing.T) {
 }
 
 func TestMachineV1Beta1Conditions(t *testing.T) {
+	g := NewWithT(t)
+
 	infraConfig := func(provisioned bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -1151,16 +1151,22 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, infra *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionToExternal(infra, metav1.Condition{
-					Type:   contract.InfrastructureMachine().ReadyConditionType(),
+					Type:   "Ready",
 					Status: metav1.ConditionFalse,
 					Reason: "Custom reason",
+				})
+				addV1Beta1ConditionToExternal(infra, clusterv1.Condition{
+					Type:     "Ready",
+					Status:   corev1.ConditionFalse,
+					Severity: clusterv1.ConditionSeverityWarning,
+					Reason:   "Custom reason",
 				})
 			},
 			conditionsToAssert: []metav1.Condition{
 				{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionFalse, Reason: "Custom reason", Message: ""},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, "Custom reason", "", ""),
+				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, "Custom reason", clusterv1.ConditionSeverityWarning, ""),
 			},
 		},
 		{
@@ -1182,16 +1188,22 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			bootstrapDataSecretCreated: false,
 			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionToExternal(bootstrap, metav1.Condition{
-					Type:   contract.Bootstrap().ReadyConditionType(),
+					Type:   "Ready",
 					Status: metav1.ConditionFalse,
 					Reason: "Custom reason",
+				})
+				addV1Beta1ConditionToExternal(bootstrap, clusterv1.Condition{
+					Type:     "Ready",
+					Status:   corev1.ConditionFalse,
+					Severity: clusterv1.ConditionSeverityWarning,
+					Reason:   "Custom reason",
 				})
 			},
 			conditionsToAssert: []metav1.Condition{
 				{Type: clusterv1.MachineBootstrapConfigReadyCondition, Status: metav1.ConditionFalse, Reason: "Custom reason", Message: ""},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, "Custom reason", "", ""),
+				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, "Custom reason", clusterv1.ConditionSeverityWarning, ""),
 			},
 		},
 		{
@@ -1283,6 +1295,13 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 		},
 	}
 
+	scheme := runtime.NewScheme()
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind), &contractv1.BootstrapConfig{})
+	scheme.AddKnownTypeWithName(builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind), &contractv1.InfraMachine{})
+
 	for _, tt := range testcases {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -1302,21 +1321,16 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			}
 			objs = append(objs, tt.additionalObjects...)
 
-			clientFake := fake.NewClientBuilder().WithObjects(objs...).
+			clientFake := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).
 				WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
 				WithStatusSubresource(&clusterv1.Machine{}).
 				Build()
 
 			r := &Reconciler{
-				Client:       clientFake,
-				recorder:     record.NewFakeRecorder(10),
-				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				externalTracker: external.ObjectTracker{
-					Controller:      externalfake.Controller{},
-					Cache:           &informertest.FakeInformers{},
-					Scheme:          clientFake.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
-				},
+				Client:                      clientFake,
+				recorder:                    record.NewFakeRecorder(10),
+				ClusterCache:                clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				DynamicCache:                dynamiccache.NewFakeDynamicCache(clientFake, setup.DynamicCacheOptions()),
 				controller:                  &fakeController{},
 				predicateLog:                ptr.To(logr.New(log.NullLogSink{})),
 				RemoteConditionsGracePeriod: 50 * time.Second,
@@ -1399,10 +1413,15 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
-	c := fake.NewClientBuilder().WithObjects(testCluster, m, builder.GenericInfrastructureMachineCRD.DeepCopy()).WithStatusSubresource(&clusterv1.Machine{}).Build()
+	scheme := runtime.NewScheme()
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	scheme.AddKnownTypeWithName(builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind), &contractv1.InfraMachine{})
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(testCluster, m, builder.GenericInfrastructureMachineCRD.DeepCopy()).WithStatusSubresource(&clusterv1.Machine{}).Build()
 	mr := &Reconciler{
 		Client:       c,
 		ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
+		DynamicCache: dynamiccache.NewFakeDynamicCache(c, setup.DynamicCacheOptions()),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1420,7 +1439,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 	tests := []struct {
 		name         string
 		machine      *clusterv1.Machine
-		infraMachine *unstructured.Unstructured
+		infraMachine contractapi.InfraMachine
 		expected     bool
 	}{
 		{
@@ -1439,7 +1458,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     false,
 		},
 		{
@@ -1457,7 +1476,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     true,
 		},
 		{
@@ -1492,8 +1511,12 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			infraMachine: toUnstructured(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}}),
-			expected:     false,
+			infraMachine: &contractv1.InfraMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+			},
+			expected: false,
 		},
 		{
 			name: "Machine in the pre-terminate hook phase should not drain",
@@ -1514,7 +1537,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     false,
 		},
 		{
@@ -1540,7 +1563,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     false,
 		},
 		{
@@ -1565,7 +1588,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     true,
 		},
 		{
@@ -1587,7 +1610,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     true,
 		},
 	}
@@ -2029,7 +2052,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 	tests := []struct {
 		name         string
 		machine      *clusterv1.Machine
-		infraMachine *unstructured.Unstructured
+		infraMachine contractapi.InfraMachine
 		expected     bool
 	}{
 		{
@@ -2048,7 +2071,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     false,
 		},
 		{
@@ -2066,7 +2089,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     true,
 		},
 		{
@@ -2088,7 +2111,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     false,
 		},
 		{
@@ -2123,8 +2146,12 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			infraMachine: toUnstructured(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}}),
-			expected:     false,
+			infraMachine: &contractv1.InfraMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+			},
+			expected: false,
 		},
 		{
 			name: "Volume detach timeout is over",
@@ -2149,7 +2176,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     false,
 		},
 		{
@@ -2174,7 +2201,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     true,
 		},
 		{
@@ -2196,7 +2223,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine: &unstructured.Unstructured{},
+			infraMachine: &contractv1.InfraMachine{},
 			expected:     true,
 		},
 	}
@@ -2717,7 +2744,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		name          string
 		cluster       *clusterv1.Cluster
 		machine       *clusterv1.Machine
-		infraMachine  *unstructured.Unstructured
+		infraMachine  contractapi.InfraMachine
 		expectedError error
 	}{
 		{
@@ -2994,11 +3021,11 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
-					"providerID": "test-node-1",
+			infraMachine: &contractv1.InfraMachine{
+				Spec: contractv1.InfraMachineSpec{
+					ProviderID: "test-node-1",
 				},
-			}},
+			},
 			expectedError: nil,
 		},
 	}
@@ -3732,7 +3759,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 	}
 }
 
-// adds a condition list to an external object.
+// addConditionToExternal adds a condition list to an external object.
 func addConditionToExternal(u *unstructured.Unstructured, c metav1.Condition) {
 	err := unstructured.SetNestedSlice(u.Object, []interface{}{
 		map[string]interface{}{
@@ -3742,6 +3769,22 @@ func addConditionToExternal(u *unstructured.Unstructured, c metav1.Condition) {
 			"message": c.Message,
 		},
 	}, "status", "conditions")
+	if err != nil {
+		panic(err)
+	}
+}
+
+// addV1Beta1ConditionToExternal adds a condition list to an external object.
+func addV1Beta1ConditionToExternal(u *unstructured.Unstructured, c clusterv1.Condition) {
+	err := unstructured.SetNestedSlice(u.Object, []interface{}{
+		map[string]interface{}{
+			"type":     string(c.Type),
+			"status":   string(c.Status),
+			"severity": string(c.Severity),
+			"reason":   c.Reason,
+			"message":  c.Message,
+		},
+	}, "status", "deprecated", "v1beta1", "conditions")
 	if err != nil {
 		panic(err)
 	}
@@ -3801,13 +3844,4 @@ func podByNodeName(o client.Object) []string {
 	}
 
 	return []string{pod.Spec.NodeName}
-}
-
-func toUnstructured(obj client.Object) *unstructured.Unstructured {
-	unstructuredObj := &unstructured.Unstructured{}
-	unstructuredObj.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
-	unstructuredObj.SetName(obj.GetName())
-	unstructuredObj.SetNamespace(obj.GetNamespace())
-	unstructuredObj.SetDeletionTimestamp(obj.GetDeletionTimestamp())
-	return unstructuredObj
 }

@@ -23,9 +23,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
+	toolscache "k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,13 +36,14 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 // ManagerCacheOptions provides cache.Options for the manager.
-func ManagerCacheOptions(scheme *runtime.Scheme, controllerName string, watchNamespace string, syncPeriod time.Duration) cache.Options {
+func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace string, syncPeriod time.Duration) cache.Options {
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
 		watchNamespaces = map[string]cache.Config{
@@ -53,6 +56,11 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName string, watchNam
 
 	req, _ = labels.NewRequirement(clusterv1.MachineControlPlaneLabel, selection.Exists, nil)
 	controlPlaneMachineSelector := labels.NewSelector().Add(*req)
+
+	informerName, err := toolscache.NewInformerName(controllerName)
+	if err != nil {
+		panic("cache.NewInformerName was called twice with the same name, that should never happen")
+	}
 
 	return cache.Options{
 		DefaultNamespaces: watchNamespaces,
@@ -92,7 +100,7 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName string, watchNam
 				Label: controlPlaneMachineSelector,
 			},
 		},
-		NewInformer: capicontrollerutil.NewInformerFunc(scheme, controllerName),
+		NewInformer: capicontrollerutil.NewInformerFunc(scheme, informerName),
 	}
 }
 
@@ -192,4 +200,42 @@ func CreateSecretCachingClient(mgr ctrl.Manager) (client.Client, error) {
 			Reader: mgr.GetCache(),
 		},
 	})
+}
+
+// Object types used to configure the DynamicCache below.
+const (
+	DynamicCacheInfraMachineObjectType         dynamiccache.ObjectType = "InfraMachine"
+	DynamicCacheInfraMachineTemplateObjectType dynamiccache.ObjectType = "InfraMachineTemplate"
+)
+
+// NewDynamicCache creates a new DynamicCache for the KubeadmControlPlane controller.
+func NewDynamicCache(mgr ctrl.Manager, controllerName, watchNamespace string) (dynamiccache.DynamicCache, error) {
+	return dynamiccache.New(mgr, DynamicCacheOptions(), controllerName, watchNamespace)
+}
+
+// DynamicCacheOptions returns the DynamicCache options used by the KubeadmControlPlane controller.
+func DynamicCacheOptions() map[dynamiccache.ObjectType]dynamiccache.ByObjectTypeOptions {
+	req, _ := labels.NewRequirement(clusterv1.MachineControlPlaneLabel, selection.Exists, nil)
+	controlPlaneMachineSelector := labels.NewSelector().Add(*req)
+
+	return map[dynamiccache.ObjectType]dynamiccache.ByObjectTypeOptions{
+		DynamicCacheInfraMachineObjectType: {
+			IsUnstructured: new(true),
+			// Only cache CP Machine InfraMachines.
+			Label: controlPlaneMachineSelector,
+		},
+		DynamicCacheInfraMachineTemplateObjectType: {
+			IsUnstructured: new(true),
+			Transform: func(in any) (any, error) {
+				if imt, ok := in.(*unstructured.Unstructured); ok {
+					imt.SetManagedFields(nil)
+					if _, ok := imt.GetLabels()[clusterv1.ClusterTopologyMachineDeploymentNameLabel]; ok {
+						delete(imt.Object, "spec")
+						delete(imt.Object, "status")
+					}
+				}
+				return in, nil
+			},
+		},
+	}
 }

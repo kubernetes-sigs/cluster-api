@@ -44,6 +44,9 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
+	"sigs.k8s.io/cluster-api/core/setup"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -751,6 +754,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			},
 		},
 	}
+	bootstrapConfigGVK := bootstrapConfig.GroupVersionKind()
 
 	infraConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -827,6 +831,12 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 		},
 	}
 
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+	scheme.AddKnownTypeWithName(bootstrapConfigGVK, &contractv1.BootstrapConfig{})
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -840,8 +850,10 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 				objs = append(objs, infraConfig)
 			}
 
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:       fakeClient,
+				DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 			}
 
 			ok, err := r.reconcileDeleteExternal(ctx, machinePool)
@@ -913,6 +925,7 @@ func TestMachinePoolConditions(t *testing.T) {
 	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(clientgoscheme.AddToScheme(scheme)).To(Succeed())
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind), &contractv1.BootstrapConfig{})
 
 	testCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
@@ -1067,6 +1080,12 @@ func TestMachinePoolConditions(t *testing.T) {
 						Reason:   "Custom reason",
 					},
 				})
+				addV1Beta1ConditionToExternal(bootstrap, clusterv1.Condition{
+					Type:     clusterv1.ReadyV1Beta1Condition,
+					Status:   corev1.ConditionFalse,
+					Severity: clusterv1.ConditionSeverityInfo,
+					Reason:   "Custom reason",
+				})
 			},
 			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
 				t.Helper()
@@ -1187,6 +1206,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				Client:       clientFake,
 				APIReader:    clientFake,
 				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				DynamicCache: dynamiccache.NewFakeDynamicCache(clientFake, setup.DynamicCacheOptions()),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
@@ -1209,7 +1229,7 @@ func TestMachinePoolConditions(t *testing.T) {
 	}
 }
 
-// adds a condition list to an external object.
+// addConditionsToExternal adds a condition list to an external object.
 func addConditionsToExternal(u *unstructured.Unstructured, newConditions clusterv1.Conditions) {
 	existingConditions := clusterv1.Conditions{}
 	if cs := v1beta1conditions.UnstructuredGetter(u).GetV1Beta1Conditions(); len(cs) != 0 {
@@ -1217,4 +1237,20 @@ func addConditionsToExternal(u *unstructured.Unstructured, newConditions cluster
 	}
 	existingConditions = append(existingConditions, newConditions...)
 	v1beta1conditions.UnstructuredSetter(u).SetV1Beta1Conditions(existingConditions)
+}
+
+// addV1Beta1ConditionToExternal adds a condition list to an external object.
+func addV1Beta1ConditionToExternal(u *unstructured.Unstructured, c clusterv1.Condition) {
+	err := unstructured.SetNestedSlice(u.Object, []interface{}{
+		map[string]interface{}{
+			"type":     string(c.Type),
+			"status":   string(c.Status),
+			"severity": string(c.Severity),
+			"reason":   c.Reason,
+			"message":  c.Message,
+		},
+	}, "status", "deprecated", "v1beta1", "conditions")
+	if err != nil {
+		panic(err)
+	}
 }

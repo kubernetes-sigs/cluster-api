@@ -23,7 +23,6 @@ import (
 
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,8 +33,9 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -252,7 +252,7 @@ func ComputeDesiredKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluste
 }
 
 // ComputeDesiredInfraMachine computes the desired InfraMachine.
-func ComputeDesiredInfraMachine(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, name string, existingInfraMachine *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func ComputeDesiredInfraMachine(ctx context.Context, dynamicCache dynamiccache.DynamicCache, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, name string, existingInfraMachine *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// Create an owner reference without a controller reference because the owning controller is the machine controller
 	var ownerReference *metav1.OwnerReference
 	if existingInfraMachine == nil || !util.HasOwner(existingInfraMachine.GetOwnerReferences(), clusterv1.GroupVersion.String(), []string{"Machine"}) {
@@ -264,30 +264,21 @@ func ComputeDesiredInfraMachine(ctx context.Context, c client.Client, kcp *contr
 		}
 	}
 
-	apiVersion, err := contract.GetAPIVersion(ctx, c, kcp.Spec.MachineTemplate.Spec.InfrastructureRef.GroupKind())
-	if err != nil {
-		return nil, pkgerrors.Wrap(err, "failed to compute desired InfraMachine")
-	}
-	templateRef := &corev1.ObjectReference{
-		APIVersion: apiVersion,
-		Kind:       kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Kind,
-		Namespace:  kcp.Namespace,
-		Name:       kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name,
-	}
-
-	template, err := external.Get(ctx, c, templateRef)
+	key := client.ObjectKey{Namespace: kcp.Namespace, Name: kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name}
+	template, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, kcp.Spec.MachineTemplate.Spec.InfrastructureRef.GroupKind(), key)
 	if err != nil {
 		return nil, pkgerrors.Wrap(err, "failed to compute desired InfraMachine")
 	}
 	generateTemplateInput := &external.GenerateTemplateInput{
-		Template:    template,
-		TemplateRef: templateRef,
-		Namespace:   kcp.Namespace,
-		Name:        name,
-		ClusterName: cluster.Name,
-		OwnerRef:    ownerReference,
-		Labels:      ControlPlaneMachineLabels(kcp, cluster.Name),
-		Annotations: ControlPlaneMachineAnnotations(kcp),
+		Template:          template,
+		TemplateGroupKind: kcp.Spec.MachineTemplate.Spec.InfrastructureRef.GroupKind(),
+		TemplateName:      kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name,
+		Namespace:         kcp.Namespace,
+		Name:              name,
+		ClusterName:       cluster.Name,
+		OwnerRef:          ownerReference,
+		Labels:            ControlPlaneMachineLabels(kcp, cluster.Name),
+		Annotations:       ControlPlaneMachineAnnotations(kcp),
 	}
 	infraMachine, err := external.GenerateTemplate(generateTemplateInput)
 	if err != nil {

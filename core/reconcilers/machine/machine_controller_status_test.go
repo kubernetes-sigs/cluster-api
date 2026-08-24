@@ -35,6 +35,9 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/feature"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	contractv1beta1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta1"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -63,7 +66,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 	testCases := []struct {
 		name                      string
 		machine                   *clusterv1.Machine
-		bootstrapConfig           *unstructured.Unstructured
+		bootstrapConfig           contractapi.BootstrapConfig
 		bootstrapConfigIsNotFound bool
 		expectCondition           metav1.Condition
 	}{
@@ -75,15 +78,13 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 				m.Spec.Bootstrap.DataSecretName = ptr.To("foo")
 				return m
 			}(),
-			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
+			bootstrapConfig: &contractv1.BootstrapConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-config1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{},
-			}},
+				Status: contractv1.BootstrapConfigStatus{},
+			},
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineBootstrapConfigReadyCondition,
@@ -94,24 +95,22 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 		{
 			name:    "mirror Ready condition from bootstrap config (true)",
 			machine: defaultMachine.DeepCopy(),
-			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
+			bootstrapConfig: &contractv1.BootstrapConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-config1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"conditions": []interface{}{
-						map[string]interface{}{
-							"type":   "Ready",
-							"status": "True",
+				Status: contractv1.BootstrapConfigStatus{
+					Conditions: contractapi.Conditions{
+						{
+							Type:   "Ready",
+							Status: "True",
 							// reason not set for v1beta1 conditions
-							"message": "some message",
+							Message: "some message",
 						},
 					},
 				},
-			}},
+			},
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyCondition,
@@ -123,24 +122,22 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 		{
 			name:    "mirror Ready condition from bootstrap config",
 			machine: defaultMachine.DeepCopy(),
-			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
+			bootstrapConfig: &contractv1.BootstrapConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-config1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"conditions": []interface{}{
-						map[string]interface{}{
-							"type":    "Ready",
-							"status":  "False",
-							"reason":  "SomeReason",
-							"message": "some message",
+				Status: contractv1.BootstrapConfigStatus{
+					Conditions: contractapi.Conditions{
+						{
+							Type:    "Ready",
+							Status:  "False",
+							Reason:  "SomeReason",
+							Message: "some message",
 						},
 					},
 				},
-			}},
+			},
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyCondition,
@@ -152,15 +149,13 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 		{
 			name:    "Use status.BoostrapReady flag as a fallback Ready condition from bootstrap config is missing",
 			machine: defaultMachine.DeepCopy(),
-			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
+			bootstrapConfig: &contractv1.BootstrapConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-config1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{},
-			}},
+				Status: contractv1.BootstrapConfigStatus{},
+			},
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyCondition,
@@ -176,17 +171,15 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 				m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 				return m
 			}(),
-			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
+			bootstrapConfig: &contractv1beta1.BootstrapConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-config1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"ready": true,
+				Status: contractv1beta1.BootstrapConfigStatus{
+					Ready: true,
 				},
-			}},
+			},
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineBootstrapConfigReadyCondition,
@@ -197,27 +190,25 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 		{
 			name:    "invalid Ready condition from bootstrap config",
 			machine: defaultMachine.DeepCopy(),
-			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
+			bootstrapConfig: &contractv1.BootstrapConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-config1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"conditions": []interface{}{
-						map[string]interface{}{
-							"type": "Ready",
+				Status: contractv1.BootstrapConfigStatus{
+					Conditions: contractapi.Conditions{
+						{
+							Type: "Ready",
 						},
 					},
 				},
-			}},
+			},
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.MachineBootstrapConfigInvalidConditionReportedReason,
-				Message: "failed to convert status.conditions from GenericBootstrapConfig to []metav1.Condition: status must be set for the Ready condition",
+				Message: "status for the Ready condition must be one of True, False, Unknown",
 			},
 		},
 		{
@@ -310,31 +301,29 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 	testCases := []struct {
 		name                   string
 		machine                *clusterv1.Machine
-		infraMachine           *unstructured.Unstructured
+		infraMachine           contractapi.InfraMachine
 		infraMachineIsNotFound bool
 		expectCondition        metav1.Condition
 	}{
 		{
 			name:    "mirror Ready condition from infra machine (true)",
 			machine: defaultMachine.DeepCopy(),
-			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
-					"name":      "infra-machine1",
-					"namespace": metav1.NamespaceDefault,
+			infraMachine: &contractv1.InfraMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "infra-machine1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"conditions": []interface{}{
-						map[string]interface{}{
-							"type":   "Ready",
-							"status": "True",
+				Status: contractv1.InfraMachineStatus{
+					Conditions: contractapi.Conditions{
+						{
+							Type:   "Ready",
+							Status: "True",
 							// reason not set for v1beta1 conditions
-							"message": "some message",
+							Message: "some message",
 						},
 					},
 				},
-			}},
+			},
 			infraMachineIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyCondition,
@@ -346,24 +335,22 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		{
 			name:    "mirror Ready condition from infra machine",
 			machine: defaultMachine.DeepCopy(),
-			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
-					"name":      "infra-machine1",
-					"namespace": metav1.NamespaceDefault,
+			infraMachine: &contractv1.InfraMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "infra-machine1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"conditions": []interface{}{
-						map[string]interface{}{
-							"type":    "Ready",
-							"status":  "False",
-							"reason":  "SomeReason",
-							"message": "some message",
+				Status: contractv1.InfraMachineStatus{
+					Conditions: contractapi.Conditions{
+						{
+							Type:    "Ready",
+							Status:  "False",
+							Reason:  "SomeReason",
+							Message: "some message",
 						},
 					},
 				},
-			}},
+			},
 			infraMachineIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyCondition,
@@ -375,15 +362,13 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		{
 			name:    "Use status.InfrastructureReady flag as a fallback Ready condition from infra machine is missing",
 			machine: defaultMachine.DeepCopy(),
-			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
-					"name":      "infra-machine1",
-					"namespace": metav1.NamespaceDefault,
+			infraMachine: &contractv1.InfraMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "infra-machine1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{},
-			}},
+				Status: contractv1.InfraMachineStatus{},
+			},
 			infraMachineIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyCondition,
@@ -399,17 +384,15 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 				m.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				return m
 			}(),
-			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
-					"name":      "infra-machine1",
-					"namespace": metav1.NamespaceDefault,
+			infraMachine: &contractv1beta1.InfraMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "infra-machine1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"ready": true,
+				Status: contractv1beta1.InfraMachineStatus{
+					Ready: true,
 				},
-			}},
+			},
 			infraMachineIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineInfrastructureReadyCondition,
@@ -420,27 +403,25 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		{
 			name:    "invalid Ready condition from infra machine",
 			machine: defaultMachine.DeepCopy(),
-			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
-					"name":      "infra-machine1",
-					"namespace": metav1.NamespaceDefault,
+			infraMachine: &contractv1.InfraMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "infra-machine1",
+					Namespace: metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"conditions": []interface{}{
-						map[string]interface{}{
-							"type": "Ready",
+				Status: contractv1.InfraMachineStatus{
+					Conditions: contractapi.Conditions{
+						{
+							Type: "Ready",
 						},
 					},
 				},
-			}},
+			},
 			infraMachineIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.MachineInfrastructureInvalidConditionReportedReason,
-				Message: "failed to convert status.conditions from GenericInfrastructureMachine to []metav1.Condition: status must be set for the Ready condition",
+				Message: "status for the Ready condition must be one of True, False, Unknown",
 			},
 		},
 		{

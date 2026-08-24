@@ -26,24 +26,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 )
 
 var (
-	env                 *envtest.Environment
-	ctx                 = ctrl.SetupSignalHandler()
-	secretCachingClient client.Client
+	env          *envtest.Environment
+	ctx          = ctrl.SetupSignalHandler()
+	dynamicCache dynamiccache.DynamicCache
 )
 
 func TestMain(m *testing.M) {
 	setupReconcilers := func(_ context.Context, mgr ctrl.Manager) {
 		var err error
-		secretCachingClient, err = setup.CreateSecretCachingClient(mgr)
+		dynamicCache, err = setup.NewDynamicCache(mgr, "test-controller-manager", "")
 		if err != nil {
-			panic(fmt.Sprintf("unable to create secretCachingClient: %v", err))
+			panic(fmt.Sprintf("Unable to create DynamicCache: %v", err))
 		}
 	}
 

@@ -442,11 +442,11 @@ func alignRefAPIVersion(ctx context.Context, c client.Reader, templateFromCluste
 	}
 
 	if apiVersion == "" {
-		var err error
-		apiVersion, err = contract.GetAPIVersion(ctx, c, currentRef.GroupKind())
+		_, currentRefGVK, err := contract.GetGVKFromGK(ctx, c, currentRef.GroupKind())
 		if err != nil {
 			return nil, pkgerrors.Wrapf(err, "failed to align ref apiVersion")
 		}
+		apiVersion = currentRefGVK.GroupVersion().String()
 	}
 
 	return &corev1.ObjectReference{

@@ -78,6 +78,11 @@ func TestMain(m *testing.M) {
 		clusterCache.(interface{ SetConnectionCreationRetryInterval(time.Duration) }).
 			SetConnectionCreationRetryInterval(2 * time.Second)
 
+		dynamicCache, err := setup.NewDynamicCache(mgr, "test-controller-manager", "")
+		if err != nil {
+			panic(fmt.Sprintf("Unable to create DynamicCache: %v", err))
+		}
+
 		if err := (&Reconciler{
 			Client:       mgr.GetClient(),
 			ClusterCache: clusterCache,
@@ -90,6 +95,7 @@ func TestMain(m *testing.M) {
 			Client:                      mgr.GetClient(),
 			APIReader:                   mgr.GetAPIReader(),
 			ClusterCache:                clusterCache,
+			DynamicCache:                dynamicCache,
 			RemoteConditionsGracePeriod: 5 * time.Minute,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
@@ -98,6 +104,7 @@ func TestMain(m *testing.M) {
 			Client:       mgr.GetClient(),
 			APIReader:    mgr.GetAPIReader(),
 			ClusterCache: clusterCache,
+			DynamicCache: dynamicCache,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
 		}

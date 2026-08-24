@@ -34,8 +34,8 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 

@@ -48,11 +48,6 @@ func (m *InfrastructureMachineContract) Provisioned(contractVersion string) *Boo
 	}
 }
 
-// ReadyConditionType returns the type of the ready condition.
-func (m *InfrastructureMachineContract) ReadyConditionType() string {
-	return "Ready"
-}
-
 // ProviderID provides access to the spec.providerID field in an InfrastructureMachine object.
 func (m *InfrastructureMachineContract) ProviderID() *String {
 	return &String{

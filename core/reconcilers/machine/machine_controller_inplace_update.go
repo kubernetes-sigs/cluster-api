@@ -166,14 +166,14 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 
 	// Note: We are not caching the full InfraMachine object, only the contract InfraMachine in the dynamicCache.
 	// During in-place update we need the full object so we get it here and cache it temporarily.
-	infraMachineCacheEntry, ok := r.contractObjectsCache.Has(contractObjectsCacheKey(s.infraMachineGVK, s.infraMachine))
+	infraMachineCacheEntry, ok := r.externalObjectsCache.Has(externalObjectsCacheKey(s.infraMachineGVK, s.infraMachine))
 	if !ok || s.infraMachine.GetResourceVersion() != infraMachineCacheEntry.obj.GetResourceVersion() {
 		infraMachineCacheEntry.obj, err = external.GetObjectFromContractVersionedRef(ctx, r.APIReader, s.machine.Spec.InfrastructureRef, s.machine.Namespace)
 		if err != nil {
 			return ctrl.Result{}, "", err
 		}
 	}
-	r.contractObjectsCache.Add(infraMachineCacheEntry) // Add to cache or extend expiry of cache entry on cache hit.
+	r.externalObjectsCache.Add(infraMachineCacheEntry) // Add to cache or extend expiry of cache entry on cache hit.
 
 	// Note: When building request message, dropping status; Runtime extension should treat UpdateMachine
 	// requests as desired state; it is up to them to compare with current state and perform necessary actions.
@@ -184,18 +184,18 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 		},
 	}
 
-	var bootstrapConfigCacheEntry contractObjectsCacheEntry
+	var bootstrapConfigCacheEntry externalObjectsCacheEntry
 	if s.bootstrapConfig != nil {
 		// Note: We are not caching the full BootstrapConfig object, only the contract BootstrapConfig in the dynamicCache.
 		// During in-place update we need the full object so we get it here and cache it temporarily.
-		bootstrapConfigCacheEntry, ok = r.contractObjectsCache.Has(contractObjectsCacheKey(s.bootstrapConfigGVK, s.bootstrapConfig))
+		bootstrapConfigCacheEntry, ok = r.externalObjectsCache.Has(externalObjectsCacheKey(s.bootstrapConfigGVK, s.bootstrapConfig))
 		if !ok || s.bootstrapConfig.GetResourceVersion() != bootstrapConfigCacheEntry.obj.GetResourceVersion() {
 			bootstrapConfigCacheEntry.obj, err = external.GetObjectFromContractVersionedRef(ctx, r.APIReader, s.machine.Spec.Bootstrap.ConfigRef, s.machine.Namespace)
 			if err != nil {
 				return ctrl.Result{}, "", err
 			}
 		}
-		r.contractObjectsCache.Add(bootstrapConfigCacheEntry) // Add to cache or extend expiry of cache entry on cache hit.
+		r.externalObjectsCache.Add(bootstrapConfigCacheEntry) // Add to cache or extend expiry of cache entry on cache hit.
 
 		request.Desired.BootstrapConfig = runtime.RawExtension{Object: cleanupUnstructured(bootstrapConfigCacheEntry.obj)}
 	}
@@ -214,9 +214,9 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 	}
 
 	// Cleanup cache proactively instead of waiting for the expiry
-	r.contractObjectsCache.Delete(infraMachineCacheEntry)
+	r.externalObjectsCache.Delete(infraMachineCacheEntry)
 	if s.bootstrapConfig != nil {
-		r.contractObjectsCache.Delete(bootstrapConfigCacheEntry)
+		r.externalObjectsCache.Delete(bootstrapConfigCacheEntry)
 	}
 
 	log.Info("UpdateMachine hook completed successfully")
@@ -316,16 +316,16 @@ func cleanupUnstructured(u *unstructured.Unstructured) *unstructured.Unstructure
 	return cleanedUpU
 }
 
-// contractObjectsCacheEntry is an Entry for the contractObjectsCache.
-type contractObjectsCacheEntry struct {
+// externalObjectsCacheEntry is an Entry for the contractObjectsCache.
+type externalObjectsCacheEntry struct {
 	obj *unstructured.Unstructured
 }
 
 // Key returns the cache key of a contractObjectsCacheEntry.
-func (r contractObjectsCacheEntry) Key() string {
+func (r externalObjectsCacheEntry) Key() string {
 	return fmt.Sprintf("%s: %s", r.obj.GroupVersionKind(), klog.KObj(r.obj))
 }
 
-func contractObjectsCacheKey(objGVK schema.GroupVersionKind, obj client.Object) string {
+func externalObjectsCacheKey(objGVK schema.GroupVersionKind, obj client.Object) string {
 	return fmt.Sprintf("%s: %s", objGVK, klog.KObj(obj))
 }

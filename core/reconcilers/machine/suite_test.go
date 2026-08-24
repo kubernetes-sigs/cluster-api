@@ -89,7 +89,10 @@ func TestMain(m *testing.M) {
 		clusterCache.(interface{ SetConnectionCreationRetryInterval(time.Duration) }).
 			SetConnectionCreationRetryInterval(2 * time.Second)
 
-		dynamicCache := setup.NewDynamicCache(mgr, "test-controller-manager", "")
+		dynamicCache, err := setup.NewDynamicCache(mgr, "test-controller-manager", "")
+		if err != nil {
+			panic(fmt.Sprintf("Unable to create DynamicCache: %v", err))
+		}
 
 		if err := (&Reconciler{
 			Client:    mgr.GetClient(),

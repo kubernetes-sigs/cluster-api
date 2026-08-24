@@ -49,7 +49,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine"
@@ -61,6 +60,7 @@ import (
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -453,7 +453,7 @@ func (r *Reconciler) completeMoveMachine(ctx context.Context, s *scope, currentM
 
 	// Compute desiredInfraMachine.
 	key := client.ObjectKey{Namespace: currentMachine.Namespace, Name: currentMachine.Spec.InfrastructureRef.Name}
-	_, currentInfraMachine, err := r.DynamicCache.GetContractObject(ctx, currentMachine.Spec.InfrastructureRef.GroupKind(), key, setup.DynamicCacheInfraMachineObjectType)
+	_, currentInfraMachine, err := r.DynamicCache.GetContractObject(ctx, setup.DynamicCacheInfraMachineObjectType, currentMachine.Spec.InfrastructureRef.GroupKind(), key)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to get InfraMachine %s", klog.KRef(currentMachine.Namespace, currentMachine.Spec.InfrastructureRef.Name))
 	}
@@ -476,7 +476,7 @@ func (r *Reconciler) completeMoveMachine(ctx context.Context, s *scope, currentM
 	if currentMachine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		// Compute desiredBootstrapConfig.
 		key := client.ObjectKey{Namespace: currentMachine.Namespace, Name: currentMachine.Spec.Bootstrap.ConfigRef.Name}
-		_, currentBootstrapConfig, err := r.DynamicCache.GetContractObject(ctx, currentMachine.Spec.Bootstrap.ConfigRef.GroupKind(), key, setup.DynamicCacheBootstrapConfigObjectType)
+		_, currentBootstrapConfig, err := r.DynamicCache.GetContractObject(ctx, setup.DynamicCacheBootstrapConfigObjectType, currentMachine.Spec.Bootstrap.ConfigRef.GroupKind(), key)
 		if err != nil {
 			return pkgerrors.Wrapf(err, "failed to get BootstrapConfig %s", klog.KRef(currentMachine.Namespace, currentMachine.Spec.Bootstrap.ConfigRef.Name))
 		}
@@ -710,7 +710,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, b
 		}
 
 		key := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
-		infraMachineGVK, infraMachine, err := r.DynamicCache.GetContractObject(ctx, m.Spec.InfrastructureRef.GroupKind(), key, setup.DynamicCacheInfraMachineObjectType)
+		infraMachineGVK, infraMachine, err := r.DynamicCache.GetContractObject(ctx, setup.DynamicCacheInfraMachineObjectType, m.Spec.InfrastructureRef.GroupKind(), key)
 		if err != nil {
 			return ctrl.Result{}, true, pkgerrors.Wrapf(err, "failed to get InfrastructureMachine %s %s",
 				m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
@@ -743,7 +743,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, b
 
 		if m.Spec.Bootstrap.ConfigRef.IsDefined() {
 			key := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
-			bootstrapConfigGVK, bootstrapConfig, err := r.DynamicCache.GetContractObject(ctx, m.Spec.Bootstrap.ConfigRef.GroupKind(), key, setup.DynamicCacheBootstrapConfigObjectType)
+			bootstrapConfigGVK, bootstrapConfig, err := r.DynamicCache.GetContractObject(ctx, setup.DynamicCacheBootstrapConfigObjectType, m.Spec.Bootstrap.ConfigRef.GroupKind(), key)
 			if err != nil {
 				return ctrl.Result{}, true, pkgerrors.Wrapf(err, "failed to get BootstrapConfig %s %s",
 					m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
@@ -917,7 +917,7 @@ func (r *Reconciler) listMSOwnedObjectsFromContractVersionedRef(ctx context.Cont
 		Group: ref.APIGroup,
 		Kind:  strings.TrimSuffix(ref.Kind, clusterv1.TemplateSuffix),
 	}
-	objGVK, objList, err := r.DynamicCache.ListContractObjects(ctx, gk, objectType, client.InNamespace(ms.Namespace), client.MatchingLabels(selectorMap))
+	objGVK, objList, err := r.DynamicCache.ListContractObjects(ctx, objectType, gk, client.InNamespace(ms.Namespace), client.MatchingLabels(selectorMap))
 	if err != nil {
 		return schema.GroupVersionKind{}, nil, err
 	}

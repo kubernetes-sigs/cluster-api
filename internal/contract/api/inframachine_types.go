@@ -20,14 +20,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
-// InfraMachine defines the contract for the InfraMachine.
+// InfraMachine defines the fields of an object implementing the InfraMachine contract.
+// Note: This interface contains the fields defined by the current contract version, but it allows
+// concrete implementations to handle the compatibility with older contract versions.
 type InfraMachine interface {
 	client.Object
-
-	// GetStatusWithReadyConditions returns the status of the BootstrapConfig with its Ready conditions.
-	GetStatusWithReadyConditions() any
 
 	// GetProviderID returns the provider ID.
 	GetProviderID() string
@@ -42,14 +43,24 @@ type InfraMachine interface {
 	GetAddresses() []clusterv1.MachineAddress
 
 	// GetSpecFailureDomain returns the failure domain requested in spec.
+	//
+	// Deprecated: This method is deprecated and is going to be removed when support for v1beta1 will be dropped.
 	GetSpecFailureDomain() string
 
 	// GetFailureDomain returns the actual failure domain from status.
 	GetFailureDomain() string
 
 	// GetFailureReason returns the failure reason.
+	//
+	// Deprecated: This method is deprecated and is going to be removed when support for v1beta1 will be dropped.
 	GetFailureReason() string
 
 	// GetFailureMessage returns the failure message.
+	//
+	// Deprecated: This method is deprecated and is going to be removed when support for v1beta1 will be dropped.
 	GetFailureMessage() string
+
+	v1beta1conditions.Getter
+
+	conditions.Getter
 }

@@ -112,14 +112,13 @@ func (r *Reconciler) reconcilePhase(mp *clusterv1.MachinePool) {
 // reconcileExternalBootstrap handles Bootstrap objects referenced by a MachinePool.
 func (r *Reconciler) reconcileExternalBootstrap(ctx context.Context, m *clusterv1.MachinePool, ref clusterv1.ContractVersionedObjectReference) (schema.GroupVersionKind, client.Object, error) {
 	key := client.ObjectKey{Namespace: m.Namespace, Name: ref.Name}
-	objGVK, obj, err := r.DynamicCache.GetContractObject(ctx, ref.GroupKind(), key, setup.DynamicCacheBootstrapConfigObjectType)
+	objGVK, obj, err := r.DynamicCache.GetContractObject(ctx, setup.DynamicCacheBootstrapConfigObjectType, ref.GroupKind(), key)
 	if err != nil {
 		return schema.GroupVersionKind{}, nil, err
 	}
 
 	// Ensure we add a watch to the external object, if there isn't one already.
-	if err := r.DynamicCache.Watch(ctx, "machinepool", r.controller, objGVK.GroupKind(), setup.DynamicCacheBootstrapConfigObjectType,
-		handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.MachinePool{})); err != nil {
+	if err := r.DynamicCache.Watch(ctx, "machinepool-controller", r.controller, setup.DynamicCacheBootstrapConfigObjectType, objGVK.GroupKind(), handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.MachinePool{})); err != nil {
 		return schema.GroupVersionKind{}, nil, err
 	}
 
@@ -283,7 +282,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 
 		// Report a summary of current status of the bootstrap object defined for this machine pool.
 		v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyV1Beta1Condition,
-			v1beta1conditions.UnstructuredGetter(toUnstructuredWithReadyConditions(bootstrapConfigGVK, bootstrapConfig)),
+			bootstrapConfig,
 			v1beta1conditions.WithFallbackValue(dataSecretCreated, clusterv1.WaitingForDataSecretFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 		)
 
@@ -453,7 +452,7 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 		Group: s.machinePool.Spec.Template.Spec.InfrastructureRef.APIGroup,
 		Kind:  infraMachineKind,
 	}
-	infraMachineGVK, objList, err := r.DynamicCache.ListContractObjects(ctx, gk, setup.DynamicCacheInfraMachineObjectType, client.InNamespace(mp.Namespace), client.MatchingLabels(infraMachineSelector.MatchLabels))
+	infraMachineGVK, objList, err := r.DynamicCache.ListContractObjects(ctx, setup.DynamicCacheInfraMachineObjectType, gk, client.InNamespace(mp.Namespace), client.MatchingLabels(infraMachineSelector.MatchLabels))
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to list infra machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
@@ -472,8 +471,7 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 	}
 
 	// Add watcher for infraMachine, if there isn't one already.
-	if err := r.DynamicCache.Watch(ctx, "machinepool", r.controller, infraMachineGVK.GroupKind(), setup.DynamicCacheInfraMachineObjectType,
-		handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper)); err != nil {
+	if err := r.DynamicCache.Watch(ctx, "machinepool-controller", r.controller, setup.DynamicCacheInfraMachineObjectType, infraMachineGVK.GroupKind(), handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper)); err != nil {
 		return err
 	}
 
@@ -683,24 +681,4 @@ func (r *Reconciler) getNodeRefMap(ctx context.Context, c client.Client) (map[st
 	}
 
 	return nodeRefsMap, nil
-}
-
-// StatusWithReadyConditionsGetter is a client.Object that exposes a status with the Ready conditions.
-type StatusWithReadyConditionsGetter interface {
-	client.Object
-	GetStatusWithReadyConditions() any
-}
-
-func toUnstructuredWithReadyConditions(gvk schema.GroupVersionKind, g StatusWithReadyConditionsGetter) *unstructured.Unstructured {
-	u := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": g.GetStatusWithReadyConditions(),
-		},
-	}
-	u.SetGroupVersionKind(gvk)
-	u.SetNamespace(g.GetNamespace())
-	u.SetName(g.GetName())
-	u.SetLabels(g.GetLabels())
-	u.SetAnnotations(g.GetAnnotations())
-	return u
 }

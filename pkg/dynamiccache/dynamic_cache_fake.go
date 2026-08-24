@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -46,10 +47,18 @@ type fakeDynamicCache struct {
 	byObjectTypeOptions map[ObjectType]ByObjectTypeOptions
 }
 
-func (dc *fakeDynamicCache) GetUnstructured(ctx context.Context, objGK schema.GroupKind, objKey client.ObjectKey, _ ObjectType) (*unstructured.Unstructured, error) {
+func (dc *fakeDynamicCache) GetUnstructured(ctx context.Context, objType ObjectType, objGK schema.GroupKind, objKey client.ObjectKey) (*unstructured.Unstructured, error) {
 	_, objGVK, err := contract.GetGVKFromGK(ctx, dc.client, objGK)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Unstructured %s %s: %w", objGK.Kind, klog.KRef(objKey.Namespace, objKey.Name), err)
+	}
+
+	dynamicCacheOpts, ok := dc.byObjectTypeOptions[objType]
+	if !ok {
+		return nil, fmt.Errorf("objectType %s is not configured in the DynamicCache", objType)
+	}
+	if !ptr.Deref(dynamicCacheOpts.IsUnstructured, false) {
+		return nil, fmt.Errorf("objectType %s is configured with IsUnstructured: false, but request is for an Unstructured", objType)
 	}
 
 	// Construct obj.
@@ -63,7 +72,7 @@ func (dc *fakeDynamicCache) GetUnstructured(ctx context.Context, objGK schema.Gr
 	return obj, nil
 }
 
-func (dc *fakeDynamicCache) GetContractObject(ctx context.Context, objGK schema.GroupKind, objKey client.ObjectKey, objType ObjectType) (schema.GroupVersionKind, client.Object, error) {
+func (dc *fakeDynamicCache) GetContractObject(ctx context.Context, objType ObjectType, objGK schema.GroupKind, objKey client.ObjectKey) (schema.GroupVersionKind, client.Object, error) {
 	contractVersion, objGVK, err := contract.GetGVKFromGK(ctx, dc.client, objGK)
 	if err != nil {
 		return schema.GroupVersionKind{}, nil, fmt.Errorf("failed to get %s %s: %w", objGK.Kind, klog.KRef(objKey.Namespace, objKey.Name), err)
@@ -83,7 +92,7 @@ func (dc *fakeDynamicCache) GetContractObject(ctx context.Context, objGK schema.
 	return objGVK, obj, nil
 }
 
-func (dc *fakeDynamicCache) ListContractObjects(ctx context.Context, objGK schema.GroupKind, objType ObjectType, opts ...client.ListOption) (schema.GroupVersionKind, client.ObjectList, error) {
+func (dc *fakeDynamicCache) ListContractObjects(ctx context.Context, objType ObjectType, objGK schema.GroupKind, opts ...client.ListOption) (schema.GroupVersionKind, client.ObjectList, error) {
 	contractVersion, objGVK, err := contract.GetGVKFromGK(ctx, dc.client, objGK)
 	if err != nil {
 		return schema.GroupVersionKind{}, nil, fmt.Errorf("failed to list %s: %w", objGK.Kind, err)
@@ -103,7 +112,7 @@ func (dc *fakeDynamicCache) ListContractObjects(ctx context.Context, objGK schem
 	return objGVK, objList, nil
 }
 
-func (dc *fakeDynamicCache) Watch(_ context.Context, _ string, _ SourceWatcher, _ schema.GroupKind, _ ObjectType, _ handler.EventHandler) error {
+func (dc *fakeDynamicCache) Watch(_ context.Context, _ string, _ SourceWatcher, _ ObjectType, _ schema.GroupKind, _ handler.EventHandler) error {
 	return nil // No-op is enough for unit tests.
 }
 
@@ -120,13 +129,15 @@ func (dc *fakeDynamicCache) getObjTypesFromOptions(objType ObjectType, contractV
 	if !ok {
 		return nil, nil, fmt.Errorf("objectType %s is not configured in the DynamicCache", objType)
 	}
-	obj, ok := dynamicCacheOpts.ContractObj[contractVersion]
-	if !ok {
-		return nil, nil, fmt.Errorf("objectType %s does not have a type configured for contract %s in the DynamicCache", objType, contractVersion)
+
+	if ptr.Deref(dynamicCacheOpts.IsUnstructured, false) {
+		return nil, nil, fmt.Errorf("objectType %s is configured with IsUnstructured: true, but request is for a contract object", objType)
 	}
-	objList, ok := dynamicCacheOpts.ContractObjList[contractVersion]
+
+	types, ok := dynamicCacheOpts.TypesByContract[contractVersion]
 	if !ok {
-		return nil, nil, fmt.Errorf("objectType %s does not have a list type configured for contract %s in the DynamicCache", objType, contractVersion)
+		return nil, nil, fmt.Errorf("objectType %s does not have types configured for contract %s in the DynamicCache", objType, contractVersion)
 	}
-	return obj, objList, nil
+
+	return types.Obj, types.ObjList, nil
 }

@@ -25,7 +25,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,7 +33,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/internal/contract"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -49,12 +47,12 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) ctrl.Result {
 	// Update status from the Bootstrap Config external resource.
 	// Note: some of the status fields derived from the Bootstrap Config are managed in reconcileBootstrap, e.g. status.BootstrapReady, etc.
 	// here we are taking care only of the delta (condition).
-	setBootstrapReadyCondition(ctx, s.machine, s.bootstrapConfigGVK, s.bootstrapConfig, s.bootstrapConfigIsNotFound)
+	setBootstrapReadyCondition(ctx, s.machine, s.bootstrapConfig, s.bootstrapConfigIsNotFound)
 
 	// Update status from the InfraMachine external resource.
 	// Note: some of the status fields derived from the InfraMachine are managed in reconcileInfrastructure, e.g. status.InfrastructureReady, etc.
 	// here we are taking care only of the delta (condition).
-	setInfrastructureReadyCondition(ctx, s.machine, s.infraMachineGVK, s.infraMachine, s.infraMachineIsNotFound)
+	setInfrastructureReadyCondition(ctx, s.machine, s.infraMachine, s.infraMachineIsNotFound)
 
 	// Update status from the Node external resource.
 	// Note: some of the status fields are managed in reconcileNode, e.g. status.NodeRef, etc.
@@ -76,7 +74,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) ctrl.Result {
 	return setAvailableCondition(ctx, s.machine)
 }
 
-func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfigGVK schema.GroupVersionKind, bootstrapConfig contractapi.BootstrapConfig, bootstrapConfigIsNotFound bool) {
+func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig contractapi.BootstrapConfig, bootstrapConfigIsNotFound bool) {
 	if !machine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineBootstrapConfigReadyCondition,
@@ -88,24 +86,15 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 
 	if bootstrapConfig != nil {
 		dataSecretCreated := ptr.Deref(machine.Status.Initialization.BootstrapDataSecretCreated, false)
-		ready, err := conditions.NewMirrorConditionFromUnstructured(
-			toUnstructuredWithReadyConditions(bootstrapConfigGVK, bootstrapConfig),
-			contract.Bootstrap().ReadyConditionType(), conditions.TargetConditionType(clusterv1.MachineBootstrapConfigReadyCondition),
+		ready := conditions.NewMirrorCondition(
+			bootstrapConfig,
+			clusterv1.ReadyCondition, conditions.TargetConditionType(clusterv1.MachineBootstrapConfigReadyCondition),
 			conditions.FallbackCondition{
 				Status:  conditions.BoolToStatus(dataSecretCreated),
 				Reason:  fallbackReason(dataSecretCreated, clusterv1.MachineBootstrapConfigReadyReason, clusterv1.MachineBootstrapConfigNotReadyReason),
 				Message: bootstrapConfigReadyFallBackMessage(machine.Spec.Bootstrap.ConfigRef.Kind, dataSecretCreated),
 			},
 		)
-		if err != nil {
-			conditions.Set(machine, metav1.Condition{
-				Type:    clusterv1.MachineBootstrapConfigReadyCondition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachineBootstrapConfigInvalidConditionReportedReason,
-				Message: err.Error(),
-			})
-			return
-		}
 
 		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
 		// and replace the reason with something less confusing.
@@ -165,27 +154,18 @@ func bootstrapConfigReadyFallBackMessage(kind string, ready bool) string {
 	return fmt.Sprintf("%s status.initialization.dataSecretCreated is %t", kind, ready)
 }
 
-func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machine, infraMachineGVK schema.GroupVersionKind, infraMachine contractapi.InfraMachine, infraMachineIsNotFound bool) {
+func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machine, infraMachine contractapi.InfraMachine, infraMachineIsNotFound bool) {
 	if infraMachine != nil {
 		infrastructureProvisioned := ptr.Deref(machine.Status.Initialization.InfrastructureProvisioned, false)
-		ready, err := conditions.NewMirrorConditionFromUnstructured(
-			toUnstructuredWithReadyConditions(infraMachineGVK, infraMachine),
-			contract.InfrastructureMachine().ReadyConditionType(), conditions.TargetConditionType(clusterv1.MachineInfrastructureReadyCondition),
+		ready := conditions.NewMirrorCondition(
+			infraMachine,
+			clusterv1.ReadyCondition, conditions.TargetConditionType(clusterv1.MachineInfrastructureReadyCondition),
 			conditions.FallbackCondition{
 				Status:  conditions.BoolToStatus(infrastructureProvisioned),
 				Reason:  fallbackReason(infrastructureProvisioned, clusterv1.MachineInfrastructureReadyReason, clusterv1.MachineInfrastructureNotReadyReason),
 				Message: infrastructureReadyFallBackMessage(machine.Spec.InfrastructureRef.Kind, infrastructureProvisioned),
 			},
 		)
-		if err != nil {
-			conditions.Set(machine, metav1.Condition{
-				Type:    clusterv1.MachineInfrastructureReadyCondition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachineInfrastructureInvalidConditionReportedReason,
-				Message: err.Error(),
-			})
-			return
-		}
 
 		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
 		// and replace the reason with something less confusing.

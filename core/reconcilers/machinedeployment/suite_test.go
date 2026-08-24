@@ -88,7 +88,10 @@ func TestMain(m *testing.M) {
 			clusterCache.(interface{ Shutdown() }).Shutdown()
 		}()
 
-		dynamicCache := setup.NewDynamicCache(mgr, "test-controller-manager", "")
+		dynamicCache, err := setup.NewDynamicCache(mgr, "test-controller-manager", "")
+		if err != nil {
+			panic(fmt.Sprintf("Unable to create DynamicCache: %v", err))
+		}
 
 		if err := (&machinecontroller.Reconciler{
 			Client:                      mgr.GetClient(),

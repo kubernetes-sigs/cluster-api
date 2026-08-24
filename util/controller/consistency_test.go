@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestOwnerRecord_WroteAt(t *testing.T) {
@@ -361,21 +362,21 @@ func TestConsistencyStore_getStore(t *testing.T) {
 
 	assert.Len(t, c.stores, 3)
 
-	// Get store of clusterv1.MachineSet informer in a DynamicCache, but the DynamicCache is not configured.
-	dynGVK := clusterv1.GroupVersion.WithKind("MachineSet")
+	// Get store of GenericInfrastructureMachineTemplate informer in a DynamicCache, but the DynamicCache is not configured.
+	dynGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineTemplateKind)
 	_, err = getStore(t.Context(), c, DynamicCacheStructuredObject(dynGVK))
 	assert.ErrorContains(t, err, "DynamicCache not configured")
 
-	// Get store of clusterv1.MachineSet informer in a DynamicCache, but the DynamicCache doesn't have a
+	// Get store of GenericInfrastructureMachineTemplate informer in a DynamicCache, but the DynamicCache doesn't have a
 	// corresponding Cache.
-	cMissingCache := newConsistencyStore(scheme, &fakeInformerGetter{}, &fakeDynamicCache{exists: false})
+	cMissingCache := newConsistencyStore(scheme, &fakeInformerGetter{}, &fakeDynamicCache{})
 	_, err = getStore(t.Context(), cMissingCache, DynamicCacheStructuredObject(dynGVK))
 	assert.ErrorContains(t, err, "DynamicCache does not have a corresponding Cache")
 
-	// Get store of clusterv1.MachineSet informer in a DynamicCache.
+	// Get store of GenericInfrastructureMachineTemplate informer in a DynamicCache.
 	dynObj := &unstructured.Unstructured{}
 	dynObj.SetGroupVersionKind(dynGVK)
-	cDynamic := newConsistencyStore(scheme, &fakeInformerGetter{}, &fakeDynamicCache{cache: &fakeCache{obj: dynObj}, exists: true})
+	cDynamic := newConsistencyStore(scheme, &fakeInformerGetter{}, &fakeDynamicCache{cache: &fakeCache{obj: dynObj}})
 	store, err = getStore(t.Context(), cDynamic, DynamicCacheStructuredObject(dynGVK))
 	assert.Nil(t, err)
 	dynObj, ok = store.(*fakeStore).obj.(*unstructured.Unstructured)
@@ -407,12 +408,14 @@ type fakeStore struct {
 }
 
 type fakeDynamicCache struct {
-	cache  ctrlcache.Cache
-	exists bool
+	cache ctrlcache.Cache
 }
 
 func (f *fakeDynamicCache) GetCache(_ context.Context, _ schema.GroupVersionKind) (ctrlcache.Cache, bool) {
-	return f.cache, f.exists
+	if f.cache == nil {
+		return nil, false
+	}
+	return f.cache, true
 }
 
 var _ ctrlcache.Cache = &fakeCache{}

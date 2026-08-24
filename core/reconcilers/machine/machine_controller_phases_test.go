@@ -36,10 +36,10 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/core/setup"
 	contractv1beta1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta1"
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/test/builder"

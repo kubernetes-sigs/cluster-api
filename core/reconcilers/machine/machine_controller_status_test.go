@@ -147,43 +147,6 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:    "mirror Ready condition from bootstrap config (prefer v1beta2)",
-			machine: defaultMachine.DeepCopy(),
-			bootstrapConfig: &contractv1.BootstrapConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-config1",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Status: contractv1.BootstrapConfigStatus{
-					Conditions: contractapi.Conditions{
-						{
-							Type:    "Ready",
-							Status:  "False",
-							Reason:  "SomeReason",
-							Message: "some message",
-						},
-					},
-					V1Beta2: &contractv1.BootstrapConfigV1Beta2Status{
-						Conditions: contractapi.Conditions{
-							{
-								Type:    "Ready",
-								Status:  "False",
-								Reason:  "SomeReason",
-								Message: "some more detailed message",
-							},
-						},
-					},
-				},
-			},
-			bootstrapConfigIsNotFound: false,
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineBootstrapConfigReadyCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  "SomeReason",
-				Message: "some more detailed message",
-			},
-		},
-		{
 			name:    "Use status.BoostrapReady flag as a fallback Ready condition from bootstrap config is missing",
 			machine: defaultMachine.DeepCopy(),
 			bootstrapConfig: &contractv1.BootstrapConfig{
@@ -245,7 +208,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineBootstrapConfigReadyCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.MachineBootstrapConfigInvalidConditionReportedReason,
-				Message: "failed to convert status.conditions from GenericBootstrapConfig to []metav1.Condition: status must be set for the Ready condition",
+				Message: "status for the Ready condition must be one of True, False, Unknown",
 			},
 		},
 		{
@@ -311,8 +274,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			bootstrapGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
-			setBootstrapReadyCondition(ctx, tc.machine, bootstrapGVK, tc.bootstrapConfig, tc.bootstrapConfigIsNotFound)
+			setBootstrapReadyCondition(ctx, tc.machine, tc.bootstrapConfig, tc.bootstrapConfigIsNotFound)
 
 			condition := conditions.Get(tc.machine, clusterv1.MachineBootstrapConfigReadyCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -398,43 +360,6 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:    "mirror Ready condition from infra machine (prefer v1beta2)",
-			machine: defaultMachine.DeepCopy(),
-			infraMachine: &contractv1.InfraMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "infra-machine1",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Status: contractv1.InfraMachineStatus{
-					Conditions: contractapi.Conditions{
-						{
-							Type:    "Ready",
-							Status:  "False",
-							Reason:  "SomeReason",
-							Message: "some message",
-						},
-					},
-					V1Beta2: &contractv1.InfraMachineV1Beta2Status{
-						Conditions: contractapi.Conditions{
-							{
-								Type:    "Ready",
-								Status:  "False",
-								Reason:  "SomeReason",
-								Message: "some more detailed message",
-							},
-						},
-					},
-				},
-			},
-			infraMachineIsNotFound: false,
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineInfrastructureReadyCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  "SomeReason",
-				Message: "some more detailed message",
-			},
-		},
-		{
 			name:    "Use status.InfrastructureReady flag as a fallback Ready condition from infra machine is missing",
 			machine: defaultMachine.DeepCopy(),
 			infraMachine: &contractv1.InfraMachine{
@@ -496,7 +421,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineInfrastructureReadyCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.MachineInfrastructureInvalidConditionReportedReason,
-				Message: "failed to convert status.conditions from GenericInfrastructureMachine to []metav1.Condition: status must be set for the Ready condition",
+				Message: "status for the Ready condition must be one of True, False, Unknown",
 			},
 		},
 		{
@@ -582,8 +507,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
-			setInfrastructureReadyCondition(ctx, tc.machine, infraMachineGVK, tc.infraMachine, tc.infraMachineIsNotFound)
+			setInfrastructureReadyCondition(ctx, tc.machine, tc.infraMachine, tc.infraMachineIsNotFound)
 
 			condition := conditions.Get(tc.machine, clusterv1.MachineInfrastructureReadyCondition)
 			g.Expect(condition).ToNot(BeNil())

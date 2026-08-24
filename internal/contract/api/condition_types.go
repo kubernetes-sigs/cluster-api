@@ -18,38 +18,25 @@ package api
 
 import (
 	"fmt"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // +kubebuilder:object:generate=true
 
-// Conditions is a list of Condition.
-type Conditions []Condition
-
-// +kubebuilder:object:generate=true
-
-// Condition defines a condition and contains all fields from metav1.Condition and the CAPI Condition type.
-// This is needed because our controllers are handling both condition types on v1beta1 & v1beta2.
-type Condition struct {
-	Type               string      `json:"type,omitempty"`
-	Status             string      `json:"status,omitempty"`
-	ObservedGeneration int64       `json:"observedGeneration,omitempty"`
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	Reason             string      `json:"reason,omitempty"`
-	Message            string      `json:"message,omitempty"`
-	Severity           string      `json:"severity,omitempty"`
-}
+// Conditions is a list of metav1.Condition.
+type Conditions []metav1.Condition
 
 // UnmarshalJSON unmarshals a Conditions list, keeping only the Ready condition.
 func (in *Conditions) UnmarshalJSON(b []byte) error {
-	conditions := []Condition{}
-	if err := yaml.Unmarshal(b, &conditions); err != nil {
+	parsedConditions := []metav1.Condition{}
+	if err := yaml.Unmarshal(b, &parsedConditions); err != nil {
 		return fmt.Errorf("failed to unmarshal conditions: %w", err)
 	}
-	for _, c := range conditions {
+	for _, c := range parsedConditions {
 		if c.Type != "Ready" {
 			continue
 		}
@@ -59,41 +46,23 @@ func (in *Conditions) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// ReadyConditionAsAnyArray converts the Conditions list to a []any suitable for setting on an unstructured object.
-func (in *Conditions) ReadyConditionAsAnyArray() []any {
-	if len(*in) == 0 {
-		return nil
-	}
+// +kubebuilder:object:generate=true
 
-	var conditions []any
-	for _, c := range *in {
+// V1Beta1Conditions is a list of clusterv1.Condition.
+type V1Beta1Conditions []clusterv1.Condition
+
+// UnmarshalJSON unmarshals a Conditions list, keeping only the Ready condition.
+func (in *V1Beta1Conditions) UnmarshalJSON(b []byte) error {
+	parsedConditions := []clusterv1.Condition{}
+	if err := yaml.Unmarshal(b, &parsedConditions); err != nil {
+		return fmt.Errorf("failed to unmarshal conditions: %w", err)
+	}
+	for _, c := range parsedConditions {
 		if c.Type != "Ready" {
 			continue
 		}
 
-		condition := map[string]any{}
-		if c.Type != "" {
-			condition["type"] = c.Type
-		}
-		if c.Status != "" {
-			condition["status"] = c.Status
-		}
-		if c.ObservedGeneration != 0 {
-			condition["observedGeneration"] = c.ObservedGeneration
-		}
-		if !c.LastTransitionTime.IsZero() {
-			condition["lastTransitionTime"] = c.LastTransitionTime.Format(time.RFC3339)
-		}
-		if c.Reason != "" {
-			condition["reason"] = c.Reason
-		}
-		if c.Message != "" {
-			condition["message"] = c.Message
-		}
-		if c.Severity != "" {
-			condition["severity"] = c.Severity
-		}
-		conditions = append(conditions, condition)
+		*in = append(*in, c)
 	}
-	return conditions
+	return nil
 }

@@ -19,14 +19,16 @@ package api
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
-// BootstrapConfig defines the contract for the BootstrapConfig.
+// BootstrapConfig defines the fields of an object implementing the BootstrapConfig contract.
+// Note: This interface contains the fields defined by the current contract version, but it allows
+// concrete implementations to handle the compatibility with older contract versions.
 type BootstrapConfig interface {
 	client.Object
-
-	// GetStatusWithReadyConditions returns the status of the BootstrapConfig with its Ready conditions.
-	GetStatusWithReadyConditions() any
 
 	// GetDataSecretCreated returns whether the bootstrap data secret has been created.
 	GetDataSecretCreated() bool
@@ -35,8 +37,16 @@ type BootstrapConfig interface {
 	GetDataSecretName() string
 
 	// GetFailureReason returns the failure reason.
+	//
+	// Deprecated: This method is deprecated and is going to be removed when support for v1beta1 will be dropped.
 	GetFailureReason() string
 
 	// GetFailureMessage returns the failure message.
+	//
+	// Deprecated: This method is deprecated and is going to be removed when support for v1beta1 will be dropped.
 	GetFailureMessage() string
+
+	v1beta1conditions.Getter
+
+	conditions.Getter
 }

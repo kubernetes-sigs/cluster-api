@@ -18,6 +18,7 @@ package pkg
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -26,9 +27,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 )
 
 var (
@@ -39,7 +40,11 @@ var (
 
 func TestMain(m *testing.M) {
 	setupReconcilers := func(_ context.Context, mgr ctrl.Manager) {
-		dynamicCache = setup.NewDynamicCache(mgr, "test-controller-manager", "")
+		var err error
+		dynamicCache, err = setup.NewDynamicCache(mgr, "test-controller-manager", "")
+		if err != nil {
+			panic(fmt.Sprintf("Unable to create DynamicCache: %v", err))
+		}
 	}
 
 	os.Exit(envtest.Run(ctx, envtest.RunInput{

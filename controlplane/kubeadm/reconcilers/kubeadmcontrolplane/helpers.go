@@ -132,7 +132,7 @@ func (r *Reconciler) reconcileExternalReference(ctx context.Context, controlPlan
 	}
 
 	key := client.ObjectKey{Namespace: controlPlane.KCP.Namespace, Name: ref.Name}
-	obj, err := r.DynamicCache.GetUnstructured(ctx, ref.GroupKind(), key, setup.DynamicCacheInfraMachineTemplateObjectType)
+	obj, err := r.DynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, ref.GroupKind(), key)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			controlPlane.InfraMachineTemplateIsNotFound = true

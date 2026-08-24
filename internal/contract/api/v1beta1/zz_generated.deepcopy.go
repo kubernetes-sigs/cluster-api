@@ -105,7 +105,7 @@ func (in *BootstrapConfigStatus) DeepCopyInto(out *BootstrapConfigStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(api.Conditions, len(*in))
+		*out = make(api.V1Beta1Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -233,7 +233,7 @@ func (in *InfraMachineStatus) DeepCopyInto(out *InfraMachineStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(api.Conditions, len(*in))
+		*out = make(api.V1Beta1Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

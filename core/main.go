@@ -454,7 +454,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		os.Exit(1)
 	}
 
-	dynamicCache := setup.NewDynamicCache(mgr, controllerName, watchNamespace)
+	dynamicCache, err := setup.NewDynamicCache(mgr, controllerName, watchNamespace)
+	if err != nil {
+		setupLog.Error(err, "Unable to create DynamicCache")
+		os.Exit(1)
+	}
 
 	// Note: The kubebuilder RBAC markers above has to be kept in sync
 	// with the CRDs that should be migrated by this provider.

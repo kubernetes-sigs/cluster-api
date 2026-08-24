@@ -41,11 +41,11 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/core/setup"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -319,7 +319,7 @@ func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, machinePool *c
 	if machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		ref := machinePool.Spec.Template.Spec.Bootstrap.ConfigRef
 		key := client.ObjectKey{Namespace: machinePool.Namespace, Name: ref.Name}
-		objGVK, obj, err := r.DynamicCache.GetContractObject(ctx, ref.GroupKind(), key, setup.DynamicCacheBootstrapConfigObjectType)
+		objGVK, obj, err := r.DynamicCache.GetContractObject(ctx, setup.DynamicCacheBootstrapConfigObjectType, ref.GroupKind(), key)
 		if err != nil && !apierrors.IsNotFound(pkgerrors.Cause(err)) {
 			return false, pkgerrors.Wrapf(err, "failed to get %s %s for MachinePool %s",
 				ref.Kind, klog.KRef(machinePool.Namespace, ref.Name), klog.KObj(machinePool))

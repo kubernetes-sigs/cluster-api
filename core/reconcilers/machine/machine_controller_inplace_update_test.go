@@ -37,12 +37,12 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/feature"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -284,7 +284,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				DynamicCache:         dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 				RuntimeClient:        runtimeClient,
 				hookCache:            cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
-				contractObjectsCache: cache.New[contractObjectsCacheEntry](ctx, 1*time.Hour),
+				externalObjectsCache: cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour),
 			}
 			s := &scope{
 				machine:            tt.machine,
@@ -419,7 +419,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 			r := &Reconciler{
 				RuntimeClient:        runtimeClient,
 				hookCache:            cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
-				contractObjectsCache: cache.New[contractObjectsCacheEntry](ctx, 1*time.Hour),
+				externalObjectsCache: cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour),
 			}
 			infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
 			bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
@@ -431,15 +431,15 @@ func TestCallUpdateMachineHook(t *testing.T) {
 				bootstrapConfig:    newTestBootstrapConfig("bootstrap"),
 				bootstrapConfigGVK: bootstrapConfigGVK,
 			}
-			// Note: Warm up the cache to also test the code path with a warmed up cache.
+			// Note: Warm up the externalObjectsCache to also test the code path with a warmed up cache.
 			// Without a cache hit callUpdateMachineHook below would fail because Reconciler.APIReader is not set.
 			// TestReconcileInPlaceUpdate in contrast is testing the code path with an empty cache.
 			infraMachineUnstructured := newTestUnstructured(scope.infraMachineGVK, scope.infraMachine.GetName())
 			infraMachineUnstructured.SetResourceVersion(scope.infraMachine.GetResourceVersion())
-			r.contractObjectsCache.Add(contractObjectsCacheEntry{obj: infraMachineUnstructured})
+			r.externalObjectsCache.Add(externalObjectsCacheEntry{obj: infraMachineUnstructured})
 			bootstrapConfigUnstructured := newTestUnstructured(scope.bootstrapConfigGVK, scope.bootstrapConfig.GetName())
 			bootstrapConfigUnstructured.SetResourceVersion(scope.bootstrapConfig.GetResourceVersion())
-			r.contractObjectsCache.Add(contractObjectsCacheEntry{obj: bootstrapConfigUnstructured})
+			r.externalObjectsCache.Add(externalObjectsCacheEntry{obj: bootstrapConfigUnstructured})
 
 			result, message, err := r.callUpdateMachineHook(t.Context(), scope)
 

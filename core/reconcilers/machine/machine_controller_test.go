@@ -47,12 +47,11 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/contract"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -992,6 +991,8 @@ func TestReconcileRequest(t *testing.T) {
 }
 
 func TestMachineV1Beta1Conditions(t *testing.T) {
+	g := NewWithT(t)
+
 	infraConfig := func(provisioned bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -1150,16 +1151,22 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, infra *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionToExternal(infra, metav1.Condition{
-					Type:   contract.InfrastructureMachine().ReadyConditionType(),
+					Type:   "Ready",
 					Status: metav1.ConditionFalse,
 					Reason: "Custom reason",
+				})
+				addV1Beta1ConditionToExternal(infra, clusterv1.Condition{
+					Type:     "Ready",
+					Status:   corev1.ConditionFalse,
+					Severity: clusterv1.ConditionSeverityWarning,
+					Reason:   "Custom reason",
 				})
 			},
 			conditionsToAssert: []metav1.Condition{
 				{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionFalse, Reason: "Custom reason", Message: ""},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, "Custom reason", "", ""),
+				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, "Custom reason", clusterv1.ConditionSeverityWarning, ""),
 			},
 		},
 		{
@@ -1181,16 +1188,22 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			bootstrapDataSecretCreated: false,
 			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionToExternal(bootstrap, metav1.Condition{
-					Type:   contract.Bootstrap().ReadyConditionType(),
+					Type:   "Ready",
 					Status: metav1.ConditionFalse,
 					Reason: "Custom reason",
+				})
+				addV1Beta1ConditionToExternal(bootstrap, clusterv1.Condition{
+					Type:     "Ready",
+					Status:   corev1.ConditionFalse,
+					Severity: clusterv1.ConditionSeverityWarning,
+					Reason:   "Custom reason",
 				})
 			},
 			conditionsToAssert: []metav1.Condition{
 				{Type: clusterv1.MachineBootstrapConfigReadyCondition, Status: metav1.ConditionFalse, Reason: "Custom reason", Message: ""},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, "Custom reason", "", ""),
+				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, "Custom reason", clusterv1.ConditionSeverityWarning, ""),
 			},
 		},
 		{
@@ -1282,6 +1295,13 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 		},
 	}
 
+	scheme := runtime.NewScheme()
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind), &contractv1.BootstrapConfig{})
+	scheme.AddKnownTypeWithName(builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind), &contractv1.InfraMachine{})
+
 	for _, tt := range testcases {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -1301,12 +1321,6 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			}
 			objs = append(objs, tt.additionalObjects...)
 
-			scheme := runtime.NewScheme()
-			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
-			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
-			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-			scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind), &contractv1.BootstrapConfig{})
-			scheme.AddKnownTypeWithName(builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind), &contractv1.InfraMachine{})
 			clientFake := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).
 				WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
 				WithStatusSubresource(&clusterv1.Machine{}).
@@ -3745,7 +3759,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 	}
 }
 
-// adds a condition list to an external object.
+// addConditionToExternal adds a condition list to an external object.
 func addConditionToExternal(u *unstructured.Unstructured, c metav1.Condition) {
 	err := unstructured.SetNestedSlice(u.Object, []interface{}{
 		map[string]interface{}{
@@ -3755,6 +3769,22 @@ func addConditionToExternal(u *unstructured.Unstructured, c metav1.Condition) {
 			"message": c.Message,
 		},
 	}, "status", "conditions")
+	if err != nil {
+		panic(err)
+	}
+}
+
+// addV1Beta1ConditionToExternal adds a condition list to an external object.
+func addV1Beta1ConditionToExternal(u *unstructured.Unstructured, c clusterv1.Condition) {
+	err := unstructured.SetNestedSlice(u.Object, []interface{}{
+		map[string]interface{}{
+			"type":     string(c.Type),
+			"status":   string(c.Status),
+			"severity": string(c.Severity),
+			"reason":   c.Reason,
+			"message":  c.Message,
+		},
+	}, "status", "deprecated", "v1beta1", "conditions")
 	if err != nil {
 		panic(err)
 	}

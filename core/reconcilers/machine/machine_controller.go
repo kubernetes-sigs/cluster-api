@@ -48,13 +48,13 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine/drain"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -117,7 +117,7 @@ type Reconciler struct {
 	nodeDeletionRetryTimeout time.Duration
 
 	hookCache            cache.Cache[cache.HookEntry]
-	contractObjectsCache cache.Cache[contractObjectsCacheEntry]
+	externalObjectsCache cache.Cache[externalObjectsCacheEntry]
 
 	predicateLog *logr.Logger
 }
@@ -178,7 +178,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	r.hookCache = cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)
-	r.contractObjectsCache = cache.New[contractObjectsCacheEntry](ctx, 1*time.Hour)
+	r.externalObjectsCache = cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
 	return nil

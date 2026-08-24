@@ -45,18 +45,22 @@ func TestDynamicCache(t *testing.T) {
 	const contractObjectType ObjectType = "InfraMachine"
 
 	byObjectTypeOptions := map[ObjectType]ByObjectTypeOptions{
-		unstructuredObjectType: {},
+		unstructuredObjectType: {
+			IsUnstructured: new(true),
+		},
 		contractObjectType: {
-			ContractObj: map[string]client.Object{
-				"v1beta2": &contractv1.InfraMachine{},
-			},
-			ContractObjList: map[string]client.ObjectList{
-				"v1beta2": &contractv1.InfraMachineList{},
+			IsUnstructured: new(false),
+			TypesByContract: map[string]TypesByContract{
+				"v1beta2": {
+					Obj:     &contractv1.InfraMachine{},
+					ObjList: &contractv1.InfraMachineList{},
+				},
 			},
 		},
 	}
 
-	dc := New(env.Manager, env.GetClient(), byObjectTypeOptions, "dynamiccache-test", "")
+	dc, err := New(env.Manager, byObjectTypeOptions, "dynamiccache-test", "")
+	g.Expect(err).ToNot(HaveOccurred())
 
 	infraClusterGVK := schema.GroupVersionKind{
 		Group:   builder.InfrastructureGroupVersion.Group,
@@ -103,7 +107,7 @@ func TestDynamicCache(t *testing.T) {
 	g.Expect(exists).To(BeFalse())
 
 	// GetUnstructured creates the cache for infraClusterGK on first use and returns the seeded object.
-	u, err := dc.GetUnstructured(ctx, infraClusterGK, infraClusterKey, unstructuredObjectType)
+	u, err := dc.GetUnstructured(ctx, unstructuredObjectType, infraClusterGK, infraClusterKey)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(u.GetName()).To(Equal("test-cluster"))
 	g.Expect(u.GetNamespace()).To(Equal(ns.Name))
@@ -120,7 +124,7 @@ func TestDynamicCache(t *testing.T) {
 	g.Expect(w.Scheme()).ToNot(BeNil())
 
 	// GetContractObject creates the cache for infraMachineGVK on first use, resolving the contract Go type.
-	gotGVK, obj, err := dc.GetContractObject(ctx, infraMachineGK, infraMachineKey, contractObjectType)
+	gotGVK, obj, err := dc.GetContractObject(ctx, contractObjectType, infraMachineGK, infraMachineKey)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(gotGVK).To(Equal(infraMachineGVK))
 	infraMachineObj, ok := obj.(*contractv1.InfraMachine)
@@ -129,7 +133,7 @@ func TestDynamicCache(t *testing.T) {
 
 	// ListContractObjects lists all objects of the given GroupKind using the contract Go type,
 	// reusing the cache created by GetContractObject above.
-	gotGVK, objList, err := dc.ListContractObjects(ctx, infraMachineGK, contractObjectType)
+	gotGVK, objList, err := dc.ListContractObjects(ctx, contractObjectType, infraMachineGK)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(gotGVK).To(Equal(infraMachineGVK))
 	infraMachineList, ok := objList.(*contractv1.InfraMachineList)
@@ -139,28 +143,26 @@ func TestDynamicCache(t *testing.T) {
 
 	// Watch adds a watch for the first call and is a no-op for subsequent calls with the same watcher name.
 	watcher := &countingSourceWatcher{}
-	g.Expect(dc.Watch(ctx, "test-watcher", watcher, infraMachineGK, contractObjectType, handler.Funcs{})).To(Succeed())
+	g.Expect(dc.Watch(ctx, "test-watcher", watcher, contractObjectType, infraMachineGK, handler.Funcs{})).To(Succeed())
 	g.Expect(watcher.calls).To(Equal(1))
-	g.Expect(dc.Watch(ctx, "test-watcher", watcher, infraMachineGK, contractObjectType, handler.Funcs{})).To(Succeed())
+	g.Expect(dc.Watch(ctx, "test-watcher", watcher, contractObjectType, infraMachineGK, handler.Funcs{})).To(Succeed())
 	g.Expect(watcher.calls).To(Equal(1))
 
 	// GetContractObject with an ObjectType that is not configured on the DynamicCache returns an error.
-	_, _, err = dc.GetContractObject(ctx, infraMachineGK, infraMachineKey, "unconfigured")
+	_, _, err = dc.GetContractObject(ctx, "unconfigured", infraMachineGK, infraMachineKey)
 	g.Expect(err).To(HaveOccurred())
 
-	// GetContractObject for infraClusterGK reuses the cache entry keyed by infraClusterGVK, which was created
-	// above via GetUnstructured using unstructured.Unstructured. Asking for the contract Go types
-	// instead must fail rather than silently returning data through the mismatched cache.
-	_, _, err = dc.GetContractObject(ctx, infraClusterGK, infraClusterKey, contractObjectType)
+	// Asking for the contract Go types must fail rather than silently returning data
+	// from a cache which was created above via GetUnstructured using unstructured.Unstructured (mismatched cache types).
+	_, _, err = dc.GetContractObject(ctx, contractObjectType, infraClusterGK, infraClusterKey)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(ContainSubstring("cache already exists for Go types"))
+	g.Expect(err.Error()).To(ContainSubstring("cache already exists for types"))
 
-	// Conversely, GetUnstructured for infraMachineGK reuses the cache entry keyed by infraMachineGVK, which was
-	// created above via GetContractObject using the contract Go types. Asking for
-	// unstructured.Unstructured instead must fail the same way.
-	_, err = dc.GetUnstructured(ctx, infraMachineGK, infraMachineKey, unstructuredObjectType)
+	// Asking for Unstructured must fail rather than silently returning data
+	// from a cache which was created above via GetContractObject using contract Go types (mismatched cache types).
+	_, err = dc.GetUnstructured(ctx, unstructuredObjectType, infraMachineGK, infraMachineKey)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(ContainSubstring("cache already exists for Go types"))
+	g.Expect(err.Error()).To(ContainSubstring("cache already exists for types"))
 }
 
 // countingSourceWatcher is a SourceWatcher that counts how often Watch has been called, so tests

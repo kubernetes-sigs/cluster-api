@@ -331,7 +331,7 @@ linters:
         text: 'SA1019: (clusterv1.ClusterClassVariableMetadata|currentDefinition.DeprecatedV1Beta1Metadata|newVariableDefinition.DeprecatedV1Beta1Metadata|specVar.DeprecatedV1Beta1Metadata|statusVarDefinition.DeprecatedV1Beta1Metadata|out.DeprecatedV1Beta1Metadata|variable.DeprecatedV1Beta1Metadata) is deprecated'
       - linters:
           - staticcheck
-        text: 'SA1019: .* is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+        text: 'SA1019: .* is deprecated: This (package|method) is deprecated and is going to be removed when support for v1beta1 will be dropped.'
       - linters:
           - staticcheck
         text: 'SA1019: .* is deprecated: This (condition|reason) is deprecated and is going to be removed when support for v1beta1 is dropped\.'

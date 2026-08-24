@@ -32,10 +32,10 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -265,7 +265,7 @@ func ComputeDesiredInfraMachine(ctx context.Context, dynamicCache dynamiccache.D
 	}
 
 	key := client.ObjectKey{Namespace: kcp.Namespace, Name: kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name}
-	template, err := dynamicCache.GetUnstructured(ctx, kcp.Spec.MachineTemplate.Spec.InfrastructureRef.GroupKind(), key, setup.DynamicCacheInfraMachineTemplateObjectType)
+	template, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, kcp.Spec.MachineTemplate.Spec.InfrastructureRef.GroupKind(), key)
 	if err != nil {
 		return nil, pkgerrors.Wrap(err, "failed to compute desired InfraMachine")
 	}

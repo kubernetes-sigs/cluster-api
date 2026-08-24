@@ -35,10 +35,10 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	contractv1beta1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta1"
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -142,36 +142,42 @@ func CreateSecretCachingClient(mgr ctrl.Manager) (client.Client, error) {
 
 // Object types used to configure the DynamicCache below.
 const (
-	DynamicCacheInfraMachineObjectType    dynamiccache.ObjectType = "DynamicCacheInfraMachineObjectType"
-	DynamicCacheBootstrapConfigObjectType dynamiccache.ObjectType = "DynamicCacheBootstrapConfigObjectType"
+	DynamicCacheInfraMachineObjectType    dynamiccache.ObjectType = "InfraMachine"
+	DynamicCacheBootstrapConfigObjectType dynamiccache.ObjectType = "BootstrapConfig"
 )
 
 // NewDynamicCache creates a new DynamicCache for the core CAPI controller.
-func NewDynamicCache(mgr ctrl.Manager, controllerName, watchNamespace string) dynamiccache.DynamicCache {
-	return dynamiccache.New(mgr, mgr.GetClient(), DynamicCacheOptions(), controllerName, watchNamespace)
+func NewDynamicCache(mgr ctrl.Manager, controllerName, watchNamespace string) (dynamiccache.DynamicCache, error) {
+	return dynamiccache.New(mgr, DynamicCacheOptions(), controllerName, watchNamespace)
 }
 
 // DynamicCacheOptions returns the DynamicCache options used by the core CAPI controller.
 func DynamicCacheOptions() map[dynamiccache.ObjectType]dynamiccache.ByObjectTypeOptions {
 	return map[dynamiccache.ObjectType]dynamiccache.ByObjectTypeOptions{
 		DynamicCacheInfraMachineObjectType: {
-			ContractObj: map[string]client.Object{
-				"v1beta1": &contractv1beta1.InfraMachine{},
-				"v1beta2": &contractv1.InfraMachine{},
-			},
-			ContractObjList: map[string]client.ObjectList{
-				"v1beta1": &contractv1beta1.InfraMachineList{},
-				"v1beta2": &contractv1.InfraMachineList{},
+			IsUnstructured: new(false),
+			TypesByContract: map[string]dynamiccache.TypesByContract{
+				"v1beta1": {
+					Obj:     &contractv1beta1.InfraMachine{},
+					ObjList: &contractv1beta1.InfraMachineList{},
+				},
+				"v1beta2": {
+					Obj:     &contractv1.InfraMachine{},
+					ObjList: &contractv1.InfraMachineList{},
+				},
 			},
 		},
 		DynamicCacheBootstrapConfigObjectType: {
-			ContractObj: map[string]client.Object{
-				"v1beta1": &contractv1beta1.BootstrapConfig{},
-				"v1beta2": &contractv1.BootstrapConfig{},
-			},
-			ContractObjList: map[string]client.ObjectList{
-				"v1beta1": &contractv1beta1.BootstrapConfigList{},
-				"v1beta2": &contractv1.BootstrapConfigList{},
+			IsUnstructured: new(false),
+			TypesByContract: map[string]dynamiccache.TypesByContract{
+				"v1beta1": {
+					Obj:     &contractv1beta1.BootstrapConfig{},
+					ObjList: &contractv1beta1.BootstrapConfigList{},
+				},
+				"v1beta2": {
+					Obj:     &contractv1.BootstrapConfig{},
+					ObjList: &contractv1.BootstrapConfigList{},
+				},
 			},
 		},
 	}

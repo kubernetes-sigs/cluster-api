@@ -35,8 +35,8 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -204,13 +204,13 @@ func CreateSecretCachingClient(mgr ctrl.Manager) (client.Client, error) {
 
 // Object types used to configure the DynamicCache below.
 const (
-	DynamicCacheInfraMachineObjectType         dynamiccache.ObjectType = "DynamicCacheInfraMachineObjectType"
-	DynamicCacheInfraMachineTemplateObjectType dynamiccache.ObjectType = "DynamicCacheInfraMachineTemplateObjectType"
+	DynamicCacheInfraMachineObjectType         dynamiccache.ObjectType = "InfraMachine"
+	DynamicCacheInfraMachineTemplateObjectType dynamiccache.ObjectType = "InfraMachineTemplate"
 )
 
 // NewDynamicCache creates a new DynamicCache for the KubeadmControlPlane controller.
-func NewDynamicCache(mgr ctrl.Manager, controllerName, watchNamespace string) dynamiccache.DynamicCache {
-	return dynamiccache.New(mgr, mgr.GetClient(), DynamicCacheOptions(), controllerName, watchNamespace)
+func NewDynamicCache(mgr ctrl.Manager, controllerName, watchNamespace string) (dynamiccache.DynamicCache, error) {
+	return dynamiccache.New(mgr, DynamicCacheOptions(), controllerName, watchNamespace)
 }
 
 // DynamicCacheOptions returns the DynamicCache options used by the KubeadmControlPlane controller.
@@ -220,10 +220,12 @@ func DynamicCacheOptions() map[dynamiccache.ObjectType]dynamiccache.ByObjectType
 
 	return map[dynamiccache.ObjectType]dynamiccache.ByObjectTypeOptions{
 		DynamicCacheInfraMachineObjectType: {
+			IsUnstructured: new(true),
 			// Only cache CP Machine InfraMachines.
 			Label: controlPlaneMachineSelector,
 		},
 		DynamicCacheInfraMachineTemplateObjectType: {
+			IsUnstructured: new(true),
 			Transform: func(in any) (any, error) {
 				if imt, ok := in.(*unstructured.Unstructured); ok {
 					imt.SetManagedFields(nil)

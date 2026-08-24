@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 )
 
@@ -30,7 +31,7 @@ type BootstrapConfigSpec struct {
 // BootstrapConfigStatus defines the observed state of BootstrapConfig.
 type BootstrapConfigStatus struct {
 	// conditions represents the observations of a BootstrapConfig's current state.
-	Conditions contractapi.Conditions `json:"conditions,omitempty"`
+	Conditions contractapi.V1Beta1Conditions `json:"conditions,omitempty"`
 
 	// ready indicates the BootstrapData field is ready to be consumed
 	// +optional
@@ -121,18 +122,17 @@ type BootstrapConfig struct {
 	Status BootstrapConfigStatus `json:"status,omitempty,omitzero"`
 }
 
-// GetStatusWithReadyConditions returns the status of the BootstrapConfig with its Ready conditions.
-func (c *BootstrapConfig) GetStatusWithReadyConditions() any {
-	status := map[string]any{}
-	if len(c.Status.Conditions) > 0 {
-		status["conditions"] = c.Status.Conditions.ReadyConditionAsAnyArray()
+// GetV1Beta1Conditions returns the v1beta1 conditions for the BootstrapConfig.
+func (c *BootstrapConfig) GetV1Beta1Conditions() clusterv1.Conditions {
+	return clusterv1.Conditions(c.Status.Conditions)
+}
+
+// GetConditions returns the conditions for the BootstrapConfig.
+func (c *BootstrapConfig) GetConditions() []metav1.Condition {
+	if c.Status.V1Beta2 == nil {
+		return nil
 	}
-	if c.Status.V1Beta2 != nil && len(c.Status.V1Beta2.Conditions) > 0 {
-		status["v1beta2"] = map[string]any{
-			"conditions": c.Status.V1Beta2.Conditions.ReadyConditionAsAnyArray(),
-		}
-	}
-	return status
+	return c.Status.V1Beta2.Conditions
 }
 
 // GetDataSecretCreated returns whether the bootstrap data secret has been created.

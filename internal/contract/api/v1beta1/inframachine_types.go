@@ -42,7 +42,7 @@ type InfraMachineSpec struct {
 // InfraMachineStatus defines the observed state of InfraMachine.
 type InfraMachineStatus struct {
 	// conditions represents the observations of a InfraMachine's current state.
-	Conditions contractapi.Conditions `json:"conditions,omitempty"`
+	Conditions contractapi.V1Beta1Conditions `json:"conditions,omitempty"`
 
 	// ready denotes that the machine is ready
 	// +optional
@@ -143,18 +143,17 @@ type InfraMachine struct {
 	Status InfraMachineStatus `json:"status,omitempty"`
 }
 
-// GetStatusWithReadyConditions returns the status of the InfraMachine with its Ready conditions.
-func (c *InfraMachine) GetStatusWithReadyConditions() any {
-	status := map[string]any{}
-	if len(c.Status.Conditions) > 0 {
-		status["conditions"] = c.Status.Conditions.ReadyConditionAsAnyArray()
+// GetV1Beta1Conditions returns the v1beta1 conditions for the InfraMachine.
+func (c *InfraMachine) GetV1Beta1Conditions() clusterv1.Conditions {
+	return clusterv1.Conditions(c.Status.Conditions)
+}
+
+// GetConditions returns the conditions for the BootstrapConfig.
+func (c *InfraMachine) GetConditions() []metav1.Condition {
+	if c.Status.V1Beta2 == nil {
+		return nil
 	}
-	if c.Status.V1Beta2 != nil && len(c.Status.V1Beta2.Conditions) > 0 {
-		status["v1beta2"] = map[string]any{
-			"conditions": c.Status.V1Beta2.Conditions.ReadyConditionAsAnyArray(),
-		}
-	}
-	return status
+	return c.Status.V1Beta2.Conditions
 }
 
 // GetProviderID returns the provider ID.

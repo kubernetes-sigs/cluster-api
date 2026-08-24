@@ -35,12 +35,12 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
@@ -296,7 +296,7 @@ func getInfraMachines(ctx context.Context, dynamicCache dynamiccache.DynamicCach
 	result := map[string]*unstructured.Unstructured{}
 	for _, m := range machines {
 		key := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
-		infraMachine, err := dynamicCache.GetUnstructured(ctx, m.Spec.InfrastructureRef.GroupKind(), key, setup.DynamicCacheInfraMachineObjectType)
+		infraMachine, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineObjectType, m.Spec.InfrastructureRef.GroupKind(), key)
 		if err != nil {
 			if apierrors.IsNotFound(pkgerrors.Cause(err)) {
 				continue

@@ -307,7 +307,8 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 
 		// Note: This creates the informer if it doesn't exist already, but it doesn't  wait for the cache to sync.
 		// Note: Using GetInformerForKind instead of GetInformer because we cannot create an obj because c.scheme does
-		// not contain the type we need. GetInformerForKind will create the object internally instead.
+		// not contain the type we need. GetInformerForKind will create the object internally instead
+		// using the cache's own scheme, which has the required type.
 		informer, err := dc.GetInformerForKind(ctx, gvkt.GroupVersionKind, cache.BlockUntilSynced(false))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)

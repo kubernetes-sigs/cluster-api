@@ -40,12 +40,12 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	"sigs.k8s.io/cluster-api/core/setup"
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -1113,6 +1113,13 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		},
 	}
 
+	bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind)
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+	scheme.AddKnownTypeWithName(bootstrapConfigGVK, &contractv1.BootstrapConfig{})
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -1121,13 +1128,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			}
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
-			bootstrapConfigGVK := bootstrapConfig.GroupVersionKind()
 
-			scheme := runtime.NewScheme()
-			_ = corev1.AddToScheme(scheme)
-			_ = apiextensionsv1.AddToScheme(scheme)
-			_ = clusterv1.AddToScheme(scheme)
-			scheme.AddKnownTypeWithName(bootstrapConfigGVK, &contractv1.BootstrapConfig{})
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.machinepool, bootstrapConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 			r := &Reconciler{
 				Client:       fakeClient,

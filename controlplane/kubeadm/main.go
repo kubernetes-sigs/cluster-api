@@ -357,7 +357,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	dynamicCache := setup.NewDynamicCache(mgr, controllerName, watchNamespace)
+	dynamicCache, err := setup.NewDynamicCache(mgr, controllerName, watchNamespace)
+	if err != nil {
+		setupLog.Error(err, "Unable to create DynamicCache")
+		os.Exit(1)
+	}
 
 	crdMigratorSkipPhases := make([]crdmigrator.Phase, 0, len(skipCRDMigrationPhases))
 	for _, p := range skipCRDMigrationPhases {

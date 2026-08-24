@@ -168,16 +168,16 @@ func TestGetGVKFromGK(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			var obj []client.Object
+			var objs []client.Object
 			if !tt.skipCRDCreation {
 				u := &unstructured.Unstructured{}
 				u.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
 				u.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
 				u.SetLabels(tt.crdLabels)
-				obj = append(obj, u)
+				objs = append(objs, u)
 			}
 
-			fakeClient := fake.NewClientBuilder().WithObjects(obj...).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 
 			contractVersion, gvk, err := GetGVKFromGK(t.Context(), fakeClient, gk)
 

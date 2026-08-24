@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 )
 
@@ -49,14 +50,6 @@ type BootstrapConfigStatus struct {
 	//
 	// +optional
 	Deprecated *BootstrapConfigDeprecatedStatus `json:"deprecated,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in BootstrapConfig's status with the V1Beta2 version.
-	//
-	// Deprecated: This field has just been added to handle the same cases as before it will be removed when support
-	// for v1beta1 will be dropped.
-	//
-	// +optional
-	V1Beta2 *BootstrapConfigV1Beta2Status `json:"v1beta2,omitempty"`
 }
 
 // BootstrapConfigInitializationStatus provides observations of the BootstrapConfig initialization process.
@@ -79,6 +72,13 @@ type BootstrapConfigDeprecatedStatus struct {
 // BootstrapConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type BootstrapConfigV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the BootstrapConfig.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions contractapi.V1Beta1Conditions `json:"conditions,omitempty"`
+
 	// failureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.
@@ -128,13 +128,6 @@ type BootstrapConfigV1Beta1DeprecatedStatus struct {
 	FailureMessage string `json:"failureMessage,omitempty"`
 }
 
-// BootstrapConfigV1Beta2Status groups all the fields that will be added or modified in BootstrapConfig with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type BootstrapConfigV1Beta2Status struct {
-	// conditions represents the observations of a BootstrapConfig's current state.
-	Conditions contractapi.Conditions `json:"conditions,omitempty"`
-}
-
 var _ contractapi.BootstrapConfig = &BootstrapConfig{}
 
 // +kubebuilder:resource:path=bootstrapconfigs,scope=Namespaced,categories=cluster-api
@@ -158,18 +151,17 @@ type BootstrapConfig struct {
 	Status BootstrapConfigStatus `json:"status,omitempty,omitzero"`
 }
 
-// GetStatusWithReadyConditions returns the status of the BootstrapConfig with its Ready conditions.
-func (c *BootstrapConfig) GetStatusWithReadyConditions() any {
-	status := map[string]any{}
-	if len(c.Status.Conditions) > 0 {
-		status["conditions"] = c.Status.Conditions.ReadyConditionAsAnyArray()
+// GetV1Beta1Conditions returns the v1beta1 conditions for the BootstrapConfig.
+func (c *BootstrapConfig) GetV1Beta1Conditions() clusterv1.Conditions {
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
+		return nil
 	}
-	if c.Status.V1Beta2 != nil && len(c.Status.V1Beta2.Conditions) > 0 {
-		status["v1beta2"] = map[string]any{
-			"conditions": c.Status.V1Beta2.Conditions.ReadyConditionAsAnyArray(),
-		}
-	}
-	return status
+	return clusterv1.Conditions(c.Status.Deprecated.V1Beta1.Conditions)
+}
+
+// GetConditions returns the conditions for the BootstrapConfig.
+func (c *BootstrapConfig) GetConditions() []metav1.Condition {
+	return c.Status.Conditions
 }
 
 // GetDataSecretCreated returns whether the bootstrap data secret has been created.

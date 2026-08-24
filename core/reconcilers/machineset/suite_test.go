@@ -39,10 +39,10 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	machinecontroller "sigs.k8s.io/cluster-api/core/reconcilers/machine"
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util/index"
 )
 
@@ -90,7 +90,10 @@ func TestMain(m *testing.M) {
 			clusterCache.(interface{ Shutdown() }).Shutdown()
 		}()
 
-		dynamicCache = setup.NewDynamicCache(mgr, "test-controller-manager", "")
+		dynamicCache, err = setup.NewDynamicCache(mgr, "test-controller-manager", "")
+		if err != nil {
+			panic(fmt.Sprintf("Unable to create DynamicCache: %v", err))
+		}
 
 		if err := (&Reconciler{
 			// Note: Ensure the fieldManager defaults to manager like in prod.

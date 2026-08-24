@@ -72,8 +72,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	// Note: Wait additionally until dynamicCache is up-to-date, CreateAndWait above only waits until
 	// the regular cache in the manager is up-to-date.
 	g.Eventually(func(g Gomega) {
-		_, err := dynamicCache.GetUnstructured(ctx, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(),
-			client.ObjectKeyFromObject(genericInfrastructureMachineTemplate), setup.DynamicCacheInfraMachineTemplateObjectType)
+		_, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(), client.ObjectKeyFromObject(genericInfrastructureMachineTemplate))
 		g.Expect(err).ToNot(HaveOccurred())
 	}).WithTimeout(5 * time.Second).To(Succeed())
 

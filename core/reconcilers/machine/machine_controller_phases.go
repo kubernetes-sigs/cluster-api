@@ -24,7 +24,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -35,10 +34,10 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
-	"sigs.k8s.io/cluster-api/controllers/dynamiccache"
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -88,14 +87,13 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 // adds a watch to the external object if one does not already exist and adds the necessary labels.
 func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref clusterv1.ContractVersionedObjectReference, objectType dynamiccache.ObjectType) (schema.GroupVersionKind, client.Object, error) {
 	key := client.ObjectKey{Namespace: m.Namespace, Name: ref.Name}
-	objGVK, obj, err := r.DynamicCache.GetContractObject(ctx, ref.GroupKind(), key, objectType)
+	objGVK, obj, err := r.DynamicCache.GetContractObject(ctx, objectType, ref.GroupKind(), key)
 	if err != nil {
 		return schema.GroupVersionKind{}, nil, err
 	}
 
 	// Ensure we add a watch to the external object, if there isn't one already.
-	if err := r.DynamicCache.Watch(ctx, "machine", r.controller, objGVK.GroupKind(), objectType,
-		handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Machine{})); err != nil {
+	if err := r.DynamicCache.Watch(ctx, "machine-controller", r.controller, objectType, objGVK.GroupKind(), handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Machine{})); err != nil {
 		return schema.GroupVersionKind{}, nil, err
 	}
 
@@ -204,7 +202,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	if !s.machine.DeletionTimestamp.IsZero() {
 		fallBack = v1beta1conditions.WithFallbackValue(dataSecretCreated, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 	}
-	v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyV1Beta1Condition, v1beta1conditions.UnstructuredGetter(toUnstructuredWithReadyConditions(s.bootstrapConfigGVK, s.bootstrapConfig)), fallBack)
+	v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyV1Beta1Condition, s.bootstrapConfig, fallBack)
 
 	if !s.bootstrapConfig.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil
@@ -295,7 +293,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if !s.machine.DeletionTimestamp.IsZero() {
 		fallBack = v1beta1conditions.WithFallbackValue(provisioned, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 	}
-	v1beta1conditions.SetMirror(m, clusterv1.InfrastructureReadyV1Beta1Condition, v1beta1conditions.UnstructuredGetter(toUnstructuredWithReadyConditions(s.infraMachineGVK, s.infraMachine)), fallBack)
+	v1beta1conditions.SetMirror(m, clusterv1.InfrastructureReadyV1Beta1Condition, s.infraMachine, fallBack)
 
 	if !s.infraMachine.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil
@@ -432,24 +430,4 @@ func getControlPlaneGKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		}
 	}
 	return nil
-}
-
-// StatusWithReadyConditionsGetter is a client.Object that exposes a status with the Ready conditions.
-type StatusWithReadyConditionsGetter interface {
-	client.Object
-	GetStatusWithReadyConditions() any
-}
-
-func toUnstructuredWithReadyConditions(gvk schema.GroupVersionKind, g StatusWithReadyConditionsGetter) *unstructured.Unstructured {
-	u := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": g.GetStatusWithReadyConditions(),
-		},
-	}
-	u.SetGroupVersionKind(gvk)
-	u.SetNamespace(g.GetNamespace())
-	u.SetName(g.GetName())
-	u.SetLabels(g.GetLabels())
-	u.SetAnnotations(g.GetAnnotations())
-	return u
 }

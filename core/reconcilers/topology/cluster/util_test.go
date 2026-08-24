@@ -152,7 +152,7 @@ func TestGetTemplate(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Get object fails: neither templateRef nor template is not set",
+			name:        "Get object fails: neither templateRef nor template is set",
 			templateRef: clusterv1.ClusterClassTemplateReference{},
 			template:    clusterv1.ClusterClassTemplate{},
 			wantErr:     true,

@@ -187,10 +187,11 @@ func TestClusterClassValidation(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		in        *clusterv1.ClusterClass
-		old       *clusterv1.ClusterClass
-		expectErr bool
+		name                                 string
+		in                                   *clusterv1.ClusterClass
+		old                                  *clusterv1.ClusterClass
+		clusterClassInlineFeatureGateEnabled bool
+		expectErr                            bool
 	}{
 		/*
 			CREATE Tests
@@ -714,7 +715,7 @@ func TestClusterClassValidation(t *testing.T) {
 				Build(),
 		},
 		{
-			name: "create pass if valid machineHealthCheck defined for ControlPlane with inline MachineInfrastructure template set",
+			name: "fail if valid machineHealthCheck defined for ControlPlane with inline MachineInfrastructure template set and ClusterClassInlineTemplates feature gate is off",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -731,6 +732,27 @@ func TestClusterClassValidation(t *testing.T) {
 					},
 				}).
 				Build(),
+			expectErr: true,
+		},
+		{
+			name: "create pass if valid machineHealthCheck defined for ControlPlane with inline MachineInfrastructure template set and ClusterClassInlineTemplates feature gate is on",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineInlineTemplate(clusterv1.ClusterClassTemplate{
+					APIVersion: builder.InfrastructureGroupVersion.String(),
+					Kind:       "GenericInfrastructureMachineTemplate",
+				}).
+				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To(int32(60)),
+					},
+				}).
+				Build(),
+			clusterClassInlineFeatureGateEnabled: true,
 		},
 		{
 			name: "create fail if MachineHealthCheck defined for ControlPlane with MachineInfrastructure unset",
@@ -1854,6 +1876,10 @@ func TestClusterClassValidation(t *testing.T) {
 				variables.SetEnvSetVersion(backupEnvSetVersion)
 			}()
 			variables.SetEnvSetVersion(version.MustParse("1.29"))
+
+			if tt.clusterClassInlineFeatureGateEnabled {
+				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterClassInlineTemplates, true)
+			}
 
 			// Create the webhook and add the fakeClient as its client.
 			webhook := &ClusterClass{Client: fakeClient}

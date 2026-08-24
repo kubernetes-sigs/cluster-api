@@ -385,13 +385,34 @@ func TestGenerateTemplate(t *testing.T) {
 			expectedErr: true,
 		},
 		{
-			name: "returns an error when neither TemplateRef nor TemplateName/TemplateGroupKind are set",
+			name: "returns an error when TemplateRef and TemplateName are set",
 			in: &GenerateTemplateInput{
-				Template:    newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
-				Namespace:   metav1.NamespaceDefault,
-				ClusterName: testClusterName,
+				Template:     newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				TemplateRef:  templateRef.DeepCopy(),
+				TemplateName: templateName,
+				Namespace:    metav1.NamespaceDefault,
+				ClusterName:  testClusterName,
 			},
 			expectedErr: true,
+		},
+		{
+			name: "tolerates if neither TemplateRef nor TemplateName/TemplateGroupKind are set (and does not set cloned from annotations)",
+			in: &GenerateTemplateInput{
+				Template:    newTemplate(map[string]interface{}{"apiVersion": "custom.io/v2", "kind": "CustomKind", "spec": map[string]interface{}{"hello": "world"}}),
+				Namespace:   metav1.NamespaceDefault,
+				Name:        "explicit-name",
+				ClusterName: testClusterName,
+			},
+			expectedName:      "explicit-name",
+			expectedNamespace: metav1.NamespaceDefault,
+			expectedGroupVersionKind: schema.GroupVersionKind{
+				Group:   "custom.io",
+				Version: "v2",
+				Kind:    "CustomKind",
+			},
+			expectedLabels:      map[string]string{clusterv1.ClusterNameLabel: testClusterName},
+			expectedAnnotations: map[string]string{}, // No annotations
+			expectedSpec:        map[string]interface{}{"hello": "world"},
 		},
 	}
 

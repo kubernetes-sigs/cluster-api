@@ -235,7 +235,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				allErrs = append(allErrs, field.Invalid(
 					path.Child("matchResources", "machineDeploymentClass", "names").Index(i),
 					name,
-					"selector is enabled but matches neither the bootstrap nor the infrastructure of a MachineDeployment class",
+					"selector is enabled but matches neither the bootstrap nor the infrastructure template of a MachineDeployment class",
 				))
 			}
 		}
@@ -271,7 +271,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				allErrs = append(allErrs, field.Invalid(
 					path.Child("matchResources", "machinePoolClass", "names").Index(i),
 					name,
-					"selector is enabled but matches neither the bootstrap nor the infrastructure of a MachinePool class",
+					"selector is enabled but matches neither the bootstrap nor the infrastructure template of a MachinePool class",
 				))
 			}
 		}

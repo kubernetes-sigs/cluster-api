@@ -535,6 +535,7 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 func TestClusterClassWebhook_TemplateRefOrTemplate(t *testing.T) {
 	g := NewWithT(t)
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterClassInlineTemplates, true)
 
 	ns, err := env.CreateNamespace(ctx, "test-clusterclass-webhook-template")
 	g.Expect(err).ToNot(HaveOccurred())
@@ -552,6 +553,16 @@ func TestClusterClassWebhook_TemplateRefOrTemplate(t *testing.T) {
 		{
 			name:   "baseline ClusterClass using templateRef everywhere is valid",
 			mutate: func(*clusterv1.ClusterClass) {},
+		},
+		{
+			name: "infrastructure: only template is valid",
+			mutate: func(cc *clusterv1.ClusterClass) {
+				cc.Spec.Infrastructure.Template = clusterv1.ClusterClassTemplate{
+					APIVersion: cc.Spec.Infrastructure.TemplateRef.APIVersion,
+					Kind:       cc.Spec.Infrastructure.TemplateRef.Kind,
+				}
+				cc.Spec.Infrastructure.TemplateRef = clusterv1.ClusterClassTemplateReference{}
+			},
 		},
 		{
 			name: "infrastructure: neither templateRef nor template is invalid",

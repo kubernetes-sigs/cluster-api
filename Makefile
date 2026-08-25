@@ -517,11 +517,10 @@ generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate convers
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./../hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
 		./bootstrap/kubeadm/v1beta1
-	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/pkg/types/upstreamv1beta3,./bootstrap/kubeadm/pkg/types/upstreamv1beta4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/pkg/types/upstreamv1beta4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
-		./bootstrap/kubeadm/pkg/types/upstreamv1beta3 \
 		./bootstrap/kubeadm/pkg/types/upstreamv1beta4
 
 .PHONY: generate-go-conversions-kubeadm-control-plane

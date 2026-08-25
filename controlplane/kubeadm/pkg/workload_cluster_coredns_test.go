@@ -47,7 +47,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 					ImageRepository: "",
 				},
 			},
-			Version: "v1.23.0",
+			Version: "v1.31.0",
 		},
 	}
 	// This is used to force an error to be returned so we can assert the
@@ -121,7 +121,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 		Data: map[string]string{
 			"ClusterConfiguration": utilyaml.Raw(`
 				apiServer:
-				apiVersion: kubeadm.k8s.io/v1beta3
+				apiVersion: kubeadm.k8s.io/v1beta4
 				dns:
 				  type: CoreDNS
 				imageRepository: k8s.gcr.io
@@ -137,7 +137,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 		Data: map[string]string{
 			"ClusterConfiguration": utilyaml.Raw(`
 				apiServer:
-				apiVersion: kubeadm.k8s.io/v1beta3
+				apiVersion: kubeadm.k8s.io/v1beta4
 				dns:
 				  type: CoreDNS
 					imageTag: v1.8.1
@@ -171,7 +171,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							DNS: bootstrapv1.DNS{},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			objs:      []client.Object{badCM},
@@ -208,7 +208,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			objs:      []client.Object{depl, cm},
@@ -227,7 +227,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			// no kubeadmConfigMap available so it will trigger an error
@@ -247,7 +247,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			migrator: &fakeMigrator{
@@ -269,7 +269,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			migrator: &fakeMigrator{
@@ -293,7 +293,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			migrator: &fakeMigrator{
@@ -316,7 +316,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			migrator: &fakeMigrator{
@@ -339,7 +339,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			migrator: &fakeMigrator{
@@ -361,7 +361,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			migrator: &fakeMigrator{
@@ -384,7 +384,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			migrator: &fakeMigrator{
@@ -406,7 +406,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			migrator: &fakeMigrator{
@@ -429,7 +429,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 							},
 						},
 					},
-					Version: "v1.23.0",
+					Version: "v1.31.0",
 				},
 			},
 			objs:      []client.Object{deplWithImage("k8s.gcr.io/coredns/coredns:v1.8.1"), updatedCM, kubeadmCM181},
@@ -946,7 +946,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 		{
 			name: "it should set the DNS image config",
 			clusterConfigurationData: utilyaml.Raw(`
-				apiVersion: kubeadm.k8s.io/v1beta3
+				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration
 				`),
 			newDNS: bootstrapv1.DNS{
@@ -955,15 +955,16 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 			},
 			wantClusterConfiguration: utilyaml.Raw(`
 				apiServer: {}
-				apiVersion: kubeadm.k8s.io/v1beta3
+				apiVersion: kubeadm.k8s.io/v1beta4
 				controllerManager: {}
 				dns:
 				  imageRepository: example.com/k8s
 				  imageTag: v1.2.3
 				etcd: {}
 				kind: ClusterConfiguration
-				kubernetesVersion: v1.23.1
+				kubernetesVersion: v1.31.1
 				networking: {}
+				proxy: {}
 				scheduler: {}
 				`),
 		},
@@ -984,7 +985,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.23.1"), w.updateCoreDNSImageInfoInKubeadmConfigMap(&tt.newDNS))
+			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.31.1"), w.updateCoreDNSImageInfoInKubeadmConfigMap(&tt.newDNS))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var actualConfig corev1.ConfigMap

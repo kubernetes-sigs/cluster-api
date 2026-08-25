@@ -33,7 +33,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -137,7 +137,7 @@ type DynamicCache interface {
 	Watch(ctx context.Context, watcherName string, watcher SourceWatcher, objType ObjectType, objGK schema.GroupKind, handler handler.EventHandler) error
 
 	// GetCache returns a Cache for the given GroupVersionKind.
-	GetCache(ctx context.Context, objGVK schema.GroupVersionKind) (cache.Cache, bool)
+	GetCache(ctx context.Context, objGVK schema.GroupVersionKind) (ctrlcache.Cache, bool)
 
 	// GetWriter returns a WriterWithScheme for the given GroupVersionKind.
 	// The writer will have the necessary API type added to its scheme.
@@ -211,7 +211,7 @@ type dynamicCache struct {
 
 type cacheEntry struct {
 	Writer WriterWithScheme
-	Cache  cache.Cache
+	Cache  ctrlcache.Cache
 
 	// objType and objListType are the Go types that were used to create this cache entry.
 	// They are used to detect and fail on subsequent calls for the same GroupVersionKind that
@@ -365,7 +365,7 @@ func (dc *dynamicCache) Watch(ctx context.Context, watcherName string, watcher S
 	return nil
 }
 
-func (dc *dynamicCache) GetCache(_ context.Context, objGVK schema.GroupVersionKind) (cache.Cache, bool) {
+func (dc *dynamicCache) GetCache(_ context.Context, objGVK schema.GroupVersionKind) (ctrlcache.Cache, bool) {
 	dc.cachesLock.RLock()
 	defer dc.cachesLock.RUnlock()
 
@@ -471,13 +471,13 @@ func (dc *dynamicCache) getOrCreateCache(ctx context.Context, objGVK schema.Grou
 		return nil, fmt.Errorf("failed to create cache for %s: failed to create writer: %w", objGVK.Kind, err)
 	}
 
-	var watchNamespaces map[string]cache.Config
+	var watchNamespaces map[string]ctrlcache.Config
 	if dc.watchNamespace != "" {
-		watchNamespaces = map[string]cache.Config{
+		watchNamespaces = map[string]ctrlcache.Config{
 			dc.watchNamespace: {},
 		}
 	}
-	c, err := cache.New(dc.manager.GetConfig(), cache.Options{
+	c, err := ctrlcache.New(dc.manager.GetConfig(), ctrlcache.Options{
 		DefaultNamespaces: watchNamespaces,
 		// Turn off resync.
 		// If we would not do this we would get additional resyncs for all objects that a controller watches,
@@ -488,7 +488,7 @@ func (dc *dynamicCache) getOrCreateCache(ctx context.Context, objGVK schema.Grou
 		Scheme:      scheme,
 		Mapper:      dc.manager.GetRESTMapper(),
 		HTTPClient:  dc.manager.GetHTTPClient(),
-		ByObject: map[client.Object]cache.ByObject{
+		ByObject: map[client.Object]ctrlcache.ByObject{
 			obj: {
 				Transform: dynamicCacheOpts.Transform,
 				Label:     dynamicCacheOpts.Label,
@@ -529,9 +529,9 @@ func (dc *dynamicCache) getOrCreateCache(ctx context.Context, objGVK schema.Grou
 // This ensures this cache gets stopped at the right phase of the Manager shutdown together
 // with other caches in Manager.
 type cacheRunnable struct {
-	cache.Cache
+	ctrlcache.Cache
 }
 
-func (cc *cacheRunnable) GetCache() cache.Cache {
+func (cc *cacheRunnable) GetCache() ctrlcache.Cache {
 	return cc.Cache
 }

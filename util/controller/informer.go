@@ -25,19 +25,19 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/tools/cache"
+	toolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 // NewInformerFunc provides a new informer func that can be used for cache.Options that configures the
 // informer with an identifier and an informerMetricsProvider for proper logs and metrics.
-func NewInformerFunc(scheme *runtime.Scheme, informerName *cache.InformerName) func(cache.ListerWatcher, runtime.Object, time.Duration, cache.Indexers) cache.SharedIndexInformer {
-	return func(lw cache.ListerWatcher, exampleObject runtime.Object, defaultEventHandlerResyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewInformerFunc(scheme *runtime.Scheme, informerName *toolscache.InformerName) func(toolscache.ListerWatcher, runtime.Object, time.Duration, toolscache.Indexers) toolscache.SharedIndexInformer {
+	return func(lw toolscache.ListerWatcher, exampleObject runtime.Object, defaultEventHandlerResyncPeriod time.Duration, indexers toolscache.Indexers) toolscache.SharedIndexInformer {
 		// controller-runtime is using cache.NewSharedIndexInformer per default. This is duplicating
 		// cache.NewSharedIndexInformer and additionally setting the Identifier and InformerMetricsProvider
 		// options which are used for logging and metrics (e.g. the store_resource_version and fifo metrics).
-		opts := cache.SharedIndexInformerOptions{
+		opts := toolscache.SharedIndexInformerOptions{
 			ResyncPeriod: defaultEventHandlerResyncPeriod,
 			Indexers:     indexers,
 		}
@@ -50,7 +50,7 @@ func NewInformerFunc(scheme *runtime.Scheme, informerName *cache.InformerName) f
 			})
 			opts.InformerMetricsProvider = informerMetricsProvider{}
 		}
-		return cache.NewSharedIndexInformerWithOptions(lw, exampleObject, opts)
+		return toolscache.NewSharedIndexInformerWithOptions(lw, exampleObject, opts)
 	}
 }
 
@@ -106,7 +106,7 @@ func register() {
 
 type informerMetricsProvider struct{}
 
-func (informerMetricsProvider) NewQueuedItemMetric(id cache.InformerNameAndResource) cache.GaugeMetric {
+func (informerMetricsProvider) NewQueuedItemMetric(id toolscache.InformerNameAndResource) toolscache.GaugeMetric {
 	return &reservedGaugeMetric{
 		id: id,
 		gauge: fifoQueuedItems.WithLabelValues(
@@ -118,7 +118,7 @@ func (informerMetricsProvider) NewQueuedItemMetric(id cache.InformerNameAndResou
 	}
 }
 
-func (informerMetricsProvider) NewProcessingLatencyMetric(id cache.InformerNameAndResource) cache.HistogramMetric {
+func (informerMetricsProvider) NewProcessingLatencyMetric(id toolscache.InformerNameAndResource) toolscache.HistogramMetric {
 	return &reservedHistogramMetric{
 		id: id,
 		histogram: fifoProcessingLatency.WithLabelValues(
@@ -130,7 +130,7 @@ func (informerMetricsProvider) NewProcessingLatencyMetric(id cache.InformerNameA
 	}
 }
 
-func (informerMetricsProvider) NewStoreResourceVersionMetric(id cache.InformerNameAndResource) cache.GaugeMetric {
+func (informerMetricsProvider) NewStoreResourceVersionMetric(id toolscache.InformerNameAndResource) toolscache.GaugeMetric {
 	return &reservedGaugeMetric{
 		id: id,
 		gauge: storeResourceVersion.WithLabelValues(
@@ -146,8 +146,8 @@ func (informerMetricsProvider) NewStoreResourceVersionMetric(id cache.InformerNa
 // is still reserved. This supports dynamic informers (e.g., GC, ResourceQuota)
 // that may shut down while the process is still running.
 type reservedGaugeMetric struct {
-	id    cache.InformerNameAndResource
-	gauge cache.GaugeMetric
+	id    toolscache.InformerNameAndResource
+	gauge toolscache.GaugeMetric
 }
 
 func (r *reservedGaugeMetric) Set(value float64) {
@@ -160,8 +160,8 @@ func (r *reservedGaugeMetric) Set(value float64) {
 // is still reserved. This supports dynamic informers (e.g., GC, ResourceQuota)
 // that may shut down while the process is still running.
 type reservedHistogramMetric struct {
-	id        cache.InformerNameAndResource
-	histogram cache.HistogramMetric
+	id        toolscache.InformerNameAndResource
+	histogram toolscache.HistogramMetric
 }
 
 func (r *reservedHistogramMetric) Observe(value float64) {

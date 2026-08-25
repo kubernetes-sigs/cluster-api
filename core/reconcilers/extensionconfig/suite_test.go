@@ -25,7 +25,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
@@ -46,7 +46,7 @@ func TestMain(m *testing.M) {
 
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M: m,
-		SetupManagerCacheOptions: func(scheme *runtime.Scheme) cache.Options {
+		SetupManagerCacheOptions: func(scheme *runtime.Scheme) ctrlcache.Options {
 			return setup.ManagerCacheOptions(scheme, "test-controller-manager", "", 10*time.Minute)
 		},
 		ManagerClientOptions: setup.ManagerClientOptions(),

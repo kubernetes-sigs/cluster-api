@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
@@ -116,7 +116,7 @@ func (dc *fakeDynamicCache) Watch(_ context.Context, _ string, _ SourceWatcher, 
 	return nil // No-op is enough for unit tests.
 }
 
-func (dc *fakeDynamicCache) GetCache(_ context.Context, _ schema.GroupVersionKind) (cache.Cache, bool) {
+func (dc *fakeDynamicCache) GetCache(_ context.Context, _ schema.GroupVersionKind) (ctrlcache.Cache, bool) {
 	panic("Not implemented")
 }
 

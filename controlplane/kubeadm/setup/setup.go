@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	toolscache "k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -43,10 +43,10 @@ import (
 )
 
 // ManagerCacheOptions provides cache.Options for the manager.
-func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace string, syncPeriod time.Duration) cache.Options {
-	var watchNamespaces map[string]cache.Config
+func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace string, syncPeriod time.Duration) ctrlcache.Options {
+	var watchNamespaces map[string]ctrlcache.Config
 	if watchNamespace != "" {
-		watchNamespaces = map[string]cache.Config{
+		watchNamespaces = map[string]ctrlcache.Config{
 			watchNamespace: {},
 		}
 	}
@@ -62,10 +62,10 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace 
 		panic("cache.NewInformerName was called twice with the same name, that should never happen")
 	}
 
-	return cache.Options{
+	return ctrlcache.Options{
 		DefaultNamespaces: watchNamespaces,
 		SyncPeriod:        &syncPeriod,
-		ByObject: map[client.Object]cache.ByObject{
+		ByObject: map[client.Object]ctrlcache.ByObject{
 			// Note: Only Secrets with the cluster name label are cached.
 			// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).
 			// The cached secrets will only be used by the secretCachingClient we create below.
@@ -136,11 +136,11 @@ func ClusterCacheCacheOptions() clustercache.CacheOptions {
 	)
 
 	return clustercache.CacheOptions{
-		DefaultTransform: cache.TransformStripManagedFields(),
+		DefaultTransform: ctrlcache.TransformStripManagedFields(),
 		// Only cache kubeadm static pods
-		ByObject: map[client.Object]cache.ByObject{
+		ByObject: map[client.Object]ctrlcache.ByObject{
 			&corev1.Pod{}: {
-				Namespaces: map[string]cache.Config{
+				Namespaces: map[string]ctrlcache.Config{
 					metav1.NamespaceSystem: {
 						LabelSelector: podSelector,
 						// Note: This must be aligned to TransformPod in controlplane/kubeadm/pkg/clustercache_utils.go

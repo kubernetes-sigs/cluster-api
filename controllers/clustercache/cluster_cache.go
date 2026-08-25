@@ -332,6 +332,7 @@ func SetupWithManager(ctx context.Context, mgr manager.Manager, options Options,
 		client:                mgr.GetClient(),
 		clusterAccessorConfig: buildClusterAccessorConfig(mgr.GetScheme(), options, controllerPodMetadata),
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
+		clusterFilter:         options.ClusterFilter,
 		cacheCtx:              cacheCtx,
 		cacheCtxCancel:        cacheCtxCancel,
 	}

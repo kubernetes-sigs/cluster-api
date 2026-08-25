@@ -32,8 +32,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/rest/fake"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -342,6 +344,239 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
+func TestSyncKubeconfig(t *testing.T) {
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	clusterKey := client.ObjectKeyFromObject(testCluster)
+	oldKubeconfig := newTokenKubeconfig("test-cluster", "https://old.example.com", "old-token", []byte("old-ca"))
+	rotatedTokenKubeconfig := newTokenKubeconfig("test-cluster", "https://old.example.com", "new-token", []byte("old-ca"))
+	newServerKubeconfig := newTokenKubeconfig("test-cluster", "https://new.example.com", "old-token", []byte("new-ca"))
+	newServerAndRotatedTokenKubeconfig := newTokenKubeconfig("test-cluster", "https://new.example.com", "new-token", []byte("new-ca"))
+	oldKubeconfigWithInactiveToken := withAuthInfoToken(oldKubeconfig, "inactive-user", "old-inactive-token")
+	newKubeconfigWithInactiveToken := withAuthInfoToken(oldKubeconfig, "inactive-user", "new-inactive-token")
+	oldClientCertificateKubeconfig := withClientCertificateAuth(oldKubeconfig)
+	newClientCertificateKubeconfig := withClientCertificateAuth(newServerKubeconfig)
+	newTLSServerNameKubeconfig := withClusterTLSServerName(oldKubeconfig, "test-cluster", "new.example.com")
+
+	tests := []struct {
+		name                       string
+		initialResourceVersion     string
+		initialKubeconfig          []byte
+		initialToken               string
+		initialTokenHolder         *tokenHolder
+		runningOnCluster           bool
+		secret                     *corev1.Secret
+		secretReaderError          error
+		wantNeedsReconnect         bool
+		wantResourceVersion        string
+		wantKubeconfig             []byte
+		wantToken                  string
+		wantRESTConfigBearerToken  string
+		wantRESTConfigPointerEqual bool
+	}{
+		{
+			name:                       "resourceVersion unchanged returns no-op",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			secret:                     newKubeconfigSecret(testCluster, "1", rotatedTokenKubeconfig),
+			wantResourceVersion:        "1",
+			wantKubeconfig:             oldKubeconfig,
+			wantToken:                  "old-token",
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
+		},
+		{
+			name:                       "same kubeconfig bytes with new resourceVersion only updates resourceVersion",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			secret:                     newKubeconfigSecret(testCluster, "2", oldKubeconfig),
+			wantResourceVersion:        "2",
+			wantKubeconfig:             oldKubeconfig,
+			wantToken:                  "old-token",
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
+		},
+		{
+			name:                       "token-only change refreshes connection in place",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			secret:                     newKubeconfigSecret(testCluster, "2", rotatedTokenKubeconfig),
+			wantResourceVersion:        "2",
+			wantKubeconfig:             rotatedTokenKubeconfig,
+			wantToken:                  "new-token",
+			wantRESTConfigBearerToken:  "new-token",
+			wantRESTConfigPointerEqual: false,
+		},
+		{
+			name:                       "token-only change without token holder needs reconnect",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			secret:                     newKubeconfigSecret(testCluster, "2", rotatedTokenKubeconfig),
+			wantNeedsReconnect:         true,
+			wantResourceVersion:        "1",
+			wantKubeconfig:             oldKubeconfig,
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
+		},
+		{
+			name:                       "server change needs reconnect",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			secret:                     newKubeconfigSecret(testCluster, "2", newServerKubeconfig),
+			wantNeedsReconnect:         true,
+			wantResourceVersion:        "1",
+			wantKubeconfig:             oldKubeconfig,
+			wantToken:                  "old-token",
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
+		},
+		{
+			name:                       "server change while running on cluster does not need reconnect",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			runningOnCluster:           true,
+			secret:                     newKubeconfigSecret(testCluster, "2", newServerKubeconfig),
+			wantResourceVersion:        "2",
+			wantKubeconfig:             newServerKubeconfig,
+			wantToken:                  "old-token",
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
+		},
+		{
+			name:                       "server and token change while running on cluster refreshes token in place",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			runningOnCluster:           true,
+			secret:                     newKubeconfigSecret(testCluster, "2", newServerAndRotatedTokenKubeconfig),
+			wantResourceVersion:        "2",
+			wantKubeconfig:             newServerAndRotatedTokenKubeconfig,
+			wantToken:                  "new-token",
+			wantRESTConfigBearerToken:  "new-token",
+			wantRESTConfigPointerEqual: false,
+		},
+		{
+			name:                       "server and CA change with client certificate while running on cluster only updates kubeconfig state",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldClientCertificateKubeconfig,
+			runningOnCluster:           true,
+			secret:                     newKubeconfigSecret(testCluster, "2", newClientCertificateKubeconfig),
+			wantResourceVersion:        "2",
+			wantKubeconfig:             newClientCertificateKubeconfig,
+			wantRESTConfigPointerEqual: true,
+		},
+		{
+			name:                       "TLS server name change while running on cluster needs reconnect",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			runningOnCluster:           true,
+			secret:                     newKubeconfigSecret(testCluster, "2", newTLSServerNameKubeconfig),
+			wantNeedsReconnect:         true,
+			wantResourceVersion:        "1",
+			wantKubeconfig:             oldKubeconfig,
+			wantToken:                  "old-token",
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
+		},
+		{
+			name:                       "inactive AuthInfo token change only updates kubeconfig state",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfigWithInactiveToken,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			secret:                     newKubeconfigSecret(testCluster, "2", newKubeconfigWithInactiveToken),
+			wantResourceVersion:        "2",
+			wantKubeconfig:             newKubeconfigWithInactiveToken,
+			wantToken:                  "old-token",
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
+		},
+		{
+			name:                       "secret missing keeps connection",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			secretReaderError:          apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "test-cluster-kubeconfig"),
+			wantResourceVersion:        "1",
+			wantKubeconfig:             oldKubeconfig,
+			wantToken:                  "old-token",
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
+		},
+		{
+			name:                       "unparsable new kubeconfig keeps connection",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			secret:                     newKubeconfigSecret(testCluster, "2", []byte("not a kubeconfig")),
+			wantResourceVersion:        "1",
+			wantKubeconfig:             oldKubeconfig,
+			wantToken:                  "old-token",
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			accessor := newClusterAccessor(context.Background(), clusterKey, &clusterAccessorConfig{
+				SecretClient: &testSecretReader{
+					secret: tt.secret,
+					err:    tt.secretReaderError,
+				},
+			})
+			restConfig := &rest.Config{
+				Host:        "https://old.example.com",
+				BearerToken: tt.initialToken,
+			}
+			accessor.lockedState.connection = &clusterAccessorLockedConnectionState{
+				restConfig:                restConfig,
+				kubeconfigResourceVersion: tt.initialResourceVersion,
+				kubeconfig:                tt.initialKubeconfig,
+				tokenHolder:               tt.initialTokenHolder,
+				runningOnCluster:          tt.runningOnCluster,
+			}
+
+			needsReconnect := accessor.SyncKubeconfig(ctx)
+
+			g.Expect(needsReconnect).To(Equal(tt.wantNeedsReconnect))
+			g.Expect(accessor.lockedState.connection.kubeconfigResourceVersion).To(Equal(tt.wantResourceVersion))
+			g.Expect(accessor.lockedState.connection.kubeconfig).To(Equal(tt.wantKubeconfig))
+			g.Expect(accessor.lockedState.connection.restConfig.BearerToken).To(Equal(tt.wantRESTConfigBearerToken))
+			if tt.wantRESTConfigPointerEqual {
+				g.Expect(accessor.lockedState.connection.restConfig).To(BeIdenticalTo(restConfig))
+			} else {
+				g.Expect(accessor.lockedState.connection.restConfig).ToNot(BeIdenticalTo(restConfig))
+			}
+			if tt.initialTokenHolder != nil {
+				g.Expect(tt.initialTokenHolder.token()).To(Equal(tt.wantToken))
+			}
+		})
+	}
+}
+
 func TestWatch(t *testing.T) {
 	g := NewWithT(t)
 
@@ -489,4 +724,104 @@ func objBody(obj runtime.Object) io.ReadCloser {
 	corev1GV := schema.GroupVersion{Version: "v1"}
 	corev1Codec := scheme.Codecs.CodecForVersions(scheme.Codecs.LegacyCodec(corev1GV), scheme.Codecs.UniversalDecoder(corev1GV), corev1GV, corev1GV)
 	return io.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(corev1Codec, obj))))
+}
+
+type testSecretReader struct {
+	secret *corev1.Secret
+	err    error
+}
+
+var _ client.Reader = &testSecretReader{}
+
+func (r *testSecretReader) Get(_ context.Context, _ client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
+	if r.err != nil {
+		return r.err
+	}
+
+	r.secret.DeepCopyInto(obj.(*corev1.Secret))
+	return nil
+}
+
+func (r *testSecretReader) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
+	return errors.New("List is not implemented")
+}
+
+func newKubeconfigSecret(cluster *clusterv1.Cluster, resourceVersion string, data []byte) *corev1.Secret {
+	kubeconfigSecret := kubeconfig.GenerateSecret(cluster, data)
+	kubeconfigSecret.ResourceVersion = resourceVersion
+	return kubeconfigSecret
+}
+
+func newTokenKubeconfig(clusterName, server, token string, certificateAuthorityData []byte) []byte {
+	const authInfoName = "test-user"
+
+	data, err := clientcmd.Write(clientcmdapi.Config{
+		Clusters: map[string]*clientcmdapi.Cluster{
+			clusterName: {
+				Server:                   server,
+				CertificateAuthorityData: certificateAuthorityData,
+			},
+		},
+		Contexts: map[string]*clientcmdapi.Context{
+			clusterName: {
+				Cluster:  clusterName,
+				AuthInfo: authInfoName,
+			},
+		},
+		AuthInfos: map[string]*clientcmdapi.AuthInfo{
+			authInfoName: {
+				Token: token,
+			},
+		},
+		CurrentContext: clusterName,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func withAuthInfoToken(kubeconfig []byte, name, token string) []byte {
+	config, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		panic(err)
+	}
+	config.AuthInfos[name] = &clientcmdapi.AuthInfo{Token: token}
+
+	data, err := clientcmd.Write(*config)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func withClientCertificateAuth(kubeconfig []byte) []byte {
+	config, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		panic(err)
+	}
+	authInfo := config.AuthInfos[config.Contexts[config.CurrentContext].AuthInfo]
+	authInfo.Token = ""
+	authInfo.ClientCertificateData = []byte("client-certificate")
+	authInfo.ClientKeyData = []byte("client-key")
+
+	data, err := clientcmd.Write(*config)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func withClusterTLSServerName(kubeconfig []byte, clusterName, tlsServerName string) []byte {
+	config, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		panic(err)
+	}
+	config.Clusters[clusterName].TLSServerName = tlsServerName
+
+	data, err := clientcmd.Write(*config)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }

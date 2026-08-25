@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/internal/topology/pinning"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/index"
@@ -257,6 +258,26 @@ func (webhook *ClusterClass) validateKubernetesVersionsOfClusters(clusters []clu
 				fmt.Sprintf("Kubernetes Version %s is used by Cluster %q but not set in ClusterClass",
 					c.Spec.Topology.Version, c.Name),
 			))
+		}
+
+		// Same for the versions pinned by MachineDeployments/MachinePools. Without this a pinned
+		// version could be removed here, and from then on every update to that Cluster would be
+		// rejected by ValidateClusterForClusterClass.
+		for _, md := range c.Spec.Topology.Workers.MachineDeployments {
+			if pinnedVersion := pinning.MachineDeploymentVersion(md); pinnedVersion != "" && !kubernetesVersions.Has(pinnedVersion) {
+				allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "kubernetesVersions"),
+					fmt.Sprintf("Kubernetes Version %s is pinned by MachineDeployment %s of Cluster %q but not set in ClusterClass",
+						pinnedVersion, md.Name, c.Name),
+				))
+			}
+		}
+		for _, mp := range c.Spec.Topology.Workers.MachinePools {
+			if pinnedVersion := pinning.MachinePoolVersion(mp); pinnedVersion != "" && !kubernetesVersions.Has(pinnedVersion) {
+				allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "kubernetesVersions"),
+					fmt.Sprintf("Kubernetes Version %s is pinned by MachinePool %s of Cluster %q but not set in ClusterClass",
+						pinnedVersion, mp.Name, c.Name),
+				))
+			}
 		}
 	}
 

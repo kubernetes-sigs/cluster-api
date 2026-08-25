@@ -26,7 +26,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v90/github"
 	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
@@ -292,15 +292,16 @@ func getGithubAssetFromRelease(ctx context.Context, ghClient *github.Client, pat
 }
 
 func getGitHubClient(ctx context.Context, configVariablesClient config.VariablesClient) (*github.Client, error) {
-	var authenticatingHTTPClient *http.Client
+	var opts []github.ClientOptionsFunc
 	if token, err := configVariablesClient.Get(config.GitHubTokenVariable); err == nil {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: token},
 		)
-		authenticatingHTTPClient = oauth2.NewClient(ctx, ts)
+		authenticatingHTTPClient := oauth2.NewClient(ctx, ts)
+		opts = append(opts, github.WithHTTPClient(authenticatingHTTPClient))
 	}
 
-	return github.NewClient(authenticatingHTTPClient), nil
+	return github.NewClient(opts...)
 }
 
 var errRateLimit = pkgerrors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")

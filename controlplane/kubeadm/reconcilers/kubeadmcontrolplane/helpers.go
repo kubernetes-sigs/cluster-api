@@ -293,7 +293,7 @@ func (r *Reconciler) updateLabelsAndAnnotations(ctx context.Context, obj client.
 	updatedObject.SetLabels(desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name))
 	updatedObject.SetAnnotations(desiredstate.ControlPlaneMachineAnnotations(kcp))
 
-	return ssa.Patch(ctx, r.Client, kcpMetadataManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj})
+	return ssa.Patch(ctx, r.Client, kcpMetadataManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj, SkipUpdateModifiedOnCacheHit: true})
 }
 
 func (r *Reconciler) createMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) error {

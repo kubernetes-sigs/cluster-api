@@ -24,10 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v90/github"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
-	"k8s.io/utils/ptr"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -791,7 +790,7 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        args
-		wantTagName *string
+		wantTagName string
 		wantErr     bool
 	}{
 		{
@@ -799,7 +798,7 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 			args: args{
 				tag: "foo",
 			},
-			wantTagName: ptr.To("v0.4.1"),
+			wantTagName: "v0.4.1",
 			wantErr:     false,
 		},
 		{
@@ -807,7 +806,7 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 			args: args{
 				tag: "bar",
 			},
-			wantTagName: nil,
+			wantTagName: "",
 			wantErr:     true,
 		},
 	}
@@ -828,11 +827,6 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-
-			if tt.wantTagName == nil {
-				g.Expect(got).To(BeNil())
-				return
-			}
 
 			g.Expect(got.TagName).To(Equal(tt.wantTagName))
 		})
@@ -883,7 +877,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			name: "Pass if file exists",
 			args: args{
 				release: &github.RepositoryRelease{
-					TagName: &tagName,
+					TagName: tagName,
 					Assets: []*github.ReleaseAsset{
 						{
 							ID:   &id1,
@@ -901,7 +895,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			name: "Pass if file exists with redirect",
 			args: args{
 				release: &github.RepositoryRelease{
-					TagName: &tagName,
+					TagName: tagName,
 					Assets: []*github.ReleaseAsset{
 						{
 							ID:   &id1,
@@ -919,7 +913,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			name: "Fails if file does not exists",
 			args: args{
 				release: &github.RepositoryRelease{
-					TagName: &tagName,
+					TagName: tagName,
 					Assets: []*github.ReleaseAsset{
 						{
 							ID:   &id1,
@@ -936,7 +930,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			name: "Fails if file does not exists",
 			args: args{
 				release: &github.RepositoryRelease{
-					TagName: &tagName,
+					TagName: tagName,
 					Assets: []*github.ReleaseAsset{
 						{
 							ID:   &id2, // id does not match any file (this should not happen)

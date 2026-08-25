@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v90/github"
 	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -272,11 +272,15 @@ func getComponentsPath(path string, rootPath string) string {
 }
 
 // getClient returns a github API client.
-func (g *gitHubRepository) getClient() *github.Client {
+func (g *gitHubRepository) getClient() (*github.Client, error) {
 	if g.injectClient != nil {
-		return g.injectClient
+		return g.injectClient, nil
 	}
-	return github.NewClient(g.authenticatingHTTPClient)
+	var opts []github.ClientOptionsFunc
+	if g.authenticatingHTTPClient != nil {
+		opts = append(opts, github.WithHTTPClient(g.authenticatingHTTPClient))
+	}
+	return github.NewClient(opts...)
 }
 
 // getGoproxyClient returns a go proxy client.
@@ -307,7 +311,10 @@ func (g *gitHubRepository) setClientToken(ctx context.Context, token string) {
 
 // getVersions returns all the release versions for a github repository.
 func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
-	client := g.getClient()
+	client, err := g.getClient()
+	if err != nil {
+		return nil, err
+	}
 
 	// Get all the releases.
 	// NB. currently Github API does not support result ordering, so it not possible to limit results
@@ -350,10 +357,10 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 	}
 	versions := []string{}
 	for _, r := range allReleases {
-		if r.TagName == nil {
+		if r.TagName == "" {
 			continue
 		}
-		tagName := *r.TagName
+		tagName := r.TagName
 		if _, err := version.ParseSemantic(tagName); err != nil {
 			// Discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases).
 			continue
@@ -371,7 +378,10 @@ func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*gi
 		return release, nil
 	}
 
-	client := g.getClient()
+	client, err := g.getClient()
+	if err != nil {
+		return nil, err
+	}
 
 	var release *github.RepositoryRelease
 	var retryError error
@@ -442,7 +452,10 @@ func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version,
 
 // downloadFilesFromRelease download a file from release.
 func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release *github.RepositoryRelease, fileName string) ([]byte, error) {
-	client := g.getClient()
+	client, err := g.getClient()
+	if err != nil {
+		return nil, err
+	}
 	absoluteFileName := filepath.Join(g.rootPath, fileName)
 
 	// Search for the file into the release assets, retrieving the asset id.
@@ -454,7 +467,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 		}
 	}
 	if assetID == nil {
-		return nil, pkgerrors.Errorf("failed to get file %q from %q release", fileName, *release.TagName)
+		return nil, pkgerrors.Errorf("failed to get file %q from %q release", fileName, release.TagName)
 	}
 
 	var reader io.ReadCloser
@@ -465,7 +478,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 		var downloadReleaseError error
 		reader, redirect, downloadReleaseError = client.Repositories.DownloadReleaseAsset(ctx, g.owner, g.repository, *assetID, http.DefaultClient)
 		if downloadReleaseError != nil {
-			retryError = g.handleGithubErr(downloadReleaseError, "failed to download file %q from %q release", *release.TagName, fileName)
+			retryError = g.handleGithubErr(downloadReleaseError, "failed to download file %q from %q release", release.TagName, fileName)
 			// Return immediately if we are rate limited.
 			if pkgerrors.Is(retryError, errRateLimit) {
 				return false, retryError
@@ -484,7 +497,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 		var err error
 		content, err = io.ReadAll(reader)
 		if err != nil {
-			retryError = pkgerrors.Wrapf(err, "failed to read downloaded file %q from %q release", *release.TagName, fileName)
+			retryError = pkgerrors.Wrapf(err, "failed to read downloaded file %q from %q release", release.TagName, fileName)
 			return false, nil
 		}
 

@@ -37,6 +37,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/topology/pinning"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 type preflightCheckErrorMessage *string
@@ -126,7 +128,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 
 		// Run the control plane version skew preflight check.
 		if shouldRun(r.PreflightChecks, skipped, clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew) {
-			if preflightCheckErr := r.controlPlaneVersionPreflightCheck(cluster, *cpVersion, msVersion); preflightCheckErr != nil {
+			if preflightCheckErr := r.controlPlaneVersionPreflightCheck(cluster, ms, *cpVersion, msVersion); preflightCheckErr != nil {
 				preflightCheckErrs = append(preflightCheckErrs, preflightCheckErr)
 			}
 		}
@@ -196,16 +198,17 @@ func (r *Reconciler) kubernetesVersionPreflightCheck(cpSemver, msSemver semver.V
 	// Check the Kubernetes version skew policy.
 	// => MS minor version cannot be greater than the Control Plane minor version.
 	// => MS minor version cannot be outside of the supported skew.
-	// Kubernetes skew policy: https://kubernetes.io/releases/version-skew-policy/#kubelet
-	if msSemver.Minor > cpSemver.Minor {
+	if version.WorkerVersionSkewSupported(cpSemver, msSemver) {
+		return nil
+	}
+	switch {
+	case msSemver.Major != cpSemver.Major:
+		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as the major versions differ (%q preflight check failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
+	case msSemver.Minor > cpSemver.Minor:
 		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is higher than ControlPlane version (%q preflight check failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
+	default:
+		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is more than %d minor versions older than the ControlPlane version (%q preflight check failed)", msSemver.String(), cpSemver.String(), version.MaxWorkerMinorVersionSkew, clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
 	}
-	minorSkew := uint64(3)
-	if msSemver.Minor < cpSemver.Minor-minorSkew {
-		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is more than %d minor versions older than the ControlPlane version (%q preflight check failed)", msSemver.String(), cpSemver.String(), minorSkew, clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
-	}
-
-	return nil
 }
 
 func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Version, ms *clusterv1.MachineSet) preflightCheckErrorMessage {
@@ -221,15 +224,21 @@ func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Vers
 	kubeadmBootstrapProviderUsed := bootstrapConfigRef.Kind == "KubeadmConfigTemplate" &&
 		bootstrapConfigRef.APIGroup == bootstrapv1.GroupVersion.Group
 	if kubeadmBootstrapProviderUsed {
-		if cpSemver.Minor != msSemver.Minor {
+		if !version.KubeadmJoinVersionSkewSupported(cpSemver, msSemver) {
 			return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (%q preflight check failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubeadmVersionSkew))
 		}
 	}
 	return nil
 }
 
-func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluster, cpVersion, msVersion string) preflightCheckErrorMessage {
+func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, cpVersion, msVersion string) preflightCheckErrorMessage {
 	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
+		// A MachineDeployment pinning its own version manages its version independently of the
+		// control plane, so waiting for the control plane version to propagate would block forever.
+		// Note: the Kubernetes version skew is still enforced by the KubernetesVersionSkew check.
+		if pinning.MachineDeploymentVersionByLabels(cluster, ms.Labels) != "" {
+			return nil
+		}
 		if cpVersion != msVersion {
 			return ptr.To(fmt.Sprintf("MachineSet version (%s) is not yet the same as the ControlPlane version (%s), waiting for version to be propagated to the MachineSet (%q preflight check failed)", msVersion, cpVersion, clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew))
 		}

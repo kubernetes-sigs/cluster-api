@@ -1848,6 +1848,90 @@ func TestClusterClassValidation(t *testing.T) {
 	}
 }
 
+func Test_validateKubernetesVersionsOfClusters(t *testing.T) {
+	// Removing a version that a Cluster still uses must be rejected here. Otherwise
+	// ValidateClusterForClusterClass would reject every later update to that Cluster, including the
+	// one needed to move off the removed version.
+	clusterWith := func(topologyVersion, mdVersion, mpVersion string) clusterv1.Cluster {
+		return *builder.Cluster("ns1", "cluster1").
+			WithTopology(builder.ClusterTopology().WithClass("cc").WithVersion(topologyVersion).
+				WithMachineDeployment(builder.MachineDeploymentTopology("md-0").WithClass("aa").WithVersion(mdVersion).Build()).
+				WithMachinePool(builder.MachinePoolTopology("mp-0").WithClass("aa").WithVersion(mpVersion).Build()).
+				Build()).
+			Build()
+	}
+
+	tests := []struct {
+		name               string
+		versionPinning     bool
+		kubernetesVersions []string
+		cluster            clusterv1.Cluster
+		expectErrs         []string
+	}{
+		{
+			name:               "should pass if the ClusterClass sets no versions",
+			versionPinning:     true,
+			kubernetesVersions: nil,
+			cluster:            clusterWith("v1.34.0", "v1.31.0", ""),
+		},
+		{
+			name:               "should pass if every used version is set",
+			versionPinning:     true,
+			kubernetesVersions: []string{"v1.31.0", "v1.34.0"},
+			cluster:            clusterWith("v1.34.0", "v1.31.0", "v1.34.0"),
+		},
+		{
+			name:               "should reject removing the topology version",
+			versionPinning:     true,
+			kubernetesVersions: []string{"v1.31.0"},
+			cluster:            clusterWith("v1.34.0", "v1.31.0", ""),
+			expectErrs:         []string{"Kubernetes Version v1.34.0 is used by Cluster \"cluster1\" but not set in ClusterClass"},
+		},
+		{
+			name:               "should reject removing a version pinned by a MachineDeployment",
+			versionPinning:     true,
+			kubernetesVersions: []string{"v1.34.0"},
+			cluster:            clusterWith("v1.34.0", "v1.31.0", ""),
+			expectErrs:         []string{"Kubernetes Version v1.31.0 is pinned by MachineDeployment md-0 of Cluster \"cluster1\" but not set in ClusterClass"},
+		},
+		{
+			name:               "should reject removing a version pinned by a MachinePool",
+			versionPinning:     true,
+			kubernetesVersions: []string{"v1.34.0"},
+			cluster:            clusterWith("v1.34.0", "", "v1.31.0"),
+			expectErrs:         []string{"Kubernetes Version v1.31.0 is pinned by MachinePool mp-0 of Cluster \"cluster1\" but not set in ClusterClass"},
+		},
+		{
+			name:               "should ignore pinned versions if the feature gate is disabled",
+			versionPinning:     false,
+			kubernetesVersions: []string{"v1.34.0"},
+			cluster:            clusterWith("v1.34.0", "v1.31.0", "v1.31.0"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, tt.versionPinning)
+
+			newClusterClass := builder.ClusterClass("ns1", "cc").Build()
+			newClusterClass.Spec.KubernetesVersions = tt.kubernetesVersions
+
+			webhook := &ClusterClass{}
+			errs := webhook.validateKubernetesVersionsOfClusters([]clusterv1.Cluster{tt.cluster}, nil, newClusterClass)
+
+			if len(tt.expectErrs) == 0 {
+				g.Expect(errs).To(BeEmpty())
+				return
+			}
+			g.Expect(errs).To(HaveLen(len(tt.expectErrs)))
+			for i, expectErr := range tt.expectErrs {
+				g.Expect(errs[i].Error()).To(ContainSubstring(expectErr))
+			}
+		})
+	}
+}
+
 func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
 	// Enabling the feature flag temporarily for this test.

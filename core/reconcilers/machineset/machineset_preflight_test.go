@@ -37,6 +37,7 @@ import (
 
 func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, true)
 	ns := "ns1"
 
 	controlPlaneWithNoVersion := builder.ControlPlane(ns, "cp1").Build()
@@ -70,13 +71,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 
 	t.Run("should run preflight checks if the feature gate is enabled", func(t *testing.T) {
 		tests := []struct {
-			name                  string
-			cluster               *clusterv1.Cluster
-			controlPlane          *unstructured.Unstructured
-			machineSet            *clusterv1.MachineSet
-			kubeadmConfigTemplate *bootstrapv1.KubeadmConfigTemplate
-			wantMessages          []string
-			wantErr               bool
+			name                   string
+			cluster                *clusterv1.Cluster
+			controlPlane           *unstructured.Unstructured
+			machineSet             *clusterv1.MachineSet
+			kubeadmConfigTemplate  *bootstrapv1.KubeadmConfigTemplate
+			versionPinningDisabled bool
+			wantMessages           []string
+			wantErr                bool
 		}{
 			{
 				name:         "should pass if cluster has no control plane",
@@ -782,11 +784,207 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				wantMessages: nil,
 				wantErr:      false,
 			},
+			{
+				// A pinned MachineDeployment intentionally lags the control plane, so requiring its
+				// version to match the control plane would block scale up and remediation forever.
+				name: "control plane version preflight check: should pass if the machine deployment pins a version",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						Topology: clusterv1.Topology{
+							ClassRef: clusterv1.ClusterClassRef{
+								Name: "class",
+							},
+							Workers: clusterv1.WorkersTopology{
+								MachineDeployments: []clusterv1.MachineDeploymentTopology{
+									{Name: "md-0", Version: "v1.26.0"},
+								},
+							},
+						},
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet: &clusterv1.MachineSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Labels: map[string]string{
+							clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-0",
+						},
+						Annotations: map[string]string{
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
+						},
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: "v1.26.0",
+							},
+						},
+					},
+				},
+				wantMessages: nil,
+				wantErr:      false,
+			},
+			{
+				// The skip is narrow: only ControlPlaneVersionSkew is waived for a pinned
+				// MachineDeployment. The Kubernetes version skew policy is still enforced, so a pin
+				// further behind than the policy allows is still blocked at runtime.
+				name: "control plane version preflight check: should still enforce the kubernetes version skew for a pinned machine deployment",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						Topology: clusterv1.Topology{
+							ClassRef: clusterv1.ClusterClassRef{
+								Name: "class",
+							},
+							Workers: clusterv1.WorkersTopology{
+								MachineDeployments: []clusterv1.MachineDeploymentTopology{
+									{Name: "md-0", Version: "v1.22.0"},
+								},
+							},
+						},
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet: &clusterv1.MachineSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Labels: map[string]string{
+							clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-0",
+						},
+						Annotations: map[string]string{
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
+						},
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: "v1.22.0",
+							},
+						},
+					},
+				},
+				wantMessages: []string{"MachineSet version (1.22.0) and ControlPlane version (1.26.2) do not conform to the kubernetes version skew policy as MachineSet version is more than 3 minor versions older than the ControlPlane version (\"KubernetesVersionSkew\" preflight check failed)"},
+				wantErr:      false,
+			},
+			{
+				// KubeadmVersionSkew is also not waived by the pin. kubeadm only joins at the same
+				// minor as the control plane, so a pinned MachineDeployment behind the control plane
+				// stays blocked until the operator skips this check explicitly and installs a
+				// matching kubeadm binary.
+				name: "control plane version preflight check: should still enforce the kubeadm version skew for a pinned machine deployment",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						Topology: clusterv1.Topology{
+							ClassRef: clusterv1.ClusterClassRef{
+								Name: "class",
+							},
+							Workers: clusterv1.WorkersTopology{
+								MachineDeployments: []clusterv1.MachineDeploymentTopology{
+									{Name: "md-0", Version: "v1.25.0"},
+								},
+							},
+						},
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet: &clusterv1.MachineSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Labels: map[string]string{
+							clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-0",
+						},
+						Annotations: map[string]string{
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
+						},
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: "v1.25.0",
+								Bootstrap: clusterv1.Bootstrap{
+									ConfigRef: clusterv1.ContractVersionedObjectReference{
+										APIGroup: bootstrapv1.GroupVersion.Group,
+										Kind:     "KubeadmConfigTemplate",
+										Name:     "kubeadmconfigtemplate-1",
+									},
+								},
+							},
+						},
+					},
+				},
+				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Name:      "kubeadmconfigtemplate-1",
+					},
+				},
+				wantMessages: []string{"MachineSet version (1.25.0) and ControlPlane version (1.26.2) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)"},
+				wantErr:      false,
+			},
+			{
+				// With the feature gate off the pin is inert, so the skip must not apply and the
+				// check behaves exactly as it did before this feature.
+				name: "control plane version preflight check: should not skip for a pinned machine deployment if the feature gate is disabled",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						Topology: clusterv1.Topology{
+							ClassRef: clusterv1.ClusterClassRef{
+								Name: "class",
+							},
+							Workers: clusterv1.WorkersTopology{
+								MachineDeployments: []clusterv1.MachineDeploymentTopology{
+									{Name: "md-0", Version: "v1.26.0"},
+								},
+							},
+						},
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet: &clusterv1.MachineSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Labels: map[string]string{
+							clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-0",
+						},
+						Annotations: map[string]string{
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
+						},
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: "v1.26.0",
+							},
+						},
+					},
+				},
+				versionPinningDisabled: true,
+				wantMessages:           []string{"MachineSet version (v1.26.0) is not yet the same as the ControlPlane version (v1.26.2), waiting for version to be propagated to the MachineSet (\"ControlPlaneVersionSkew\" preflight check failed)"},
+				wantErr:                false,
+			},
 		}
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
+				if tt.versionPinningDisabled {
+					utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, false)
+				}
 				objs := []client.Object{}
 				if tt.controlPlane != nil {
 					objs = append(objs, tt.controlPlane, builder.GenericControlPlaneCRD)

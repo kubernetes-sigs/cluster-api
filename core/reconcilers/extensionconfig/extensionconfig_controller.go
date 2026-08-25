@@ -31,7 +31,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -62,7 +62,7 @@ type Reconciler struct {
 	Client             client.Client
 	APIReader          client.Reader
 	RuntimeClient      runtimeclient.Client
-	PartialSecretCache cache.Cache
+	PartialSecretCache ctrlcache.Cache
 
 	// ReadOnly configures if the ExtensionConfig controller should write ExtensionConfig objects or only read them
 	ReadOnly bool

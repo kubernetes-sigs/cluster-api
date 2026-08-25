@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/setup"
@@ -47,7 +47,7 @@ func init() {
 func TestMain(m *testing.M) {
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M: m,
-		SetupManagerCacheOptions: func(scheme *runtime.Scheme) cache.Options {
+		SetupManagerCacheOptions: func(scheme *runtime.Scheme) ctrlcache.Options {
 			return setup.ManagerCacheOptions(scheme, "test-controller-manager", "", 10*time.Minute)
 		},
 		ManagerClientOptions: setup.ManagerClientOptions(),

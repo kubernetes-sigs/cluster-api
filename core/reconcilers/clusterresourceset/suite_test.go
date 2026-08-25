@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -53,7 +53,7 @@ func TestMain(m *testing.M) {
 
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
 		// Create partial cache analog to main.go.
-		partialSecretCache, err := cache.New(mgr.GetConfig(), cache.Options{
+		partialSecretCache, err := ctrlcache.New(mgr.GetConfig(), ctrlcache.Options{
 			Scheme:     mgr.GetScheme(),
 			Mapper:     mgr.GetRESTMapper(),
 			HTTPClient: mgr.GetHTTPClient(),
@@ -68,7 +68,7 @@ func TestMain(m *testing.M) {
 					panic(fmt.Sprintf("cache expected to only get Secrets, got %s", obj.GetObjectKind()))
 				}
 				// Additionally strip managed fields.
-				return cache.TransformStripManagedFields()(obj)
+				return ctrlcache.TransformStripManagedFields()(obj)
 			},
 		})
 		if err != nil {
@@ -113,7 +113,7 @@ func TestMain(m *testing.M) {
 
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M: m,
-		SetupManagerCacheOptions: func(scheme *runtime.Scheme) cache.Options {
+		SetupManagerCacheOptions: func(scheme *runtime.Scheme) ctrlcache.Options {
 			return setup.ManagerCacheOptions(scheme, "test-controller-manager", "", 10*time.Minute)
 		},
 		ManagerClientOptions: setup.ManagerClientOptions(),

@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest/fake"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -441,7 +441,7 @@ func TestConnectWithDefaultTransform(t *testing.T) {
 			Timeout:   10 * time.Second,
 		},
 		Cache: CacheOptions{
-			DefaultTransform: cache.TransformStripManagedFields(),
+			DefaultTransform: ctrlcache.TransformStripManagedFields(),
 		},
 	}, nil)
 	accessor := newClusterAccessor(context.Background(), clusterKey, config)

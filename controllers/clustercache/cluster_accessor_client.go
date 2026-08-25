@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
@@ -245,7 +245,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 	}
 
 	// Create the cache for the cluster.
-	cacheOptions := cache.Options{
+	cacheOptions := ctrlcache.Options{
 		HTTPClient:       httpClientWith11mTimeout,
 		Scheme:           clusterAccessorConfig.Scheme,
 		Mapper:           mapper,
@@ -253,7 +253,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 		DefaultTransform: clusterAccessorConfig.Cache.DefaultTransform,
 		ByObject:         clusterAccessorConfig.Cache.ByObject,
 	}
-	remoteCache, err := cache.New(configWith11mTimeout, cacheOptions)
+	remoteCache, err := ctrlcache.New(configWith11mTimeout, cacheOptions)
 	if err != nil {
 		return nil, nil, pkgerrors.WithMessage(err, "error creating cache")
 	}
@@ -342,7 +342,7 @@ func (c clientWithTimeout) List(ctx context.Context, list client.ObjectList, opt
 
 // stoppableCache embeds cache.Cache and combines it with a stop channel.
 type stoppableCache struct {
-	cache.Cache
+	ctrlcache.Cache
 
 	lock       sync.Mutex
 	stopped    bool

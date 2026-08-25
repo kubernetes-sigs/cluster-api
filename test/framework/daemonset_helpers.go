@@ -24,7 +24,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	toolscache "sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	containerutil "sigs.k8s.io/cluster-api/util/container"
@@ -61,7 +61,7 @@ func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeI
 // WatchDaemonSetLogsByLabelSelectorInput is the input for WatchDaemonSetLogsByLabelSelector.
 type WatchDaemonSetLogsByLabelSelectorInput struct {
 	GetLister GetLister
-	Cache     toolscache.Cache
+	Cache     ctrlcache.Cache
 	ClientSet *kubernetes.Clientset
 	Labels    map[string]string
 	LogPath   string

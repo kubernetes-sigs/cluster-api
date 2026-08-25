@@ -30,7 +30,7 @@ import (
 	"k8s.io/client-go/rest"
 	toolscache "k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -102,7 +102,7 @@ type clusterAccessorCacheConfig struct {
 	DefaultTransform toolscache.TransformFunc
 
 	// ByObject restricts the cache's ListWatch to the desired fields per GVK at the specified object.
-	ByObject map[client.Object]cache.ByObject
+	ByObject map[client.Object]ctrlcache.ByObject
 
 	// Indexes are the indexes added to the cache.
 	Indexes []CacheOptionsIndex

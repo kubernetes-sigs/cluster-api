@@ -39,7 +39,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -342,7 +342,7 @@ func TestMinDurationOrDefault(t *testing.T) {
 }
 
 func TestBuildClusterAccessorConfigDefaultTransform(t *testing.T) {
-	transform := cache.TransformStripManagedFields()
+	transform := ctrlcache.TransformStripManagedFields()
 	tests := []struct {
 		name      string
 		transform toolscache.TransformFunc

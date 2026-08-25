@@ -1191,19 +1191,17 @@ func getAttachedVolumeInformation(ctx context.Context, remoteClient client.Clien
 		attachedVolumeName.Insert(string(attachedVolume.Name))
 	}
 
-	if feature.Gates.Enabled(feature.MachineWaitForVolumeDetachConsiderVolumeAttachments) {
-		volumeAttachments, err := getVolumeAttachmentForNode(ctx, remoteClient, node.GetName())
-		if err != nil {
-			return nil, nil, pkgerrors.Wrap(err, "failed to list VolumeAttachments")
-		}
+	volumeAttachments, err := getVolumeAttachmentForNode(ctx, remoteClient, node.GetName())
+	if err != nil {
+		return nil, nil, pkgerrors.Wrap(err, "failed to list VolumeAttachments")
+	}
 
-		for _, va := range volumeAttachments {
-			// Return an error if a VolumeAttachments does not refer a PersistentVolume.
-			if va.Spec.Source.PersistentVolumeName == nil {
-				return nil, nil, pkgerrors.Errorf("spec.source.persistentVolumeName for VolumeAttachment %s is not set", va.GetName())
-			}
-			attachedPVNames.Insert(*va.Spec.Source.PersistentVolumeName)
+	for _, va := range volumeAttachments {
+		// Return an error if a VolumeAttachments does not refer a PersistentVolume.
+		if va.Spec.Source.PersistentVolumeName == nil {
+			return nil, nil, pkgerrors.Errorf("spec.source.persistentVolumeName for VolumeAttachment %s is not set", va.GetName())
 		}
+		attachedPVNames.Insert(*va.Spec.Source.PersistentVolumeName)
 	}
 
 	return attachedVolumeName, attachedPVNames, nil

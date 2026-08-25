@@ -864,3 +864,37 @@ func getCounterMetric(metricFamilyName, controllerName string) (float64, error) 
 
 	return 0, fmt.Errorf("failed to find %q metric", metricFamilyName)
 }
+
+func TestSetupWithManagerAppliesClusterFilter(t *testing.T) {
+	g := NewWithT(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	filter := func(cluster *clusterv1.Cluster) bool {
+		return cluster.Labels["cluster.x-k8s.io/included-in-clustercache-tests"] == "true"
+	}
+	cc, err := SetupWithManager(ctx, env.Manager, Options{
+		SecretClient: env.GetClient(),
+		Cache: CacheOptions{
+			Indexes: []CacheOptionsIndex{NodeProviderIDIndex},
+		},
+		Client: ClientOptions{
+			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+		},
+		ClusterFilter: filter,
+	}, controller.Options{
+		MaxConcurrentReconciles: 1,
+		// Has to be skipped as other tests in this package also register a "clustercache" controller
+		// with the same manager.
+		SkipNameValidation: ptr.To(true),
+	})
+	g.Expect(err).ToNot(HaveOccurred())
+	internalCC, ok := cc.(*clusterCache)
+	g.Expect(ok).To(BeTrue())
+	defer internalCC.Shutdown()
+	g.Expect(internalCC.clusterFilter).ToNot(BeNil(), "Options.ClusterFilter must be wired into the ClusterCache")
+	g.Expect(internalCC.clusterFilter(&clusterv1.Cluster{})).To(BeFalse())
+	g.Expect(internalCC.clusterFilter(&clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{
+		Labels: map[string]string{"cluster.x-k8s.io/included-in-clustercache-tests": "true"},
+	}})).To(BeTrue())
+}

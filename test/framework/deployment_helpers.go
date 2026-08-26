@@ -45,9 +45,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	toolscache "sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -105,7 +105,7 @@ func DescribeFailedDeployment(input WaitForDeploymentsAvailableInput, deployment
 // WatchDeploymentLogsByLabelSelectorInput is the input for WatchDeploymentLogsByLabelSelector.
 type WatchDeploymentLogsByLabelSelectorInput struct {
 	GetLister GetLister
-	Cache     toolscache.Cache
+	Cache     ctrlcache.Cache
 	ClientSet *kubernetes.Clientset
 	Labels    map[string]string
 	LogPath   string
@@ -141,7 +141,7 @@ func WatchDeploymentLogsByLabelSelector(ctx context.Context, input WatchDeployme
 // WatchDeploymentLogsByNameInput is the input for WatchDeploymentLogsByName.
 type WatchDeploymentLogsByNameInput struct {
 	GetLister  GetLister
-	Cache      toolscache.Cache
+	Cache      ctrlcache.Cache
 	ClientSet  *kubernetes.Clientset
 	Deployment *appsv1.Deployment
 	LogPath    string
@@ -175,7 +175,7 @@ func WatchDeploymentLogsByName(ctx context.Context, input WatchDeploymentLogsByN
 
 // watchPodLogsInput is the input for watchPodLogs.
 type watchPodLogsInput struct {
-	Cache                toolscache.Cache
+	Cache                ctrlcache.Cache
 	ClientSet            *kubernetes.Clientset
 	Namespace            string
 	ManagingResourceName string
@@ -216,7 +216,7 @@ type watchPodLogsEventHandler struct {
 	startedPods sync.Map
 }
 
-func newWatchPodLogsEventHandler(ctx context.Context, input watchPodLogsInput, selector labels.Selector) cache.ResourceEventHandler {
+func newWatchPodLogsEventHandler(ctx context.Context, input watchPodLogsInput, selector labels.Selector) toolscache.ResourceEventHandler {
 	return &watchPodLogsEventHandler{
 		ctx:         ctx,
 		input:       input,

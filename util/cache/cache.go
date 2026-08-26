@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	kcache "k8s.io/client-go/tools/cache"
+	toolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
@@ -67,7 +67,7 @@ type Cache[E Entry] interface {
 // ttl is the duration for which we keep entries in the cache.
 func New[E Entry](ctx context.Context, ttl time.Duration) Cache[E] {
 	r := &cache[E]{
-		Store: kcache.NewTTLStore(func(obj any) (string, error) {
+		Store: toolscache.NewTTLStore(func(obj any) (string, error) {
 			// We only add objects of type E to the cache, so it's safe to cast to E.
 			return obj.(E).Key(), nil
 		}, ttl),
@@ -90,7 +90,7 @@ func New[E Entry](ctx context.Context, ttl time.Duration) Cache[E] {
 }
 
 type cache[E Entry] struct {
-	kcache.Store
+	toolscache.Store
 }
 
 // Add adds the given entry to the Cache.

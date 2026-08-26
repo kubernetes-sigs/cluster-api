@@ -53,7 +53,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -145,7 +145,7 @@ func registerSchemes(s *runtime.Scheme) {
 // RunInput is the input for Run.
 type RunInput struct {
 	M                           *testing.M
-	SetupManagerCacheOptions    func(scheme *runtime.Scheme) cache.Options
+	SetupManagerCacheOptions    func(scheme *runtime.Scheme) ctrlcache.Options
 	ManagerClientOptions        client.Options
 	SetupIndexes                func(ctx context.Context, mgr ctrl.Manager)
 	SetupReconcilers            func(ctx context.Context, mgr ctrl.Manager)
@@ -187,7 +187,7 @@ func Run(ctx context.Context, input RunInput) int {
 	}
 
 	// Bootstrapping test environment
-	var cacheOptions cache.Options
+	var cacheOptions ctrlcache.Options
 	if input.SetupManagerCacheOptions != nil {
 		cacheOptions = input.SetupManagerCacheOptions(scheme)
 	}
@@ -276,7 +276,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, managerClientOptions client.Options) *Environment {
+func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions ctrlcache.Options, managerClientOptions client.Options) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")

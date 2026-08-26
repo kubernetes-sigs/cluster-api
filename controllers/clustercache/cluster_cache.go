@@ -33,7 +33,7 @@ import (
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -91,7 +91,7 @@ type CacheOptions struct {
 	DefaultTransform toolscache.TransformFunc
 
 	// ByObject restricts the cache's ListWatch to the desired fields per GVK at the specified object.
-	ByObject map[client.Object]cache.ByObject
+	ByObject map[client.Object]ctrlcache.ByObject
 
 	// Indexes are the indexes added to the cache.
 	Indexes []CacheOptionsIndex
@@ -204,7 +204,7 @@ var ErrClusterNotConnected = fmt.Errorf("connection to the workload cluster is d
 type Watcher interface {
 	Name() string
 	Object() client.Object
-	Watch(cache cache.Cache) error
+	Watch(cache ctrlcache.Cache) error
 }
 
 // SourceWatcher is a scoped-down interface from Controller that only has the Watch func.
@@ -266,7 +266,7 @@ type watcher[object client.Object, request comparable] struct {
 
 func (tw *watcher[object, request]) Name() string          { return tw.name }
 func (tw *watcher[object, request]) Object() client.Object { return tw.kind }
-func (tw *watcher[object, request]) Watch(cache cache.Cache) error {
+func (tw *watcher[object, request]) Watch(cache ctrlcache.Cache) error {
 	return tw.watcher.Watch(source.TypedKind[object, request](cache, tw.kind, tw.eventHandler, tw.predicates...))
 }
 

@@ -23,7 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -38,7 +38,7 @@ type ObjectTracker struct {
 	m sync.Map
 
 	Controller      controller.Controller
-	Cache           cache.Cache
+	Cache           ctrlcache.Cache
 	Scheme          *runtime.Scheme
 	PredicateLogger *logr.Logger
 }

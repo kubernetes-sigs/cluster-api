@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/resourceversion"
-	kcache "k8s.io/client-go/tools/cache"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	toolscache "k8s.io/client-go/tools/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -56,7 +56,7 @@ type consistencyError struct {
 var _ consistencyStore = &realConsistencyStore{}
 
 type informerGetter interface {
-	GetInformer(ctx context.Context, obj client.Object, opts ...cache.InformerGetOption) (cache.Informer, error)
+	GetInformer(ctx context.Context, obj client.Object, opts ...ctrlcache.InformerGetOption) (ctrlcache.Informer, error)
 }
 
 type realConsistencyStore struct {
@@ -67,7 +67,7 @@ type realConsistencyStore struct {
 	writes map[types.NamespacedName]*ownerRecord
 
 	storesLock sync.RWMutex
-	stores     map[GroupVersionKindType]kcache.Store
+	stores     map[GroupVersionKindType]toolscache.Store
 
 	scheme         *runtime.Scheme
 	informerGetter informerGetter
@@ -76,7 +76,7 @@ type realConsistencyStore struct {
 func newConsistencyStore(scheme *runtime.Scheme, cache informerGetter) *realConsistencyStore {
 	return &realConsistencyStore{
 		writes:         map[types.NamespacedName]*ownerRecord{},
-		stores:         map[GroupVersionKindType]kcache.Store{},
+		stores:         map[GroupVersionKindType]toolscache.Store{},
 		scheme:         scheme,
 		informerGetter: cache,
 	}
@@ -263,7 +263,7 @@ func (w *ownerRecord) EnsureReady(ctx context.Context, c *realConsistencyStore) 
 	return errs, nil
 }
 
-func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKindType) (kcache.Store, error) {
+func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKindType) (toolscache.Store, error) {
 	c.storesLock.RLock()
 	store, exists := c.stores[gvkt]
 	c.storesLock.RUnlock()
@@ -302,11 +302,11 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 	}
 
 	// Note: This creates the informer if it doesn't exist already, but it doesn't  wait for the cache to sync.
-	informer, err := c.informerGetter.GetInformer(ctx, obj, cache.BlockUntilSynced(false))
+	informer, err := c.informerGetter.GetInformer(ctx, obj, ctrlcache.BlockUntilSynced(false))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
 	}
-	sharedIndexInformer, ok := informer.(kcache.SharedIndexInformer)
+	sharedIndexInformer, ok := informer.(toolscache.SharedIndexInformer)
 	if !ok {
 		// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
 		return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)

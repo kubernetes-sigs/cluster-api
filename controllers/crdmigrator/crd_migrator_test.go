@@ -39,7 +39,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -451,8 +451,8 @@ func createManagerWithCRDMigrator(skipCRDMigrationPhases []Phase, crdMigratorCon
 			},
 		},
 		WebhookServer: &noopWebhookServer{}, // Use noop webhook server to avoid opening unnecessary ports.
-		Cache: cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
+		Cache: ctrlcache.Options{
+			ByObject: map[client.Object]ctrlcache.ByObject{
 				&corev1.Secret{}: {
 					Label: clusterSecretCacheSelector,
 				},

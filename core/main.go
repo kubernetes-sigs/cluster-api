@@ -45,7 +45,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -519,13 +519,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 
 	// Setup a separate cache without label selector for secrets, to be used
 	// when we need to watch for secrets that are not specific to a single cluster (e.g. ClusterResourceSet or ExtensionConfig controllers).
-	var watchNamespaces map[string]cache.Config
+	var watchNamespaces map[string]ctrlcache.Config
 	if watchNamespace != "" {
-		watchNamespaces = map[string]cache.Config{
+		watchNamespaces = map[string]ctrlcache.Config{
 			watchNamespace: {},
 		}
 	}
-	partialSecretCache, err := cache.New(mgr.GetConfig(), cache.Options{
+	partialSecretCache, err := ctrlcache.New(mgr.GetConfig(), ctrlcache.Options{
 		Scheme:            mgr.GetScheme(),
 		Mapper:            mgr.GetRESTMapper(),
 		HTTPClient:        mgr.GetHTTPClient(),
@@ -541,7 +541,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 				panic(fmt.Sprintf("cache expected to only get Secrets, got %s", obj.GetObjectKind()))
 			}
 			// Additionally strip managed fields.
-			return cache.TransformStripManagedFields()(obj)
+			return ctrlcache.TransformStripManagedFields()(obj)
 		},
 	})
 	if err != nil {

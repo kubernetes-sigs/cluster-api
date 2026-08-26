@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/cache"
+	toolscache "k8s.io/client-go/tools/cache"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -67,9 +67,9 @@ func TestOwnerRecord_IsReady(t *testing.T) {
 	or := newOwnerRecord(uid)
 	gvktPod := StructuredObject(schema.GroupVersion{Group: "", Version: "v1"}, "Pod")
 	gvktDS := StructuredObject(schema.GroupVersion{Group: "apps", Version: "v1"}, "DaemonSet")
-	podStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	dsStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	resourceStores := map[GroupVersionKindType]cache.Store{
+	podStore := toolscache.NewStore(toolscache.MetaNamespaceKeyFunc)
+	dsStore := toolscache.NewStore(toolscache.MetaNamespaceKeyFunc)
+	resourceStores := map[GroupVersionKindType]toolscache.Store{
 		gvktPod: podStore,
 		gvktDS:  dsStore,
 	}
@@ -284,8 +284,8 @@ func TestConsistencyStore_IsReady(t *testing.T) {
 	owner1 := types.NamespacedName{Name: "owner1"}
 	uid1 := types.UID("uid-1")
 	gvktPod := StructuredObject(schema.GroupVersion{Group: "", Version: "v1"}, "Pod")
-	podStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	resourceStores := map[GroupVersionKindType]cache.Store{
+	podStore := toolscache.NewStore(toolscache.MetaNamespaceKeyFunc)
+	resourceStores := map[GroupVersionKindType]toolscache.Store{
 		gvktPod: podStore,
 	}
 
@@ -368,18 +368,18 @@ func (f *fakeInformerGetter) GetInformer(_ context.Context, obj client.Object, _
 	return &fakeInformer{obj: obj}, nil
 }
 
-var _ cache.SharedIndexInformer = &fakeInformer{}
+var _ toolscache.SharedIndexInformer = &fakeInformer{}
 
 type fakeInformer struct {
 	obj client.Object
-	cache.SharedIndexInformer
+	toolscache.SharedIndexInformer
 }
 
-func (f *fakeInformer) GetStore() cache.Store {
+func (f *fakeInformer) GetStore() toolscache.Store {
 	return &fakeStore{obj: f.obj}
 }
 
 type fakeStore struct {
 	obj client.Object
-	cache.Store
+	toolscache.Store
 }

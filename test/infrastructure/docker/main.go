@@ -45,7 +45,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -270,9 +270,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	var watchNamespaces map[string]cache.Config
+	var watchNamespaces map[string]ctrlcache.Config
 	if watchNamespace != "" {
-		watchNamespaces = map[string]cache.Config{
+		watchNamespaces = map[string]ctrlcache.Config{
 			watchNamespace: {},
 		}
 	}
@@ -301,10 +301,10 @@ func main() {
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
 		Metrics:                    *metricsOptions,
-		Cache: cache.Options{
+		Cache: ctrlcache.Options{
 			DefaultNamespaces: watchNamespaces,
 			SyncPeriod:        &syncPeriod,
-			ByObject: map[client.Object]cache.ByObject{
+			ByObject: map[client.Object]ctrlcache.ByObject{
 				// Note: Only Secrets with the cluster name label are cached.
 				// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).
 				// The cached secrets will only be used by the secretCachingClient we create below.

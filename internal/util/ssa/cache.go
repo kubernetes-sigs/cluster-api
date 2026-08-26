@@ -22,7 +22,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/cache"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -57,7 +57,7 @@ type Cache interface {
 // NewCache creates a new cache.
 func NewCache(controllerName string) Cache {
 	r := &ssaCache{
-		Store: cache.NewTTLStore(func(obj interface{}) (string, error) {
+		Store: toolscache.NewTTLStore(func(obj interface{}) (string, error) {
 			// We only add strings to the cache, so it's safe to cast to string.
 			return obj.(string), nil
 		}, ttl),
@@ -77,7 +77,7 @@ func NewCache(controllerName string) Cache {
 }
 
 type ssaCache struct {
-	cache.Store
+	toolscache.Store
 	controllerName string
 }
 

@@ -43,7 +43,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -89,7 +89,7 @@ type ClusterProxy interface {
 	GetRESTConfig() *rest.Config
 
 	// GetCache returns a controller-runtime cache to create informer from.
-	GetCache(ctx context.Context) cache.Cache
+	GetCache(ctx context.Context) ctrlcache.Cache
 
 	// GetLogCollector returns the machine log collector for the Kubernetes cluster.
 	GetLogCollector() ClusterLogCollector
@@ -212,7 +212,7 @@ func WithRESTConfigModifier(f func(*rest.Config)) Option {
 }
 
 // WithCacheOptionsModifier allows to modify the options passed to cache.New the first time it's created.
-func WithCacheOptionsModifier(f func(*cache.Options)) Option {
+func WithCacheOptionsModifier(f func(*ctrlcache.Options)) Option {
 	return func(c *clusterProxy) {
 		c.cacheOptionsModifier = f
 	}
@@ -225,11 +225,11 @@ type clusterProxy struct {
 	scheme                  *runtime.Scheme
 	shouldCleanupKubeconfig bool
 	logCollector            ClusterLogCollector
-	cache                   cache.Cache
+	cache                   ctrlcache.Cache
 	onceCache               sync.Once
 
 	restConfigModifier   func(*rest.Config)
-	cacheOptionsModifier func(*cache.Options)
+	cacheOptionsModifier func(*ctrlcache.Options)
 }
 
 // NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
@@ -324,9 +324,9 @@ func (p *clusterProxy) GetClientSet() *kubernetes.Clientset {
 	return cs
 }
 
-func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
+func (p *clusterProxy) GetCache(ctx context.Context) ctrlcache.Cache {
 	p.onceCache.Do(func() {
-		opts := &cache.Options{
+		opts := &ctrlcache.Options{
 			Scheme: p.scheme,
 			Mapper: p.GetClient().RESTMapper(),
 		}
@@ -335,7 +335,7 @@ func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
 		}
 
 		var err error
-		p.cache, err = cache.New(p.GetRESTConfig(), *opts)
+		p.cache, err = ctrlcache.New(p.GetRESTConfig(), *opts)
 		Expect(err).ToNot(HaveOccurred(), "Failed to create controller-runtime cache")
 
 		go func() {

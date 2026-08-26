@@ -51,7 +51,7 @@ func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference) (*un
 }
 
 // GetObjectFromContractVersionedRef uses the client and reference to get an external, unstructured object.
-func GetObjectFromContractVersionedRef(ctx context.Context, c client.Reader, ref clusterv1.ContractVersionedObjectReference, namespace string) (*unstructured.Unstructured, error) {
+func GetObjectFromContractVersionedRef(ctx context.Context, c client.Reader, ref clusterv1.ContractVersionedObjectReference, namespace string, opts ...client.GetOption) (*unstructured.Unstructured, error) {
 	if !ref.IsDefined() {
 		return nil, pkgerrors.Errorf("cannot get object - object reference not set")
 	}
@@ -65,7 +65,7 @@ func GetObjectFromContractVersionedRef(ctx context.Context, c client.Reader, ref
 	obj.GetObjectKind().SetGroupVersionKind(refGVK)
 	obj.SetName(ref.Name)
 	obj.SetNamespace(namespace)
-	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj, opts...); err != nil {
 		return nil, pkgerrors.Wrapf(err, "failed to retrieve %s %s", obj.GetKind(), klog.KRef(namespace, ref.Name))
 	}
 	return obj, nil

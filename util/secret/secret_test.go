@@ -52,6 +52,24 @@ func TestParseSecretName(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "A secret for the test cluster (purpose with - in the middle)",
+			args: args{
+				name: "test-apiserver-etcd-client",
+			},
+			want:    "test",
+			want1:   APIServerEtcdClient,
+			wantErr: false,
+		},
+		{
+			name: "A secret for the test-capa cluster (cluster name and purpose with - in the middle)",
+			args: args{
+				name: "test-capa-apiserver-etcd-client",
+			},
+			want:    "test-capa",
+			want1:   APIServerEtcdClient,
+			wantErr: false,
+		},
+		{
 			name: "Not a Cluster API secret",
 			args: args{
 				name: "foo",

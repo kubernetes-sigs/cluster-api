@@ -43,6 +43,15 @@ type unstructuredWrapper struct {
 
 // GetConditions returns the list of conditions from an Unstructured object.
 //
+// NOTE: GetConditions supports retrieving conditions from objects at different stages of the transition from
+// clusterv1.conditions to the metav1.Condition type:
+//   - Objects with clusterv1.Condition in status.deprecated.v1beta1.conditions
+//   - Objects with clusterv1.Condition in status.conditions
+//   - Objects with metav1.Conditions in status.conditions; in this case a best effort conversion
+//     to metav1.Condition is performed, just enough to allow surfacing a condition from a provider object with Mirror
+//
+// NOTE: GetConditions supports retrieving conditions from non-CAPI objects like Pods, Nodes.
+//
 // NOTE: Due to the constraints of JSON-unmarshal, this operation is to be considered best effort.
 // In more details:
 //   - Errors during JSON-unmarshal are ignored and a empty collection list is returned.
@@ -52,10 +61,17 @@ type unstructuredWrapper struct {
 //     JSON-unmarshal matches incoming object keys to the keys; this can lead to conditions values partially set.
 func (c *unstructuredWrapper) GetV1Beta1Conditions() clusterv1.Conditions {
 	conditions := clusterv1.Conditions{}
-	if err := util.UnstructuredUnmarshalField(c.Unstructured, &conditions, "status", "conditions"); err != nil {
-		return nil
+	if err := util.UnstructuredUnmarshalField(c.Unstructured, &conditions, "status", "deprecated", "v1beta1", "conditions"); err == nil {
+		return conditions
 	}
-	return conditions
+
+	if err := util.UnstructuredUnmarshalField(c.Unstructured, &conditions, "status", "conditions"); err == nil {
+		return conditions
+	}
+
+	// With unstructured, it is not possible to detect if conditions are not set if the type is wrongly defined.
+	// This methods assume condition are not set.
+	return nil
 }
 
 // SetConditions set the conditions into an Unstructured object.
@@ -77,7 +93,7 @@ func (c *unstructuredWrapper) SetV1Beta1Conditions(conditions clusterv1.Conditio
 	}
 	// unstructured.SetNestedField returns an error only if value cannot be set because one of
 	// the nesting levels is not a map[string]interface{}; this is not the case so the error should never happen here.
-	err := unstructured.SetNestedField(c.Object, v, "status", "conditions")
+	err := unstructured.SetNestedField(c.Object, v, "status", "deprecated", "v1beta1", "conditions")
 	if err != nil {
 		log.Log.Error(err, "Failed to set Conditions on unstructured object. This error shouldn't have occurred, please file an issue.", "groupVersionKind", c.GroupVersionKind(), "name", c.GetName(), "namespace", c.GetNamespace())
 	}

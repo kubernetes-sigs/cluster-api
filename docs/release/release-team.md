@@ -117,7 +117,7 @@ Before you volunteer to be part of a CAPI release team, please make certain that
 
 Release Team Members meet and share team specific updates, news and all release specific items in the Release Team Meetings.
 
-- Release Team Meetings happen once a week every Tuesday at 16:30 UTC ([convert to your local time](https://dateful.com/convert/utc?t=430pm)), using the CAPI meeting zoom [link](https://zoom.us/j/861487554?pwd=dTVGVVFCblFJc0VBbkFqQlU0dHpiUT09). 
+- Release Team Meetings happen once a week every Tuesday at 8:30 AM PT ([convert to your local time](https://dateful.com/convert/pacific-time-pt?t=830am)), using the CAPI meeting zoom [link](https://zoom.us/j/861487554?pwd=dTVGVVFCblFJc0VBbkFqQlU0dHpiUT09). 
 - Release Team Meeting notes can be found [here](https://docs.google.com/document/d/1AUiuvapS3ldYVJfKucDhIoH6IJIPS009jqwnSTwS0EI).
 - Reach out to maintainers to get the zoom meeting host key to be able to share the screen when office hours zoom link is used.
 

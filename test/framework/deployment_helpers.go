@@ -41,6 +41,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -509,6 +510,44 @@ func verifyMetrics(data []byte, pod *corev1.Pod) error {
 
 	if len(errs) > 0 {
 		return pkgerrors.WithMessagef(kerrors.NewAggregate(errs), "panics occurred in Pod %s", klog.KObj(pod))
+	}
+
+	informerCountByGVR := map[schema.GroupVersionResource][]string{}
+	for metric, metricFamily := range mf {
+		if metric == "informer_store_resource_version" {
+			for _, informerStoreResourceVersionMetric := range metricFamily.Metric {
+				group := "unknown"
+				version := "unknown"
+				resource := "unknown"
+				name := "unknown"
+				for _, label := range informerStoreResourceVersionMetric.Label {
+					switch *label.Name {
+					case "group":
+						group = *label.Value
+					case "version":
+						version = *label.Value
+					case "resource":
+						resource = *label.Value
+					case "name":
+						name = *label.Value
+					}
+				}
+				gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+
+				// Note: Accepting for now that we get a duplicate informer for KubeadmConfigs in the
+				// core CAPI controller when a ClusterClass with MachinePools is used.
+				if group == "bootstrap.cluster.x-k8s.io" && version == "v1beta2" && resource == "kubeadmconfigs" && name == "cluster-api-controller-manager" {
+					continue
+				}
+
+				informerCountByGVR[gvr] = append(informerCountByGVR[gvr], name)
+			}
+		}
+	}
+	for informerGVR, names := range informerCountByGVR {
+		if len(names) > 1 {
+			return fmt.Errorf("there are %d informers for GVR %s (names: %s)", len(names), informerGVR, names)
+		}
 	}
 
 	return nil

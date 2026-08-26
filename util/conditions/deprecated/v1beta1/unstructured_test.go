@@ -31,8 +31,28 @@ import (
 func TestUnstructuredGetConditions(t *testing.T) {
 	g := NewWithT(t)
 
+	// GetV1Beta1Conditions should return conditions from an unstructured object (conditions in status.deprecated.v1beta1.conditions)
+	u1 := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"status": map[string]interface{}{
+				"deprecated": map[string]interface{}{
+					"v1beta1": map[string]interface{}{
+						"conditions": []interface{}{
+							map[string]interface{}{
+								"type":   "true1",
+								"status": "True",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g.Expect(UnstructuredGetter(u1).GetV1Beta1Conditions()).To(haveSameConditionsOf(conditionList(true1)))
+
 	// GetV1Beta1Conditions should return conditions from an unstructured object
-	u := &unstructured.Unstructured{
+	u2 := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"status": map[string]interface{}{
 				"conditions": []interface{}{
@@ -45,19 +65,19 @@ func TestUnstructuredGetConditions(t *testing.T) {
 		},
 	}
 
-	g.Expect(UnstructuredGetter(u).GetV1Beta1Conditions()).To(haveSameConditionsOf(conditionList(true1)))
+	g.Expect(UnstructuredGetter(u2).GetV1Beta1Conditions()).To(haveSameConditionsOf(conditionList(true1)))
 
 	// GetV1Beta1Conditions should return nil for an unstructured object with empty conditions
-	u = &unstructured.Unstructured{}
+	u3 := &unstructured.Unstructured{}
 
-	g.Expect(UnstructuredGetter(u).GetV1Beta1Conditions()).To(BeNil())
+	g.Expect(UnstructuredGetter(u3).GetV1Beta1Conditions()).To(BeNil())
 
 	// GetV1Beta1Conditions should return nil for an unstructured object without conditions
 	e := &corev1.Pod{}
-	u = &unstructured.Unstructured{}
-	g.Expect(scheme.Scheme.Convert(e, u, nil)).To(Succeed())
+	u4 := &unstructured.Unstructured{}
+	g.Expect(scheme.Scheme.Convert(e, u4, nil)).To(Succeed())
 
-	g.Expect(UnstructuredGetter(u).GetV1Beta1Conditions()).To(BeNil())
+	g.Expect(UnstructuredGetter(u4).GetV1Beta1Conditions()).To(BeNil())
 
 	// GetV1Beta1Conditions should return conditions from an unstructured object with a different type of conditions.
 	p := &corev1.Pod{Status: corev1.PodStatus{
@@ -72,10 +92,10 @@ func TestUnstructuredGetConditions(t *testing.T) {
 			},
 		},
 	}}
-	u = &unstructured.Unstructured{}
-	g.Expect(scheme.Scheme.Convert(p, u, nil)).To(Succeed())
+	u5 := &unstructured.Unstructured{}
+	g.Expect(scheme.Scheme.Convert(p, u5, nil)).To(Succeed())
 
-	g.Expect(UnstructuredGetter(u).GetV1Beta1Conditions()).To(HaveLen(1))
+	g.Expect(UnstructuredGetter(u5).GetV1Beta1Conditions()).To(HaveLen(1))
 }
 
 func TestUnstructuredSetConditions(t *testing.T) {
@@ -90,5 +110,13 @@ func TestUnstructuredSetConditions(t *testing.T) {
 
 	s := UnstructuredSetter(u)
 	s.SetV1Beta1Conditions(conditions)
+	g.Expect(u.Object).To(HaveKey("status"))
+	status := u.Object["status"].(map[string]any)
+	g.Expect(status).To(HaveKey("deprecated"))
+	deprecated := status["deprecated"].(map[string]any)
+	g.Expect(deprecated).To(HaveKey("v1beta1"))
+	v1beta1 := deprecated["v1beta1"].(map[string]any)
+	g.Expect(v1beta1).To(HaveKey("conditions"))
+
 	g.Expect(s.GetV1Beta1Conditions()).To(BeComparableTo(conditions))
 }

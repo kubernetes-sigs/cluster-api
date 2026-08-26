@@ -130,7 +130,60 @@ func (o *NodeObject) SetManagedFields(managedFields []metav1.ManagedFieldsEntry)
 	o.ManagedFields = managedFields
 }
 
+// DeepCopyInto is a hand-written deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (o *NodeObject) DeepCopyInto(out *NodeObject) {
+	*out = *o
+	out.TypeMeta = o.TypeMeta
+	o.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	o.Status.DeepCopyInto(&out.Status)
+}
+
+// DeepCopy is a hand-written deepcopy function, copying the receiver, creating a new NodeObject.
+func (o *NodeObject) DeepCopy() *NodeObject {
+	if o == nil {
+		return nil
+	}
+	out := new(NodeObject)
+	o.DeepCopyInto(out)
+	return out
+}
+
 // DeepCopyObject returns a deep copy of the object.
 func (o *NodeObject) DeepCopyObject() runtime.Object {
-	panic("implement me")
+	if o == nil {
+		return nil
+	}
+	return o.DeepCopy()
+}
+
+// DeepCopyInto is a hand-written deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *NodeStatus) DeepCopyInto(out *NodeStatus) {
+	*out = *in
+	if in.Deprecated != nil {
+		out.Deprecated = new(NodeDeprecatedStatus)
+		in.Deprecated.DeepCopyInto(out.Deprecated)
+	}
+	if in.Conditions != nil {
+		out.Conditions = make([]metav1.Condition, len(in.Conditions))
+		for i := range in.Conditions {
+			in.Conditions[i].DeepCopyInto(&out.Conditions[i])
+		}
+	}
+}
+
+// DeepCopyInto is a hand-written deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *NodeDeprecatedStatus) DeepCopyInto(out *NodeDeprecatedStatus) {
+	*out = *in
+	if in.V1Beta1 != nil {
+		out.V1Beta1 = new(NodeV1Beta1DeprecatedStatus)
+		in.V1Beta1.DeepCopyInto(out.V1Beta1)
+	}
+}
+
+// DeepCopyInto is a hand-written deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *NodeV1Beta1DeprecatedStatus) DeepCopyInto(out *NodeV1Beta1DeprecatedStatus) {
+	*out = *in
+	if in.Conditions != nil {
+		out.Conditions = in.Conditions.DeepCopy()
+	}
 }

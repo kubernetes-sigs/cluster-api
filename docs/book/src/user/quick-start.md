@@ -598,7 +598,7 @@ clusterctl init --infrastructure huawei
 
 In order to initialize the IBM Cloud Provider you have to expose the environment
 variable `IBMCLOUD_API_KEY`. This variable is used to authorize the infrastructure
-provider manager against the IBM Cloud API. To create one from the UI, refer [here](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui#create_user_key).
+provider manager against the IBM Cloud API. To create one from the UI, refer [here](https://cloud.ibm.com/docs/iam?topic=iam-userapikey&interface=ui#create_user_key).
 
 ```bash
 export IBMCLOUD_API_KEY=<you_api_key>

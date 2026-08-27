@@ -143,8 +143,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.14=>cu
 			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:            "v1.36.1",
-			WorkloadKubernetesVersion:            "v1.36.1",
+			InitWithKubernetesVersion:            "v1.37.0",
+			WorkloadKubernetesVersion:            "v1.37.0",
 			MgmtFlavor:                           "topology",
 			WorkloadFlavor:                       "in-memory-topology",
 			UseKindForManagementCluster:          false, // Using false for one test case to ensure this code path of the test keeps working.
@@ -183,7 +183,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.14=>cu
 			// Note: WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
 			InitWithKubernetesVersion:            initKubernetesVersion,
-			WorkloadKubernetesVersion:            "v1.36.1",
+			WorkloadKubernetesVersion:            "v1.37.0",
 			MgmtFlavor:                           "topology",
 			WorkloadFlavor:                       "in-memory-topology",
 			UseKindForManagementCluster:          true,

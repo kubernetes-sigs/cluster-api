@@ -8,7 +8,7 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install/): v19.03 or newer (on MacOS e.g. via [Lima](https://github.com/lima-vm/lima))
-2. [kind](https://kind.sigs.k8s.io): v0.32.0 or newer
+2. [kind](https://kind.sigs.k8s.io): v0.33.0 or newer
 3. [Tilt](https://docs.tilt.dev/install.html): v0.33.18 or newer
 4. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
 5. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
@@ -124,7 +124,7 @@ provider_repos:
 kustomize_substitutions:
   # CAPK needs access to the containerd socket (replace with actual path)
   CRI_PATH: "/var/run/containerd/containerd.sock"
-  KUBERNETES_VERSION: "v1.30.1"
+  KUBERNETES_VERSION: "v1.37.0"
   # An example - replace with an appropriate container disk image for the desired k8s version
   NODE_VM_IMAGE_TEMPLATE: "quay.io/capk/ubuntu-2204-container-disk:v1.30.1"
 # Allow deploying CAPK workload clusters from the Tilt UI (optional)

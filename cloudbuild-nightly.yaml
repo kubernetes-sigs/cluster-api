@@ -4,6 +4,9 @@ options:
   substitution_option: ALLOW_LOOSE
   machineType: 'E2_HIGHCPU_8'
 steps:
+  # The latest image tag + sha can be found with:
+  # crane ls registry.k8s.io/releng/gcb-docker-gcloud
+  # crane digest registry.k8s.io/releng/gcb-docker-gcloud:v20260806
   - name: 'registry.k8s.io/releng/gcb-docker-gcloud@sha256:b2651f57b579d925a243e308c41546d4fd895f705de091a5a8a39060e6192604' # v20260806
     entrypoint: make
     env:

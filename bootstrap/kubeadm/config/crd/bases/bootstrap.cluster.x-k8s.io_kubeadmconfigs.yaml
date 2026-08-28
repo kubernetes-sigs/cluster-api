@@ -119,7 +119,9 @@ spec:
                                   description: Selects a key of a ConfigMap.
                                   properties:
                                     key:
-                                      description: The key to select.
+                                      description: |-
+                                        The key to select from the ConfigMap's Data field.
+                                        Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
@@ -389,7 +391,9 @@ spec:
                                   description: Selects a key of a ConfigMap.
                                   properties:
                                     key:
-                                      description: The key to select.
+                                      description: |-
+                                        The key to select from the ConfigMap's Data field.
+                                        Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
@@ -690,7 +694,9 @@ spec:
                                       description: Selects a key of a ConfigMap.
                                       properties:
                                         key:
-                                          description: The key to select.
+                                          description: |-
+                                            The key to select from the ConfigMap's Data field.
+                                            Keys in the BinaryData field are not currently propagated to container env vars.
                                           type: string
                                         name:
                                           default: ""
@@ -961,7 +967,9 @@ spec:
                                   description: Selects a key of a ConfigMap.
                                   properties:
                                     key:
-                                      description: The key to select.
+                                      description: |-
+                                        The key to select from the ConfigMap's Data field.
+                                        Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
@@ -2472,7 +2480,9 @@ spec:
                                   description: Selects a key of a ConfigMap.
                                   properties:
                                     key:
-                                      description: The key to select.
+                                      description: |-
+                                        The key to select from the ConfigMap's Data field.
+                                        Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
@@ -2758,7 +2768,9 @@ spec:
                                   description: Selects a key of a ConfigMap.
                                   properties:
                                     key:
-                                      description: The key to select.
+                                      description: |-
+                                        The key to select from the ConfigMap's Data field.
+                                        Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
@@ -3094,7 +3106,9 @@ spec:
                                       description: Selects a key of a ConfigMap.
                                       properties:
                                         key:
-                                          description: The key to select.
+                                          description: |-
+                                            The key to select from the ConfigMap's Data field.
+                                            Keys in the BinaryData field are not currently propagated to container env vars.
                                           type: string
                                         name:
                                           default: ""
@@ -3347,7 +3361,9 @@ spec:
                                   description: Selects a key of a ConfigMap.
                                   properties:
                                     key:
-                                      description: The key to select.
+                                      description: |-
+                                        The key to select from the ConfigMap's Data field.
+                                        Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""

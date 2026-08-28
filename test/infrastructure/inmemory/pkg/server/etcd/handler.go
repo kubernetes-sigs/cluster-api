@@ -67,6 +67,7 @@ func NewEtcdServerHandler(manager inmemoryruntime.Manager, log logr.Logger, reso
 // clusterServerServer implements the MaintenanceServer grpc server.
 type maintenanceServer struct {
 	*baseServer
+	pb.UnimplementedMaintenanceServer
 }
 
 func (m *maintenanceServer) Alarm(ctx context.Context, _ *pb.AlarmRequest) (*pb.AlarmResponse, error) {
@@ -186,6 +187,7 @@ func (m *maintenanceServer) Downgrade(_ context.Context, _ *pb.DowngradeRequest)
 // clusterServerServer implements the ClusterServer grpc server.
 type clusterServerServer struct {
 	*baseServer
+	pb.UnimplementedClusterServer
 }
 
 func (c *clusterServerServer) MemberAdd(_ context.Context, _ *pb.MemberAddRequest) (*pb.MemberAddResponse, error) {

@@ -134,11 +134,6 @@ type DevMachinePoolStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// initialization provides observations of the DevMachinePool initialization process.
-	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
-	// +optional
-	Initialization DevMachinePoolInitializationStatus `json:"initialization,omitempty,omitzero"`
-
 	// Ready denotes that the machine pool is ready
 	// +optional
 	Ready bool `json:"ready"`
@@ -158,15 +153,6 @@ type DevMachinePoolStatus struct {
 	// Instances contains the status for each instance in the pool.
 	// +optional
 	Instances []DevMachinePoolInstanceStatus `json:"instances,omitempty"`
-}
-
-// DevMachinePoolInitializationStatus provides observations of the DevMachinePool initialization process.
-// +kubebuilder:validation:MinProperties=1
-type DevMachinePoolInitializationStatus struct {
-	// provisioned is true when the infrastructure provider reports that the MachinePool's infrastructure is fully provisioned.
-	// NOTE: this field is part of the Cluster API contract and is used to orchestrate initial MachinePool provisioning.
-	// +optional
-	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // DevMachinePoolInstanceStatus contains status information about a DevMachinePool instances.

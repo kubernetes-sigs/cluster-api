@@ -41,9 +41,9 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends"
 	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/reconcilers/backends/docker"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -79,7 +79,7 @@ func (r *DevMachinePool) SetupWithManager(ctx context.Context, mgr ctrl.Manager,
 	c, err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&infrav1.DevMachinePool{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(util.MachinePoolToInfrastructureMapFunc(ctx,
@@ -171,15 +171,14 @@ func (r *DevMachinePool) Reconcile(ctx context.Context, req ctrl.Request) (_ ctr
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, devMachinePool) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(devMachinePool, r.Client)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Return early if the object or Cluster is paused, and surface the Paused condition.
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, devMachinePool); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 

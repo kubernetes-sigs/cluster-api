@@ -47,6 +47,36 @@ that if a specific machine image is specified, it has to match the Kubernetes ve
 `KubeadmControlPlane` spec. In order to only trigger a single upgrade, the new `MachineTemplate` should be created first
 and then both the `Version` and `InfrastructureTemplate` should be modified in a single transaction.
 
+#### How to upgrade CoreDNS
+
+Unlike a plain `kubeadm upgrade`, the Kubeadm Control Plane provider does
+**not** automatically upgrade CoreDNS to a new default version as part of a
+Kubernetes upgrade. CoreDNS is only reconciled by KCP when the `imageTag` (and
+optionally `imageRepository`) fields are explicitly set under
+`KubeadmControlPlane.spec.kubeadmConfigSpec.clusterConfiguration.dns`. If left
+unset, KCP leaves the currently deployed CoreDNS version untouched, even while
+the rest of the control plane is upgraded.
+
+To upgrade CoreDNS, explicitly set the desired version, e.g.:
+
+```yaml
+spec:
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      dns:
+        imageTag: v1.14.6
+```
+
+See [CoreDNS Support](../reference/versions.md#coredns-support) for how to
+determine the maximum CoreDNS version supported by a given Cluster API release.
+If you'd rather manage CoreDNS yourself, or with another tool, you can have KCP
+skip reconciling it entirely by adding the
+[`controlplane.cluster.x-k8s.io/skip-coredns`](../reference/api/labels-and-annotations.md)
+annotation to the `KubeadmControlPlane` resource.
+
+For more context and discussion about this behavior, see
+[kubernetes-sigs/cluster-api#6429](https://github.com/kubernetes-sigs/cluster-api/issues/6429).
+
 #### How to schedule a machine rollout
 
 The  `KubeadmControlPlane` and `MachineDepoyment` resources have a `spec.rollout.after` field that can be 

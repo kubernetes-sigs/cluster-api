@@ -10,6 +10,16 @@ KubeadmControlPlane is solely supporting CoreDNS as a DNS server at this time.
 
 </aside>
 
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+KubeadmControlPlane does not automatically upgrade CoreDNS when the Kubernetes version is upgraded, unlike
+`kubeadm upgrade`. CoreDNS is only upgraded if you explicitly set the target version, see
+[How to upgrade CoreDNS][upgrade-coredns].
+
+</aside>
+
 ### Kubeconfig management
 
 KCP will generate and manage the admin Kubeconfig for clusters. The client certificate for the admin user is created
@@ -53,3 +63,4 @@ Note: Changes to these fields will not be propagated to Machines, InfraMachines 
 
 <!-- links -->
 [upgrades]: ../upgrading-clusters.md#how-to-upgrade-the-kubernetes-control-plane-version
+[upgrade-coredns]: ../upgrading-clusters.md#how-to-upgrade-coredns

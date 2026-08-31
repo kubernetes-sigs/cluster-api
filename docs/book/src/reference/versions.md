@@ -436,6 +436,11 @@ To look up the max supported CoreDNS version of a specific Cluster API version:
 * Look up the `corefile-migration` version in the CAPI top-level go.mod file, e.g. `github.com/coredns/corefile-migration v1.0.31`
 * Look up the highest supported CoreDNS version, e.g. in https://github.com/coredns/corefile-migration/blob/v1.0.31/migration/versions.go#L32
 
+Note: unlike `kubeadm upgrade`, the Kubeadm Control Plane provider does not automatically upgrade CoreDNS to a new
+default version as part of a Kubernetes upgrade. CoreDNS is only reconciled when the target version is explicitly
+set in `KubeadmControlPlane.spec.kubeadmConfigSpec.clusterConfiguration.dns.imageTag`. See
+[How to upgrade CoreDNS](../tasks/upgrading-clusters.md#how-to-upgrade-coredns) for more details.
+
 ### Other providers
 
 Cluster API has a vibrant ecosystem of awesome providers maintained by independent teams and hosted outside of

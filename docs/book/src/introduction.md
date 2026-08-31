@@ -55,7 +55,6 @@ SIG Cluster Lifecycle began the Cluster API project as a way to address these ga
 - To force all Kubernetes lifecycle products (kOps, Kubespray, GKE, AKS, EKS, IKS etc.) to support or use these APIs.
 - To manage non-Cluster API provisioned Kubernetes-conformant clusters.
 - To manage a single cluster spanning multiple infrastructure providers.
-- To configure a machine at any time other than create or upgrade.
 - To duplicate functionality that exists or is coming to other tooling, e.g., updating kubelet configuration (c.f. dynamic kubelet configuration), or updating apiserver, controller-manager, scheduler configuration (c.f. component-config effort) after the cluster is deployed.
 
 {{#include ../../../README.md:Community}}

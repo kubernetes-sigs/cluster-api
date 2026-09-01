@@ -273,7 +273,7 @@ func (od ObjectTree) IsObjectWithChild(id types.UID) bool {
 	return len(od.ownership[id]) > 0
 }
 
-// GetObjectsByParent returns all the dependant objects for the given uid.
+// GetObjectsByParent returns all the dependent objects for the given uid.
 func (od ObjectTree) GetObjectsByParent(id types.UID) []client.Object {
 	out := make([]client.Object, 0, len(od.ownership[id]))
 	for k := range od.ownership[id] {

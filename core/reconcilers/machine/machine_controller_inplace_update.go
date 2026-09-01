@@ -168,7 +168,8 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 	// During in-place update we need the full object so we get it here and cache it temporarily.
 	infraMachineCacheEntry, ok := r.externalObjectsCache.Has(externalObjectsCacheKey(s.infraMachineGVK, s.infraMachine))
 	if !ok || s.infraMachine.GetResourceVersion() != infraMachineCacheEntry.obj.GetResourceVersion() {
-		infraMachineCacheEntry.obj, err = external.GetObjectFromContractVersionedRef(ctx, r.APIReader, s.machine.Spec.InfrastructureRef, s.machine.Namespace)
+		infraMachineCacheEntry.obj, err = external.GetObjectFromContractVersionedRef(ctx, r.APIReader, s.machine.Spec.InfrastructureRef, s.machine.Namespace,
+			&client.GetOptions{Raw: &metav1.GetOptions{ResourceVersion: s.infraMachine.GetResourceVersion()}})
 		if err != nil {
 			return ctrl.Result{}, "", err
 		}
@@ -190,7 +191,8 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 		// During in-place update we need the full object so we get it here and cache it temporarily.
 		bootstrapConfigCacheEntry, ok = r.externalObjectsCache.Has(externalObjectsCacheKey(s.bootstrapConfigGVK, s.bootstrapConfig))
 		if !ok || s.bootstrapConfig.GetResourceVersion() != bootstrapConfigCacheEntry.obj.GetResourceVersion() {
-			bootstrapConfigCacheEntry.obj, err = external.GetObjectFromContractVersionedRef(ctx, r.APIReader, s.machine.Spec.Bootstrap.ConfigRef, s.machine.Namespace)
+			bootstrapConfigCacheEntry.obj, err = external.GetObjectFromContractVersionedRef(ctx, r.APIReader, s.machine.Spec.Bootstrap.ConfigRef, s.machine.Namespace,
+				&client.GetOptions{Raw: &metav1.GetOptions{ResourceVersion: s.bootstrapConfig.GetResourceVersion()}})
 			if err != nil {
 				return ctrl.Result{}, "", err
 			}

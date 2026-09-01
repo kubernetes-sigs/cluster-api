@@ -194,6 +194,37 @@ func (s *String) Set(obj *unstructured.Unstructured, value string) error {
 	return nil
 }
 
+// StringSlice represents an accessor to a []string path value.
+type StringSlice struct {
+	path Path
+}
+
+// Path returns the path to the []string value.
+func (s *StringSlice) Path() Path {
+	return s.path
+}
+
+// Get gets the []string value.
+func (s *StringSlice) Get(obj *unstructured.Unstructured) (*[]string, error) {
+	value, ok, err := unstructured.NestedStringSlice(obj.UnstructuredContent(), s.path...)
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to get %s from object", "."+strings.Join(s.path, "."))
+	}
+	if !ok {
+		return nil, pkgerrors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(s.path, "."))
+	}
+	return &value, nil
+}
+
+// Set sets the []string value in the path.
+// Note: Cluster API should never Set values on external objects owned by providers; however this method is useful for writing tests.
+func (s *StringSlice) Set(obj *unstructured.Unstructured, values []string) error {
+	if err := unstructured.SetNestedStringSlice(obj.UnstructuredContent(), values, s.path...); err != nil {
+		return pkgerrors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(s.path, "."), obj.GroupVersionKind())
+	}
+	return nil
+}
+
 // Duration represents an accessor to a metav1.Duration path value.
 type Duration struct {
 	path Path

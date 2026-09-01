@@ -740,6 +740,86 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
+	t.Run("returns true if JoinConfiguration is equal apart from JoinControlPlane not set on current KubeadmConfig (v1.11 case)", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
+					InitConfiguration: bootstrapv1.InitConfiguration{
+						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+							Name: "A new name",
+							KubeletExtraArgs: []bootstrapv1.Arg{
+								{
+									Name:  "cloud-provider",
+									Value: new("external"),
+								},
+							},
+						},
+					},
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+							Name: "A new name",
+							KubeletExtraArgs: []bootstrapv1.Arg{
+								{
+									Name:  "cloud-provider",
+									Value: new("external"),
+								},
+							},
+						},
+						ControlPlane: nil, // Control plane configuration missing in KCP
+					},
+				},
+				Version: "v1.30.0",
+			},
+		}
+		m := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "test",
+			},
+			Spec: clusterv1.MachineSpec{
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
+					},
+				},
+			},
+		}
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+							Name: "A new name",
+							// KubeletExtraArgs is used by isKubeadmConfigForJoin to detect that this is a Join
+							// even if JoinConfiguration.ControlPlane is not set.
+							KubeletExtraArgs: []bootstrapv1.Arg{
+								{
+									Name:  "cloud-provider",
+									Value: new("external"),
+								},
+							},
+						},
+						// Machine does not get JoinConfiguration.ControlPlane set by CABPK because of reentrancy issue.
+					},
+				},
+			},
+		}
+		reason, currentKubeadmConfig, desiredKubeadmConfig, match, err := matchesKubeadmConfig(machineConfigs, kcp, &clusterv1.Cluster{}, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(currentKubeadmConfig).ToNot(BeNil())
+		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
+		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(match).To(BeTrue())
+		g.Expect(reason).To(BeEmpty())
+	})
 	t.Run("returns false if JoinConfiguration is not equal, and InitConfiguration is also not equal", func(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{

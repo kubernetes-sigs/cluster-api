@@ -308,7 +308,9 @@ func Test_rollingUpdate(t *testing.T) {
 		desiredReplicas                 int32
 		enableInPlaceUpdatesFeatureGate bool
 		machineEligibleForInPlaceUpdate bool
-		tryInPlaceUpdateFunc            func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, ctrl.Result, error)
+		preflightChecksFunc             func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult
+		tryInPlaceUpdateFunc            func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error)
+		wantPreflightChecksFuncCalled   bool
 		wantTryInPlaceUpdateCalled      bool
 		wantScaleDownCalled             bool
 		wantScaleUpCalled               bool
@@ -386,65 +388,97 @@ func Test_rollingUpdate(t *testing.T) {
 			wantTryInPlaceUpdateCalled:      false,
 			wantScaleDownCalled:             true,
 		},
+		// In-place updates: preflightCheck failures
+		{
+			name:                            "In-place updates: preflightChecks failed",
+			maxSurge:                        0,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
+				return preflightChecksResult{succeeded: false, requeueAfter: 3 * time.Second}
+			},
+			wantPreflightChecksFuncCalled: true,
+			wantTryInPlaceUpdateCalled:    false,
+			wantScaleDownCalled:           false,
+			wantRes:                       ctrl.Result{RequeueAfter: 3 * time.Second},
+		},
+		{
+			name:                            "In-place updates: preflightChecks failed only for specific Machine, fallback to scale down",
+			maxSurge:                        0,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult {
+				if len(excludeFor) > 0 {
+					return preflightChecksResult{succeeded: true}
+				}
+				return preflightChecksResult{succeeded: false, requeueAfter: 3 * time.Second}
+			},
+			wantPreflightChecksFuncCalled: true,
+			wantTryInPlaceUpdateCalled:    false,
+			wantScaleDownCalled:           true,
+		},
 		// In-place updates: tryInPlaceUpdate called
 		{
-			name:                            "In-place updates: tryInPlaceUpdate returns error",
+			name:                            "In-place updates: preflightChecks succeeded, tryInPlaceUpdate returns error",
 			maxSurge:                        0,
 			currentReplicas:                 3,
 			currentUpToDateReplicas:         0,
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (bool, ctrl.Result, error) {
-				return false, ctrl.Result{}, pkgerrors.New("in-place update error")
+			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
+				return preflightChecksResult{succeeded: true}
 			},
-			wantTryInPlaceUpdateCalled: true,
-			wantScaleDownCalled:        false,
-			wantError:                  true,
-			wantErrorMessage:           "in-place update error",
+			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (bool, error) {
+				return false, pkgerrors.New("in-place update error")
+			},
+			wantPreflightChecksFuncCalled: true,
+			wantTryInPlaceUpdateCalled:    true,
+			wantScaleDownCalled:           false,
+			wantError:                     true,
+			wantErrorMessage:              "in-place update error",
 		},
 		{
-			name:                            "In-place updates: tryInPlaceUpdate returns Requeue",
+			name:                            "In-place updates: preflightChecks succeeded, tryInPlaceUpdate returns fallback to scale down",
 			maxSurge:                        0,
 			currentReplicas:                 3,
 			currentUpToDateReplicas:         0,
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
-				return false, ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
+				return preflightChecksResult{succeeded: true}
 			},
-			wantTryInPlaceUpdateCalled: true,
-			wantScaleDownCalled:        false,
-			wantRes:                    ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (fallbackToScaleDown bool, _ error) {
+				return true, nil
+			},
+			wantPreflightChecksFuncCalled: true,
+			wantTryInPlaceUpdateCalled:    true,
+			wantScaleDownCalled:           true,
 		},
 		{
-			name:                            "In-place updates: tryInPlaceUpdate returns fallback to scale down",
+			name:                            "In-place updates: preflightChecks succeeded, tryInPlaceUpdate returns nothing (in-place update triggered)",
 			maxSurge:                        0,
 			currentReplicas:                 3,
 			currentUpToDateReplicas:         0,
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
-				return true, ctrl.Result{}, nil
+			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
+				return preflightChecksResult{succeeded: true}
 			},
-			wantTryInPlaceUpdateCalled: true,
-			wantScaleDownCalled:        true,
-		},
-		{
-			name:                            "In-place updates: tryInPlaceUpdate returns nothing (in-place update triggered)",
-			maxSurge:                        0,
-			currentReplicas:                 3,
-			currentUpToDateReplicas:         0,
-			desiredReplicas:                 3,
-			enableInPlaceUpdatesFeatureGate: true,
-			machineEligibleForInPlaceUpdate: true,
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
-				return false, ctrl.Result{}, nil
+			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (fallbackToScaleDown bool, _ error) {
+				return false, nil
 			},
-			wantTryInPlaceUpdateCalled: true,
-			wantScaleDownCalled:        false,
+			wantPreflightChecksFuncCalled: true,
+			wantTryInPlaceUpdateCalled:    true,
+			wantScaleDownCalled:           false,
 		},
 	}
 	for _, tt := range tests {
@@ -455,11 +489,16 @@ func Test_rollingUpdate(t *testing.T) {
 				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
 			}
 
+			var preflightChecksFuncCalled bool
 			var inPlaceUpdateCalled bool
 			var scaleDownCalled bool
 			var scaleUpCalled bool
 			r := &Reconciler{
-				overrideTryInPlaceUpdateFunc: func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, ctrl.Result, error) {
+				overridePreflightChecksFunc: func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult {
+					preflightChecksFuncCalled = true
+					return tt.preflightChecksFunc(ctx, controlPlane, excludeFor...)
+				},
+				overrideTryInPlaceUpdateFunc: func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error) {
 					inPlaceUpdateCalled = true
 					return tt.tryInPlaceUpdateFunc(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
 				},
@@ -471,6 +510,8 @@ func Test_rollingUpdate(t *testing.T) {
 					scaleUpCalled = true
 					return ctrl.Result{}, nil
 				},
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   record.NewFakeRecorder(32),
 			}
 
 			machines := collections.Machines{}
@@ -513,6 +554,7 @@ func Test_rollingUpdate(t *testing.T) {
 			}
 			g.Expect(res).To(Equal(tt.wantRes))
 
+			g.Expect(preflightChecksFuncCalled).To(Equal(tt.wantPreflightChecksFuncCalled), "preflightChecksFuncCalled: actual: %t expected: %t", preflightChecksFuncCalled, tt.wantPreflightChecksFuncCalled)
 			g.Expect(inPlaceUpdateCalled).To(Equal(tt.wantTryInPlaceUpdateCalled), "inPlaceUpdateCalled: actual: %t expected: %t", inPlaceUpdateCalled, tt.wantTryInPlaceUpdateCalled)
 			g.Expect(scaleDownCalled).To(Equal(tt.wantScaleDownCalled), "scaleDownCalled: actual: %t expected: %t", scaleDownCalled, tt.wantScaleDownCalled)
 			g.Expect(scaleUpCalled).To(Equal(tt.wantScaleUpCalled), "scaleUpCalled: actual: %t expected: %t", scaleUpCalled, tt.wantScaleUpCalled)

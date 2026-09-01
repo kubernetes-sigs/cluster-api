@@ -309,7 +309,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
-		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete)
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete, true)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result.IsZero()).To(BeTrue())
 
@@ -363,7 +363,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
-		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete)
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete, true)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result.IsZero()).To(BeTrue())
 
@@ -406,7 +406,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
-		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete)
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete, true)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 		g.Expect(fc.Deferrals).To(HaveKeyWithValue(
@@ -417,6 +417,51 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(HaveLen(3))
+	})
+
+	t.Run("scale down if preflight checks would fail but are not executed", func(t *testing.T) {
+		g := NewWithT(t)
+
+		machines := map[string]*clusterv1.Machine{
+			"one":   machine("one", withTimestamp(time.Now().Add(-1*time.Minute))),
+			"two":   machine("two", withTimestamp(time.Now())),
+			"three": machine("three", withTimestamp(time.Now())),
+		}
+		setMachineHealthy(machines["three"])
+		fakeClient := newFakeClient(machines["one"], machines["two"], machines["three"])
+
+		fc := capicontrollerutil.NewFakeController()
+
+		r := &Reconciler{
+			recorder:                        record.NewFakeRecorder(32),
+			Client:                          fakeClient,
+			controller:                      fc,
+			SecretCachingClient:             fakeClient,
+			machineClientWithDeleteResponse: capicontrollerutil.NewClientWithDeleteResponseFromClient(fakeClient),
+			managementCluster: &fakeManagementCluster{
+				Workload: &fakeWorkloadCluster{},
+			},
+		}
+
+		cluster := &clusterv1.Cluster{}
+		kcp := &controlplanev1.KubeadmControlPlane{}
+		controlPlane := &pkg.ControlPlane{
+			KCP:        kcp,
+			Cluster:    cluster,
+			Machines:   machines,
+			EtcdLeader: &etcd.Member{Name: "one"},
+		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
+
+		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, controlPlane.Machines)
+		g.Expect(err).ToNot(HaveOccurred())
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete, false)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result.IsZero()).To(BeTrue())
+
+		controlPlaneMachines := clusterv1.MachineList{}
+		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
+		g.Expect(controlPlaneMachines.Items).To(HaveLen(2))
 	})
 }
 

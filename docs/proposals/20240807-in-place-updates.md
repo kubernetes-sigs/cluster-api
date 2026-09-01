@@ -288,9 +288,9 @@ In order to do so:
 - Before starting an in-place update, a Machine is moved from the current MachineSet (with the old spec) to
   the MachineSet with the new spec; during this step also the Machine/InfraMachine/BootstrapConfig are updated 
   to the new spec.
-- By default, machines updating in-place are considered not available, because in-place updates potentially are disruptive.
+- By default, machines updating in-place are considered not available, because in-place updates are potentially disruptive.
   - If maxUnavailable is 0, a new machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed
-- If instead the answer of the `CanUpdateMachineSet` hook specifies that the required in-place change does not affect availability, the assumption above is dropped and machine updating in-place are considered available, and as a consequence in-place update starts immediately also if maxUnavailable is 0.
+- If, instead, the `CanUpdateMachineSet` hook specifies that the required in-place change does not affect availability, the assumption above is dropped and machine updating in-place are considered available, and as a consequence in-place update starts immediately also if maxUnavailable is 0.
 
 ```mermaid
 sequenceDiagram
@@ -323,9 +323,9 @@ Please note that:
 - When in-place is possible, the system should try to in-place update as many machines as possible.
   In practice, this means that maxSurge might not be fully used (by default it is used only for scale up by one if maxUnavailable=0)
 - When maxUnavailable=0 and `CanUpdateMachineSet` hook specifies that the required change does not affect availability, the in-place update will start immediately, without creating an additional machine/using maxSurge
-  - Warning! the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
-  - If something goes wrong unexpectedly, and the operation lead to actual unavailability, workload could be impacted. 
-  - Use this feature with caution! 
+  - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
+  - If something goes wrong unexpectedly, and the operation leads to actual unavailability, workloads could be impacted.
+  - **Use this feature with caution!** 
 - No in-place updates are performed when using rollout strategy OnDelete.
 
 Please refer to [implementation notes](./20240807-in-place-updates-implementation-notes.md) for more details about how the move operation is performed.
@@ -338,8 +338,8 @@ In order to do so:
 - The "can update in-place" decision is performed at Machine level by calling the `CanUpdateMachine` hook.
 - Before starting an in-place update, the Machine/InfraMachine/BootstrapConfig are updated
   to the new spec.
-- By default, machines updating in-place are considered not available, and as a consequence, if maxSurge is 1, a new Machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed.
-- If instead the answer of the `CanUpdateMachine` hook specifies that the required in-place change does not affect availability, the assumption above is dropped and machine updating in-place are considered available, and as a consequence in-place update starts immediately also if maxSurge is 1.
+- By default, machines updating in-place are considered not available, and as a consequence, if maxSurge is 1, a new Machine must be created first; then as soon as there is “buffer” for in-place, in-place update can proceed.
+- If, instead, the `CanUpdateMachine` hook specifies that the required in-place change does not affect availability, the assumption above is dropped and machine updating in-place are considered available, and as a consequence in-place update starts immediately also if maxSurge is 1.
 - If maxSurge is 0, in-place update can proceed immediately.
 - Note: to better understand above points, you might want to consider that maxSurge in KCP is a way to express if the 
   control plane rollout should be performed "scaling-out" or "scaling-in"
@@ -373,14 +373,9 @@ end
 ```
 Please note that:
 - When maxSurge is 1 and `CanUpdateMachine` hook specifies that the required in-place change does not affect availability the in-place update will start immediately, without creating an additional machine/using maxSurge.
-  - Warning! the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
-  - If something goes wrong unexpectedly, and the operation lead to actual unavailability, workload could be impacted.
-  - Use this feature with caution!
-
-- When maxSurge is 1 and `CanUpdateMachine` hook specifies that the required change does not affect availability, the in-place update will start immediately, without creating an additional machine/using maxSurge
-  - Warning! the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
-  - If something goes wrong unexpectedly, and the operation lead to actual unavailability, control plane components could be impacted.
-  - Use this feature with caution!
+  - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
+  - If something goes wrong unexpectedly, and the operation leads to actual unavailability, workloads could be impacted.
+  - **Use this feature with caution!**
 
 Please refer to [implementation note](./20240807-in-place-updates-implementation-notes.md) for more details about how KCP handles in-place updates.
 

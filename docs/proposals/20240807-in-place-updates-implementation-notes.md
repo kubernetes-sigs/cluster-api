@@ -10,9 +10,9 @@ into the proposal or into the user-facing documentation for this feature.
 - In-place update is always considered as potentially disruptive
   - in-place update must respect maxUnavailable
     - if maxUnavailable is zero, by default a new machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed
-    - if instead the answer of the `CanUpdateMachineSet` hook specifies that the required in-place change does not affect availability, in-place can start immediately
+    - if, instead, the `CanUpdateMachineSet` hook specifies that the required in-place change does not affect availability, in-place update can start immediately
   - when in-place is possible, the system should try to in-place update as many machines as possible.
-    - maxSurge is not fully used (it is used only for scale up by one if maxUnavailable =0 and `CanUpdateMachineSet` doesn't specify that the required in-place change does not affect availability)
+      - maxSurge is used only for scale up by one if maxUnavailable =0 and `CanUpdateMachineSet` doesn't specify that the required in-place change does not affect availability
 
 - No in-place updates are performed when using rollout strategy on delete.
 
@@ -93,12 +93,12 @@ sequenceDiagram
 - In-place updates respect the existing control plane update strategy:
   - KCP controller uses `rollingUpdate` strategy with `maxSurge` (0 or 1)
   - When `maxSurge` is 0, no new machines are created during rollout; updates are performed only on existing machines via in-place updates or by scaling down outdated machines
-  - When `maxSurge` is 1 and the `canUpdateMachine` hook does not specify that the required in-place change does not affect availability:
+  - When `maxSurge` is 1 and the `CanUpdateMachine` hook confirms that the operation affects availability (default):
     - The controller first scales up by creating one new machine to maximize fault tolerance
     - Once `maxReplicas` (desiredReplicas + 1) is reached, it evaluates whether to in-place update or scale down old machines
     - For each old machine needing rollout, the controller evaluates if it is eligible for in-place update. If so, it performs the in-place update on that machine. Otherwise, it scales down the outdated machine (which will be replaced by a new one in the next reconciliation cycle)
     - This pattern repeats until all machines are up-to-date, it then scales back to the desired replica count
-  
+  - if, instead, the `CanUpdateMachine` hook specifies that the required in-place change does not affect availability, in-place update can start immediately
 - The implementation respects the existing set of responsibilities:
   - KCP controller manages control plane Machines directly
     - KCP controller enforces `maxSurge` limits during rolling updates

@@ -418,6 +418,19 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 		return created, err
 	}
 
+	// Only now that the ControlPlane object has been successfully patched to the next version, track the intent
+	// to call the lifecycle hooks queued by computeControlPlaneVersion (e.g. AfterControlPlaneUpgrade).
+	// Note: this must happen after the patch above succeeds; otherwise, if the patch fails, a future reconcile
+	// could call e.g. AfterControlPlaneUpgrade even though the ControlPlane never picked up the new version.
+	// Note: this covers the case where the Control Plane is starting a new upgrade step in this very reconcile
+	// (IsStartingUpgrade); the case where the Control Plane is still rolling out a step decided in a previous
+	// reconcile (IsUpgrading) is already handled above, before the early return for IsPendingUpgrade.
+	if len(s.UpgradeTracker.HooksToMarkPending) > 0 {
+		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, false, s.UpgradeTracker.HooksToMarkPending...); err != nil {
+			return created, err
+		}
+	}
+
 	// If the controlPlane has infrastructureMachines and the InfrastructureMachineTemplate has changed on this reconcile
 	// delete the old template.
 	// This is a best effort deletion only and may leak templates if an error occurs during reconciliation.

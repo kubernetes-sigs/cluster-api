@@ -20,7 +20,6 @@ import (
 	"context"
 
 	pkgerrors "github.com/pkg/errors"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
@@ -31,27 +30,9 @@ func (r *Reconciler) tryInPlaceUpdate(
 	controlPlane *pkg.ControlPlane,
 	machineToInPlaceUpdate *clusterv1.Machine,
 	machineUpToDateResult pkg.UpToDateResult,
-) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
+) (fallbackToScaleDown bool, _ error) {
 	if r.overrideTryInPlaceUpdateFunc != nil {
 		return r.overrideTryInPlaceUpdateFunc(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
-	}
-
-	// Run preflight checks to ensure that the control plane is stable before proceeding with in-place update operation.
-	//
-	// Important! preflight checks play an important role in ensuring that KCP performs "one operation at time", by forcing
-	// the system to wait for the previous operation to complete and the control plane to become stable before starting the next one.
-	//
-	// Note: before considering in-place updates, KCP first takes care of completing
-	// ongoing delete operations, completing in-place transitions, remediating unhealthy machines.
-	if resultForAllMachines := r.preflightChecks(ctx, controlPlane, false); !resultForAllMachines.IsZero() {
-		// If the control plane is not stable, check if the issues are only for machineToInPlaceUpdate.
-		if result := r.preflightChecks(ctx, controlPlane, false, machineToInPlaceUpdate); result.IsZero() {
-			// The issues are only for machineToInPlaceUpdate, fallback to scale down.
-			// Note: The consequence of this is that a Machine with issues is scaled down and not in-place updated.
-			return true, ctrl.Result{}, nil
-		}
-
-		return false, resultForAllMachines, nil
 	}
 
 	// Note: Usually canUpdateMachine is only called once for a single Machine rollout.
@@ -62,12 +43,12 @@ func (r *Reconciler) tryInPlaceUpdate(
 	// fails or if we fail to delete the Machine.
 	canUpdate, err := r.canUpdateMachine(ctx, machineToInPlaceUpdate, machineUpToDateResult)
 	if err != nil {
-		return false, ctrl.Result{}, pkgerrors.Wrapf(err, "failed to determine if Machine %s can be updated in-place", machineToInPlaceUpdate.Name)
+		return false, pkgerrors.Wrapf(err, "failed to determine if Machine %s can be updated in-place", machineToInPlaceUpdate.Name)
 	}
 
 	if !canUpdate {
-		return true, ctrl.Result{}, nil
+		return true, nil
 	}
 
-	return false, ctrl.Result{}, r.triggerInPlaceUpdate(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
+	return false, r.triggerInPlaceUpdate(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
 }

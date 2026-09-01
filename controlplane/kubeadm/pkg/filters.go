@@ -322,6 +322,19 @@ func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bo
 		currentKubeadmConfig.Spec.JoinConfiguration.CACertPath = desiredKubeadmConfig.Spec.JoinConfiguration.CACertPath
 	}
 
+	// Note: On KubeadmConfigs created by CAPI v1.11 KCP did not set JoinConfiguration.ControlPlane.
+	// CABPK was setting it, but because of a reentrancy issue in CABPK it is not guaranteed that
+	// this field is actually set. If the current KubeadmConfig is missing this field, it should not
+	// be considered a diff.
+	// The reentrancy issue in CABPK was that if the status write succeeds and the spec write fails CABPK
+	// does not try to write JoinConfiguration.ControlPlane again.
+	// As CAPI v1.11 supported up to Kubernetes v1.34. We assume the Machine has to be rolled out before CAPI
+	// drops support for Kubernetes v1.34. So this code can be removed once CAPI doesn't support Kubernetes
+	// v1.34 anymore.
+	if isKubeadmConfigForJoin(currentKubeadmConfig) && currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane == nil {
+		currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{}
+	}
+
 	// Ignore ControlPlaneEndpoint which is added on the Machine KubeadmConfig by CABPK.
 	// Note: ControlPlaneEndpoint should also never change for a Cluster, so no reason to trigger a rollout because of that.
 	currentKubeadmConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint = desiredKubeadmConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint
@@ -543,8 +556,17 @@ func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 // is not safe because apiServer.timeoutForControlPlane in v1beta1 is also converted to
 // joinConfiguration.timeouts.controlPlaneComponentHealthCheckSeconds in v1beta2 and
 // accordingly we would also detect init KubeadmConfigs as join.
+// Note: On KubeadmConfigs created by CAPI v1.11 KCP did not set JoinConfiguration.ControlPlane.
+// CABPK was setting it, but because of a reentrancy issue in CABPK it is not guaranteed that
+// this field is actually set. We're making up for that by additionally checking kubeletExtraArgs
+// which is usually always set (because of the --cloud-provider=external extra arg).
+// The reentrancy issue in CABPK was that if the status write succeeds and the spec write fails CABPK
+// does not try to write JoinConfiguration.ControlPlane again.
+// As CAPI v1.11 supported up to Kubernetes v1.34. We assume the Machine has to be either rolled out
+// or in-place updated before CAPI drops support for Kubernetes v1.34. So this code (the KubeletExtraArgs check)
+// can be removed once CAPI doesn't support Kubernetes v1.34 anymore.
 func isKubeadmConfigForJoin(c *bootstrapv1.KubeadmConfig) bool {
-	return c.Spec.JoinConfiguration.ControlPlane != nil
+	return c.Spec.JoinConfiguration.ControlPlane != nil || len(c.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs) > 0
 }
 
 // isKubeadmConfigForInit returns true if the KubeadmConfig is for the first control plane

@@ -1338,15 +1338,15 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			g.Expect(hooksCalled.Has("AfterWorkersUpgrade")).To(Equal(tt.wantAfterWorkersUpgradeRequest != nil), "Unexpected call/missing call to AfterWorkersUpgrade")
 
 			// check intent to call hooks
-			hookNames := make([]string, 0, len(s.UpgradeTracker.HooksToMarkPending))
+			var hookNames []string
 			for _, hook := range s.UpgradeTracker.HooksToMarkPending {
 				hookNames = append(hookNames, runtimecatalog.HookName(hook))
 			}
-			g.Expect(hookNames).To(HaveLen(len(tt.wantHooksToMarkPending)), "Unexpected list of hooksToMarkPending")
+			g.Expect(hookNames).To(ConsistOf(tt.wantHooksToMarkPending))
 			if tt.wantPendingHookAnnotation != "" {
-				g.Expect(s.Current.Cluster.Annotations).To(HaveKeyWithValue(runtimev1.PendingHooksAnnotation, tt.wantPendingHookAnnotation), "Unexpected PendingHookAnnotation")
+				g.Expect(s.Current.Cluster.Annotations).To(HaveKeyWithValue(runtimev1.PendingHooksAnnotation, tt.wantPendingHookAnnotation))
 			} else {
-				g.Expect(s.Current.Cluster.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation), "Unexpected PendingHookAnnotation")
+				g.Expect(s.Current.Cluster.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation))
 			}
 
 			if tt.wantHookCacheEntry != nil {

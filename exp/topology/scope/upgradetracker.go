@@ -33,7 +33,7 @@ type UpgradeTracker struct {
 	// Note: when there are no upgrade in progress, ComputeUpgradePlan succeeds and it returns an empty upgrade plan.
 	ComputeUpgradePlanSucceeded bool
 
-	// HooksToMarkPending is the list of lifecycle hooks for which the intent to be called
+	// HooksToMarkPending is the list of lifecycle hooks that must be market as pending
 	// after the control plane is updated to the next version.
 	HooksToMarkPending []runtimecatalog.Hook
 }

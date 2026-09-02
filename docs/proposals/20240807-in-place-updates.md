@@ -158,6 +158,7 @@ The responsibility to determine which Machine/MachineSet should be updated, the 
 
 - To provide rollbacks in case of an in-place update failure. Failed updates need to be fixed manually by the user on the machine or by replacing the machine.
 - Introduce any API changes both in core Cluster API or in KCP (or any other control plane provider).
+- Support unsetting fields of Machines created with CAPI v1.11 during the first in-place update. For details see the PR description of [CAPI-12890](https://github.com/kubernetes-sigs/cluster-api/pull/12890) section "Migration from managedFields v1.11 => v1.12".
 - Support more than one pluggable update extensions (future goal).
 - Allow in-place updates for single-node clusters without the requirement to reprovision hosts (future goal).
 

@@ -256,3 +256,11 @@ When triggering in-place updates:
    - labels and annotations are owned by the metadata manager
    - spec is owned by the spec manager
    - in-progress and cloned-from annotations are owned by the spec manager
+
+### Limitation for Machines created with CAPI v1.11
+
+For Clusters that have been created with CAPI <= v1.11 it will only be possible to unset fields during in-place updates after:
+* a regular rollout that replaces all Machines
+* an in-place update that updates all Machines
+
+For details see the PR description of [CAPI-12890](https://github.com/kubernetes-sigs/cluster-api/pull/12890) section "Migration from managedFields v1.11 => v1.12".

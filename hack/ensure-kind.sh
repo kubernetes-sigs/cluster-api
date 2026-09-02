@@ -33,23 +33,30 @@ goos="$(go env GOOS)"
 MINIMUM_KIND_VERSION=v0.31.0
 
 
+# install_kind downloads and installs the required kind version into GOPATH_BIN.
+install_kind() {
+  if [ "$goos" == "linux" ] || [ "$goos" == "darwin" ]; then
+    echo "Installing kind ${MINIMUM_KIND_VERSION}"
+    if ! [ -d "${GOPATH_BIN}" ]; then
+      mkdir -p "${GOPATH_BIN}"
+    fi
+    curl --retry 5 --retry-all-errors -sLo "${GOPATH_BIN}/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-${goos}-${goarch}"
+    chmod +x "${GOPATH_BIN}/kind"
+    verify_gopath_bin
+  else
+    echo "Unsupported OS: cannot install kind on ${goos}"
+    return 2
+  fi
+}
+
 # Ensure the kind tool exists and is a viable version, or installs it
 verify_kind_version() {
 
   # If kind is not available on the path, get it
   if ! [ -x "$(command -v kind)" ]; then
-    if [ "$goos" == "linux" ] || [ "$goos" == "darwin" ]; then
-      echo 'kind not found, installing'
-      if ! [ -d "${GOPATH_BIN}" ]; then
-        mkdir -p "${GOPATH_BIN}"
-      fi
-      curl --retry 5 --retry-all-errors -sLo "${GOPATH_BIN}/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-${goos}-${goarch}"
-      chmod +x "${GOPATH_BIN}/kind"
-      verify_gopath_bin
-    else
-      echo "Missing required binary in path: kind"
-      return 2
-    fi
+    echo 'kind not found, installing'
+    install_kind
+    return
   fi
 
   local kind_version
@@ -58,9 +65,9 @@ verify_kind_version() {
     cat <<EOF
 Detected kind version: ${kind_version}.
 Requires ${MINIMUM_KIND_VERSION} or greater.
-Please install ${MINIMUM_KIND_VERSION} or later.
+Installing ${MINIMUM_KIND_VERSION}.
 EOF
-    return 2
+    install_kind
   fi
 }
 

@@ -360,6 +360,18 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 		panic(err)
 	}
 
+	// envtest installs the CRDs from the raw bases/ manifests, which bypasses kustomize and
+	// thus drops the contract labels that are injected in production via
+	// bootstrap/kubeadm/config/crd/kustomization.yaml and
+	// controlplane/kubeadm/config/crd/kustomization.yaml.
+	// Without those labels the conversion webhooks can't resolve the apiVersion of
+	// referenced objects (e.g. a Machine's bootstrapConfigRef pointing to a KubeadmConfig),
+	// which leads to "cannot find any versions matching contract versions" errors in test logs.
+	if err := addContractLabelsToKubeadmCRDs(env.Config, scheme); err != nil {
+		err = kerrors.NewAggregate([]error{err, env.Stop()})
+		panic(err)
+	}
+
 	// Localhost is used on MacOS to avoid Firewall warning popups.
 	host := "localhost"
 	if strings.EqualFold(os.Getenv("USE_EXISTING_CLUSTER"), "true") {
@@ -475,6 +487,44 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 		Config:  mgr.GetConfig(),
 		env:     env,
 	}
+}
+
+// addContractLabelsToKubeadmCRDs adds the contract labels to the kubeadm CRDs, mirroring
+// what kustomize injects in production (see bootstrap/kubeadm/config/crd/kustomization.yaml
+// and controlplane/kubeadm/config/crd/kustomization.yaml).
+func addContractLabelsToKubeadmCRDs(config *rest.Config, scheme *runtime.Scheme) error {
+	c, err := client.New(config, client.Options{Scheme: scheme})
+	if err != nil {
+		return fmt.Errorf("failed to create client: %w", err)
+	}
+
+	contractLabels := map[string]string{
+		clusterv1beta1.GroupVersion.String(): clusterv1beta1.GroupVersion.Version,
+		clusterv1.GroupVersion.String():      clusterv1.GroupVersion.Version,
+	}
+
+	ctx := context.Background()
+	for _, crdName := range []string{
+		"kubeadmconfigs.bootstrap.cluster.x-k8s.io",
+		"kubeadmconfigtemplates.bootstrap.cluster.x-k8s.io",
+		"kubeadmcontrolplanes.controlplane.cluster.x-k8s.io",
+		"kubeadmcontrolplanetemplates.controlplane.cluster.x-k8s.io",
+	} {
+		crd := &apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{Name: crdName},
+		}
+		patch := client.MergeFrom(crd.DeepCopy())
+		if crd.Labels == nil {
+			crd.Labels = map[string]string{}
+		}
+		for key, value := range contractLabels {
+			crd.Labels[key] = value
+		}
+		if err := c.Patch(ctx, crd, patch); err != nil {
+			return fmt.Errorf("failed to add contract labels to CRD %s: %w", crdName, err)
+		}
+	}
+	return nil
 }
 
 func writeAuditPolicy(dir string) (string, error) {

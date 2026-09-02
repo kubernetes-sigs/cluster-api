@@ -49,6 +49,16 @@ install_kind() {
   fi
 }
 
+# verify_kind_installed checks that the kind binary resolved via PATH meets MINIMUM_KIND_VERSION.
+verify_kind_installed() {
+  local kind_version
+  kind_version="v$(kind version -q)"
+  if [[ "${MINIMUM_KIND_VERSION}" != $(echo -e "${MINIMUM_KIND_VERSION}\n${kind_version}" | sort -s -t. -k 1,1n -k 2,2n -k 3,3n | head -n1) ]]; then
+    echo "error: 'kind' in PATH resolved to ${kind_version} after install; expected >= ${MINIMUM_KIND_VERSION}"
+    return 2
+  fi
+}
+
 # Ensure the kind tool exists and is a viable version, or installs it
 verify_kind_version() {
 
@@ -56,6 +66,7 @@ verify_kind_version() {
   if ! [ -x "$(command -v kind)" ]; then
     echo 'kind not found, installing'
     install_kind
+    verify_kind_installed
     return
   fi
 
@@ -68,6 +79,7 @@ Requires ${MINIMUM_KIND_VERSION} or greater.
 Installing ${MINIMUM_KIND_VERSION}.
 EOF
     install_kind
+    verify_kind_installed
   fi
 }
 

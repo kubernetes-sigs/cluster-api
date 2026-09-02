@@ -51,6 +51,16 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 					Append:  ptr.To(true),
 					Content: "hi",
 				},
+				{
+					Path:    "/tmp/deferred-path",
+					Defer:   ptr.To(true),
+					Content: "hi",
+				},
+				{
+					Path:    "/tmp/deferred-false-path",
+					Defer:   ptr.To(false),
+					Content: "hi",
+				},
 			},
 			WriteFiles: nil,
 			Users:      nil,
@@ -81,6 +91,14 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
       hi`,
 		`-   path: /tmp/existing-path
     append: true
+    content: |
+      hi`,
+		`-   path: /tmp/deferred-path
+    defer: true
+    content: |
+      hi`,
+		`-   path: /tmp/deferred-false-path
+    defer: false
     content: |
       hi`,
 	}

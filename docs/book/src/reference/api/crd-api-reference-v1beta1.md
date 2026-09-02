@@ -578,6 +578,7 @@ _Appears in:_
 | `permissions` _string_ | permissions specifies the permissions to assign to the file, e.g. "0640". |  | MaxLength: 16 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `encoding` _[Encoding](#encoding)_ | encoding specifies the encoding of the file contents. |  | Enum: [base64 gzip gzip+base64] <br />Optional: \{\} <br /> |
 | `append` _boolean_ | append specifies whether to append Content to existing file if Path exists. |  | Optional: \{\} <br /> |
+| `defer` _boolean_ | defer determines whether writing the file is deferred until the cloud-init final stage,<br />after users are created and packages are installed. |  | Optional: \{\} <br /> |
 | `content` _string_ | content is the actual content of the file. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `contentFrom` _[FileSource](#filesource)_ | contentFrom is a referenced source of content to populate the file. |  | Optional: \{\} <br /> |
 | `contentFormat` _[FileContentFormat](#filecontentformat)_ | contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).<br />When set to "Template", content is rendered as a Go text/template.<br />Available template variables:<br />  - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").<br />    Only set when the cluster has a control plane reference that exposes spec.version.<br />When set to "Raw" or omitted, content is used verbatim. |  | Enum: [Raw Template] <br />Optional: \{\} <br /> |

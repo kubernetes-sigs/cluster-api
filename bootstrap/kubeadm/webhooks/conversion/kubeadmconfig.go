@@ -180,14 +180,16 @@ func RestoreBoolIntentKubeadmConfigSpec(src *bootstrapv1beta1.KubeadmConfigSpec,
 		if srcFile == nil {
 			return fmt.Errorf("file with path %q not found in source data", file.Path)
 		}
-		var restoredFileAppend *bool
+		var restoredFileAppend, restoredFileDefer *bool
 		for _, f := range restored.Files {
 			if f.Path == file.Path {
 				restoredFileAppend = f.Append
+				restoredFileDefer = f.Defer
 				break
 			}
 		}
 		clusterv1.Convert_bool_To_Pointer_bool(srcFile.Append, hasRestored, restoredFileAppend, &file.Append)
+		clusterv1.Convert_bool_To_Pointer_bool(srcFile.Defer, hasRestored, restoredFileDefer, &file.Defer)
 		dst.Files[i] = file
 	}
 
@@ -299,14 +301,14 @@ func hostPathMountsForRestore(volumes []bootstrapv1.HostPathMount) []bootstrapv1
 }
 
 // filesForRestore returns a slice of File that only contains the fields needed to restore
-// the Append bool intent (Path is used to find the matching entry).
+// the Append and Defer bool intent (Path is used to find the matching entry).
 func filesForRestore(files []bootstrapv1.File) []bootstrapv1.File {
 	if files == nil {
 		return nil
 	}
 	out := make([]bootstrapv1.File, len(files))
 	for i, f := range files {
-		out[i] = bootstrapv1.File{Path: f.Path, Append: f.Append}
+		out[i] = bootstrapv1.File{Path: f.Path, Append: f.Append, Defer: f.Defer}
 	}
 	return out
 }

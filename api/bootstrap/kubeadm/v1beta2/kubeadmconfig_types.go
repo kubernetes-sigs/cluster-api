@@ -367,6 +367,11 @@ type File struct {
 	// +optional
 	Append *bool `json:"append,omitempty"`
 
+	// defer determines whether writing the file is deferred until the cloud-init final stage,
+	// after users are created and packages are installed.
+	// +optional
+	Defer *bool `json:"defer,omitempty"`
+
 	// content is the actual content of the file.
 	// +optional
 	// +kubebuilder:validation:MinLength=1

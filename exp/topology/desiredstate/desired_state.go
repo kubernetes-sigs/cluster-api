@@ -581,6 +581,16 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	// after the control plane is stable.
 	if cpUpgrading {
 		s.UpgradeTracker.ControlPlane.IsUpgrading = true
+
+		// Recovery code in case control plane version was changed, but it failed to apply the list of pending hooks.
+		if feature.Gates.Enabled(feature.RuntimeSDK) {
+			if !hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
+				hooksToMarkPending := getHooksToMarkPending(s, *currentVersion)
+				if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, false, hooksToMarkPending...); err != nil {
+					return "", err
+				}
+			}
+		}
 		return *currentVersion, nil
 	}
 
@@ -697,21 +707,15 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 			return *currentVersion, nil
 		}
 
-		// After BeforeControlPlaneUpgrade unblocked the upgrade step, consider the upgrade step start started,
-		// As a consequence, the system start tracking the intent of calling other hooks for this upgrade step:
+		// After BeforeControlPlaneUpgrade unblocked the upgrade step, consider the upgrade step starting,
+		// As a consequence, the system should also start tracking the intent of calling other hooks for this upgrade step:
 		// - AfterControlPlaneUpgrade hook to be called after the control plane completes the upgrade step.
 		// - If workers are required to upgrade to the current control plane version:
 		//   - BeforeWorkersUpgrade hook to be called before workers start the upgrade step.
 		//   - AfterWorkersUpgrade hook to be called after workers completes the upgrade step.
-		hooksToBeCalled := []runtimecatalog.Hook{runtimehooksv1.AfterControlPlaneUpgrade}
-		machineDeploymentPendingUpgrade := len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 && s.UpgradeTracker.MachineDeployments.UpgradePlan[0] == nextVersion
-		machinePoolPendingUpgrade := len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 && s.UpgradeTracker.MachinePools.UpgradePlan[0] == nextVersion
-		if machineDeploymentPendingUpgrade || machinePoolPendingUpgrade {
-			hooksToBeCalled = append(hooksToBeCalled, runtimehooksv1.BeforeWorkersUpgrade, runtimehooksv1.AfterWorkersUpgrade)
-		}
-		if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, false, hooksToBeCalled...); err != nil {
-			return "", err
-		}
+		// Note: the intent must surface on the Cluster object only after the control plane version is actually set
+		// in reconcileControlPlane.
+		s.UpgradeTracker.HooksToMarkPending = getHooksToMarkPending(s, nextVersion)
 	}
 
 	// The upgrade is now starting in this reconcile and not pending anymore.
@@ -725,6 +729,16 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		s.Current.ControlPlane.Object.GetKind(), klog.KObj(s.Current.ControlPlane.Object),
 	)
 	return nextVersion, nil
+}
+
+func getHooksToMarkPending(s *scope.Scope, nextVersion string) []runtimecatalog.Hook {
+	hooksToMarkPending := []runtimecatalog.Hook{runtimehooksv1.AfterControlPlaneUpgrade}
+	machineDeploymentPendingUpgrade := len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 && s.UpgradeTracker.MachineDeployments.UpgradePlan[0] == nextVersion
+	machinePoolPendingUpgrade := len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 && s.UpgradeTracker.MachinePools.UpgradePlan[0] == nextVersion
+	if machineDeploymentPendingUpgrade || machinePoolPendingUpgrade {
+		hooksToMarkPending = append(hooksToMarkPending, runtimehooksv1.BeforeWorkersUpgrade, runtimehooksv1.AfterWorkersUpgrade)
+	}
+	return hooksToMarkPending
 }
 
 // computeCluster computes the desired state for the Cluster object.

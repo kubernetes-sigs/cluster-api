@@ -16,7 +16,11 @@ limitations under the License.
 
 package scope
 
-import "k8s.io/apimachinery/pkg/util/sets"
+import (
+	"k8s.io/apimachinery/pkg/util/sets"
+
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
+)
 
 // UpgradeTracker is a helper to capture the upgrade status and make upgrade decisions.
 type UpgradeTracker struct {
@@ -28,6 +32,10 @@ type UpgradeTracker struct {
 	// ComputeUpgradePlanSucceeded reports when an upgrade plan has been successfully computed
 	// Note: when there are no upgrade in progress, ComputeUpgradePlan succeeds and it returns an empty upgrade plan.
 	ComputeUpgradePlanSucceeded bool
+
+	// HooksToMarkPending is the list of lifecycle hooks that must be market as pending
+	// after the control plane is updated to the next version.
+	HooksToMarkPending []runtimecatalog.Hook
 }
 
 // ControlPlaneUpgradeTracker holds the current upgrade status of the Control Plane.

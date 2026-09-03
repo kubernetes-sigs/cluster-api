@@ -1607,6 +1607,8 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 }
 
 func TestReconcileControlPlane(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
 	testReconcileControlPlane(t, "v1beta1")
 	testReconcileControlPlane(t, "v1beta2")
 }
@@ -1695,6 +1697,9 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 	upgradeTrackerWithControlPlanePendingUpgrade := scope.NewUpgradeTracker()
 	upgradeTrackerWithControlPlanePendingUpgrade.ControlPlane.IsPendingUpgrade = true
 
+	upgradeTrackerWithHooksToMarkPending := scope.NewUpgradeTracker()
+	upgradeTrackerWithHooksToMarkPending.HooksToMarkPending = []runtimecatalog.Hook{runtimehooksv1.AfterControlPlaneUpgrade}
+
 	tests := []struct {
 		name                                 string
 		class                                *scope.ControlPlaneBlueprint
@@ -1706,6 +1711,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 		want                                 *scope.ControlPlaneState
 		wantCreated                          bool
 		wantRotation                         bool
+		wantPendingHookAnnotation            string
 		wantErr                              bool
 	}{
 		// Testing reconciliation of a control plane without machines.
@@ -1719,12 +1725,14 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 			wantErr:     false,
 		},
 		{
-			name:     "Should update the ControlPlane without machine infrastructure",
-			class:    ccWithoutControlPlaneInfrastructure,
-			original: &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
-			desired:  &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructureWithChanges.DeepCopy()},
-			want:     &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructureWithChanges.DeepCopy()},
-			wantErr:  false,
+			name:                      "Should update the ControlPlane without machine infrastructure",
+			class:                     ccWithoutControlPlaneInfrastructure,
+			upgradeTracker:            upgradeTrackerWithHooksToMarkPending,
+			original:                  &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			desired:                   &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructureWithChanges.DeepCopy()},
+			want:                      &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructureWithChanges.DeepCopy()},
+			wantPendingHookAnnotation: "AfterControlPlaneUpgrade",
+			wantErr:                   false,
 		},
 		{
 			name:           "Should not update the ControlPlane if ControlPlane is pending upgrade",
@@ -1828,7 +1836,31 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 				tt.want = prepareControlPlaneState(g, tt.want, namespace.GetName())
 			}
 
-			s := scope.New(builder.Cluster(namespace.GetName(), "cluster1").Build())
+			infraTemplate := builder.InfrastructureClusterTemplate(namespace.GetName(), "template1").Build()
+			g.Expect(env.CreateAndWait(ctx, infraTemplate)).To(Succeed())
+
+			cpTemplate := builder.ControlPlaneTemplate(namespace.GetName(), "template1").Build()
+			g.Expect(env.CreateAndWait(ctx, cpTemplate)).To(Succeed())
+
+			clusterclass := builder.ClusterClass(namespace.GetName(), "class1").
+				WithInfrastructureClusterTemplate(infraTemplate).
+				WithControlPlaneTemplate(cpTemplate).
+				Build()
+			g.Expect(env.CreateAndWait(ctx, clusterclass)).To(Succeed())
+
+			cluster := builder.Cluster(namespace.GetName(), "cluster1").
+				WithTopology(&clusterv1.Topology{
+					ClassRef: clusterv1.ClusterClassRef{
+						Name: "class1",
+					},
+					Version: "v1.30.0",
+				}).
+				Build()
+			// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
+			cluster.Spec.Paused = ptr.To(true)
+			g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
+
+			s := scope.New(cluster)
 			s.Blueprint = &scope.ClusterBlueprint{
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
@@ -1995,6 +2027,15 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 					}, obj)
 					g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 				}
+			}
+
+			// Check PendingHookAnnotation
+			gotCluster := &clusterv1.Cluster{}
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(cluster), gotCluster)).To(Succeed())
+			if tt.wantPendingHookAnnotation != "" {
+				g.Expect(gotCluster.Annotations).To(HaveKeyWithValue(runtimev1.PendingHooksAnnotation, tt.wantPendingHookAnnotation), "Unexpected PendingHookAnnotation")
+			} else {
+				g.Expect(gotCluster.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation), "Unexpected PendingHookAnnotation")
 			}
 		})
 	}

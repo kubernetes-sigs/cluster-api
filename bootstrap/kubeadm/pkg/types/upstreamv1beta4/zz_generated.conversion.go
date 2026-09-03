@@ -272,8 +272,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_upstreamv1beta4_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1beta2.APIEndpoint, s conversion.Scope) error {
-	out.AdvertiseAddress = in.AdvertiseAddress
-	out.BindPort = in.BindPort
+	*out = *(*v1beta2.APIEndpoint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -283,8 +282,7 @@ func Convert_upstreamv1beta4_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint,
 }
 
 func autoConvert_v1beta2_APIEndpoint_To_upstreamv1beta4_APIEndpoint(in *v1beta2.APIEndpoint, out *APIEndpoint, s conversion.Scope) error {
-	out.AdvertiseAddress = in.AdvertiseAddress
-	out.BindPort = in.BindPort
+	*out = *(*APIEndpoint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -384,8 +382,7 @@ func Convert_v1beta2_BootstrapTokenDiscovery_To_upstreamv1beta4_BootstrapTokenDi
 }
 
 func autoConvert_upstreamv1beta4_BootstrapTokenString_To_v1beta2_BootstrapTokenString(in *BootstrapTokenString, out *v1beta2.BootstrapTokenString, s conversion.Scope) error {
-	out.ID = in.ID
-	out.Secret = in.Secret
+	*out = *(*v1beta2.BootstrapTokenString)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -395,8 +392,7 @@ func Convert_upstreamv1beta4_BootstrapTokenString_To_v1beta2_BootstrapTokenStrin
 }
 
 func autoConvert_v1beta2_BootstrapTokenString_To_upstreamv1beta4_BootstrapTokenString(in *v1beta2.BootstrapTokenString, out *BootstrapTokenString, s conversion.Scope) error {
-	out.ID = in.ID
-	out.Secret = in.Secret
+	*out = *(*BootstrapTokenString)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -489,7 +485,7 @@ func autoConvert_v1beta2_Discovery_To_upstreamv1beta4_Discovery(in *v1beta2.Disc
 }
 
 func autoConvert_upstreamv1beta4_EnvVar_To_v1beta2_EnvVar(in *EnvVar, out *v1beta2.EnvVar, s conversion.Scope) error {
-	out.EnvVar = in.EnvVar
+	*out = *(*v1beta2.EnvVar)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -499,7 +495,7 @@ func Convert_upstreamv1beta4_EnvVar_To_v1beta2_EnvVar(in *EnvVar, out *v1beta2.E
 }
 
 func autoConvert_v1beta2_EnvVar_To_upstreamv1beta4_EnvVar(in *v1beta2.EnvVar, out *EnvVar, s conversion.Scope) error {
-	out.EnvVar = in.EnvVar
+	*out = *(*EnvVar)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -521,10 +517,7 @@ func autoConvert_v1beta2_Etcd_To_upstreamv1beta4_Etcd(in *v1beta2.Etcd, out *Etc
 }
 
 func autoConvert_upstreamv1beta4_ExternalEtcd_To_v1beta2_ExternalEtcd(in *ExternalEtcd, out *v1beta2.ExternalEtcd, s conversion.Scope) error {
-	out.Endpoints = *(*[]string)(unsafe.Pointer(&in.Endpoints))
-	out.CAFile = in.CAFile
-	out.CertFile = in.CertFile
-	out.KeyFile = in.KeyFile
+	*out = *(*v1beta2.ExternalEtcd)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -534,10 +527,7 @@ func Convert_upstreamv1beta4_ExternalEtcd_To_v1beta2_ExternalEtcd(in *ExternalEt
 }
 
 func autoConvert_v1beta2_ExternalEtcd_To_upstreamv1beta4_ExternalEtcd(in *v1beta2.ExternalEtcd, out *ExternalEtcd, s conversion.Scope) error {
-	out.Endpoints = *(*[]string)(unsafe.Pointer(&in.Endpoints))
-	out.CAFile = in.CAFile
-	out.CertFile = in.CertFile
-	out.KeyFile = in.KeyFile
+	*out = *(*ExternalEtcd)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -797,7 +787,7 @@ func autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta4_NodeRegistra
 }
 
 func autoConvert_upstreamv1beta4_Patches_To_v1beta2_Patches(in *Patches, out *v1beta2.Patches, s conversion.Scope) error {
-	out.Directory = in.Directory
+	*out = *(*v1beta2.Patches)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -807,7 +797,7 @@ func Convert_upstreamv1beta4_Patches_To_v1beta2_Patches(in *Patches, out *v1beta
 }
 
 func autoConvert_v1beta2_Patches_To_upstreamv1beta4_Patches(in *v1beta2.Patches, out *Patches, s conversion.Scope) error {
-	out.Directory = in.Directory
+	*out = *(*Patches)(unsafe.Pointer(in))
 	return nil
 }
 

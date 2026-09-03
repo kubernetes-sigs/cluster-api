@@ -346,9 +346,7 @@ func Convert_v1beta2_ClusterResourceSetList_To_v1beta1_ClusterResourceSetList(in
 }
 
 func autoConvert_v1beta1_ClusterResourceSetSpec_To_v1beta2_ClusterResourceSetSpec(in *ClusterResourceSetSpec, out *v1beta2.ClusterResourceSetSpec, s conversion.Scope) error {
-	out.ClusterSelector = in.ClusterSelector
-	out.Resources = *(*[]v1beta2.ResourceRef)(unsafe.Pointer(&in.Resources))
-	out.Strategy = in.Strategy
+	*out = *(*v1beta2.ClusterResourceSetSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -358,9 +356,7 @@ func Convert_v1beta1_ClusterResourceSetSpec_To_v1beta2_ClusterResourceSetSpec(in
 }
 
 func autoConvert_v1beta2_ClusterResourceSetSpec_To_v1beta1_ClusterResourceSetSpec(in *v1beta2.ClusterResourceSetSpec, out *ClusterResourceSetSpec, s conversion.Scope) error {
-	out.ClusterSelector = in.ClusterSelector
-	out.Resources = *(*[]ResourceRef)(unsafe.Pointer(&in.Resources))
-	out.Strategy = in.Strategy
+	*out = *(*ClusterResourceSetSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -428,8 +424,7 @@ func autoConvert_v1beta2_ResourceBinding_To_v1beta1_ResourceBinding(in *v1beta2.
 }
 
 func autoConvert_v1beta1_ResourceRef_To_v1beta2_ResourceRef(in *ResourceRef, out *v1beta2.ResourceRef, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Kind = in.Kind
+	*out = *(*v1beta2.ResourceRef)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -439,8 +434,7 @@ func Convert_v1beta1_ResourceRef_To_v1beta2_ResourceRef(in *ResourceRef, out *v1
 }
 
 func autoConvert_v1beta2_ResourceRef_To_v1beta1_ResourceRef(in *v1beta2.ResourceRef, out *ResourceRef, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Kind = in.Kind
+	*out = *(*ResourceRef)(unsafe.Pointer(in))
 	return nil
 }
 

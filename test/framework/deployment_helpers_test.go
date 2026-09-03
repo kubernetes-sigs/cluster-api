@@ -287,6 +287,21 @@ controller_runtime_conversion_webhook_panics_total 2
 `),
 			wantErr: "panics occurred in Pod default/pod1: 2 panics occurred in conversion webhooks (check logs for more details)",
 		},
+		{
+			name: "multiple informers with the same GVR",
+			data: []byte(`
+informer_store_resource_version{group="bootstrap.cluster.x-k8s.io", name="cluster-api-kubeadm-control-plane-manager", resource="kubeadmconfigtemplates", version="v1beta2"} 2439
+informer_store_resource_version{group="bootstrap.cluster.x-k8s.io", name="cluster-api-kubeadm-control-plane-manager-dynamic-cache", resource="kubeadmconfigtemplates", version="v1beta2"} 2439
+`),
+			wantErr: "there are 2 informers for GVR bootstrap.cluster.x-k8s.io/v1beta2, Resource=kubeadmconfigtemplates (names: [cluster-api-kubeadm-control-plane-manager cluster-api-kubeadm-control-plane-manager-dynamic-cache])",
+		},
+		{
+			name: "informers with different GVR",
+			data: []byte(`
+informer_store_resource_version{group="controlplane.cluster.x-k8s.io", name="cluster-api-kubeadm-control-plane-manager", resource="kubeadmcontrolplanes", version="v1beta2"} 2439
+informer_store_resource_version{group="bootstrap.cluster.x-k8s.io", name="cluster-api-kubeadm-control-plane-manager-dynamic-cache", resource="kubeadmconfigs", version="v1beta2"} 2439
+`),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

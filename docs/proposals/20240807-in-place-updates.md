@@ -289,8 +289,9 @@ In order to do so:
 - Before starting an in-place update, a Machine is moved from the current MachineSet (with the old spec) to
   the MachineSet with the new spec; during this step also the Machine/InfraMachine/BootstrapConfig are updated 
   to the new spec.
-- Machines updating in-place are considered not available, because in-place updates are always considered as potentially disruptive.
+- By default, machines updating in-place are considered not available, because in-place updates are potentially disruptive.
   - If maxUnavailable is 0, a new machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed
+- If, instead, the `CanUpdateMachineSet` hook specifies that the required in-place change does not affect availability, the assumption above is dropped and machine updating in-place are considered available, and as a consequence in-place update starts immediately also if maxUnavailable is 0.
 
 ```mermaid
 sequenceDiagram
@@ -321,7 +322,11 @@ end
 
 Please note that:
 - When in-place is possible, the system should try to in-place update as many machines as possible.
-  In practice, this means that maxSurge might not be fully used (it is used only for scale up by one if maxUnavailable=0)
+  In practice, this means that maxSurge might not be fully used (by default it is used only for scale up by one if maxUnavailable=0)
+- When maxUnavailable=0 and `CanUpdateMachineSet` hook specifies that the required change does not affect availability, the in-place update will start immediately, without creating an additional machine/using maxSurge
+  - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
+  - If something goes wrong unexpectedly, and the operation leads to actual unavailability, workloads could be impacted.
+  - **Use this feature with caution!** 
 - No in-place updates are performed when using rollout strategy OnDelete.
 
 Please refer to [implementation notes](./20240807-in-place-updates-implementation-notes.md) for more details about how the move operation is performed.
@@ -334,7 +339,8 @@ In order to do so:
 - The "can update in-place" decision is performed at Machine level by calling the `CanUpdateMachine` hook.
 - Before starting an in-place update, the Machine/InfraMachine/BootstrapConfig are updated
   to the new spec.
-- If maxSurge is 1, a new Machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed.
+- By default, machines updating in-place are considered not available, and as a consequence, if maxSurge is 1, a new Machine must be created first; then as soon as there is “buffer” for in-place, in-place update can proceed.
+- If, instead, the `CanUpdateMachine` hook specifies that the required in-place change does not affect availability, the assumption above is dropped and machine updating in-place are considered available, and as a consequence in-place update starts immediately also if maxSurge is 1.
 - If maxSurge is 0, in-place update can proceed immediately.
 - Note: to better understand above points, you might want to consider that maxSurge in KCP is a way to express if the 
   control plane rollout should be performed "scaling-out" or "scaling-in"
@@ -366,6 +372,11 @@ loop For all machines
     mach->>apiserver: Mark Machine as UpToDate
 end
 ```
+Please note that:
+- When maxSurge is 1 and `CanUpdateMachine` hook specifies that the required in-place change does not affect availability the in-place update will start immediately, without creating an additional machine/using maxSurge.
+  - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
+  - If something goes wrong unexpectedly, and the operation leads to actual unavailability, workloads could be impacted.
+  - **Use this feature with caution!**
 
 Please refer to [implementation note](./20240807-in-place-updates-implementation-notes.md) for more details about how KCP handles in-place updates.
 
@@ -752,6 +763,7 @@ we will provide a way to toggle the in-place possibly though the API.
 - [x] 2024-08: Open proposal [PR](https://github.com/kubernetes-sigs/cluster-api/pull/11029).
 - [x] 2025-04: Proposal merged
 - [x] 2025-12: Update proposal after first implementation
+- [x] 2026-09: Introduce support for in-place update changes that do not impact availability
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

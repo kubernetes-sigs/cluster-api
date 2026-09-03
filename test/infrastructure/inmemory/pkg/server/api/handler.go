@@ -589,6 +589,34 @@ func (h *apiServerHandler) apiV1Delete(req *restful.Request, resp *restful.Respo
 		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		if apierrors.IsNotFound(err) {
+			// controller-runtime's typed client decodes the response body of a Delete call into an object,
+			// so we have to write a response.
+			_ = resp.WriteHeaderAndEntity(http.StatusOK, &metav1.Status{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "Status",
+				},
+				Status: metav1.StatusSuccess,
+			})
+			return
+		}
+		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
+			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
+			return
+		}
+		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// controller-runtime's typed client decodes the response body of a Delete call into an object,
+	// so the deleted object must be returned if it still exists.
+	if err := resp.WriteEntity(obj); err != nil {
+		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		return
+	}
 }
 
 func (h *apiServerHandler) apiV1PortForward(req *restful.Request, resp *restful.Response) {

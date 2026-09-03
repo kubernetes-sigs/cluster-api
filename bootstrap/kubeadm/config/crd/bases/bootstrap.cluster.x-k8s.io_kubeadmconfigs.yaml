@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.21.0
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: kubeadmconfigs.bootstrap.cluster.x-k8s.io
 spec:
   group: bootstrap.cluster.x-k8s.io
@@ -3675,8 +3675,8 @@ spec:
                       x-kubernetes-validations:
                       - message: exactly one of the fields in [layout diskLayout]
                           must be set
-                        rule: '[has(self.layout),has(self.diskLayout)].filter(x,x==true).size()
-                          == 1'
+                        rule: (has(self.layout)?1:0)+(has(self.diskLayout)?1:0) ==
+                          1
                     maxItems: 100
                     type: array
                     x-kubernetes-list-type: atomic

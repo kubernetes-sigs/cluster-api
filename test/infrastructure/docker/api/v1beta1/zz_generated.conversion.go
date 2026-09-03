@@ -24,7 +24,6 @@ package v1beta1
 import (
 	unsafe "unsafe"
 
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -396,8 +395,7 @@ func Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(in *v1beta2.APIEndpoint,
 }
 
 func autoConvert_v1beta1_CommonProvisioningSettings_To_v1beta2_CommonProvisioningSettings(in *CommonProvisioningSettings, out *v1beta2.CommonProvisioningSettings, s conversion.Scope) error {
-	out.StartupDuration = in.StartupDuration
-	out.StartupJitter = in.StartupJitter
+	*out = *(*v1beta2.CommonProvisioningSettings)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -407,8 +405,7 @@ func Convert_v1beta1_CommonProvisioningSettings_To_v1beta2_CommonProvisioningSet
 }
 
 func autoConvert_v1beta2_CommonProvisioningSettings_To_v1beta1_CommonProvisioningSettings(in *v1beta2.CommonProvisioningSettings, out *CommonProvisioningSettings, s conversion.Scope) error {
-	out.StartupDuration = in.StartupDuration
-	out.StartupJitter = in.StartupJitter
+	*out = *(*CommonProvisioningSettings)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -750,8 +747,7 @@ func Convert_v1beta2_DevMachine_To_v1beta1_DevMachine(in *v1beta2.DevMachine, ou
 }
 
 func autoConvert_v1beta1_DevMachineBackendSpec_To_v1beta2_DevMachineBackendSpec(in *DevMachineBackendSpec, out *v1beta2.DevMachineBackendSpec, s conversion.Scope) error {
-	out.Docker = (*v1beta2.DockerMachineBackendSpec)(unsafe.Pointer(in.Docker))
-	out.InMemory = (*v1beta2.InMemoryMachineBackendSpec)(unsafe.Pointer(in.InMemory))
+	*out = *(*v1beta2.DevMachineBackendSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -761,8 +757,7 @@ func Convert_v1beta1_DevMachineBackendSpec_To_v1beta2_DevMachineBackendSpec(in *
 }
 
 func autoConvert_v1beta2_DevMachineBackendSpec_To_v1beta1_DevMachineBackendSpec(in *v1beta2.DevMachineBackendSpec, out *DevMachineBackendSpec, s conversion.Scope) error {
-	out.Docker = (*DockerMachineBackendSpec)(unsafe.Pointer(in.Docker))
-	out.InMemory = (*InMemoryMachineBackendSpec)(unsafe.Pointer(in.InMemory))
+	*out = *(*DevMachineBackendSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1015,10 +1010,7 @@ func autoConvert_v1beta2_DockerClusterBackendSpec_To_v1beta1_DockerClusterBacken
 }
 
 func autoConvert_v1beta1_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(in *DockerLoadBalancer, out *v1beta2.DockerLoadBalancer, s conversion.Scope) error {
-	if err := Convert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
-		return err
-	}
-	out.CustomHAProxyConfigTemplateRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.CustomHAProxyConfigTemplateRef))
+	*out = *(*v1beta2.DockerLoadBalancer)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1028,10 +1020,7 @@ func Convert_v1beta1_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(in *Docker
 }
 
 func autoConvert_v1beta2_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer(in *v1beta2.DockerLoadBalancer, out *DockerLoadBalancer, s conversion.Scope) error {
-	if err := Convert_v1beta2_ImageMeta_To_v1beta1_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
-		return err
-	}
-	out.CustomHAProxyConfigTemplateRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.CustomHAProxyConfigTemplateRef))
+	*out = *(*DockerLoadBalancer)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1041,10 +1030,7 @@ func Convert_v1beta2_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer(in *v1beta
 }
 
 func autoConvert_v1beta1_DockerMachineBackendSpec_To_v1beta2_DockerMachineBackendSpec(in *DockerMachineBackendSpec, out *v1beta2.DockerMachineBackendSpec, s conversion.Scope) error {
-	out.CustomImage = in.CustomImage
-	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
-	out.ExtraMounts = *(*[]v1beta2.Mount)(unsafe.Pointer(&in.ExtraMounts))
-	out.BootstrapTimeout = (*v1.Duration)(unsafe.Pointer(in.BootstrapTimeout))
+	*out = *(*v1beta2.DockerMachineBackendSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1054,10 +1040,7 @@ func Convert_v1beta1_DockerMachineBackendSpec_To_v1beta2_DockerMachineBackendSpe
 }
 
 func autoConvert_v1beta2_DockerMachineBackendSpec_To_v1beta1_DockerMachineBackendSpec(in *v1beta2.DockerMachineBackendSpec, out *DockerMachineBackendSpec, s conversion.Scope) error {
-	out.CustomImage = in.CustomImage
-	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
-	out.ExtraMounts = *(*[]Mount)(unsafe.Pointer(&in.ExtraMounts))
-	out.BootstrapTimeout = (*v1.Duration)(unsafe.Pointer(in.BootstrapTimeout))
+	*out = *(*DockerMachineBackendSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1067,8 +1050,7 @@ func Convert_v1beta2_DockerMachineBackendSpec_To_v1beta1_DockerMachineBackendSpe
 }
 
 func autoConvert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(in *ImageMeta, out *v1beta2.ImageMeta, s conversion.Scope) error {
-	out.ImageRepository = in.ImageRepository
-	out.ImageTag = in.ImageTag
+	*out = *(*v1beta2.ImageMeta)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1078,8 +1060,7 @@ func Convert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(in *ImageMeta, out *v1beta2.
 }
 
 func autoConvert_v1beta2_ImageMeta_To_v1beta1_ImageMeta(in *v1beta2.ImageMeta, out *ImageMeta, s conversion.Scope) error {
-	out.ImageRepository = in.ImageRepository
-	out.ImageTag = in.ImageTag
+	*out = *(*ImageMeta)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1089,9 +1070,7 @@ func Convert_v1beta2_ImageMeta_To_v1beta1_ImageMeta(in *v1beta2.ImageMeta, out *
 }
 
 func autoConvert_v1beta1_InMemoryAPIServerSpec_To_v1beta2_InMemoryAPIServerSpec(in *InMemoryAPIServerSpec, out *v1beta2.InMemoryAPIServerSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_CommonProvisioningSettings_To_v1beta2_CommonProvisioningSettings(&in.Provisioning, &out.Provisioning, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.InMemoryAPIServerSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1101,9 +1080,7 @@ func Convert_v1beta1_InMemoryAPIServerSpec_To_v1beta2_InMemoryAPIServerSpec(in *
 }
 
 func autoConvert_v1beta2_InMemoryAPIServerSpec_To_v1beta1_InMemoryAPIServerSpec(in *v1beta2.InMemoryAPIServerSpec, out *InMemoryAPIServerSpec, s conversion.Scope) error {
-	if err := Convert_v1beta2_CommonProvisioningSettings_To_v1beta1_CommonProvisioningSettings(&in.Provisioning, &out.Provisioning, s); err != nil {
-		return err
-	}
+	*out = *(*InMemoryAPIServerSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1113,6 +1090,7 @@ func Convert_v1beta2_InMemoryAPIServerSpec_To_v1beta1_InMemoryAPIServerSpec(in *
 }
 
 func autoConvert_v1beta1_InMemoryClusterBackendSpec_To_v1beta2_InMemoryClusterBackendSpec(in *InMemoryClusterBackendSpec, out *v1beta2.InMemoryClusterBackendSpec, s conversion.Scope) error {
+	*out = *(*v1beta2.InMemoryClusterBackendSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1122,6 +1100,7 @@ func Convert_v1beta1_InMemoryClusterBackendSpec_To_v1beta2_InMemoryClusterBacken
 }
 
 func autoConvert_v1beta2_InMemoryClusterBackendSpec_To_v1beta1_InMemoryClusterBackendSpec(in *v1beta2.InMemoryClusterBackendSpec, out *InMemoryClusterBackendSpec, s conversion.Scope) error {
+	*out = *(*InMemoryClusterBackendSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1131,9 +1110,7 @@ func Convert_v1beta2_InMemoryClusterBackendSpec_To_v1beta1_InMemoryClusterBacken
 }
 
 func autoConvert_v1beta1_InMemoryEtcdSpec_To_v1beta2_InMemoryEtcdSpec(in *InMemoryEtcdSpec, out *v1beta2.InMemoryEtcdSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_CommonProvisioningSettings_To_v1beta2_CommonProvisioningSettings(&in.Provisioning, &out.Provisioning, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.InMemoryEtcdSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1143,9 +1120,7 @@ func Convert_v1beta1_InMemoryEtcdSpec_To_v1beta2_InMemoryEtcdSpec(in *InMemoryEt
 }
 
 func autoConvert_v1beta2_InMemoryEtcdSpec_To_v1beta1_InMemoryEtcdSpec(in *v1beta2.InMemoryEtcdSpec, out *InMemoryEtcdSpec, s conversion.Scope) error {
-	if err := Convert_v1beta2_CommonProvisioningSettings_To_v1beta1_CommonProvisioningSettings(&in.Provisioning, &out.Provisioning, s); err != nil {
-		return err
-	}
+	*out = *(*InMemoryEtcdSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1155,10 +1130,7 @@ func Convert_v1beta2_InMemoryEtcdSpec_To_v1beta1_InMemoryEtcdSpec(in *v1beta2.In
 }
 
 func autoConvert_v1beta1_InMemoryMachineBackendSpec_To_v1beta2_InMemoryMachineBackendSpec(in *InMemoryMachineBackendSpec, out *v1beta2.InMemoryMachineBackendSpec, s conversion.Scope) error {
-	out.VM = (*v1beta2.InMemoryVMSpec)(unsafe.Pointer(in.VM))
-	out.Node = (*v1beta2.InMemoryNodeSpec)(unsafe.Pointer(in.Node))
-	out.APIServer = (*v1beta2.InMemoryAPIServerSpec)(unsafe.Pointer(in.APIServer))
-	out.Etcd = (*v1beta2.InMemoryEtcdSpec)(unsafe.Pointer(in.Etcd))
+	*out = *(*v1beta2.InMemoryMachineBackendSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1168,10 +1140,7 @@ func Convert_v1beta1_InMemoryMachineBackendSpec_To_v1beta2_InMemoryMachineBacken
 }
 
 func autoConvert_v1beta2_InMemoryMachineBackendSpec_To_v1beta1_InMemoryMachineBackendSpec(in *v1beta2.InMemoryMachineBackendSpec, out *InMemoryMachineBackendSpec, s conversion.Scope) error {
-	out.VM = (*InMemoryVMSpec)(unsafe.Pointer(in.VM))
-	out.Node = (*InMemoryNodeSpec)(unsafe.Pointer(in.Node))
-	out.APIServer = (*InMemoryAPIServerSpec)(unsafe.Pointer(in.APIServer))
-	out.Etcd = (*InMemoryEtcdSpec)(unsafe.Pointer(in.Etcd))
+	*out = *(*InMemoryMachineBackendSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1181,9 +1150,7 @@ func Convert_v1beta2_InMemoryMachineBackendSpec_To_v1beta1_InMemoryMachineBacken
 }
 
 func autoConvert_v1beta1_InMemoryNodeSpec_To_v1beta2_InMemoryNodeSpec(in *InMemoryNodeSpec, out *v1beta2.InMemoryNodeSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_CommonProvisioningSettings_To_v1beta2_CommonProvisioningSettings(&in.Provisioning, &out.Provisioning, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.InMemoryNodeSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1193,9 +1160,7 @@ func Convert_v1beta1_InMemoryNodeSpec_To_v1beta2_InMemoryNodeSpec(in *InMemoryNo
 }
 
 func autoConvert_v1beta2_InMemoryNodeSpec_To_v1beta1_InMemoryNodeSpec(in *v1beta2.InMemoryNodeSpec, out *InMemoryNodeSpec, s conversion.Scope) error {
-	if err := Convert_v1beta2_CommonProvisioningSettings_To_v1beta1_CommonProvisioningSettings(&in.Provisioning, &out.Provisioning, s); err != nil {
-		return err
-	}
+	*out = *(*InMemoryNodeSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1205,9 +1170,7 @@ func Convert_v1beta2_InMemoryNodeSpec_To_v1beta1_InMemoryNodeSpec(in *v1beta2.In
 }
 
 func autoConvert_v1beta1_InMemoryVMSpec_To_v1beta2_InMemoryVMSpec(in *InMemoryVMSpec, out *v1beta2.InMemoryVMSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_CommonProvisioningSettings_To_v1beta2_CommonProvisioningSettings(&in.Provisioning, &out.Provisioning, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.InMemoryVMSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1217,9 +1180,7 @@ func Convert_v1beta1_InMemoryVMSpec_To_v1beta2_InMemoryVMSpec(in *InMemoryVMSpec
 }
 
 func autoConvert_v1beta2_InMemoryVMSpec_To_v1beta1_InMemoryVMSpec(in *v1beta2.InMemoryVMSpec, out *InMemoryVMSpec, s conversion.Scope) error {
-	if err := Convert_v1beta2_CommonProvisioningSettings_To_v1beta1_CommonProvisioningSettings(&in.Provisioning, &out.Provisioning, s); err != nil {
-		return err
-	}
+	*out = *(*InMemoryVMSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1229,9 +1190,7 @@ func Convert_v1beta2_InMemoryVMSpec_To_v1beta1_InMemoryVMSpec(in *v1beta2.InMemo
 }
 
 func autoConvert_v1beta1_Mount_To_v1beta2_Mount(in *Mount, out *v1beta2.Mount, s conversion.Scope) error {
-	out.ContainerPath = in.ContainerPath
-	out.HostPath = in.HostPath
-	out.Readonly = in.Readonly
+	*out = *(*v1beta2.Mount)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1241,9 +1200,7 @@ func Convert_v1beta1_Mount_To_v1beta2_Mount(in *Mount, out *v1beta2.Mount, s con
 }
 
 func autoConvert_v1beta2_Mount_To_v1beta1_Mount(in *v1beta2.Mount, out *Mount, s conversion.Scope) error {
-	out.ContainerPath = in.ContainerPath
-	out.HostPath = in.HostPath
-	out.Readonly = in.Readonly
+	*out = *(*Mount)(unsafe.Pointer(in))
 	return nil
 }
 

@@ -47,7 +47,7 @@ const (
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
-	SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
+	t.Cleanup(SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{
@@ -57,7 +57,7 @@ func TestFuzzyConversion(t *testing.T) {
 			}
 		}
 		return "", fmt.Errorf("failed to map GroupKind %s to version", gk.String())
-	})
+	}))
 
 	t.Run("for KubeadmControlPlane (v1beta1)", conversionutil.SpokeConverterFuzzTestFunc(
 		conversionutil.SpokeConverterFuzzTestFuncInput[*controlplanev1.KubeadmControlPlane, *controlplanev1beta1.KubeadmControlPlane]{

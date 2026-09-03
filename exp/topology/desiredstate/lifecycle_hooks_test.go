@@ -58,7 +58,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 		},
 	}
 
-	conversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
+	t.Cleanup(conversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{
@@ -68,7 +68,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			}
 		}
 		return "", pkgerrors.Errorf("unknown GroupVersionKind: %v", gk)
-	})
+	}))
 
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 

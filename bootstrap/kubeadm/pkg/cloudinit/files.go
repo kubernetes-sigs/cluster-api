@@ -32,6 +32,9 @@ write_files:{{ range . }}
     {{ if .Append -}}
     append: {{ .Append }}
     {{ end -}}
+    {{ if .Defer -}}
+    defer: {{ .Defer }}
+    {{ end -}}
     content: |
 {{.Content | Indent 6}}
 {{- end -}}

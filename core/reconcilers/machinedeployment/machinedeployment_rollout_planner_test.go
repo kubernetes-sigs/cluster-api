@@ -734,6 +734,9 @@ func machineSetControllerMutatorMoveMachines(ms *clusterv1.MachineSet, scope *ro
 		}
 		m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation] = ""
 		m.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+		if _, ok := ms.Annotations["move-not-disruptive"]; ok {
+			m.Annotations[clusterv1.UpdateInProgressAnnotation] = "not-disruptive"
+		}
 		scope.machineSetMachines[targetMS.Name] = append(scope.machineSetMachines[targetMS.Name], m)
 		machinesMoved = append(machinesMoved, m.Name)
 	}
@@ -792,6 +795,10 @@ func machineSetControllerMutatorUpdateStatus(ms *clusterv1.MachineSet, scope *ro
 	upToDateReplicas := int32(0)
 	for _, m := range scope.machineSetMachines[ms.Name] {
 		if inplace.IsUpdateInProgress(m) {
+			// Machines updating in-place should be considered available only if the operation does not affect availability.
+			if v, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok && v == "not-disruptive" {
+				availableReplicas++
+			}
 			continue
 		}
 		if upToDate, _ := mdutil.MachineTemplateUpToDate(&ms.Spec.Template, &scope.machineDeployment.Spec.Template); upToDate {
@@ -987,7 +994,6 @@ func (r rolloutScope) machinesSummary(ms *clusterv1.MachineSet) string {
 			name += "✋"
 		}
 		if v, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
-			// FIXME
 			if v == "not-disruptive" {
 				name += "🟢"
 			} else {

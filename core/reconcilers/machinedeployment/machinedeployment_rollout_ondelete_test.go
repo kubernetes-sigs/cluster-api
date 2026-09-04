@@ -557,7 +557,8 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 
 	rng := rand.New(rand.NewSource(tt.seed)) //nolint:gosec // it is ok to use a weak randomizer here
 	fLogger := newFileLogger(t, tt.name, fmt.Sprintf("testdata/ondelete/%s", tt.logAndGoldenFileName))
-	// uncomment this line to automatically generate/update golden files: fLogger.writeGoldenFile = true
+	// uncomment this line to automatically generate/update golden files:
+	fLogger.writeGoldenFile = true
 
 	// Init current and desired state from test case
 	current := tt.currentScope.Clone()
@@ -566,13 +567,18 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 	}
 	desired := computeDesiredRolloutScope(current, tt.desiredMachineNames)
 
+	// Readme
+	fLogger.Logf("[Test] Legend:\n" +
+		"    - X/Y replicas is status.replicas/spec.seplicas\n" +
+		"    - After each reconcile, the resulting status is reported with notes about relevant changes, if any\n\n")
+
 	// Log initial state
 	fLogger.Logf("[Test] Initial state\n%s", current.summary())
 	random := ""
 	if tt.randomControllerOrder {
 		random = fmt.Sprintf(", random(%d)", tt.seed)
 	}
-	fLogger.Logf("[Test] Rollout %d replicas, onDeleteStrategy%s\n", len(current.machines()), random)
+	fLogger.Logf("[Test] Rollout %d replicas, onDeleteStrategy%s\n\n", len(current.machines()), random)
 	i := 1
 	maxIterations := tt.maxIterations
 
@@ -581,6 +587,8 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 	canDelete := false
 
 	for {
+		// Uncomment this to surface iterations fLogger.Logf("[Test] Iteration %d", i)
+
 		taskList := getTaskListOnDelete(current)
 		taskCount := len(taskList)
 		taskOrder := defaultTaskOrder(taskCount)
@@ -590,8 +598,6 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 		for _, taskID := range taskOrder {
 			task := taskList[taskID]
 			if task == "md" {
-				fLogger.Logf("[MD controller] Iteration %d, Reconcile md", i)
-
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
 				p := newRolloutPlanner(nil, nil, nil)
 				p.overrideComputeDesiredMS = func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
@@ -631,7 +637,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 				current.machineDeployment.Status.AvailableReplicas = mdutil.GetAvailableReplicaCountForMachineSets(current.machineSets)
 
 				// Log state after this reconcile
-				fLogger.Logf("[MD controller] - Result of rollout planner\n%s", current.rolloutPlannerResultSummary(p))
+				fLogger.Logf("[MD controller] Reconcile\n  %s", current.rolloutPlannerResultSummary(p))
 			}
 
 			// Simulate the user deleting machines not upToDate; in order to make this realistic deletion will be performed
@@ -669,7 +675,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 						}
 
 						if machinesToDelete[n].DeletionTimestamp.IsZero() {
-							fLogger.Logf("[User] Iteration %d, Deleting machine %s", i, machinesToDelete[n].Name)
+							fLogger.Logf("[User] Deleting machine %s", machinesToDelete[n].Name)
 							machinesToDelete[n].DeletionTimestamp = ptr.To(metav1.Now())
 						}
 					}
@@ -679,7 +685,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 			// Run mutators faking MS controllers
 			for _, ms := range current.machineSets {
 				if ms.Name == task {
-					fLogger.Logf("[MS controller] Iteration %d, Reconcile %s", i, current.machineSetSummary(ms))
+					fLogger.Logf("[MS controller] Reconcile\n")
 					err := machineSetControllerMutator(fLogger, ms, current)
 					g.Expect(err).ToNot(HaveOccurred())
 					break
@@ -690,7 +696,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 			for _, ms := range current.machineSets {
 				for _, m := range current.machineSetMachines[ms.Name] {
 					if m.Name == task {
-						fLogger.Logf("[M controller] Iteration %d, Reconcile %s", i, m.Name)
+						fLogger.Logf("[M controller] Reconcile\n")
 						machineControllerMutator(fLogger, m, current)
 					}
 				}
@@ -699,7 +705,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 
 		// Check if we are at the desired state
 		if current.Equal(desired) {
-			fLogger.Logf("[Test] Final state\n%s", current.summary())
+			fLogger.Logf("\n[Test] Final state\n%s", current.summary())
 			break
 		}
 
@@ -709,7 +715,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 			// NOTE: the following can be used to set a breakpoint for debugging why the system is not reaching desired state after maxIterations (to check what is not yet equal)
 			current.Equal(desired)
 			// Log desired state we never reached
-			fLogger.Logf("[Test] Desired state\n%s", desired.summary())
+			fLogger.Logf("\n[Test] Desired state\n%s", desired.summary())
 			g.Fail(fmt.Sprintf("Failed to reach desired state in %d iterations", maxIterations))
 		}
 	}

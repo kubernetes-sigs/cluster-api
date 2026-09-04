@@ -1869,16 +1869,28 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 	}
 	desired := computeDesiredRolloutScope(current, tt.desiredMachineNames)
 
+	// Readme
+	// FIXME
+	fLogger.Logf("[Test] Legend:\n" +
+		"    - X/Y replicas is status.Replicas/spec.Replicas\n" +
+		"    - After each reconcile, the resulting status is reported with notes about relevant changes, if any\n" +
+		"    - Machine list icons\n" +
+		"      - ✋ Machine pending acknowledge move\n" +
+		"      - 🟡 Machine with in place update in progress - affects availability\n" +
+		"      - 🟢 Machine with in place update in progress - does not affect availability\n\n")
+
 	// Log initial state
 	fLogger.Logf("[Test] Initial state\n%s", current.summary())
 	random := ""
 	if tt.randomControllerOrder {
 		random = fmt.Sprintf(", random(%d)", tt.seed)
 	}
-	fLogger.Logf("[Test] Rollout %d replicas, MaxSurge=%d, MaxUnavailable=%d%s\n", len(current.machines()), tt.maxSurge, tt.maxUnavailable, random)
+	fLogger.Logf("[Test] Rollout %d replicas, MaxSurge=%d, MaxUnavailable=%d%s\n\n", len(current.machines()), tt.maxSurge, tt.maxUnavailable, random)
 	i := 1
 	maxIterations := tt.maxIterations
 	for {
+		// Uncomment this to surface iterations fLogger.Logf("[Test] Iteration %d", i)
+
 		taskList := getTaskListRollingUpdate(current)
 		taskCount := len(taskList)
 		taskOrder := defaultTaskOrder(taskCount)
@@ -1888,8 +1900,6 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 		for _, taskID := range taskOrder {
 			task := taskList[taskID]
 			if task == "md" {
-				fLogger.Logf("[MD controller] Iteration %d, Reconcile md", i)
-
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
 				p := newRolloutPlanner(nil, nil, nil)
 				p.overrideCanUpdateMachineSetInPlace = func(_ context.Context, _, _ *clusterv1.MachineSet) (bool, error) { return false, nil }
@@ -1929,7 +1939,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 				current.machineDeployment.Status.UpToDateReplicas = mdutil.GetUptoDateReplicaCountForMachineSets(current.machineSets)
 
 				// Log state after this reconcile
-				fLogger.Logf("[MD controller] - Result of rollout planner\n%s", current.rolloutPlannerResultSummary(p))
+				fLogger.Logf("[MD controller] Reconcile\n  %s", current.rolloutPlannerResultSummary(p))
 
 				// Check we are not breaching rollout constraints
 				minAvailableReplicas := ptr.Deref(current.machineDeployment.Spec.Replicas, 0) - mdutil.MaxUnavailable(*current.machineDeployment)
@@ -1960,7 +1970,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 			// Run mutators faking other controllers
 			for _, ms := range current.machineSets {
 				if ms.Name == task {
-					fLogger.Logf("[MS controller] Iteration %d, Reconcile %s", i, current.machineSetSummary(ms))
+					fLogger.Logf("[MS controller] Reconcile\n")
 					err := machineSetControllerMutator(fLogger, ms, current)
 					g.Expect(err).ToNot(HaveOccurred())
 					break
@@ -1977,7 +1987,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 			}
 		}
 		if current.Equal(desired) && !inPlaceInProgress {
-			fLogger.Logf("[Test] Final state\n%s", current.summary())
+			fLogger.Logf("\n[Test] Final state\n%s", current.summary())
 			break
 		}
 
@@ -1987,7 +1997,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 			// NOTE: the following can be used to set a breakpoint for debugging why the system is not reaching desired state after maxIterations (to check what is not yet equal)
 			current.Equal(desired)
 			// Log desired state we never reached
-			fLogger.Logf("[Test] Desired state\n%s", desired.summary())
+			fLogger.Logf("\n[Test] Desired state\n%s", desired.summary())
 			g.Fail(fmt.Sprintf("Failed to reach desired state in %d iterations", maxIterations))
 		}
 	}

@@ -76,7 +76,7 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 		newMSInfrastructureMachineTemplate      *unstructured.Unstructured
 		oldMSBootstrapConfigTemplate            *unstructured.Unstructured
 		newMSBootstrapConfigTemplate            *unstructured.Unstructured
-		canExtensionsUpdateMachineSetFunc       func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error)
+		canExtensionsUpdateMachineSetFunc       func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceAnswer, []string, error)
 		getAllExtensionsResponses               map[runtimecatalog.GroupVersionHook][]string
 		wantCanExtensionsUpdateMachineSetCalled bool
 		wantCanUpdateMachineSet                 bool
@@ -153,11 +153,11 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (bool, []string, error) {
+			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceAnswer, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return false, nil, pkgerrors.Errorf("unexpected error")
+					return canNotUpdateMachineSetInPlace, nil, pkgerrors.Errorf("unexpected error")
 				}
-				return false, []string{"can not update"}, nil
+				return canNotUpdateMachineSetInPlace, []string{"can not update"}, nil
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSet:                 false,
@@ -178,11 +178,11 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (bool, []string, error) {
+			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceAnswer, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return false, nil, pkgerrors.Errorf("unexpected error")
+					return canNotUpdateMachineSetInPlace, nil, pkgerrors.Errorf("unexpected error")
 				}
-				return true, nil, nil
+				return canUpdateMachineSetInPlace, nil, nil
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSet:                 true,
@@ -235,20 +235,20 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				RuntimeClient:            runtimeClient,
 				Client:                   fakeClient,
 				canUpdateMachineSetCache: canUpdateMachineSetCache,
-				overrideCanExtensionsUpdateMachineSet: func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error) {
+				overrideCanExtensionsUpdateMachineSet: func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceAnswer, []string, error) {
 					canExtensionsUpdateMachineSetCalled = true
 					return tt.canExtensionsUpdateMachineSetFunc(ctx, oldMS, newMS, templateObjects, extensionHandlers)
 				},
 			}
 
-			canUpdateMachineSet, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
+			answer, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+			g.Expect(answer.canUpdate).To(Equal(tt.wantCanUpdateMachineSet))
 
 			g.Expect(canExtensionsUpdateMachineSetCalled).To(Equal(tt.wantCanExtensionsUpdateMachineSetCalled), "canExtensionsUpdateMachineSetCalled: actual: %t expected: %t", canExtensionsUpdateMachineSetCalled, tt.wantCanExtensionsUpdateMachineSetCalled)
 
@@ -266,9 +266,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 
 				// Call canUpdateMachineSetInPlace again and verify the cache hit.
 				canExtensionsUpdateMachineSetCalled = false
-				canUpdateMachineSet, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
+				answer, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+				g.Expect(answer.canUpdate).To(Equal(tt.wantCanUpdateMachineSet))
 				g.Expect(canExtensionsUpdateMachineSetCalled).To(BeFalse())
 			}
 		})
@@ -617,14 +617,15 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				RuntimeClient: runtimeClient,
 			}
 
-			canUpdateMachineSet, reasons, err := p.canExtensionsUpdateMachineSet(ctx, currentMachineSet, tt.newMS, tt.templateObjects, tt.extensionHandlers)
+			// FIXME: test affecting availability answer
+			answer, reasons, err := p.canExtensionsUpdateMachineSet(ctx, currentMachineSet, tt.newMS, tt.templateObjects, tt.extensionHandlers)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+			g.Expect(answer.canUpdate).To(Equal(tt.wantCanUpdateMachineSet))
 			g.Expect(reasons).To(BeComparableTo(tt.wantReasons))
 		})
 	}

@@ -488,10 +488,11 @@ func assertDesiredMS(g *WithT, md *clusterv1.MachineDeployment, actualMS *cluste
 // machineControllerMutator fakes a small part of the Machine controller, just what is required for the rollout to progress.
 func machineControllerMutator(log *fileLogger, m *clusterv1.Machine, scope *rolloutScope) {
 	if m.DeletionTimestamp.IsZero() {
+		log.Logf("    %s metadata.deletionTimestamp not set", m.Name) // no-op
 		return
 	}
 
-	log.Logf("[M controller] - %s finalizer removed", m.Name)
+	log.Logf("    %s metadata.deletionTimestamp set, finalizer removed", m.Name)
 	ms := m.OwnerReferences[0].Name
 	machinesSetMachines := []*clusterv1.Machine{}
 	for _, mx := range scope.machineSetMachines[ms] {
@@ -505,6 +506,8 @@ func machineControllerMutator(log *fileLogger, m *clusterv1.Machine, scope *roll
 
 // machineSetControllerMutator fakes a small part of the MachineSet controller, just what is required for the rollout to progress.
 func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scope *rolloutScope) error {
+	logLines := &strings.Builder{}
+
 	// The prod code for the MachineSet controller performs in order triggerInPlaceUpdate and then syncReplicas and then updateStatus.
 	// This func mimics the same code structure, with the addition of the following operation that is implemented here for convenience.
 
@@ -525,7 +528,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 		}
 	}
 	if replicasEndingInPlaceUpdate.Len() > 0 {
-		log.Logf("[MS controller] - Replicas %s completed in-place update", sortAndJoin(replicasEndingInPlaceUpdate.UnsortedList()))
+		fmt.Fprintf(logLines, "      - Replicas %s completed in-place update", sortAndJoin(replicasEndingInPlaceUpdate.UnsortedList()))
 	}
 
 	// Starting from here, the code must mirror the implementation of the Reconcile func in the MachineSet controller to ensure the reliability of the tests.
@@ -534,14 +537,18 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	// (the code should rely on the list of machines instead).
 
 	defer func() {
-		machineSetControllerMutatorUpdateStatus(ms, scope)
+		machineSetControllerMutatorUpdateStatus(ms, scope, logLines)
+		log.Logf("    %s\n", scope.machineSetSummary(ms))
+		if l := logLines.String(); l != "" {
+			log.Logf("%s", l)
+		}
 	}()
 
-	machineSetControllerMutatorTriggerInPlaceUpdate(ms, scope)
-	return machineSetControllerMutatorSyncReplicas(log, ms, scope)
+	machineSetControllerMutatorTriggerInPlaceUpdate(ms, scope, logLines)
+	return machineSetControllerMutatorSyncReplicas(ms, scope, logLines)
 }
 
-func machineSetControllerMutatorTriggerInPlaceUpdate(ms *clusterv1.MachineSet, scope *rolloutScope) {
+func machineSetControllerMutatorTriggerInPlaceUpdate(ms *clusterv1.MachineSet, scope *rolloutScope, _ *strings.Builder) {
 	// Code below this line is a subset of the code from MachineSet controller's triggerInPlaceUpdate func, e.g.
 	// it does not complete the move operation (what is implemented in moveMachine is enough for this test),
 	// nor it sets the pendingHook annotation.
@@ -575,7 +582,7 @@ func machineSetControllerMutatorTriggerInPlaceUpdate(ms *clusterv1.MachineSet, s
 	}
 }
 
-func machineSetControllerMutatorSyncReplicas(log *fileLogger, ms *clusterv1.MachineSet, scope *rolloutScope) error {
+func machineSetControllerMutatorSyncReplicas(ms *clusterv1.MachineSet, scope *rolloutScope, logLines *strings.Builder) error {
 	// Code below this line is a subset of the code from MachineSet controller's "syncReplicas" func.
 
 	diff := len(scope.machineSetMachines[ms.Name]) - int(ptr.Deref(ms.Spec.Replicas, 0))
@@ -588,7 +595,7 @@ func machineSetControllerMutatorSyncReplicas(log *fileLogger, ms *clusterv1.Mach
 				return nil
 			}
 		}
-		machineSetControllerMutatorCreateMachines(log, ms, scope, machinesToAdd)
+		machineSetControllerMutatorCreateMachines(ms, scope, machinesToAdd, logLines)
 
 	case diff > 0:
 		// if too many replicas, delete or move exceeding machines.
@@ -607,7 +614,7 @@ func machineSetControllerMutatorSyncReplicas(log *fileLogger, ms *clusterv1.Mach
 			}
 		}
 		if notAcknowledgeMoveReplicas.Len() > 0 {
-			log.Logf("[MS controller] - Replicas %s moved from an old MachineSet still pending acknowledge from machine deployment %s", sortAndJoin(notAcknowledgeMoveReplicas.UnsortedList()), klog.KObj(scope.machineDeployment))
+			fmt.Fprintf(logLines, "      - Replicas %s moved from an old MachineSet still pending acknowledge from machine deployment %s", sortAndJoin(notAcknowledgeMoveReplicas.UnsortedList()), klog.KObj(scope.machineDeployment))
 		}
 
 		machinesToDeleteOrMove := int32(len(scope.machineSetMachines[ms.Name])-notAcknowledgeMoveReplicas.Len()) - ptr.Deref(ms.Spec.Replicas, 0)
@@ -618,18 +625,18 @@ func machineSetControllerMutatorSyncReplicas(log *fileLogger, ms *clusterv1.Mach
 		// Move machines to the target MachineSet if the current MachineSet is instructed to do so.
 		if targetMSName, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok && targetMSName != "" {
 			// Note: The number of machines actually moved could be less than expected e.g. because some machine still updating in-place from a previous move.
-			return machineSetControllerMutatorMoveMachines(log, ms, scope, targetMSName, machinesToDeleteOrMove)
+			return machineSetControllerMutatorMoveMachines(ms, scope, targetMSName, machinesToDeleteOrMove, logLines)
 		}
 
 		// Otherwise the current MachineSet is not instructed to move machines to another MachineSet,
 		// then delete all the exceeding machines.
-		machineSetControllerMutatorDeleteMachines(log, ms, scope, machinesToDeleteOrMove)
+		machineSetControllerMutatorDeleteMachines(ms, scope, machinesToDeleteOrMove, logLines)
 		return nil
 	}
 	return nil
 }
 
-func machineSetControllerMutatorCreateMachines(log *fileLogger, ms *clusterv1.MachineSet, scope *rolloutScope, machinesToAdd int) {
+func machineSetControllerMutatorCreateMachines(ms *clusterv1.MachineSet, scope *rolloutScope, machinesToAdd int, logLines *strings.Builder) {
 	// Note: this is a simplified version of the code in the createMachines func from the MachineSet controller, e.g. no preflight checks,
 	// no/lighter logging, no handling for infraMachine & BootstrapConfig, no event generation, no wait for cache up to date.
 	// Note: In the code below, new machines are created with a predictable name, so it is easier to write test case and validate rollout sequences.
@@ -660,10 +667,10 @@ func machineSetControllerMutatorCreateMachines(log *fileLogger, ms *clusterv1.Ma
 	// Sort machines of the target MS to ensure consistent reporting during tests.
 	sortMachinesByName(scope.machineSetMachines[ms.Name])
 
-	log.Logf("[MS controller] - %s scale up to %d/%[2]d replicas (%s created)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesAdded, ","))
+	fmt.Fprintf(logLines, "      - %s scaled up to %d/%[2]d replicas (%s created)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesAdded, ","))
 }
 
-func machineSetControllerMutatorMoveMachines(log *fileLogger, ms *clusterv1.MachineSet, scope *rolloutScope, targetMSName string, machinesToMove int32) error {
+func machineSetControllerMutatorMoveMachines(ms *clusterv1.MachineSet, scope *rolloutScope, targetMSName string, machinesToMove int32, logLines *strings.Builder) error {
 	// Note: this is a simplified version of the code in the moveMachines func from the MachineSet controller, e.g. no pluggable move order,
 	// no update of machine labels, no/lighter logging. Also please note that from the sake of this test, there is no split between start move an
 	// completeMove (what is implemented below is enough to fake the entire move operation).
@@ -678,14 +685,14 @@ func machineSetControllerMutatorMoveMachines(log *fileLogger, ms *clusterv1.Mach
 		}
 	}
 	if targetMS == nil {
-		return pkgerrors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, which does not exists", ms.Name, targetMSName)
+		return pkgerrors.Errorf("%s is set to send replicas to %s, which does not exists", ms.Name, targetMSName)
 	}
 
 	validSourceMSs := targetMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]
 	sourcesSet := sets.Set[string]{}
 	sourcesSet.Insert(strings.Split(validSourceMSs, ",")...)
 	if !sourcesSet.Has(ms.Name) {
-		return pkgerrors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, but %[2]s only accepts machines from %s", ms.Name, targetMS.Name, validSourceMSs)
+		return pkgerrors.Errorf("%s is set to send replicas to %s, but %[2]s only accepts machines from %s", ms.Name, targetMS.Name, validSourceMSs)
 	}
 
 	// Sort machines to ensure stable results of the move operation during tests.
@@ -731,7 +738,7 @@ func machineSetControllerMutatorMoveMachines(log *fileLogger, ms *clusterv1.Mach
 		machinesMoved = append(machinesMoved, m.Name)
 	}
 	scope.machineSetMachines[ms.Name] = machinesSetMachines
-	log.Logf("[MS controller] - %s scale down to %d/%d replicas (%s moved to %s)", ms.Name, len(scope.machineSetMachines[ms.Name]), ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesMoved, ","), targetMS.Name)
+	fmt.Fprintf(logLines, "      - %s scaled down to %d/%d replicas (%s moved to %s)", ms.Name, len(scope.machineSetMachines[ms.Name]), ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesMoved, ","), targetMS.Name)
 
 	// Sort machines of the target MS to ensure consistent reporting during tests.
 	// Note: It is also required to sort machines for the targetMS because both ms and targetMS lists of machines are changed in this func.
@@ -740,7 +747,7 @@ func machineSetControllerMutatorMoveMachines(log *fileLogger, ms *clusterv1.Mach
 	return nil
 }
 
-func machineSetControllerMutatorDeleteMachines(log *fileLogger, ms *clusterv1.MachineSet, scope *rolloutScope, machinesToDelete int32) {
+func machineSetControllerMutatorDeleteMachines(ms *clusterv1.MachineSet, scope *rolloutScope, machinesToDelete int32, logLines *strings.Builder) {
 	// This is a simplified version of the code in the deleteMachines func from the MachineSet controller, e.g.
 	// the test code does not consider the criteria defined in ms.Spec.Deletion.Order.
 
@@ -771,10 +778,10 @@ func machineSetControllerMutatorDeleteMachines(log *fileLogger, ms *clusterv1.Ma
 	// Sort machines to ensure consistent reporting during tests.
 	sortMachinesByName(scope.machineSetMachines[ms.Name])
 
-	log.Logf("[MS controller] - %s scale down to %d/%[2]d replicas (%s deleted)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesDeleted, ","))
+	fmt.Fprintf(logLines, "      - %s scaled down to %d/%[2]d replicas (%s deleted)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesDeleted, ","))
 }
 
-func machineSetControllerMutatorUpdateStatus(ms *clusterv1.MachineSet, scope *rolloutScope) {
+func machineSetControllerMutatorUpdateStatus(ms *clusterv1.MachineSet, scope *rolloutScope, _ *strings.Builder) {
 	// This is a simplified version of the code in the updateStatus func from the MachineSet controller.
 	// Note: the corresponding logic in the MS controller looks at the MachineAvailable condition to
 	// determine availability. Here we are looking at the UpdateInProgress, which is a
@@ -977,10 +984,15 @@ func (r rolloutScope) machinesSummary(ms *clusterv1.MachineSet) string {
 	for _, m := range r.machineSetMachines[ms.Name] {
 		name := m.Name
 		if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok && !acknowledgedMoveMachines.Has(name) {
-			name += "🟠"
+			name += "✋"
 		}
-		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
-			name += "🟡"
+		if v, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+			// FIXME
+			if v == "not-disruptive" {
+				name += "🟢"
+			} else {
+				name += "🟡"
+			}
 		}
 		machineNames = append(machineNames, name)
 	}
@@ -991,39 +1003,41 @@ func (r rolloutScope) machinesSummary(ms *clusterv1.MachineSet) string {
 // and the changes applied to the MachineSets by the rollout planner.
 // NOTE: this function return the same info that createOrUpdateMachineSetsAndSyncMachineDeploymentRevision is surfacing into logs.
 func (r rolloutScope) rolloutPlannerResultSummary(p *rolloutPlanner) string {
-	o := fmt.Sprintf("  %s: %s\n", r.machineDeployment.Name, r.machineDeploymentSummary())
+	var o strings.Builder
+
+	fmt.Fprintf(&o, "%s\n", r.machineDeploymentSummary())
 
 	// sort machineSets to ensure consistent output.
 	sortMachineSetsByName(r.machineSets)
 	for _, ms := range r.machineSets {
 		d := p.getMachineSetDiff(ms)
 
-		o += fmt.Sprintf("  %s: %s (%s)\n", ms.Name, d.Summary, r.machinesSummary(ms))
+		fmt.Fprintf(&o, "  %s: %s (%s)\n", ms.Name, d.Summary, r.machinesSummary(ms))
 		if d.OriginalMS == nil {
-			o += fmt.Sprintf("    - MachineSet %s created, it is now the current MachineSet\n", ms.Name)
+			fmt.Fprintf(&o, "    - MachineSet %s created, it is now the current MachineSet\n", ms.Name)
 			if d.DesiredReplicas > 0 {
-				o += fmt.Sprintf("    - Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)\n", ms.Name, d.DesiredReplicas)
-				o += fmt.Sprintf("      - Reason: %s\n", d.Reason)
+				fmt.Fprintf(&o, "    - Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)\n", ms.Name, d.DesiredReplicas)
+				fmt.Fprintf(&o, "      - Reason: %s\n", d.Reason)
 			}
 			continue
 		}
 
 		if d.DesiredReplicas < d.OriginalReplicas {
-			o += fmt.Sprintf("    - Scaled down %s MachineSet %s from %d to %d replicas (-%d)\n", d.Type, ms.Name, d.OriginalReplicas, d.DesiredReplicas, d.OriginalReplicas-d.DesiredReplicas)
-			o += fmt.Sprintf("      - Reason: %s\n", d.Reason)
+			fmt.Fprintf(&o, "    - Scaled down %s MachineSet %s from %d to %d replicas (-%d)\n", d.Type, ms.Name, d.OriginalReplicas, d.DesiredReplicas, d.OriginalReplicas-d.DesiredReplicas)
+			fmt.Fprintf(&o, "      - Reason: %s\n", d.Reason)
 		}
 		if d.DesiredReplicas > d.OriginalReplicas {
-			o += fmt.Sprintf("    - Scaled up %s MachineSet %s from %d to %d replicas (+%d)\n", d.Type, ms.Name, d.OriginalReplicas, d.DesiredReplicas, d.DesiredReplicas-d.OriginalReplicas)
-			o += fmt.Sprintf("      - Reason: %s\n", d.Reason)
+			fmt.Fprintf(&o, "    - Scaled up %s MachineSet %s from %d to %d replicas (+%d)\n", d.Type, ms.Name, d.OriginalReplicas, d.DesiredReplicas, d.DesiredReplicas-d.OriginalReplicas)
+			fmt.Fprintf(&o, "      - Reason: %s\n", d.Reason)
 		}
 		if d.DesiredReplicas == d.OriginalReplicas && d.OtherChanges != "" {
-			o += fmt.Sprintf("    - Updated %s MachineSet %s\n", d.Type, ms.Name)
+			fmt.Fprintf(&o, "    - Updated %s MachineSet %s\n", d.Type, ms.Name)
 		}
 		if d.OtherChanges != "" {
-			o += fmt.Sprintf("      - Diff: %s\n", d.OtherChanges)
+			fmt.Fprintf(&o, "      - Diff: %s\n", d.OtherChanges)
 		}
 	}
-	return o
+	return o.String()
 }
 
 func (r *rolloutScope) Equal(s *rolloutScope) bool {

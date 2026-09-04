@@ -223,8 +223,11 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 	case in.TemplateRef == nil && in.TemplateName != "" && !in.TemplateGroupKind.Empty():
 		annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.TemplateName
 		annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.TemplateGroupKind.String()
+	case in.TemplateRef == nil && in.TemplateName == "" && in.TemplateGroupKind.Empty():
+		// Tolerate the case where neither TemplateRef nor TemplateName and TemplateGroupKind is set
+		// This is needed for ClusterClass inline templates.
 	default:
-		return nil, fmt.Errorf("failed to generate template, exactly one of TemplateRef or TemplateName & TemplateGroupKind must be set")
+		return nil, fmt.Errorf("failed to generate template, if set, exactly one of TemplateRef or TemplateName & TemplateGroupKind must be set")
 	}
 	to.SetAnnotations(annotations)
 

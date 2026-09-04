@@ -655,6 +655,13 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	if isDeleteNodeAllowed {
 		log.Info("Deleting Node", "Node", klog.KRef("", m.Status.NodeRef.Name))
 
+		if m.Status.Deletion == nil {
+			m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+		}
+		if m.Status.Deletion.NodeDeletionStartTime.IsZero() {
+			m.Status.Deletion.NodeDeletionStartTime = metav1.Now()
+		}
+
 		var deleteNodeErr error
 		waitErr := wait.PollUntilContextTimeout(ctx, 2*time.Second, r.nodeDeletionRetryTimeout, true, func(ctx context.Context) (bool, error) {
 			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(pkgerrors.Cause(deleteNodeErr)) {
@@ -668,7 +675,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's Node: %v", deleteNodeErr)
 
 			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
-			if m.Spec.Deletion.NodeDeletionTimeoutSeconds == nil || *m.Spec.Deletion.NodeDeletionTimeoutSeconds == 0 || m.DeletionTimestamp.Add(time.Duration(*m.Spec.Deletion.NodeDeletionTimeoutSeconds)*time.Second).After(time.Now()) {
+			if !r.nodeDeletionTimeoutExceeded(m) {
 				s.deletingReason = clusterv1.MachineDeletingDeletingNodeReason
 				s.deletingMessage = "Error deleting Node, please check controller logs for errors"
 				return ctrl.Result{}, deleteNodeErr
@@ -759,6 +766,25 @@ func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine)
 	now := time.Now()
 	diff := now.Sub(machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Time)
 	return diff.Seconds() >= float64(*machine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)
+}
+
+// nodeDeletionTimeoutExceeded returns False if either NodeDeletionTimeoutSeconds is set to nil or <=0 OR
+// NodeDeletionStartTime is not set on the Machine. Otherwise returns true if the timeout is expired
+// since the NodeDeletionStartTime.
+func (r *Reconciler) nodeDeletionTimeoutExceeded(machine *clusterv1.Machine) bool {
+	// if the NodeDeletionTimeoutSeconds type is not set by user
+	if machine.Status.Deletion == nil || machine.Spec.Deletion.NodeDeletionTimeoutSeconds == nil || *machine.Spec.Deletion.NodeDeletionTimeoutSeconds <= 0 {
+		return false
+	}
+
+	// if the NodeDeletionStartTime does not exist
+	if machine.Status.Deletion.NodeDeletionStartTime.IsZero() {
+		return false
+	}
+
+	now := time.Now()
+	diff := now.Sub(machine.Status.Deletion.NodeDeletionStartTime.Time)
+	return diff.Seconds() >= float64(*machine.Spec.Deletion.NodeDeletionTimeoutSeconds)
 }
 
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil

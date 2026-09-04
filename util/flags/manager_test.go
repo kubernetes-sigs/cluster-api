@@ -53,16 +53,25 @@ func TestGetManagerOptions(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "invalid tls curve preferences",
+			managerOptions: ManagerOptions{
+				TLSCurvePreferences: []int32{-1},
+			},
+			wantErr: true,
+		},
+		{
 			name: "valid tls + insecure diagnostics + diagnostics address",
 			managerOptions: ManagerOptions{
 				TLSMinVersion:       "VersionTLS13",
 				TLSCipherSuites:     []string{"TLS_AES_256_GCM_SHA384"},
+				TLSCurvePreferences: []int32{int32(tls.X25519MLKEM768)},
 				InsecureDiagnostics: true,
 				DiagnosticsAddress:  ":8443",
 			},
 			wantTLSConfig: &tls.Config{
-				MinVersion:   tls.VersionTLS13,
-				CipherSuites: []uint16{tls.TLS_AES_256_GCM_SHA384},
+				MinVersion:       tls.VersionTLS13,
+				CipherSuites:     []uint16{tls.TLS_AES_256_GCM_SHA384},
+				CurvePreferences: []tls.CurveID{tls.X25519MLKEM768},
 			},
 			wantMetricsOptions: &metricsserver.Options{
 				BindAddress: ":8443",
@@ -72,13 +81,15 @@ func TestGetManagerOptions(t *testing.T) {
 		{
 			name: "valid tls + diagnostics address",
 			managerOptions: ManagerOptions{
-				TLSMinVersion:      "VersionTLS13",
-				TLSCipherSuites:    []string{"TLS_AES_256_GCM_SHA384"},
-				DiagnosticsAddress: ":8443",
+				TLSMinVersion:       "VersionTLS13",
+				TLSCipherSuites:     []string{"TLS_AES_256_GCM_SHA384"},
+				TLSCurvePreferences: []int32{int32(tls.X25519MLKEM768)},
+				DiagnosticsAddress:  ":8443",
 			},
 			wantTLSConfig: &tls.Config{
-				MinVersion:   tls.VersionTLS13,
-				CipherSuites: []uint16{tls.TLS_AES_256_GCM_SHA384},
+				MinVersion:       tls.VersionTLS13,
+				CipherSuites:     []uint16{tls.TLS_AES_256_GCM_SHA384},
+				CurvePreferences: []tls.CurveID{tls.X25519MLKEM768},
 			},
 			wantMetricsOptions: &metricsserver.Options{
 				BindAddress:    ":8443",
@@ -96,8 +107,9 @@ func TestGetManagerOptions(t *testing.T) {
 				},
 			},
 			wantMetricsOptionsTLSConfig: &tls.Config{
-				MinVersion:   tls.VersionTLS13,
-				CipherSuites: []uint16{tls.TLS_AES_256_GCM_SHA384},
+				MinVersion:       tls.VersionTLS13,
+				CipherSuites:     []uint16{tls.TLS_AES_256_GCM_SHA384},
+				CurvePreferences: []tls.CurveID{tls.X25519MLKEM768},
 			},
 			wantErr: false,
 		},

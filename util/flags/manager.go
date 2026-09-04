@@ -43,6 +43,9 @@ type ManagerOptions struct {
 	// TLSCipherSuites is the field that stores the value of the --tls-cipher-suites flag.
 	// For further details, please see the description of the flag.
 	TLSCipherSuites []string
+	// TLSCurvePreferences is the field that stores the value of the --tls-curve-preferences flag.
+	// For further details, please see the description of the flag.
+	TLSCurvePreferences []int32
 
 	// Metrics Options
 	// These are used to configure the metrics server
@@ -69,6 +72,14 @@ func AddManagerOptions(fs *pflag.FlagSet, options *ManagerOptions) {
 			"If omitted, the default Go cipher suites will be used. \n"+
 			"Preferred values: "+strings.Join(tlsCipherPreferredValues, ", ")+". \n"+
 			"Insecure values: "+strings.Join(tlsCipherInsecureValues, ", ")+".")
+
+	fs.Int32SliceVar(&options.TLSCurvePreferences, "tls-curve-preferences", []int32{},
+		"Comma-separated list of numeric Go crypto/tls CurveID values, as the allowed key exchange mechanisms "+
+			"for the webhook server and metrics server (the latter only if --insecure-diagnostics is not set to true). "+
+			"The supported values depend on the Go version used. "+
+			"See https://pkg.go.dev/crypto/tls#CurveID for values supported for each Go version. "+
+			"The order of the list is ignored, and key exchange mechanisms are chosen by Go from this list "+
+			"using an internal preference order. If omitted, the default Go curves will be used.")
 
 	fs.StringVar(&options.DiagnosticsAddress, "diagnostics-address", ":8443",
 		"The address the diagnostics endpoint binds to. Per default metrics are served via https and with"+
@@ -100,6 +111,16 @@ func GetManagerOptions(options ManagerOptions) ([]func(config *tls.Config), *met
 		}
 		tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
 			cfg.CipherSuites = suites
+		})
+	}
+
+	if len(options.TLSCurvePreferences) != 0 {
+		curvePreferences, err := cliflag.TLSCurvePreferences(options.TLSCurvePreferences)
+		if err != nil {
+			return nil, nil, err
+		}
+		tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
+			cfg.CurvePreferences = curvePreferences
 		})
 	}
 

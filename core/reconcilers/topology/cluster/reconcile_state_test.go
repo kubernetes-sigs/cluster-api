@@ -305,7 +305,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 		},
 	}
 
-	conversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
+	t.Cleanup(conversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{
@@ -315,7 +315,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 			}
 		}
 		return "", fmt.Errorf("unknown GroupVersionKind: %v", gk)
-	})
+	}))
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)

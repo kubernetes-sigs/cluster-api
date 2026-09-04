@@ -29,6 +29,12 @@ var apiVersionGetter = func(_ context.Context, _ schema.GroupKind) (string, erro
 
 // SetAPIVersionGetter sets an APIVersionGetter that is required during conversion to retrieve
 // the APIVersion when converting from v1beta2 to v1beta1.
-func SetAPIVersionGetter(f func(ctx context.Context, gk schema.GroupKind) (string, error)) {
+// It returns a function restoring the previously set getter, so tests can avoid
+// leaking a test-specific getter to other tests running in the same process.
+func SetAPIVersionGetter(f func(ctx context.Context, gk schema.GroupKind) (string, error)) func() {
+	previous := apiVersionGetter
 	apiVersionGetter = f
+	return func() {
+		apiVersionGetter = previous
+	}
 }

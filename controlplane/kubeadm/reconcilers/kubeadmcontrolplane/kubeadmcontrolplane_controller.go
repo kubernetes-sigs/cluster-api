@@ -116,10 +116,10 @@ type Reconciler struct {
 	ssaCache          ssa.Cache
 
 	// Only used for testing.
-	overrideTryInPlaceUpdateFunc       func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, ctrl.Result, error)
+	overrideTryInPlaceUpdateFunc       func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error)
 	overrideScaleUpControlPlaneFunc    func(ctx context.Context, controlPlane *pkg.ControlPlane) (ctrl.Result, error)
 	overrideScaleDownControlPlaneFunc  func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToDelete *clusterv1.Machine) (ctrl.Result, error)
-	overridePreflightChecksFunc        func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result
+	overridePreflightChecksFunc        func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult
 	overrideCanUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error)
 	overrideCanExtensionsUpdateMachine func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (bool, []string, error)
 	overrideTriggerInPlaceUpdate       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) error
@@ -577,7 +577,7 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		if err != nil {
 			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to select machine for scale down")
 		}
-		return r.scaleDownControlPlane(ctx, controlPlane, machineToDelete)
+		return r.scaleDownControlPlane(ctx, controlPlane, machineToDelete, true)
 	}
 
 	// Get the workload cluster client.

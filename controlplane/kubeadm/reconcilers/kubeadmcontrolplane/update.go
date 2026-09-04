@@ -142,18 +142,33 @@ func (r *Reconciler) rollingUpdate(
 	if feature.Gates.Enabled(feature.InPlaceUpdates) &&
 		machineUpToDateResult.EligibleForInPlaceUpdate &&
 		currentUpToDateReplicas < desiredReplicas {
-		fallbackToScaleDown, res, err := r.tryInPlaceUpdate(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, machineUpToDateResult)
+		// Run preflight checks to ensure that the control plane is stable before proceeding with in-place update operation.
+		//
+		// Important! preflight checks play an important role in ensuring that KCP performs "one operation at time", by forcing
+		// the system to wait for the previous operation to complete and the control plane to become stable before starting the next one.
+		//
+		// Note: before considering in-place updates, KCP first takes care of completing
+		// ongoing delete operations, completing in-place transitions, remediating unhealthy machines.
+		if resultForAllMachines := r.preflightChecks(ctx, controlPlane, false); !resultForAllMachines.succeeded {
+			// If the control plane is not stable, check if the issues are only for machineToInPlaceUpdateOrScaleDown.
+			if result := r.preflightChecks(ctx, controlPlane, false, machineToInPlaceUpdateOrScaleDown); result.succeeded {
+				// The issues are only for machineToInPlaceUpdate, fallback to scale down.
+				// Note: The consequence of this is that a Machine with issues is scaled down and not in-place updated.
+				return r.scaleDownControlPlane(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, false) // No need to run preflightChecks again, already passed above.
+			}
+
+			return r.handlePreflightCheckResults(ctx, controlPlane, resultForAllMachines), nil
+		}
+
+		fallbackToScaleDown, err := r.tryInPlaceUpdate(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, machineUpToDateResult)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		if !res.IsZero() {
-			return res, nil
-		}
 		if fallbackToScaleDown {
-			return r.scaleDownControlPlane(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown)
+			return r.scaleDownControlPlane(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, false) // No need to run preflightChecks again, already passed above.
 		}
 		// In-place update triggered
 		return ctrl.Result{}, nil // Note: Requeue is not needed, changes to Machines trigger another reconcile.
 	}
-	return r.scaleDownControlPlane(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown)
+	return r.scaleDownControlPlane(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, true)
 }

@@ -327,6 +327,20 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 			)
 		}
 		names.Insert(md.Name)
+
+		// Validate the failureDomain against Cluster.Status.FailureDomains when available.
+		if md.FailureDomain != "" && len(desired.Status.FailureDomains) > 0 {
+			if !clusterFailureDomainNames(desired).Has(md.FailureDomain) {
+				allErrs = append(allErrs,
+					field.Invalid(
+						field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("failureDomain"),
+						md.FailureDomain,
+						fmt.Sprintf("failureDomain %q must match one of the failure domains defined in Cluster.status.failureDomains %v",
+							md.FailureDomain, clusterFailureDomainNames(desired).UnsortedList()),
+					),
+				)
+			}
+		}
 	}
 	return allErrs
 }
@@ -375,6 +389,23 @@ func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cl
 			)
 		}
 		names.Insert(mp.Name)
+
+		// Validate failureDomains against Cluster.Status.FailureDomains when available.
+		if len(mp.FailureDomains) > 0 && len(desired.Status.FailureDomains) > 0 {
+			validFDs := clusterFailureDomainNames(desired)
+			for j, fd := range mp.FailureDomains {
+				if !validFDs.Has(fd) {
+					allErrs = append(allErrs,
+						field.Invalid(
+							field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("failureDomains").Index(j),
+							fd,
+							fmt.Sprintf("failureDomain %q must match one of the failure domains defined in Cluster.status.failureDomains %v",
+								fd, validFDs.UnsortedList()),
+						),
+					)
+				}
+			}
+		}
 	}
 	return allErrs
 }
@@ -420,4 +451,13 @@ func mpClassNamesFromWorkerClass(w clusterv1.WorkersClass) sets.Set[string] {
 		classes.Insert(class.Class)
 	}
 	return classes
+}
+
+// clusterFailureDomainNames returns the set of failure domain names from Cluster.Status.FailureDomains.
+func clusterFailureDomainNames(cluster *clusterv1.Cluster) sets.Set[string] {
+	fds := sets.New[string]()
+	for _, fd := range cluster.Status.FailureDomains {
+		fds.Insert(fd.Name)
+	}
+	return fds
 }

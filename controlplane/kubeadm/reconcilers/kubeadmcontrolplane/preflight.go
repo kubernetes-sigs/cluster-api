@@ -36,6 +36,16 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
+type preflightChecksResult struct {
+	succeeded bool
+	pkg.PreflightCheckResults
+	requeueAfter       time.Duration
+	deferNextReconcile time.Duration
+	logStr             string
+	logKV              []string
+	eventStr           string
+}
+
 // preflightChecks checks if the control plane is stable before proceeding with a in-place update, scale up or scale down operation.
 // Under normal circumstances, a control stable is considered stable when:
 // - There are no machine deletion in progress
@@ -48,21 +58,17 @@ import (
 //
 // Note: This check leverage the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
 // the info are also used to compute status.Conditions.
-func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.ControlPlane, isScaleUp bool, excludeFor ...*clusterv1.Machine) ctrl.Result {
+func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.ControlPlane, isScaleUp bool, excludeFor ...*clusterv1.Machine) preflightChecksResult {
 	if r.overridePreflightChecksFunc != nil {
 		return r.overridePreflightChecksFunc(ctx, controlPlane, excludeFor...)
 	}
-
-	// Reset PreflightCheckResults in case this function is called multiple times (e.g. for in-place update code paths)
-	// Note: The PreflightCheckResults field is only written by this func, so this is safe.
-	controlPlane.PreflightCheckResults = pkg.PreflightCheckResults{}
 
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet,
 	// so it is considered ok to proceed.
 	if controlPlane.Machines.Len() == 0 {
-		return ctrl.Result{}
+		return preflightChecksResult{succeeded: true}
 	}
 
 	if feature.Gates.Enabled(feature.ClusterTopology) && controlPlane.Cluster.Spec.Topology.IsDefined() {
@@ -78,31 +84,41 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 			if version, ok := controlPlane.Cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok && version != "" {
 				v = version
 			}
-			log.Info(fmt.Sprintf("Waiting for a version upgrade to %s to be propagated", v))
-			controlPlane.PreflightCheckResults.TopologyVersionMismatch = true
 			// Slow down reconcile frequency, as deferring a version upgrade waits for slow processes,
 			// e.g. workers are completing a previous upgrade step.
-			r.controller.DeferNextReconcileForObject(controlPlane.KCP, time.Now().Add(5*time.Second))
-			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
+			return preflightChecksResult{
+				succeeded:             false,
+				PreflightCheckResults: pkg.PreflightCheckResults{TopologyVersionMismatch: true},
+				requeueAfter:          preflightFailedRequeueAfter,
+				deferNextReconcile:    5 * time.Second,
+				logStr:                fmt.Sprintf("Waiting for a version upgrade to %s to be propagated", v),
+			}
 		}
 	}
 
 	// If certificates are missing, can't join a new machine
 	if isScaleUp && !conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition) {
-		controlPlane.PreflightCheckResults.CertificateMissing = true
-		log.Info("Certificates are missing or unknown, can't join a new machine")
 		// Slow down reconcile frequency, user intervention is required to fix the problem.
-		r.controller.DeferNextReconcileForObject(controlPlane.KCP, time.Now().Add(5*time.Second))
-		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
+		return preflightChecksResult{
+			succeeded:             false,
+			PreflightCheckResults: pkg.PreflightCheckResults{CertificateMissing: true},
+			requeueAfter:          preflightFailedRequeueAfter,
+			deferNextReconcile:    5 * time.Second,
+			logStr:                "Certificates are missing or unknown, can't join a new machine",
+		}
 	}
 
 	// If there are deleting machines, wait for the operation to complete.
 	if controlPlane.HasDeletingMachine() {
-		controlPlane.PreflightCheckResults.HasDeletingMachine = true
-		log.Info("Waiting for machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
 		// Slow down reconcile frequency, deletion is a slow process.
-		r.controller.DeferNextReconcileForObject(controlPlane.KCP, time.Now().Add(5*time.Second))
-		return ctrl.Result{RequeueAfter: deleteRequeueAfter}
+		return preflightChecksResult{
+			succeeded:             false,
+			PreflightCheckResults: pkg.PreflightCheckResults{HasDeletingMachine: true},
+			requeueAfter:          deleteRequeueAfter,
+			deferNextReconcile:    5 * time.Second,
+			logStr:                "Waiting for machines to be deleted",
+			logKV:                 []string{"machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", ")},
+		}
 	}
 
 	// At this point we can assume that:
@@ -114,33 +130,42 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 	// Most specifically, KCP should determine if this operation is going to leave the Kubernetes control plane components
 	// and the etcd cluster in operational state or not.
 	// This check will return false if there are machines not yet fully provisioned or if there are etcd members still in learner mode.
-	err := r.checkHealthiness(ctx, controlPlane, excludeFor)
+	controlPlaneComponentsNotHealthy, etcdClusterNotHealthy, err := r.checkHealthiness(ctx, controlPlane, excludeFor)
 
 	// If the control plane doesn't meet the "fully stable" criteria, and the control plane is trying to perform a scale up after
 	// a machine deletion due to remediation, perform a more precise check on Kubernetes control plane components and etcd members,
 	// thus allowing the system to recover also when there are multiple failures.
 	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok && isScaleUp && err != nil {
 		log.Info("Performing checks to allow creation of a replacement machine while remediation is in progress")
-		err = r.checkHealthinessWhileRemediationInProgress(ctx, controlPlane)
+		controlPlaneComponentsNotHealthy, etcdClusterNotHealthy, err = r.checkHealthinessWhileRemediationInProgress(ctx, controlPlane)
 	}
 
 	if err != nil {
-		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy",
-			"Waiting for control plane to pass preflight checks to continue reconciliation: %v", err)
-		log.Info("Waiting for control plane to pass preflight checks", "failures", err.Error())
 		// Slow down reconcile frequency, it takes some time before control plane components stabilize
 		// after a new Machine is created. Similarly, if there are issues on running Machines, it
 		// usually takes some time to get back to normal state.
-		r.controller.DeferNextReconcileForObject(controlPlane.KCP, time.Now().Add(5*time.Second))
-		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
+		return preflightChecksResult{
+			succeeded: false,
+			PreflightCheckResults: pkg.PreflightCheckResults{
+				ControlPlaneComponentsNotHealthy: controlPlaneComponentsNotHealthy,
+				EtcdClusterNotHealthy:            etcdClusterNotHealthy,
+			},
+			requeueAfter:       preflightFailedRequeueAfter,
+			deferNextReconcile: 5 * time.Second,
+			logStr:             "Waiting for control plane to pass preflight checks",
+			logKV:              []string{"failures", err.Error()},
+			eventStr:           fmt.Sprintf("Waiting for control plane to pass preflight checks to continue reconciliation: %v", err),
+		}
 	}
 
-	return ctrl.Result{}
+	return preflightChecksResult{succeeded: true}
 }
 
 // checkHealthiness verifies if the control plane is fully stable checking that all Kubernetes control plane components and etcd members are ok.
 // When performing a scale down operation, the deleting machine is ignored.
-func (r *Reconciler) checkHealthiness(_ context.Context, controlPlane *pkg.ControlPlane, excludeFor []*clusterv1.Machine) error {
+func (r *Reconciler) checkHealthiness(_ context.Context, controlPlane *pkg.ControlPlane, excludeFor []*clusterv1.Machine) (bool, bool, error) {
+	var controlPlaneComponentsNotHealthy, etcdClusterNotHealthy bool
+
 	// Check machine health conditions; if there are conditions with False or Unknown, then wait.
 	allMachineHealthConditions := []string{
 		controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
@@ -172,24 +197,24 @@ loopmachines:
 			// towards the unset nodeRef (which is the root cause of the conditions not being there).
 			machineErrors = append(machineErrors, pkgerrors.Errorf("Machine %s does not have a corresponding Node yet (Machine.status.nodeRef not set)", machine.Name))
 
-			controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
+			controlPlaneComponentsNotHealthy = true
 			if controlPlane.IsEtcdManaged() {
-				controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
+				etcdClusterNotHealthy = true
 			}
 		} else {
 			for _, condition := range allMachineHealthConditions {
 				if err := preflightCheckCondition("Machine", machine, condition); err != nil {
 					if condition == controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition {
-						controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
+						etcdClusterNotHealthy = true
 					} else {
-						controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
+						controlPlaneComponentsNotHealthy = true
 					}
 					machineErrors = append(machineErrors, err)
 				}
 			}
 		}
 	}
-	return kerrors.NewAggregate(machineErrors)
+	return controlPlaneComponentsNotHealthy, etcdClusterNotHealthy, kerrors.NewAggregate(machineErrors)
 }
 
 // checkHealthinessWhileRemediationInProgress verifies if the Kubernetes control plane components and etcd members are healthy enough
@@ -197,12 +222,9 @@ loopmachines:
 // Note: In this case it is not required to check if there are machines not yet fully provisioned, because remediation
 // can start only when all the machines are provisioned (already checked before setting remediation in progress, and
 // after that only machine deletion could happen).
-func (r *Reconciler) checkHealthinessWhileRemediationInProgress(ctx context.Context, controlPlane *pkg.ControlPlane) error {
+func (r *Reconciler) checkHealthinessWhileRemediationInProgress(ctx context.Context, controlPlane *pkg.ControlPlane) (bool, bool, error) {
+	var controlPlaneComponentsNotHealthy, etcdClusterNotHealthy bool
 	allErrors := []error{}
-
-	// make sure we reset the flags for surfacing prefligh checks in conditions from scratch.
-	controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = false
-	controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = false
 
 	// Considering this func is only called before scaling up after one has been deleted due to remediation,
 	// we can assume that the target cluster will have current Machines +1 new Machine (the replacement machine).
@@ -217,7 +239,7 @@ func (r *Reconciler) checkHealthinessWhileRemediationInProgress(ctx context.Cont
 
 	// Check id the target Kubernetes control plane will have at least one set of operational Kubernetes control plane components.
 	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {
-		controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
+		controlPlaneComponentsNotHealthy = true
 		allErrors = append(allErrors, pkgerrors.New("cannot add a new control plane Machine when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status"))
 	}
 
@@ -227,11 +249,11 @@ func (r *Reconciler) checkHealthinessWhileRemediationInProgress(ctx context.Cont
 			allErrors = append(allErrors, pkgerrors.New("cannot check etcd cluster health before scale up, etcd member list is empty"))
 		} else if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberToBeDeleted) {
 			allErrors = append(allErrors, pkgerrors.New("adding a new control plane Machine can lead to etcd quorum loss. Please check the etcd status"))
-			controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
+			etcdClusterNotHealthy = true
 		}
 	}
 
-	return kerrors.NewAggregate(allErrors)
+	return controlPlaneComponentsNotHealthy, etcdClusterNotHealthy, kerrors.NewAggregate(allErrors)
 }
 
 func preflightCheckCondition(kind string, obj *clusterv1.Machine, conditionType string) error {
@@ -246,4 +268,30 @@ func preflightCheckCondition(kind string, obj *clusterv1.Machine, conditionType 
 		return pkgerrors.Errorf("%s %s reports %s condition is unknown (%s)", kind, obj.GetName(), conditionType, c.Message)
 	}
 	return nil
+}
+
+func (r *Reconciler) handlePreflightCheckResults(ctx context.Context, controlPlane *pkg.ControlPlane, res preflightChecksResult) ctrl.Result {
+	controlPlane.PreflightCheckResults = res.PreflightCheckResults
+	if res.succeeded {
+		return ctrl.Result{}
+	}
+	if res.deferNextReconcile > 0 {
+		r.controller.DeferNextReconcileForObject(controlPlane.KCP, time.Now().Add(res.deferNextReconcile))
+	}
+	if res.logStr != "" {
+		log := ctrl.LoggerFrom(ctx)
+		var args []any
+		for _, s := range res.logKV {
+			args = append(args, s)
+		}
+		log.Info(res.logStr, args...)
+	}
+	if res.eventStr != "" {
+		r.recorder.Event(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy", res.eventStr)
+	}
+	if res.requeueAfter == 0 {
+		// Default requeueAfter to ensure we always requeue if the preflight checks failed.
+		res.requeueAfter = preflightFailedRequeueAfter
+	}
+	return ctrl.Result{RequeueAfter: res.requeueAfter}
 }

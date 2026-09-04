@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
@@ -38,37 +37,15 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 
 	tests := []struct {
 		name                           string
-		preflightChecksFunc            func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result
 		canUpdateMachineFunc           func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error)
 		wantCanUpdateMachineCalled     bool
 		wantTriggerInPlaceUpdateCalled bool
 		wantFallbackToScaleDown        bool
 		wantError                      bool
 		wantErrorMessage               string
-		wantRes                        ctrl.Result
 	}{
 		{
-			name: "Requeue if preflight checks for all Machines failed",
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) ctrl.Result {
-				return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
-			},
-			wantRes: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
-		},
-		{
-			name: "Fallback to scale down if checks for all Machines failed, but checks succeed when excluding machineToInPlaceUpdate",
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result {
-				if len(excludeFor) == 1 && excludeFor[0] == machineToInPlaceUpdate {
-					return ctrl.Result{} // If machineToInPlaceUpdate is excluded preflight checks succeed => scale down
-				}
-				return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
-			},
-			wantFallbackToScaleDown: true,
-		},
-		{
 			name: "Return error if canUpdateMachine returns an error",
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) ctrl.Result {
-				return ctrl.Result{}
-			},
 			canUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (bool, error) {
 				return false, pkgerrors.New("canUpdateMachine error")
 			},
@@ -78,9 +55,6 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 		},
 		{
 			name: "Fallback to scale down if canUpdateMachine returns false",
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) ctrl.Result {
-				return ctrl.Result{}
-			},
 			canUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (bool, error) {
 				return false, nil
 			},
@@ -89,9 +63,6 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 		},
 		{
 			name: "Trigger in-place update if canUpdateMachine returns true",
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) ctrl.Result {
-				return ctrl.Result{}
-			},
 			canUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (bool, error) {
 				return true, nil
 			},
@@ -107,9 +78,6 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 			var canUpdateMachineCalled bool
 			var triggerInPlaceUpdateCalled bool
 			r := &Reconciler{
-				overridePreflightChecksFunc: func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result {
-					return tt.preflightChecksFunc(ctx, controlPlane, excludeFor...)
-				},
 				overrideCanUpdateMachineFunc: func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error) {
 					canUpdateMachineCalled = true
 					return tt.canUpdateMachineFunc(ctx, machine, machineUpToDateResult)
@@ -120,14 +88,13 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 				},
 			}
 
-			fallbackToScaleDown, res, err := r.tryInPlaceUpdate(ctx, nil, machineToInPlaceUpdate, pkg.UpToDateResult{})
+			fallbackToScaleDown, err := r.tryInPlaceUpdate(ctx, nil, machineToInPlaceUpdate, pkg.UpToDateResult{})
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(res).To(Equal(tt.wantRes))
 			g.Expect(fallbackToScaleDown).To(Equal(tt.wantFallbackToScaleDown))
 
 			g.Expect(canUpdateMachineCalled).To(Equal(tt.wantCanUpdateMachineCalled), "canUpdateMachineCalled: actual: %t expected: %t", canUpdateMachineCalled, tt.wantCanUpdateMachineCalled)

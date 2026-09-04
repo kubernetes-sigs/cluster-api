@@ -17,7 +17,6 @@ limitations under the License.
 package kubeadmcontrolplane
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -48,6 +47,9 @@ func TestPreflightChecks(t *testing.T) {
 		expectResult             ctrl.Result
 		expectPreflight          pkg.PreflightCheckResults
 		expectDeferNextReconcile time.Duration
+		expectLogStr             string
+		expectLogKV              []string
+		expectEventStr           string
 	}{
 		{
 			name:         "control plane without machines (not initialized) should pass",
@@ -88,6 +90,7 @@ func TestPreflightChecks(t *testing.T) {
 				TopologyVersionMismatch:          true,
 			},
 			expectDeferNextReconcile: 5 * time.Second,
+			expectLogStr:             "Waiting for a version upgrade to v1.33.0 to be propagated",
 		},
 		{
 			name: "control plane with a pending upgrade, but not yet at the current step of the upgrade plan, should requeue",
@@ -121,6 +124,7 @@ func TestPreflightChecks(t *testing.T) {
 				TopologyVersionMismatch:          true,
 			},
 			expectDeferNextReconcile: 5 * time.Second,
+			expectLogStr:             "Waiting for a version upgrade to v1.32.0 to be propagated",
 		},
 		{
 			name: "control plane with a deleting machine should requeue",
@@ -134,6 +138,7 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					ObjectMeta: metav1.ObjectMeta{
+						Name:              "deleting-machine",
 						DeletionTimestamp: &metav1.Time{Time: time.Now()},
 					},
 				},
@@ -147,6 +152,8 @@ func TestPreflightChecks(t *testing.T) {
 				TopologyVersionMismatch:          false,
 			},
 			expectDeferNextReconcile: 5 * time.Second,
+			expectLogStr:             "Waiting for machines to be deleted",
+			expectLogKV:              []string{"machines", "deleting-machine"},
 		},
 		{
 			name: "control plane without certificates should requeue if scale up",
@@ -174,6 +181,7 @@ func TestPreflightChecks(t *testing.T) {
 				TopologyVersionMismatch:          false,
 			},
 			expectDeferNextReconcile: 5 * time.Second,
+			expectLogStr:             "Certificates are missing or unknown, can't join a new machine",
 		},
 		{
 			name: "control plane without certificates should pass if not scale up",
@@ -250,6 +258,9 @@ func TestPreflightChecks(t *testing.T) {
 				TopologyVersionMismatch:          false,
 			},
 			expectDeferNextReconcile: 5 * time.Second,
+			expectLogStr:             "Waiting for control plane to pass preflight checks",
+			expectLogKV:              []string{"failures", "Machine machine-1 does not have a corresponding Node yet (Machine.status.nodeRef not set)"},
+			expectEventStr:           "Waiting for control plane to pass preflight checks to continue reconciliation: Machine machine-1 does not have a corresponding Node yet (Machine.status.nodeRef not set)",
 		},
 		{
 			name: "control plane with an unhealthy machine condition should requeue",
@@ -270,7 +281,7 @@ func TestPreflightChecks(t *testing.T) {
 							Name: "node-1",
 						},
 						Conditions: []metav1.Condition{
-							{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionFalse},
+							{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionFalse, Message: "message"},
 							{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
 							{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
 							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
@@ -288,6 +299,9 @@ func TestPreflightChecks(t *testing.T) {
 				TopologyVersionMismatch:          false,
 			},
 			expectDeferNextReconcile: 5 * time.Second,
+			expectLogStr:             "Waiting for control plane to pass preflight checks",
+			expectLogKV:              []string{"failures", "Machine machine-1 reports APIServerPodHealthy condition is false (message)"},
+			expectEventStr:           "Waiting for control plane to pass preflight checks to continue reconciliation: Machine machine-1 reports APIServerPodHealthy condition is false (message)",
 		},
 		{
 			name: "control plane with an unhealthy machine condition should requeue",
@@ -312,7 +326,7 @@ func TestPreflightChecks(t *testing.T) {
 							{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
 							{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
 							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
-							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse},
+							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse, Message: "message"},
 						},
 					},
 				},
@@ -326,6 +340,9 @@ func TestPreflightChecks(t *testing.T) {
 				TopologyVersionMismatch:          false,
 			},
 			expectDeferNextReconcile: 5 * time.Second,
+			expectLogStr:             "Waiting for control plane to pass preflight checks",
+			expectLogKV:              []string{"failures", "Machine machine-1 reports EtcdMemberHealthy condition is false (message)"},
+			expectEventStr:           "Waiting for control plane to pass preflight checks to continue reconciliation: Machine machine-1 reports EtcdMemberHealthy condition is false (message)",
 		},
 		{
 			name: "control plane where target etcd cluster and k8s control plane will be healthy state should pass when scaling up after remediation, no matter of failures on other machines",
@@ -447,6 +464,10 @@ func TestPreflightChecks(t *testing.T) {
 				TopologyVersionMismatch:          false,
 			},
 			expectDeferNextReconcile: 5 * time.Second,
+			expectLogStr:             "Waiting for control plane to pass preflight checks",
+			expectLogKV: []string{"failures", "cannot add a new control plane Machine when there are no control plane Machines " +
+				"with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status"},
+			expectEventStr: "Waiting for control plane to pass preflight checks to continue reconciliation: cannot add a new control plane Machine when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status",
 		},
 		{
 			name: "requeue control plane where target etcd cluster will be unhealthy when scaling up after remediation",
@@ -525,6 +546,9 @@ func TestPreflightChecks(t *testing.T) {
 				TopologyVersionMismatch:          false,
 			},
 			expectDeferNextReconcile: 5 * time.Second,
+			expectLogStr:             "Waiting for control plane to pass preflight checks",
+			expectLogKV:              []string{"failures", "adding a new control plane Machine can lead to etcd quorum loss. Please check the etcd status"},
+			expectEventStr:           "Waiting for control plane to pass preflight checks to continue reconciliation: adding a new control plane Machine can lead to etcd quorum loss. Please check the etcd status",
 		},
 		{
 			name: "control plane with an healthy machine and an healthy kcp condition should pass",
@@ -641,7 +665,16 @@ func TestPreflightChecks(t *testing.T) {
 				Machines:    collections.FromMachines(tt.machines...),
 				EtcdMembers: etcdMembers(collections.FromMachines(tt.machines...)),
 			}
-			result := r.preflightChecks(context.TODO(), controlPlane, tt.isScaleUp)
+			preflightChecksResult := r.preflightChecks(t.Context(), controlPlane, tt.isScaleUp)
+			g.Expect(preflightChecksResult.succeeded).To(Equal(tt.expectResult.IsZero()))
+			g.Expect(preflightChecksResult.PreflightCheckResults).To(Equal(tt.expectPreflight))
+			g.Expect(preflightChecksResult.requeueAfter).To(Equal(tt.expectResult.RequeueAfter))
+			g.Expect(preflightChecksResult.deferNextReconcile).To(Equal(tt.expectDeferNextReconcile))
+			g.Expect(preflightChecksResult.logStr).To(Equal(tt.expectLogStr))
+			g.Expect(preflightChecksResult.logKV).To(Equal(tt.expectLogKV))
+			g.Expect(preflightChecksResult.eventStr).To(Equal(tt.expectEventStr))
+
+			result := r.handlePreflightCheckResults(t.Context(), controlPlane, preflightChecksResult)
 			g.Expect(result).To(BeComparableTo(tt.expectResult))
 			g.Expect(controlPlane.PreflightCheckResults).To(Equal(tt.expectPreflight))
 			if tt.expectDeferNextReconcile == 0 {

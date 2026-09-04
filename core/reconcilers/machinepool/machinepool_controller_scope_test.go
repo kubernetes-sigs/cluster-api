@@ -23,45 +23,52 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func TestHasMachinePoolMachines(t *testing.T) {
+func TestMachinePoolMachinesState(t *testing.T) {
 	tests := []struct {
 		name      string
 		infraPool *unstructured.Unstructured
-		want      bool
+		want      machinePoolMachinesState
 		wantErr   bool
 	}{
 		{
 			name:    "returns error when infraMachinePool is nil",
-			want:    false,
+			want:    machinePoolMachinesStateUnknown,
 			wantErr: true,
 		},
 		{
-			name: "returns false when infrastructureMachineKind is absent",
+			name: "returns not supported when infrastructureMachineKind is absent",
 			infraPool: &unstructured.Unstructured{Object: map[string]interface{}{
 				"status": map[string]interface{}{},
 			}},
-			want:    false,
-			wantErr: false,
+			want: machinePoolMachinesStateNotSupported,
 		},
 		{
-			name: "returns false when infrastructureMachineKind is empty string",
+			name: "returns not supported when infrastructureMachineKind is empty",
 			infraPool: &unstructured.Unstructured{Object: map[string]interface{}{
 				"status": map[string]interface{}{
 					"infrastructureMachineKind": "",
 				},
 			}},
-			want:    false,
-			wantErr: false,
+			want: machinePoolMachinesStateNotSupported,
 		},
 		{
-			name: "returns true when infrastructureMachineKind is set",
+			name: "returns supported when infrastructureMachineKind is set",
 			infraPool: &unstructured.Unstructured{Object: map[string]interface{}{
 				"status": map[string]interface{}{
 					"infrastructureMachineKind": "DockerMachine",
 				},
 			}},
-			want:    true,
-			wantErr: false,
+			want: machinePoolMachinesStateSupported,
+		},
+		{
+			name: "returns error when infrastructureMachineKind is malformed",
+			infraPool: &unstructured.Unstructured{Object: map[string]interface{}{
+				"status": map[string]interface{}{
+					"infrastructureMachineKind": int64(1),
+				},
+			}},
+			want:    machinePoolMachinesStateUnknown,
+			wantErr: true,
 		},
 	}
 
@@ -70,7 +77,7 @@ func TestHasMachinePoolMachines(t *testing.T) {
 			g := NewWithT(t)
 
 			s := &scope{infraMachinePool: tt.infraPool}
-			got, err := s.hasMachinePoolMachines()
+			got, err := s.machinePoolMachinesState()
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

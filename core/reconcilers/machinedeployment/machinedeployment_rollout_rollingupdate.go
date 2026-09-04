@@ -247,6 +247,20 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 		}
 	}
 
+	// Consider if there are machine updating in-place where the operation was declared as not affecting availability.
+	//
+	// Even if this is not impacting availability, it is required to consider those machines to slow down rollout/
+	// ensure that changes are rolled out in an incremental way.
+	// Note: this is consistent with the idea that maxSurge and maxUnavailable defines the speed of a rollout (with the
+	// caveat that maxSurge/creating additional machines is capped because rollout planner must give priority to in-place when possible).
+	// TODO: test
+	totalInPlaceUpdatingNotAffectingAvailability := int32(0)
+	for _, m := range p.machines {
+		if v, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok && v == "not-disruptive" {
+			totalInPlaceUpdatingNotAffectingAvailability++
+		}
+	}
+
 	// On top of considering maxUnavailable, before scaling down it is also important to consider how unavailability is distributed
 	// across MachineSets, because if there are unavailable machines on the new MachineSet it is necessary to slow down or stop rollout
 	// to prevent to transition all the Machines to a broken state.
@@ -258,7 +272,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 	// NOTE: this is a quick preliminary check to verify if there is room for scaling down any of the oldMSs; further down the code
 	// will make additional checks to ensure scale down actually happens without breaching MaxUnavailable, and
 	// if necessary, it will reduce the extent of the scale down accordingly.
-	totalScaleDownCount := max(totalSpecReplicas-totalPendingScaleDown-minAvailable-newMSUnavailableMachineCount, 0)
+	totalScaleDownCount := max(totalSpecReplicas-totalPendingScaleDown-totalInPlaceUpdatingNotAffectingAvailability-minAvailable-newMSUnavailableMachineCount, 0)
 	if totalScaleDownCount <= 0 {
 		return nil
 	}
@@ -401,16 +415,23 @@ func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, totalScaleDownCoun
 // When calling this func, new and old MS already have their scale intent, which was computed under the assumption that
 // rollout is going to happen by delete/re-create, and thus it will impact availability.
 //
-// Also in-place updates are assumed to impact availability, even if the in-place update technically is not impacting workloads,
-// the system must account for scenarios when the operation fails, leading to remediation of the machine/unavailability.
+// By default in-place updates are assumed to impact availability because the system must account
+// for scenarios when the operation fails, leading to remediation of the machine/unavailability.
 //
 // As a consequence:
-//   - this function can rely on scale intent previously computed, and just influence how rollout is performed.
-//   - unless the user accounts for this unavailability by setting MaxUnavailable >= 1,
-//     rollout with in-place will create one additional machine to ensure MaxUnavailable == 0 is respected.
+//   - This function can rely on scale intent previously computed, and in the case in-place update is possible,
+//     influence how scale down on oldMS is performed.
+//   - Creation of additional machines due to maxSurge is capped to 1 or entirely dropped because
+//     rollout planner must give priority to in-place when possible.
+//     More specifically, using one slot for maxSurge is required to create an additional machine at the
+//     beginning of an in-place upgrade unless MaxUnavailable >= 1 (the MD configuration allows introducing unavailability)
+//     or the runtime extension declares that it can perform the in-place update without affecting availability.
 //
-// NOTE: if an in-place update is possible and maxSurge is >= 1, creation of additional machines due to maxSurge is capped to 1 or entirely dropped.
-// Instead, creation of new machines due to scale up goes through as usual.
+// Warning! When the runtime extension declares that it can perform the in-place update without affecting availability,
+// then Cluster API does not provide the safety net that is provided by creating additional machines.
+// In case of problems during such in-place updates, user workloads might be impacted and/or disrupted.
+//
+// Note: creation of new machines due to scale up goes through as usual.
 func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -425,6 +446,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 
 	// Find if there are oldMSs for which it possible to perform an in-place update.
 	inPlaceUpdateCandidates := sets.Set[string]{}
+	inPlaceUpdateCandidatesNotAffectingAvailability := []*clusterv1.MachineSet{}
 	for _, oldMS := range p.oldMSs {
 		// If the oldMS doesn't have replicas anymore, nothing left to do.
 		if ptr.Deref(oldMS.Status.Replicas, 0) <= 0 {
@@ -437,13 +459,13 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		}
 
 		// Check if the MachineSet can update in place; if not, move to the next MachineSet.
-		canUpdateInPlace, err := p.canUpdateMachineSetInPlace(ctx, oldMS, p.newMS)
+		answer, err := p.canUpdateMachineSetInPlace(ctx, oldMS, p.newMS)
 		if err != nil {
 			return pkgerrors.Wrapf(err, "failed to determine if MachineSet %s can be updated in-place", oldMS.Name)
 		}
-		log.V(5).Info(fmt.Sprintf("CanUpdate in-place decision for MachineSet %s: %t", klog.KObj(oldMS), canUpdateInPlace), "MachineSet", klog.KObj(oldMS))
+		log.V(5).Info(fmt.Sprintf("CanUpdate in-place decision for MachineSet %s: %t, affects availability: %t", klog.KObj(oldMS), answer.canUpdate, answer.affectsAvailability), "MachineSet", klog.KObj(oldMS))
 
-		if !canUpdateInPlace {
+		if !answer.canUpdate {
 			continue
 		}
 
@@ -455,7 +477,15 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		if oldMS.Annotations == nil {
 			oldMS.Annotations = map[string]string{}
 		}
-		p.addNotef(oldMS, "should scale down by moving Machines to MachineSet %s", p.newMS.Name)
+
+		if !answer.affectsAvailability {
+			// TODO: test
+			oldMS.Annotations["move-not-disruptive"] = ""
+			inPlaceUpdateCandidatesNotAffectingAvailability = append(inPlaceUpdateCandidatesNotAffectingAvailability, oldMS)
+			p.addNotef(oldMS, "should scale down by moving Machines to MachineSet %s (does not affect availability)", p.newMS.Name)
+		} else {
+			p.addNotef(oldMS, "should scale down by moving Machines to MachineSet %s (affects availability)", p.newMS.Name)
+		}
 		oldMS.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] = p.newMS.Name
 		inPlaceUpdateCandidates.Insert(oldMS.Name)
 	}
@@ -535,9 +565,42 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 	//   through remediation before creating additional machines)
 	if newScaleUpCount == 0 && !p.scalingOrInPlaceUpdateInProgress(ctx) {
 		newScaleUpCount = 1
-		p.addNotef(p.newMS, "surge 1 allowed to create availability for in-place updates")
 	} else {
 		p.addNotef(p.newMS, "surge %d dropped to prioritize in-place updates", maxSurgeUsed)
+
+		newScaleIntent := ptr.Deref(p.newMS.Spec.Replicas, 0) + newScaleUpCount
+		log.V(5).Info(fmt.Sprintf("Revisited scale up intent for MachineSet %s to %d replicas (+%d) to prevent creation of new machines while there are still in-place updates to be performed", klog.KObj(p.newMS), newScaleIntent, newScaleUpCount), "MachineSet", klog.KObj(p.newMS))
+		if newScaleUpCount == 0 {
+			delete(p.scaleIntents, p.newMS.Name)
+		} else {
+			p.scaleIntents[p.newMS.Name] = newScaleIntent
+		}
+		return nil
+	}
+
+	// At the point, we know that rollout is not progressing in other ways (on top of newMS not scaling from a previous reconcile, there are also no oldMS scaling down
+	// and no in-place upgrade in progress), so it looks like the only way to progress is to use scale up newMS by one by using one slot from maxSurge,
+	// so we can have enough availability to start in-place updating.
+	//
+	// Make a final verification to check if we can avoid using maxSurge / scale up newMS by one.
+	// If at least one of the oldMS candidate for in-place update can perform an update without affecting availability,
+	// then we have a way forward that will not impact availability and that abides to the principle of prioritizing in-place updates over creation of new Machines when possible.
+	if len(inPlaceUpdateCandidatesNotAffectingAvailability) > 0 {
+		// Drop scale up newMS / usage of MaxSurge
+		newScaleUpCount = 0
+
+		// Scale down one of the oldMS candidate for in-place update and that can perform an update without affecting availability.
+		// Sort oldMSs so the system will start deleting from the oldest MS first.
+		sort.Sort(mdutil.MachineSetsByCreationTimestamp(inPlaceUpdateCandidatesNotAffectingAvailability))
+		oldMS := inPlaceUpdateCandidatesNotAffectingAvailability[0]
+
+		replicas := ptr.Deref(oldMS.Spec.Replicas, 0)
+		newScaleDownIntent := max(replicas-1, 0)
+		p.addNotef(oldMS, "surge 1 for MachineSet %s converted to scale down MachineSet %s to %d replicas (-%d)", p.newMS.Name, oldMS.Name, newScaleDownIntent, 1)
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleDownIntent, 1), "MachineSet", klog.KObj(oldMS))
+		p.scaleIntents[oldMS.Name] = newScaleDownIntent
+	} else {
+		p.addNotef(p.newMS, "surge 1 allowed to create availability for in-place updates")
 	}
 
 	newScaleIntent := ptr.Deref(p.newMS.Spec.Replicas, 0) + newScaleUpCount

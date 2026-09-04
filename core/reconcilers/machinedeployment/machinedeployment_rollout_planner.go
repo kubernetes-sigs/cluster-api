@@ -59,8 +59,8 @@ type rolloutPlanner struct {
 	notes        map[string][]string
 
 	overrideComputeDesiredMS              func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error)
-	overrideCanUpdateMachineSetInPlace    func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (bool, error)
-	overrideCanExtensionsUpdateMachineSet func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error)
+	overrideCanUpdateMachineSetInPlace    func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetInPlaceAnswer, error)
+	overrideCanExtensionsUpdateMachineSet func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceAnswer, []string, error)
 }
 
 func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client, canUpdateMachineSetCache cache.Cache[CanUpdateMachineSetCacheEntry]) *rolloutPlanner {

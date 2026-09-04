@@ -1,4 +1,4 @@
-## In-place rollout, 6 Replicas, maxSurge 0, MaxUnavailable 10
+## In-place rollout, 6 Replicas, maxSurge 0, MaxUnavailable 10 - not affecting availability, random(0)
 
 [Test] Legend:
       - X/Y replicas is status.Replicas/spec.Replicas
@@ -11,13 +11,13 @@
 [Test] Initial state
     md: 6/6 replicas, 6 available, 0 upToDate
     ms1: 6/6 replicas, 6 available, 0 upToDate (m1,m2,m3,m4,m5,m6)
-[Test] Rollout 6 replicas, MaxSurge=0, MaxUnavailable=10
+[Test] Rollout 6 replicas, MaxSurge=0, MaxUnavailable=10, random(0)
   
 [MD controller] Reconcile
     md: 6/6 replicas, 6 available, 0 upToDate
     ms1: from 6/6 to 6/0 replicas, 6 available, 0 upToDate (m1,m2,m3,m4,m5,m6)
       - Scaled down old MachineSet ms1 from 6 to 0 replicas (-6)
-        - Reason: 6 available replicas > 0 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (affects availability)
+        - Reason: 6 available replicas > 0 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (does not affect availability)
         - Diff: replicas 0,in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset: ms2,cluster.x-k8s.io/disable-machine-create: false
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
       - MachineSet ms2 created, it is now the current MachineSet
@@ -25,38 +25,36 @@
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
       - ms1 scaled down to 0/0 replicas (m1,m2,m3,m4,m5,m6 moved to ms2)
 [MS controller] Reconcile
-    ms2: 6/0 replicas, 0 available, 0 upToDate (m1✋🟡,m2✋🟡,m3✋🟡,m4✋🟡,m5✋🟡,m6✋🟡)
+    ms2: 6/0 replicas, 6 available, 0 upToDate (m1✋🟢,m2✋🟢,m3✋🟢,m4✋🟢,m5✋🟢,m6✋🟢)
       - Replicas m1,m2,m3,m4,m5,m6 moved from an old MachineSet still pending acknowledge from machine deployment md
 [MD controller] Reconcile
-    md: 6/6 replicas, 0 available, 0 upToDate
+    md: 6/6 replicas, 6 available, 0 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: from 6/0 to 6/6 replicas, 0 available, 0 upToDate (m1🟡,m2🟡,m3🟡,m4🟡,m5🟡,m6🟡)
+    ms2: from 6/0 to 6/6 replicas, 6 available, 0 upToDate (m1🟢,m2🟢,m3🟢,m4🟢,m5🟢,m6🟢)
       - Scaled up current MachineSet ms2 from 0 to 6 replicas (+6)
         - Reason: acknowledge Machines m1,m2,m3,m4,m5,m6 moved from an old MachineSet
         - Diff: replicas 6,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m1,m2,m3,m4,m5,m6
 [MS controller] Reconcile
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
 [MS controller] Reconcile
-    ms2: 6/6 replicas, 0 available, 0 upToDate (m1🟡,m2🟡,m3🟡,m4🟡,m5🟡,m6🟡)
-[MD controller] Reconcile
-    md: 6/6 replicas, 0 available, 0 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: 6/6 replicas, 0 available, 0 upToDate (m1🟡,m2🟡,m3🟡,m4🟡,m5🟡,m6🟡)
+[MD controller] Reconcile
+    md: 6/6 replicas, 6 available, 0 upToDate
+    ms1: 0/0 replicas, 0 available, 0 upToDate ()
+    ms2: 6/6 replicas, 6 available, 0 upToDate (m1🟢,m2🟢,m3🟢,m4🟢,m5🟢,m6🟢)
+[MS controller] Reconcile
+    ms2: 6/6 replicas, 6 available, 0 upToDate (m1🟢,m2🟢,m3🟢,m4🟢,m5🟢,m6🟢)
+[MD controller] Reconcile
+    md: 6/6 replicas, 6 available, 0 upToDate
+    ms1: 0/0 replicas, 0 available, 0 upToDate ()
+    ms2: 6/6 replicas, 6 available, 0 upToDate (m1🟢,m2🟢,m3🟢,m4🟢,m5🟢,m6🟢)
 [MS controller] Reconcile
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
 [MS controller] Reconcile
     ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6)
       - Replicas m1,m2,m3,m4,m5,m6 completed in-place update
-[MD controller] Reconcile
-    md: 6/6 replicas, 6 available, 6 upToDate
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6)
-[MS controller] Reconcile
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
-    ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6)
   
 [Test] Final state
-    md: 6/6 replicas, 6 available, 6 upToDate
+    md: 6/6 replicas, 6 available, 0 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6)

@@ -1,4 +1,4 @@
-## In-place rollout, 12 Replicas, maxSurge 3, MaxUnavailable 1, scale down to 6
+## In-place rollout, 12 Replicas, maxSurge 3, MaxUnavailable 1, scale down to 6 - not affecting availability
 
 [Test] Legend:
       - X/Y replicas is status.Replicas/spec.Replicas
@@ -18,7 +18,7 @@
     md: 12/6 replicas, 12 available, 0 upToDate
     ms1: from 9/9 to 9/2 replicas, 9 available, 0 upToDate (m4,m5,m6,m7,m8,m9,m10,m11,m12)
       - Scaled down old MachineSet ms1 from 9 to 2 replicas (-7)
-        - Reason: 12 available replicas > 5 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (affects availability)
+        - Reason: 12 available replicas > 5 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (does not affect availability)
         - Diff: replicas 2,in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset: ms2,cluster.x-k8s.io/disable-machine-create: false
     ms2: 3/3 replicas, 3 available, 0 upToDate (m1,m2,m3)
       - Updated current MachineSet ms2
@@ -28,12 +28,12 @@
     ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
       - ms1 scaled down to 2/2 replicas (m4,m5,m6,m7,m8,m9,m10 moved to ms2)
 [MS controller] Reconcile
-    ms2: 10/3 replicas, 3 available, 3 upToDate (m1,m2,m3,m4✋🟡,m5✋🟡,m6✋🟡,m7✋🟡,m8✋🟡,m9✋🟡,m10✋🟡)
+    ms2: 10/3 replicas, 10 available, 3 upToDate (m1,m2,m3,m4✋🟢,m5✋🟢,m6✋🟢,m7✋🟢,m8✋🟢,m9✋🟢,m10✋🟢)
       - Replicas m10,m4,m5,m6,m7,m8,m9 moved from an old MachineSet still pending acknowledge from machine deployment md
 [MD controller] Reconcile
-    md: 12/6 replicas, 5 available, 3 upToDate
+    md: 12/6 replicas, 12 available, 3 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
-    ms2: from 10/3 to 10/6 replicas, 3 available, 3 upToDate (m1,m2,m3,m4🟡,m5🟡,m6🟡,m7🟡,m8🟡,m9🟡,m10🟡)
+    ms2: from 10/3 to 10/6 replicas, 10 available, 3 upToDate (m1,m2,m3,m4🟢,m5🟢,m6🟢,m7🟢,m8🟢,m9🟢,m10🟢)
       - Scaled up current MachineSet ms2 from 3 to 6 replicas (+3)
         - Reason: acknowledge Machines m10,m4,m5,m6,m7,m8,m9 moved from an old MachineSet, scale down to align MachineSet spec.replicas to MachineDeployment spec.replicas
         - Diff: replicas 6,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m10,m4,m5,m6,m7,m8,m9
@@ -41,12 +41,12 @@
 [MS controller] Reconcile
     ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
 [MS controller] Reconcile
-    ms2: 6/6 replicas, 3 available, 3 upToDate (m1,m2,m3,m4🟡,m5🟡,m6🟡)
+    ms2: 6/6 replicas, 6 available, 3 upToDate (m1,m2,m3,m4🟢,m5🟢,m6🟢)
       - ms2 scaled down to 6/6 replicas (m10,m9,m8,m7 deleted)
 [MD controller] Reconcile
-    md: 8/6 replicas, 5 available, 3 upToDate
+    md: 8/6 replicas, 8 available, 3 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
-    ms2: 6/6 replicas, 3 available, 3 upToDate (m1,m2,m3,m4🟡,m5🟡,m6🟡)
+    ms2: 6/6 replicas, 6 available, 3 upToDate (m1,m2,m3,m4🟢,m5🟢,m6🟢)
 [MS controller] Reconcile
     ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
 [MS controller] Reconcile
@@ -63,12 +63,12 @@
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
       - ms1 scaled down to 0/0 replicas (m11,m12 moved to ms2)
 [MS controller] Reconcile
-    ms2: 8/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6,m11✋🟡,m12✋🟡)
+    ms2: 8/6 replicas, 8 available, 6 upToDate (m1,m2,m3,m4,m5,m6,m11✋🟢,m12✋🟢)
       - Replicas m11,m12 moved from an old MachineSet still pending acknowledge from machine deployment md
 [MD controller] Reconcile
-    md: 8/6 replicas, 6 available, 6 upToDate
+    md: 8/6 replicas, 8 available, 6 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: 8/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6,m11🟡,m12🟡)
+    ms2: 8/6 replicas, 8 available, 6 upToDate (m1,m2,m3,m4,m5,m6,m11🟢,m12🟢)
       - Updated current MachineSet ms2
         - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m11,m12
 [MS controller] Reconcile

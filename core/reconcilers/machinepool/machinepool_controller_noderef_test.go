@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -382,14 +383,15 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name          string
-		machinePool   *clusterv1.MachinePool
-		nodeRefs      []corev1.ObjectReference
-		expectedNodes []corev1.Node
-		err           error
+		name             string
+		machinePool      *clusterv1.MachinePool
+		infraMachinePool *unstructured.Unstructured
+		nodeRefs         []corev1.ObjectReference
+		expectedNodes    []corev1.Node
+		err              error
 	}{
 		{
-			name: "Node with uninitialized taint should be patched",
+			name: "Node with uninitialized taint should be patched when MachinePool has no Machines",
 			machinePool: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machinepool-1",
@@ -399,6 +401,9 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 					ClusterName:    "cluster-1",
 					ProviderIDList: []string{"aws://us-east-1/id-node-1"},
 				},
+			},
+			infraMachinePool: &unstructured.Unstructured{
+				Object: map[string]any{},
 			},
 			nodeRefs: []corev1.ObjectReference{
 				{Name: "node-1"},
@@ -416,6 +421,47 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 					},
 					Spec: corev1.NodeSpec{
 						Taints: nil,
+					},
+				},
+			},
+		},
+		{
+			name: "Node with uninitialized taint should not be patched when MachinePool has Machines",
+			machinePool: &clusterv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machinepool-with-machines",
+					Namespace: "my-namespace",
+				},
+				Spec: clusterv1.MachinePoolSpec{
+					ClusterName:    "cluster-1",
+					ProviderIDList: []string{"aws://us-east-1/id-node-1"},
+				},
+			},
+			infraMachinePool: &unstructured.Unstructured{
+				Object: map[string]any{
+					"status": map[string]any{
+						"infrastructureMachineKind": "DockerMachine",
+					},
+				},
+			},
+			nodeRefs: []corev1.ObjectReference{
+				{Name: "node-1"},
+			},
+			expectedNodes: []corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node-1",
+						Annotations: map[string]string{
+							"cluster.x-k8s.io/cluster-name":      "cluster-1",
+							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+							"cluster.x-k8s.io/owner-kind":        "MachinePool",
+							"cluster.x-k8s.io/owner-name":        "machinepool-with-machines",
+						},
+					},
+					Spec: corev1.NodeSpec{
+						Taints: []corev1.Taint{
+							clusterv1.NodeUninitializedTaint,
+						},
 					},
 				},
 			},
@@ -506,7 +552,12 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 
 			fakeClient := fake.NewClientBuilder().WithObjects(nodeList...).Build()
 
-			err := r.patchNodes(ctx, fakeClient, test.nodeRefs, test.machinePool)
+			s := &scope{
+				machinePool:      test.machinePool,
+				infraMachinePool: test.infraMachinePool,
+			}
+
+			err := r.patchNodes(ctx, fakeClient, test.nodeRefs, s)
 			if test.err == nil {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {

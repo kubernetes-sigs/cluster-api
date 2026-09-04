@@ -19,9 +19,8 @@ package test
 import (
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v90/github"
 )
 
 const baseURLPath = "/api-v3"
@@ -40,10 +39,8 @@ func NewFakeGitHub() (client *github.Client, mux *http.ServeMux, teardown func()
 	server := httptest.NewServer(apiHandler)
 
 	// client is the GitHub client being tested and is configured to use test server.
-	client = github.NewClient(nil)
-	url, _ := url.Parse(server.URL + baseURLPath + "/")
-	client.BaseURL = url
-	client.UploadURL = url
+	serverURL := server.URL + baseURLPath + "/"
+	client, _ = github.NewClient(github.WithURLs(&serverURL, &serverURL))
 
 	return client, mux, server.Close
 }

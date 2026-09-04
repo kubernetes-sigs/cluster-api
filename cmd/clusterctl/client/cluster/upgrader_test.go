@@ -1150,6 +1150,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
 				providerInventory:             newInventoryClient(tt.fields.proxy, nil, currentContractVersion),
+				proxy:                         tt.fields.proxy,
 				currentContractVersion:        currentContractVersion,
 				getCompatibleContractVersions: getCompatibleContractVersions,
 			}

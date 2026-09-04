@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -25,6 +26,9 @@ import (
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -410,6 +414,12 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 		return providers[a].GetProviderType().Order() < providers[b].GetProviderType().Order()
 	})
 
+	// Check that upgrading won't break ClusterClass templateRefs by dropping CRD
+	// apiVersions that are still pinned.
+	if err := u.checkClusterClassRefs(ctx, upgradePlan); err != nil {
+		return err
+	}
+
 	// Scale down all providers.
 	// This is done to ensure all Pods of all "old" provider Deployments have been deleted.
 	// Otherwise it can happen that a provider Pod survives the upgrade because we create
@@ -544,6 +554,147 @@ func scaleDownDeployment(ctx context.Context, c client.Client, deploy appsv1.Dep
 	}
 
 	return nil
+}
+
+// checkClusterClassRefs checks that upgrading providers won't break any
+// ClusterClass by dropping CRD apiVersions still pinned in templateRefs.
+func (u *providerUpgrader) checkClusterClassRefs(ctx context.Context, upgradePlan *UpgradePlan) error {
+	log := logf.Log
+
+	c, err := u.proxy.NewClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	clusterClasses := &clusterv1.ClusterClassList{}
+	if err := c.List(ctx, clusterClasses); err != nil {
+		return pkgerrors.Wrap(err, "failed to list ClusterClasses for upgrade pre-flight check")
+	}
+	if len(clusterClasses.Items) == 0 {
+		return nil
+	}
+
+	type gkvKey struct {
+		schema.GroupKind
+		version string
+	}
+	refsByGKV := map[gkvKey][]string{}
+	referencedGKs := sets.New[schema.GroupKind]()
+	for i := range clusterClasses.Items {
+		cc := &clusterClasses.Items[i]
+		ccName := client.ObjectKeyFromObject(cc).String()
+		for _, ref := range clusterClassTemplateRefs(cc) {
+			if ref.apiVersion == "" || ref.kind == "" {
+				continue
+			}
+			gv, err := schema.ParseGroupVersion(ref.apiVersion)
+			if err != nil {
+				continue
+			}
+			gk := schema.GroupKind{Group: gv.Group, Kind: ref.kind}
+			referencedGKs.Insert(gk)
+			key := gkvKey{GroupKind: gk, version: gv.Version}
+			refsByGKV[key] = append(refsByGKV[key], ccName)
+		}
+	}
+	if referencedGKs.Len() == 0 {
+		return nil
+	}
+
+	log.V(5).Info("Checking ClusterClass templateRefs for compatibility with CRD version changes")
+
+	var msgs []string
+	for _, upgradeItem := range upgradePlan.Providers {
+		if upgradeItem.NextVersion == "" {
+			continue
+		}
+
+		components, err := u.getUpgradeComponents(ctx, upgradeItem)
+		if err != nil {
+			return pkgerrors.Wrapf(err, "failed to get upgrade components for %s", upgradeItem.InstanceName())
+		}
+
+		for _, obj := range components.Objs() {
+			if obj.GetKind() != "CustomResourceDefinition" {
+				continue
+			}
+
+			newCRD := &apiextensionsv1.CustomResourceDefinition{}
+			if err := localScheme.Convert(&obj, newCRD, nil); err != nil {
+				return pkgerrors.Wrapf(err, "failed to convert CRD %s", obj.GetName())
+			}
+
+			gk := schema.GroupKind{Group: newCRD.Spec.Group, Kind: newCRD.Spec.Names.Kind}
+			if !referencedGKs.Has(gk) {
+				continue
+			}
+
+			existingCRD := &apiextensionsv1.CustomResourceDefinition{}
+			if err := c.Get(ctx, client.ObjectKeyFromObject(newCRD), existingCRD); err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				return pkgerrors.Wrapf(err, "failed to get existing CRD %s", newCRD.Name)
+			}
+
+			for _, v := range sets.List(droppedCRDVersions(existingCRD, newCRD)) {
+				affected := refsByGKV[gkvKey{GroupKind: gk, version: v}]
+				if len(affected) > 0 {
+					msgs = append(msgs, fmt.Sprintf(
+						"upgrading %s would remove apiVersion %q from %s/%s, which is still referenced by ClusterClass(es) %v; "+
+							"update the ClusterClass templateRefs to a served apiVersion before upgrading",
+						upgradeItem.InstanceName(), v, gk.Group, gk.Kind, affected,
+					))
+				}
+			}
+		}
+	}
+
+	if len(msgs) > 0 {
+		return pkgerrors.Errorf("upgrade pre-flight check failed:\n- %s", strings.Join(msgs, "\n- "))
+	}
+	return nil
+}
+
+func droppedCRDVersions(oldCRD, newCRD *apiextensionsv1.CustomResourceDefinition) sets.Set[string] {
+	oldVersions := sets.New[string]()
+	for _, v := range oldCRD.Spec.Versions {
+		oldVersions.Insert(v.Name)
+	}
+	newVersions := sets.New[string]()
+	for _, v := range newCRD.Spec.Versions {
+		newVersions.Insert(v.Name)
+	}
+	return oldVersions.Difference(newVersions)
+}
+
+type templateRef struct {
+	apiVersion string
+	kind       string
+}
+
+func clusterClassTemplateRefs(cc *clusterv1.ClusterClass) []templateRef {
+	var refs []templateRef
+	add := func(apiVersion, kind string) {
+		refs = append(refs, templateRef{apiVersion: apiVersion, kind: kind})
+	}
+
+	add(cc.Spec.Infrastructure.TemplateRef.APIVersion, cc.Spec.Infrastructure.TemplateRef.Kind)
+	add(cc.Spec.ControlPlane.TemplateRef.APIVersion, cc.Spec.ControlPlane.TemplateRef.Kind)
+	add(cc.Spec.ControlPlane.MachineInfrastructure.TemplateRef.APIVersion, cc.Spec.ControlPlane.MachineInfrastructure.TemplateRef.Kind)
+	add(cc.Spec.ControlPlane.HealthCheck.Remediation.TemplateRef.APIVersion, cc.Spec.ControlPlane.HealthCheck.Remediation.TemplateRef.Kind)
+
+	for _, md := range cc.Spec.Workers.MachineDeployments {
+		add(md.Bootstrap.TemplateRef.APIVersion, md.Bootstrap.TemplateRef.Kind)
+		add(md.Infrastructure.TemplateRef.APIVersion, md.Infrastructure.TemplateRef.Kind)
+		add(md.HealthCheck.Remediation.TemplateRef.APIVersion, md.HealthCheck.Remediation.TemplateRef.Kind)
+	}
+	for _, mp := range cc.Spec.Workers.MachinePools {
+		add(mp.Bootstrap.TemplateRef.APIVersion, mp.Bootstrap.TemplateRef.Kind)
+		add(mp.Infrastructure.TemplateRef.APIVersion, mp.Infrastructure.TemplateRef.Kind)
+	}
+
+	return refs
 }
 
 func newProviderUpgrader(configClient config.Client, proxy Proxy, repositoryClientFactory RepositoryClientFactory, providerInventory InventoryClient, providerComponents ComponentsClient, currentContractVersion string, getCompatibleContractVersions func(string) sets.Set[string]) *providerUpgrader {

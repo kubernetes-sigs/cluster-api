@@ -74,6 +74,10 @@ const (
 	kcpManagerName          = "capi-kubeadmcontrolplane"
 	kcpMetadataManagerName  = "capi-kubeadmcontrolplane-metadata"
 	kubeadmControlPlaneKind = "KubeadmControlPlane"
+
+	// etcdMemberStartupGracePeriod is the maximum time KCP waits for an etcd
+	// member to get its name after the kubelet registers a new Node.
+	etcdMemberStartupGracePeriod = 20 * time.Second
 )
 
 var (
@@ -1294,6 +1298,7 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// Loop trough machines and collect the list of expected etcd members, which can be inferred because etcd members name is equal to the node name.
 	// Also keep track if there are machines still pending for the node name being reported (provisioning machines).
 	provisioningMachines := sets.New[string]()
+	machinesWithNewlyRegisteredNodes := sets.New[string]()
 	expectedMembers := sets.New[string]()
 	for _, machine := range controlPlane.Machines {
 		if !machine.Status.NodeRef.IsDefined() {
@@ -1301,6 +1306,18 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 			continue
 		}
 		expectedMembers.Insert(machine.Status.NodeRef.Name)
+
+		// A NodeRef is set as soon as the kubelet registers the Node. It does not imply
+		// that the local etcd static Pod is started or that its learner has a name yet.
+		// So keep track of machines with newly registered nodes.
+		if machine.DeletionTimestamp.IsZero() {
+			for _, node := range controlPlane.Nodes {
+				if node.Name == machine.Status.NodeRef.Name && time.Since(node.CreationTimestamp.Time) < etcdMemberStartupGracePeriod {
+					machinesWithNewlyRegisteredNodes.Insert(machine.Name)
+					break
+				}
+			}
+		}
 	}
 
 	// Loop trough etcd members and identify unexpected members.
@@ -1319,8 +1336,10 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	}
 
 	unexpectedMembersMsg := []string{}
+	hasUnnamedUnexpectedMember := false
 	for _, m := range unexpectedMembers.UnsortedList() {
 		if m.Name == "" {
+			hasUnnamedUnexpectedMember = true
 			unexpectedMembersMsg = append(unexpectedMembersMsg, "(Name not yet assigned)")
 			continue
 		}
@@ -1331,7 +1350,14 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// If there are unexpected members, but there is a machine not yet reporting the node name,
 	// there is chance that the unexpected member is the one hosted on the provisioning machine, so wait.
 	if len(provisioningMachines) > 0 {
-		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")))
+		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with machines with newly provisioned nodes %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")))
+		return ctrl.Result{}, nil
+	}
+	// An unnamed member is normally a learner added by kubeadm before the local
+	// etcd static Pod starts. Keep it while a Node was recently registered (grace period) so
+	// we prevent that a NodeRef-before-etcd-name race leads the code below to remove the etcd member too aggressively.
+	if hasUnnamedUnexpectedMember && len(machinesWithNewlyRegisteredNodes) > 0 {
+		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with machines with newly provisioned nodes %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(machinesWithNewlyRegisteredNodes.UnsortedList(), ", ")))
 		return ctrl.Result{}, nil
 	}
 

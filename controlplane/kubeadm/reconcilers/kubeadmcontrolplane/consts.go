@@ -30,4 +30,10 @@ const (
 	// dependentCertRequeueAfter is how long to wait before checking again to see if
 	// dependent certificates have been created.
 	dependentCertRequeueAfter = 30 * time.Second
+
+	// unnamedEtcdMemberGracePeriod is how long an etcd member without a name is tolerated after
+	// a control plane Machine's Node has been registered. This accounts for the delay between
+	// kubelet registering the Node and the local etcd Pod completing the join as a named member,
+	// and avoids removing a learner that is still in the process of joining.
+	unnamedEtcdMemberGracePeriod = 2 * time.Minute
 )

@@ -1335,6 +1335,27 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 		return ctrl.Result{}, nil
 	}
 
+	// If one of the unexpected members doesn't have a name yet, there is a chance it is a learner hosted on a
+	// Machine whose Node was registered only recently: kubelet can register the Node (and KCP set the Machine's
+	// NodeRef) before the local etcd Pod starts and the member completes the join with a name.
+	// Tolerate this for a bounded grace period after the Node was created, to avoid removing a learner that is
+	// still in the process of joining.
+	for _, member := range unexpectedMembers.UnsortedList() {
+		if member.Name != "" {
+			continue
+		}
+		for _, node := range controlPlane.Nodes {
+			if !expectedMembers.Has(node.Name) {
+				continue
+			}
+			if time.Since(node.CreationTimestamp.Time) < unnamedEtcdMemberGracePeriod {
+				log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, waiting because Node %s was registered recently and might still be joining etcd as a learner", strings.Join(unexpectedMembersMsg, ", "), node.Name))
+				return ctrl.Result{}, nil
+			}
+		}
+		break
+	}
+
 	// If there are unexpected members, KCP must remove them (it removes one, then re-queue).
 	//
 	// Before deleting any etcd member, KCP should assess the potential effects of this operation.

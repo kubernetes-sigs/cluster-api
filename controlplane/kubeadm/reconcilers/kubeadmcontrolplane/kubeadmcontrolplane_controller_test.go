@@ -3743,6 +3743,58 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 			wantRemoveEtcdMemberCalled: 0,
 		},
 		{
+			name: "Do not remove additional etcd members without name when the corresponding Node was registered recently",
+			controlPlane: &pkg.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.Machines{
+					m1.Name: func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+				},
+				Nodes: []*pkg.Node{
+					{
+						ObjectMeta: pkg.ObjectMeta{
+							Name:              "m1-node",
+							CreationTimestamp: metav1.Now(),
+						},
+					},
+				},
+			},
+			additionalEtcdMembers: []*etcd.Member{
+				{Name: ""},
+			},
+			wantResult:                 ctrl.Result{},
+			wantRemoveEtcdMemberCalled: 0,
+		},
+		{
+			name: "Remove additional etcd members without name when the corresponding Node was registered a long time ago",
+			controlPlane: &pkg.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.Machines{
+					m1.Name: func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+				},
+				Nodes: []*pkg.Node{
+					{
+						ObjectMeta: pkg.ObjectMeta{
+							Name:              "m1-node",
+							CreationTimestamp: metav1.NewTime(time.Now().Add(-unnamedEtcdMemberGracePeriod - time.Minute)),
+						},
+					},
+				},
+			},
+			additionalEtcdMembers: []*etcd.Member{
+				{Name: ""},
+			},
+			wantResult:                 ctrl.Result{RequeueAfter: 1 * time.Second},
+			wantRemoveEtcdMemberCalled: 1,
+		},
+		{
 			name: "Do not remove additional etcd members when the target etcd cluster is not healthy",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},

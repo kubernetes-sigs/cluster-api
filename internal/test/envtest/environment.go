@@ -299,7 +299,7 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 		ErrorIfPathMissing: true,
 	}
 	if err := envtest.ReadCRDFiles(&crdInstallOptions); err != nil {
-		panic(pkgerrors.Wrapf(err, "failed to read CRD files"))
+		klog.Fatalf("failed to read CRD files: %v", err)
 	}
 	addContractLabelsToKubeadmCRDs(crdInstallOptions.CRDs)
 
@@ -494,9 +494,11 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 // bootstrapConfigRef pointing to a KubeadmConfig), which leads to "cannot find any versions
 // matching contract versions" errors in test logs.
 func addContractLabelsToKubeadmCRDs(crds []*apiextensionsv1.CustomResourceDefinition) {
+	// The label keys and values are hard-coded on purpose: this must not silently
+	// change when clusterv1 is bumped to a newer version (e.g. v1beta3 or v1).
 	contractLabels := map[string]string{
-		clusterv1beta1.GroupVersion.String(): clusterv1beta1.GroupVersion.Version,
-		clusterv1.GroupVersion.String():      clusterv1.GroupVersion.Version,
+		"cluster.x-k8s.io/v1beta1": "v1beta1",
+		"cluster.x-k8s.io/v1beta2": "v1beta2",
 	}
 	for _, crd := range crds {
 		if crd.Spec.Group != bootstrapv1.GroupVersion.Group && crd.Spec.Group != controlplanev1.GroupVersion.Group {

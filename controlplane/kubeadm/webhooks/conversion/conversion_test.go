@@ -47,7 +47,7 @@ const (
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
-	t.Cleanup(SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
+	t.Cleanup(SwapAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{

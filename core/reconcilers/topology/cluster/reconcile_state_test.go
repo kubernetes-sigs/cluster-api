@@ -305,7 +305,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 		},
 	}
 
-	t.Cleanup(conversion.SetAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
+	t.Cleanup(conversion.SwapAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{

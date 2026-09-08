@@ -71,9 +71,10 @@ The table below documents support matrix for Cluster API versions (versions olde
 
 | Minor Release | Status                  | Supported Until (including maintenance mode)                                                |
 |---------------|-------------------------|---------------------------------------------------------------------------------------------|
+| v1.15.x       | Standard support period | in maintenance mode when v1.17.0 will be released, EOL when v1.18.0 will be released        |
 | v1.14.x       | Standard support period | in maintenance mode when v1.16.0 will be released, EOL when v1.17.0 will be released        |
-| v1.13.x       | Standard support period | in maintenance mode when v1.15.0 will be released, EOL when v1.16.0 will be released        |
-| v1.12.x       | Standard support period | Maintenance mode since 2026-08-18 - v1.14.0 release date, EOL when v1.15.0 will be released |
+| v1.13.x       | Standard support period | Maintenance mode since 2026-12-08 - v1.15.0 release date, EOL when v1.16.0 will be released |
+| v1.12.x       | EOL                     | EOL since 2026-12-08 - v1.15.0 release date                                                 | 
 | v1.11.x       | EOL                     | EOL since 2026-08-18 - v1.14.0 release date                                                 |
 | v1.10.x       | EOL                     | EOL since 2026-04-21 - v1.13.0 release date                                                 |
 | v1.9.x        | EOL                     | EOL since 2025-12-18 - v1.12.0 release date                                                 |
@@ -362,17 +363,16 @@ In some cases, also Cluster API and/or Cluster API providers are defining additi
 The following table defines the support matrix for the Cluster API core provider.
 See [Cluster API release support](#cluster-api-release-support) and [Kubernetes versions support](#kubernetes-versions-support).
 
-|                  | v1.12, _Maintenance Mode_ | v1.13             | v1.14             |
+|                  | v1.13, _Maintenance Mode_ | v1.14             | v1.14             |
 |------------------|---------------------------|-------------------|-------------------|
-| Kubernetes v1.29 | ✓ (only workload)         |                   |                   |
-| Kubernetes v1.30 | ✓ (only workload)         | ✓ (only workload) |                   |
-| Kubernetes v1.31 | ✓                         | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.32 | ✓                         | ✓                 | ✓ (only workload) |
-| Kubernetes v1.33 | ✓                         | ✓                 | ✓                 |
+| Kubernetes v1.30 | ✓ (only workload)         |                   |                   |
+| Kubernetes v1.31 | ✓ (only workload)         | ✓ (only workload) |                   |
+| Kubernetes v1.32 | ✓                         | ✓ (only workload) | ✓ (only workload) |
+| Kubernetes v1.33 | ✓                         | ✓                 | ✓ (only workload) |
 | Kubernetes v1.34 | ✓                         | ✓                 | ✓                 |
-| Kubernetes v1.35 | ✓ >= v1.12.1              | ✓                 | ✓                 |
-| Kubernetes v1.36 | ✓ >= v1.12.8              | ✓ >= v1.13.1      | ✓                 |
-| Kubernetes v1.37 |                           | ✓ >= v1.13.6      | ✓ >= v1.14.1      |
+| Kubernetes v1.35 | ✓                         | ✓                 | ✓                 |
+| Kubernetes v1.36 | ✓ >= v1.13.1              | ✓                 | ✓                 |
+| Kubernetes v1.37 | ✓ >= v1.13.6              | ✓ >= v1.14.1      | ✓                 |
 
 See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
 

@@ -492,77 +492,84 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 	didDisconnect := false
 
 	requeueAfterDurations := []time.Duration{}
+	defer func() {
+		// Send events to cluster sources.
+		cc.sendEventsToClusterSources(ctx, cluster, time.Now(), accessor.GetHealthCheckingState(ctx).LastProbeSuccessTime, didConnect, didDisconnect)
+	}()
 
 	// Try to connect, if not connected.
 	connected := accessor.Connected(ctx)
 	if !connected {
-		lastConnectionCreationErrorTime := accessor.GetLastConnectionCreationErrorTime(ctx)
-
-		// Requeue, if connection creation failed within the ConnectionCreationRetryInterval.
-		if requeueAfter, requeue := shouldRequeue(time.Now(), lastConnectionCreationErrorTime, accessor.config.ConnectionCreationRetryInterval); requeue {
-			log.V(6).Info(fmt.Sprintf("Requeuing after %s as connection creation already failed within the last %s",
-				requeueAfter.Truncate(time.Second/10), accessor.config.ConnectionCreationRetryInterval))
-			requeueAfterDurations = append(requeueAfterDurations, requeueAfter)
-		} else {
-			if err := accessor.Connect(ctx); err != nil {
-				// Requeue, if the connect failed.
-				log.V(6).Info(fmt.Sprintf("Requeuing after %s (connection creation failed)",
-					accessor.config.ConnectionCreationRetryInterval))
-				requeueAfterDurations = append(requeueAfterDurations, accessor.config.ConnectionCreationRetryInterval)
-			} else {
-				// Store that connect was done successfully.
-				didConnect = true
-				connected = true
+		if !accessor.DidEverConnect(ctx) {
+			err := accessor.Connect(ctx)
+			if err != nil {
+				log.Error(err, "Failed to connect for the first time")
+				return ctrl.Result{RequeueAfter: accessor.config.ConnectionCreationRetryInterval}, nil
 			}
+			didConnect = true
+			connected = true
+		} else {
+			// Retry connecting after the grace period has passed since the last connection creation error.
+			remainingTime, wait := needsToWaitGracePeriod(accessor.GetLastConnectionCreationErrorTime(ctx), accessor.config.ConnectionCreationRetryInterval)
+			if wait {
+				log.V(6).Info(fmt.Sprintf("Waiting for grace period to try connecting again: %s remaining", remainingTime.Truncate(time.Second/10)))
+				requeueAfterDurations = append(requeueAfterDurations, remainingTime)
+				return reconcile.Result{RequeueAfter: remainingTime}, nil
+			}
+			err := accessor.Connect(ctx)
+			if err != nil {
+				log.Error(err, "Failed to reconnect")
+				return ctrl.Result{RequeueAfter: accessor.config.ConnectionCreationRetryInterval}, nil
+			}
+			didConnect = true
+			connected = true
 		}
 	}
 
 	// Run the health probe, if connected.
 	if connected {
 		healthCheckingState := accessor.GetHealthCheckingState(ctx)
-
-		// Requeue, if health probe was already run within the HealthProbe.Interval.
-		if requeueAfter, requeue := shouldRequeue(time.Now(), healthCheckingState.LastProbeTime, accessor.config.HealthProbe.Interval); requeue {
+		// Try to connect again if the grace period has passed since the last health probe.
+		remainingTime, wait := needsToWaitGracePeriod(healthCheckingState.LastProbeTime, accessor.config.HealthProbe.Interval)
+		if wait {
 			log.V(6).Info(fmt.Sprintf("Requeuing after %s as health probe was already run within the last %s",
-				requeueAfter.Truncate(time.Second/10), accessor.config.HealthProbe.Interval))
-			requeueAfterDurations = append(requeueAfterDurations, requeueAfter)
-		} else {
-			// Run the health probe
-			tooManyConsecutiveFailures, unauthorizedErrorOccurred := accessor.HealthCheck(ctx)
-			if tooManyConsecutiveFailures || unauthorizedErrorOccurred {
-				// Disconnect if the health probe failed (either with unauthorized or consecutive failures >= HealthProbe.FailureThreshold).
-				accessor.Disconnect(ctx)
+				remainingTime.Truncate(time.Second/10), accessor.config.HealthProbe.Interval))
+			return reconcile.Result{RequeueAfter: remainingTime}, nil
+		}
 
-				// Store that disconnect was done.
-				didDisconnect = true
-				connected = false //nolint:ineffassign // connected is *currently* not used below, let's update it anyway
-			}
-			switch {
-			case unauthorizedErrorOccurred:
-				// Requeue for connection creation immediately.
-				// If we got an unauthorized error, it could be because the kubeconfig was rotated
-				// and in that case we want to immediately try to create the connection again.
-				log.V(6).Info("Requeuing immediately (disconnected after unauthorized error occurred)")
-				requeueAfterDurations = append(requeueAfterDurations, 1*time.Millisecond)
-			case tooManyConsecutiveFailures:
-				// Requeue for connection creation with the regular ConnectionCreationRetryInterval.
-				log.V(6).Info(fmt.Sprintf("Requeuing after %s (disconnected after consecutive failure threshold met)",
-					accessor.config.ConnectionCreationRetryInterval))
-				requeueAfterDurations = append(requeueAfterDurations, accessor.config.ConnectionCreationRetryInterval)
-			default:
-				// Requeue for next health probe.
-				log.V(6).Info(fmt.Sprintf("Requeuing after %s (health probe succeeded)",
-					accessor.config.HealthProbe.Interval))
-				requeueAfterDurations = append(requeueAfterDurations, accessor.config.HealthProbe.Interval)
-			}
+		// Run the health probe
+		tooManyConsecutiveFailures, unauthorizedErrorOccurred := accessor.HealthCheck(ctx)
+		if tooManyConsecutiveFailures || unauthorizedErrorOccurred {
+			// Disconnect if the health probe failed (either with unauthorized or consecutive failures >= HealthProbe.FailureThreshold).
+			accessor.Disconnect(ctx)
+
+			// Store that disconnect was done.
+			didDisconnect = true
+			connected = false //nolint:ineffassign // connected is *currently* not used below, let's update it anyway
+		}
+
+		switch {
+		case unauthorizedErrorOccurred:
+			// Requeue for connection creation immediately.
+			// If we got an unauthorized error, it could be because the kubeconfig was rotated
+			// and in that case we want to immediately try to create the connection again.
+			log.V(6).Info("Requeuing immediately (disconnected after unauthorized error occurred)")
+			return reconcile.Result{RequeueAfter: 1 * time.Millisecond}, nil
+		case tooManyConsecutiveFailures:
+			// Requeue for connection creation with the regular ConnectionCreationRetryInterval.
+			log.V(6).Info(fmt.Sprintf("Requeuing after %s (disconnected after consecutive failure threshold met)",
+				accessor.config.ConnectionCreationRetryInterval))
+			return reconcile.Result{RequeueAfter: accessor.config.ConnectionCreationRetryInterval}, nil
+		default:
+			// Requeue for next health probe.
+			log.V(6).Info(fmt.Sprintf("Requeuing after %s (health probe succeeded)",
+				accessor.config.HealthProbe.Interval))
+			return reconcile.Result{RequeueAfter: accessor.config.HealthProbe.Interval}, nil
 		}
 	}
 
-	// Send events to cluster sources.
-	cc.sendEventsToClusterSources(ctx, cluster, time.Now(), accessor.GetHealthCheckingState(ctx).LastProbeSuccessTime, didConnect, didDisconnect)
-
 	// Requeue based on requeueAfterDurations (fallback to defaultRequeueAfter).
-	return reconcile.Result{RequeueAfter: minDurationOrDefault(requeueAfterDurations, defaultRequeueAfter)}, nil
+	return reconcile.Result{RequeueAfter: defaultRequeueAfter}, nil
 }
 
 // getOrCreateClusterAccessor returns a clusterAccessor and creates it if it doesn't exist already.
@@ -600,33 +607,19 @@ func (cc *clusterCache) deleteClusterAccessor(cluster client.ObjectKey) {
 	delete(cc.clusterAccessors, cluster)
 }
 
-// shouldRequeue calculates if we should requeue based on the lastExecutionTime and the interval.
+// needsToWaitGracePeriod calculates if we should wait for the grace period based on the lastExecutionTime and the interval.
 // Note: We can implement a more sophisticated backoff mechanism later if really necessary.
-func shouldRequeue(now, lastExecutionTime time.Time, interval time.Duration) (time.Duration, bool) {
+func needsToWaitGracePeriod(lastExecutionTime time.Time, interval time.Duration) (time.Duration, bool) {
 	if lastExecutionTime.IsZero() {
 		return time.Duration(0), false
 	}
 
-	timeSinceLastExecution := now.Sub(lastExecutionTime)
+	timeSinceLastExecution := time.Now().Sub(lastExecutionTime)
 	if timeSinceLastExecution < interval {
 		return interval - timeSinceLastExecution, true
 	}
 
 	return time.Duration(0), false
-}
-
-func minDurationOrDefault(durations []time.Duration, defaultDuration time.Duration) time.Duration {
-	if len(durations) == 0 {
-		return defaultDuration
-	}
-
-	d := durations[0]
-	for i := 1; i < len(durations); i++ {
-		if durations[i] < d {
-			d = durations[i]
-		}
-	}
-	return d
 }
 
 func (cc *clusterCache) cleanupClusterSourcesForCluster(cluster client.ObjectKey) {

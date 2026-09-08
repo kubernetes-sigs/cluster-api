@@ -479,6 +479,13 @@ func (ca *clusterAccessor) GetLastConnectionCreationErrorTime(ctx context.Contex
 	return ca.lockedState.lastConnectionCreationErrorTime
 }
 
+func (ca *clusterAccessor) DidEverConnect(ctx context.Context) bool {
+	ca.rLock(ctx)
+	defer ca.rUnlock(ctx)
+
+	return !ca.lockedState.healthChecking.lastProbeSuccessTime.IsZero()
+}
+
 func (ca *clusterAccessor) rLock(ctx context.Context) {
 	log := ctrl.LoggerFrom(ctx).WithCallDepth(1)
 	log.V(10).Info("Getting read lock for ClusterAccessor")

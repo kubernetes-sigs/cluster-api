@@ -257,7 +257,6 @@ func TestShouldRequeue(t *testing.T) {
 	}{
 		{
 			name:             "Don't requeue first execution (interval: 20s)",
-			now:              now,
 			lastExecution:    time.Time{},
 			interval:         20 * time.Second,
 			wantRequeue:      false,
@@ -265,7 +264,6 @@ func TestShouldRequeue(t *testing.T) {
 		},
 		{
 			name:             "Requeue after 15s last execution was 5s ago (interval: 20s)",
-			now:              now,
 			lastExecution:    now.Add(-time.Duration(5) * time.Second),
 			interval:         20 * time.Second,
 			wantRequeue:      true,
@@ -273,7 +271,6 @@ func TestShouldRequeue(t *testing.T) {
 		},
 		{
 			name:             "Don't requeue last execution was 20s ago (interval: 20s)",
-			now:              now,
 			lastExecution:    now.Add(-time.Duration(20) * time.Second),
 			interval:         20 * time.Second,
 			wantRequeue:      false,
@@ -281,7 +278,6 @@ func TestShouldRequeue(t *testing.T) {
 		},
 		{
 			name:             "Don't requeue last execution was 60s ago (interval: 20s)",
-			now:              now,
 			lastExecution:    now.Add(-time.Duration(60) * time.Second),
 			interval:         20 * time.Second,
 			wantRequeue:      false,
@@ -292,51 +288,9 @@ func TestShouldRequeue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gotRequeueAfter, gotRequeue := shouldRequeue(tt.now, tt.lastExecution, tt.interval)
+			gotRequeueAfter, gotRequeue := needsToWaitGracePeriod(tt.lastExecution, tt.interval)
 			g.Expect(gotRequeue).To(Equal(tt.wantRequeue))
 			g.Expect(gotRequeueAfter).To(Equal(tt.wantRequeueAfter))
-		})
-	}
-}
-
-func TestMinDurationOrDefault(t *testing.T) {
-	tests := []struct {
-		name            string
-		durations       []time.Duration
-		defaultDuration time.Duration
-		wantDuration    time.Duration
-	}{
-		{
-			name:            "nil durations use default duration",
-			durations:       nil,
-			defaultDuration: defaultRequeueAfter,
-			wantDuration:    defaultRequeueAfter,
-		},
-		{
-			name:            "empty durations use default duration",
-			durations:       []time.Duration{},
-			defaultDuration: defaultRequeueAfter,
-			wantDuration:    defaultRequeueAfter,
-		},
-		{
-			name:            "use min duration",
-			durations:       []time.Duration{5 * time.Second, 10 * time.Second},
-			defaultDuration: defaultRequeueAfter,
-			wantDuration:    5 * time.Second,
-		},
-		{
-			name:            "use min duration even if default duration is smaller",
-			durations:       []time.Duration{5 * time.Hour, 10 * time.Hour},
-			defaultDuration: defaultRequeueAfter,
-			wantDuration:    5 * time.Hour,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			gotDuration := minDurationOrDefault(tt.durations, tt.defaultDuration)
-			g.Expect(gotDuration).To(Equal(tt.wantDuration))
 		})
 	}
 }

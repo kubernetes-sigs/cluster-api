@@ -6722,6 +6722,34 @@ func schema_cluster_api_api_core_v1beta2_MachineV1Beta1DeprecatedStatus(ref comm
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MoveMachinesToMachineSetAnnotationData(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MoveMachinesToMachineSetAnnotationData struct is used to store data about the in-place update in the MoveMachinesToMachineSet annotation.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name of the MachineSet where the machines should be moved to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"affectsAvailability": {
+						SchemaProps: spec.SchemaProps{
+							Description: "affectsAvailability indicates if the in-place update affects availability of the Machine. Default is true.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_NetworkRanges(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{

@@ -33,10 +33,47 @@ import (
 //	(only the annotation is there, the hook is not yet there), or if it is stopping (only the
 //	pending hook is still there, but the annotation is gone).
 func IsUpdateInProgress(machine *clusterv1.Machine) bool {
-	_, inPlaceUpdateInProgress := machine.Annotations[clusterv1.UpdateInProgressAnnotation]
+	inPlaceUpdateInProgress, hasUpdateMachinePending, _ := getInplaceUpdateInfo(machine)
+
+	return (inPlaceUpdateInProgress || hasUpdateMachinePending)
+}
+
+// IsUpdateInProgressAndAffectsAvailability returns true if an in-place update is in progress
+// for one machine and affects availability.
+// Note: an in-place update is considered in progress even if technically it is still starting
+//
+//	(only the annotation is there, the hook is not yet there), or if it is stopping (only the
+//	pending hook is still there, but the annotation is gone).
+func IsUpdateInProgressAndAffectsAvailability(machine *clusterv1.Machine) bool {
+	inPlaceUpdateInProgress, hasUpdateMachinePending, affectsAvailability := getInplaceUpdateInfo(machine)
+
+	return (inPlaceUpdateInProgress || hasUpdateMachinePending) && affectsAvailability
+}
+
+// IsUpdateInProgressWithoutAffectingAvailability returns true if an in-place update is in progress
+// for one machine and it does not affect availability.
+// Note: an in-place update is considered in progress even if technically it is still starting
+//
+//	(only the annotation is there, the hook is not yet there), or if it is stopping (only the
+//	pending hook is still there, but the annotation is gone).
+func IsUpdateInProgressWithoutAffectingAvailability(machine *clusterv1.Machine) bool {
+	inPlaceUpdateInProgress, hasUpdateMachinePending, affectsAvailability := getInplaceUpdateInfo(machine)
+
+	return (inPlaceUpdateInProgress || hasUpdateMachinePending) && !affectsAvailability
+}
+
+func getInplaceUpdateInfo(machine *clusterv1.Machine) (bool, bool, bool) {
+	inPlaceUpdateInProgressValue, inPlaceUpdateInProgress := machine.Annotations[clusterv1.UpdateInProgressAnnotation]
 	hasUpdateMachinePending := hooks.IsPending(runtimehooksv1.UpdateMachine, machine)
 
-	return inPlaceUpdateInProgress || hasUpdateMachinePending
+	affectsAvailability := true
+	if inPlaceUpdateInProgressValue != "" {
+		data := &clusterv1.UpdateInProgressAnnotationData{}
+		if err := json.Unmarshal([]byte(inPlaceUpdateInProgressValue), &data); err == nil {
+			affectsAvailability = ptr.Deref(data.AffectsAvailability, true)
+		}
+	}
+	return inPlaceUpdateInProgress, hasUpdateMachinePending, affectsAvailability
 }
 
 // IsUpdateInProgressAndAffectsAvailability returns true if an in-place update is in progress

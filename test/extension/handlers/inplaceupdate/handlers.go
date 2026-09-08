@@ -183,20 +183,20 @@ func (h *ExtensionHandlers) DoCanUpdateMachineSet(ctx context.Context, req *runt
 	// Declare changes that this Runtime Extension can update in-place.
 
 	// Machine
-	canUpdateMachineSpec(&currentMachineSet.Spec.Template.Spec, &desiredMachineSet.Spec.Template.Spec)
+	affectsAvailability := canUpdateMachineSpec(&currentMachineSet.Spec.Template.Spec, &desiredMachineSet.Spec.Template.Spec)
 
 	// BootstrapConfig (we can only update KubeadmConfigs)
 	currentKubeadmConfigTemplate, isCurrentKubeadmConfigTemplate := currentBootstrapConfigTemplate.(*bootstrapv1.KubeadmConfigTemplate)
 	desiredKubeadmConfigTemplate, isDesiredKubeadmConfigTemplate := desiredBootstrapConfigTemplate.(*bootstrapv1.KubeadmConfigTemplate)
 	if isCurrentKubeadmConfigTemplate && isDesiredKubeadmConfigTemplate {
-		canUpdateKubeadmConfigSpec(&currentKubeadmConfigTemplate.Spec.Template.Spec, &desiredKubeadmConfigTemplate.Spec.Template.Spec)
+		affectsAvailability = affectsAvailability || canUpdateKubeadmConfigSpec(&currentKubeadmConfigTemplate.Spec.Template.Spec, &desiredKubeadmConfigTemplate.Spec.Template.Spec)
 	}
 
 	// InfraMachine (we can only update DevMachines)
 	currentDevMachineTemplate, isCurrentDevMachineTemplate := currentInfraMachineTemplate.(*infrav1.DevMachineTemplate)
 	desiredDevMachineTemplate, isDesiredDevMachineTemplate := desiredInfraMachineTemplate.(*infrav1.DevMachineTemplate)
 	if isCurrentDevMachineTemplate && isDesiredDevMachineTemplate {
-		canUpdateDevMachineSpec(&currentDevMachineTemplate.Spec.Template.Spec, &desiredDevMachineTemplate.Spec.Template.Spec)
+		affectsAvailability = affectsAvailability || canUpdateDevMachineSpec(&currentDevMachineTemplate.Spec.Template.Spec, &desiredDevMachineTemplate.Spec.Template.Spec)
 	}
 
 	if err := h.computeCanUpdateMachineSetResponse(req, resp, currentMachineSet, currentBootstrapConfigTemplate, currentInfraMachineTemplate); err != nil {
@@ -205,6 +205,9 @@ func (h *ExtensionHandlers) DoCanUpdateMachineSet(ctx context.Context, req *runt
 		return
 	}
 
+	// By returning AffectsAvailability: false the in-place update e2e test can verify that
+	// we are not creating additional CP Machines even with maxSurge: 1.
+	resp.AffectsAvailability = new(affectsAvailability)
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
 }
 

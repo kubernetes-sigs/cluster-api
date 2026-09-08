@@ -163,6 +163,12 @@ type CanUpdateMachineSetResponse struct {
 	// bootstrapConfigTemplatePatch indicates bootstrap template spec changes handled in-place.
 	// +optional
 	BootstrapConfigTemplatePatch Patch `json:"bootstrapConfigTemplatePatch,omitempty,omitzero"`
+
+	// affectsAvailability indicates if the in-place update affects availability of the Machines
+	// controlled by this MachineSet.
+	// Default is true.
+	// +optional
+	AffectsAvailability *bool `json:"affectsAvailability,omitempty"`
 }
 
 // CanUpdateMachineSet is the hook that will be called to determine if an extension

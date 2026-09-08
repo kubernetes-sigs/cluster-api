@@ -19,6 +19,7 @@ package machineset
 import (
 	"cmp"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
@@ -52,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/core/setup"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -386,7 +388,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 		}
 
 		// If the existing machine is pending acknowledge from the MD controller after a move operation,
-		// wait until if it possible to drop the PendingAcknowledgeMove annotation.
+		// wait until if it is possible to drop the PendingAcknowledgeMove annotation.
 		orig := machine.DeepCopy()
 		if _, ok := machine.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok {
 			// Check if this MachineSet is still accepting machines moved from other MachineSets.
@@ -422,7 +424,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 		// Note: Once we write PendingHooksAnnotation the Machine controller will start with the in-place update.
 		hooks.MarkObjectAsPending(machine, runtimehooksv1.UpdateMachine)
 
-		// Note: Intentionally using client.Patch instead of SSA. Otherwise we would
+		// Note: Intentionally using client.Patch instead of SSA. Otherwise, we would
 		//       have to ensure we preserve PendingHooksAnnotation on existing Machines in MachineSet and that would lead to race
 		//       conditions when the Machine controller tries to remove the annotation and MachineSet adds it back.
 		if err := r.Client.Patch(ctx, machine, client.MergeFrom(orig)); err != nil {
@@ -837,9 +839,15 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 		}
 
 		// Move machines to the target MachineSet if the current MachineSet is instructed to do so.
-		if targetMSName, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok && targetMSName != "" {
+		// Note: it is required to use UnmarshalMoveMachinesToMachineSetAnnotationData instead of Unmarshal because the legacy format is an invalid json.
+		moveMachinesToMachineSetAnnotationValue := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]
+		data := &clusterv1.MoveMachinesToMachineSetAnnotationData{}
+		if err := mdutil.UnmarshalMoveMachinesToMachineSetAnnotationData([]byte(moveMachinesToMachineSetAnnotationValue), data); err != nil {
+			return ctrl.Result{}, pkgerrors.Errorf("the Replicas field in Spec for MachineSet %v is nil, this should not be allowed", ms.Name)
+		}
+		if data.Name != "" {
 			// Note: The number of machines actually moved could be less than expected e.g. because some machine still updating in-place from a previous move.
-			return r.startMoveMachines(ctx, s, targetMSName, machinesToDeleteOrMove)
+			return r.startMoveMachines(ctx, s, data.Name, machinesToDeleteOrMove, data.AffectsAvailability)
 		}
 
 		// Otherwise the current MachineSet is not instructed to move machines to another MachineSet,
@@ -1029,7 +1037,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 
 		// Create the Machine.
 		if err := ssa.Patch(ctx, r.Client, machineSetManagerName, machine); err != nil {
-			// Try to cleanup the external objects if the Machine creation failed.
+			// Try to clean up the external objects if the Machine creation failed.
 			errs := []error{err}
 			if err := r.Client.Delete(ctx, infraMachine); !apierrors.IsNotFound(err) {
 				errs = append(errs, pkgerrors.Wrapf(err, "failed to cleanup %s %s after Machine creation failed", infraRef.Kind, klog.KRef(ms.Namespace, infraRef.Name)))
@@ -1106,7 +1114,7 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSName string, machinesToMove int) (ctrl.Result, error) {
+func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSName string, machinesToMove int, affectsAvailability *bool) (ctrl.Result, error) {
 	if r.overrideMoveMachines != nil {
 		return r.overrideMoveMachines(ctx, s, targetMSName, machinesToMove)
 	}
@@ -1220,10 +1228,18 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 		if machine.Annotations == nil {
 			machine.Annotations = map[string]string{}
 		}
-		machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+
+		updateInProgressAnnotationData := clusterv1.UpdateInProgressAnnotationData{
+			AffectsAvailability: affectsAvailability,
+		}
+		dataBytes, err := json.Marshal(updateInProgressAnnotationData)
+		if err != nil {
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation: failed to Marshal data", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
+		}
+		machine.Annotations[clusterv1.UpdateInProgressAnnotation] = string(dataBytes)
 		machine.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation] = ""
 
-		// Note: Intentionally using client.Patch instead of SSA. Otherwise we would have to ensure we preserve
+		// Note: Intentionally using client.Patch instead of SSA. Otherwise, we would have to ensure we preserve
 		//       UpdateInProgressAnnotation on existing Machines and that would lead to race conditions when
 		//       the Machine controller tries to remove the annotation and then the MachineSet controller adds it back.
 		if err := r.Client.Patch(ctx, machine, client.MergeFrom(orig)); err != nil {

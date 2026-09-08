@@ -6,6 +6,7 @@
       - Machine list icons
         - ✋ Machine pending acknowledge move
         - 🟡 Machine with in place update in progress - affects availability
+        - 🟢 Machine with in place update in progress - does not affect availability
   
 [Test] Initial state
     md: 12/12 replicas, 12 available, 0 upToDate

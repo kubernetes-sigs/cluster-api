@@ -52,6 +52,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -2503,7 +2504,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 		{
 			name: "should move machines when too many exists and MS is instructed to move to another MachineSet",
 			getAndAdoptMachinesForMachineSetSucceeded: true,
-			machineSet: newMachineSet("ms1", "cluster1", 2, withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"})),
+			machineSet: newMachineSet("ms1", "cluster1", 2, withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":true}"})),
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"),
 				fakeMachine("m2"),
@@ -3228,7 +3229,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			name: "should fail when taget ms cannot be found",
 			ms: newMachineSet("ms1", "cluster1", 2,
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
-				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":true}"}),
 			),
 			targetMS: newMachineSet("do-not-exist", "cluster1", 2),
 			machines: []*clusterv1.Machine{
@@ -3246,7 +3247,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			name: "should fail when current and taget ms disagree on the move operation",
 			ms: newMachineSet("ms1", "cluster1", 2,
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
-				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":true}"}),
 			),
 			targetMS: newMachineSet("ms2", "cluster1", 2,
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "456"}),
@@ -3267,7 +3268,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			name: "should fail when target MS doesn't have a unique label",
 			ms: newMachineSet("ms1", "cluster1", 2,
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
-				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":true}"}),
 			),
 			targetMS: newMachineSet("ms2", "cluster1", 2,
 				// unique label missing
@@ -3285,7 +3286,53 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			wantErrorMessage:     fmt.Sprintf("MachineSet ms2 does not have the %s label", clusterv1.MachineDeploymentUniqueLabel),
 		},
 		{
-			name: "should move machines",
+			name: "should move machines - affect availability",
+			ms: newMachineSet("ms1", "cluster1", 2,
+				withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder),
+				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":true}"}),
+			),
+			targetMS: newMachineSet("ms2", "cluster1", 2,
+				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "456"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms1,ms3"}),
+			),
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode()),
+				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
+				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()), // newest
+			},
+			machinesToMove:       2,
+			interceptorFuncs:     interceptor.Funcs{},
+			wantMachinesNotMoved: []string{"m1", "m2"},
+			wantMovedMachines:    []string{"m3", "m4"}, // newest machines moved first with NewestMachineSetDeletionOrder
+			wantErr:              false,
+		},
+		{
+			name: "should move machines - does not availability",
+			ms: newMachineSet("ms1", "cluster1", 2,
+				withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder),
+				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":false}"}),
+			),
+			targetMS: newMachineSet("ms2", "cluster1", 2,
+				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "456"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms1,ms3"}),
+			),
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode()),
+				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
+				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()), // newest
+			},
+			machinesToMove:       2,
+			interceptorFuncs:     interceptor.Funcs{},
+			wantMachinesNotMoved: []string{"m1", "m2"},
+			wantMovedMachines:    []string{"m3", "m4"}, // newest machines moved first with NewestMachineSetDeletionOrder
+			wantErr:              false,
+		},
+		{
+			name: "should move machines - annotation in the legacy format",
 			ms: newMachineSet("ms1", "cluster1", 2,
 				withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder),
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
@@ -3312,7 +3359,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			ms: newMachineSet("ms1", "cluster1", 2,
 				withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder),
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
-				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\"}"}), // intentionally omitting "affectsAvailability":true to test defaulting
 			),
 			targetMS: newMachineSet("ms2", "cluster1", 2,
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "456"}),
@@ -3334,7 +3381,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			ms: newMachineSet("ms1", "cluster1", 2,
 				withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder),
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
-				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":true}"}),
 			),
 			targetMS: newMachineSet("ms2", "cluster1", 2,
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "456"}),
@@ -3355,7 +3402,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			ms: newMachineSet("ms1", "cluster1", 2,
 				withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder),
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
-				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":true}"}),
 			),
 			targetMS: newMachineSet("ms2", "cluster1", 2,
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "456"}),
@@ -3379,7 +3426,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			ms: newMachineSet("ms1", "cluster1", 2,
 				// use default deletion order, oldest machine move first
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
-				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":true}"}),
 			),
 			targetMS: newMachineSet("ms2", "cluster1", 2,
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "456"}),
@@ -3402,7 +3449,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			ms: newMachineSet("ms1", "cluster1", 2,
 				// use default deletion order, oldest machine move first
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}),
-				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms2"}),
+				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "{\"name\":\"ms2\",\"affectsAvailability\":true}"}),
 			),
 			targetMS: newMachineSet("ms2", "cluster1", 2,
 				withMachineSetLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "456"}),
@@ -3452,7 +3499,14 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				machineSet: tt.ms,
 				machines:   tt.machines,
 			}
-			res, err := r.startMoveMachines(ctx, s, tt.targetMS.Name, tt.machinesToMove)
+
+			moveMachinesToMachineSetAnnotationValue := tt.ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]
+			data := &clusterv1.MoveMachinesToMachineSetAnnotationData{}
+			// Note: it is required to use UnmarshalMoveMachinesToMachineSetAnnotationData instead of Unmarshal because the legacy format is an invalid JSON.
+			err := mdutil.UnmarshalMoveMachinesToMachineSetAnnotationData([]byte(moveMachinesToMachineSetAnnotationValue), data)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			res, err := r.startMoveMachines(ctx, s, tt.targetMS.Name, tt.machinesToMove, data.AffectsAvailability)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred(), "expected error when moving machines, got none")
 				g.Expect(err.Error()).To(ContainSubstring(tt.wantErrorMessage))
@@ -3469,10 +3523,17 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			g.Expect(movedMachines).To(ConsistOf(tt.wantMovedMachines))
 			for _, name := range movedMachines {
 				for _, m := range machines.Items {
-					if m.Name == name {
-						g.Expect(m.Annotations).To(HaveKeyWithValue(clusterv1.UpdateInProgressAnnotation, ""))
-						g.Expect(m.Annotations).To(HaveKeyWithValue(clusterv1.PendingAcknowledgeMoveAnnotation, ""))
+					if m.Name != name {
+						continue
 					}
+					updateInProgressAnnotationData := clusterv1.UpdateInProgressAnnotationData{
+						AffectsAvailability: data.AffectsAvailability,
+					}
+					dataBytes, err := json.Marshal(updateInProgressAnnotationData)
+					g.Expect(err).ToNot(HaveOccurred())
+
+					g.Expect(m.Annotations).To(HaveKeyWithValue(clusterv1.UpdateInProgressAnnotation, string(dataBytes)))
+					g.Expect(m.Annotations).To(HaveKeyWithValue(clusterv1.PendingAcknowledgeMoveAnnotation, ""))
 				}
 			}
 

@@ -3558,6 +3558,7 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 	tests := []struct {
 		name                       string
 		controlPlane               *pkg.ControlPlane
+		etcdMembers                []*etcd.Member // If not set, etcdMembers are inferred from machines with a NodeRef.
 		additionalEtcdMembers      []*etcd.Member
 		wantErr                    bool
 		wantResult                 ctrl.Result
@@ -3738,6 +3739,69 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 			wantRemoveEtcdMemberCalled: 0,
 		},
 		{
+			name: "Do not remove unnamed etcd member when a NodeRef was recently registered",
+			controlPlane: &pkg.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.Machines{
+					m1.Name: func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+					"m2": func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						m.Name = "m2"
+						m.Status.NodeRef.Name = "m2-node"
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyReason})
+						return m
+					}(),
+				},
+				Nodes: []*pkg.Node{
+					pkg.TransformNode(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
+						Name:              "m2-node",
+						CreationTimestamp: metav1.Now(),
+					}}),
+				},
+			},
+			etcdMembers: []*etcd.Member{
+				{Name: "m1-node"},
+				{Name: ""}, // Member on m2 machine does not have the name yet, even if NodeRef is already set.
+			},
+			wantResult:                 ctrl.Result{},
+			wantRemoveEtcdMemberCalled: 0,
+		},
+		{
+			name: "Remove unnamed etcd member after the NodeRef startup grace period",
+			controlPlane: &pkg.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.Machines{
+					m1.Name: func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
+						return m
+					}(),
+					"m2": func() *clusterv1.Machine {
+						m := m1.DeepCopy()
+						m.Name = "m2"
+						m.Status.NodeRef.Name = "m2-node"
+						return m
+					}(),
+				},
+				Nodes: []*pkg.Node{
+					pkg.TransformNode(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
+						Name:              "m2-node",
+						CreationTimestamp: metav1.NewTime(time.Now().Add(-etcdMemberStartupGracePeriod - time.Second)),
+					}}),
+				},
+			},
+			etcdMembers: []*etcd.Member{
+				{Name: "m1-node"},
+				{Name: ""}, // Member on m2 machine does not have the name yet, even if NodeRef is already set.
+			},
+			wantResult:                 ctrl.Result{RequeueAfter: time.Second},
+			wantRemoveEtcdMemberCalled: 1,
+		},
+		{
 			name: "Do not remove additional etcd members when the target etcd cluster is not healthy",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},
@@ -3818,7 +3882,11 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 			tt.controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
 				Workload: &workloadCluster,
 			})
-			tt.controlPlane.EtcdMembers = append(etcdMembers(tt.controlPlane.Machines), tt.additionalEtcdMembers...)
+			tt.controlPlane.EtcdMembers = append(tt.etcdMembers, tt.additionalEtcdMembers...)
+			if tt.etcdMembers == nil {
+				// If etcd members are not explicitly provided, infer them from machines with NodeRefs.
+				tt.controlPlane.EtcdMembers = append(tt.controlPlane.EtcdMembers, etcdMembers(tt.controlPlane.Machines)...)
+			}
 
 			r := &Reconciler{}
 			res, err := r.reconcileEtcdMembers(ctx, tt.controlPlane)

@@ -38,6 +38,17 @@ func SetAPIVersionGetter(f func(ctx context.Context, gk schema.GroupKind) (strin
 	apiVersionGetter = f
 }
 
+// SwapAPIVersionGetter sets an APIVersionGetter and returns a function restoring the
+// previously set getter, so tests can avoid leaking a test-specific getter to other
+// tests running in the same process.
+func SwapAPIVersionGetter(f func(ctx context.Context, gk schema.GroupKind) (string, error)) func() {
+	previous := apiVersionGetter
+	apiVersionGetter = f
+	return func() {
+		apiVersionGetter = previous
+	}
+}
+
 func convertMachineSpecToContractVersionedObjectReference(src *clusterv1beta1.MachineSpec, dst *clusterv1.MachineSpec) error {
 	infraRef, err := convertToContractVersionedObjectReference(&src.InfrastructureRef)
 	if err != nil {

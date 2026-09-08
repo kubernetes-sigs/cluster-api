@@ -32,3 +32,14 @@ var apiVersionGetter = func(_ context.Context, _ schema.GroupKind) (string, erro
 func SetAPIVersionGetter(f func(ctx context.Context, gk schema.GroupKind) (string, error)) {
 	apiVersionGetter = f
 }
+
+// SwapAPIVersionGetter sets an APIVersionGetter and returns a function restoring the
+// previously set getter, so tests can avoid leaking a test-specific getter to other
+// tests running in the same process.
+func SwapAPIVersionGetter(f func(ctx context.Context, gk schema.GroupKind) (string, error)) func() {
+	previous := apiVersionGetter
+	apiVersionGetter = f
+	return func() {
+		apiVersionGetter = previous
+	}
+}

@@ -81,7 +81,7 @@ From the perspective of Cluster API, all Machines are immutable: once they are c
 
 For this reason, MachineDeployments are preferable. MachineDeployments handle changes to machines by replacing them, in the same way core Deployments handle changes to Pod specifications.
 
-Over time several improvement have been applied to Cluster API in oder to perform machine rollout only when necessary and
+Over time several improvement have been applied to Cluster API in order to perform machine rollout only when necessary and
 for minimizing risks and impact of this operation on users workloads.
 
 Starting from Cluster API v1.12, users can intentionally trade off some of the benefits that they get of Machine immutability by

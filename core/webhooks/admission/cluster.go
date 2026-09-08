@@ -39,6 +39,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -46,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -75,6 +77,7 @@ type ClusterCacheReader interface {
 type Cluster struct {
 	Client             client.Reader
 	ClusterCacheReader ClusterCacheReader
+	MHCProgramCache    cache.Cache[cel.ProgramEntry]
 
 	decoder admission.Decoder
 }
@@ -321,7 +324,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 	// If we could get the ClusterClass validate the Cluster based on the ClusterClass.
 	if clusterClass != nil {
-		allErrs = append(allErrs, ValidateClusterForClusterClass(newCluster, clusterClass)...)
+		allErrs = append(allErrs, ValidateClusterForClusterClass(webhook.MHCProgramCache, newCluster, clusterClass)...)
 	}
 
 	// Validate the Cluster and associated ClusterClass' autoscaler annotations.
@@ -672,7 +675,7 @@ func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) fi
 	return allErrs
 }
 
-func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
 	fldPath := field.NewPath("spec", "topology", "controlPlane", "healthCheck")
@@ -687,6 +690,8 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 			))
 		}
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, cluster.Spec.Topology.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(mhcProgramCache, fldPath,
+			cluster.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyExpressions)...)
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, cluster.Spec.Topology.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 	}
 
@@ -712,6 +717,8 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 		// Validate the MachineDeployment MachineHealthCheck if defined.
 		if md.HealthCheck.IsDefined() {
 			allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, md.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+			allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(mhcProgramCache, fldPath,
+				md.HealthCheck.Checks.UnhealthyExpressions)...)
 			allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 			allErrs = append(allErrs, validateRemediationMaxInFlight(fldPath.Child("remediation"), md.HealthCheck.Remediation.MaxInFlight)...)
 		}
@@ -913,7 +920,7 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 }
 
 // ValidateClusterForClusterClass uses information in the ClusterClass to validate the Cluster.
-func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func ValidateClusterForClusterClass(mhcProgramCache cache.Cache[cel.ProgramEntry], cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	if cluster == nil {
 		return field.ErrorList{field.InternalError(field.NewPath(""), pkgerrors.New("Cluster can not be nil"))}
@@ -945,7 +952,7 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 	allErrs = append(allErrs, check.MachinePoolTopologiesAreValidAndDefinedInClusterClass(cluster, clusterClass)...)
 
 	// Validate the MachineHealthChecks defined in the cluster topology.
-	allErrs = append(allErrs, validateMachineHealthChecks(cluster, clusterClass)...)
+	allErrs = append(allErrs, validateMachineHealthChecks(mhcProgramCache, cluster, clusterClass)...)
 	return allErrs
 }
 

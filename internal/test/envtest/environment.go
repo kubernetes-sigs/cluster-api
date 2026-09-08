@@ -82,11 +82,13 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	controlplaneadmission "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
 	controlplaneconversion "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 	"sigs.k8s.io/cluster-api/version"
@@ -277,7 +279,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions ctrlcache.Options, managerClientOptions client.Options) *Environment {
+func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions ctrlcache.Options, managerClientOptions client.Options) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
@@ -427,16 +429,18 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 		return gvk.GroupVersion().String(), nil
 	})
 
-	if err := (&coreadmission.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+	mhcCELProgramCache := cache.New[cel.ProgramEntry](ctx, 1*time.Hour)
+
+	if err := (&coreadmission.Cluster{Client: mgr.GetClient(), MHCProgramCache: mhcCELProgramCache}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&coreadmission.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterClass{Client: mgr.GetClient(), MHCProgramCache: mhcCELProgramCache}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
 	if err := (&coreadmission.Machine{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&coreadmission.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineHealthCheck{ProgramCache: mhcCELProgramCache}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
 	if err := (&coreadmission.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {

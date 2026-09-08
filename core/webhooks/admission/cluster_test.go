@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
@@ -42,8 +43,10 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/admission/testutil"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -2452,6 +2455,30 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         false,
 		},
 		{
+			name: "Reject a cluster that has MHC override defined for control plane with an invalid CEL expression in UnhealthyExpressions",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
+							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
+								UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+									{Expression: "node.has_condition("},
+								},
+								NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+							},
+						}).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinframachinetemplate").Build()).
+				Build(),
+			classReconciled: true,
+			wantErr:         true,
+		},
+		{
 			name: "Reject a cluster that MHC override defined for control plane but is set when control plane is missing machineInfrastructure",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
@@ -2608,6 +2635,37 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         false,
 		},
 		{
+			name: "Reject a cluster that has MHC override defined for machine deployment with an invalid CEL expression in UnhealthyExpressions",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("md1").
+								WithClass("worker-class").
+								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
+									Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
+										UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+											{Expression: "node.metadata.name == 'foo'"},
+										},
+										NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+									},
+								}).
+								Build(),
+						).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("worker-class").Build(),
+				).
+				Build(),
+			classReconciled: true,
+			wantErr:         true,
+		},
+		{
 			name: "Accept a cluster that has MHC enabled for machine deployment with machine deployment MHC defined in ClusterClass",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
@@ -2712,7 +2770,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build()
 
 			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
-			c := &Cluster{Client: fakeClient}
+			c := &Cluster{Client: fakeClient, MHCProgramCache: cache.New[cel.ProgramEntry](ctx, 1*time.Hour)}
 
 			// Checks the return error.
 			warnings, err := c.ValidateCreate(ctx, tt.cluster)

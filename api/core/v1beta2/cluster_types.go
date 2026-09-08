@@ -786,6 +786,16 @@ type ControlPlaneTopologyHealthCheckChecks struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
+
+	// unhealthyExpressions contains a list of CEL expressions that determine whether a
+	// Machine is considered unhealthy. The expressions are combined in a
+	// logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	UnhealthyExpressions []UnhealthyExpression `json:"unhealthyExpressions,omitempty"`
 }
 
 // ControlPlaneTopologyHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.
@@ -1063,6 +1073,16 @@ type MachineDeploymentTopologyHealthCheckChecks struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
+
+	// unhealthyExpressions contains a list of CEL expressions that determine whether a
+	// Machine is considered unhealthy. The expressions are combined in a
+	// logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	UnhealthyExpressions []UnhealthyExpression `json:"unhealthyExpressions,omitempty"`
 }
 
 // MachineDeploymentTopologyHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.

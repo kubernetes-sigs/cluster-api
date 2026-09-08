@@ -28,7 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 var (
@@ -60,7 +62,9 @@ func (webhook *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) err
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta2-machinehealthcheck,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinehealthchecks,versions=v1beta2,name=default.machinehealthcheck.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 // MachineHealthCheck implements a validation and defaulting webhook for MachineHealthCheck.
-type MachineHealthCheck struct{}
+type MachineHealthCheck struct {
+	ProgramCache cache.Cache[cel.ProgramEntry]
+}
 
 var _ admission.Defaulter[*clusterv1.MachineHealthCheck] = &MachineHealthCheck{}
 var _ admission.Validator[*clusterv1.MachineHealthCheck] = &MachineHealthCheck{}
@@ -129,6 +133,7 @@ func (webhook *MachineHealthCheck) validate(oldMHC, newMHC *clusterv1.MachineHea
 	}
 
 	allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(specPath, newMHC.Spec.Checks.NodeStartupTimeoutSeconds)...)
+	allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(webhook.ProgramCache, specPath, newMHC.Spec.Checks.UnhealthyExpressions)...)
 	allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(specPath, newMHC.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 
 	if len(allErrs) == 0 {
@@ -146,6 +151,19 @@ func validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath *field.Path, no
 			allErrs,
 			field.Invalid(fldPath.Child("checks", "nodeStartupTimeoutSeconds"), *nodeStartupTimeoutSeconds, "must be at least 30s"),
 		)
+	}
+	return allErrs
+}
+
+func validateMachineHealthCheckUnhealthyExpressions(programCache cache.Cache[cel.ProgramEntry], fldPath *field.Path, unhealthyExpressions []clusterv1.UnhealthyExpression) field.ErrorList {
+	var allErrs field.ErrorList
+	for i, c := range unhealthyExpressions {
+		if _, err := cel.Compile(programCache, c.Expression); err != nil {
+			allErrs = append(
+				allErrs,
+				field.Invalid(fldPath.Child("checks", "unhealthyExpressions").Index(i).Child("expression"), c.Expression, fmt.Sprintf("must be a valid CEL expression: %v", err.Error())),
+			)
+		}
 	}
 	return allErrs
 }

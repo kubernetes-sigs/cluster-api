@@ -19,6 +19,7 @@ package admission
 import (
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -34,8 +35,10 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -858,6 +861,52 @@ func TestClusterClassValidation(t *testing.T) {
 									},
 								},
 								NodeStartupTimeoutSeconds: ptr.To(int32(10)),
+							},
+						}).
+						Build()).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "create fail if ControlPlane MachineHealthCheck UnhealthyConditions has an invalid CEL expression",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
+						Build()).
+				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+						UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+							{Expression: "node.has_condition("},
+						},
+					},
+				}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "create fail if MachineDeployment MachineHealthCheck UnhealthyConditions has an invalid CEL expression",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{
+							Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+								UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+									{Expression: "node.metadata.name == 'foo'"},
+								},
 							},
 						}).
 						Build()).
@@ -1882,7 +1931,7 @@ func TestClusterClassValidation(t *testing.T) {
 			}
 
 			// Create the webhook and add the fakeClient as its client.
-			webhook := &ClusterClass{Client: fakeClient}
+			webhook := &ClusterClass{Client: fakeClient, MHCProgramCache: cache.New[cel.ProgramEntry](ctx, 1*time.Hour)}
 			err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

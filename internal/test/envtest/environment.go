@@ -19,6 +19,7 @@ package envtest
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"path"
@@ -291,11 +292,20 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 		crdDirectoryPaths = append(crdDirectoryPaths, filepath.Join(root, path))
 	}
 
+	// Read the CRDs from the raw bases/ manifests into memory, so we can add the
+	// contract labels before they get installed (see addContractLabelsToKubeadmCRDs).
+	crdInstallOptions := envtest.CRDInstallOptions{
+		Paths:              crdDirectoryPaths,
+		ErrorIfPathMissing: true,
+	}
+	if err := envtest.ReadCRDFiles(&crdInstallOptions); err != nil {
+		klog.Fatalf("failed to read CRD files: %v", err)
+	}
+	addContractLabelsToKubeadmCRDs(crdInstallOptions.CRDs)
+
 	// Create the test environment.
 	env := &envtest.Environment{
-		ErrorIfCRDPathMissing: true,
-		CRDDirectoryPaths:     crdDirectoryPaths,
-		CRDs: []*apiextensionsv1.CustomResourceDefinition{
+		CRDs: append(crdInstallOptions.CRDs, []*apiextensionsv1.CustomResourceDefinition{
 			builder.GenericBootstrapConfigCRD.DeepCopy(),
 			builder.GenericBootstrapConfigTemplateCRD.DeepCopy(),
 			builder.GenericControlPlaneCRD.DeepCopy(),
@@ -318,7 +328,7 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 			builder.TestBootstrapConfigCRD.DeepCopy(),
 			builder.TestControlPlaneTemplateCRD.DeepCopy(),
 			builder.TestControlPlaneCRD.DeepCopy(),
-		},
+		}...),
 		// initialize webhook here to be able to test the envtest install via webhookOptions
 		// This should set LocalServingCertDir and LocalServingPort that are used below.
 		WebhookInstallOptions: initWebhookInstallOptions(),
@@ -474,6 +484,30 @@ func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDire
 		Client:  mgr.GetClient(),
 		Config:  mgr.GetConfig(),
 		env:     env,
+	}
+}
+
+// addContractLabelsToKubeadmCRDs adds the contract labels to the kubeadm CRDs, mirroring
+// what kustomize injects in production (see bootstrap/kubeadm/config/crd/kustomization.yaml
+// and controlplane/kubeadm/config/crd/kustomization.yaml). Without those labels the
+// conversion webhooks can't resolve the apiVersion of referenced objects (e.g. a Machine's
+// bootstrapConfigRef pointing to a KubeadmConfig), which leads to "cannot find any versions
+// matching contract versions" errors in test logs.
+func addContractLabelsToKubeadmCRDs(crds []*apiextensionsv1.CustomResourceDefinition) {
+	// The label keys and values are hard-coded on purpose: this must not silently
+	// change when clusterv1 is bumped to a newer version (e.g. v1beta3 or v1).
+	contractLabels := map[string]string{
+		"cluster.x-k8s.io/v1beta1": "v1beta1",
+		"cluster.x-k8s.io/v1beta2": "v1beta2",
+	}
+	for _, crd := range crds {
+		if crd.Spec.Group != bootstrapv1.GroupVersion.Group && crd.Spec.Group != controlplanev1.GroupVersion.Group {
+			continue
+		}
+		if crd.Labels == nil {
+			crd.Labels = map[string]string{}
+		}
+		maps.Copy(crd.Labels, contractLabels)
 	}
 }
 

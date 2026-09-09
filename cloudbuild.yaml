@@ -2,7 +2,7 @@
 timeout: 3600s
 options:
   substitution_option: ALLOW_LOOSE
-  machineType: 'E2_HIGHCPU_8'
+  machineType: 'E2_HIGHCPU_32'
 steps:
   # The latest image tag + sha can be found with:
   # crane ls registry.k8s.io/releng/gcb-docker-gcloud

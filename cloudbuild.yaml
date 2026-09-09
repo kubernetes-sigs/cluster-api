@@ -1,6 +1,6 @@
 # See https://cloud.google.com/cloud-build/docs/build-config
 # See https://console.cloud.google.com/artifacts/docker/k8s-staging-test-infra/us/gcr.io/gcb-docker-gcloud
-timeout: 2700s
+timeout: 3600s
 options:
   substitution_option: ALLOW_LOOSE
   machineType: 'E2_HIGHCPU_8'

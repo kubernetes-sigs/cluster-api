@@ -301,11 +301,12 @@ func (r *Reconciler) createMachine(ctx context.Context, kcp *controlplanev1.Kube
 		return err
 	}
 	r.controller.DeferNextReconcileUntilCacheUpToDate(kcp, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), machine.ResourceVersion)
+
 	// Remove the annotation tracking that a remediation is in progress (the remediation completed when
 	// the replacement machine has been created above).
-	delete(kcp.Annotations, controlplanev1.RemediationInProgressAnnotation)
-
-	return nil
+	// Note: If this call fails we won't be removing the annotation immediately, but it will be cleaned up
+	// on next reconcile at the beginning of reconcileUnhealthyMachines.
+	return r.deleteRemediationInProgressAnnotation(ctx, kcp)
 }
 
 func (r *Reconciler) updateMachine(ctx context.Context, machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {

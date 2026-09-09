@@ -100,19 +100,9 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 	// Check if the annotation is stale; this might happen in case there is a crash in the controller in between
 	// when a new Machine is created and the annotation is eventually removed from KCP via defer patch at the end
 	// of KCP reconcile.
-	if v, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
-		remediationData, err := RemediationDataFromAnnotation(v)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		for _, m := range controlPlane.Machines.UnsortedList() {
-			if m.CreationTimestamp.After(remediationData.Timestamp.Time) {
-				// Remove the annotation tracking that a remediation is in progress (the annotation is stale).
-				delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
-				break
-			}
-		}
+	if cleanedUpAnnotation, err := r.cleanupRemediationInProgressAnnotation(ctx, controlPlane); err != nil || cleanedUpAnnotation {
+		// Technically there is no need to requeue here. KCP patch above triggers reconciliation. But we have to return a non-zero Result so reconcile above returns.
+		return ctrl.Result{RequeueAfter: time.Second}, err // RequeueAfter should be at least 1s, because controller rate limiter is using 1s.
 	}
 
 	// Gets all machines that have `MachineHealthCheckSucceeded=False` (indicating a problem was detected on the machine)
@@ -373,11 +363,83 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 
 	// Set annotations tracking remediation details so they can be picked up by the machine
 	// that will be created as part of the scale up action that completes the remediation.
-	annotations.AddAnnotations(controlPlane.KCP, map[string]string{
-		controlplanev1.RemediationInProgressAnnotation: remediationInProgressValue,
-	})
+	// Note: If this call fails we won't be tracking remediation history correctly, but in any case KCP
+	// will wait for the deletion we triggered above to complete. As this should rarely happen, this is considered acceptable.
+	if err := r.addRemediationInProgressAnnotation(ctx, controlPlane.KCP, remediationInProgressValue); err != nil {
+		return ctrl.Result{}, err
+	}
 
-	return ctrl.Result{RequeueAfter: time.Millisecond}, nil // Technically there is no need to requeue here. Machine deletion above triggers reconciliation. But we have to return a non-zero Result so reconcile above returns.
+	// Technically there is no need to requeue here. Machine deletion above triggers reconciliation. But we have to return a non-zero Result so reconcile above returns.
+	return ctrl.Result{RequeueAfter: time.Second}, nil // RequeueAfter should be at least 1s, because controller rate limiter is using 1s.
+}
+
+func (r *Reconciler) cleanupRemediationInProgressAnnotation(ctx context.Context, controlPlane *pkg.ControlPlane) (bool, error) {
+	v, exists := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]
+	if !exists {
+		return false, nil
+	}
+
+	var annotationNeedsCleanup bool
+	if int32(len(controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp)))) >= ptr.Deref(controlPlane.KCP.Spec.Replicas, 0) {
+		// If we already have enough non-deleting Machines we don't have to create another Machine to complete the remediation.
+		annotationNeedsCleanup = true
+	} else {
+		// If we already created a Machine after remediation, just the annotation removal failed after Machine creation
+		// and we have to clean up the annotation because it is stale.
+		remediationData, err := RemediationDataFromAnnotation(v)
+		if err != nil {
+			return false, err
+		}
+		for _, m := range controlPlane.Machines.UnsortedList() {
+			if m.CreationTimestamp.After(remediationData.Timestamp.Time) {
+				annotationNeedsCleanup = true
+			}
+		}
+	}
+
+	if !annotationNeedsCleanup {
+		return false, nil
+	}
+
+	// Note: If this call fails we won't be deleting the annotation immediately, but we'll return an
+	// error and retry on next reconcile.
+	if err := r.deleteRemediationInProgressAnnotation(ctx, controlPlane.KCP); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *Reconciler) deleteRemediationInProgressAnnotation(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
+	if _, exists := kcp.Annotations[controlplanev1.RemediationInProgressAnnotation]; !exists {
+		return nil
+	}
+
+	original := kcp.DeepCopy()
+	modified := original.DeepCopy()
+	delete(modified.Annotations, controlplanev1.RemediationInProgressAnnotation)
+	if err := r.Client.Patch(ctx, modified, client.MergeFrom(original)); err != nil {
+		return fmt.Errorf("failed to remove %s annotation: %w", controlplanev1.RemediationInProgressAnnotation, err)
+	}
+	r.controller.DeferNextReconcileUntilCacheUpToDate(kcp, capicontrollerutil.StructuredObject(controlplanev1.GroupVersion, "KubeadmControlPlane"), modified.ResourceVersion)
+	return nil
+}
+
+func (r *Reconciler) addRemediationInProgressAnnotation(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, remediationInProgressValue string) error {
+	if currentValue, exists := kcp.Annotations[controlplanev1.RemediationInProgressAnnotation]; exists && currentValue == remediationInProgressValue {
+		return nil
+	}
+
+	original := kcp.DeepCopy()
+	modified := original.DeepCopy()
+	if modified.Annotations == nil {
+		modified.Annotations = map[string]string{}
+	}
+	modified.Annotations[controlplanev1.RemediationInProgressAnnotation] = remediationInProgressValue
+	if err := r.Client.Patch(ctx, modified, client.MergeFrom(original)); err != nil {
+		return fmt.Errorf("failed to add %s annotation: %w", controlplanev1.RemediationInProgressAnnotation, err)
+	}
+	r.controller.DeferNextReconcileUntilCacheUpToDate(kcp, capicontrollerutil.StructuredObject(controlplanev1.GroupVersion, "KubeadmControlPlane"), modified.ResourceVersion)
+	return nil
 }
 
 // Gets the machine to be remediated, which is the "most broken" among the unhealthy machines, determined as the machine

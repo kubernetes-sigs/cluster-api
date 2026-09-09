@@ -171,7 +171,42 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			},
 			wantResult:  ctrl.Result{RequeueAfter: 30 * time.Second},
 			wantReason:  clusterv1.MachineInPlaceUpdatingReason,
-			wantMessage: "In-place update in progress: processing",
+			wantMessage: "In-place update in progress (affects availability): processing",
+		},
+		{
+			name:           "requeues while UpdateMachine hook is in progress (does not affect availability)",
+			featureEnabled: true,
+			machine: func() *clusterv1.Machine {
+				machine := newTestMachine()
+				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = "{\"affectsAvailability\":false}"
+				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
+				machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraMachineGVK.Group,
+					Kind:     infraMachineGVK.Kind,
+					Name:     "infra",
+				}
+				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
+				return machine
+			}(),
+			infraMachine: func() contractapi.InfraMachine {
+				infra := newTestInfraMachine("infra")
+				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
+				return infra
+			}(),
+			updateMachineResponse: &runtimehooksv1.UpdateMachineResponse{
+				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status:  runtimehooksv1.ResponseStatusSuccess,
+						Message: "processing",
+					},
+					RetryAfterSeconds: 30,
+				},
+			},
+			wantResult:  ctrl.Result{RequeueAfter: 30 * time.Second},
+			wantReason:  clusterv1.MachineInPlaceUpdatingReason,
+			wantMessage: "In-place update in progress (does not affect availability): processing",
 		},
 		{
 			name:           "completes successfully and cleans annotations",

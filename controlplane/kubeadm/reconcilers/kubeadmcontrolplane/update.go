@@ -131,6 +131,8 @@ func (r *Reconciler) rollingUpdate(
 	}
 
 	// Always scale up after we deleted an unhealthy Machine for remediation.
+	// If the remediation annotation is set here we have to create a new Machine to complete the
+	// remediation process (delete+create) before continuing with the rollout process.
 	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
 		return r.scaleUpControlPlane(ctx, controlPlane, true)
 	}
@@ -145,7 +147,7 @@ func (r *Reconciler) rollingUpdate(
 	minReplicas := desiredReplicas + maxSurge - 1
 	maxReplicas := desiredReplicas + maxSurge
 
-	// After we handled the base cases the priorities are now:
+	// After we handled the cases above the priorities are now:
 	// * Get into or stay within the [min,max] range
 	// * Prefer in-place updates over scale up/down
 	//
@@ -159,12 +161,15 @@ func (r *Reconciler) rollingUpdate(
 	// Example 2: spec.replicas = 3, maxSurge: 0, minReplicas: 2 maxReplicas: 3
 	// case                           | currentReplicas | action
 	// currentReplicas < minReplicas  | <2              | scale up
-	// currentReplicas == minReplicas | 2               | in-place update or fallback to scale up (in-place update only if affectsAvailability:false)
+	// currentReplicas == minReplicas | 2               | scale up (we are below spec.replicas so we can scale up, which is safer than in-place update)
 	// currentReplicas == maxReplicas | 3               | in-place update or fallback to scale down
 	// currentReplicas > maxReplicas  | >3              | scale down
 	switch {
 	case currentReplicas < minReplicas:
 		// If currentReplicas < minReplicas, we have to scale up.
+		return r.scaleUpControlPlane(ctx, controlPlane, true)
+	case currentReplicas == minReplicas && currentReplicas < desiredReplicas:
+		// If currentReplicas == minReplicas && currentReplicas < desiredReplicas, we have to scale up.
 		return r.scaleUpControlPlane(ctx, controlPlane, true)
 	case currentReplicas == minReplicas:
 		// If currentReplicas == minReplicas, we can try in-place update if it does not affect availability, otherwise we scale up.

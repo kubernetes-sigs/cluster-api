@@ -123,9 +123,9 @@ func Test_canUpdateMachine(t *testing.T) {
 			},
 			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, []string{"can not update"}, nil
+				return canUpdateMachineResult{canUpdateMachine: false}, []string{"can not update"}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
 			wantCanUpdateMachine:                 false,
@@ -140,7 +140,7 @@ func Test_canUpdateMachine(t *testing.T) {
 			},
 			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
 				}
 				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true}, nil, nil
 			},

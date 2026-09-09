@@ -1376,6 +1376,38 @@ func TestSetUpdatingCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "A machine starting in-place update is updating (affects availability)",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpdatingCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineInPlaceUpdatingReason,
+				Message: "In-place update in progress (affects availability)",
+			},
+		},
+		{
+			name: "A machine starting in-place update is updating (does not affect availability)",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}",
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpdatingCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineInPlaceUpdatingReason,
+				Message: "In-place update in progress (does not affect availability)",
+			},
+		},
+		{
 			name: "A machine starting in-place update is updating",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{

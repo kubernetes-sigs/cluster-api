@@ -56,7 +56,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Ma
 
 	// Machine cannot be updated in-place if the feature gate is not enabled.
 	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
+		return canUpdateMachineResult{canUpdateMachine: false}, nil
 	}
 
 	// Machine cannot be updated in-place if the UpToDate func was not able to provide all objects,
@@ -66,28 +66,33 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Ma
 		machineUpToDateResult.DesiredInfraMachine == nil ||
 		machineUpToDateResult.CurrentKubeadmConfig == nil ||
 		machineUpToDateResult.DesiredKubeadmConfig == nil {
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
+		return canUpdateMachineResult{canUpdateMachine: false}, nil
 	}
 
 	extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.CanUpdateMachine, machine)
 	if err != nil {
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, err
+		return canUpdateMachineResult{canUpdateMachine: false}, err
 	}
 	// Machine cannot be updated in-place if no CanUpdateMachine extensions are registered.
 	if len(extensionHandlers) == 0 {
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
+		return canUpdateMachineResult{canUpdateMachine: false}, nil
 	}
 	if len(extensionHandlers) > 1 {
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
 	}
 
 	res, reasons, err := r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
 	if err != nil {
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, err
+		return canUpdateMachineResult{canUpdateMachine: false}, err
 	}
 	if !res.canUpdateMachine {
 		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions", klog.KObj(machine)), "reason", strings.Join(reasons, ","))
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
+		return canUpdateMachineResult{canUpdateMachine: false}, nil
+	}
+	if res.affectsAvailability {
+		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (affects availability)", klog.KObj(machine)))
+	} else {
+		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (does not affect availability)", klog.KObj(machine)))
 	}
 	return res, nil
 }
@@ -105,10 +110,10 @@ func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *cl
 	// Create the CanUpdateMachine request.
 	cannotUpdateMachineReason, req, err := createRequest(ctx, r.Client, machine, machineUpToDateResult)
 	if err != nil {
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachine request")
+		return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachine request")
 	}
 	if cannotUpdateMachineReason != "" {
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, []string{cannotUpdateMachineReason}, nil
+		return canUpdateMachineResult{canUpdateMachine: false}, []string{cannotUpdateMachineReason}, nil
 	}
 
 	var reasons []string
@@ -117,20 +122,20 @@ func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *cl
 		// Call CanUpdateMachine extension.
 		resp := &runtimehooksv1.CanUpdateMachineResponse{}
 		if err := r.RuntimeClient.CallExtension(ctx, runtimehooksv1.CanUpdateMachine, machine, extensionHandler, req, resp); err != nil {
-			return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, err
+			return canUpdateMachineResult{canUpdateMachine: false}, nil, err
 		}
 		affectsAvailability = affectsAvailability || ptr.Deref(resp.AffectsAvailability, true)
 
 		// Apply patches from the CanUpdateMachine response to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
-			return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachine request", extensionHandler)
+			return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachine request", extensionHandler)
 		}
 
 		// Check if current and desired objects are now matching.
 		var matches bool
 		matches, reasons, err = matchesMachine(req)
 		if err != nil {
-			return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
+			return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
 		}
 		if matches {
 			return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: affectsAvailability}, nil, nil
@@ -138,7 +143,7 @@ func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *cl
 		log.V(5).Info(fmt.Sprintf("Machine cannot be updated in-place yet after calling extension %s: %s", extensionHandler, strings.Join(reasons, ",")), "Machine", klog.KObj(&req.Current.Machine))
 	}
 
-	return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, reasons, nil
+	return canUpdateMachineResult{canUpdateMachine: false}, reasons, nil
 }
 
 func createRequest(ctx context.Context, c client.Client, currentMachine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (string, *runtimehooksv1.CanUpdateMachineRequest, error) {

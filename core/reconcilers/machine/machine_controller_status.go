@@ -618,7 +618,11 @@ func setUpdatingCondition(_ context.Context, machine *clusterv1.Machine, updatin
 			updatingReason = clusterv1.MachineInPlaceUpdatingReason
 		}
 		if updatingMessage == "" {
-			updatingMessage = "In-place update in progress"
+			if inplace.IsUpdateInProgressAndAffectsAvailability(machine) {
+				updatingMessage = "In-place update in progress (affects availability)"
+			} else {
+				updatingMessage = "In-place update in progress (does not affect availability)"
+			}
 		}
 		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineUpdatingCondition,

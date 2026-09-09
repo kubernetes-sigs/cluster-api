@@ -369,7 +369,7 @@ func Test_rollingUpdate(t *testing.T) {
 			wantScaleDownCalled:     true,
 		},
 		{
-			name:                    "Regular rollout: maxSurge 0: scale up",
+			name:                    "Regular rollout: maxSurge 0: scale up (currentReplicas == minReplicas && currentReplicas < desiredReplicas)",
 			maxSurge:                0,
 			currentReplicas:         2,
 			currentUpToDateReplicas: 0,
@@ -688,13 +688,15 @@ func Test_rollingUpdateSequences(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		desiredReplicas int32
-		maxSurge        int32
+		name                  string
+		desiredReplicas       int32
+		maxSurge              int32
+		remediationInProgress bool
 		// Machine names must match the pattern: machine-0, machine-1, ...
 		// When scale up creates new Machines it will continue the sequence
-		machines     []*clusterv1.Machine
-		wantSequence []string
+		machines         []*clusterv1.Machine
+		skipVerifyMinMax bool
+		wantSequence     []string
 	}{
 		// Regular rollout (no in-place)
 		{
@@ -883,6 +885,20 @@ func Test_rollingUpdateSequences(t *testing.T) {
 				"machine-2 deleted",
 			},
 		},
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 0 (AffectsAvailability: false), 2 current Replicas",
+			desiredReplicas: 3,
+			maxSurge:        0,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-2 created",
+				"machine-0 updated",
+				"machine-1 updated",
+			},
+		},
 		// Rollout with In-place updates: 1 CP Machine
 		{
 			name:            "In-place rollout, 1 Replicas, maxSurge 1 (AffectsAvailability: true)",
@@ -945,6 +961,60 @@ func Test_rollingUpdateSequences(t *testing.T) {
 				"machine-4 deleted",
 			},
 		},
+		// Remediation
+		{
+			name:                  "In-place rollout, 3 Replicas, maxSurge 1, remediation",
+			desiredReplicas:       3,
+			maxSurge:              1,
+			remediationInProgress: true,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				// one Machine got remediated (i.e. deleted)
+			},
+			wantSequence: []string{
+				"machine-2 created",
+				"machine-3 created",
+				"machine-0 updated",
+				"machine-1 deleted",
+			},
+		},
+		{
+			name:                  "In-place rollout, 3 Replicas, maxSurge 1, scale up, remediation",
+			desiredReplicas:       5, // scale up
+			maxSurge:              1,
+			remediationInProgress: true,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				// one Machine got remediated (i.e. deleted)
+			},
+			wantSequence: []string{
+				"machine-2 created",
+				"machine-3 created",
+				"machine-4 created",
+				"machine-5 created",
+				"machine-0 updated",
+				"machine-1 deleted",
+			},
+		},
+		{
+			name:                  "In-place rollout, 3 Replicas, maxSurge 1, scale down, remediation",
+			desiredReplicas:       1, // scale down
+			maxSurge:              1,
+			remediationInProgress: true,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				// one Machine got remediated (i.e. deleted)
+			},
+			skipVerifyMinMax: true, // As we first scale up after remediation we are intentionally violating the min/max range.
+			wantSequence: []string{
+				"machine-2 created",
+				"machine-0 deleted",
+				"machine-1 deleted",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -964,6 +1034,15 @@ func Test_rollingUpdateSequences(t *testing.T) {
 
 			controlPlane := &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: func() map[string]string {
+							annotations := map[string]string{}
+							if tt.remediationInProgress {
+								annotations[controlplanev1.RemediationInProgressAnnotation] = ""
+							}
+							return annotations
+						}(),
+					},
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						Replicas: ptr.To(tt.desiredReplicas),
 						Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
@@ -1000,6 +1079,7 @@ func Test_rollingUpdateSequences(t *testing.T) {
 				overrideScaleUpControlPlaneFunc: func(_ context.Context, _ *pkg.ControlPlane) (ctrl.Result, error) {
 					m := newMachine(machineAttr{Name: fmt.Sprintf("machine-%d", machineCounter), UpToDate: true})
 					controlPlane.Machines[m.Name] = m
+					delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
 					machineCounter++
 					sequence = append(sequence, fmt.Sprintf("%s created", m.Name))
 					return ctrl.Result{}, nil
@@ -1031,12 +1111,14 @@ func Test_rollingUpdateSequences(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(res.IsZero()).To(BeTrue())
 
-				// Verify that we stay in the min/max range once we are in the range.
-				if verifyMinMax {
-					g.Expect(replicasInMinMaxRange(minReplicas, maxReplicas, int32(len(controlPlane.Machines)))).To(BeTrue())
-				} else if replicasInMinMaxRange(minReplicas, maxReplicas, int32(len(controlPlane.Machines))) {
-					// Start verifying min/max as soon as we get into the min/max range.
-					verifyMinMax = true
+				if !tt.skipVerifyMinMax {
+					// Verify that we stay in the min/max range once we are in the range.
+					if verifyMinMax {
+						g.Expect(replicasInMinMaxRange(minReplicas, maxReplicas, int32(len(controlPlane.Machines)))).To(BeTrue())
+					} else if replicasInMinMaxRange(minReplicas, maxReplicas, int32(len(controlPlane.Machines))) {
+						// Start verifying min/max as soon as we get into the min/max range.
+						verifyMinMax = true
+					}
 				}
 
 				// Update machinesNeedingRollout, machinesUpToDateResults for next iteration.

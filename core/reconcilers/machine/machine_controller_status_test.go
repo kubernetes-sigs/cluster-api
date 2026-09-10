@@ -1602,6 +1602,79 @@ func TestSetUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "kubeletVersion with provider suffix matches spec version",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					Version: "v1.31.0",
+				},
+				Status: clusterv1.MachineStatus{
+					NodeInfo: &corev1.NodeSystemInfo{
+						KubeletVersion: "v1.31.0-eks-cb19647",
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineUpToDateReason,
+			},
+		},
+		{
+			name: "kubeletVersion with provider suffix but different base version",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					Version: "v1.31.0",
+				},
+				Status: clusterv1.MachineStatus{
+					NodeInfo: &corev1.NodeSystemInfo{
+						KubeletVersion: "v1.30.0-eks-cb19647",
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpToDateCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineUpToDateUpdatingReason,
+				Message: "* Node.status.nodeInfo.kubeletVersion v1.30.0-eks-cb19647, v1.31.0 required",
+			},
+		},
+		{
 			name: "updating (message from Updating)",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{

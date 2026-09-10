@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,6 +37,7 @@ import (
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // updateStatus update Machine's status.
@@ -708,7 +710,7 @@ func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1
 		return
 	}
 
-	if m.Status.NodeInfo != nil && m.Status.NodeInfo.KubeletVersion != "" && m.Status.NodeInfo.KubeletVersion != m.Spec.Version {
+	if m.Status.NodeInfo != nil && m.Status.NodeInfo.KubeletVersion != "" && !kubeletVersionMatchesSpecVersion(m.Status.NodeInfo.KubeletVersion, m.Spec.Version) {
 		conditions.Set(m, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionFalse,
@@ -724,6 +726,22 @@ func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.MachineUpToDateReason,
 	})
+}
+
+// kubeletVersionMatchesSpecVersion reports whether a Node's kubeletVersion refers to the same
+// Kubernetes version (major.minor.patch) as the Machine's spec.version, ignoring any provider-specific
+// pre-release or build metadata suffix (e.g. EKS reports "v1.36.3-eks-cb19647").
+// If either version cannot be parsed as a semantic version, it falls back to an exact string comparison.
+func kubeletVersionMatchesSpecVersion(kubeletVersion, specVersion string) bool {
+	kubelet, err := semver.ParseTolerant(kubeletVersion)
+	if err != nil {
+		return kubeletVersion == specVersion
+	}
+	spec, err := semver.ParseTolerant(specVersion)
+	if err != nil {
+		return kubeletVersion == specVersion
+	}
+	return version.Compare(kubelet, spec, version.WithoutPreReleases()) == 0
 }
 
 func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {

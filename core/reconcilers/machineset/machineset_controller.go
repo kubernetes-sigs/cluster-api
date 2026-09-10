@@ -809,6 +809,32 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 				return ctrl.Result{}, nil
 			}
 		}
+
+		// Circuit-breaker against uncontrolled Machine creation (see OCPBUGS-98066).
+		// The replica diff above is computed from Machines matching the MachineSet selector. If owned
+		// Machines drift out of the selector (e.g. their labels are mutated), they stop being counted
+		// and the diff keeps requesting new Machines, allowing a single MachineSet to create Machines
+		// without bound. Count Machines this MachineSet actually owns via ownerRef and never let that
+		// number exceed the desired replicas: if we already own enough (or more), halt creation and
+		// surface the reason instead of compounding the runaway.
+		ownedMachines, err := r.countOwnedMachines(ctx, ms)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		desiredReplicas := int(ptr.Deref(ms.Spec.Replicas, 0))
+		if ownedMachines >= desiredReplicas {
+			message := fmt.Sprintf("Machine creation blocked: MachineSet already owns %d Machines, which meets or exceeds the desired %d replicas; some owned Machines may have drifted out of the MachineSet selector", ownedMachines, desiredReplicas)
+			log.Info(message, "ownedMachines", ownedMachines, "desiredReplicas", desiredReplicas, "selectorMatchingMachines", len(machines))
+			s.scaleUpPreflightCheckErrMessages = append(s.scaleUpPreflightCheckErrMessages, message)
+			v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.MachineCreationBlockedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", message)
+			r.recorder.Eventf(ms, corev1.EventTypeWarning, "MachineCreationBlocked", "%s", message)
+			return ctrl.Result{}, nil
+		}
+		// Cap creation so the total number of owned Machines never exceeds the desired replicas, even
+		// when the selector-based diff would ask for more because of drifted (uncounted) Machines.
+		if machinesToAdd > desiredReplicas-ownedMachines {
+			machinesToAdd = desiredReplicas - ownedMachines
+		}
 		return r.createMachines(ctx, s, machinesToAdd)
 
 	case diff > 0:
@@ -848,6 +874,25 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// countOwnedMachines returns the number of Machines in the MachineSet's namespace that are
+// controlled by this MachineSet, regardless of whether they still match its selector. The normal
+// replica diff only counts selector-matching Machines; Machines whose labels have drifted out of the
+// selector are invisible to it but are still owned by (and were created by) this MachineSet. Counting
+// by ownerRef closes that gap and is what allows syncReplicas to cap uncontrolled Machine creation.
+func (r *Reconciler) countOwnedMachines(ctx context.Context, ms *clusterv1.MachineSet) (int, error) {
+	allMachines := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, allMachines, client.InNamespace(ms.Namespace)); err != nil {
+		return 0, pkgerrors.Wrap(err, "failed to list machines to enforce the Machine creation ceiling")
+	}
+	owned := 0
+	for i := range allMachines.Items {
+		if metav1.IsControlledBy(&allMachines.Items[i], ms) {
+			owned++
+		}
+	}
+	return owned, nil
 }
 
 func (r *Reconciler) cleanupOrphanedBootstrapConfigsInfraMachines(ctx context.Context, s *scope) error {

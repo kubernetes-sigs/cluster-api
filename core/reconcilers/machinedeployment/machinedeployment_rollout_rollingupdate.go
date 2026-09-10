@@ -607,7 +607,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 			replicasOldMS = i
 		}
 		newScaleDownIntentOldMS := max(replicasOldMS-1, 0)
-		p.addNotef(oldMS, "surge 1 for MachineSet %s converted to scale down for MachineSet %s to %d replicas (-%d)", p.newMS.Name, oldMS.Name, newScaleDownIntentOldMS, 1)
+		p.addNotef(oldMS, "surge %d for MachineSet %s converted to scale down for MachineSet %s to %d replicas (-%d)", maxSurgeUsed, p.newMS.Name, oldMS.Name, newScaleDownIntentOldMS, 1)
 		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleDownIntentOldMS, 1), "MachineSet", klog.KObj(oldMS))
 		p.scaleIntents[oldMS.Name] = newScaleDownIntentOldMS
 	} else {

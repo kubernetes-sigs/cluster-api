@@ -86,7 +86,7 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 		// If a machine is in-place updating and the operation affects availability, consider it not Ready, not Available and not UpToDate.
 		// Note: We have to check this here because we don't want to rely on an additional Machine controller
 		//       reconcile to set the conditions to be able to update the replica counters here correctly.
-		if inplace.IsUpdateInProgressAffectingAvailability(machine) {
+		if inplace.IsUpdateInProgressAndAffectsAvailability(machine) {
 			continue
 		}
 

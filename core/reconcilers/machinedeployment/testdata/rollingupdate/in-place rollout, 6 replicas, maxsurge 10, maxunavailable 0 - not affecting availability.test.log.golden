@@ -17,7 +17,7 @@
     md: 6/6 replicas, 6 available, 0 upToDate
     ms1: from 6/6 to 6/5 replicas, 6 available, 0 upToDate (m1,m2,m3,m4,m5,m6)
       - Scaled down old MachineSet ms1 from 6 to 5 replicas (-1)
-        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 1 for MachineSet ms2 converted to scale down for MachineSet ms1 to 5 replicas (-1)
+        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 6 for MachineSet ms2 converted to scale down for MachineSet ms1 to 5 replicas (-1)
         - Diff: replicas 5,in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset: {"name":"ms2","affectsAvailability":false},cluster.x-k8s.io/disable-machine-create: false
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
       - MachineSet ms2 created, it is now the current MachineSet
@@ -53,7 +53,7 @@
     md: 6/6 replicas, 6 available, 1 upToDate
     ms1: from 5/5 to 5/4 replicas, 5 available, 0 upToDate (m2,m3,m4,m5,m6)
       - Scaled down old MachineSet ms1 from 5 to 4 replicas (-1)
-        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 1 for MachineSet ms2 converted to scale down for MachineSet ms1 to 4 replicas (-1)
+        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 5 for MachineSet ms2 converted to scale down for MachineSet ms1 to 4 replicas (-1)
         - Diff: replicas 4
     ms2: 1/1 replicas, 1 available, 1 upToDate (m1)
 [MS controller] Reconcile
@@ -88,7 +88,7 @@
     md: 6/6 replicas, 6 available, 2 upToDate
     ms1: from 4/4 to 4/3 replicas, 4 available, 0 upToDate (m3,m4,m5,m6)
       - Scaled down old MachineSet ms1 from 4 to 3 replicas (-1)
-        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 1 for MachineSet ms2 converted to scale down for MachineSet ms1 to 3 replicas (-1)
+        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 4 for MachineSet ms2 converted to scale down for MachineSet ms1 to 3 replicas (-1)
         - Diff: replicas 3
     ms2: 2/2 replicas, 2 available, 2 upToDate (m1,m2)
 [MS controller] Reconcile
@@ -123,7 +123,7 @@
     md: 6/6 replicas, 6 available, 3 upToDate
     ms1: from 3/3 to 3/2 replicas, 3 available, 0 upToDate (m4,m5,m6)
       - Scaled down old MachineSet ms1 from 3 to 2 replicas (-1)
-        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 1 for MachineSet ms2 converted to scale down for MachineSet ms1 to 2 replicas (-1)
+        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 3 for MachineSet ms2 converted to scale down for MachineSet ms1 to 2 replicas (-1)
         - Diff: replicas 2
     ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m3)
 [MS controller] Reconcile
@@ -158,7 +158,7 @@
     md: 6/6 replicas, 6 available, 4 upToDate
     ms1: from 2/2 to 2/1 replicas, 2 available, 0 upToDate (m5,m6)
       - Scaled down old MachineSet ms1 from 2 to 1 replicas (-1)
-        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 1 for MachineSet ms2 converted to scale down for MachineSet ms1 to 1 replicas (-1)
+        - Reason: should scale down by moving Machines to MachineSet ms2 (does not affect availability), surge 2 for MachineSet ms2 converted to scale down for MachineSet ms1 to 1 replicas (-1)
         - Diff: replicas 1
     ms2: 4/4 replicas, 4 available, 4 upToDate (m1,m2,m3,m4)
 [MS controller] Reconcile

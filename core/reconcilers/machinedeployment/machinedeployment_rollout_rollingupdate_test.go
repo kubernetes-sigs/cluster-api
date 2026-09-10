@@ -460,7 +460,7 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
 				createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)), // MS with a machine updating in place (does not affect availability)
 			},
-			machines: []*clusterv1.Machine{ // it i
+			machines: []*clusterv1.Machine{ // in this test it is required to define machines because the test is checking a code path validating UpdateInProgressAnnotation on Machine
 				createM("m1", "ms1", "v1"),
 				createM("m2", "ms1", "v1"),
 				createM("m3", "ms2", "v2", withMAnnotation(clusterv1.UpdateInProgressAnnotation, "{\"affectsAvailability\":false}")),
@@ -1445,7 +1445,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms1": 2, // 3 replicas - 1 in place update not affecting availability
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)", "surge 1 for MachineSet ms2 converted to scale down for MachineSet ms1 to 2 replicas (-1)"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)", "surge 3 for MachineSet ms2 converted to scale down for MachineSet ms1 to 2 replicas (-1)"},
 			},
 		},
 		{

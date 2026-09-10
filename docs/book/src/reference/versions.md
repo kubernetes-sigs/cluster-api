@@ -67,7 +67,7 @@ All considered, each Cluster API minor release is supported for a period of roug
 - At the end of the four-month maintenance mode period, the minor release will be considered EOL (end of life) and 
   cherry picks to the associated branch are to be closed soon afterwards.
 
-The table below documents support matrix for Cluster API versions (versions older than v1.10 omitted).
+The table below documents support matrix for Cluster API versions.
 
 | Minor Release | Status                  | Supported Until (including maintenance mode)                                                |
 |---------------|-------------------------|---------------------------------------------------------------------------------------------|

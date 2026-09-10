@@ -1436,6 +1436,13 @@ func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineResponse(ref common.Refer
 							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
 						},
 					},
+					"affectsAvailability": {
+						SchemaProps: spec.SchemaProps{
+							Description: "affectsAvailability indicates if the in-place update affects availability of the Machine. Default is true.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"status"},
 			},

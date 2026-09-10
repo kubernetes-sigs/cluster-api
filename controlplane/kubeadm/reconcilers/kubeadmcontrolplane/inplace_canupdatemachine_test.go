@@ -76,10 +76,11 @@ func Test_canUpdateMachine(t *testing.T) {
 		name                                 string
 		machineUpToDateResult                pkg.UpToDateResult
 		enableInPlaceUpdatesFeatureGate      bool
-		canExtensionsUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (bool, []string, error)
+		canExtensionsUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error)
 		getAllExtensionsResponses            map[runtimecatalog.GroupVersionHook][]string
 		wantCanExtensionsUpdateMachineCalled bool
 		wantCanUpdateMachine                 bool
+		wantAffectsAvailability              bool
 		wantError                            bool
 		wantErrorMessage                     string
 	}{
@@ -87,11 +88,13 @@ func Test_canUpdateMachine(t *testing.T) {
 			name:                            "Return false if feature gate is not enabled",
 			enableInPlaceUpdatesFeatureGate: false,
 			wantCanUpdateMachine:            false,
+			wantAffectsAvailability:         false,
 		},
 		{
 			name:                            "Return false if objects in machineUpToDateResult are nil",
 			enableInPlaceUpdatesFeatureGate: true,
 			wantCanUpdateMachine:            false,
+			wantAffectsAvailability:         false,
 		},
 		{
 			name:                            "Return false if no CanUpdateMachine extensions registered",
@@ -99,6 +102,7 @@ func Test_canUpdateMachine(t *testing.T) {
 			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
 			getAllExtensionsResponses:       map[runtimecatalog.GroupVersionHook][]string{},
 			wantCanUpdateMachine:            false,
+			wantAffectsAvailability:         false,
 		},
 		{
 			name:                            "Return error if more than one CanUpdateMachine extensions registered",
@@ -117,14 +121,15 @@ func Test_canUpdateMachine(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (bool, []string, error) {
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return false, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
 				}
-				return false, []string{"can not update"}, nil
+				return canUpdateMachineResult{canUpdateMachine: false}, []string{"can not update"}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
 			wantCanUpdateMachine:                 false,
+			wantAffectsAvailability:              false,
 		},
 		{
 			name:                            "Return true if canExtensionsUpdateMachine returns true",
@@ -133,14 +138,15 @@ func Test_canUpdateMachine(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (bool, []string, error) {
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return false, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
 				}
-				return true, nil, nil
+				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true}, nil, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
 			wantCanUpdateMachine:                 true,
+			wantAffectsAvailability:              true,
 		},
 	}
 	for _, tt := range tests {
@@ -159,20 +165,21 @@ func Test_canUpdateMachine(t *testing.T) {
 			var canExtensionsUpdateMachineCalled bool
 			r := &Reconciler{
 				RuntimeClient: runtimeClient,
-				overrideCanExtensionsUpdateMachine: func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (bool, []string, error) {
+				overrideCanExtensionsUpdateMachine: func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
 					canExtensionsUpdateMachineCalled = true
 					return tt.canExtensionsUpdateMachineFunc(ctx, machine, machineUpToDateResult, extensionHandlers)
 				},
 			}
 
-			canUpdateMachine, err := r.canUpdateMachine(ctx, machineToInPlaceUpdate, tt.machineUpToDateResult)
+			res, err := r.canUpdateMachine(ctx, machineToInPlaceUpdate, tt.machineUpToDateResult)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(canUpdateMachine).To(Equal(tt.wantCanUpdateMachine))
+			g.Expect(res.canUpdateMachine).To(Equal(tt.wantCanUpdateMachine))
+			g.Expect(res.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
 
 			g.Expect(canExtensionsUpdateMachineCalled).To(Equal(tt.wantCanExtensionsUpdateMachineCalled), "canExtensionsUpdateMachineCalled: actual: %t expected: %t", canExtensionsUpdateMachineCalled, tt.wantCanExtensionsUpdateMachineCalled)
 		})
@@ -272,6 +279,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 		callExtensionResponses       map[string]runtimehooksv1.ResponseObject
 		callExtensionExpectedChanges map[string]func(runtime.Object)
 		wantCanUpdateMachine         bool
+		wantAffectsAvailability      bool
 		wantReasons                  []string
 		wantError                    bool
 		wantErrorMessage             string
@@ -290,7 +298,8 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": responseWithEmptyPatches,
 			},
-			wantCanUpdateMachine: true,
+			wantCanUpdateMachine:    true,
+			wantAffectsAvailability: true,
 		},
 		{
 			name: "Return false if current and desired objects are not equal and no patches are returned",
@@ -305,7 +314,8 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": responseWithEmptyPatches,
 			},
-			wantCanUpdateMachine: false,
+			wantCanUpdateMachine:    false,
+			wantAffectsAvailability: false,
 			wantReasons: []string{
 				`Machine cannot be updated in-place: &v1beta2.Machine{
     TypeMeta:   {},
@@ -355,9 +365,11 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					MachinePatch:               patchToUpdateMachine,
 					InfrastructureMachinePatch: patchToUpdateInfraMachine,
 					BootstrapConfigPatch:       patchToUpdateKubeadmConfig,
+					AffectsAvailability:        new(false),
 				},
 			},
-			wantCanUpdateMachine: true,
+			wantCanUpdateMachine:    true,
+			wantAffectsAvailability: false,
 		},
 		{
 			name: "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions)",
@@ -371,16 +383,19 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
-					MachinePatch:   patchToUpdateMachine,
+					CommonResponse:      runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
+					MachinePatch:        patchToUpdateMachine,
+					AffectsAvailability: new(false),
 				},
 				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineResponse{
 					CommonResponse:             runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 					InfrastructureMachinePatch: patchToUpdateInfraMachine,
+					// AffectsAvailability not set => defaults to true.
 				},
 				"test-update-extension-3": &runtimehooksv1.CanUpdateMachineResponse{
 					CommonResponse:       runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 					BootstrapConfigPatch: patchToUpdateKubeadmConfig,
+					AffectsAvailability:  new(false),
 				},
 			},
 			callExtensionExpectedChanges: map[string]func(runtime.Object){
@@ -401,7 +416,8 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					}
 				},
 			},
-			wantCanUpdateMachine: true,
+			wantCanUpdateMachine:    true,
+			wantAffectsAvailability: true,
 		},
 		{
 			name: "Return false if current and desired objects are not equal and patches are returned that only account for some diffs",
@@ -421,7 +437,8 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					BootstrapConfigPatch:       emptyPatch,
 				},
 			},
-			wantCanUpdateMachine: false,
+			wantCanUpdateMachine:    false,
+			wantAffectsAvailability: false,
 			wantReasons: []string{
 				`KubeadmConfig cannot be updated in-place: &unstructured.Unstructured{
     Object: map[string]any{
@@ -463,14 +480,15 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 				RuntimeClient: runtimeClient,
 			}
 
-			canUpdateMachine, reasons, err := r.canExtensionsUpdateMachine(ctx, currentMachine, tt.machineUpToDateResult, tt.extensionHandlers)
+			res, reasons, err := r.canExtensionsUpdateMachine(ctx, currentMachine, tt.machineUpToDateResult, tt.extensionHandlers)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(canUpdateMachine).To(Equal(tt.wantCanUpdateMachine))
+			g.Expect(res.canUpdateMachine).To(Equal(tt.wantCanUpdateMachine))
+			g.Expect(res.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
 			g.Expect(reasons).To(BeComparableTo(tt.wantReasons))
 		})
 	}

@@ -69,37 +69,48 @@ func NewExtensionHandlers(client client.Client) *ExtensionHandlers {
 // canUpdateMachineSpec declares that this extension can update:
 // * MachineSpec.FailureDomain
 // * MachineSpec.Version.
-func canUpdateMachineSpec(current, desired *clusterv1.MachineSpec) {
+func canUpdateMachineSpec(current, desired *clusterv1.MachineSpec) bool {
+	affectsAvailability := false
 	if current.FailureDomain != desired.FailureDomain {
 		current.FailureDomain = desired.FailureDomain
+		affectsAvailability = true
 	}
 	// TBD if we should keep this, but for now using it to test KCP machinery as this
 	// is the only field on Machine that KCP will try to roll out in-place.
 	if current.Version != desired.Version {
 		current.Version = desired.Version
+		affectsAvailability = true
 	}
+	return affectsAvailability
 }
 
 // canUpdateKubeadmConfigSpec declares that this extension can update:
 // * KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag
 // * KubeadmConfigSpec.Files.
-func canUpdateKubeadmConfigSpec(current, desired *bootstrapv1.KubeadmConfigSpec) {
+func canUpdateKubeadmConfigSpec(current, desired *bootstrapv1.KubeadmConfigSpec) bool {
+	affectsAvailability := false
 	if current.ClusterConfiguration.Etcd.Local.ImageTag != desired.ClusterConfiguration.Etcd.Local.ImageTag {
 		current.ClusterConfiguration.Etcd.Local.ImageTag = desired.ClusterConfiguration.Etcd.Local.ImageTag
+		affectsAvailability = true
 	}
 	if !reflect.DeepEqual(current.Files, desired.Files) {
 		current.Files = desired.Files
+		// Does not affect availability.
 	}
+	return affectsAvailability
 }
 
 // canUpdateDevMachineSpec declares that this extension can update:
 // * DevMachineSpec.Backend.Docker.BootstrapTimeout.
-func canUpdateDevMachineSpec(current, desired *infrav1.DevMachineSpec) {
+func canUpdateDevMachineSpec(current, desired *infrav1.DevMachineSpec) bool {
+	affectsAvailability := false
 	if current.Backend.Docker != nil && desired.Backend.Docker != nil {
 		if current.Backend.Docker.BootstrapTimeout != desired.Backend.Docker.BootstrapTimeout {
 			current.Backend.Docker.BootstrapTimeout = desired.Backend.Docker.BootstrapTimeout
+			// Does not affect availability.
 		}
 	}
+	return affectsAvailability
 }
 
 // DoCanUpdateMachine implements the CanUpdateMachine hook.
@@ -124,20 +135,20 @@ func (h *ExtensionHandlers) DoCanUpdateMachine(ctx context.Context, req *runtime
 	// Declare changes that this Runtime Extension can update in-place.
 
 	// Machine
-	canUpdateMachineSpec(&currentMachine.Spec, &desiredMachine.Spec)
+	affectsAvailability := canUpdateMachineSpec(&currentMachine.Spec, &desiredMachine.Spec)
 
 	// BootstrapConfig (we can only update KubeadmConfigs)
 	currentKubeadmConfig, isCurrentKubeadmConfig := currentBootstrapConfig.(*bootstrapv1.KubeadmConfig)
 	desiredKubeadmConfig, isDesiredKubeadmConfig := desiredBootstrapConfig.(*bootstrapv1.KubeadmConfig)
 	if isCurrentKubeadmConfig && isDesiredKubeadmConfig {
-		canUpdateKubeadmConfigSpec(&currentKubeadmConfig.Spec, &desiredKubeadmConfig.Spec)
+		affectsAvailability = affectsAvailability || canUpdateKubeadmConfigSpec(&currentKubeadmConfig.Spec, &desiredKubeadmConfig.Spec)
 	}
 
 	// InfraMachine (we can only update DevMachines)
 	currentDevMachine, isCurrentDevMachine := currentInfraMachine.(*infrav1.DevMachine)
 	desiredDevMachine, isDesiredDevMachine := desiredInfraMachine.(*infrav1.DevMachine)
 	if isCurrentDevMachine && isDesiredDevMachine {
-		canUpdateDevMachineSpec(&currentDevMachine.Spec, &desiredDevMachine.Spec)
+		affectsAvailability = affectsAvailability || canUpdateDevMachineSpec(&currentDevMachine.Spec, &desiredDevMachine.Spec)
 	}
 
 	if err := h.computeCanUpdateMachineResponse(req, resp, currentMachine, currentBootstrapConfig, currentInfraMachine); err != nil {
@@ -146,6 +157,7 @@ func (h *ExtensionHandlers) DoCanUpdateMachine(ctx context.Context, req *runtime
 		return
 	}
 
+	resp.AffectsAvailability = new(affectsAvailability)
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
 }
 

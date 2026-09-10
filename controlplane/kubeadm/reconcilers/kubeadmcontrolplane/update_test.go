@@ -19,11 +19,11 @@ package kubeadmcontrolplane
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
-	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -145,6 +145,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	for _, m := range needingUpgrade {
 		machinesUpToDateResults[m.Name] = pkg.UpToDateResult{EligibleForInPlaceUpdate: false}
 	}
+	controlPlane.MachinesNotUpToDate = needingUpgrade
 	result, err = r.updateControlPlane(ctx, controlPlane, needingUpgrade, machinesUpToDateResults)
 	g.Expect(result.IsZero()).To(BeTrue())
 	g.Expect(err).ToNot(HaveOccurred())
@@ -300,25 +301,49 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 }
 
 func Test_rollingUpdate(t *testing.T) {
+	preflightChecksFailedFunc := func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
+		return preflightChecksResult{succeeded: false, requeueAfter: 3 * time.Second}
+	}
+	preflightChecksSucceededFunc := func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
+		return preflightChecksResult{succeeded: true}
+	}
+	preflightChecksSucceededForSpecificMachineFunc := func(_ context.Context, _ *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult {
+		if len(excludeFor) > 0 {
+			return preflightChecksResult{succeeded: true}
+		}
+		return preflightChecksResult{succeeded: false, requeueAfter: 3 * time.Second}
+	}
+	canUpdateMachineTrueFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true}, nil
+	}
+	canUpdateMachineTrueAndDoesNotAffectAvailabilityFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false}, nil
+	}
+	canUpdateMachineFalseFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
+	}
+
 	tests := []struct {
 		name                            string
 		maxSurge                        int32
 		currentReplicas                 int32
 		currentUpToDateReplicas         int32
 		desiredReplicas                 int32
+		isRemediation                   bool
 		enableInPlaceUpdatesFeatureGate bool
 		machineEligibleForInPlaceUpdate bool
 		preflightChecksFunc             func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult
-		tryInPlaceUpdateFunc            func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error)
+		canUpdateMachineFunc            func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (canUpdateMachineResult, error)
 		wantPreflightChecksFuncCalled   bool
-		wantTryInPlaceUpdateCalled      bool
+		wantCanUpdateMachineCalled      bool
 		wantScaleDownCalled             bool
 		wantScaleUpCalled               bool
+		wantTriggerInPlaceUpdateCalled  bool
 		wantError                       bool
 		wantErrorMessage                string
 		wantRes                         ctrl.Result
 	}{
-		// Regular rollout (no in-place updates)
+		// Regular rollout (no in-place updates, enableInPlaceUpdatesFeatureGate: false)
 		{
 			name:                    "Regular rollout: maxSurge 1: scale up",
 			maxSurge:                1,
@@ -344,51 +369,132 @@ func Test_rollingUpdate(t *testing.T) {
 			wantScaleDownCalled:     true,
 		},
 		{
-			name:                    "Regular rollout: maxSurge 0: scale up",
+			name:                    "Regular rollout: maxSurge 0: scale up (currentReplicas == minReplicas && currentReplicas < desiredReplicas)",
 			maxSurge:                0,
 			currentReplicas:         2,
 			currentUpToDateReplicas: 0,
 			desiredReplicas:         3,
 			wantScaleUpCalled:       true,
 		},
+		{
+			name:                    "Regular rollout: already enough up-to-date replicas: scale down",
+			maxSurge:                1,
+			currentReplicas:         4,
+			currentUpToDateReplicas: 3,
+			desiredReplicas:         3,
+			wantScaleDownCalled:     true,
+		},
+		{
+			name:                    "Remediation: scale up",
+			maxSurge:                0,
+			currentReplicas:         2,
+			currentUpToDateReplicas: 0,
+			desiredReplicas:         3,
+			isRemediation:           true,
+			wantScaleUpCalled:       true,
+		},
+		{
+			name:                    "Below min replicas: scale up",
+			maxSurge:                1,
+			currentReplicas:         2,
+			currentUpToDateReplicas: 0,
+			desiredReplicas:         3,
+			wantScaleUpCalled:       true,
+		},
+		{
+			name:                    "Above max replicas: scale down",
+			maxSurge:                1,
+			currentReplicas:         5,
+			currentUpToDateReplicas: 0,
+			desiredReplicas:         3,
+			wantScaleDownCalled:     true,
+		},
 		// In-place updates
 		// Note: maxSurge 0 or 1 doesn't have an impact on the in-place code path so not testing permutations here.
-		// Note: Scale up works the same way as for regular rollouts so not testing it here again.
 		//
-		// In-place updates: tryInPlaceUpdate not called
+		// In-place updates: inPlaceUpdateOrScaleUpControlPlane
 		{
-			name:                            "In-place updates: feature gate disabled: scale down (tryInPlaceUpdate not called)",
-			maxSurge:                        0,
+			name:                            "In-place updates: Machine not eligible for in-place: scale up",
+			maxSurge:                        1,
 			currentReplicas:                 3,
 			currentUpToDateReplicas:         0,
 			desiredReplicas:                 3,
-			enableInPlaceUpdatesFeatureGate: false,
-			wantTryInPlaceUpdateCalled:      false,
-			wantScaleDownCalled:             true,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: false,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleUpCalled:               true,
 		},
 		{
-			name:                            "In-place updates: Machine not eligible for in-place: scale down (tryInPlaceUpdate not called)",
+			name:                            "In-place updates: preflightChecks failed",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksFailedFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleUpCalled:               false,
+			wantRes:                         ctrl.Result{RequeueAfter: 3 * time.Second},
+		},
+		{
+			name:                            "In-place updates: preflightChecks succeeded, canUpdateMachine: true, affectsAvailability: false, triggerInPlaceUpdate called",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineTrueAndDoesNotAffectAvailabilityFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  true,
+			wantScaleUpCalled:               false,
+		},
+		{
+			name:                            "In-place updates: preflightChecks succeeded, canUpdateMachine: true, affectsAvailability: true, fallback to scale up",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineTrueFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleUpCalled:               true,
+		},
+		{
+			name:                            "In-place updates: preflightChecks succeeded, canUpdateMachine: false, fallback to scale up",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineFalseFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleUpCalled:               true,
+		},
+		// In-place updates: inPlaceUpdateOrScaleDownControlPlane
+		{
+			name:                            "In-place updates: Machine not eligible for in-place: scale down",
 			maxSurge:                        0,
 			currentReplicas:                 3,
 			currentUpToDateReplicas:         0,
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: false,
-			wantTryInPlaceUpdateCalled:      false,
+			wantTriggerInPlaceUpdateCalled:  false,
 			wantScaleDownCalled:             true,
 		},
-		{
-			name:                            "In-place updates: already enough up-to-date replicas: scale down (tryInPlaceUpdate not called)",
-			maxSurge:                        1,
-			currentReplicas:                 4,
-			currentUpToDateReplicas:         3,
-			desiredReplicas:                 3,
-			enableInPlaceUpdatesFeatureGate: true,
-			machineEligibleForInPlaceUpdate: true,
-			wantTryInPlaceUpdateCalled:      false,
-			wantScaleDownCalled:             true,
-		},
-		// In-place updates: preflightCheck failures
 		{
 			name:                            "In-place updates: preflightChecks failed",
 			maxSurge:                        0,
@@ -397,88 +503,54 @@ func Test_rollingUpdate(t *testing.T) {
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
-				return preflightChecksResult{succeeded: false, requeueAfter: 3 * time.Second}
-			},
-			wantPreflightChecksFuncCalled: true,
-			wantTryInPlaceUpdateCalled:    false,
-			wantScaleDownCalled:           false,
-			wantRes:                       ctrl.Result{RequeueAfter: 3 * time.Second},
+			preflightChecksFunc:             preflightChecksFailedFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleDownCalled:             false,
+			wantRes:                         ctrl.Result{RequeueAfter: 3 * time.Second},
 		},
 		{
-			name:                            "In-place updates: preflightChecks failed only for specific Machine, fallback to scale down",
+			name:                            "In-place updates: preflightChecks succeeded only for specific Machine, fallback to scale down",
 			maxSurge:                        0,
 			currentReplicas:                 3,
 			currentUpToDateReplicas:         0,
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult {
-				if len(excludeFor) > 0 {
-					return preflightChecksResult{succeeded: true}
-				}
-				return preflightChecksResult{succeeded: false, requeueAfter: 3 * time.Second}
-			},
-			wantPreflightChecksFuncCalled: true,
-			wantTryInPlaceUpdateCalled:    false,
-			wantScaleDownCalled:           true,
+			preflightChecksFunc:             preflightChecksSucceededForSpecificMachineFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleDownCalled:             true,
 		},
-		// In-place updates: tryInPlaceUpdate called
 		{
-			name:                            "In-place updates: preflightChecks succeeded, tryInPlaceUpdate returns error",
+			name:                            "In-place updates: preflightChecks succeeded, canUpdateMachine: true, triggerInPlaceUpdate called",
 			maxSurge:                        0,
 			currentReplicas:                 3,
 			currentUpToDateReplicas:         0,
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
-				return preflightChecksResult{succeeded: true}
-			},
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (bool, error) {
-				return false, pkgerrors.New("in-place update error")
-			},
-			wantPreflightChecksFuncCalled: true,
-			wantTryInPlaceUpdateCalled:    true,
-			wantScaleDownCalled:           false,
-			wantError:                     true,
-			wantErrorMessage:              "in-place update error",
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineTrueFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  true,
+			wantScaleDownCalled:             false,
 		},
 		{
-			name:                            "In-place updates: preflightChecks succeeded, tryInPlaceUpdate returns fallback to scale down",
+			name:                            "In-place updates: preflightChecks succeeded, canUpdateMachine: false, fallback to scale down",
 			maxSurge:                        0,
 			currentReplicas:                 3,
 			currentUpToDateReplicas:         0,
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
-				return preflightChecksResult{succeeded: true}
-			},
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (fallbackToScaleDown bool, _ error) {
-				return true, nil
-			},
-			wantPreflightChecksFuncCalled: true,
-			wantTryInPlaceUpdateCalled:    true,
-			wantScaleDownCalled:           true,
-		},
-		{
-			name:                            "In-place updates: preflightChecks succeeded, tryInPlaceUpdate returns nothing (in-place update triggered)",
-			maxSurge:                        0,
-			currentReplicas:                 3,
-			currentUpToDateReplicas:         0,
-			desiredReplicas:                 3,
-			enableInPlaceUpdatesFeatureGate: true,
-			machineEligibleForInPlaceUpdate: true,
-			preflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
-				return preflightChecksResult{succeeded: true}
-			},
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult) (fallbackToScaleDown bool, _ error) {
-				return false, nil
-			},
-			wantPreflightChecksFuncCalled: true,
-			wantTryInPlaceUpdateCalled:    true,
-			wantScaleDownCalled:           false,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineFalseFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleDownCalled:             true,
 		},
 	}
 	for _, tt := range tests {
@@ -490,17 +562,18 @@ func Test_rollingUpdate(t *testing.T) {
 			}
 
 			var preflightChecksFuncCalled bool
-			var inPlaceUpdateCalled bool
+			var canUpdateMachineCalled bool
 			var scaleDownCalled bool
 			var scaleUpCalled bool
+			var triggerInPlaceUpdateCalled bool
 			r := &Reconciler{
 				overridePreflightChecksFunc: func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult {
 					preflightChecksFuncCalled = true
 					return tt.preflightChecksFunc(ctx, controlPlane, excludeFor...)
 				},
-				overrideTryInPlaceUpdateFunc: func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (bool, error) {
-					inPlaceUpdateCalled = true
-					return tt.tryInPlaceUpdateFunc(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
+				overrideCanUpdateMachineFunc: func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (canUpdateMachineResult, error) {
+					canUpdateMachineCalled = true
+					return tt.canUpdateMachineFunc(ctx, machine, machineUpToDateResult)
 				},
 				overrideScaleDownControlPlaneFunc: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine) (ctrl.Result, error) {
 					scaleDownCalled = true
@@ -509,6 +582,10 @@ func Test_rollingUpdate(t *testing.T) {
 				overrideScaleUpControlPlaneFunc: func(_ context.Context, _ *pkg.ControlPlane) (ctrl.Result, error) {
 					scaleUpCalled = true
 					return ctrl.Result{}, nil
+				},
+				overrideTriggerInPlaceUpdate: func(_ context.Context, _ *pkg.ControlPlane, _ *clusterv1.Machine, _ pkg.UpToDateResult, _ bool) error {
+					triggerInPlaceUpdateCalled = true
+					return nil
 				},
 				controller: capicontrollerutil.NewFakeController(),
 				recorder:   record.NewFakeRecorder(32),
@@ -525,6 +602,15 @@ func Test_rollingUpdate(t *testing.T) {
 
 			controlPlane := &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: func() map[string]string {
+							annotations := map[string]string{}
+							if tt.isRemediation {
+								annotations[controlplanev1.RemediationInProgressAnnotation] = ""
+							}
+							return annotations
+						}(),
+					},
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						Replicas: ptr.To(tt.desiredReplicas),
 						Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
@@ -555,11 +641,501 @@ func Test_rollingUpdate(t *testing.T) {
 			g.Expect(res).To(Equal(tt.wantRes))
 
 			g.Expect(preflightChecksFuncCalled).To(Equal(tt.wantPreflightChecksFuncCalled), "preflightChecksFuncCalled: actual: %t expected: %t", preflightChecksFuncCalled, tt.wantPreflightChecksFuncCalled)
-			g.Expect(inPlaceUpdateCalled).To(Equal(tt.wantTryInPlaceUpdateCalled), "inPlaceUpdateCalled: actual: %t expected: %t", inPlaceUpdateCalled, tt.wantTryInPlaceUpdateCalled)
+			g.Expect(canUpdateMachineCalled).To(Equal(tt.wantCanUpdateMachineCalled), "canUpdateMachineCalled: actual: %t expected: %t", canUpdateMachineCalled, tt.wantCanUpdateMachineCalled)
 			g.Expect(scaleDownCalled).To(Equal(tt.wantScaleDownCalled), "scaleDownCalled: actual: %t expected: %t", scaleDownCalled, tt.wantScaleDownCalled)
 			g.Expect(scaleUpCalled).To(Equal(tt.wantScaleUpCalled), "scaleUpCalled: actual: %t expected: %t", scaleUpCalled, tt.wantScaleUpCalled)
+			g.Expect(triggerInPlaceUpdateCalled).To(Equal(tt.wantTriggerInPlaceUpdateCalled), "triggerInPlaceUpdateCalled: actual: %t expected: %t", triggerInPlaceUpdateCalled, tt.wantTriggerInPlaceUpdateCalled)
 		})
 	}
+}
+
+func Test_rollingUpdateSequences(t *testing.T) {
+	type machineAttr struct {
+		Name                     string
+		UpToDate                 bool
+		EligibleForInPlaceUpdate bool
+		CanUpdateMachine         bool
+		AffectsAvailability      bool
+	}
+	newMachine := func(attr machineAttr) *clusterv1.Machine {
+		return &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: attr.Name,
+				Annotations: map[string]string{
+					"upToDate":                 strconv.FormatBool(attr.UpToDate),
+					"eligibleForInPlaceUpdate": strconv.FormatBool(attr.EligibleForInPlaceUpdate),
+					"canUpdateMachine":         strconv.FormatBool(attr.CanUpdateMachine),
+					"affectsAvailability":      strconv.FormatBool(attr.AffectsAvailability),
+				},
+			},
+		}
+	}
+	mustParseBool := func(s string) bool {
+		b, err := strconv.ParseBool(s)
+		if err != nil {
+			panic(err)
+		}
+		return b
+	}
+	attrFromMachine := func(machine *clusterv1.Machine) machineAttr {
+		return machineAttr{
+			Name:                     machine.Name,
+			UpToDate:                 mustParseBool(machine.Annotations["upToDate"]),
+			EligibleForInPlaceUpdate: mustParseBool(machine.Annotations["eligibleForInPlaceUpdate"]),
+			CanUpdateMachine:         mustParseBool(machine.Annotations["canUpdateMachine"]),
+			AffectsAvailability:      mustParseBool(machine.Annotations["affectsAvailability"]),
+		}
+	}
+
+	tests := []struct {
+		name                  string
+		desiredReplicas       int32
+		maxSurge              int32
+		remediationInProgress bool
+		// Machine names must match the pattern: machine-0, machine-1, ...
+		// When scale up creates new Machines it will continue the sequence
+		machines         []*clusterv1.Machine
+		skipVerifyMinMax bool
+		wantSequence     []string
+	}{
+		// Regular rollout (no in-place)
+		{
+			name:            "Regular rollout, 3 Replicas, maxSurge 1",
+			desiredReplicas: 3,
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-3 created",
+				"machine-0 deleted",
+				"machine-4 created",
+				"machine-1 deleted",
+				"machine-5 created",
+				"machine-2 deleted",
+			},
+		},
+		{
+			name:            "Regular rollout, 3 Replicas, maxSurge 0",
+			desiredReplicas: 3,
+			maxSurge:        0,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-0 deleted",
+				"machine-3 created",
+				"machine-1 deleted",
+				"machine-4 created",
+				"machine-2 deleted",
+				// machine-5 will be created in the scaleUp code path, not in rollingUpdate
+			},
+		},
+		{
+			name:            "Regular rollout, 3 Replicas, maxSurge 1, scale up",
+			desiredReplicas: 3, // scale up
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-1 created",
+				"machine-2 created",
+				"machine-3 created",
+				"machine-0 deleted",
+			},
+		},
+		{
+			name:            "Regular rollout, 3 Replicas, maxSurge 1, scale down",
+			desiredReplicas: 1, // scale down
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: false, CanUpdateMachine: false, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-0 deleted",
+				"machine-1 deleted",
+				"machine-3 created",
+				"machine-2 deleted",
+			},
+		},
+		// Rollout with In-place updates (AffectsAvailability: true)
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 1 (AffectsAvailability: true)",
+			desiredReplicas: 3,
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+			},
+			wantSequence: []string{
+				"machine-3 created",
+				"machine-0 updated",
+				"machine-1 updated",
+				"machine-2 deleted",
+			},
+		},
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 0 (AffectsAvailability: true)",
+			desiredReplicas: 3,
+			maxSurge:        0,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+			},
+			wantSequence: []string{
+				"machine-0 updated",
+				"machine-1 updated",
+				"machine-2 updated",
+			},
+		},
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 1, scale up (AffectsAvailability: true)",
+			desiredReplicas: 3, // scale up
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+			},
+			wantSequence: []string{
+				"machine-1 created",
+				"machine-2 created",
+				"machine-3 created",
+				"machine-0 deleted",
+			},
+		},
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 1, scale down (AffectsAvailability: true)",
+			desiredReplicas: 1, // scale down
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+			},
+			wantSequence: []string{
+				"machine-0 deleted",
+				"machine-1 updated",
+				"machine-2 deleted",
+			},
+		},
+		// Rollout with In-place updates (AffectsAvailability: false)
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 1 (AffectsAvailability: false)",
+			desiredReplicas: 3,
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-0 updated",
+				"machine-1 updated",
+				"machine-2 updated",
+			},
+		},
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 0 (AffectsAvailability: false)",
+			desiredReplicas: 3,
+			maxSurge:        0,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-0 updated",
+				"machine-1 updated",
+				"machine-2 updated",
+			},
+		},
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 1, scale up (AffectsAvailability: false)",
+			desiredReplicas: 3, // scale up
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-1 created",
+				"machine-2 created",
+				"machine-0 updated",
+			},
+		},
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 1, scale down (AffectsAvailability: false)",
+			desiredReplicas: 1, // scale down
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-0 deleted",
+				"machine-1 updated",
+				"machine-2 deleted",
+			},
+		},
+		{
+			name:            "In-place rollout, 3 Replicas, maxSurge 0 (AffectsAvailability: false), 2 current Replicas",
+			desiredReplicas: 3,
+			maxSurge:        0,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-2 created",
+				"machine-0 updated",
+				"machine-1 updated",
+			},
+		},
+		// Rollout with In-place updates: 1 CP Machine
+		{
+			name:            "In-place rollout, 1 Replicas, maxSurge 1 (AffectsAvailability: true)",
+			desiredReplicas: 1,
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+			},
+			wantSequence: []string{
+				"machine-1 created",
+				"machine-0 deleted",
+			},
+		},
+		{
+			name:            "In-place rollout, 1 Replicas, maxSurge 1 (AffectsAvailability: false)",
+			desiredReplicas: 1,
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+			},
+			wantSequence: []string{
+				"machine-0 updated",
+			},
+		},
+		// Rollout with both regular rollout & in-place updates
+		{
+			name:            "Regular & In-place rollout, 3 Replicas, maxSurge 1",
+			desiredReplicas: 3,
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: false, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+			},
+			wantSequence: []string{
+				"machine-0 updated",
+				"machine-3 created",
+				"machine-1 deleted",
+				"machine-4 created",
+				"machine-2 deleted",
+			},
+		},
+		{
+			name:            "Regular & In-place rollout, 5 Replicas, maxSurge 1",
+			desiredReplicas: 5,
+			maxSurge:        1,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: false, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-2", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-3", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: false}),
+				newMachine(machineAttr{Name: "machine-4", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+			},
+			wantSequence: []string{
+				"machine-5 created",
+				"machine-1 deleted",
+				"machine-6 created",
+				"machine-2 updated",
+				"machine-3 updated",
+				"machine-4 deleted",
+			},
+		},
+		// Remediation
+		{
+			name:                  "In-place rollout, 3 Replicas, maxSurge 1, remediation",
+			desiredReplicas:       3,
+			maxSurge:              1,
+			remediationInProgress: true,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				// one Machine got remediated (i.e. deleted)
+			},
+			wantSequence: []string{
+				"machine-2 created",
+				"machine-3 created",
+				"machine-0 updated",
+				"machine-1 deleted",
+			},
+		},
+		{
+			name:                  "In-place rollout, 3 Replicas, maxSurge 1, scale up, remediation",
+			desiredReplicas:       5, // scale up
+			maxSurge:              1,
+			remediationInProgress: true,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				// one Machine got remediated (i.e. deleted)
+			},
+			wantSequence: []string{
+				"machine-2 created",
+				"machine-3 created",
+				"machine-4 created",
+				"machine-5 created",
+				"machine-0 updated",
+				"machine-1 deleted",
+			},
+		},
+		{
+			name:                  "In-place rollout, 3 Replicas, maxSurge 1, scale down, remediation",
+			desiredReplicas:       1, // scale down
+			maxSurge:              1,
+			remediationInProgress: true,
+			machines: []*clusterv1.Machine{
+				newMachine(machineAttr{Name: "machine-0", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
+				// one Machine got remediated (i.e. deleted)
+			},
+			skipVerifyMinMax: true, // As we first scale up after remediation we are intentionally violating the min/max range.
+			wantSequence: []string{
+				"machine-2 created",
+				"machine-0 deleted",
+				"machine-1 deleted",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+
+			g := NewWithT(t)
+
+			machines := collections.Machines{}
+			machinesNotUpToDate := collections.Machines{}
+			for _, m := range tt.machines {
+				machines[m.Name] = m
+				if v, ok := m.Annotations["upToDate"]; ok && v == "false" {
+					machinesNotUpToDate[m.Name] = m
+				}
+			}
+
+			controlPlane := &pkg.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: func() map[string]string {
+							annotations := map[string]string{}
+							if tt.remediationInProgress {
+								annotations[controlplanev1.RemediationInProgressAnnotation] = ""
+							}
+							return annotations
+						}(),
+					},
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Replicas: ptr.To(tt.desiredReplicas),
+						Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+							Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+								RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+									MaxSurge: ptr.To(intstr.FromInt32(tt.maxSurge)),
+								},
+							},
+						},
+					},
+				},
+				Cluster:             &clusterv1.Cluster{},
+				Machines:            machines,
+				MachinesNotUpToDate: machinesNotUpToDate,
+			}
+
+			var sequence []string
+			machineCounter := len(tt.machines)
+			r := &Reconciler{
+				overridePreflightChecksFunc: func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
+					// Assuming for this test that preflightChecks always succeed.
+					return preflightChecksResult{succeeded: true}
+				},
+				overrideCanUpdateMachineFunc: func(_ context.Context, m *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+					attr := attrFromMachine(m)
+					return canUpdateMachineResult{canUpdateMachine: attr.CanUpdateMachine, affectsAvailability: attr.AffectsAvailability}, nil
+				},
+				overrideScaleDownControlPlaneFunc: func(_ context.Context, _ *pkg.ControlPlane, m *clusterv1.Machine) (ctrl.Result, error) {
+					delete(controlPlane.Machines, m.Name)
+					delete(controlPlane.MachinesNotUpToDate, m.Name)
+					sequence = append(sequence, fmt.Sprintf("%s deleted", m.Name))
+					return ctrl.Result{}, nil
+				},
+				overrideScaleUpControlPlaneFunc: func(_ context.Context, _ *pkg.ControlPlane) (ctrl.Result, error) {
+					m := newMachine(machineAttr{Name: fmt.Sprintf("machine-%d", machineCounter), UpToDate: true})
+					controlPlane.Machines[m.Name] = m
+					delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
+					machineCounter++
+					sequence = append(sequence, fmt.Sprintf("%s created", m.Name))
+					return ctrl.Result{}, nil
+				},
+				overrideTriggerInPlaceUpdate: func(_ context.Context, _ *pkg.ControlPlane, m *clusterv1.Machine, _ pkg.UpToDateResult, _ bool) error {
+					m.Annotations["upToDate"] = "true"
+					delete(controlPlane.MachinesNotUpToDate, m.Name)
+					sequence = append(sequence, fmt.Sprintf("%s updated", m.Name))
+					return nil
+				},
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   record.NewFakeRecorder(32),
+			}
+
+			minReplicas := tt.desiredReplicas + tt.maxSurge - 1
+			maxReplicas := tt.desiredReplicas + tt.maxSurge
+			// Verify min/max range from the beginning if we are in the range at the beginning of the rollout.
+			verifyMinMax := replicasInMinMaxRange(minReplicas, maxReplicas, int32(len(controlPlane.Machines)))
+
+			machinesNeedingRollout, _ := controlPlane.MachinesNeedingRollout()
+			machinesUpToDateResults := map[string]pkg.UpToDateResult{}
+			for _, m := range controlPlane.Machines {
+				machinesUpToDateResults[m.Name] = pkg.UpToDateResult{EligibleForInPlaceUpdate: attrFromMachine(m).EligibleForInPlaceUpdate}
+			}
+
+			for len(machinesNeedingRollout) > 0 {
+				// Execute rollingUpdate.
+				res, err := r.rollingUpdate(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(res.IsZero()).To(BeTrue())
+
+				if !tt.skipVerifyMinMax {
+					// Verify that we stay in the min/max range once we are in the range.
+					if verifyMinMax {
+						g.Expect(replicasInMinMaxRange(minReplicas, maxReplicas, int32(len(controlPlane.Machines)))).To(BeTrue())
+					} else if replicasInMinMaxRange(minReplicas, maxReplicas, int32(len(controlPlane.Machines))) {
+						// Start verifying min/max as soon as we get into the min/max range.
+						verifyMinMax = true
+					}
+				}
+
+				// Update machinesNeedingRollout, machinesUpToDateResults for next iteration.
+				// Note: The override funcs above already updated the Machine maps inside of controlPlane.
+				machinesNeedingRollout, _ = controlPlane.MachinesNeedingRollout()
+				machinesUpToDateResults = map[string]pkg.UpToDateResult{}
+				for _, m := range controlPlane.Machines {
+					machinesUpToDateResults[m.Name] = pkg.UpToDateResult{EligibleForInPlaceUpdate: attrFromMachine(m).EligibleForInPlaceUpdate}
+				}
+			}
+			g.Expect(sequence).To(Equal(tt.wantSequence))
+		})
+	}
+}
+
+func replicasInMinMaxRange(minReplicas, maxReplicas, currentReplicas int32) bool {
+	return currentReplicas >= minReplicas && currentReplicas <= maxReplicas
 }
 
 type machineOpt func(*clusterv1.Machine)

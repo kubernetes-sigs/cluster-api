@@ -58,7 +58,7 @@ type preflightChecksResult struct {
 //
 // Note: This check leverage the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
 // the info are also used to compute status.Conditions.
-func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.ControlPlane, isScaleUp bool, excludeFor ...*clusterv1.Machine) preflightChecksResult {
+func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.ControlPlane, isRemediationScaleUp bool, excludeFor ...*clusterv1.Machine) preflightChecksResult {
 	if r.overridePreflightChecksFunc != nil {
 		return r.overridePreflightChecksFunc(ctx, controlPlane, excludeFor...)
 	}
@@ -96,18 +96,6 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 		}
 	}
 
-	// If certificates are missing, can't join a new machine
-	if isScaleUp && !conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition) {
-		// Slow down reconcile frequency, user intervention is required to fix the problem.
-		return preflightChecksResult{
-			succeeded:             false,
-			PreflightCheckResults: pkg.PreflightCheckResults{CertificateMissing: true},
-			requeueAfter:          preflightFailedRequeueAfter,
-			deferNextReconcile:    5 * time.Second,
-			logStr:                "Certificates are missing or unknown, can't join a new machine",
-		}
-	}
-
 	// If there are deleting machines, wait for the operation to complete.
 	if controlPlane.HasDeletingMachine() {
 		// Slow down reconcile frequency, deletion is a slow process.
@@ -135,7 +123,7 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 	// If the control plane doesn't meet the "fully stable" criteria, and the control plane is trying to perform a scale up after
 	// a machine deletion due to remediation, perform a more precise check on Kubernetes control plane components and etcd members,
 	// thus allowing the system to recover also when there are multiple failures.
-	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok && isScaleUp && err != nil {
+	if err != nil && isRemediationScaleUp {
 		log.Info("Performing checks to allow creation of a replacement machine while remediation is in progress")
 		controlPlaneComponentsNotHealthy, etcdClusterNotHealthy, err = r.checkHealthinessWhileRemediationInProgress(ctx, controlPlane)
 	}

@@ -19,6 +19,7 @@ package kubeadmcontrolplane
 import (
 	"context"
 	"fmt"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -27,9 +28,11 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 )
 
@@ -57,22 +60,35 @@ func (r *Reconciler) initializeControlPlane(ctx context.Context, controlPlane *p
 	return ctrl.Result{}, nil // No need to requeue here. Machine creation above triggers reconciliation.
 }
 
-func (r *Reconciler) scaleUpControlPlane(ctx context.Context, controlPlane *pkg.ControlPlane) (ctrl.Result, error) {
+func (r *Reconciler) scaleUpControlPlane(ctx context.Context, controlPlane *pkg.ControlPlane, runPreflightChecks bool) (ctrl.Result, error) {
 	if r.overrideScaleUpControlPlaneFunc != nil {
 		return r.overrideScaleUpControlPlaneFunc(ctx, controlPlane)
 	}
 
 	log := ctrl.LoggerFrom(ctx)
 
-	// Run preflight checks to ensure that the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
-	//
-	// Important! preflight checks play an important role in ensuring that KCP performs "one operation at time", by forcing
-	// the system to wait for the previous operation to complete and the control plane to become stable before starting the next one.
-	//
-	// Note: before considering scale up/scale up in the context of a rollout/scale up after a remediation, KCP first takes care of completing
-	// ongoing delete operations, completing in-place transitions, remediating unhealthy machines and completing on going in-place updates.
-	if result := r.handlePreflightCheckResults(ctx, controlPlane, r.preflightChecks(ctx, controlPlane, true)); !result.IsZero() {
-		return result, nil
+	if runPreflightChecks {
+		// Run preflight checks to ensure that the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
+		//
+		// Important! preflight checks play an important role in ensuring that KCP performs "one operation at time", by forcing
+		// the system to wait for the previous operation to complete and the control plane to become stable before starting the next one.
+		//
+		// Note: before considering scale up/scale up in the context of a rollout/scale up after a remediation, KCP first takes care of completing
+		// ongoing delete operations, completing in-place transitions, remediating unhealthy machines and completing on going in-place updates.
+		_, isRemediationScaleUp := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]
+		if result := r.handlePreflightCheckResults(ctx, controlPlane, r.preflightChecks(ctx, controlPlane, isRemediationScaleUp)); !result.IsZero() {
+			return result, nil
+		}
+	}
+
+	// If certificates are missing, can't join a new machine
+	// Note: This is not part of preflightChecks because we only want to run this check during scale up.
+	if !conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition) {
+		controlPlane.PreflightCheckResults.CertificateMissing = true
+		log.Info("Certificates are missing or unknown, can't join a new machine")
+		// Slow down reconcile frequency, user intervention is required to fix the problem.
+		r.controller.DeferNextReconcileForObject(controlPlane.KCP, time.Now().Add(5*time.Second))
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 	}
 
 	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)

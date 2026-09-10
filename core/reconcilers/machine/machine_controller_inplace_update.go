@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util/cache"
 )
 
@@ -109,10 +110,13 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 
 	if result.RequeueAfter > 0 {
 		s.updatingReason = clusterv1.MachineInPlaceUpdatingReason
-		if message != "" {
-			s.updatingMessage = fmt.Sprintf("In-place update in progress: %s", message)
+		if inplace.IsUpdateInProgressAndAffectsAvailability(s.machine) {
+			s.updatingMessage = "In-place update in progress (affects availability)"
 		} else {
-			s.updatingMessage = "In-place update in progress"
+			s.updatingMessage = "In-place update in progress (does not affect availability)"
+		}
+		if message != "" {
+			s.updatingMessage += fmt.Sprintf(": %s", message)
 		}
 		return result, nil
 	}

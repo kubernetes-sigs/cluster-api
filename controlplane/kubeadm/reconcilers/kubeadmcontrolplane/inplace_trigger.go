@@ -18,6 +18,7 @@ package kubeadmcontrolplane
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	pkgerrors "github.com/pkg/errors"
@@ -35,9 +36,9 @@ import (
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 )
 
-func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg.ControlPlane, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) error {
+func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg.ControlPlane, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, affectsAvailability bool) error {
 	if r.overrideTriggerInPlaceUpdate != nil {
-		return r.overrideTriggerInPlaceUpdate(ctx, machine, machineUpToDateResult)
+		return r.overrideTriggerInPlaceUpdate(ctx, controlPlane, machine, machineUpToDateResult, affectsAvailability)
 	}
 
 	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(machine))
@@ -53,7 +54,14 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 		if machine.Annotations == nil {
 			machine.Annotations = map[string]string{}
 		}
-		machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+		data := clusterv1.UpdateInProgressAnnotationData{
+			AffectsAvailability: new(affectsAvailability),
+		}
+		dataBytes, err := json.Marshal(data)
+		if err != nil {
+			return pkgerrors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation: failed to Marshal data", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
+		}
+		machine.Annotations[clusterv1.UpdateInProgressAnnotation] = string(dataBytes)
 		if err := r.Client.Patch(ctx, machine, client.MergeFrom(orig)); err != nil {
 			return pkgerrors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
 		}

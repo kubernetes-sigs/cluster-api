@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 )
 
@@ -172,7 +173,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			Machines: fmc.Machines,
 		}
 
-		result, err := r.scaleUpControlPlane(ctx, controlPlane)
+		result, err := r.scaleUpControlPlane(ctx, controlPlane, true)
 		g.Expect(result.IsZero()).To(BeTrue())
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -244,7 +245,158 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeFalse())
 
-		result, err := r.scaleUpControlPlane(context.Background(), controlPlane)
+		result, err := r.scaleUpControlPlane(context.Background(), controlPlane, true)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
+		g.Expect(fc.Deferrals).To(HaveKeyWithValue(
+			reconcile.Request{NamespacedName: client.ObjectKeyFromObject(kcp)},
+			BeTemporally("~", time.Now().Add(5*time.Second), 1*time.Second)),
+		)
+
+		// scaleUpControlPlane is never called due to health check failure and new machine is not created to scale up.
+		controlPlaneMachines := &clusterv1.MachineList{}
+		g.Expect(env.GetAPIReader().List(context.Background(), controlPlaneMachines, client.InNamespace(namespace.Name))).To(Succeed())
+		// No new machine should be created.
+		// Note: expected length is 0 because no machine is created and hence no machine is on the API server.
+		// Other machines are in-memory only during the test.
+		g.Expect(controlPlaneMachines.Items).To(BeEmpty())
+
+		endMachines := collections.FromMachineList(controlPlaneMachines)
+		for _, m := range endMachines {
+			bm, ok := beforeMachines[m.Name]
+			g.Expect(ok).To(BeTrue())
+			g.Expect(m).To(BeComparableTo(bm))
+		}
+	})
+	t.Run("scale up if preflight checks would fail but are not executed", func(t *testing.T) {
+		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+			t.Helper()
+
+			t.Log("Creating the namespace")
+			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-scaleupcontrolplane")
+			g.Expect(err).ToNot(HaveOccurred())
+
+			return ns
+		}
+
+		teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
+			t.Helper()
+
+			t.Log("Deleting the namespace")
+			g.Expect(env.Delete(ctx, ns)).To(Succeed())
+		}
+
+		g := NewWithT(t)
+		namespace := setup(t, g)
+		defer teardown(t, g, namespace)
+
+		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
+		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		kcp.UID = types.UID(util.RandomString(10))
+		// Set KCP conditions in a way that preflight checks would fail, but the certificate check still passes.
+		conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionFalse})
+		conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition, Status: metav1.ConditionFalse})
+		conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition, Status: metav1.ConditionTrue})
+
+		fmc := &fakeManagementCluster{
+			Machines: collections.New(),
+			Workload: &fakeWorkloadCluster{},
+		}
+
+		for i := range 2 {
+			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
+			setMachineHealthy(m)
+			fmc.Machines.Insert(m)
+		}
+
+		r := &Reconciler{
+			Client:            env,
+			DynamicCache:      dynamicCache,
+			managementCluster: fmc,
+			controller:        capicontrollerutil.NewFakeController(),
+			recorder:          record.NewFakeRecorder(32),
+		}
+		controlPlane := &pkg.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: fmc.Machines,
+		}
+
+		result, err := r.scaleUpControlPlane(ctx, controlPlane, false)
+		g.Expect(result.IsZero()).To(BeTrue())
+		g.Expect(err).ToNot(HaveOccurred())
+
+		controlPlaneMachines := clusterv1.MachineList{}
+		g.Expect(env.GetAPIReader().List(ctx, &controlPlaneMachines, client.InNamespace(namespace.Name))).To(Succeed())
+		// A new machine should have been created.
+		// Note: expected length is 1 because only the newly created machine is on API server. Other machines are
+		// in-memory only during the test.
+		g.Expect(controlPlaneMachines.Items).To(HaveLen(1))
+
+		kubeadmConfig := &bootstrapv1.KubeadmConfig{}
+		bootstrapRef := controlPlaneMachines.Items[0].Spec.Bootstrap.ConfigRef
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: controlPlaneMachines.Items[0].Namespace, Name: bootstrapRef.Name}, kubeadmConfig)).To(Succeed())
+		g.Expect(kubeadmConfig.Spec.ClusterConfiguration.FeatureGates).To(BeComparableTo(map[string]bool{desiredstate.ControlPlaneKubeletLocalMode: true}))
+	})
+	t.Run("does not create a control plane Machine if certificate are not available", func(t *testing.T) {
+		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+			t.Helper()
+
+			t.Log("Creating the namespace")
+			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-scaleupcontrolplane")
+			g.Expect(err).ToNot(HaveOccurred())
+
+			return ns
+		}
+
+		teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
+			t.Helper()
+
+			t.Log("Deleting the namespace")
+			g.Expect(env.Delete(ctx, ns)).To(Succeed())
+		}
+
+		g := NewWithT(t)
+		namespace := setup(t, g)
+		defer teardown(t, g, namespace)
+
+		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
+		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		kcp.UID = types.UID(util.RandomString(10))
+		// Set KCP conditions in a way that preflight checks pass but the certificate check fails.
+		conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionTrue})
+		conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition, Status: metav1.ConditionTrue})
+		conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition, Status: metav1.ConditionFalse})
+
+		beforeMachines := collections.New()
+		for i := range 2 {
+			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
+			setMachineHealthy(m)
+			beforeMachines.Insert(m)
+		}
+
+		fmc := &fakeManagementCluster{
+			Machines: beforeMachines.DeepCopy(),
+			Workload: &fakeWorkloadCluster{},
+		}
+
+		fc := capicontrollerutil.NewFakeController()
+
+		r := &Reconciler{
+			Client:            env,
+			DynamicCache:      dynamicCache,
+			controller:        fc,
+			managementCluster: fmc,
+			recorder:          record.NewFakeRecorder(32),
+		}
+
+		controlPlane := &pkg.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: fmc.Machines,
+		}
+
+		result, err := r.scaleUpControlPlane(ctx, controlPlane, true)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 		g.Expect(fc.Deferrals).To(HaveKeyWithValue(

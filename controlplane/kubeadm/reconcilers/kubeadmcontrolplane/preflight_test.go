@@ -43,7 +43,7 @@ func TestPreflightChecks(t *testing.T) {
 		cluster                  *clusterv1.Cluster
 		kcp                      *controlplanev1.KubeadmControlPlane
 		machines                 []*clusterv1.Machine
-		isScaleUp                bool
+		isRemediationScaleUp     bool
 		expectResult             ctrl.Result
 		expectPreflight          pkg.PreflightCheckResults
 		expectDeferNextReconcile time.Duration
@@ -155,80 +155,6 @@ func TestPreflightChecks(t *testing.T) {
 			expectLogStr:             "Waiting for machines to be deleted",
 			expectLogKV:              []string{"machines", "deleting-machine"},
 		},
-		{
-			name: "control plane without certificates should requeue if scale up",
-			kcp: &controlplanev1.KubeadmControlPlane{
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Conditions: []metav1.Condition{
-						{
-							Type:   controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
-							Status: metav1.ConditionFalse,
-							Reason: controlplanev1.KubeadmControlPlaneCertificatesNotAvailableReason,
-						},
-					},
-				},
-			},
-			machines: []*clusterv1.Machine{
-				{},
-			},
-			isScaleUp:    true,
-			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
-			expectPreflight: pkg.PreflightCheckResults{
-				HasDeletingMachine:               false,
-				CertificateMissing:               true,
-				ControlPlaneComponentsNotHealthy: false,
-				EtcdClusterNotHealthy:            false,
-				TopologyVersionMismatch:          false,
-			},
-			expectDeferNextReconcile: 5 * time.Second,
-			expectLogStr:             "Certificates are missing or unknown, can't join a new machine",
-		},
-		{
-			name: "control plane without certificates should pass if not scale up",
-			kcp: &controlplanev1.KubeadmControlPlane{
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Conditions: []metav1.Condition{
-						{Type: controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition, Status: metav1.ConditionTrue},
-						{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionTrue},
-						{Type: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition, Status: metav1.ConditionTrue},
-						{
-							Type:   controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
-							Status: metav1.ConditionFalse,
-							Reason: controlplanev1.KubeadmControlPlaneCertificatesNotAvailableReason,
-						},
-					},
-				},
-			},
-			machines: []*clusterv1.Machine{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-1",
-					},
-					Status: clusterv1.MachineStatus{
-						NodeRef: clusterv1.MachineNodeReference{
-							Name: "node-1",
-						},
-						Conditions: []metav1.Condition{
-							{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
-							{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
-							{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
-							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
-							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
-						},
-					},
-				},
-			},
-			isScaleUp:    false,
-			expectResult: ctrl.Result{},
-			expectPreflight: pkg.PreflightCheckResults{
-				HasDeletingMachine:               false,
-				CertificateMissing:               false,
-				ControlPlaneComponentsNotHealthy: false,
-				EtcdClusterNotHealthy:            false,
-				TopologyVersionMismatch:          false,
-			},
-		},
-
 		{
 			name: "control plane without a nodeRef should requeue",
 			kcp: &controlplanev1.KubeadmControlPlane{
@@ -394,8 +320,8 @@ func TestPreflightChecks(t *testing.T) {
 					},
 				},
 			},
-			isScaleUp:    true,
-			expectResult: ctrl.Result{},
+			isRemediationScaleUp: true,
+			expectResult:         ctrl.Result{},
 			expectPreflight: pkg.PreflightCheckResults{
 				HasDeletingMachine:               false,
 				CertificateMissing:               false,
@@ -454,8 +380,8 @@ func TestPreflightChecks(t *testing.T) {
 					},
 				},
 			},
-			isScaleUp:    true,
-			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+			isRemediationScaleUp: true,
+			expectResult:         ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
 			expectPreflight: pkg.PreflightCheckResults{
 				HasDeletingMachine:               false,
 				CertificateMissing:               false,
@@ -536,8 +462,8 @@ func TestPreflightChecks(t *testing.T) {
 					},
 				},
 			},
-			isScaleUp:    true,
-			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+			isRemediationScaleUp: true,
+			expectResult:         ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
 			expectPreflight: pkg.PreflightCheckResults{
 				HasDeletingMachine:               false,
 				CertificateMissing:               false,
@@ -665,7 +591,7 @@ func TestPreflightChecks(t *testing.T) {
 				Machines:    collections.FromMachines(tt.machines...),
 				EtcdMembers: etcdMembers(collections.FromMachines(tt.machines...)),
 			}
-			preflightChecksResult := r.preflightChecks(t.Context(), controlPlane, tt.isScaleUp)
+			preflightChecksResult := r.preflightChecks(t.Context(), controlPlane, tt.isRemediationScaleUp)
 			g.Expect(preflightChecksResult.succeeded).To(Equal(tt.expectResult.IsZero()))
 			g.Expect(preflightChecksResult.PreflightCheckResults).To(Equal(tt.expectPreflight))
 			g.Expect(preflightChecksResult.requeueAfter).To(Equal(tt.expectResult.RequeueAfter))

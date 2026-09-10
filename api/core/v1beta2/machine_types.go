@@ -100,6 +100,15 @@ const (
 	UpdateInProgressAnnotation = "in-place-updates.internal.cluster.x-k8s.io/update-in-progress"
 )
 
+// UpdateInProgressAnnotationData is used to store data about the in-place update in the UpdateInProgressAnnotation.
+// +kubebuilder:object:generate=false
+type UpdateInProgressAnnotationData struct {
+	// affectsAvailability indicates if the in-place update affects availability of the Machine.
+	// Default is true.
+	// +optional
+	AffectsAvailability *bool `json:"affectsAvailability,omitempty"`
+}
+
 // Machine's Available condition and corresponding reasons.
 const (
 	// MachineAvailableCondition is true if the machine is Ready for at least MinReadySeconds, as defined by the Machine's MinReadySeconds field.

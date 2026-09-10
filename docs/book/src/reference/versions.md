@@ -67,25 +67,16 @@ All considered, each Cluster API minor release is supported for a period of roug
 - At the end of the four-month maintenance mode period, the minor release will be considered EOL (end of life) and 
   cherry picks to the associated branch are to be closed soon afterwards.
 
-The table below documents support matrix for Cluster API versions (versions older than v1.0 omitted).
+The table below documents support matrix for Cluster API versions.
 
 | Minor Release | Status                  | Supported Until (including maintenance mode)                                                |
 |---------------|-------------------------|---------------------------------------------------------------------------------------------|
+| v1.15.x       | Standard support period | in maintenance mode when v1.17.0 will be released, EOL when v1.18.0 will be released        |
 | v1.14.x       | Standard support period | in maintenance mode when v1.16.0 will be released, EOL when v1.17.0 will be released        |
-| v1.13.x       | Standard support period | in maintenance mode when v1.15.0 will be released, EOL when v1.16.0 will be released        |
-| v1.12.x       | Standard support period | Maintenance mode since 2026-08-18 - v1.14.0 release date, EOL when v1.15.0 will be released |
+| v1.13.x       | Maintenance mode        | Maintenance mode since 2026-12-08 - v1.15.0 release date, EOL when v1.16.0 will be released |
+| v1.12.x       | EOL                     | EOL since 2026-12-08 - v1.15.0 release date                                                 | 
 | v1.11.x       | EOL                     | EOL since 2026-08-18 - v1.14.0 release date                                                 |
 | v1.10.x       | EOL                     | EOL since 2026-04-21 - v1.13.0 release date                                                 |
-| v1.9.x        | EOL                     | EOL since 2025-12-18 - v1.12.0 release date                                                 |
-| v1.8.x        | EOL                     | EOL since 2025-08-12 - v1.11.0 release date                                                 |
-| v1.7.x        | EOL                     | EOL since 2025-04-22 - v1.10.0 release date                                                 |
-| v1.6.x        | EOL                     | EOL since 2024-12-10 - v1.9.0 release date                                                  |
-| v1.5.x        | EOL                     | EOL since 2024-08-12 - v1.8.0 release date                                                  |
-| v1.4.x        | EOL                     | EOL since 2024-04-16 - v1.7.0 release date                                                  |
-| v1.3.x        | EOL                     | EOL since 2023-12-05 - v1.6.0 release date                                                  |
-| v1.2.x        | EOL                     | EOL since 2023-07-25 - v1.5.0 release date                                                  |
-| v1.1.x        | EOL                     | EOL since 2023-03-28 - v1.4.0 release date                                                  |
-| v1.0.x        | EOL                     | EOL since 2022-12-01 - v1.3.0 release date                                                  |
 
 <aside class="note warning">
 
@@ -362,17 +353,16 @@ In some cases, also Cluster API and/or Cluster API providers are defining additi
 The following table defines the support matrix for the Cluster API core provider.
 See [Cluster API release support](#cluster-api-release-support) and [Kubernetes versions support](#kubernetes-versions-support).
 
-|                  | v1.12, _Maintenance Mode_ | v1.13             | v1.14             |
+|                  | v1.13, _Maintenance Mode_ | v1.14             | v1.15             |
 |------------------|---------------------------|-------------------|-------------------|
-| Kubernetes v1.29 | ✓ (only workload)         |                   |                   |
-| Kubernetes v1.30 | ✓ (only workload)         | ✓ (only workload) |                   |
-| Kubernetes v1.31 | ✓                         | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.32 | ✓                         | ✓                 | ✓ (only workload) |
-| Kubernetes v1.33 | ✓                         | ✓                 | ✓                 |
+| Kubernetes v1.30 | ✓ (only workload)         |                   |                   |
+| Kubernetes v1.31 | ✓ (only workload)         | ✓ (only workload) |                   |
+| Kubernetes v1.32 | ✓                         | ✓ (only workload) | ✓ (only workload) |
+| Kubernetes v1.33 | ✓                         | ✓                 | ✓ (only workload) |
 | Kubernetes v1.34 | ✓                         | ✓                 | ✓                 |
-| Kubernetes v1.35 | ✓ >= v1.12.1              | ✓                 | ✓                 |
-| Kubernetes v1.36 | ✓ >= v1.12.8              | ✓ >= v1.13.1      | ✓                 |
-| Kubernetes v1.37 |                           | ✓ >= v1.13.6      | ✓ >= v1.14.1      |
+| Kubernetes v1.35 | ✓                         | ✓                 | ✓                 |
+| Kubernetes v1.36 | ✓ >= v1.13.1              | ✓                 | ✓                 |
+| Kubernetes v1.37 | ✓ >= v1.13.6              | ✓ >= v1.14.1      | ✓                 |
 
 See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
 

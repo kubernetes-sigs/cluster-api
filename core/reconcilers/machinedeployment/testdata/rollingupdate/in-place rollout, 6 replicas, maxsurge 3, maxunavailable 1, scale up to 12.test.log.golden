@@ -57,6 +57,8 @@
     md: 12/12 replicas, 11 available, 9 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m5,m6)
     ms2: 10/10 replicas, 9 available, 9 upToDate (m1,m2,m3,m4🟡,m7,m8,m9,m10,m11,m12)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 2/2 replicas, 2 available, 0 upToDate (m5,m6)
 [MS controller] Reconcile
@@ -90,6 +92,8 @@
     md: 12/12 replicas, 11 available, 10 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m6)
     ms2: 11/11 replicas, 10 available, 10 upToDate (m1,m2,m3,m4,m5🟡,m7,m8,m9,m10,m11,m12)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 1/1 replicas, 1 available, 0 upToDate (m6)
 [MS controller] Reconcile
@@ -111,10 +115,12 @@
 [MD controller] Reconcile
     md: 12/12 replicas, 11 available, 11 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
+      - Updated old MachineSet ms1
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset removed
     ms2: from 12/11 to 12/12 replicas, 11 available, 11 upToDate (m1,m2,m3,m4,m5,m6🟡,m7,m8,m9,m10,m11,m12)
       - Scaled up current MachineSet ms2 from 11 to 12 replicas (+1)
         - Reason: acknowledge Machines m6 moved from an old MachineSet
-        - Diff: replicas 12,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m6
+        - Diff: replicas 12,in-place-updates.internal.cluster.x-k8s.io/receive-machines-from-machinesets removed,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m6
 [MS controller] Reconcile
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
 [MS controller] Reconcile
@@ -123,6 +129,8 @@
     md: 12/12 replicas, 11 available, 11 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 12/12 replicas, 11 available, 11 upToDate (m1,m2,m3,m4,m5,m6🟡,m7,m8,m9,m10,m11,m12)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
 [MS controller] Reconcile

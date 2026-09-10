@@ -2361,7 +2361,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 		// Rollout with In-place updates (mixed affecting availability cases)
 
 		{ // rollout with some machines that can be updated in-place affecting availability,
-			name:           "Mixed case in-place affecting & not affecting availability",
+			name:           "Mixed case in-place affecting and not affecting availability",
 			maxSurge:       1,
 			maxUnavailable: 0,
 			currentScope: &rolloutScope{ // Manually providing a scope simulating multiple old MS
@@ -2514,6 +2514,11 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 						current.machineSets = append(current.machineSets, desiredNewMS)
 						log.V(5).Info(fmt.Sprintf("Computing new MachineSet %s with %d replicas", klog.KObj(desiredNewMS), ptr.Deref(desiredNewMS.Spec.Replicas, 0)), "MachineSet", klog.KObj(desiredNewMS))
 					}
+
+					// The annotations set by the rollout planner are not part of the output of ComputeDesiredMS, so drop them to mimic the same behavior.
+					delete(desiredNewMS.Annotations, clusterv1.AcknowledgedMoveAnnotation)
+					delete(desiredNewMS.Annotations, clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation)
+					delete(desiredNewMS.Annotations, clusterv1.MachineSetMoveMachinesToMachineSetAnnotation)
 					return desiredNewMS, nil
 				}
 

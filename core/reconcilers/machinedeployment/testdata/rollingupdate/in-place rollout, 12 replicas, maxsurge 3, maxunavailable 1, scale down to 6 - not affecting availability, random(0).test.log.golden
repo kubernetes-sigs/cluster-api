@@ -36,10 +36,12 @@
 [MD controller] Reconcile
     md: 5/6 replicas, 5 available, 3 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
+      - Updated old MachineSet ms1
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset removed
     ms2: from 3/3 to 3/6 replicas, 3 available, 3 upToDate (m1,m2,m3,m4🟢,m5🟢,m6🟢,m7🟢,m8🟢,m9🟢,m10🟢)
       - Scaled up current MachineSet ms2 from 3 to 6 replicas (+3)
         - Reason: acknowledge Machines m10,m4,m5,m6,m7,m8,m9 moved from an old MachineSet, scale down to align MachineSet spec.replicas to MachineDeployment spec.replicas
-        - Diff: replicas 6,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m10,m4,m5,m6,m7,m8,m9
+        - Diff: replicas 6,in-place-updates.internal.cluster.x-k8s.io/receive-machines-from-machinesets removed,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m10,m4,m5,m6,m7,m8,m9
 [Toleration] tolerate maxSurge breach
 [MS controller] Reconcile
     ms2: 6/6 replicas, 6 available, 3 upToDate (m1,m2,m3,m4🟢,m5🟢,m6🟢)
@@ -48,6 +50,8 @@
     md: 8/6 replicas, 8 available, 3 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
     ms2: 6/6 replicas, 6 available, 3 upToDate (m1,m2,m3,m4🟢,m5🟢,m6🟢)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
 [MS controller] Reconcile
@@ -76,25 +80,11 @@
     ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6)
 [MS controller] Reconcile
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-      - ms1 scaled down to 0/0 replicas (m11,m12 moved to ms2)
-[MS controller] Reconcile
-    ms2: 8/6 replicas, 8 available, 6 upToDate (m1,m2,m3,m4,m5,m6,m11✋🟢,m12✋🟢)
-      - Replicas m11,m12 moved from an old MachineSet still pending acknowledge from machine deployment md
-[MS controller] Reconcile
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MD controller] Reconcile
-    md: 8/6 replicas, 8 available, 6 upToDate
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: 8/6 replicas, 8 available, 6 upToDate (m1,m2,m3,m4,m5,m6,m11🟢,m12🟢)
-      - Updated current MachineSet ms2
-        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m11,m12
+      - ms1 scaled down to 0/0 replicas (m11,m12 deleted)
 [MS controller] Reconcile
     ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6)
-      - ms2 scaled down to 6/6 replicas (m12,m11 deleted)
 [MS controller] Reconcile
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
-    ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6)
 [MD controller] Reconcile
     md: 6/6 replicas, 6 available, 6 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()

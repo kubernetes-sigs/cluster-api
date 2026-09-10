@@ -609,6 +609,11 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 						current.machineSets = append(current.machineSets, desiredNewMS)
 						log.V(5).Info(fmt.Sprintf("Computing new MachineSet %s with %d replicas", klog.KObj(desiredNewMS), ptr.Deref(desiredNewMS.Spec.Replicas, 0)), "MachineSet", klog.KObj(desiredNewMS))
 					}
+
+					// The annotations set by the rollout planner are not part of the output of ComputeDesiredMS, so drop them to mimic the same behavior.
+					delete(desiredNewMS.Annotations, clusterv1.AcknowledgedMoveAnnotation)
+					delete(desiredNewMS.Annotations, clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation)
+					delete(desiredNewMS.Annotations, clusterv1.MachineSetMoveMachinesToMachineSetAnnotation)
 					return desiredNewMS, nil
 				}
 

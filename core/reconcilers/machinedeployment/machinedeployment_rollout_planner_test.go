@@ -679,7 +679,7 @@ func machineSetControllerMutatorCreateMachines(ms *clusterv1.MachineSet, scope *
 }
 
 func machineSetControllerMutatorMoveMachines(ms *clusterv1.MachineSet, scope *rolloutScope, targetMSName string, machinesToMove int32, affectsAvailability *bool, logLines *strings.Builder) error {
-	// Note: this is a simplified version of the code in the moveMachines func from the MachineSet controller, e.g. no pluggable move order,
+	// Note: this is a simplified version of the code in the startMoveMachines/completeMoveMachine func from the MachineSet controller, e.g. no pluggable move order,
 	// no update of machine labels, no/lighter logging. Also please note that from the sake of this test, there is no split between start move an
 	// completeMove (what is implemented below is enough to fake the entire move operation).
 	// Note: in the test code exceeding machines are moved in predictable order, so it is easier to write test case and validate rollout sequences.

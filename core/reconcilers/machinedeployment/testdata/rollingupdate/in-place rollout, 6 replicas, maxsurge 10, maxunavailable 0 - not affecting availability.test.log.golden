@@ -42,6 +42,8 @@
     md: 6/6 replicas, 6 available, 0 upToDate
     ms1: 5/5 replicas, 5 available, 0 upToDate (m2,m3,m4,m5,m6)
     ms2: 1/1 replicas, 1 available, 0 upToDate (m1🟢)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 5/5 replicas, 5 available, 0 upToDate (m2,m3,m4,m5,m6)
 [MS controller] Reconcile
@@ -75,6 +77,8 @@
     md: 6/6 replicas, 6 available, 1 upToDate
     ms1: 4/4 replicas, 4 available, 0 upToDate (m3,m4,m5,m6)
     ms2: 2/2 replicas, 2 available, 1 upToDate (m1,m2🟢)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 4/4 replicas, 4 available, 0 upToDate (m3,m4,m5,m6)
 [MS controller] Reconcile
@@ -108,6 +112,8 @@
     md: 6/6 replicas, 6 available, 2 upToDate
     ms1: 3/3 replicas, 3 available, 0 upToDate (m4,m5,m6)
     ms2: 3/3 replicas, 3 available, 2 upToDate (m1,m2,m3🟢)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 3/3 replicas, 3 available, 0 upToDate (m4,m5,m6)
 [MS controller] Reconcile
@@ -141,6 +147,8 @@
     md: 6/6 replicas, 6 available, 3 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m5,m6)
     ms2: 4/4 replicas, 4 available, 3 upToDate (m1,m2,m3,m4🟢)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 2/2 replicas, 2 available, 0 upToDate (m5,m6)
 [MS controller] Reconcile
@@ -174,6 +182,8 @@
     md: 6/6 replicas, 6 available, 4 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m6)
     ms2: 5/5 replicas, 5 available, 4 upToDate (m1,m2,m3,m4,m5🟢)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 1/1 replicas, 1 available, 0 upToDate (m6)
 [MS controller] Reconcile
@@ -195,10 +205,12 @@
 [MD controller] Reconcile
     md: 6/6 replicas, 6 available, 5 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
+      - Updated old MachineSet ms1
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset removed
     ms2: from 6/5 to 6/6 replicas, 6 available, 5 upToDate (m1,m2,m3,m4,m5,m6🟢)
       - Scaled up current MachineSet ms2 from 5 to 6 replicas (+1)
         - Reason: acknowledge Machines m6 moved from an old MachineSet
-        - Diff: replicas 6,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m6
+        - Diff: replicas 6,in-place-updates.internal.cluster.x-k8s.io/receive-machines-from-machinesets removed,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m6
 [MS controller] Reconcile
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
 [MS controller] Reconcile
@@ -207,6 +219,8 @@
     md: 6/6 replicas, 6 available, 5 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 6/6 replicas, 6 available, 5 upToDate (m1,m2,m3,m4,m5,m6🟢)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
 [MS controller] Reconcile

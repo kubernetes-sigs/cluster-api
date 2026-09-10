@@ -52,6 +52,8 @@
     md: 7/6 replicas, 6 available, 1 upToDate
     ms1: 5/5 replicas, 5 available, 0 upToDate (m2,m3,m4,m5,m6)
     ms2: 2/2 replicas, 1 available, 1 upToDate (m1🟡,m7)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 5/5 replicas, 5 available, 0 upToDate (m2,m3,m4,m5,m6)
 [MS controller] Reconcile
@@ -107,6 +109,8 @@
         - Reason: 7 available replicas > 6 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (affects availability)
         - Diff: replicas 3
     ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m7)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MD controller] Reconcile
     md: 7/6 replicas, 7 available, 3 upToDate
     ms1: 4/3 replicas, 4 available, 0 upToDate (m3,m4,m5,m6)
@@ -149,6 +153,8 @@
         - Reason: 7 available replicas > 6 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (affects availability)
         - Diff: replicas 2
     ms2: 4/4 replicas, 4 available, 4 upToDate (m1,m2,m3,m7)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 2/2 replicas, 2 available, 0 upToDate (m5,m6)
       - ms1 scaled down to 2/2 replicas (m4 moved to ms2)
@@ -187,6 +193,8 @@
         - Reason: 7 available replicas > 6 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (affects availability)
         - Diff: replicas 1
     ms2: 5/5 replicas, 5 available, 5 upToDate (m1,m2,m3,m4,m7)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 1/1 replicas, 1 available, 0 upToDate (m6)
       - ms1 scaled down to 1/1 replicas (m5 moved to ms2)
@@ -197,16 +205,20 @@
 [MD controller] Reconcile
     md: 6/6 replicas, 6 available, 5 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m6)
+      - Updated old MachineSet ms1
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset removed
     ms2: from 5/5 to 5/6 replicas, 5 available, 5 upToDate (m1,m2,m3,m4,m5🟡,m7)
       - Scaled up current MachineSet ms2 from 5 to 6 replicas (+1)
         - Reason: acknowledge Machines m5 moved from an old MachineSet
-        - Diff: replicas 6,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m5
+        - Diff: replicas 6,in-place-updates.internal.cluster.x-k8s.io/receive-machines-from-machinesets removed,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m5
 [MS controller] Reconcile
     ms2: 6/6 replicas, 5 available, 5 upToDate (m1,m2,m3,m4,m5🟡,m7)
 [MD controller] Reconcile
     md: 7/6 replicas, 6 available, 5 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m6)
     ms2: 6/6 replicas, 5 available, 5 upToDate (m1,m2,m3,m4,m5🟡,m7)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MD controller] Reconcile
     md: 7/6 replicas, 6 available, 5 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m6)
@@ -231,41 +243,13 @@
     ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m7)
 [MS controller] Reconcile
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-      - ms1 scaled down to 0/0 replicas (m6 moved to ms2)
-[MS controller] Reconcile
-    ms2: 7/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6✋🟡,m7)
-      - Replicas m6 moved from an old MachineSet still pending acknowledge from machine deployment md
-[MD controller] Reconcile
-    md: 7/6 replicas, 6 available, 6 upToDate
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: 7/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6🟡,m7)
-      - Updated current MachineSet ms2
-        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m6
-[MD controller] Reconcile
-    md: 7/6 replicas, 6 available, 6 upToDate
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: 7/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6🟡,m7)
-[MS controller] Reconcile
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MD controller] Reconcile
-    md: 7/6 replicas, 6 available, 6 upToDate
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: 7/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m6🟡,m7)
-[MS controller] Reconcile
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
+      - ms1 scaled down to 0/0 replicas (m6 deleted)
 [MS controller] Reconcile
     ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m7)
-      - ms2 scaled down to 6/6 replicas (m6 deleted)
 [MD controller] Reconcile
     md: 6/6 replicas, 6 available, 6 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m7)
-[MS controller] Reconcile
-    ms2: 6/6 replicas, 6 available, 6 upToDate (m1,m2,m3,m4,m5,m7)
-[MS controller] Reconcile
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
   
 [Test] Final state
     md: 6/6 replicas, 6 available, 6 upToDate

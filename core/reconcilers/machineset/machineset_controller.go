@@ -840,14 +840,15 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 
 		// Move machines to the target MachineSet if the current MachineSet is instructed to do so.
 		// Note: it is required to use UnmarshalMoveMachinesToMachineSetAnnotationData instead of Unmarshal because the legacy format is an invalid json.
-		moveMachinesToMachineSetAnnotationValue := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]
-		data := &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{}
-		if err := mdutil.UnmarshalMoveMachinesToMachineSetAnnotationData([]byte(moveMachinesToMachineSetAnnotationValue), data); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to unmarshal %s annotation on %s", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, ms.Name)
-		}
-		if data.Name != "" {
-			// Note: The number of machines actually moved could be less than expected e.g. because some machine still updating in-place from a previous move.
-			return r.startMoveMachines(ctx, s, data.Name, machinesToDeleteOrMove, data.AffectsAvailability)
+		if moveMachinesToMachineSetAnnotationValue, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok && moveMachinesToMachineSetAnnotationValue != "" {
+			data := &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{}
+			if err := mdutil.UnmarshalMoveMachinesToMachineSetAnnotationData([]byte(moveMachinesToMachineSetAnnotationValue), data); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to unmarshal %s annotation on %s", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, ms.Name)
+			}
+			if data.Name != "" {
+				// Note: The number of machines actually moved could be less than expected e.g. because some machine still updating in-place from a previous move.
+				return r.startMoveMachines(ctx, s, data.Name, machinesToDeleteOrMove, data.AffectsAvailability)
+			}
 		}
 
 		// Otherwise the current MachineSet is not instructed to move machines to another MachineSet,

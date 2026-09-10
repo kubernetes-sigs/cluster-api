@@ -254,10 +254,11 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 	// ensure that changes are rolled out in an incremental way.
 	// Note: this is consistent with the idea that maxSurge and maxUnavailable defines the speed of a rollout (with the
 	// caveat that maxSurge/creating additional machines is capped because rollout planner must give priority to in-place when possible).
-	// TODO: test
+	// Note: Machines InPlaceUpdatingNotAffectingAvailability exists on oldMSs only if another change is applied
+	// while in place update is still in progress.
 	totalInPlaceUpdatingNotAffectingAvailability := int32(0)
 	for _, m := range p.machines {
-		if inplace.IsUpdateInProgressWithoutAffectingAvailability(m) {
+		if inplace.IsUpdateInProgressNotAffectingAvailability(m) {
 			totalInPlaceUpdatingNotAffectingAvailability++
 		}
 	}
@@ -460,13 +461,13 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		}
 
 		// Check if the MachineSet can update in place; if not, move to the next MachineSet.
-		answer, err := p.canUpdateMachineSetInPlace(ctx, oldMS, p.newMS)
+		res, err := p.canUpdateMachineSetInPlace(ctx, oldMS, p.newMS)
 		if err != nil {
 			return pkgerrors.Wrapf(err, "failed to determine if MachineSet %s can be updated in-place", oldMS.Name)
 		}
-		log.V(5).Info(fmt.Sprintf("CanUpdate in-place decision for MachineSet %s: %t, affects availability: %t", klog.KObj(oldMS), answer.canUpdate, ptr.Deref(answer.affectsAvailability, true)), "MachineSet", klog.KObj(oldMS))
+		log.V(5).Info(fmt.Sprintf("CanUpdate in-place decision for MachineSet %s: %t, affects availability: %t", klog.KObj(oldMS), res.canUpdateMachineSet, res.affectsAvailability), "MachineSet", klog.KObj(oldMS))
 
-		if !answer.canUpdate {
+		if !res.canUpdateMachineSet {
 			continue
 		}
 
@@ -479,11 +480,11 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 			oldMS.Annotations = map[string]string{}
 		}
 
-		moveMachinesToMachineSetAnnotationData := clusterv1.MoveMachinesToMachineSetAnnotationData{
+		moveMachinesToMachineSetAnnotationData := clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{
 			Name:                p.newMS.Name,
-			AffectsAvailability: answer.affectsAvailability,
+			AffectsAvailability: new(res.affectsAvailability),
 		}
-		if ptr.Deref(answer.affectsAvailability, true) {
+		if res.affectsAvailability {
 			p.addNotef(oldMS, "should scale down by moving Machines to MachineSet %s (affects availability)", p.newMS.Name)
 		} else {
 			inPlaceUpdateCandidatesNotAffectingAvailability = append(inPlaceUpdateCandidatesNotAffectingAvailability, oldMS)
@@ -597,15 +598,18 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		newScaleUpCount = 0
 
 		// Scale down one of the oldMS candidate for in-place update and that can perform an update without affecting availability.
-		// Sort oldMSs so the system will start deleting from the oldest MS first.
+		// Sort oldMSs so the system will start moving machines from the oldest MS first.
 		sort.Sort(mdutil.MachineSetsByCreationTimestamp(inPlaceUpdateCandidatesNotAffectingAvailability))
 		oldMS := inPlaceUpdateCandidatesNotAffectingAvailability[0]
 
-		replicas := ptr.Deref(oldMS.Spec.Replicas, 0)
-		newScaleDownIntent := max(replicas-1, 0)
-		p.addNotef(oldMS, "surge 1 for MachineSet %s converted to scale down MachineSet %s to %d replicas (-%d)", p.newMS.Name, oldMS.Name, newScaleDownIntent, 1)
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleDownIntent, 1), "MachineSet", klog.KObj(oldMS))
-		p.scaleIntents[oldMS.Name] = newScaleDownIntent
+		replicasOldMS := ptr.Deref(oldMS.Spec.Replicas, 0)
+		if i, ok := p.scaleIntents[oldMS.Name]; ok {
+			replicasOldMS = i
+		}
+		newScaleDownIntentOldMS := max(replicasOldMS-1, 0)
+		p.addNotef(oldMS, "surge 1 for MachineSet %s converted to scale down for MachineSet %s to %d replicas (-%d)", p.newMS.Name, oldMS.Name, newScaleDownIntentOldMS, 1)
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleDownIntentOldMS, 1), "MachineSet", klog.KObj(oldMS))
+		p.scaleIntents[oldMS.Name] = newScaleDownIntentOldMS
 	} else {
 		p.addNotef(p.newMS, "surge 1 allowed to create availability for in-place updates")
 	}

@@ -40,6 +40,7 @@
       - Scaled up current MachineSet ms2 from 3 to 6 replicas (+3)
         - Reason: acknowledge Machines m10,m4,m5,m6,m7,m8,m9 moved from an old MachineSet, scale down to align MachineSet spec.replicas to MachineDeployment spec.replicas
         - Diff: replicas 6,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m10,m4,m5,m6,m7,m8,m9
+[Toleration] tolerate maxSurge breach
 [MS controller] Reconcile
     ms2: 6/6 replicas, 3 available, 3 upToDate (m1,m2,m3,m4🟡,m5🟡,m6🟡)
       - ms2 scaled down to 6/6 replicas (m10,m9,m8,m7 deleted)

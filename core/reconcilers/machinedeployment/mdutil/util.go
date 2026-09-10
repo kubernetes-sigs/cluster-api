@@ -828,25 +828,16 @@ func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelVal
 // UnmarshalMoveMachinesToMachineSetAnnotationData handles legacy format when this annotation was a raw string and the
 // new format with a full JSON object.
 // Note: it is not possible to implement a custom UnmarshalJSON because the legacy format is an invalid JSON.
-// Note: this method can be deprecated/removed after 3 leases since the change of the format of the
+// Note: this method can be deprecated/removed after 3 releases since the change of the format of the
 // value MoveMachinesToMachineSetAnnotation, that is in CAPI 1.18.
-func UnmarshalMoveMachinesToMachineSetAnnotationData(data []byte, obj *clusterv1.MoveMachinesToMachineSetAnnotationData) error {
+func UnmarshalMoveMachinesToMachineSetAnnotationData(data []byte, obj *clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData) error {
 	if len(data) == 0 {
 		return nil
 	}
 
 	// Check if the input is a JSON object (starts with a "{")
 	if data[0] == '{' {
-		// Prevent infinite recursion by creating an alias type
-		type Alias clusterv1.MoveMachinesToMachineSetAnnotationData
-		var aux Alias
-
-		if err := json.Unmarshal(data, &aux); err != nil {
-			return err
-		}
-
-		*obj = clusterv1.MoveMachinesToMachineSetAnnotationData(aux)
-		return nil
+		return json.Unmarshal(data, &obj)
 	}
 
 	// handle the legacy plain-text MachineSet name format.

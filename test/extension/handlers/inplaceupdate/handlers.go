@@ -205,8 +205,6 @@ func (h *ExtensionHandlers) DoCanUpdateMachineSet(ctx context.Context, req *runt
 		return
 	}
 
-	// By returning AffectsAvailability: false the in-place update e2e test can verify that
-	// we are not creating additional CP Machines even with maxSurge: 1.
 	resp.AffectsAvailability = new(affectsAvailability)
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
 }

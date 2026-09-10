@@ -625,10 +625,10 @@ func machineSetControllerMutatorSyncReplicas(ms *clusterv1.MachineSet, scope *ro
 
 		// Move machines to the target MachineSet if the current MachineSet is instructed to do so.
 		if moveMachinesToMachineSetAnnotationValue, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok && moveMachinesToMachineSetAnnotationValue != "" {
-			data := &clusterv1.MoveMachinesToMachineSetAnnotationData{}
+			data := &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{}
 			// Note: it is required to use UnmarshalMoveMachinesToMachineSetAnnotationData instead of Unmarshal because the legacy format is an invalid JSON.
 			if err := mdutil.UnmarshalMoveMachinesToMachineSetAnnotationData([]byte(moveMachinesToMachineSetAnnotationValue), data); err != nil {
-				return fmt.Errorf("the Replicas field in Spec for MachineSet %v is nil, this should not be allowed", ms.Name)
+				return fmt.Errorf("failed to unmarshal %s annotation on %s", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, ms.Name)
 			}
 			if data.Name != "" {
 				// Note: The number of machines actually moved could be less than expected e.g. because some machine still updating in-place from a previous move.
@@ -808,7 +808,7 @@ func machineSetControllerMutatorUpdateStatus(ms *clusterv1.MachineSet, scope *ro
 	for _, m := range scope.machineSetMachines[ms.Name] {
 		if inplace.IsUpdateInProgress(m) {
 			// Machines updating in-place should be considered available only if the operation does not affect availability.
-			if inplace.IsUpdateInProgressWithoutAffectingAvailability(m) {
+			if inplace.IsUpdateInProgressNotAffectingAvailability(m) {
 				availableReplicas++
 			}
 			continue

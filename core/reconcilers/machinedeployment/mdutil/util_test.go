@@ -1261,28 +1261,28 @@ func TestUnmarshalMoveMachinesToMachineSetAnnotationData(t *testing.T) {
 	testCases := []struct {
 		name    string
 		data    []byte
-		want    *clusterv1.MoveMachinesToMachineSetAnnotationData
+		want    *clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData
 		wantErr bool
 	}{
 		{
 			name: "empty input leaves the struct unchanged",
 			data: []byte{},
-			want: &clusterv1.MoveMachinesToMachineSetAnnotationData{},
+			want: &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{},
 		},
 		{
 			name: "legacy plain-text annotation value (not JSON) sets only Name",
 			data: []byte(`ms-1`),
-			want: &clusterv1.MoveMachinesToMachineSetAnnotationData{Name: "ms-1"},
+			want: &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{Name: "ms-1"},
 		},
 		{
 			name: "full JSON object with all fields set",
 			data: []byte(`{"name":"ms-1","affectsAvailability":false}`),
-			want: &clusterv1.MoveMachinesToMachineSetAnnotationData{Name: "ms-1", AffectsAvailability: new(false)},
+			want: &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{Name: "ms-1", AffectsAvailability: new(false)},
 		},
 		{
 			name: "full JSON object without affectsAvailability leaves it nil",
 			data: []byte(`{"name":"ms-1"}`),
-			want: &clusterv1.MoveMachinesToMachineSetAnnotationData{Name: "ms-1"},
+			want: &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{Name: "ms-1"},
 		},
 		{
 			name:    "invalid JSON object returns an error",
@@ -1293,7 +1293,7 @@ func TestUnmarshalMoveMachinesToMachineSetAnnotationData(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			// Note: it is required to use UnmarshalMoveMachinesToMachineSetAnnotationData instead of Unmarshal because the legacy format is an invalid JSON.
-			got := &clusterv1.MoveMachinesToMachineSetAnnotationData{}
+			got := &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{}
 			err := UnmarshalMoveMachinesToMachineSetAnnotationData(tt.data, got)
 			if tt.wantErr {
 				if err == nil {

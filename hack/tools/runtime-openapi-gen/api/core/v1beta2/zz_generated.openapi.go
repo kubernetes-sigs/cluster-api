@@ -160,6 +160,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeletionSpec":                                   schema_cluster_api_api_core_v1beta2_MachineSetDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeprecatedStatus":                               schema_cluster_api_api_core_v1beta2_MachineSetDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetList":                                           schema_cluster_api_api_core_v1beta2_MachineSetList(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetMoveMachinesToMachineSetAnnotationData":         schema_cluster_api_api_core_v1beta2_MachineSetMoveMachinesToMachineSetAnnotationData(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetSpec":                                           schema_cluster_api_api_core_v1beta2_MachineSetSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetStatus":                                         schema_cluster_api_api_core_v1beta2_MachineSetStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetV1Beta1DeprecatedStatus":                        schema_cluster_api_api_core_v1beta2_MachineSetV1Beta1DeprecatedStatus(ref),
@@ -6142,6 +6143,34 @@ func schema_cluster_api_api_core_v1beta2_MachineSetList(ref common.ReferenceCall
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachineSetMoveMachinesToMachineSetAnnotationData(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineSetMoveMachinesToMachineSetAnnotationData is used to store data about the in-place update in the MachineSetMoveMachinesToMachineSetAnnotation.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name of the MachineSet where the machines should be moved to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"affectsAvailability": {
+						SchemaProps: spec.SchemaProps{
+							Description: "affectsAvailability indicates if the in-place update affects availability of the Machine. Default is true.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachineSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -6719,34 +6748,6 @@ func schema_cluster_api_api_core_v1beta2_MachineV1Beta1DeprecatedStatus(ref comm
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/core/v1beta2.Condition"},
-	}
-}
-
-func schema_cluster_api_api_core_v1beta2_MoveMachinesToMachineSetAnnotationData(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MoveMachinesToMachineSetAnnotationData struct is used to store data about the in-place update in the MoveMachinesToMachineSet annotation.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "name of the MachineSet where the machines should be moved to.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"affectsAvailability": {
-						SchemaProps: spec.SchemaProps{
-							Description: "affectsAvailability indicates if the in-place update affects availability of the Machine. Default is true.",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"name"},
-			},
-		},
 	}
 }
 

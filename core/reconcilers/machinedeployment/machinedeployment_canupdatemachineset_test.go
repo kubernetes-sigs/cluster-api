@@ -80,7 +80,7 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 		getAllExtensionsResponses               map[runtimecatalog.GroupVersionHook][]string
 		wantCanExtensionsUpdateMachineSetCalled bool
 		wantCanUpdateMachineSet                 bool
-		wantAffectsAvailability                 *bool
+		wantAffectsAvailability                 bool
 		wantError                               bool
 		wantErrorMessage                        string
 		wantCacheEntry                          *CanUpdateMachineSetCacheEntry
@@ -157,11 +157,11 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
 					return canUpdateMachineSetInPlaceResult{
-						canUpdate: false,
+						canUpdateMachineSet: false,
 					}, nil, pkgerrors.Errorf("unexpected error")
 				}
 				return canUpdateMachineSetInPlaceResult{
-					canUpdate: false,
+					canUpdateMachineSet: false,
 				}, []string{"can not update"}, nil
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
@@ -186,23 +186,23 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
 					return canUpdateMachineSetInPlaceResult{
-						canUpdate:           true,
-						affectsAvailability: new(true),
+						canUpdateMachineSet: true,
+						affectsAvailability: false,
 					}, nil, pkgerrors.Errorf("unexpected error")
 				}
 				return canUpdateMachineSetInPlaceResult{
-					canUpdate:           true,
-					affectsAvailability: new(true),
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
 				}, nil, nil
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSet:                 true,
-			wantAffectsAvailability:                 new(true),
+			wantAffectsAvailability:                 true,
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
 				OldMS:               client.ObjectKeyFromObject(oldMS),
 				NewMS:               client.ObjectKeyFromObject(newMS),
 				CanUpdateMachineSet: true,
-				AffectAvailability:  new(true),
+				AffectAvailability:  true,
 			},
 		},
 		{
@@ -219,23 +219,23 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
 					return canUpdateMachineSetInPlaceResult{
-						canUpdate:           true,
-						affectsAvailability: new(false),
+						canUpdateMachineSet: true,
+						affectsAvailability: false,
 					}, nil, pkgerrors.Errorf("unexpected error")
 				}
 				return canUpdateMachineSetInPlaceResult{
-					canUpdate:           true,
-					affectsAvailability: new(false),
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
 				}, nil, nil
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSet:                 true,
-			wantAffectsAvailability:                 new(false),
+			wantAffectsAvailability:                 false,
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
 				OldMS:               client.ObjectKeyFromObject(oldMS),
 				NewMS:               client.ObjectKeyFromObject(newMS),
 				CanUpdateMachineSet: true,
-				AffectAvailability:  new(false),
+				AffectAvailability:  false,
 			},
 		},
 	}
@@ -287,15 +287,15 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				},
 			}
 
-			answer, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
+			res, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(answer.canUpdate).To(Equal(tt.wantCanUpdateMachineSet))
-			g.Expect(answer.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
+			g.Expect(res.canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+			g.Expect(res.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
 
 			g.Expect(canExtensionsUpdateMachineSetCalled).To(Equal(tt.wantCanExtensionsUpdateMachineSetCalled), "canExtensionsUpdateMachineSetCalled: actual: %t expected: %t", canExtensionsUpdateMachineSetCalled, tt.wantCanExtensionsUpdateMachineSetCalled)
 
@@ -313,10 +313,10 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 
 				// Call canUpdateMachineSetInPlace again and verify the cache hit.
 				canExtensionsUpdateMachineSetCalled = false
-				answer, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
+				res, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(answer.canUpdate).To(Equal(tt.wantCanUpdateMachineSet))
-				g.Expect(answer.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
+				g.Expect(res.canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+				g.Expect(res.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
 				g.Expect(canExtensionsUpdateMachineSetCalled).To(BeFalse())
 			}
 		})
@@ -441,7 +441,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 		callExtensionResponses       map[string]runtimehooksv1.ResponseObject
 		callExtensionExpectedChanges map[string]func(runtime.Object)
 		wantCanUpdateMachineSet      bool
-		wantAffectsAvailability      *bool
+		wantAffectsAvailability      bool
 		wantReasons                  []string
 		wantError                    bool
 		wantErrorMessage             string
@@ -461,7 +461,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				"test-update-extension": responseWithEmptyPatches,
 			},
 			wantCanUpdateMachineSet: true,
-			wantAffectsAvailability: new(true),
+			wantAffectsAvailability: true,
 		},
 		{
 			name:  "Return false if current and desired objects are not equal and no patches are returned",
@@ -552,7 +552,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				},
 			},
 			wantCanUpdateMachineSet: true,
-			wantAffectsAvailability: new(true),
+			wantAffectsAvailability: true,
 		},
 		{
 			name:  "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions)",
@@ -599,29 +599,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				},
 			},
 			wantCanUpdateMachineSet: true,
-			wantAffectsAvailability: new(true),
-		},
-		{
-			name:  "Return true if current and desired objects are not equal and patches are returned that account for all diffs - does not affect availability",
-			newMS: desiredMachineSet,
-			templateObjects: &templateObjects{
-				CurrentInfraMachineTemplate:    currentInfraMachineTemplate,
-				DesiredInfraMachineTemplate:    desiredInfraMachineTemplate,
-				CurrentBootstrapConfigTemplate: currentBootstrapConfigTemplate,
-				DesiredBootstrapConfigTemplate: desiredBootstrapConfigTemplate,
-			},
-			extensionHandlers: []string{"test-update-extension"},
-			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
-				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonResponse:                     runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
-					MachineSetPatch:                    patchToUpdateMachineSet,
-					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
-					BootstrapConfigTemplatePatch:       patchToUpdateBootstrapConfigTemplate,
-					AffectsAvailability:                new(false),
-				},
-			},
-			wantCanUpdateMachineSet: true,
-			wantAffectsAvailability: new(false),
+			wantAffectsAvailability: true,
 		},
 		{
 			name:  "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions) - does not affect availability",
@@ -671,7 +649,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				},
 			},
 			wantCanUpdateMachineSet: true,
-			wantAffectsAvailability: new(false),
+			wantAffectsAvailability: false,
 		},
 		{
 			name:  "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions) - at least one affects availability",
@@ -721,7 +699,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				},
 			},
 			wantCanUpdateMachineSet: true,
-			wantAffectsAvailability: new(true),
+			wantAffectsAvailability: true,
 		},
 		{
 			name:  "Return false if current and desired objects are not equal and patches are returned that only account for some diffs",
@@ -791,15 +769,15 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				RuntimeClient: runtimeClient,
 			}
 
-			answer, reasons, err := p.canExtensionsUpdateMachineSet(ctx, currentMachineSet, tt.newMS, tt.templateObjects, tt.extensionHandlers)
+			res, reasons, err := p.canExtensionsUpdateMachineSet(ctx, currentMachineSet, tt.newMS, tt.templateObjects, tt.extensionHandlers)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(answer.canUpdate).To(Equal(tt.wantCanUpdateMachineSet))
-			g.Expect(answer.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
+			g.Expect(res.canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+			g.Expect(res.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
 			g.Expect(reasons).To(BeComparableTo(tt.wantReasons))
 		})
 	}

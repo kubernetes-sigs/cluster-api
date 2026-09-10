@@ -3501,7 +3501,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			}
 
 			moveMachinesToMachineSetAnnotationValue := tt.ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]
-			data := &clusterv1.MoveMachinesToMachineSetAnnotationData{}
+			data := &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{}
 			// Note: it is required to use UnmarshalMoveMachinesToMachineSetAnnotationData instead of Unmarshal because the legacy format is an invalid JSON.
 			err := mdutil.UnmarshalMoveMachinesToMachineSetAnnotationData([]byte(moveMachinesToMachineSetAnnotationValue), data)
 			g.Expect(err).ToNot(HaveOccurred())

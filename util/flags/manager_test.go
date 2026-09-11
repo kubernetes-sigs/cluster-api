@@ -23,11 +23,25 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/spf13/pflag"
 	"k8s.io/apiserver/pkg/server/routes"
 	"k8s.io/component-base/logs"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
+
+func TestAddWebhookCertificateOptions(t *testing.T) {
+	g := NewWithT(t)
+	t.Setenv("POD_NAMESPACE", "capi-system")
+
+	fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
+	options := WebhookCertificateOptions{}
+	AddWebhookCertificateOptions(fs, &options)
+
+	g.Expect(fs.Parse([]string{"--webhook-cert-secret-name=webhook-cert"})).To(Succeed())
+	g.Expect(options.SecretName).To(Equal("webhook-cert"))
+	g.Expect(options.SecretNamespace).To(Equal("capi-system"))
+}
 
 func TestGetManagerOptions(t *testing.T) {
 	tests := []struct {

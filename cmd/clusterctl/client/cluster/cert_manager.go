@@ -73,7 +73,7 @@ type CertManagerClient interface {
 	// older than the version currently suggested by clusterctl, upgrades it.
 	EnsureLatestVersion(ctx context.Context) error
 
-	// PlanUpgrade retruns a CertManagerUpgradePlan with information regarding
+	// PlanUpgrade returns a CertManagerUpgradePlan with information regarding
 	// a cert-manager upgrade if necessary.
 	PlanUpgrade(ctx context.Context) (CertManagerUpgradePlan, error)
 

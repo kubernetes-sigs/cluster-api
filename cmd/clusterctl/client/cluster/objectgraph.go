@@ -101,7 +101,7 @@ type node struct {
 	restoreObject *unstructured.Unstructured
 
 	// additionalInfo captures any additional information about the object the node represents.
-	// E.g. for the cluster object we capture information to see if the cluster uses a manged topology
+	// E.g. for the cluster object we capture information to see if the cluster uses a managed topology
 	// and the cluster class used.
 	additionalInfo map[string]interface{}
 

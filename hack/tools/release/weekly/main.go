@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v90/github"
 	"golang.org/x/oauth2"
 
 	release "sigs.k8s.io/cluster-api/hack/tools/release/internal"
@@ -281,15 +281,19 @@ func isValidBranch(branchName string, owner string, repo string, client *github.
 // This is not necessary, but a nice to have when extending this script and going beyond
 // normal usage.
 func createGitHubClient(ghToken string) *github.Client {
+	var opts []github.ClientOptionsFunc
 	if ghToken != "" {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: ghToken},
 		)
 
 		tc := oauth2.NewClient(context.Background(), ts)
-
-		return github.NewClient(tc)
+		opts = append(opts, github.WithHTTPClient(tc))
 	}
 
-	return github.NewClient(nil)
+	client, err := github.NewClient(opts...)
+	if err != nil {
+		panic(err)
+	}
+	return client
 }

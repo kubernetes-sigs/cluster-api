@@ -28,7 +28,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/blang/semver/v4"
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v90/github"
 	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"sigs.k8s.io/yaml"
@@ -55,16 +55,17 @@ type versionChecker struct {
 // newVersionChecker returns a versionChecker. Its behavior has been inspired
 // by https://github.com/cli/cli.
 func newVersionChecker(ctx context.Context, vc config.VariablesClient) (*versionChecker, error) {
-	var githubClient *github.Client
-	token, err := vc.Get("GITHUB_TOKEN")
-	if err == nil {
+	var opts []github.ClientOptionsFunc
+	if token, err := vc.Get("GITHUB_TOKEN"); err == nil {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: token},
 		)
 		tc := oauth2.NewClient(ctx, ts)
-		githubClient = github.NewClient(tc)
-	} else {
-		githubClient = github.NewClient(nil)
+		opts = append(opts, github.WithHTTPClient(tc))
+	}
+	githubClient, err := github.NewClient(opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	var goproxyClient *goproxy.Client

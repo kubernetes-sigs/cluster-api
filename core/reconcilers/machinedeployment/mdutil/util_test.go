@@ -19,6 +19,7 @@ package mdutil
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"sort"
 	"strconv"
 	"testing"
@@ -1254,4 +1255,58 @@ func machineSetWithRevisionAndHistory(revision string, revisionHistory string) *
 		ms.Annotations[revisionHistoryAnnotation] = revisionHistory
 	}
 	return ms
+}
+
+func TestUnmarshalMoveMachinesToMachineSetAnnotationData(t *testing.T) {
+	testCases := []struct {
+		name    string
+		data    []byte
+		want    *clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData
+		wantErr bool
+	}{
+		{
+			name: "empty input leaves the struct unchanged",
+			data: []byte{},
+			want: &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{},
+		},
+		{
+			name: "legacy plain-text annotation value (not JSON) sets only Name",
+			data: []byte(`ms-1`),
+			want: &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{Name: "ms-1"},
+		},
+		{
+			name: "full JSON object with all fields set",
+			data: []byte(`{"name":"ms-1","affectsAvailability":false}`),
+			want: &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{Name: "ms-1", AffectsAvailability: new(false)},
+		},
+		{
+			name: "full JSON object without affectsAvailability leaves it nil",
+			data: []byte(`{"name":"ms-1"}`),
+			want: &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{Name: "ms-1"},
+		},
+		{
+			name:    "invalid JSON object returns an error",
+			data:    []byte(`{"name":`),
+			wantErr: true,
+		},
+	}
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			// Note: it is required to use UnmarshalMoveMachinesToMachineSetAnnotationData instead of Unmarshal because the legacy format is an invalid JSON.
+			got := &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{}
+			err := UnmarshalMoveMachinesToMachineSetAnnotationData(tt.data, got)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("Expected an error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Expected no error, got %v", err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("Expected %+v to equal %+v", got, tt.want)
+			}
+		})
+	}
 }

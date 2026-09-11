@@ -18,6 +18,7 @@ package machinedeployment
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -36,6 +37,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 )
 
 func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
@@ -388,6 +390,7 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 		scaleIntent                map[string]int32
 		newMS                      *clusterv1.MachineSet
 		oldMSs                     []*clusterv1.MachineSet
+		machines                   []*clusterv1.Machine
 		expectScaleIntent          map[string]int32
 		expectedNotes              map[string][]string
 		skipMaxUnavailabilityCheck bool
@@ -445,6 +448,26 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 			expectScaleIntent: map[string]int32{
 				// no new scale down intent for oldMSs (ms1):
 				// 3 available replicas from ms1 - 1 replica already scaling down from ms1 + 1 available replica from ms2 = 3 available replicas == minAvailability, we cannot further scale down
+			},
+			expectedNotes: map[string][]string{},
+		},
+		{
+			name:        "do not scale down if there are more replicas than minAvailable replicas, and some of them is updating in-place without affecting availability", // The system should slow down the rollout in this case
+			scaleIntent: map[string]int32{},
+			md:          createMD("v3", 3, withRollingUpdateStrategy(1, 0)),
+			newMS:       createMS("ms3", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+				createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)), // MS with a machine updating in place (does not affect availability)
+			},
+			machines: []*clusterv1.Machine{ // in this test it is required to define machines because the test is checking a code path validating UpdateInProgressAnnotation on Machine
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1"),
+				createM("m3", "ms2", "v2", withMAnnotation(clusterv1.UpdateInProgressAnnotation, "{\"affectsAvailability\":false}")),
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1,  ms2):
+				// 3 available replicas, one of them updating in place (does not affect availability), we cannot further scale down
 			},
 			expectedNotes: map[string][]string{},
 		},
@@ -742,6 +765,7 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 				md:           tt.md,
 				newMS:        tt.newMS,
 				oldMSs:       tt.oldMSs,
+				machines:     tt.machines,
 				scaleIntents: tt.scaleIntent,
 				notes:        make(map[string][]string),
 			}
@@ -783,7 +807,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		machines               []*clusterv1.Machine
 		scaleIntents           map[string]int32
 		upToDateResults        map[string]mdutil.UpToDateResult
-		canUpdateAnswer        map[string]bool
+		canUpdateResult        map[string]canUpdateMachineSetInPlaceResult
 		expectedCanUpdateCalls map[string]bool
 		expectMoveFromMS       []string
 		expectScaleIntents     map[string]int32
@@ -809,13 +833,16 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS:   []string{"ms1"},
 			expectScaleIntents: map[string]int32{},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
 			},
 		},
 		{
@@ -836,7 +863,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms1": {EligibleForInPlaceUpdate: true},
 			},
 			expectedCanUpdateCalls: map[string]bool{},
-			canUpdateAnswer:        map[string]bool{},
+			canUpdateResult:        map[string]canUpdateMachineSetInPlaceResult{},
 			expectMoveFromMS:       []string{},
 			expectScaleIntents:     map[string]int32{},
 			expectedNotes:          map[string][]string{},
@@ -856,7 +883,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms1": {EligibleForInPlaceUpdate: true},
 			},
 			expectedCanUpdateCalls: map[string]bool{},
-			canUpdateAnswer:        map[string]bool{},
+			canUpdateResult:        map[string]canUpdateMachineSetInPlaceResult{},
 			expectMoveFromMS:       []string{},
 			expectScaleIntents:     map[string]int32{},
 			expectedNotes:          map[string][]string{},
@@ -875,7 +902,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			scaleIntents:           map[string]int32{},
 			upToDateResults:        map[string]mdutil.UpToDateResult{},
 			expectedCanUpdateCalls: map[string]bool{},
-			canUpdateAnswer:        map[string]bool{},
+			canUpdateResult:        map[string]canUpdateMachineSetInPlaceResult{},
 			expectMoveFromMS:       []string{},
 			expectScaleIntents:     map[string]int32{},
 			expectedNotes:          map[string][]string{},
@@ -896,7 +923,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms1": {EligibleForInPlaceUpdate: false},
 			},
 			expectedCanUpdateCalls: map[string]bool{},
-			canUpdateAnswer:        map[string]bool{},
+			canUpdateResult:        map[string]canUpdateMachineSetInPlaceResult{},
 			expectMoveFromMS:       []string{},
 			expectScaleIntents:     map[string]int32{},
 			expectedNotes:          map[string][]string{},
@@ -919,8 +946,10 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": false,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: false,
+				},
 			},
 			expectMoveFromMS:   []string{},
 			expectScaleIntents: map[string]int32{},
@@ -957,20 +986,28 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms2": true,
 				"ms5": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
-				"ms2": false,
-				"ms5": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
+				"ms2": {
+					canUpdateMachineSet: false,
+				},
+				"ms5": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS:   []string{"ms1", "ms5"},
 			expectScaleIntents: map[string]int32{},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms6"},
-				"ms5": {"should scale down by moving Machines to MachineSet ms6"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms6 (affects availability)"},
+				"ms5": {"should scale down by moving Machines to MachineSet ms6 (affects availability)"},
 			},
 		},
 
-		// NewMS scaling up
+		// NewMS scaling up - in-place upgrades affecting availability
 
 		{
 			name:  "When moving replicas from oldMS to newMS, preserve newMS scale up intent if it does not use maxSurge",
@@ -992,15 +1029,18 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS: []string{"ms1"},
 			expectScaleIntents: map[string]int32{
 				"ms2": 2, // Scale intent not changed
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
 			},
 		},
 		{
@@ -1024,8 +1064,11 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS: []string{"ms1"},
 			expectScaleIntents: map[string]int32{
@@ -1033,7 +1076,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms2": 1,
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
 				"ms2": {"surge 1 allowed to create availability for in-place updates"},
 			},
 		},
@@ -1058,8 +1101,11 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS: []string{"ms1"},
 			expectScaleIntents: map[string]int32{
@@ -1067,7 +1113,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms2": 1,
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
 				"ms2": {"surge 1 allowed to create availability for in-place updates"},
 			},
 		},
@@ -1093,15 +1139,18 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS:   []string{"ms1"},
 			expectScaleIntents: map[string]int32{
 				// "ms2": 0, +2 replica using maxSurge dropped, oldMS is scaling down
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
 				"ms2": {"surge 2 dropped to prioritize in-place updates"},
 			},
 		},
@@ -1127,8 +1176,11 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS: []string{"ms1"},
 			expectScaleIntents: map[string]int32{
@@ -1136,7 +1188,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms1": 2, // -1 due to maxUnavailable 1
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
 				"ms2": {"surge 3 dropped to prioritize in-place updates"},
 			},
 		},
@@ -1164,15 +1216,18 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS:   []string{"ms1"},
 			expectScaleIntents: map[string]int32{
 				// "ms2": 6, +3 replicas from maxSurge dropped, newMS is already scaling up
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
 				"ms2": {"surge 3 dropped to prioritize in-place updates"},
 			},
 		},
@@ -1197,15 +1252,18 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS:   []string{"ms1"},
 			expectScaleIntents: map[string]int32{
 				// "ms2": 1, +1 replica using maxSurge dropped, there is a machine updating in place
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
 				"ms2": {"surge 1 dropped to prioritize in-place updates"},
 			},
 		},
@@ -1230,15 +1288,18 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS:   []string{"ms1"},
 			expectScaleIntents: map[string]int32{
 				// "ms2": 0, +3 replicas from maxSurge dropped, there is a machine updating in place
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
 				"ms2": {"surge 3 dropped to prioritize in-place updates"},
 			},
 		},
@@ -1263,15 +1324,349 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				},
 			},
 			expectMoveFromMS:   []string{"ms1"},
 			expectScaleIntents: map[string]int32{
 				// "ms2": 1, +1 replica using maxSurge dropped, there is a machine updating in place
 			},
 			expectedNotes: map[string][]string{
-				"ms1": {"should scale down by moving Machines to MachineSet ms2"},
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (affects availability)"},
+				"ms2": {"surge 1 dropped to prioritize in-place updates"},
+			},
+		},
+
+		// NewMS scaling up - in-place upgrades not affecting availability
+
+		{
+			name:  "When moving replicas from oldMS to newMS, preserve newMS scale up intent if it does not use maxSurge - not affecting availability",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms2", "v2", 1, withStatusUpToDateReplicas(1), withStatusAvailableReplicas(1)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms2", "v2"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 2, // +1 => MD expect 3 replicas, MD has currently 2 replicas, scale up of +1 replica is not using maxSurge
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				},
+			},
+			expectMoveFromMS: []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				"ms2": 2, // Scale intent not changed
+			},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)"},
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when it is possible to perform an in place upgrade not affecting availability",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms2", "v2", 0, withStatusUpToDateReplicas(0), withStatusAvailableReplicas(0)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1"),
+				createM("m3", "ms1", "v1"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 1, // +1 => MD expect 3, has currently 3 replicas, +1 replica it is using maxSurge 1
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				},
+			},
+			expectMoveFromMS: []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 0, +1 replicas from maxSurge dropped, because an in place update not affecting availability can be performed
+				"ms1": 2, // 3 replicas - 1 in place update not affecting availability
+			},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)", "surge 1 for MachineSet ms2 converted to scale down for MachineSet ms1 to 2 replicas (-1)"},
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when it is possible to perform an in place upgrade not affecting availability (maxSurge 3, maxUnavailable 0)",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 0)),
+			newMS: createMS("ms2", "v2", 0, withStatusUpToDateReplicas(0), withStatusAvailableReplicas(0)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1"),
+				createM("m3", "ms1", "v1"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 3, // +3 => MD expect 3, has currently 3 replicas, +3 replica it is using maxSurge 3
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				},
+			},
+			expectMoveFromMS: []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 0, +3 replicas from maxSurge dropped, because an in place update not affecting availability can be performed
+				"ms1": 2, // 3 replicas - 1 in place update not affecting availability
+			},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)", "surge 3 for MachineSet ms2 converted to scale down for MachineSet ms1 to 2 replicas (-1)"},
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are oldMS with scale down from a previous reconcile (maxSurge 3, maxUnavailable 1) - not affecting availability",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 1)),
+			newMS: createMS("ms2", "v2", 0),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3, withStatusReplicas(4), withStatusUpToDateReplicas(4), withStatusAvailableReplicas(4)), // scale down from a previous reconcile
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1"),
+				createM("m3", "ms1", "v1"),
+				createM("m4", "ms1", "v1"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 2, // +2 => MD expect 3, has currently 4 replicas, +2 replica it is using maxSurge 2
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				},
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 0, +2 replica using maxSurge dropped, oldMS is scaling down
+			},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)"},
+				"ms2": {"surge 2 dropped to prioritize in-place updates"},
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are oldMS with scale down intent (maxSurge 3, maxUnavailable 1) - not affecting availability",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 1)),
+			newMS: createMS("ms2", "v2", 0, withStatusUpToDateReplicas(0), withStatusAvailableReplicas(0)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1"),
+				createM("m3", "ms1", "v1"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 3, // +3 => MD expect 3, has currently 3 replicas, +3 replica it is using maxSurge 3
+				"ms1": 2, // -1 due to maxUnavailable 1
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				},
+			},
+			expectMoveFromMS: []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 3, +3 replica using maxSurge dropped, oldMS is scaling down
+				"ms1": 2, // -1 due to maxUnavailable 1
+			},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)"},
+				"ms2": {"surge 3 dropped to prioritize in-place updates"},
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there newMS is scaling from a previous reconcile (maxSurge 3, maxUnavailable 1) - not affecting availability",
+			md:    createMD("v2", 6, withRollingUpdateStrategy(3, 1)),
+			newMS: createMS("ms2", "v2", 3, withStatusReplicas(2), withStatusUpToDateReplicas(2), withStatusAvailableReplicas(2)), // scaling from a previous reconcile
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1"),
+				createM("m3", "ms1", "v1"),
+				createM("m4", "ms2", "v2"),
+				createM("m5", "ms2", "v2"),
+				createM("m6", "ms2", "v2"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 6, // +3 => MD expect 6, has currently 6 replicas, +3 replica it is using maxSurge 3
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				},
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 6, +3 replicas from maxSurge dropped, newMS is already scaling up
+			},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)"},
+				"ms2": {"surge 3 dropped to prioritize in-place updates"},
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are still not UpToDateReplicas on the newMS (maxSurge 1, maxUnavailable 0) - not affecting availability",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms2", "v2", 2, withStatusUpToDateReplicas(1), withStatusAvailableReplicas(1)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms2", "v2"),
+				createM("m3", "ms2", "v2"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 3, // +1 => MD expect 3, has currently 3 replicas, +1 replica it is using maxSurge
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				},
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 1, +1 replica using maxSurge dropped, there is a machine updating in place
+			},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)"},
+				"ms2": {"surge 1 dropped to prioritize in-place updates"},
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are machines in-place updating (maxSurge 3, maxUnavailable 0) - not affecting availability",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 0)),
+			newMS: createMS("ms2", "v2", 0, withStatusUpToDateReplicas(0), withStatusAvailableReplicas(0)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1", withMAnnotation(clusterv1.UpdateInProgressAnnotation, "")),
+				createM("m2", "ms1", "v1"),
+				createM("m3", "ms1", "v1"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 3, // +3 => MD expect 3, has currently 3 replicas, +3 replica it is using maxSurge 3
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				},
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 0, +3 replicas from maxSurge dropped, there is a machine updating in place
+			},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)"},
+				"ms2": {"surge 3 dropped to prioritize in-place updates"},
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are still not AvailableReplicas on the newMS (maxSurge 1, maxUnavailable 0) - not affecting availability",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms2", "v2", 2, withStatusUpToDateReplicas(2), withStatusAvailableReplicas(1)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms2", "v2"),
+				createM("m3", "ms2", "v2"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 3, // +1 => MD expect 3, has currently 3 replicas, +1 replica it is using maxSurge
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+				"ms1": {
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				},
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 1, +1 replica using maxSurge dropped, there is a machine updating in place
+			},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms2 (does not affect availability)"},
 				"ms2": {"surge 1 dropped to prioritize in-place updates"},
 			},
 		},
@@ -1290,9 +1685,9 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			planner.machines = tc.machines
 			planner.scaleIntents = tc.scaleIntents
 			planner.upToDateResults = tc.upToDateResults
-			planner.overrideCanUpdateMachineSetInPlace = func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (bool, error) {
+			planner.overrideCanUpdateMachineSetInPlace = func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
 				canUpdateCalls[oldMS.Name] = true
-				return tc.canUpdateAnswer[oldMS.Name], nil
+				return tc.canUpdateResult[oldMS.Name], nil
 			}
 
 			err := planner.reconcileInPlaceUpdateIntent(ctx)
@@ -1309,7 +1704,15 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			}
 			for _, oldMS := range tc.oldMS {
 				if moveFromMS.Has(oldMS.Name) {
-					g.Expect(oldMS.Annotations).To(HaveKeyWithValue(clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, planner.newMS.Name), "Unexpected annotation on oldMS")
+					data := clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{
+						Name: planner.newMS.Name,
+					}
+					if res, ok := tc.canUpdateResult[oldMS.Name]; ok {
+						data.AffectsAvailability = new(res.affectsAvailability)
+					}
+					dataBytes, err := json.Marshal(data)
+					g.Expect(err).ToNot(HaveOccurred())
+					g.Expect(oldMS.Annotations).To(HaveKeyWithValue(clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, string(dataBytes)), "Unexpected annotation on oldMS")
 				} else {
 					g.Expect(oldMS.Annotations).ToNot(HaveKey(clusterv1.MachineSetMoveMachinesToMachineSetAnnotation), "Unexpected annotation on oldMS")
 				}
@@ -1497,7 +1900,7 @@ type rollingUpdateSequenceTestCase struct {
 	desiredMachineNames []string
 
 	// overrideCanUpdateMachineSetInPlaceFunc allows to inject a function that will be used to perform the canUpdateMachineSetInPlace decision
-	overrideCanUpdateMachineSetInPlaceFunc func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (bool, error)
+	overrideCanUpdateMachineSetInPlaceFunc func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error)
 
 	// skipLogToFileAndGoldenFileCheck allows to skip storing the log to file and golden file Check.
 	// NOTE: this field is controlled by the test itself.
@@ -1599,7 +2002,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 				machineUID: 9,
 			},
 			desiredMachineNames:            []string{"m7", "m8", "m9", "m10", "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18"},
-			maxUnavailableBreachToleration: maxUnavailableBreachToleration(),
+			maxUnavailableBreachToleration: maxUnavailableBreachToleration(), // after scale up it is expected to have less available machine than expected
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale down machine deployment in the middle
 			name:           "Regular rollout, 12 Replicas, maxSurge 3, maxUnavailable 1, scale down to 6",
@@ -1633,7 +2036,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 				machineUID: 15,
 			},
 			desiredMachineNames:      []string{"m13", "m14", "m15", "m16", "m17", "m18"},
-			maxSurgeBreachToleration: maxSurgeToleration(),
+			maxSurgeBreachToleration: maxSurgeToleration(), // after scale down it is expected to temporarily have more machine than expected
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + change spec in the middle
 			name:           "Regular rollout, 6 Replicas, maxSurge 3, maxUnavailable 1, change spec",
@@ -1663,7 +2066,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			desiredMachineNames: []string{"m10", "m11", "m12", "m13", "m14", "m15"}, // NOTE: Machines created before the spec change are deleted
 		},
 
-		// Rollout with In-place updates
+		// Rollout with In-place updates (affecting availability)
 
 		{ // scale out by 1
 			name:                                   "In-place rollout, 3 Replicas, maxSurge 1, MaxUnavailable 0",
@@ -1740,7 +2143,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 				machineUID: 6,
 			},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12"},
-			maxUnavailableBreachToleration:         maxUnavailableBreachToleration(),
+			maxUnavailableBreachToleration:         maxUnavailableBreachToleration(), // after scale up it is expected to have less available machine than expected
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale down machine deployment in the middle
@@ -1776,7 +2179,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 				machineUID: 12,
 			},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
-			maxSurgeBreachToleration:               maxSurgeToleration(),
+			maxSurgeBreachToleration:               maxSurgeToleration(), // after scale down it is expected to temporarily have more machine than expected
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + change spec in the middle
@@ -1807,6 +2210,198 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+		},
+
+		// Rollout with In-place updates (not affecting availability)
+
+		{ // scale out by 1
+			name:                                   "In-place rollout, 3 Replicas, maxSurge 1, MaxUnavailable 0 - not affecting availability",
+			maxSurge:                               1,
+			maxUnavailable:                         0,
+			currentMachineNames:                    []string{"m1", "m2", "m3"},
+			desiredMachineNames:                    []string{"m1", "m2", "m3"},
+			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+		},
+		{ // scale in by 1
+			name:                                   "In-place rollout, 3 Replicas, maxSurge 0, MaxUnavailable 1 - not affecting availability",
+			maxSurge:                               0,
+			maxUnavailable:                         1,
+			currentMachineNames:                    []string{"m1", "m2", "m3"},
+			desiredMachineNames:                    []string{"m1", "m2", "m3"},
+			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+		},
+		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable)
+			name:                                   "In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1 - not affecting availability",
+			maxSurge:                               3,
+			maxUnavailable:                         1,
+			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+		},
+		{ // scale out by 1, scale in by 3 (maxSurge < maxUnavailable)
+			name:                                   "In-place rollout, 6 Replicas, maxSurge 1, MaxUnavailable 3 - not affecting availability",
+			maxSurge:                               1,
+			maxUnavailable:                         3,
+			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+		},
+		{ // scale out by 10 (maxSurge >= replicas)
+			name:                                   "In-place rollout, 6 Replicas, maxSurge 10, MaxUnavailable 0 - not affecting availability",
+			maxSurge:                               10,
+			maxUnavailable:                         0,
+			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+		},
+		{ // scale in by 10 (maxUnavailable >= replicas)
+			name:                                   "In-place rollout, 6 Replicas, maxSurge 0, MaxUnavailable 10 - not affecting availability",
+			maxSurge:                               0,
+			maxUnavailable:                         10,
+			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+		},
+		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale up machine deployment in the middle
+			name:           "In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1, scale up to 12 - not affecting availability",
+			maxSurge:       3,
+			maxUnavailable: 1,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating a MD originally with 6 replica in the middle of a rollout, with 3 machines already move to the newMS and 3 still on the oldMS, and then MD scaled up to 12.
+				machineDeployment: createMD("v2", 12, withRollingUpdateStrategy(3, 1)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 3),
+					createMS("ms2", "v2", 3),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						// "m1", "m2", "m3" already moved to ms2
+						createM("m4", "ms1", "v1"),
+						createM("m5", "ms1", "v1"),
+						createM("m6", "ms1", "v1"),
+					},
+					"ms2": {
+						// "m1", "m2", "m3" already updated in place
+						createM("m1", "ms2", "v2"),
+						createM("m2", "ms2", "v2"),
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 6,
+			},
+			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12"},
+			maxUnavailableBreachToleration:         maxUnavailableBreachToleration(), // after scale up it is expected to have less available machine then expected
+			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+		},
+		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale down machine deployment in the middle
+			name:           "In-place rollout, 12 Replicas, maxSurge 3, MaxUnavailable 1, scale down to 6 - not affecting availability",
+			maxSurge:       3,
+			maxUnavailable: 1,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating a MD originally with 12 replica in the middle of a rollout, with 3 machines already move to the newMS and 9 still on the oldMS, and then MD scaled down to 6.
+				machineDeployment: createMD("v2", 6, withRollingUpdateStrategy(3, 1)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 9),
+					createMS("ms2", "v2", 3),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						// "m1", "m2", "m3" already moved to ms2
+						createM("m4", "ms1", "v1"),
+						createM("m5", "ms1", "v1"),
+						createM("m6", "ms1", "v1"),
+						createM("m7", "ms1", "v1"),
+						createM("m8", "ms1", "v1"),
+						createM("m9", "ms1", "v1"),
+						createM("m10", "ms1", "v1"),
+						createM("m11", "ms1", "v1"),
+						createM("m12", "ms1", "v1"),
+					},
+					"ms2": {
+						// "m1", "m2", "m3" already updated in place
+						createM("m1", "ms2", "v2"),
+						createM("m2", "ms2", "v2"),
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 12,
+			},
+			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			maxSurgeBreachToleration:               maxSurgeToleration(), // after scale down it is expected to temporarily have more machine than expected
+			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+		},
+		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + change spec in the middle
+			name:           "In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1, change spec - not affecting availability",
+			maxSurge:       3,
+			maxUnavailable: 1,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating a MD originally with 6 replica in the middle of a rollout, with 3 machines already move to the newMS and 3 still on the oldMS, and then MD spec is changed.
+				machineDeployment: createMD("v3", 6, withRollingUpdateStrategy(3, 1)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 3),
+					createMS("ms2", "v2", 3),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						// "m1", "m2", "m3" already moved to ms2
+						createM("m4", "ms1", "v1"),
+						createM("m5", "ms1", "v1"),
+						createM("m6", "ms1", "v1"),
+					},
+					"ms2": {
+						// "m1", "m2", "m3" already updated in place
+						createM("m1", "ms2", "v2"),
+						createM("m2", "ms2", "v2"),
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 6,
+			},
+			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+		},
+
+		// Rollout with In-place updates (mixed affecting availability cases)
+
+		{ // rollout with some machines that can be updated in-place affecting availability,
+			name:           "Mixed case in-place affecting and not affecting availability",
+			maxSurge:       1,
+			maxUnavailable: 0,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating multiple old MS
+				machineDeployment: createMD("v3", 3, withRollingUpdateStrategy(1, 0)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 2),
+					createMS("ms2", "v2", 1),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						createM("m1", "ms1", "v1"),
+						createM("m2", "ms1", "v1"),
+					},
+					"ms2": {
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 3,
+			},
+			// m3 should be moved first because it is possible to move it without affecting availability
+			// m4 is created because m1 and m2 can be updated in place but the operation affects availability
+			// m1 is updated in place
+			// m2 is deleted to restore the desired number of replicas
+			desiredMachineNames: []string{"m1", "m3", "m4"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
+				switch oldMS.Name {
+				case "ms1":
+					return canUpdateMachineSetInPlaceResult{
+						canUpdateMachineSet: true,
+						affectsAvailability: true,
+					}, nil
+				case "ms2":
+					return canUpdateMachineSetInPlaceResult{
+						canUpdateMachineSet: true,
+						affectsAvailability: false,
+					}, nil
+				default:
+					return canUpdateMachineSetInPlaceResult{}, fmt.Errorf("invalid MachineSet name %s", oldMS.Name)
+				}
+			},
 		},
 	}
 
@@ -1875,7 +2470,8 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 		"    - After each reconcile, the resulting status is reported with notes about relevant changes, if any\n" +
 		"    - Machine list icons\n" +
 		"      - ✋ Machine pending acknowledge move\n" +
-		"      - 🟡 Machine with in place update in progress - affects availability\n\n")
+		"      - 🟡 Machine with in place update in progress - affects availability\n" +
+		"      - 🟢 Machine with in place update in progress - does not affect availability\n\n")
 
 	// Log initial state
 	fLogger.Logf("[Test] Initial state\n%s", current.summary())
@@ -1900,7 +2496,11 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 			if task == "md" {
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
 				p := newRolloutPlanner(nil, nil, nil)
-				p.overrideCanUpdateMachineSetInPlace = func(_ context.Context, _, _ *clusterv1.MachineSet) (bool, error) { return false, nil }
+				p.overrideCanUpdateMachineSetInPlace = func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
+					return canUpdateMachineSetInPlaceResult{
+						canUpdateMachineSet: false,
+					}, nil
+				}
 				if tt.overrideCanUpdateMachineSetInPlaceFunc != nil {
 					p.overrideCanUpdateMachineSetInPlace = tt.overrideCanUpdateMachineSetInPlaceFunc
 				}
@@ -1914,6 +2514,11 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 						current.machineSets = append(current.machineSets, desiredNewMS)
 						log.V(5).Info(fmt.Sprintf("Computing new MachineSet %s with %d replicas", klog.KObj(desiredNewMS), ptr.Deref(desiredNewMS.Spec.Replicas, 0)), "MachineSet", klog.KObj(desiredNewMS))
 					}
+
+					// The annotations set by the rollout planner are not part of the output of ComputeDesiredMS, so drop them to mimic the same behavior.
+					delete(desiredNewMS.Annotations, clusterv1.AcknowledgedMoveAnnotation)
+					delete(desiredNewMS.Annotations, clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation)
+					delete(desiredNewMS.Annotations, clusterv1.MachineSetMoveMachinesToMachineSetAnnotation)
 					return desiredNewMS, nil
 				}
 
@@ -1939,9 +2544,24 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 				// Log state after this reconcile
 				fLogger.Logf("[MD controller] Reconcile\n  %s", current.rolloutPlannerResultSummary(p))
 
-				// Check we are not breaching rollout constraints
+				// Check that the rollout planner is not breaching rollout constraints
+				// Note: After a machine is moved from a MachineSet to another, the replica counter of the target MachineSet
+				// are temporarily outdated, until the target MachineSet is reconciled.
+				// In order to avoid false negatives when reconcile target MachineSet does not happen in one iteration
+				// the code below is computing totAvailableReplicas and totReplicas starting from the list of machines instead
+				// of using the replica counters on MachinesSets.
 				minAvailableReplicas := ptr.Deref(current.machineDeployment.Spec.Replicas, 0) - mdutil.MaxUnavailable(*current.machineDeployment)
-				totAvailableReplicas := ptr.Deref(current.machineDeployment.Status.AvailableReplicas, 0)
+				totAvailableReplicas := int32(0)
+				for _, m := range current.machines() {
+					if inplace.IsUpdateInProgress(m) {
+						// Machines updating in-place should be considered available only if the operation does not affect availability.
+						if inplace.IsUpdateInProgressNotAffectingAvailability(m) {
+							totAvailableReplicas++
+						}
+						continue
+					}
+					totAvailableReplicas++
+				}
 				if totAvailableReplicas < minAvailableReplicas {
 					tolerateBreach := false
 					if tt.maxUnavailableBreachToleration != nil {
@@ -1953,7 +2573,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 				}
 
 				maxAllowedReplicas := ptr.Deref(current.machineDeployment.Spec.Replicas, 0) + mdutil.MaxSurge(*current.machineDeployment)
-				totReplicas := mdutil.TotalMachineSetsReplicaSum(current.machineSets)
+				totReplicas := int32(len(current.machines()))
 				if totReplicas > maxAllowedReplicas {
 					tolerateBreach := false
 					if tt.maxSurgeBreachToleration != nil {
@@ -2007,8 +2627,18 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 	}
 }
 
-func oldMSCanAlwaysUpdateInPlace(_ context.Context, _, _ *clusterv1.MachineSet) (bool, error) {
-	return true, nil
+func oldMSCanAlwaysUpdateInPlace(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
+	return canUpdateMachineSetInPlaceResult{
+		canUpdateMachineSet: true,
+		affectsAvailability: true,
+	}, nil
+}
+
+func oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
+	return canUpdateMachineSetInPlaceResult{
+		canUpdateMachineSet: true,
+		affectsAvailability: false,
+	}, nil
 }
 
 func maxUnavailableBreachToleration() func(log *fileLogger, _ int, _ *rolloutScope, _, _ int32) bool {

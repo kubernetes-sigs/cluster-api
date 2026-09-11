@@ -46,7 +46,7 @@ var _ = Describe("When in-place updating a workload cluster using ClusterClass",
 				// MaxSurge=1, MaxUnavailable=1 on the MD: with MaxUnavailable=1 we
 				// should be able to only do in-place updates without any Machine re-creations.
 				"MD_MAX_SURGE":       "1",
-				"MD_MAX_UNAVAILABLE": "1",
+				"MD_MAX_UNAVAILABLE": "0",
 			},
 		}
 	})

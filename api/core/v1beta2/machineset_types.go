@@ -58,6 +58,21 @@ const (
 	AcknowledgedMoveAnnotation = "in-place-updates.internal.cluster.x-k8s.io/acknowledged-move"
 )
 
+// MachineSetMoveMachinesToMachineSetAnnotationData is used to store data about the in-place update in the MachineSetMoveMachinesToMachineSetAnnotation.
+// +kubebuilder:object:generate=false
+type MachineSetMoveMachinesToMachineSetAnnotationData struct {
+	// name of the MachineSet where the machines should be moved to.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name,omitempty"`
+
+	// affectsAvailability indicates if the in-place update affects availability of the Machine.
+	// Default is true.
+	// +optional
+	AffectsAvailability *bool `json:"affectsAvailability,omitempty"`
+}
+
 // MachineSetSpec defines the desired state of MachineSet.
 type MachineSetSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.

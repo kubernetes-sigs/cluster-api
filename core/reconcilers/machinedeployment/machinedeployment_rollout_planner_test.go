@@ -18,6 +18,7 @@ package machinedeployment
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -623,9 +624,16 @@ func machineSetControllerMutatorSyncReplicas(ms *clusterv1.MachineSet, scope *ro
 		}
 
 		// Move machines to the target MachineSet if the current MachineSet is instructed to do so.
-		if targetMSName, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok && targetMSName != "" {
-			// Note: The number of machines actually moved could be less than expected e.g. because some machine still updating in-place from a previous move.
-			return machineSetControllerMutatorMoveMachines(ms, scope, targetMSName, machinesToDeleteOrMove, logLines)
+		if moveMachinesToMachineSetAnnotationValue, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok && moveMachinesToMachineSetAnnotationValue != "" {
+			data := &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{}
+			// Note: it is required to use UnmarshalMoveMachinesToMachineSetAnnotationData instead of Unmarshal because the legacy format is an invalid JSON.
+			if err := mdutil.UnmarshalMoveMachinesToMachineSetAnnotationData([]byte(moveMachinesToMachineSetAnnotationValue), data); err != nil {
+				return fmt.Errorf("failed to unmarshal %s annotation on %s", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, ms.Name)
+			}
+			if data.Name != "" {
+				// Note: The number of machines actually moved could be less than expected e.g. because some machine still updating in-place from a previous move.
+				return machineSetControllerMutatorMoveMachines(ms, scope, data.Name, machinesToDeleteOrMove, data.AffectsAvailability, logLines)
+			}
 		}
 
 		// Otherwise the current MachineSet is not instructed to move machines to another MachineSet,
@@ -670,8 +678,8 @@ func machineSetControllerMutatorCreateMachines(ms *clusterv1.MachineSet, scope *
 	fmt.Fprintf(logLines, "      - %s scaled up to %d/%[2]d replicas (%s created)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesAdded, ","))
 }
 
-func machineSetControllerMutatorMoveMachines(ms *clusterv1.MachineSet, scope *rolloutScope, targetMSName string, machinesToMove int32, logLines *strings.Builder) error {
-	// Note: this is a simplified version of the code in the moveMachines func from the MachineSet controller, e.g. no pluggable move order,
+func machineSetControllerMutatorMoveMachines(ms *clusterv1.MachineSet, scope *rolloutScope, targetMSName string, machinesToMove int32, affectsAvailability *bool, logLines *strings.Builder) error {
+	// Note: this is a simplified version of the code in the startMoveMachines/completeMoveMachine func from the MachineSet controller, e.g. no pluggable move order,
 	// no update of machine labels, no/lighter logging. Also please note that from the sake of this test, there is no split between start move an
 	// completeMove (what is implemented below is enough to fake the entire move operation).
 	// Note: in the test code exceeding machines are moved in predictable order, so it is easier to write test case and validate rollout sequences.
@@ -733,7 +741,14 @@ func machineSetControllerMutatorMoveMachines(ms *clusterv1.MachineSet, scope *ro
 			},
 		}
 		m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation] = ""
-		m.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+		data := clusterv1.UpdateInProgressAnnotationData{
+			AffectsAvailability: affectsAvailability,
+		}
+		dataBytes, err := json.Marshal(data)
+		if err != nil {
+			return pkgerrors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation: failed to Marshal data", klog.KObj(m), clusterv1.UpdateInProgressAnnotation)
+		}
+		m.Annotations[clusterv1.UpdateInProgressAnnotation] = string(dataBytes)
 		scope.machineSetMachines[targetMS.Name] = append(scope.machineSetMachines[targetMS.Name], m)
 		machinesMoved = append(machinesMoved, m.Name)
 	}
@@ -792,6 +807,10 @@ func machineSetControllerMutatorUpdateStatus(ms *clusterv1.MachineSet, scope *ro
 	upToDateReplicas := int32(0)
 	for _, m := range scope.machineSetMachines[ms.Name] {
 		if inplace.IsUpdateInProgress(m) {
+			// Machines updating in-place should be considered available only if the operation does not affect availability.
+			if inplace.IsUpdateInProgressNotAffectingAvailability(m) {
+				availableReplicas++
+			}
 			continue
 		}
 		if upToDate, _ := mdutil.MachineTemplateUpToDate(&ms.Spec.Template, &scope.machineDeployment.Spec.Template); upToDate {
@@ -986,8 +1005,14 @@ func (r rolloutScope) machinesSummary(ms *clusterv1.MachineSet) string {
 		if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok && !acknowledgedMoveMachines.Has(name) {
 			name += "✋"
 		}
-		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
-			name += "🟡"
+		if v, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+			data := &clusterv1.UpdateInProgressAnnotationData{}
+			_ = json.Unmarshal([]byte(v), &data)
+			if ptr.Deref(data.AffectsAvailability, true) {
+				name += "🟡"
+			} else {
+				name += "🟢"
+			}
 		}
 		machineNames = append(machineNames, name)
 	}

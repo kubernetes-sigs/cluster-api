@@ -1605,6 +1605,13 @@ func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetResponse(ref common.Re
 							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
 						},
 					},
+					"affectsAvailability": {
+						SchemaProps: spec.SchemaProps{
+							Description: "affectsAvailability indicates if the in-place update affects availability of the Machines controlled by this MachineSet. Default is true.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"status"},
 			},

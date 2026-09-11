@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -43,6 +44,7 @@ type CanUpdateMachineSetCacheEntry struct {
 	OldMS               client.ObjectKey
 	NewMS               client.ObjectKey
 	CanUpdateMachineSet bool
+	AffectAvailability  bool
 }
 
 // Key returns the cache key of a CanUpdateMachineSetCacheEntry.
@@ -50,7 +52,12 @@ func (r CanUpdateMachineSetCacheEntry) Key() string {
 	return fmt.Sprintf("%s => %s", r.OldMS, r.NewMS)
 }
 
-func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (bool, error) {
+type canUpdateMachineSetInPlaceResult struct {
+	canUpdateMachineSet bool
+	affectsAvailability bool
+}
+
+func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
 	if p.overrideCanUpdateMachineSetInPlace != nil {
 		return p.overrideCanUpdateMachineSetInPlace(ctx, oldMS, newMS)
 	}
@@ -59,30 +66,42 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 
 	templateObjects, err := p.getTemplateObjects(ctx, oldMS, newMS)
 	if err != nil {
-		return false, err
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: false,
+		}, err
 	}
 
 	// MachineSet cannot be updated in-place if the getTemplateObjects func was not able to get all InfraMachineTemplates.
 	if templateObjects.CurrentInfraMachineTemplate == nil ||
 		templateObjects.DesiredInfraMachineTemplate == nil {
-		return false, nil
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: false,
+		}, nil
 	}
 	// MachineSet cannot be updated in-place if the BootstrapConfigTemplate is set on the oldMS but not on the newMS or vice versa.
 	if (templateObjects.CurrentBootstrapConfigTemplate == nil && templateObjects.DesiredBootstrapConfigTemplate != nil) ||
 		(templateObjects.CurrentBootstrapConfigTemplate != nil && templateObjects.DesiredBootstrapConfigTemplate == nil) {
-		return false, nil
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: false,
+		}, nil
 	}
 
 	extensionHandlers, err := p.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.CanUpdateMachineSet, oldMS)
 	if err != nil {
-		return false, err
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: false,
+		}, err
 	}
 	// MachineSet cannot be updated in-place if no CanUpdateMachineSet extensions are registered.
 	if len(extensionHandlers) == 0 {
-		return false, nil
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: false,
+		}, nil
 	}
 	if len(extensionHandlers) > 1 {
-		return false, pkgerrors.Errorf("found multiple CanUpdateMachineSet hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: false,
+		}, pkgerrors.Errorf("found multiple CanUpdateMachineSet hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
 	}
 
 	entry := CanUpdateMachineSetCacheEntry{
@@ -96,28 +115,41 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 		} else {
 			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions (cached)", klog.KObj(oldMS)))
 		}
-		return cacheEntry.CanUpdateMachineSet, nil
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: cacheEntry.CanUpdateMachineSet,
+			affectsAvailability: cacheEntry.AffectAvailability,
+		}, nil
 	}
 
-	canUpdateMachineSet, reasons, err := p.canExtensionsUpdateMachineSet(ctx, oldMS, newMS, templateObjects, extensionHandlers)
+	res, reasons, err := p.canExtensionsUpdateMachineSet(ctx, oldMS, newMS, templateObjects, extensionHandlers)
 	if err != nil {
-		return false, err
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: false,
+		}, err
 	}
-	entry.CanUpdateMachineSet = canUpdateMachineSet
+
+	entry.CanUpdateMachineSet = res.canUpdateMachineSet
+	entry.AffectAvailability = res.affectsAvailability
 	p.canUpdateMachineSetCache.Add(entry)
 
-	if !canUpdateMachineSet {
+	if !res.canUpdateMachineSet {
 		log.Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions", klog.KObj(oldMS)), "reason", strings.Join(reasons, ","))
-		return false, nil
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: false,
+		}, nil
 	}
-	log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions", klog.KObj(oldMS)))
-	return true, nil
+	if res.affectsAvailability {
+		log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions (affects availability)", klog.KObj(oldMS)))
+	} else {
+		log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions (does not affect availability)", klog.KObj(oldMS)))
+	}
+	return res, nil
 }
 
 // canExtensionsUpdateMachineSet calls CanUpdateMachineSet extensions to decide if a MachineSet can be updated in-place.
 // Note: This is following the same general structure that is used in the Apply func in
 // internal/controllers/topology/cluster/patches/engine.go.
-func (p *rolloutPlanner) canExtensionsUpdateMachineSet(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error) {
+func (p *rolloutPlanner) canExtensionsUpdateMachineSet(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error) {
 	if p.overrideCanExtensionsUpdateMachineSet != nil {
 		return p.overrideCanExtensionsUpdateMachineSet(ctx, oldMS, newMS, templateObjects, extensionHandlers)
 	}
@@ -127,35 +159,51 @@ func (p *rolloutPlanner) canExtensionsUpdateMachineSet(ctx context.Context, oldM
 	// Create the CanUpdateMachineSet request.
 	req, err := createRequest(oldMS, newMS, templateObjects)
 	if err != nil {
-		return false, nil, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachineSet request")
+		return canUpdateMachineSetInPlaceResult{
+			canUpdateMachineSet: false,
+		}, nil, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachineSet request")
 	}
 
 	var reasons []string
+	var affectsAvailability bool
 	for _, extensionHandler := range extensionHandlers {
 		// Call CanUpdateMachineSet extension.
 		resp := &runtimehooksv1.CanUpdateMachineSetResponse{}
 		if err := p.RuntimeClient.CallExtension(ctx, runtimehooksv1.CanUpdateMachineSet, oldMS, extensionHandler, req, resp); err != nil {
-			return false, nil, err
+			return canUpdateMachineSetInPlaceResult{
+				canUpdateMachineSet: false,
+			}, nil, err
 		}
+		affectsAvailability = affectsAvailability || ptr.Deref(resp.AffectsAvailability, true)
 
 		// Apply patches from the CanUpdateMachineSet response to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
-			return false, nil, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachineSet request", extensionHandler)
+			return canUpdateMachineSetInPlaceResult{
+				canUpdateMachineSet: false,
+			}, nil, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachineSet request", extensionHandler)
 		}
 
 		// Check if current and desired objects are now matching.
 		var matches bool
 		matches, reasons, err = matchesMachineSet(req)
 		if err != nil {
-			return false, nil, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
+			return canUpdateMachineSetInPlaceResult{
+				canUpdateMachineSet: false,
+			}, nil, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
 		}
 		if matches {
-			return true, nil, nil
+			// Note: We are always setting affectsAvailability so we make it explicit how the system should behave.
+			return canUpdateMachineSetInPlaceResult{
+				canUpdateMachineSet: true,
+				affectsAvailability: affectsAvailability,
+			}, nil, nil
 		}
 		log.V(5).Info(fmt.Sprintf("MachineSet cannot be updated in-place yet after calling extension %s: %s", extensionHandler, strings.Join(reasons, ",")), "MachineSet", klog.KObj(oldMS))
 	}
 
-	return false, reasons, nil
+	return canUpdateMachineSetInPlaceResult{
+		canUpdateMachineSet: false,
+	}, reasons, nil
 }
 
 func createRequest(oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects) (*runtimehooksv1.CanUpdateMachineSetRequest, error) {

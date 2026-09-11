@@ -6,6 +6,7 @@
       - Machine list icons
         - ✋ Machine pending acknowledge move
         - 🟡 Machine with in place update in progress - affects availability
+        - 🟢 Machine with in place update in progress - does not affect availability
   
 [Test] Initial state
     md: 3/3 replicas, 3 available, 0 upToDate
@@ -16,7 +17,7 @@
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 3/3 replicas, 3 available, 0 upToDate (m1,m2,m3)
       - Updated old MachineSet ms1
-        - Diff: in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset: ms2,cluster.x-k8s.io/disable-machine-create: false
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset: {"name":"ms2","affectsAvailability":true},cluster.x-k8s.io/disable-machine-create: false
     ms2: 0/1 replicas, 0 available, 0 upToDate ()
       - MachineSet ms2 created, it is now the current MachineSet
       - Scaled up current MachineSet ms2 from 0 to 1 replicas (+1)
@@ -30,7 +31,7 @@
     md: 4/3 replicas, 4 available, 1 upToDate
     ms1: from 3/3 to 3/2 replicas, 3 available, 0 upToDate (m1,m2,m3)
       - Scaled down old MachineSet ms1 from 3 to 2 replicas (-1)
-        - Reason: 4 available replicas > 3 minimum available replicas, should scale down by moving Machines to MachineSet ms2
+        - Reason: 4 available replicas > 3 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (affects availability)
         - Diff: replicas 2
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
 [MS controller] Reconcile
@@ -51,6 +52,8 @@
     md: 4/3 replicas, 3 available, 1 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
     ms2: 2/2 replicas, 1 available, 1 upToDate (m1🟡,m4)
+      - Updated current MachineSet ms2
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
 [MS controller] Reconcile
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
 [MS controller] Reconcile
@@ -62,7 +65,7 @@
     md: 4/3 replicas, 4 available, 2 upToDate
     ms1: from 2/2 to 2/1 replicas, 2 available, 0 upToDate (m2,m3)
       - Scaled down old MachineSet ms1 from 2 to 1 replicas (-1)
-        - Reason: 4 available replicas > 3 minimum available replicas, should scale down by moving Machines to MachineSet ms2
+        - Reason: 4 available replicas > 3 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (affects availability)
         - Diff: replicas 1
     ms2: 2/2 replicas, 2 available, 2 upToDate (m1,m4)
 [MS controller] Reconcile
@@ -88,10 +91,12 @@
 [MD controller] Reconcile
     md: 4/3 replicas, 3 available, 2 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m3)
+      - Updated old MachineSet ms1
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset removed
     ms2: from 3/2 to 3/3 replicas, 2 available, 2 upToDate (m1,m2🟡,m4)
       - Scaled up current MachineSet ms2 from 2 to 3 replicas (+1)
         - Reason: acknowledge Machines m2 moved from an old MachineSet
-        - Diff: replicas 3,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m2
+        - Diff: replicas 3,in-place-updates.internal.cluster.x-k8s.io/receive-machines-from-machinesets removed,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m2
 [MS controller] Reconcile
     ms2: 3/3 replicas, 2 available, 2 upToDate (m1,m2🟡,m4)
 [MS controller] Reconcile
@@ -106,38 +111,29 @@
         - Reason: 4 available replicas > 3 minimum available replicas
         - Diff: replicas 0
     ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
-[MD controller] Reconcile
-    md: 4/3 replicas, 4 available, 3 upToDate
-    ms1: 1/0 replicas, 1 available, 0 upToDate (m3)
-    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
-[MD controller] Reconcile
-    md: 4/3 replicas, 4 available, 3 upToDate
-    ms1: 1/0 replicas, 1 available, 0 upToDate (m3)
-    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
-[MS controller] Reconcile
-    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
-[MS controller] Reconcile
-    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
-[MS controller] Reconcile
-    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
-[MS controller] Reconcile
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-      - ms1 scaled down to 0/0 replicas (m3 moved to ms2)
-[MD controller] Reconcile
-    md: 3/3 replicas, 3 available, 3 upToDate
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m3🟡,m4)
       - Updated current MachineSet ms2
-        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m3
+        - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
+[MD controller] Reconcile
+    md: 4/3 replicas, 4 available, 3 upToDate
+    ms1: 1/0 replicas, 1 available, 0 upToDate (m3)
+    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
+[MD controller] Reconcile
+    md: 4/3 replicas, 4 available, 3 upToDate
+    ms1: 1/0 replicas, 1 available, 0 upToDate (m3)
+    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
+[MS controller] Reconcile
+    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
+[MS controller] Reconcile
+    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
+[MS controller] Reconcile
+    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
+[MS controller] Reconcile
+    ms1: 0/0 replicas, 0 available, 0 upToDate ()
+      - ms1 scaled down to 0/0 replicas (m3 deleted)
 [MD controller] Reconcile
     md: 3/3 replicas, 3 available, 3 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-    ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m3🟡,m4)
-[MS controller] Reconcile
     ms2: 3/3 replicas, 3 available, 3 upToDate (m1,m2,m4)
-      - ms2 scaled down to 3/3 replicas (m3 deleted)
-[MS controller] Reconcile
-    ms1: 0/0 replicas, 0 available, 0 upToDate ()
   
 [Test] Final state
     md: 3/3 replicas, 3 available, 3 upToDate

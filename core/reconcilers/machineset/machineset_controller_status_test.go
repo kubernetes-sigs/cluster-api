@@ -176,12 +176,12 @@ func Test_setReplicas(t *testing.T) {
 			},
 		},
 		{
-			name: "In-place updating machines should not be counted",
+			name: "In-place updating machines should not be counted if update affects availability",
 			machines: []*clusterv1.Machine{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
-							clusterv1.UpdateInProgressAnnotation: "",
+							clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
 						},
 					},
 					Status: clusterv1.MachineStatus{
@@ -204,7 +204,7 @@ func Test_setReplicas(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
-							clusterv1.UpdateInProgressAnnotation: "",
+							clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
 							runtimev1.PendingHooksAnnotation:     "UpdateMachine",
 						},
 					},
@@ -248,13 +248,36 @@ func Test_setReplicas(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}",
+						},
+					},
+					Status: clusterv1.MachineStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineReadyCondition,
+								Status: metav1.ConditionTrue,
+							},
+							{
+								Type:   clusterv1.MachineAvailableCondition,
+								Status: metav1.ConditionTrue,
+							},
+							{
+								Type:   clusterv1.MachineUpToDateCondition,
+								Status: metav1.ConditionTrue,
+							},
+						},
+					},
+				},
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectedStatus: clusterv1.MachineSetStatus{
-				Replicas:          ptr.To[int32](3),
-				ReadyReplicas:     ptr.To[int32](0),
-				AvailableReplicas: ptr.To[int32](0),
-				UpToDateReplicas:  ptr.To[int32](0),
+				Replicas:          ptr.To[int32](4),
+				ReadyReplicas:     ptr.To[int32](1),
+				AvailableReplicas: ptr.To[int32](1),
+				UpToDateReplicas:  ptr.To[int32](1),
 			},
 		},
 	}

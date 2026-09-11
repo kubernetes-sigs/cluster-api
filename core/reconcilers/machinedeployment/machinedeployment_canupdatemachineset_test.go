@@ -76,10 +76,11 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 		newMSInfrastructureMachineTemplate      *unstructured.Unstructured
 		oldMSBootstrapConfigTemplate            *unstructured.Unstructured
 		newMSBootstrapConfigTemplate            *unstructured.Unstructured
-		canExtensionsUpdateMachineSetFunc       func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error)
+		canExtensionsUpdateMachineSetFunc       func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error)
 		getAllExtensionsResponses               map[runtimecatalog.GroupVersionHook][]string
 		wantCanExtensionsUpdateMachineSetCalled bool
 		wantCanUpdateMachineSet                 bool
+		wantAffectsAvailability                 bool
 		wantError                               bool
 		wantErrorMessage                        string
 		wantCacheEntry                          *CanUpdateMachineSetCacheEntry
@@ -153,11 +154,15 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (bool, []string, error) {
+			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return false, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineSetInPlaceResult{
+						canUpdateMachineSet: false,
+					}, nil, pkgerrors.Errorf("unexpected error")
 				}
-				return false, []string{"can not update"}, nil
+				return canUpdateMachineSetInPlaceResult{
+					canUpdateMachineSet: false,
+				}, []string{"can not update"}, nil
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSet:                 false,
@@ -178,18 +183,59 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (bool, []string, error) {
+			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return false, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineSetInPlaceResult{
+						canUpdateMachineSet: true,
+						affectsAvailability: false,
+					}, nil, pkgerrors.Errorf("unexpected error")
 				}
-				return true, nil, nil
+				return canUpdateMachineSetInPlaceResult{
+					canUpdateMachineSet: true,
+					affectsAvailability: true,
+				}, nil, nil
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSet:                 true,
+			wantAffectsAvailability:                 true,
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
 				OldMS:               client.ObjectKeyFromObject(oldMS),
 				NewMS:               client.ObjectKeyFromObject(newMS),
 				CanUpdateMachineSet: true,
+				AffectAvailability:  true,
+			},
+		},
+		{
+			name:                               "Return true if canExtensionsUpdateMachineSet returns true - does not affect availability",
+			oldMS:                              oldMS,
+			newMS:                              newMS,
+			oldMSInfrastructureMachineTemplate: oldMSInfrastructureMachineTemplate,
+			newMSInfrastructureMachineTemplate: newMSInfrastructureMachineTemplate,
+			oldMSBootstrapConfigTemplate:       oldMSBootstrapConfigTemplate,
+			newMSBootstrapConfigTemplate:       newMSBootstrapConfigTemplate,
+			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
+				canUpdateMachineSetGVH: {"test-update-extension"},
+			},
+			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error) {
+				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
+					return canUpdateMachineSetInPlaceResult{
+						canUpdateMachineSet: true,
+						affectsAvailability: false,
+					}, nil, pkgerrors.Errorf("unexpected error")
+				}
+				return canUpdateMachineSetInPlaceResult{
+					canUpdateMachineSet: true,
+					affectsAvailability: false,
+				}, nil, nil
+			},
+			wantCanExtensionsUpdateMachineSetCalled: true,
+			wantCanUpdateMachineSet:                 true,
+			wantAffectsAvailability:                 false,
+			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				CanUpdateMachineSet: true,
+				AffectAvailability:  false,
 			},
 		},
 	}
@@ -235,20 +281,21 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				RuntimeClient:            runtimeClient,
 				Client:                   fakeClient,
 				canUpdateMachineSetCache: canUpdateMachineSetCache,
-				overrideCanExtensionsUpdateMachineSet: func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error) {
+				overrideCanExtensionsUpdateMachineSet: func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error) {
 					canExtensionsUpdateMachineSetCalled = true
 					return tt.canExtensionsUpdateMachineSetFunc(ctx, oldMS, newMS, templateObjects, extensionHandlers)
 				},
 			}
 
-			canUpdateMachineSet, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
+			res, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+			g.Expect(res.canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+			g.Expect(res.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
 
 			g.Expect(canExtensionsUpdateMachineSetCalled).To(Equal(tt.wantCanExtensionsUpdateMachineSetCalled), "canExtensionsUpdateMachineSetCalled: actual: %t expected: %t", canExtensionsUpdateMachineSetCalled, tt.wantCanExtensionsUpdateMachineSetCalled)
 
@@ -266,9 +313,10 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 
 				// Call canUpdateMachineSetInPlace again and verify the cache hit.
 				canExtensionsUpdateMachineSetCalled = false
-				canUpdateMachineSet, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
+				res, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+				g.Expect(res.canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+				g.Expect(res.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
 				g.Expect(canExtensionsUpdateMachineSetCalled).To(BeFalse())
 			}
 		})
@@ -393,6 +441,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 		callExtensionResponses       map[string]runtimehooksv1.ResponseObject
 		callExtensionExpectedChanges map[string]func(runtime.Object)
 		wantCanUpdateMachineSet      bool
+		wantAffectsAvailability      bool
 		wantReasons                  []string
 		wantError                    bool
 		wantErrorMessage             string
@@ -412,6 +461,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				"test-update-extension": responseWithEmptyPatches,
 			},
 			wantCanUpdateMachineSet: true,
+			wantAffectsAvailability: true,
 		},
 		{
 			name:  "Return false if current and desired objects are not equal and no patches are returned",
@@ -502,6 +552,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				},
 			},
 			wantCanUpdateMachineSet: true,
+			wantAffectsAvailability: true,
 		},
 		{
 			name:  "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions)",
@@ -548,6 +599,107 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				},
 			},
 			wantCanUpdateMachineSet: true,
+			wantAffectsAvailability: true,
+		},
+		{
+			name:  "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions) - does not affect availability",
+			newMS: desiredMachineSet,
+			templateObjects: &templateObjects{
+				CurrentInfraMachineTemplate:    currentInfraMachineTemplate,
+				DesiredInfraMachineTemplate:    desiredInfraMachineTemplate,
+				CurrentBootstrapConfigTemplate: currentBootstrapConfigTemplate,
+				DesiredBootstrapConfigTemplate: desiredBootstrapConfigTemplate,
+			},
+			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineSetResponse{
+					CommonResponse:      runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
+					MachineSetPatch:     patchToUpdateMachineSet,
+					AffectsAvailability: new(false),
+				},
+				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineSetResponse{
+					CommonResponse:                     runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
+					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
+					AffectsAvailability:                new(false),
+				},
+				"test-update-extension-3": &runtimehooksv1.CanUpdateMachineSetResponse{
+					CommonResponse:               runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
+					BootstrapConfigTemplatePatch: patchToUpdateBootstrapConfigTemplate,
+					AffectsAvailability:          new(false),
+				},
+			},
+			callExtensionExpectedChanges: map[string]func(runtime.Object){
+				"test-update-extension-2": func(object runtime.Object) {
+					if machine, ok := object.(*clusterv1.MachineSet); ok {
+						// After the call to test-update-extension-1 we expect that patchToUpdateMachineSet is already applied.
+						machine.Spec.Template.Spec.Version = "v1.31.0"
+					}
+				},
+				"test-update-extension-3": func(object runtime.Object) {
+					if machine, ok := object.(*clusterv1.MachineSet); ok {
+						// After the call to test-update-extension-1 we expect that patchToUpdateMachineSet is already applied.
+						machine.Spec.Template.Spec.Version = "v1.31.0"
+					}
+					if infraMachineTemplate, ok := object.(*unstructured.Unstructured); ok {
+						if infraMachineTemplate.GroupVersionKind().Kind == builder.TestInfrastructureMachineTemplateKind {
+							// After the call to test-update-extension-2 we expect that patchToUpdateInfraMachineTemplate is already applied.
+							_ = unstructured.SetNestedField(infraMachineTemplate.Object, "in-place updated world InfraMachineTemplate", "spec", "template", "spec", "hello")
+						}
+					}
+				},
+			},
+			wantCanUpdateMachineSet: true,
+			wantAffectsAvailability: false,
+		},
+		{
+			name:  "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions) - at least one affects availability",
+			newMS: desiredMachineSet,
+			templateObjects: &templateObjects{
+				CurrentInfraMachineTemplate:    currentInfraMachineTemplate,
+				DesiredInfraMachineTemplate:    desiredInfraMachineTemplate,
+				CurrentBootstrapConfigTemplate: currentBootstrapConfigTemplate,
+				DesiredBootstrapConfigTemplate: desiredBootstrapConfigTemplate,
+			},
+			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineSetResponse{
+					CommonResponse:      runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
+					MachineSetPatch:     patchToUpdateMachineSet,
+					AffectsAvailability: new(false),
+				},
+				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineSetResponse{
+					CommonResponse:                     runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
+					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
+					AffectsAvailability:                new(true),
+				},
+				"test-update-extension-3": &runtimehooksv1.CanUpdateMachineSetResponse{
+					CommonResponse:               runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
+					BootstrapConfigTemplatePatch: patchToUpdateBootstrapConfigTemplate,
+					AffectsAvailability:          new(false),
+				},
+			},
+			callExtensionExpectedChanges: map[string]func(runtime.Object){
+				"test-update-extension-2": func(object runtime.Object) {
+					if machine, ok := object.(*clusterv1.MachineSet); ok {
+						// After the call to test-update-extension-1 we expect that patchToUpdateMachineSet is already applied.
+						machine.Spec.Template.Spec.Version = "v1.31.0"
+					}
+				},
+				"test-update-extension-3": func(object runtime.Object) {
+					if machine, ok := object.(*clusterv1.MachineSet); ok {
+						// After the call to test-update-extension-1 we expect that patchToUpdateMachineSet is already applied.
+						machine.Spec.Template.Spec.Version = "v1.31.0"
+					}
+					if infraMachineTemplate, ok := object.(*unstructured.Unstructured); ok {
+						if infraMachineTemplate.GroupVersionKind().Kind == builder.TestInfrastructureMachineTemplateKind {
+							// After the call to test-update-extension-2 we expect that patchToUpdateInfraMachineTemplate is already applied.
+							_ = unstructured.SetNestedField(infraMachineTemplate.Object, "in-place updated world InfraMachineTemplate", "spec", "template", "spec", "hello")
+						}
+					}
+				},
+			},
+			wantCanUpdateMachineSet: true,
+			wantAffectsAvailability: true,
 		},
 		{
 			name:  "Return false if current and desired objects are not equal and patches are returned that only account for some diffs",
@@ -617,14 +769,15 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				RuntimeClient: runtimeClient,
 			}
 
-			canUpdateMachineSet, reasons, err := p.canExtensionsUpdateMachineSet(ctx, currentMachineSet, tt.newMS, tt.templateObjects, tt.extensionHandlers)
+			res, reasons, err := p.canExtensionsUpdateMachineSet(ctx, currentMachineSet, tt.newMS, tt.templateObjects, tt.extensionHandlers)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+			g.Expect(res.canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+			g.Expect(res.affectsAvailability).To(Equal(tt.wantAffectsAvailability))
 			g.Expect(reasons).To(BeComparableTo(tt.wantReasons))
 		})
 	}

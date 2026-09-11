@@ -1383,6 +1383,11 @@ spec:
                           required:
                           - secret
                           type: object
+                        defer:
+                          description: |-
+                            defer determines whether writing the file is deferred until the cloud-init final stage,
+                            after users are created and packages are installed.
+                          type: boolean
                         encoding:
                           description: encoding specifies the encoding of the file
                             contents.
@@ -4323,6 +4328,11 @@ spec:
                           required:
                           - secret
                           type: object
+                        defer:
+                          description: |-
+                            defer determines whether writing the file is deferred until the cloud-init final stage,
+                            after users are created and packages are installed.
+                          type: boolean
                         encoding:
                           description: encoding specifies the encoding of the file
                             contents.

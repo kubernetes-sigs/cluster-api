@@ -388,6 +388,11 @@ func (in *File) DeepCopyInto(out *File) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Defer != nil {
+		in, out := &in.Defer, &out.Defer
+		*out = new(bool)
+		**out = **in
+	}
 	out.ContentFrom = in.ContentFrom
 }
 

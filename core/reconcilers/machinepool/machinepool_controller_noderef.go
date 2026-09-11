@@ -146,7 +146,7 @@ func (r *Reconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Resu
 	r.recorder.Event(mp, corev1.EventTypeNormal, "SuccessfulSetNodeRefs", fmt.Sprintf("%+v", mp.Status.NodeRefs))
 
 	// Reconcile node annotations and taints.
-	err = r.patchNodes(ctx, clusterClient, nodeRefsResult.references, mp)
+	err = r.patchNodes(ctx, clusterClient, nodeRefsResult.references, s)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -231,8 +231,23 @@ func (r *Reconciler) getNodeReferences(ctx context.Context, providerIDList []str
 }
 
 // patchNodes patches the nodes with the cluster name and cluster namespace annotations.
-func (r *Reconciler) patchNodes(ctx context.Context, c client.Client, references []corev1.ObjectReference, mp *clusterv1.MachinePool) error {
+// This also delegates the removal of the NodeUninitializedTaint to the Machine controller if the MachinePool uses
+// MachinePool Machines.
+func (r *Reconciler) patchNodes(ctx context.Context, c client.Client, references []corev1.ObjectReference, s *scope) error {
 	log := ctrl.LoggerFrom(ctx)
+	mp := s.machinePool
+
+	hasMachines, err := s.hasMachinePoolMachines()
+	if err != nil {
+		if s.infraMachinePool == nil {
+			log.V(4).Info("InfraMachinePool not yet set, assuming legacy mode without Machines")
+			hasMachines = false
+		} else {
+			log.Error(err, "Failed to check if MachinePool uses Machines, will not remove uninitialized taint")
+			hasMachines = true
+		}
+	}
+
 	for _, nodeRef := range references {
 		node := &corev1.Node{}
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
@@ -249,9 +264,14 @@ func (r *Reconciler) patchNodes(ctx context.Context, c client.Client, references
 			clusterv1.OwnerKindAnnotation:        "MachinePool",
 			clusterv1.OwnerNameAnnotation:        mp.Name,
 		}
-		// Add annotations and drop NodeUninitializedTaint.
+		// Add annotations.
 		hasAnnotationChanges := annotations.AddAnnotations(node, desired)
-		hasTaintChanges := taints.RemoveNodeTaint(node, clusterv1.NodeUninitializedTaint)
+
+		var hasTaintChanges bool
+		if !hasMachines {
+			hasTaintChanges = taints.RemoveNodeTaint(node, clusterv1.NodeUninitializedTaint)
+		}
+
 		// Patch the node if needed.
 		if hasAnnotationChanges || hasTaintChanges {
 			if err := patchHelper.Patch(ctx, node); err != nil {

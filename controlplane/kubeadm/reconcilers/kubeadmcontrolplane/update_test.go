@@ -57,7 +57,7 @@ const (
 )
 
 func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
-	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+	setupEnv := func(t *testing.T, g *WithT) *corev1.Namespace {
 		t.Helper()
 
 		t.Log("Creating the namespace")
@@ -75,13 +75,20 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	namespace := setup(t, g)
+	namespace := setupEnv(t, g)
 	defer teardown(t, g, namespace)
 
 	timeout := 30 * time.Second
 
 	cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
 	g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+	// Note: Wait additionally until dynamicCache is up-to-date, CreateAndWait above only waits until
+	// the regular cache in the manager is up-to-date.
+	g.Eventually(func(g Gomega) {
+		_, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(), client.ObjectKeyFromObject(genericInfrastructureMachineTemplate))
+		g.Expect(err).ToNot(HaveOccurred())
+	}).WithTimeout(5 * time.Second).To(Succeed())
+
 	cluster.UID = types.UID(util.RandomString(10))
 	cluster.Spec.ControlPlaneEndpoint.Host = Host
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443

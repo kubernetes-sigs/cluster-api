@@ -123,7 +123,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 
 func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 	t.Run("creates a control plane Machine if preflight checks pass", func(t *testing.T) {
-		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+		setupEnv := func(t *testing.T, g *WithT) *corev1.Namespace {
 			t.Helper()
 
 			t.Log("Creating the namespace")
@@ -141,11 +141,18 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		}
 
 		g := NewWithT(t)
-		namespace := setup(t, g)
+		namespace := setupEnv(t, g)
 		defer teardown(t, g, namespace)
 
 		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
 		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		// Note: Wait additionally until dynamicCache is up-to-date, CreateAndWait above only waits until
+		// the regular cache in the manager is up-to-date.
+		g.Eventually(func(g Gomega) {
+			_, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(), client.ObjectKeyFromObject(genericInfrastructureMachineTemplate))
+			g.Expect(err).ToNot(HaveOccurred())
+		}).WithTimeout(5 * time.Second).To(Succeed())
+
 		kcp.UID = types.UID(util.RandomString(10))
 		setKCPHealthy(kcp)
 
@@ -269,7 +276,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		}
 	})
 	t.Run("scale up if preflight checks would fail but are not executed", func(t *testing.T) {
-		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+		setupEnv := func(t *testing.T, g *WithT) *corev1.Namespace {
 			t.Helper()
 
 			t.Log("Creating the namespace")
@@ -287,11 +294,18 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		}
 
 		g := NewWithT(t)
-		namespace := setup(t, g)
+		namespace := setupEnv(t, g)
 		defer teardown(t, g, namespace)
 
 		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
 		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		// Note: Wait additionally until dynamicCache is up-to-date, CreateAndWait above only waits until
+		// the regular cache in the manager is up-to-date.
+		g.Eventually(func(g Gomega) {
+			_, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(), client.ObjectKeyFromObject(genericInfrastructureMachineTemplate))
+			g.Expect(err).ToNot(HaveOccurred())
+		}).WithTimeout(5 * time.Second).To(Succeed())
+
 		kcp.UID = types.UID(util.RandomString(10))
 		// Set KCP conditions in a way that preflight checks would fail, but the certificate check still passes.
 		conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionFalse})
@@ -339,7 +353,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		g.Expect(kubeadmConfig.Spec.ClusterConfiguration.FeatureGates).To(BeComparableTo(map[string]bool{desiredstate.ControlPlaneKubeletLocalMode: true}))
 	})
 	t.Run("does not create a control plane Machine if certificate are not available", func(t *testing.T) {
-		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+		setupEnv := func(t *testing.T, g *WithT) *corev1.Namespace {
 			t.Helper()
 
 			t.Log("Creating the namespace")
@@ -357,11 +371,18 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		}
 
 		g := NewWithT(t)
-		namespace := setup(t, g)
+		namespace := setupEnv(t, g)
 		defer teardown(t, g, namespace)
 
 		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
 		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		// Note: Wait additionally until dynamicCache is up-to-date, CreateAndWait above only waits until
+		// the regular cache in the manager is up-to-date.
+		g.Eventually(func(g Gomega) {
+			_, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(), client.ObjectKeyFromObject(genericInfrastructureMachineTemplate))
+			g.Expect(err).ToNot(HaveOccurred())
+		}).WithTimeout(5 * time.Second).To(Succeed())
+
 		kcp.UID = types.UID(util.RandomString(10))
 		// Set KCP conditions in a way that preflight checks pass but the certificate check fails.
 		conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionTrue})

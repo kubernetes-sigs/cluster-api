@@ -1201,7 +1201,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 }
 
 func TestReconcileInitializeControlPlane(t *testing.T) {
-	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+	setupEnv := func(t *testing.T, g *WithT) *corev1.Namespace {
 		t.Helper()
 
 		t.Log("Creating the namespace")
@@ -1219,7 +1219,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	namespace := setup(t, g)
+	namespace := setupEnv(t, g)
 	defer teardown(t, g, namespace)
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: namespace.Name})
@@ -1258,6 +1258,12 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 		},
 	}
 	g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate)).To(Succeed())
+	// Note: Wait additionally until dynamicCache is up-to-date, CreateAndWait above only waits until
+	// the regular cache in the manager is up-to-date.
+	g.Eventually(func(g Gomega) {
+		_, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(), client.ObjectKeyFromObject(genericInfrastructureMachineTemplate))
+		g.Expect(err).ToNot(HaveOccurred())
+	}).WithTimeout(5 * time.Second).To(Succeed())
 
 	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1418,7 +1424,7 @@ kubernetesVersion: metav1.16.1
 }
 
 func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
-	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+	setupEnv := func(t *testing.T, g *WithT) *corev1.Namespace {
 		t.Helper()
 
 		t.Log("Creating the namespace")
@@ -1436,7 +1442,7 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	namespace := setup(t, g)
+	namespace := setupEnv(t, g)
 	defer teardown(t, g, namespace)
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: namespace.Name})
@@ -1500,6 +1506,12 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 		},
 	}
 	g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate)).To(Succeed())
+	// Note: Wait additionally until dynamicCache is up-to-date, CreateAndWait above only waits until
+	// the regular cache in the manager is up-to-date.
+	g.Eventually(func(g Gomega) {
+		_, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(), client.ObjectKeyFromObject(genericInfrastructureMachineTemplate))
+		g.Expect(err).ToNot(HaveOccurred())
+	}).WithTimeout(5 * time.Second).To(Succeed())
 
 	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{

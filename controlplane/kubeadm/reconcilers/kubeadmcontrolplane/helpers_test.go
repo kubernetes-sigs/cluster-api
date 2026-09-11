@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
@@ -274,7 +275,7 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 }
 
 func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
-	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+	setupEnv := func(t *testing.T, g *WithT) *corev1.Namespace {
 		t.Helper()
 
 		t.Log("Creating the namespace")
@@ -292,7 +293,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	namespace := setup(t, g)
+	namespace := setupEnv(t, g)
 	defer teardown(t, g, namespace)
 
 	cluster := &clusterv1.Cluster{
@@ -320,6 +321,12 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 		},
 	}
 	g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate)).To(Succeed())
+	// Note: Wait additionally until dynamicCache is up-to-date, CreateAndWait above only waits until
+	// the regular cache in the manager is up-to-date.
+	g.Eventually(func(g Gomega) {
+		_, err := dynamicCache.GetUnstructured(ctx, setup.DynamicCacheInfraMachineTemplateObjectType, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind(), client.ObjectKeyFromObject(genericInfrastructureMachineTemplate))
+		g.Expect(err).ToNot(HaveOccurred())
+	}).WithTimeout(5 * time.Second).To(Succeed())
 
 	namingTemplateKey := "-testkcp"
 	kcp := &controlplanev1.KubeadmControlPlane{

@@ -128,7 +128,7 @@ func (r *MachinePoolBackEndReconciler) ReconcileNormal(ctx context.Context, clus
 	}
 
 	if len(devMachinePool.Spec.ProviderIDList) == int(*machinePool.Spec.Replicas) && len(devMachineList.Items) == int(*machinePool.Spec.Replicas) {
-		devMachinePool.Status.Ready = true
+		devMachinePool.Status.Initialization.Provisioned = ptr.To(true)
 		conditions.Set(devMachinePool, metav1.Condition{
 			Type:   infrav1.ReplicasReadyCondition,
 			Status: metav1.ConditionTrue,

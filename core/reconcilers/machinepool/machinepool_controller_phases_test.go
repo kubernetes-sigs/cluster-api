@@ -267,7 +267,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Set infra ready.
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
@@ -334,7 +334,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
@@ -451,7 +451,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
@@ -515,7 +515,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, int64(4), "status", "replicas")
@@ -586,7 +586,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
@@ -653,7 +653,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
@@ -750,7 +750,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
@@ -1202,6 +1202,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		name               string
 		bootstrapConfig    map[string]interface{}
 		infraConfig        map[string]interface{}
+		infraCRD           *apiextensionsv1.CustomResourceDefinition
 		machinepool        *clusterv1.MachinePool
 		expectError        bool
 		expectChanged      bool
@@ -1223,7 +1224,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1302,7 +1303,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					"providerIDList": []interface{}{},
 				},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1327,6 +1328,89 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				g.Expect(m.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseRunning))
 			},
 		},
+		{
+			name: "new machinepool, infrastructure config ready via deprecated v1beta1 contract status.ready",
+			infraCRD: func() *apiextensionsv1.CustomResourceDefinition {
+				crd := builder.TestInfrastructureMachineTemplateCRD.DeepCopy()
+				crd.Labels = map[string]string{
+					clusterv1.GroupVersion.Group + "/v1beta1": builder.InfrastructureGroupVersion.Version,
+				}
+				return crd
+			}(),
+			infraConfig: map[string]interface{}{
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+				},
+			},
+			expectError:   false,
+			expectChanged: true,
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+			},
+		},
+		{
+			name: "new machinepool, infrastructure config on the v1beta2 contract reporting only status.ready falls back to it",
+			infraConfig: map[string]interface{}{
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+				},
+			},
+			expectError:   false,
+			expectChanged: true,
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+			},
+		},
+		{
+			name: "infrastructure provisioned does not flip back to false when the infrastructure config reports not provisioned",
+			machinepool: func() *clusterv1.MachinePool {
+				mp := defaultMachinePool.DeepCopy()
+				mp.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				return mp
+			}(),
+			infraConfig: map[string]interface{}{
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"initialization": map[string]interface{}{"provisioned": false},
+				},
+			},
+			expectError: false,
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1337,8 +1421,13 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				tc.machinepool = defaultMachinePool.DeepCopy()
 			}
 
+			infraCRD := builder.TestInfrastructureMachineTemplateCRD
+			if tc.infraCRD != nil {
+				infraCRD = tc.infraCRD
+			}
+
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
-			fakeClient := fake.NewClientBuilder().WithObjects(tc.machinepool, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tc.machinepool, infraConfig, builder.TestBootstrapConfigCRD, infraCRD).Build()
 			r := &Reconciler{
 				Client:       fakeClient,
 				ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -1415,7 +1504,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1486,7 +1575,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1554,7 +1643,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1828,7 +1917,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			},
 			"spec": map[string]interface{}{},
 			"status": map[string]interface{}{
-				"ready": true,
+				"initialization": map[string]interface{}{"provisioned": true},
 			},
 		},
 	}

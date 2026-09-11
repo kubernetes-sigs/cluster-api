@@ -301,7 +301,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				},
 			},
 			"status": map[string]interface{}{
-				"ready": true,
+				"initialization": map[string]interface{}{"provisioned": true},
 				"addresses": []interface{}{
 					map[string]interface{}{
 						"type":    "InternalIP",
@@ -960,7 +960,7 @@ func TestMachinePoolConditions(t *testing.T) {
 					"namespace": metav1.NamespaceDefault,
 				},
 				"status": map[string]interface{}{
-					"ready": ready,
+					"initialization": map[string]interface{}{"provisioned": ready},
 				},
 				"spec": map[string]interface{}{
 					"providerIDList": []interface{}{

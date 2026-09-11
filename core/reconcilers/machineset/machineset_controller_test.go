@@ -2448,6 +2448,11 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 		expectMachinesToDelete                    *int
 		expectedTargetMSName                      *string
 		expectedMachinesToMove                    *int
+		// ownedMachines are Machines controlled by the MachineSet via ownerRef. This can differ from
+		// machines (the selector-based scope view) when Machines drift out of the selector, which is
+		// what the creation ceiling guards against. When nil, owned Machines is treated as zero.
+		ownedMachines         []*clusterv1.Machine
+		expectCreationBlocked bool
 	}{
 		{
 			name: "no op when getAndAdoptMachinesForMachineSetSucceeded is false",
@@ -2544,6 +2549,48 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 			expectedTargetMSName:   nil,
 			expectedMachinesToMove: nil,
 		},
+		{
+			name: "should cap creation to the ceiling when owned machines have drifted out of the selector",
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			machineSet: newMachineSet("ms1", "cluster1", 5),
+			// The selector-based view only sees 2 machines, so the diff asks for 3.
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1"),
+				fakeMachine("m2"),
+			},
+			// But the MachineSet actually owns 4 machines via ownerRef (2 have drifted out of the
+			// selector). Creation must be capped to 5-4=1 so owned machines never exceed the replicas.
+			ownedMachines: []*clusterv1.Machine{
+				fakeMachine("m1", withOwnerMachineSet("ms1")),
+				fakeMachine("m2", withOwnerMachineSet("ms1")),
+				fakeMachine("drifted1", withOwnerMachineSet("ms1")),
+				fakeMachine("drifted2", withOwnerMachineSet("ms1")),
+			},
+			expectMachinesToAdd:    ptr.To(1),
+			expectMachinesToDelete: nil,
+			expectedTargetMSName:   nil,
+			expectedMachinesToMove: nil,
+		},
+		{
+			name: "should block creation when owned machines already meet the desired replicas",
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			machineSet: newMachineSet("ms1", "cluster1", 2),
+			// The selector-based view only sees 1 machine, so the diff asks for 1.
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1"),
+			},
+			// But the MachineSet already owns 2 machines via ownerRef (1 has drifted out of the
+			// selector), which meets the desired replicas. Creation must be halted entirely.
+			ownedMachines: []*clusterv1.Machine{
+				fakeMachine("m1", withOwnerMachineSet("ms1")),
+				fakeMachine("drifted1", withOwnerMachineSet("ms1")),
+			},
+			expectMachinesToAdd:    nil,
+			expectMachinesToDelete: nil,
+			expectedTargetMSName:   nil,
+			expectedMachinesToMove: nil,
+			expectCreationBlocked:  true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2555,7 +2602,18 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 				getAndAdoptMachinesForMachineSetSucceeded: tt.getAndAdoptMachinesForMachineSetSucceeded,
 			}
 
+			// Place the owned Machines in the MachineSet namespace so countOwnedMachines can list them.
+			ownedObjs := make([]client.Object, 0, len(tt.ownedMachines))
+			for _, m := range tt.ownedMachines {
+				if m.Namespace == "" {
+					m.Namespace = tt.machineSet.Namespace
+				}
+				ownedObjs = append(ownedObjs, m)
+			}
+
 			r := &Reconciler{
+				Client:   fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(ownedObjs...).Build(),
+				recorder: record.NewFakeRecorder(32),
 				overrideCleanupOrphanedBootstrapConfigsInfraMachines: func(_ context.Context, _ *scope) error {
 					return nil // Nothing to check in this test.
 				},
@@ -2580,6 +2638,14 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 			res, err := r.syncReplicas(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred(), "unexpected error when syncing replicas")
 			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when syncing replicas")
+
+			if tt.expectCreationBlocked {
+				gotCond := v1beta1conditions.Get(tt.machineSet, clusterv1.MachinesCreatedV1Beta1Condition)
+				g.Expect(gotCond).ToNot(BeNil(), "expected MachinesCreated condition to be set when creation is blocked")
+				g.Expect(gotCond.Status).To(Equal(corev1.ConditionFalse))
+				g.Expect(gotCond.Reason).To(Equal(clusterv1.MachineCreationBlockedV1Beta1Reason))
+				g.Expect(s.scaleUpPreflightCheckErrMessages).ToNot(BeEmpty(), "expected the block to be surfaced on the ScalingUp condition")
+			}
 		})
 	}
 }

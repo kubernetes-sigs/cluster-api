@@ -277,6 +277,12 @@ const (
 	// generate a machine object.
 	MachineCreationFailedV1Beta1Reason = "MachineCreationFailed"
 
+	// MachineCreationBlockedV1Beta1Reason (Severity=Error) documents a MachineSet that stopped
+	// creating Machines because it already owns at least as many Machines as its desired replicas.
+	// This acts as a circuit-breaker against uncontrolled Machine creation, e.g. when owned Machines
+	// have drifted out of the MachineSet selector and are therefore no longer counted by the replica diff.
+	MachineCreationBlockedV1Beta1Reason = "MachineCreationBlocked"
+
 	// ResizedV1Beta1Condition documents a MachineSet is resizing the set of controlled machines.
 	ResizedV1Beta1Condition ConditionType = "Resized"
 

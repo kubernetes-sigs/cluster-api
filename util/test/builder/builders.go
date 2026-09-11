@@ -40,6 +40,7 @@ type ClusterBuilder struct {
 	infrastructureCluster *unstructured.Unstructured
 	controlPlane          *unstructured.Unstructured
 	network               clusterv1.ClusterNetwork
+	statusFailureDomains  []clusterv1.FailureDomain
 }
 
 // Cluster returns a ClusterBuilder with the given name and namespace.
@@ -86,6 +87,12 @@ func (c *ClusterBuilder) WithTopology(topology *clusterv1.Topology) *ClusterBuil
 	return c
 }
 
+// WithStatusFailureDomains sets the Status.FailureDomains for the ClusterBuilder.
+func (c *ClusterBuilder) WithStatusFailureDomains(failureDomains ...clusterv1.FailureDomain) *ClusterBuilder {
+	c.statusFailureDomains = failureDomains
+	return c
+}
+
 // Build returns a Cluster with the attributes added to the ClusterBuilder.
 func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 	obj := &clusterv1.Cluster{
@@ -107,6 +114,9 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 	}
 	if c.controlPlane != nil {
 		obj.Spec.ControlPlaneRef = objToRef(c.controlPlane)
+	}
+	if len(c.statusFailureDomains) > 0 {
+		obj.Status.FailureDomains = c.statusFailureDomains
 	}
 	return obj
 }
@@ -210,12 +220,13 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 
 // MachineDeploymentTopologyBuilder holds the values needed to create a testable MachineDeploymentTopology.
 type MachineDeploymentTopologyBuilder struct {
-	annotations map[string]string
-	class       string
-	name        string
-	replicas    *int32
-	mhc         clusterv1.MachineDeploymentTopologyHealthCheck
-	variables   []clusterv1.ClusterVariable
+	annotations   map[string]string
+	class         string
+	name          string
+	replicas      *int32
+	failureDomain string
+	mhc           clusterv1.MachineDeploymentTopologyHealthCheck
+	variables     []clusterv1.ClusterVariable
 }
 
 // MachineDeploymentTopology returns a builder used to create a testable MachineDeploymentTopology.
@@ -249,6 +260,12 @@ func (m *MachineDeploymentTopologyBuilder) WithVariables(variables ...clusterv1.
 	return m
 }
 
+// WithFailureDomain sets the FailureDomain for the MachineDeploymentTopologyBuilder.
+func (m *MachineDeploymentTopologyBuilder) WithFailureDomain(failureDomain string) *MachineDeploymentTopologyBuilder {
+	m.failureDomain = failureDomain
+	return m
+}
+
 // WithMachineHealthCheck adds MachineDeploymentTopologyHealthCheck used as the MachineHealthCheck value.
 func (m *MachineDeploymentTopologyBuilder) WithMachineHealthCheck(mhc clusterv1.MachineDeploymentTopologyHealthCheck) *MachineDeploymentTopologyBuilder {
 	m.mhc = mhc
@@ -261,10 +278,11 @@ func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTo
 		Metadata: clusterv1.ObjectMeta{
 			Annotations: m.annotations,
 		},
-		Class:       m.class,
-		Name:        m.name,
-		Replicas:    m.replicas,
-		HealthCheck: m.mhc,
+		Class:         m.class,
+		Name:          m.name,
+		Replicas:      m.replicas,
+		FailureDomain: m.failureDomain,
+		HealthCheck:   m.mhc,
 	}
 
 	if len(m.variables) > 0 {

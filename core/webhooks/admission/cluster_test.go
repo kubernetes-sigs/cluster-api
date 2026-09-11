@@ -32,6 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -4088,6 +4090,210 @@ func TestValidateAutoscalerAnnotationsForCluster(t *testing.T) {
 				g.Expect(err).ToNot(BeEmpty())
 			} else {
 				g.Expect(err).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func TestMachineHealthCheckDisabledWarnings(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
+	tests := []struct {
+		name         string
+		mutate       func(*clusterv1.Cluster)
+		wantPathPart string
+	}{
+		{
+			name: "Should warn when control plane healthCheck overrides are set while healthCheck is disabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.ControlPlane.HealthCheck = clusterv1.ControlPlaneTopologyHealthCheck{
+					Enabled: ptr.To(false),
+					Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+			wantPathPart: "spec.topology.controlPlane.healthCheck",
+		},
+		{
+			name: "Should warn when MachineDeployment healthCheck overrides are set while healthCheck is disabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.Workers.MachineDeployments[0].HealthCheck = clusterv1.MachineDeploymentTopologyHealthCheck{
+					Enabled: ptr.To(false),
+					Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+			wantPathPart: "spec.topology.workers.machineDeployments[workers1].healthCheck",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cluster := builder.Cluster("ns", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("class1").
+					WithVersion("v1.29.0").
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("md-class-1").
+						Build()).
+					Build()).
+				Build()
+			clusterClass := builder.ClusterClass("ns", "class1").
+				WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate("ns", "cp-machine-template").Build()).
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("md-class-1").Build()).
+				Build()
+			conditions.Set(clusterClass, metav1.Condition{
+				Type:   clusterv1.ClusterClassVariablesReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterClassVariablesReadyReason,
+			})
+
+			tt.mutate(cluster)
+
+			// Disabled MHC with config overrides is allowed to support temporarily pausing remediation.
+			g.Expect(validateMachineHealthChecks(cluster, clusterClass)).To(BeEmpty())
+
+			warnings := machineHealthCheckDisabledWarnings(cluster)
+			g.Expect(warnings).To(HaveLen(1))
+			g.Expect(warnings[0]).To(ContainSubstring(tt.wantPathPart))
+			g.Expect(warnings[0]).To(ContainSubstring("checks and remediation are ignored while enabled is false"))
+
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(clusterClass).
+				WithScheme(fakeScheme).
+				Build()
+			webhook := &Cluster{Client: fakeClient}
+
+			warnings, err := webhook.ValidateCreate(ctx, cluster)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(warnings).To(HaveLen(1))
+			g.Expect(warnings[0]).To(ContainSubstring(tt.wantPathPart))
+			g.Expect(warnings[0]).To(ContainSubstring("checks and remediation are ignored while enabled is false"))
+		})
+	}
+}
+
+func TestValidateTopologyRolloutStrategyTypeMismatch(t *testing.T) {
+	maxSurge1 := intstr.FromInt32(1)
+	maxSurge2 := intstr.FromInt32(2)
+
+	topologyWithRolloutStrategy := func(name string, strategy clusterv1.MachineDeploymentTopologyRolloutStrategy) *clusterv1.Topology {
+		topology := builder.ClusterTopology().
+			WithMachineDeployment(builder.MachineDeploymentTopology(name).Build()).
+			Build()
+		topology.Workers.MachineDeployments[0].Rollout = clusterv1.MachineDeploymentTopologyRolloutSpec{
+			Strategy: strategy,
+		}
+		return topology
+	}
+
+	rollingUpdateTopology := topologyWithRolloutStrategy("workers1", clusterv1.MachineDeploymentTopologyRolloutStrategy{
+		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+		RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+			MaxSurge: &maxSurge1,
+		},
+	})
+	onDeleteTopology := topologyWithRolloutStrategy("workers1", clusterv1.MachineDeploymentTopologyRolloutStrategy{
+		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+		RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+			MaxSurge: &maxSurge1,
+		},
+	})
+	changedOnDeleteTopology := topologyWithRolloutStrategy("workers1", clusterv1.MachineDeploymentTopologyRolloutStrategy{
+		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+		RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+			MaxSurge: &maxSurge2,
+		},
+	})
+	fixedOnDeleteTopology := topologyWithRolloutStrategy("workers1", clusterv1.MachineDeploymentTopologyRolloutStrategy{
+		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+	})
+	renamedOnDeleteTopology := topologyWithRolloutStrategy("workers2", clusterv1.MachineDeploymentTopologyRolloutStrategy{
+		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+		RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+			MaxSurge: &maxSurge1,
+		},
+	})
+	emptyTypeTopology := topologyWithRolloutStrategy("workers1", clusterv1.MachineDeploymentTopologyRolloutStrategy{
+		RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
+			MaxSurge: &maxSurge1,
+		},
+	})
+
+	tests := []struct {
+		name        string
+		oldTopology *clusterv1.Topology
+		topology    *clusterv1.Topology
+		wantErr     bool
+		wantWarning bool
+	}{
+		{
+			name:     "Should reject rollingUpdate fields when creating topology with OnDelete rollout strategy",
+			topology: onDeleteTopology,
+			wantErr:  true,
+		},
+		{
+			name:        "Should reject rollingUpdate fields when updating topology from RollingUpdate to OnDelete rollout strategy",
+			oldTopology: rollingUpdateTopology,
+			topology:    onDeleteTopology,
+			wantErr:     true,
+		},
+		{
+			name:        "Should allow unchanged pre-existing invalid rollout strategy on update",
+			oldTopology: onDeleteTopology,
+			topology:    onDeleteTopology,
+			wantWarning: true,
+		},
+		{
+			name:        "Should reject changed pre-existing invalid rollout strategy on update",
+			oldTopology: onDeleteTopology,
+			topology:    changedOnDeleteTopology,
+			wantErr:     true,
+		},
+		{
+			name:        "Should allow fixing pre-existing invalid rollout strategy on update",
+			oldTopology: onDeleteTopology,
+			topology:    fixedOnDeleteTopology,
+		},
+		{
+			name:        "Should reject invalid rollout strategy when MachineDeployment topology is renamed",
+			oldTopology: onDeleteTopology,
+			topology:    renamedOnDeleteTopology,
+			wantErr:     true,
+		},
+		{
+			name:     "Should allow rollingUpdate fields when rollout strategy type is empty",
+			topology: emptyTypeTopology,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var oldTopology *clusterv1.Topology
+			if tt.oldTopology != nil {
+				oldTopology = tt.oldTopology.DeepCopy()
+			}
+			warnings, errs := validateTopologyRollout(oldTopology, *tt.topology.DeepCopy(), field.NewPath("spec", "topology"))
+			if tt.wantErr {
+				g.Expect(errs).ToNot(BeEmpty())
+				g.Expect(errs.ToAggregate()).ToNot(Succeed())
+				g.Expect(errs.ToAggregate().Error()).To(ContainSubstring("rollingUpdate"))
+				g.Expect(errs.ToAggregate().Error()).To(ContainSubstring("can be set only if type is \"RollingUpdate\""))
+			} else {
+				g.Expect(errs).To(BeEmpty())
+			}
+			if tt.wantWarning {
+				g.Expect(warnings).To(HaveLen(1))
+				g.Expect(warnings[0]).To(ContainSubstring("rollingUpdate configuration is ignored while type is OnDelete"))
+				g.Expect(warnings[0]).To(ContainSubstring("remove rollingUpdate fields"))
+			} else {
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}

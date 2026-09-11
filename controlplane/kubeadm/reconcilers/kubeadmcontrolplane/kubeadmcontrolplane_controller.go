@@ -477,7 +477,8 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to sync Machines")
 	}
 	if stopReconcile {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // Explicitly requeue as we are not watching for changes to BootstrapConfig and InfraMachine objects.
+		// Explicitly requeue as we are not watching for changes to BootstrapConfig and InfraMachine objects.
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // RequeueAfter should be at least 1s, because controller rate limiter is using 1s.
 	}
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
@@ -1403,7 +1404,7 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	log.Info("Etcd member without a corresponding Machine removed from the cluster", "member", etcdMemberToBeDeletedMsg)
 
 	// Force a new reconcile after removing an etcd member.
-	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // RequeueAfter should be at least 1s, because controller rate limiter is using 1s.
 }
 
 func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane *pkg.ControlPlane) (ctrl.Result, error) {

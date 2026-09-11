@@ -32,8 +32,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	utilptr "k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -142,10 +144,26 @@ func TestGetMachineToBeRemediated(t *testing.T) {
 func TestReconcileUnhealthyMachines(t *testing.T) {
 	g := NewWithT(t)
 
+	fc := capicontrollerutil.NewFakeController()
 	r := &Reconciler{
 		Client:     env.GetClient(),
-		controller: capicontrollerutil.NewFakeController(),
+		controller: fc,
 		recorder:   record.NewFakeRecorder(32),
+	}
+
+	machineTemplate := controlplanev1.KubeadmControlPlaneMachineTemplate{
+		Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     builder.TestInfrastructureMachineTemplateKind,
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Name:     "imt",
+			},
+		},
+	}
+	kcpSpec := controlplanev1.KubeadmControlPlaneSpec{
+		Version:         "v1.37.0",
+		Replicas:        new(int32(3)),
+		MachineTemplate: machineTemplate,
 	}
 
 	var err error
@@ -178,8 +196,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		}
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
 		g.Eventually(func() error {
 			if err := env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m); err != nil {
@@ -208,8 +226,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		}
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 	})
 	t.Run("reconcileUnhealthyMachines return early if another remediation is in progress", func(t *testing.T) {
 		g := NewWithT(t)
@@ -226,22 +244,27 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 						}),
 					},
 				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas: new(int32(3)),
+				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m),
 		}
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 	})
-	t.Run("RemediationInProgressAnnotation is cleaned up when stale and there are no machines to be remediated", func(t *testing.T) {
+	t.Run("RemediationInProgressAnnotation is cleaned up when stale and there are no machines to be remediated (already enough replicas)", func(t *testing.T) {
 		g := NewWithT(t)
 
 		m := createMachine(ctx, g, ns.Name, "m1-healthy-")
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 					Annotations: map[string]string{
 						controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
 							Machine:    "foo",
@@ -250,15 +273,26 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 						}),
 					},
 				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version:         "v1.37.0",
+					Replicas:        new(int32(1)), // We already have 1 replicas, so we don't need to create a Machine to complete remediation
+					MachineTemplate: machineTemplate,
+				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+
+		// reconcileUnhealthyMachines cleans up the annotation.
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
-
-		g.Expect(ret.IsZero()).To(BeTrue())
+		g.Expect(ret).To(Equal(ctrl.Result{RequeueAfter: time.Second}))
 		g.Expect(err).ToNot(HaveOccurred())
+		// Verify next reconcile got deferred after the annotation was deleted.
+		g.Expect(fc.DeferralsUntilCacheUpToDate).To(HaveKey(reconcile.Request{NamespacedName: client.ObjectKeyFromObject(controlPlane.KCP)}))
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m)
@@ -267,13 +301,15 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(env.Cleanup(ctx, m)).To(Succeed())
 	})
-	t.Run("remediation in progress is ignored when stale", func(t *testing.T) {
+	t.Run("RemediationInProgressAnnotation is cleaned up when stale and there are no machines to be remediated (already Machine created after remediation)", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
+		m := createMachine(ctx, g, ns.Name, "m1-healthy-")
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 					Annotations: map[string]string{
 						controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
 							Machine:    "foo",
@@ -282,15 +318,71 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 						}),
 					},
 				},
+				Spec: kcpSpec,
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+
+		// reconcileUnhealthyMachines cleans up the annotation.
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
+		g.Expect(ret.IsZero()).To(BeFalse())
 		g.Expect(err).ToNot(HaveOccurred())
+		// Verify next reconcile got deferred after the annotation was deleted.
+		g.Expect(fc.DeferralsUntilCacheUpToDate).To(HaveKey(reconcile.Request{NamespacedName: client.ObjectKeyFromObject(controlPlane.KCP)}))
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
+
+		err = env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(m.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+
+		g.Expect(env.Cleanup(ctx, m)).To(Succeed())
+	})
+	t.Run("RemediationInProgressAnnotation is cleaned up when stale and then a Machine is remediated in the next reconcile", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
+		controlPlane := &pkg.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+					Annotations: map[string]string{
+						controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
+							Machine:    "foo",
+							Timestamp:  metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
+							RetryCount: 0,
+						}),
+					},
+				},
+				Spec: kcpSpec,
+			},
+			Cluster:  &clusterv1.Cluster{},
+			Machines: collections.FromMachines(m),
+		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+
+		// reconcileUnhealthyMachines cleans up the annotation.
+		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse())
+
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
+
+		// reconcileUnhealthyMachines remediates the Machine.
+		ret, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
+
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -312,16 +404,28 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		m := getDeletingMachine(ns.Name, "m1-unhealthy-deleting-", withMachineHealthCheckFailed())
 		controlPlane := &pkg.ControlPlane{
-			KCP:      &controlplanev1.KubeadmControlPlane{},
+			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+				},
+				Spec: kcpSpec,
+			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m),
 		}
-		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 
+		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue())
+
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 	})
 	t.Run("reconcileUnhealthyMachines return early if there is a pending topology upgrade", func(t *testing.T) {
 		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
@@ -363,8 +467,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
 		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate while waiting for a version upgrade to v1.20.1 to be propagated from Cluster.spec.topology")
 		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationDeferredReason, "KubeadmControlPlane can't remediate while waiting for a version upgrade to v1.20.1 to be propagated from Cluster.spec.topology")
@@ -388,17 +492,24 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
 					Remediation: controlplanev1.KubeadmControlPlaneRemediationSpec{
 						MaxRetry: utilptr.To[int32](3),
 					},
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -409,9 +520,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed 3 times (MaxRetry)")
@@ -437,17 +549,24 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
 					Remediation: controlplanev1.KubeadmControlPlaneRemediationSpec{
 						MaxRetry: utilptr.To[int32](3),
 					},
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -464,9 +583,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -498,6 +618,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -505,11 +629,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 						MaxRetry:                utilptr.To[int32](3),
 						MinHealthyPeriodSeconds: utilptr.To(minHealthyPeriod),
 					},
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -526,9 +653,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -558,6 +686,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -565,11 +697,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 						MaxRetry:           utilptr.To[int32](3),
 						RetryPeriodSeconds: utilptr.To(controlplanev1.DefaultMinHealthyPeriodSeconds), // RetryPeriodSeconds not yet expired.
 					},
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -580,9 +715,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryPeriodSeconds)")
@@ -607,8 +743,13 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](1),
+					Version:  "v1.37.0",
 					Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
 						Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
 							RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
@@ -618,21 +759,27 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 							},
 						},
 					},
-				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
+
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		assertMachineV1beta1Condition(ctx, g, m, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate if current replicas are less or equal to 1")
@@ -648,23 +795,34 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m3 := getDeletingMachine(ns.Name, "m3-deleting") // NB. This machine is not created, it gets only added to control plane
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](3),
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](3),
+					Version:         "v1.37.0",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
+
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine deletion to complete before triggering remediation")
@@ -680,23 +838,34 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withoutNodeRef()) // Provisioning
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To(int32(3)),
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To(int32(3)),
+					Version:         "v1.37.0",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
+
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine provisioning to complete before triggering remediation")
@@ -713,23 +882,34 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withoutNodeRef()) // Provisioning
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To(int32(3)),
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To(int32(3)),
+					Version:         "v1.37.0",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
+
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine provisioning to complete before triggering remediation")
@@ -746,18 +926,27 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](3),
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](3),
+					Version:         "v1.37.0",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -769,9 +958,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this Machine because this could result in loosing Kubernetes control plane components or in etcd quorum loss")
@@ -790,18 +980,27 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](5),
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](5),
+					Version:         "v1.37.0",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -813,9 +1012,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this Machine because this could result in loosing Kubernetes control plane components or in etcd quorum loss")
@@ -833,19 +1033,27 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](1),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(false),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](1),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(false),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -862,9 +1070,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -888,19 +1097,27 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](1),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(false),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](1),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(false),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		// First reconcile, remediate machine m1 for the first time
@@ -918,9 +1135,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -942,7 +1160,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			mi := createMachine(ctx, g, ns.Name, fmt.Sprintf("m%d-unhealthy-", i), withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(MustMarshalRemediationData(remediationData)))
 
 			// Simulate KCP dropping RemediationInProgressAnnotation after creating the replacement machine.
-			delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
+			g.Expect(r.deleteRemediationInProgressAnnotation(ctx, controlPlane.KCP)).To(Succeed())
+			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 
 			controlPlane.Machines = collections.FromMachines(mi)
 			controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
@@ -954,6 +1173,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 			g.Expect(err).ToNot(HaveOccurred())
 
+			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 			g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 			remediationData, err = RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 			g.Expect(err).ToNot(HaveOccurred())
@@ -982,20 +1202,28 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](2),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](1),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:    &clusterv1.Cluster{},
 			Machines:   collections.FromMachines(m1, m2),
 			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -1012,9 +1240,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1040,20 +1269,28 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](3),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](3),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:    &clusterv1.Cluster{},
 			Machines:   collections.FromMachines(m1, m2, m3),
 			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -1070,9 +1307,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1098,20 +1336,28 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To(int32(3)),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To(int32(3)),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:    &clusterv1.Cluster{},
 			Machines:   collections.FromMachines(m1, m2, m3),
 			EtcdLeader: &etcd.Member{Name: m2.Status.NodeRef.Name},
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -1128,9 +1374,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1157,20 +1404,28 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](4),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](3),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:    &clusterv1.Cluster{},
 			Machines:   collections.FromMachines(m1, m2, m3, m4),
 			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -1187,9 +1442,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1216,20 +1472,28 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To(int32(4)),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To(int32(3)),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:    &clusterv1.Cluster{},
 			Machines:   collections.FromMachines(m1, m2, m3, m4),
 			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -1246,9 +1510,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1274,19 +1539,27 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](1),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(false),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](1),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(false),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		// First reconcile, remediate machine m1 for the first time
@@ -1303,9 +1576,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1327,7 +1601,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			mi := createMachine(ctx, g, ns.Name, fmt.Sprintf("m%d-unhealthy-", i), withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(MustMarshalRemediationData(remediationData)))
 
 			// Simulate KCP dropping RemediationInProgressAnnotation after creating the replacement machine.
-			delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
+			g.Expect(r.deleteRemediationInProgressAnnotation(ctx, controlPlane.KCP)).To(Succeed())
+			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 			controlPlane.Machines = collections.FromMachines(mi, m2, m3)
 			controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
@@ -1339,6 +1614,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 			g.Expect(err).ToNot(HaveOccurred())
 
+			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 			g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 			remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 			g.Expect(err).ToNot(HaveOccurred())
@@ -1369,14 +1645,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](3),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](3),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster: &clusterv1.Cluster{
@@ -1394,6 +1670,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Machines:   collections.FromMachines(m1, m2, m3),
 			EtcdLeader: &etcd.Member{Name: m1.Status.NodeRef.Name},
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -1409,9 +1693,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1438,6 +1723,16 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(patchHelper.Patch(ctx, m)).To(Succeed())
 	}
 
+	machineTemplate := controlplanev1.KubeadmControlPlaneMachineTemplate{
+		Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     builder.TestInfrastructureMachineTemplateKind,
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Name:     "imt",
+			},
+		},
+	}
+
 	t.Run("Remediates the first CP machine having problems to come up", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -1453,19 +1748,27 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: utilptr.To[int32](3),
-					Version:  "v1.19.1",
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
 				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(false),
-					},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](3),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1),
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(false),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -1480,9 +1783,10 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1503,7 +1807,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// NOTE: scale up also resets remediation in progress and remediation counts.
 
 		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(MustMarshalRemediationData(remediationData)))
-		delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
+		g.Expect(r.deleteRemediationInProgressAnnotation(ctx, controlPlane.KCP)).To(Succeed())
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 
 		// Control plane not initialized yet, Second CP is unhealthy and gets remediated (retry 2)
 
@@ -1513,9 +1818,10 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		ret, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err = RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1536,7 +1842,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// NOTE: scale up also resets remediation in progress and remediation counts.
 
 		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember(), withRemediateForAnnotation(MustMarshalRemediationData(remediationData)))
-		delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
+		g.Expect(r.deleteRemediationInProgressAnnotation(ctx, controlPlane.KCP)).To(Succeed())
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 
 		g.Expect(env.Cleanup(ctx, m3)).To(Succeed())
 	})
@@ -1557,6 +1864,10 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -1569,17 +1880,21 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 							},
 						},
 					},
-				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:    &clusterv1.Cluster{},
 			Machines:   collections.FromMachines(m1, m2),
 			EtcdLeader: &etcd.Member{Name: m1.Name},
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -1598,6 +1913,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1618,7 +1934,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// NOTE: scale up also resets remediation in progress and remediation counts.
 
 		m3 := createMachine(ctx, g, ns.Name, "m3-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(MustMarshalRemediationData(remediationData)))
-		delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
+		g.Expect(r.deleteRemediationInProgressAnnotation(ctx, controlPlane.KCP)).To(Succeed())
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 
 		// Control plane not initialized yet, Second CP is unhealthy and gets remediated (retry 2)
 
@@ -1629,9 +1946,10 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		ret, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err = RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1652,7 +1970,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// NOTE: scale up also resets remediation in progress and remediation counts.
 
 		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withHealthyEtcdMember(), withRemediateForAnnotation(MustMarshalRemediationData(remediationData)))
-		delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
+		g.Expect(r.deleteRemediationInProgressAnnotation(ctx, controlPlane.KCP)).To(Succeed())
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 
 		g.Expect(env.Cleanup(ctx, m1, m4)).To(Succeed())
 	})
@@ -1674,6 +1993,10 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -1686,17 +2009,21 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 							},
 						},
 					},
-				},
-				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
-					},
+					MachineTemplate: machineTemplate,
 				},
 			},
 			Cluster:    &clusterv1.Cluster{},
 			Machines:   collections.FromMachines(m1, m2, m3),
 			EtcdLeader: &etcd.Member{Name: m1.Name},
 		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: utilptr.To(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
 		controlPlane.EtcdMembers = etcdMembers(controlPlane.Machines)
 
 		r := &Reconciler{
@@ -1712,9 +2039,10 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
 		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1742,8 +2070,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		ret, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
 
-		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 
 		g.Expect(env.Cleanup(ctx, m1)).To(Succeed())
 	})

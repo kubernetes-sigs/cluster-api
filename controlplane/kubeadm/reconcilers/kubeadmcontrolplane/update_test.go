@@ -1015,7 +1015,10 @@ func Test_rollingUpdateSequences(t *testing.T) {
 				newMachine(machineAttr{Name: "machine-1", UpToDate: false, EligibleForInPlaceUpdate: true, CanUpdateMachine: true, AffectsAvailability: true}),
 				// one Machine got remediated (i.e. deleted)
 			},
-			skipVerifyMinMax: true, // As we first scale up after remediation we are intentionally violating the min/max range.
+			// As we first scale up after remediation we are intentionally violating the min/max range.
+			// Note: In reality this should never happen because reconcileUnhealthyMachines should clean up
+			// the remediation annotation in this case.
+			skipVerifyMinMax: true,
 			wantSequence: []string{
 				"machine-2 created",
 				"machine-0 deleted",

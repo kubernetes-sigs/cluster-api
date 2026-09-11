@@ -133,6 +133,8 @@ func (r *Reconciler) rollingUpdate(
 	// Always scale up after we deleted an unhealthy Machine for remediation.
 	// If the remediation annotation is set here we have to create a new Machine to complete the
 	// remediation process (delete+create) before continuing with the rollout process.
+	// Note: The remediation annotation is cleaned up in reconcileUnhealthyMachines if a
+	// Machine creation is not needed to complete the remediation.
 	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
 		return r.scaleUpControlPlane(ctx, controlPlane, true)
 	}

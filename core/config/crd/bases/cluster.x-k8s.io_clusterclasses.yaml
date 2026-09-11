@@ -3060,8 +3060,32 @@ spec:
                       This field is supported if and only if the control plane provider template
                       referenced above is Machine based and supports setting replicas.
                     properties:
+                      template:
+                        description: template contains a provider-specific template
+                          for a MachineInfrastructure of a ControlPlane.
+                        properties:
+                          apiVersion:
+                            description: |-
+                              apiVersion of the template.
+                              apiVersion must be fully qualified domain name followed by / and a version.
+                            maxLength: 317
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                          kind:
+                            description: |-
+                              kind of the template.
+                              kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                            maxLength: 63
+                            minLength: 1
+                            pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                            type: string
+                        required:
+                        - apiVersion
+                        - kind
+                        type: object
                       templateRef:
-                        description: templateRef is a required reference to the template
+                        description: templateRef contains the reference to the template
                           for a MachineInfrastructure of a ControlPlane.
                         properties:
                           apiVersion:
@@ -3093,9 +3117,11 @@ spec:
                         - kind
                         - name
                         type: object
-                    required:
-                    - templateRef
                     type: object
+                    x-kubernetes-validations:
+                    - message: either templateRef or template must be set, but not
+                        both
+                      rule: has(self.templateRef) != has(self.template)
                   metadata:
                     description: |-
                       metadata is the metadata applied to the ControlPlane and the Machines of the ControlPlane
@@ -3251,6 +3277,30 @@ spec:
                     - key
                     - effect
                     x-kubernetes-list-type: map
+                  template:
+                    description: template contains a provider-specific control plane
+                      template.
+                    properties:
+                      apiVersion:
+                        description: |-
+                          apiVersion of the template.
+                          apiVersion must be fully qualified domain name followed by / and a version.
+                        maxLength: 317
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                        type: string
+                      kind:
+                        description: |-
+                          kind of the template.
+                          kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                        maxLength: 63
+                        minLength: 1
+                        pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                        type: string
+                    required:
+                    - apiVersion
+                    - kind
+                    type: object
                   templateRef:
                     description: templateRef contains the reference to a provider-specific
                       control plane template.
@@ -3284,9 +3334,10 @@ spec:
                     - kind
                     - name
                     type: object
-                required:
-                - templateRef
                 type: object
+                x-kubernetes-validations:
+                - message: either templateRef or template must be set, but not both
+                  rule: has(self.templateRef) != has(self.template)
               infrastructure:
                 description: |-
                   infrastructure is a reference to a local struct that holds the details
@@ -3309,6 +3360,30 @@ spec:
                         maxLength: 1024
                         minLength: 1
                         type: string
+                    type: object
+                  template:
+                    description: template contains a provider-specific infrastructure
+                      cluster template.
+                    properties:
+                      apiVersion:
+                        description: |-
+                          apiVersion of the template.
+                          apiVersion must be fully qualified domain name followed by / and a version.
+                        maxLength: 317
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                        type: string
+                      kind:
+                        description: |-
+                          kind of the template.
+                          kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                        maxLength: 63
+                        minLength: 1
+                        pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                        type: string
+                    required:
+                    - apiVersion
+                    - kind
                     type: object
                   templateRef:
                     description: templateRef contains the reference to a provider-specific
@@ -3343,9 +3418,10 @@ spec:
                     - kind
                     - name
                     type: object
-                required:
-                - templateRef
                 type: object
+                x-kubernetes-validations:
+                - message: either templateRef or template must be set, but not both
+                  rule: has(self.templateRef) != has(self.template)
               kubernetesVersions:
                 description: |-
                   kubernetesVersions is the list of Kubernetes versions that can be
@@ -4045,9 +4121,33 @@ spec:
                             bootstrap contains the bootstrap template reference to be used
                             for the creation of worker Machines.
                           properties:
+                            template:
+                              description: template contains a provider-specific BootstrapTemplate
+                                for a MachineDeployment.
+                              properties:
+                                apiVersion:
+                                  description: |-
+                                    apiVersion of the template.
+                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                  maxLength: 317
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                                kind:
+                                  description: |-
+                                    kind of the template.
+                                    kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              type: object
                             templateRef:
-                              description: templateRef is a required reference to
-                                the BootstrapTemplate for a MachineDeployment.
+                              description: templateRef contains the reference to the
+                                BootstrapTemplate for a MachineDeployment.
                               properties:
                                 apiVersion:
                                   description: |-
@@ -4078,9 +4178,11 @@ spec:
                               - kind
                               - name
                               type: object
-                          required:
-                          - templateRef
                           type: object
+                          x-kubernetes-validations:
+                          - message: either templateRef or template must be set, but
+                              not both
+                            rule: has(self.templateRef) != has(self.template)
                         class:
                           description: |-
                             class denotes a type of worker node present in the cluster,
@@ -4365,9 +4467,33 @@ spec:
                             infrastructure contains the infrastructure template reference to be used
                             for the creation of worker Machines.
                           properties:
+                            template:
+                              description: template contains a provider-specific InfrastructureTemplate
+                                for a MachineDeployment.
+                              properties:
+                                apiVersion:
+                                  description: |-
+                                    apiVersion of the template.
+                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                  maxLength: 317
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                                kind:
+                                  description: |-
+                                    kind of the template.
+                                    kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              type: object
                             templateRef:
-                              description: templateRef is a required reference to
-                                the InfrastructureTemplate for a MachineDeployment.
+                              description: templateRef contains the reference to the
+                                InfrastructureTemplate for a MachineDeployment.
                               properties:
                                 apiVersion:
                                   description: |-
@@ -4398,9 +4524,11 @@ spec:
                               - kind
                               - name
                               type: object
-                          required:
-                          - templateRef
                           type: object
+                          x-kubernetes-validations:
+                          - message: either templateRef or template must be set, but
+                              not both
+                            rule: has(self.templateRef) != has(self.template)
                         metadata:
                           description: |-
                             metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
@@ -4653,9 +4781,33 @@ spec:
                             bootstrap contains the bootstrap template reference to be used
                             for the creation of the Machines in the MachinePool.
                           properties:
+                            template:
+                              description: template contains a provider-specific BootstrapTemplate
+                                for a MachinePool.
+                              properties:
+                                apiVersion:
+                                  description: |-
+                                    apiVersion of the template.
+                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                  maxLength: 317
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                                kind:
+                                  description: |-
+                                    kind of the template.
+                                    kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              type: object
                             templateRef:
-                              description: templateRef is a required reference to
-                                the BootstrapTemplate for a MachinePool.
+                              description: templateRef contains the reference to the
+                                BootstrapTemplate for a MachinePool.
                               properties:
                                 apiVersion:
                                   description: |-
@@ -4686,9 +4838,11 @@ spec:
                               - kind
                               - name
                               type: object
-                          required:
-                          - templateRef
                           type: object
+                          x-kubernetes-validations:
+                          - message: either templateRef or template must be set, but
+                              not both
+                            rule: has(self.templateRef) != has(self.template)
                         class:
                           description: |-
                             class denotes a type of machine pool present in the cluster,
@@ -4746,9 +4900,33 @@ spec:
                             infrastructure contains the infrastructure template reference to be used
                             for the creation of the MachinePool.
                           properties:
+                            template:
+                              description: template contains a provider-specific InfrastructureTemplate
+                                for a MachinePool.
+                              properties:
+                                apiVersion:
+                                  description: |-
+                                    apiVersion of the template.
+                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                  maxLength: 317
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                                kind:
+                                  description: |-
+                                    kind of the template.
+                                    kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              type: object
                             templateRef:
-                              description: templateRef is a required reference to
-                                the InfrastructureTemplate for a MachinePool.
+                              description: templateRef contains the reference to the
+                                InfrastructureTemplate for a MachinePool.
                               properties:
                                 apiVersion:
                                   description: |-
@@ -4779,9 +4957,11 @@ spec:
                               - kind
                               - name
                               type: object
-                          required:
-                          - templateRef
                           type: object
+                          x-kubernetes-validations:
+                          - message: either templateRef or template must be set, but
+                              not both
+                            rule: has(self.templateRef) != has(self.template)
                         metadata:
                           description: |-
                             metadata is the metadata applied to the MachinePool.

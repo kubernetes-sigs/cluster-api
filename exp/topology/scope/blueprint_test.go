@@ -88,6 +88,39 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "should return true if MachineHealthCheck is defined in ClusterClass via inline template, not defined in cluster topology and enable is not set",
+			blueprint: &ClusterBlueprint{
+				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
+					WithControlPlaneInfrastructureMachineInlineTemplate(clusterv1.ClusterClassTemplate{
+						APIVersion: builder.InfrastructureGroupVersion.String(),
+						Kind:       "GenericInfrastructureMachineTemplate",
+					}).
+					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+						Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+								{
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionUnknown,
+									TimeoutSeconds: ptr.To(int32(5 * 60)),
+								},
+							},
+							UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+								{
+									Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+									Status:         metav1.ConditionFalse,
+									TimeoutSeconds: ptr.To(int32(5 * 60)),
+								},
+							},
+						},
+					}).
+					Build(),
+				Topology: *builder.ClusterTopology().
+					WithClass("cluster-class").
+					Build(),
+			},
+			want: true,
+		},
+		{
 			name: "should return false if MachineHealthCheck is defined in ClusterClass, not defined in cluster topology and enable is false",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").

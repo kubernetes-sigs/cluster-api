@@ -105,7 +105,7 @@ func Test_patchDevClusterTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			err := patchDevClusterTemplate(context.Background(), tt.template, tt.variables)
+			err := patchDevClusterTemplate(context.Background(), tt.template, tt.variables, "docker")
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -302,7 +302,7 @@ func Test_patchDevMachineTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			err := patchDevMachineTemplate(context.Background(), tt.template, tt.variables)
+			err := patchDevMachineTemplate(context.Background(), tt.template, tt.variables, "docker")
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

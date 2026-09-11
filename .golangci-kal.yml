@@ -156,6 +156,11 @@ linters:
       text: "requiredfields: field Bootstrap has a valid zero value \\({}\\), but the validation is not complete \\(e.g. min properties/adding required fields\\). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
       linters:
         - kubeapilinter
+    # One of templateRef or template has to be set for ClusterClass and this is enforced with CEL, which cannot be detected by KAL
+    - path: "api/core/v1beta2/clusterclass_types.go"
+      text: "requiredfields: field (Infrastructure|ControlPlane|Bootstrap) has a valid zero value \\({}\\), but the validation is not complete \\(e.g. min properties/adding required fields\\). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
+      linters:
+        - kubeapilinter
 
     ## Excludes for optionalfields
     ## The ExtraEnvs field intentionally has type *[]EnvVar.
@@ -164,8 +169,13 @@ linters:
       text: "optionalfields: field ExtraEnvs does not allow the zero value. The field does not need to be a pointer."
       linters:
         - kubeapilinter
+      # One of templateRef or template has to be set for ClusterClass and this is enforced with CEL, which cannot be detected by KAL
+    - path: "api/core/v1beta2/clusterclass_types.go"
+      text: "optionalfields: field (MachineInfrastructure) has a valid zero value \\({}\\), but the validation is not complete \\(e.g. min properties/adding required fields\\). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
+      linters:
+        - kubeapilinter
 
-    # Excludes for existing default markers 
+    # Excludes for existing default markers
     - path: "api/core/v1beta2/clusterclass_types.go"
       text: 'forbiddenmarkers: field ValidationRule.Reason has forbidden marker "kubebuilder:default=FieldValueInvalid"'
       linters:

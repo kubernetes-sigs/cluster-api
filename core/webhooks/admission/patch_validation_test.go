@@ -2371,6 +2371,80 @@ func Test_validateSelectors(t *testing.T) {
 	}
 }
 
+func Test_selectorMatchTemplate(t *testing.T) {
+	selector := clusterv1.PatchSelector{
+		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+		Kind:       "InfrastructureMachineTemplate",
+	}
+
+	matchingTemplateRef := clusterv1.ClusterClassTemplateReference{
+		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+		Kind:       "InfrastructureMachineTemplate",
+	}
+	nonMatchingTemplateRef := clusterv1.ClusterClassTemplateReference{
+		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+		Kind:       "OtherInfrastructureMachineTemplate",
+	}
+	matchingTemplate := clusterv1.ClusterClassTemplate{
+		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+		Kind:       "InfrastructureMachineTemplate",
+	}
+	nonMatchingTemplate := clusterv1.ClusterClassTemplate{
+		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+		Kind:       "OtherInfrastructureMachineTemplate",
+	}
+
+	tests := []struct {
+		name      string
+		reference clusterv1.ClusterClassTemplateReference
+		template  clusterv1.ClusterClassTemplate
+		want      bool
+	}{
+		{
+			name:      "matches via templateRef",
+			reference: matchingTemplateRef,
+			template:  clusterv1.ClusterClassTemplate{},
+			want:      true,
+		},
+		{
+			name:      "does not match via templateRef",
+			reference: nonMatchingTemplateRef,
+			template:  clusterv1.ClusterClassTemplate{},
+			want:      false,
+		},
+		{
+			name:      "matches via inline template",
+			reference: clusterv1.ClusterClassTemplateReference{},
+			template:  matchingTemplate,
+			want:      true,
+		},
+		{
+			name:      "does not match via inline template",
+			reference: clusterv1.ClusterClassTemplateReference{},
+			template:  nonMatchingTemplate,
+			want:      false,
+		},
+		{
+			name:      "does not match if neither templateRef nor template are set",
+			reference: clusterv1.ClusterClassTemplateReference{},
+			template:  clusterv1.ClusterClassTemplate{},
+			want:      false,
+		},
+		{
+			name:      "matches if both templateRef and template are set",
+			reference: matchingTemplateRef,
+			template:  matchingTemplate,
+			want:      true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(selectorMatchTemplate(selector, tt.reference, tt.template)).To(Equal(tt.want))
+		})
+	}
+}
+
 func TestGetVariableName(t *testing.T) {
 	tests := []struct {
 		name         string

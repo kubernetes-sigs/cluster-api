@@ -211,40 +211,76 @@ func TestClusterClassTemplateAreCompatible(t *testing.T) {
 		APIVersion: "test.group.io/versionone",
 	}
 	tests := []struct {
-		name    string
-		current clusterv1.ClusterClassTemplateReference
-		desired clusterv1.ClusterClassTemplateReference
-		wantErr bool
+		name               string
+		currentTemplateRef clusterv1.ClusterClassTemplateReference
+		currentTemplate    clusterv1.ClusterClassTemplate
+		desiredTemplateRef clusterv1.ClusterClassTemplateReference
+		desiredTemplate    clusterv1.ClusterClassTemplate
+		wantErr            bool
 	}{
 		{
-			name:    "Allow change to template name",
-			current: templateRef,
-			desired: compatibleNameChangeTemplateRef,
-			wantErr: false,
+			name:               "Allow change to template name",
+			currentTemplateRef: templateRef,
+			desiredTemplateRef: compatibleNameChangeTemplateRef,
+			wantErr:            false,
 		},
 		{
-			name:    "Allow change to template APIVersion",
-			current: templateRef,
-			desired: compatibleAPIVersionChangeTemplateRef,
-			wantErr: false,
+			name:               "Allow change to template APIVersion",
+			currentTemplateRef: templateRef,
+			desiredTemplateRef: compatibleAPIVersionChangeTemplateRef,
+			wantErr:            false,
 		},
 		{
-			name:    "Block change to template API Group",
-			current: templateRef,
-			desired: incompatibleAPIGroupChangeTemplateRef,
-			wantErr: true,
+			name:               "Block change to template API Group",
+			currentTemplateRef: templateRef,
+			desiredTemplateRef: incompatibleAPIGroupChangeTemplateRef,
+			wantErr:            true,
 		},
 		{
-			name:    "Block change to template API Kind",
-			current: templateRef,
-			desired: incompatibleAPIKindChangeTemplateRef,
-			wantErr: true,
+			name:               "Block change to template API Kind",
+			currentTemplateRef: templateRef,
+			desiredTemplateRef: incompatibleAPIKindChangeTemplateRef,
+			wantErr:            true,
+		},
+		{
+			name:            "Allow compatible change when both current and desired use inline template",
+			currentTemplate: clusterv1.ClusterClassTemplate{Kind: "bar", APIVersion: "test.group.io/versionone"},
+			desiredTemplate: clusterv1.ClusterClassTemplate{Kind: "bar", APIVersion: "test.group.io/versiontwo"},
+			wantErr:         false,
+		},
+		{
+			name:            "Block incompatible Kind change when both current and desired use inline template",
+			currentTemplate: clusterv1.ClusterClassTemplate{Kind: "bar", APIVersion: "test.group.io/versionone"},
+			desiredTemplate: clusterv1.ClusterClassTemplate{Kind: "notabar", APIVersion: "test.group.io/versionone"},
+			wantErr:         true,
+		},
+		{
+			name:               "Allow change from templateRef to inline template when compatible",
+			currentTemplateRef: templateRef,
+			desiredTemplate:    clusterv1.ClusterClassTemplate{Kind: "bar", APIVersion: "test.group.io/versionone"},
+			wantErr:            false,
+		},
+		{
+			name:               "Block change from templateRef to inline template when incompatible",
+			currentTemplateRef: templateRef,
+			desiredTemplate:    clusterv1.ClusterClassTemplate{Kind: "notabar", APIVersion: "test.group.io/versionone"},
+			wantErr:            true,
+		},
+		{
+			name:               "Error if neither current templateRef nor current template is set",
+			desiredTemplateRef: templateRef,
+			wantErr:            true,
+		},
+		{
+			name:               "Error if neither desired templateRef nor desired template is set",
+			currentTemplateRef: templateRef,
+			wantErr:            true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			allErrs := ClusterClassTemplateAreCompatible(tt.current, tt.desired, field.NewPath("spec"))
+			allErrs := ClusterClassTemplateAreCompatible(tt.currentTemplateRef, tt.currentTemplate, tt.desiredTemplateRef, tt.desiredTemplate, field.NewPath("spec"))
 			if tt.wantErr {
 				g.Expect(allErrs).ToNot(BeEmpty())
 				return
@@ -288,6 +324,7 @@ func TestClusterClassTemplateIsValid(t *testing.T) {
 
 	tests := []struct {
 		templateRef clusterv1.ClusterClassTemplateReference
+		template    clusterv1.ClusterClassTemplate
 		name        string
 		wantErr     bool
 	}{
@@ -322,11 +359,26 @@ func TestClusterClassTemplateIsValid(t *testing.T) {
 			templateRef: emptyAPIVersionTemplateRef,
 			wantErr:     true,
 		},
+		{
+			name:     "No error with valid inline template",
+			template: clusterv1.ClusterClassTemplate{Kind: "barTemplate", APIVersion: "test.group.io/versionone"},
+			wantErr:  false,
+		},
+		{
+			name:     "Invalid if inline template Kind doesn't have Template suffix",
+			template: clusterv1.ClusterClassTemplate{Kind: "bar", APIVersion: "test.group.io/versionone"},
+			wantErr:  true,
+		},
+		{
+			name:     "Invalid if inline template apiVersion is not valid",
+			template: clusterv1.ClusterClassTemplate{Kind: "barTemplate", APIVersion: "this/has/too/many/slashes"},
+			wantErr:  true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			allErrs := ClusterClassTemplateIsValid(tt.templateRef, pathPrefix)
+			allErrs := ClusterClassTemplateIsValid(tt.templateRef, tt.template, pathPrefix)
 			if tt.wantErr {
 				g.Expect(allErrs).ToNot(BeEmpty())
 				return
@@ -659,6 +711,22 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 					refToUnstructured(ref)).
 				Build(),
 			wantErr: true,
+		},
+		{
+			name: "pass when both current and desired ControlPlane MachineInfrastructure TemplateRef are unset",
+			current: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				Build(),
+			desired: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				Build(),
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

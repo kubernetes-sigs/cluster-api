@@ -42,6 +42,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassStatus":                                       schema_cluster_api_api_core_v1beta2_ClusterClassStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassStatusVariable":                               schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariable(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassStatusVariableDefinition":                     schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariableDefinition(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate":                                     schema_cluster_api_api_core_v1beta2_ClusterClassTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference":                            schema_cluster_api_api_core_v1beta2_ClusterClassTemplateReference(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassUpgrade":                                      schema_cluster_api_api_core_v1beta2_ClusterClassUpgrade(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassUpgradeExternal":                              schema_cluster_api_api_core_v1beta2_ClusterClassUpgradeExternal(ref),
@@ -821,6 +822,34 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariableDefinition(re
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassVariableMetadata", "sigs.k8s.io/cluster-api/api/core/v1beta2.VariableSchema"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ClusterClassTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterClassTemplate is a minimal ClusterClass template.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "apiVersion of the template. apiVersion must be fully qualified domain name followed by / and a version.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "kind of the template. kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"apiVersion", "kind"},
+			},
+		},
 	}
 }
 
@@ -1613,6 +1642,13 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
 						},
 					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template contains a provider-specific control plane template.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate"),
+						},
+					},
 					"machineInfrastructure": {
 						SchemaProps: spec.SchemaProps{
 							Description: "machineInfrastructure defines the metadata and infrastructure information for control plane machines.\n\nThis field is supported if and only if the control plane provider template referenced above is Machine based and supports setting replicas.",
@@ -1687,11 +1723,10 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 						},
 					},
 				},
-				Required: []string{"templateRef"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -1884,17 +1919,23 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineInfrastructureT
 				Properties: map[string]spec.Schema{
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "templateRef is a required reference to the template for a MachineInfrastructure of a ControlPlane.",
+							Description: "templateRef contains the reference to the template for a MachineInfrastructure of a ControlPlane.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
 						},
 					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template contains a provider-specific template for a MachineInfrastructure of a ControlPlane.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate"),
+						},
+					},
 				},
-				Required: []string{"templateRef"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
 	}
 }
 
@@ -2373,6 +2414,13 @@ func schema_cluster_api_api_core_v1beta2_InfrastructureClass(ref common.Referenc
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
 						},
 					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template contains a provider-specific infrastructure cluster template.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate"),
+						},
+					},
 					"naming": {
 						SchemaProps: spec.SchemaProps{
 							Description: "naming allows changing the naming pattern used when creating the infrastructure cluster object.",
@@ -2381,11 +2429,10 @@ func schema_cluster_api_api_core_v1beta2_InfrastructureClass(ref common.Referenc
 						},
 					},
 				},
-				Required: []string{"templateRef"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClassNamingSpec"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClassNamingSpec"},
 	}
 }
 
@@ -3109,17 +3156,23 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassBootstrapTemplate
 				Properties: map[string]spec.Schema{
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "templateRef is a required reference to the BootstrapTemplate for a MachineDeployment.",
+							Description: "templateRef contains the reference to the BootstrapTemplate for a MachineDeployment.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
 						},
 					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template contains a provider-specific BootstrapTemplate for a MachineDeployment.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate"),
+						},
+					},
 				},
-				Required: []string{"templateRef"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
 	}
 }
 
@@ -3284,17 +3337,23 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassInfrastructureTem
 				Properties: map[string]spec.Schema{
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "templateRef is a required reference to the InfrastructureTemplate for a MachineDeployment.",
+							Description: "templateRef contains the reference to the InfrastructureTemplate for a MachineDeployment.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
 						},
 					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template contains a provider-specific InfrastructureTemplate for a MachineDeployment.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate"),
+						},
+					},
 				},
-				Required: []string{"templateRef"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
 	}
 }
 
@@ -5328,17 +5387,23 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClassBootstrapTemplate(ref c
 				Properties: map[string]spec.Schema{
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "templateRef is a required reference to the BootstrapTemplate for a MachinePool.",
+							Description: "templateRef contains the reference to the BootstrapTemplate for a MachinePool.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
 						},
 					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template contains a provider-specific BootstrapTemplate for a MachinePool.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate"),
+						},
+					},
 				},
-				Required: []string{"templateRef"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
 	}
 }
 
@@ -5351,17 +5416,23 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClassInfrastructureTemplate(
 				Properties: map[string]spec.Schema{
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "templateRef is a required reference to the InfrastructureTemplate for a MachinePool.",
+							Description: "templateRef contains the reference to the InfrastructureTemplate for a MachinePool.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
 						},
 					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template contains a provider-specific InfrastructureTemplate for a MachinePool.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate"),
+						},
+					},
 				},
-				Required: []string{"templateRef"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
 	}
 }
 

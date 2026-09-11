@@ -89,6 +89,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               machineNamingStrategy:
                 description: |-
                   machineNamingStrategy allows changing the naming pattern used when creating Machines.
@@ -181,6 +184,7 @@ spec:
                   selector is the label selector for machines. Existing MachineSets whose machines are
                   selected by this will be the ones affected by this deployment.
                   It must match the machine template's labels.
+                  This field is immutable.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -225,6 +229,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               strategy:
                 description: |-
                   strategy is the deployment strategy to use to replace existing machines with
@@ -416,6 +423,9 @@ spec:
                         maxLength: 63
                         minLength: 1
                         type: string
+                        x-kubernetes-validations:
+                        - message: field is immutable
+                          rule: oldSelf == self
                       failureDomain:
                         description: |-
                           failureDomain is the failure domain the machine will be created in.
@@ -629,6 +639,9 @@ spec:
             - selector
             - template
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachineDeployment.
             properties:
@@ -940,6 +953,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               deletion:
                 description: deletion contains configuration options for MachineDeployment
                   deletion.
@@ -1115,6 +1131,7 @@ spec:
                   selector is the label selector for machines. Existing MachineSets whose machines are
                   selected by this will be the ones affected by this deployment.
                   It must match the machine template's labels.
+                  This field is immutable.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -1159,6 +1176,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               template:
                 description: template describes the machines that will be created.
                 properties:
@@ -1249,6 +1269,9 @@ spec:
                         maxLength: 63
                         minLength: 1
                         type: string
+                        x-kubernetes-validations:
+                        - message: field is immutable
+                          rule: oldSelf == self
                       deletion:
                         description: deletion contains configuration options for Machine
                           deletion.
@@ -1474,6 +1497,9 @@ spec:
             - selector
             - template
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachineDeployment.
             minProperties: 1

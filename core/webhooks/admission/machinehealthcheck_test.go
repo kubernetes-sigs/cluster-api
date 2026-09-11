@@ -129,91 +129,6 @@ func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
 	}
 }
 
-func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
-	tests := []struct {
-		name           string
-		oldClusterName string
-		newClusterName string
-		expectErr      bool
-	}{
-		{
-			name:           "when the cluster name has not changed",
-			oldClusterName: "foo",
-			newClusterName: "foo",
-			expectErr:      false,
-		},
-		{
-			name:           "when the cluster name has changed",
-			oldClusterName: "foo",
-			newClusterName: "bar",
-			expectErr:      true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			newMHC := &clusterv1.MachineHealthCheck{
-				Spec: clusterv1.MachineHealthCheckSpec{
-					ClusterName: tt.newClusterName,
-					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"test": "test",
-						},
-					},
-					Checks: clusterv1.MachineHealthCheckChecks{
-						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-							{
-								Type:   corev1.NodeReady,
-								Status: corev1.ConditionFalse,
-							},
-						},
-						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
-							{
-								Type:   controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
-								Status: metav1.ConditionFalse,
-							},
-						},
-					},
-				},
-			}
-			oldMHC := &clusterv1.MachineHealthCheck{
-				Spec: clusterv1.MachineHealthCheckSpec{
-					ClusterName: tt.oldClusterName,
-					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"test": "test",
-						},
-					},
-					Checks: clusterv1.MachineHealthCheckChecks{
-						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-							{
-								Type:   corev1.NodeReady,
-								Status: corev1.ConditionFalse,
-							},
-						},
-						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
-							{
-								Type:   controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
-								Status: metav1.ConditionFalse,
-							},
-						},
-					},
-				},
-			}
-
-			warnings, err := (&MachineHealthCheck{}).ValidateUpdate(ctx, oldMHC, newMHC)
-			if tt.expectErr {
-				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
-			}
-			g.Expect(warnings).To(BeEmpty())
-		})
-	}
-}
-
 func TestMachineHealthCheckUnhealthyNodeConditions(t *testing.T) {
 	tests := []struct {
 		name                    string
@@ -535,7 +450,7 @@ func TestMachineHealthCheckSelectorValidation(t *testing.T) {
 	}
 	webhook := &MachineHealthCheck{}
 
-	err := webhook.validate(nil, mhc)
+	err := webhook.validate(mhc)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("selector must not be empty"))
 }
@@ -569,12 +484,12 @@ func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 	}
 	webhook := &MachineHealthCheck{}
 
-	err := webhook.validate(nil, mhc)
+	err := webhook.validate(mhc)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("cannot specify a cluster selector other than the one specified by ClusterName"))
 
 	mhc.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = "foo"
-	g.Expect(webhook.validate(nil, mhc)).To(Succeed())
+	g.Expect(webhook.validate(mhc)).To(Succeed())
 	delete(mhc.Spec.Selector.MatchLabels, clusterv1.ClusterNameLabel)
-	g.Expect(webhook.validate(nil, mhc)).To(Succeed())
+	g.Expect(webhook.validate(mhc)).To(Succeed())
 }

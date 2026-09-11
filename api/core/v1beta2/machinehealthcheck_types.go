@@ -52,6 +52,7 @@ type MachineHealthCheckSpec struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	ClusterName string `json:"clusterName,omitempty"`
 
 	// selector is a label selector to match machines whose health will be exercised

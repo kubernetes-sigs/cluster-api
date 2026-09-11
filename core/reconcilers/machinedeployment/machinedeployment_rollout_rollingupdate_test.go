@@ -1902,6 +1902,12 @@ type rollingUpdateSequenceTestCase struct {
 	// overrideCanUpdateMachineSetInPlaceFunc allows to inject a function that will be used to perform the canUpdateMachineSetInPlace decision
 	overrideCanUpdateMachineSetInPlaceFunc func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error)
 
+	// expectedMachinesCreated, expectedMachinesDeleted and expectedMachinesUpdatedInPlace assert the
+	// total number of machine create, delete and in-place update operations performed over the whole rollout.
+	expectedMachinesCreated        int
+	expectedMachinesDeleted        int
+	expectedMachinesUpdatedInPlace int
+
 	// skipLogToFileAndGoldenFileCheck allows to skip storing the log to file and golden file Check.
 	// NOTE: this field is controlled by the test itself.
 	skipLogToFileAndGoldenFileCheck bool
@@ -1935,46 +1941,58 @@ func Test_RollingUpdateSequences(t *testing.T) {
 		// Regular rollout (no in-place)
 
 		{ // scale out by 1
-			name:                "Regular rollout, 3 Replicas, maxSurge 1, maxUnavailable 0",
-			maxSurge:            1,
-			maxUnavailable:      0,
-			currentMachineNames: []string{"m1", "m2", "m3"},
-			desiredMachineNames: []string{"m4", "m5", "m6"},
+			name:                    "Regular rollout, 3 Replicas, maxSurge 1, maxUnavailable 0",
+			maxSurge:                1,
+			maxUnavailable:          0,
+			currentMachineNames:     []string{"m1", "m2", "m3"},
+			desiredMachineNames:     []string{"m4", "m5", "m6"},
+			expectedMachinesCreated: 3,
+			expectedMachinesDeleted: 3,
 		},
 		{ // scale in by 1
-			name:                "Regular rollout, 3 Replicas, maxSurge 0, maxUnavailable 1",
-			maxSurge:            0,
-			maxUnavailable:      1,
-			currentMachineNames: []string{"m1", "m2", "m3"},
-			desiredMachineNames: []string{"m4", "m5", "m6"},
+			name:                    "Regular rollout, 3 Replicas, maxSurge 0, maxUnavailable 1",
+			maxSurge:                0,
+			maxUnavailable:          1,
+			currentMachineNames:     []string{"m1", "m2", "m3"},
+			desiredMachineNames:     []string{"m4", "m5", "m6"},
+			expectedMachinesCreated: 3,
+			expectedMachinesDeleted: 3,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable)
-			name:                "Regular rollout, 6 Replicas, maxSurge 3, maxUnavailable 1",
-			maxSurge:            3,
-			maxUnavailable:      1,
-			currentMachineNames: []string{"m1", "m2", "m3", "m4", "m5", "m6"},
-			desiredMachineNames: []string{"m7", "m8", "m9", "m10", "m11", "m12"},
+			name:                    "Regular rollout, 6 Replicas, maxSurge 3, maxUnavailable 1",
+			maxSurge:                3,
+			maxUnavailable:          1,
+			currentMachineNames:     []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			desiredMachineNames:     []string{"m7", "m8", "m9", "m10", "m11", "m12"},
+			expectedMachinesCreated: 6,
+			expectedMachinesDeleted: 6,
 		},
 		{ // scale out by 1, scale in by 3 (maxSurge < maxUnavailable)
-			name:                "Regular rollout, 6 Replicas, maxSurge 1, maxUnavailable 3",
-			maxSurge:            1,
-			maxUnavailable:      3,
-			currentMachineNames: []string{"m1", "m2", "m3", "m4", "m5", "m6"},
-			desiredMachineNames: []string{"m7", "m8", "m9", "m10", "m11", "m12"},
+			name:                    "Regular rollout, 6 Replicas, maxSurge 1, maxUnavailable 3",
+			maxSurge:                1,
+			maxUnavailable:          3,
+			currentMachineNames:     []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			desiredMachineNames:     []string{"m7", "m8", "m9", "m10", "m11", "m12"},
+			expectedMachinesCreated: 6,
+			expectedMachinesDeleted: 6,
 		},
 		{ // scale out by 10 (maxSurge >= replicas)
-			name:                "Regular rollout, 6 Replicas, maxSurge 10, maxUnavailable 0",
-			maxSurge:            10,
-			maxUnavailable:      0,
-			currentMachineNames: []string{"m1", "m2", "m3", "m4", "m5", "m6"},
-			desiredMachineNames: []string{"m7", "m8", "m9", "m10", "m11", "m12"},
+			name:                    "Regular rollout, 6 Replicas, maxSurge 10, maxUnavailable 0",
+			maxSurge:                10,
+			maxUnavailable:          0,
+			currentMachineNames:     []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			desiredMachineNames:     []string{"m7", "m8", "m9", "m10", "m11", "m12"},
+			expectedMachinesCreated: 6,
+			expectedMachinesDeleted: 6,
 		},
 		{ // scale in by 10 (maxUnavailable >= replicas)
-			name:                "Regular rollout, 6 Replicas, maxSurge 0, maxUnavailable 10",
-			maxSurge:            0,
-			maxUnavailable:      10,
-			currentMachineNames: []string{"m1", "m2", "m3", "m4", "m5", "m6"},
-			desiredMachineNames: []string{"m7", "m8", "m9", "m10", "m11", "m12"},
+			name:                    "Regular rollout, 6 Replicas, maxSurge 0, maxUnavailable 10",
+			maxSurge:                0,
+			maxUnavailable:          10,
+			currentMachineNames:     []string{"m1", "m2", "m3", "m4", "m5", "m6"},
+			desiredMachineNames:     []string{"m7", "m8", "m9", "m10", "m11", "m12"},
+			expectedMachinesCreated: 6,
+			expectedMachinesDeleted: 6,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale up machine deployment in the middle
 			name:           "Regular rollout, 6 Replicas, maxSurge 3, maxUnavailable 1, scale up to 12",
@@ -2003,6 +2021,8 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			},
 			desiredMachineNames:            []string{"m7", "m8", "m9", "m10", "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18"},
 			maxUnavailableBreachToleration: maxUnavailableBreachToleration(), // after scale up it is expected to have less available machine than expected
+			expectedMachinesCreated:        9,
+			expectedMachinesDeleted:        3,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale down machine deployment in the middle
 			name:           "Regular rollout, 12 Replicas, maxSurge 3, maxUnavailable 1, scale down to 6",
@@ -2037,6 +2057,8 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			},
 			desiredMachineNames:      []string{"m13", "m14", "m15", "m16", "m17", "m18"},
 			maxSurgeBreachToleration: maxSurgeToleration(), // after scale down it is expected to temporarily have more machine than expected
+			expectedMachinesCreated:  3,
+			expectedMachinesDeleted:  9,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + change spec in the middle
 			name:           "Regular rollout, 6 Replicas, maxSurge 3, maxUnavailable 1, change spec",
@@ -2063,7 +2085,9 @@ func Test_RollingUpdateSequences(t *testing.T) {
 				},
 				machineUID: 9,
 			},
-			desiredMachineNames: []string{"m10", "m11", "m12", "m13", "m14", "m15"}, // NOTE: Machines created before the spec change are deleted
+			desiredMachineNames:     []string{"m10", "m11", "m12", "m13", "m14", "m15"}, // NOTE: Machines created before the spec change are deleted
+			expectedMachinesCreated: 6,
+			expectedMachinesDeleted: 6,
 		},
 
 		// Rollout with In-place updates (affecting availability)
@@ -2075,6 +2099,9 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3"},
 			desiredMachineNames:                    []string{"m1", "m2", "m4"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+			expectedMachinesCreated:                1,
+			expectedMachinesDeleted:                1,
+			expectedMachinesUpdatedInPlace:         2,
 		},
 		{ // scale in by 1
 			name:                                   "In-place rollout, 3 Replicas, maxSurge 0, MaxUnavailable 1",
@@ -2083,6 +2110,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+			expectedMachinesUpdatedInPlace:         3,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable)
 			name:                                   "In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1",
@@ -2091,6 +2119,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+			expectedMachinesUpdatedInPlace:         6,
 		},
 		{ // scale out by 1, scale in by 3 (maxSurge < maxUnavailable)
 			name:                                   "In-place rollout, 6 Replicas, maxSurge 1, MaxUnavailable 3",
@@ -2099,6 +2128,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+			expectedMachinesUpdatedInPlace:         6,
 		},
 		{ // scale out by 10 (maxSurge >= replicas)
 			name:                                   "In-place rollout, 6 Replicas, maxSurge 10, MaxUnavailable 0",
@@ -2107,6 +2137,9 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m7"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+			expectedMachinesCreated:                1,
+			expectedMachinesDeleted:                1,
+			expectedMachinesUpdatedInPlace:         5,
 		},
 		{ // scale in by 10 (maxUnavailable >= replicas)
 			name:                                   "In-place rollout, 6 Replicas, maxSurge 0, MaxUnavailable 10",
@@ -2115,6 +2148,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+			expectedMachinesUpdatedInPlace:         6,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale up machine deployment in the middle
 			name:           "In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1, scale up to 12",
@@ -2145,6 +2179,8 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12"},
 			maxUnavailableBreachToleration:         maxUnavailableBreachToleration(), // after scale up it is expected to have less available machine than expected
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+			expectedMachinesCreated:                6,
+			expectedMachinesUpdatedInPlace:         3,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale down machine deployment in the middle
 			name:           "In-place rollout, 12 Replicas, maxSurge 3, MaxUnavailable 1, scale down to 6",
@@ -2181,6 +2217,8 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			maxSurgeBreachToleration:               maxSurgeToleration(), // after scale down it is expected to temporarily have more machine than expected
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+			expectedMachinesDeleted:                6,
+			expectedMachinesUpdatedInPlace:         7, //FIXME
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + change spec in the middle
 			name:           "In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1, change spec",
@@ -2210,6 +2248,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
+			expectedMachinesUpdatedInPlace:         6,
 		},
 
 		// Rollout with In-place updates (not affecting availability)
@@ -2221,6 +2260,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+			expectedMachinesUpdatedInPlace:         3,
 		},
 		{ // scale in by 1
 			name:                                   "In-place rollout, 3 Replicas, maxSurge 0, MaxUnavailable 1 - not affecting availability",
@@ -2229,6 +2269,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+			expectedMachinesUpdatedInPlace:         3,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable)
 			name:                                   "In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1 - not affecting availability",
@@ -2237,6 +2278,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+			expectedMachinesUpdatedInPlace:         6,
 		},
 		{ // scale out by 1, scale in by 3 (maxSurge < maxUnavailable)
 			name:                                   "In-place rollout, 6 Replicas, maxSurge 1, MaxUnavailable 3 - not affecting availability",
@@ -2245,6 +2287,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+			expectedMachinesUpdatedInPlace:         6,
 		},
 		{ // scale out by 10 (maxSurge >= replicas)
 			name:                                   "In-place rollout, 6 Replicas, maxSurge 10, MaxUnavailable 0 - not affecting availability",
@@ -2253,6 +2296,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+			expectedMachinesUpdatedInPlace:         6,
 		},
 		{ // scale in by 10 (maxUnavailable >= replicas)
 			name:                                   "In-place rollout, 6 Replicas, maxSurge 0, MaxUnavailable 10 - not affecting availability",
@@ -2261,6 +2305,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			currentMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+			expectedMachinesUpdatedInPlace:         6,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale up machine deployment in the middle
 			name:           "In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1, scale up to 12 - not affecting availability",
@@ -2291,6 +2336,8 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12"},
 			maxUnavailableBreachToleration:         maxUnavailableBreachToleration(), // after scale up it is expected to have less available machine then expected
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+			expectedMachinesCreated:                6,
+			expectedMachinesUpdatedInPlace:         3,
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + scale down machine deployment in the middle
 			name:           "In-place rollout, 12 Replicas, maxSurge 3, MaxUnavailable 1, scale down to 6 - not affecting availability",
@@ -2327,6 +2374,8 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			maxSurgeBreachToleration:               maxSurgeToleration(), // after scale down it is expected to temporarily have more machine than expected
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+			expectedMachinesDeleted:                6,
+			expectedMachinesUpdatedInPlace:         7, //FIXME
 		},
 		{ // scale out by 3, scale in by 1 (maxSurge > maxUnavailable) + change spec in the middle
 			name:           "In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1, change spec - not affecting availability",
@@ -2356,6 +2405,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability,
+			expectedMachinesUpdatedInPlace:         6,
 		},
 
 		// Rollout with In-place updates (mixed affecting availability cases)
@@ -2402,6 +2452,9 @@ func Test_RollingUpdateSequences(t *testing.T) {
 					return canUpdateMachineSetInPlaceResult{}, fmt.Errorf("invalid MachineSet name %s", oldMS.Name)
 				}
 			},
+			expectedMachinesCreated:        1,
+			expectedMachinesDeleted:        1,
+			expectedMachinesUpdatedInPlace: 2,
 		},
 	}
 
@@ -2619,6 +2672,10 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 			g.Fail(fmt.Sprintf("Failed to reach desired state in %d iterations", maxIterations))
 		}
 	}
+
+	g.Expect(current.machinesCreated).To(Equal(tt.expectedMachinesCreated), "unexpected number of machines created")
+	g.Expect(current.machinesDeleted).To(Equal(tt.expectedMachinesDeleted), "unexpected number of machines deleted")
+	g.Expect(current.machinesUpdatedInPlace).To(Equal(tt.expectedMachinesUpdatedInPlace), "unexpected number of machines updated in-place")
 
 	if !tt.skipLogToFileAndGoldenFileCheck {
 		currentLog, goldenLog, err := fLogger.WriteLogAndCompareWithGoldenFile()

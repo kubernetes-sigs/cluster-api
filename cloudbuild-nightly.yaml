@@ -1,5 +1,5 @@
 # See https://cloud.google.com/cloud-build/docs/build-config
-timeout: 2700s
+timeout: 3600s
 options:
   substitution_option: ALLOW_LOOSE
   machineType: 'E2_HIGHCPU_8'

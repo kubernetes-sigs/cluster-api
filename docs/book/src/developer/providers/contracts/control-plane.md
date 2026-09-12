@@ -35,7 +35,7 @@ are explicitly called out in dedicated pages.
 On top of that special consideration MUST be done to ensure
 security around private key material required to create and run the Kubernetes control plane.
 
-> [!NOTE]
+> [!IMPORTANT]
 > **Never rely on Cluster API behaviours not defined as a contract rule!**
 >
 > When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
@@ -171,9 +171,7 @@ labels:
 
 An example of this is in the [Kubeadm Bootstrap provider](https://github.com/kubernetes-sigs/cluster-api/blob/release-1.1/controlplane/kubeadm/config/crd/kustomization.yaml).
 
-> [!NOTE]
-> **Important**
->
+> [!IMPORTANT]
 > If the provider implements the [clusterctl provider contract], the contract version defined in the
 > label above must be consistent with the contract version defined in the `metadata.yaml` file.
 
@@ -705,9 +703,7 @@ Supporting in-place updates requires:
 
 After above steps are completed, the machine controller will take over and complete the in-place upgrade.
 
-> [!NOTE]
-> **High complexity**
->
+> [!CAUTION]
 > Implementing the in-place update transition in a race condition-free, re-entrant way is more complex than it might seem.
 >
 > Please read the proposal's [implementation notes](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates-implementation-notes.md)
@@ -896,25 +892,20 @@ propagated to Kubernetes Nodes.
 
 ### MinReadySeconds and UpToDate propagation
 
-> [!NOTE]
-> **Heads up! this will change with the v1beta2 contract**
->
-> When the v1beta2 contract will be released (August 2025), Cluster API is going to standardize how
-> machines determine if they are available or up to date with the spec of the owner resource.
->
-> In order to ensure a nice and consistent user experience across the entire Cluster, also ControlPlane providers
-> are expected to align to this effort and implement the following behaviours:
->
-> Control plane providers will be expected to continuously set Machines `spec.minReadySeconds` and Machine's 
-> `status.conditions[UpToDate]` condition.
->
-> Please note that a CP provider implementation can decide to enforce `spec.minReadySeconds` to be 0 and do not
-> introduce a difference between readiness and availability or introduce it at a later stage (e.g. KCP will do this). 
->
-> Additionally, please note that the `spec.minReadySeconds` field MUST be treated like other fields propagated /updated in place, 
-> and thus propagated to Machines without triggering rollouts.
->
-> See [Improving status in CAPI resources] and [In place propagation of changes affecting Kubernetes objects only] for more context.
+In order to ensure a nice and consistent user experience across the entire Cluster, also ControlPlane providers
+are expected to align to how machines determine if they are available or up to date with the spec of the owner resource.
+More specifically:
+
+Control plane providers will be expected to continuously set Machines `spec.minReadySeconds` and Machine's 
+`status.conditions[UpToDate]` condition.
+
+Please note that a CP provider implementation can decide to enforce `spec.minReadySeconds` to be 0 and do not
+introduce a difference between readiness and availability or introduce it at a later stage (e.g. KCP will do this). 
+
+Additionally, please note that the `spec.minReadySeconds` field MUST be treated like other fields propagated /updated in place, 
+and thus propagated to Machines without triggering rollouts.
+
+See [Improving status in CAPI resources] and [In place propagation of changes affecting Kubernetes objects only] for more context.
 
 ### Support for running multiple instances
 

@@ -19,8 +19,6 @@ Additionally, Cluster API includes CAPD with support for both Docker and in-memo
 - CAPD with the inmemory backend gives you a fake cluster running in memory; you can scale more easily but the clusters do not support any Kubernetes feature other than what is strictly required for CAPI, CABPK and KCP to work.
 
 > [!NOTE]
-> **Warning**
->
 > Maintainers are continuously working on improving Cluster API developer environment and tooling; any help is more than welcome and with the community contribution we can make this happen sooner!
 >
 > With regards to this document, following areas could benefit from community help:

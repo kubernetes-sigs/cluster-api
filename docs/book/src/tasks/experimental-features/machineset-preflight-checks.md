@@ -66,7 +66,7 @@ Examples:
 * To opt out of the `ControlPlaneIsStable` preflight check set the `machineset.cluster.x-k8s.io/skip-preflight-checks: ControlPlaneIsStable` annotation.
 * To opt out of multiple preflight checks set the `machineset.cluster.x-k8s.io/skip-preflight-checks: ControlPlaneIsStable,KubernetesVersionSkew` annotation.
 
-> [!NOTE]
+> [!TIP]
 > **Pro-tip: Set annotation through MachineDeployment**
 >
 > Because of the [metadata propagation](../../reference/api/metadata-propagation.md#machinedeployment) rules in Cluster API you can set the `machineset.cluster.x-k8s.io/skip-preflight-checks` annotation 

@@ -97,9 +97,7 @@ Run `make test` to execute all unit and integration tests.
 
 Integration tests use the [envtest](https://github.com/kubernetes-sigs/controller-runtime/blob/main/pkg/envtest/doc.go) test framework. The tests need to know the location of the executables called by the framework. The `make test` target installs these executables, and passes this location to the tests as an environment variable.
 
-> [!NOTE]
-> **Tips**
->
+> [!TIP]
 > When testing individual packages, you can speed up the test execution by running the tests with a local kind cluster.
 > This avoids spinning up a testenv with each test execution. It also makes it easier to debug, because it's straightforward
 > to access a kind cluster with kubectl during test execution. For further instructions, run: `./hack/scripts/dev/kind-create-for-envtest.sh`.
@@ -116,9 +114,7 @@ Integration tests use the [envtest](https://github.com/kubernetes-sigs/controlle
 
 Your IDE needs to know the location of the executables called by the framework, so that it can pass the location to the tests as an environment variable.
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > If you see this error when running a test in your IDE, the test uses the envtest framework, and probably does not know the location of the envtest executables.
 >
 > ```console
@@ -283,9 +279,7 @@ Add the launch.json file in the .vscode folder in your repo:
 
 Execute the run configuration with `Debug`.
 
-> [!NOTE]
-> **Tips**
->
+> [!TIP]
 > The e2e tests create a new management cluster with kind on each run. To avoid this and speed up the test execution the tests can
 > also be run against a management cluster created by [tilt](tilt.md):
 > ```bash
@@ -363,14 +357,12 @@ analyzing them via Grafana.
     * Local folder: `./_artifacts`
 4. Now the logs are available:
     * via [Grafana](http://localhost:3000/explore)
-    * via [Loki logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/)
+    * via [Loki logcli](https://grafana.com/docs/loki/latest/query/logcli/getting-started/)
       ```bash
       logcli query '{app="capi-controller-manager"}' --timezone=UTC --from="2022-02-22T10:00:00Z"
       ```
 
 > [!NOTE]
-> **Caveats**
->
 > * Make sure you query the correct time range via Grafana or `logcli`.
 > * The logs are currently uploaded by using now as the timestamp, because otherwise it would
 >   take a few minutes until the logs show up in Loki. The original timestamp is preserved as `original_ts`.

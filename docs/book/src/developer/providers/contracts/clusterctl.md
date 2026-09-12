@@ -26,7 +26,7 @@ Optionally, the provider repository can include the following files:
 > The `clusterctl` command ships with a pre-defined list of provider repositories that allows a simpler "out-of-the-box" user experience.
 > As a provider implementer, if you are interested in being added to this list, please see next paragraph.
 
-> [!NOTE]
+> [!TIP]
 > **Customizing the list of providers**
 >
 > It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
@@ -36,9 +36,7 @@ Optionally, the provider repository can include the following files:
 As a Cluster API project, we always have been more than happy to give visibility to all the open source CAPI providers
 by allowing provider's maintainers to add their own project to the pre-defined list of provider shipped with `clusterctl`.
 
-> [!NOTE]
-> **Important! it is visibility only**
->
+> [!IMPORTANT]
 > Provider's maintainer are the ultimately responsible for their own project.
 >
 > Adding a provider to the `clusterctl` provider list does not imply any form of quality assessment, market screening,
@@ -190,9 +188,7 @@ releaseSeries:
   contract: v1alpha2
 ```
 
-> [!NOTE]
-> **Important**
->
+> [!IMPORTANT]
 > The contract version for a specific release series must match the contract version that is declared in the CRD for different provider's objects.
 >
 > More specifically, you can consider the contract version in `metadata.yaml` as a “preview” of the contract version supported by the provider, 
@@ -242,9 +238,7 @@ when creating the provider components.
 All the objects in the components YAML MUST belong to the target namespace, with the exception of objects that
 are not namespaced, like ClusterRoles/ClusterRoleBinding and CRD objects.
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > If the generated component YAML doesn't contain a Namespace object, the user will be required to provide one to `clusterctl init`
 > using the `--target-namespace` flag.
 >
@@ -270,8 +264,6 @@ The components YAML can contain environment variables matching the format ${VAR}
 recommended to prefix the variable name with the provider name e.g. `${AWS_CREDENTIALS}`
 
 > [!NOTE]
-> **Warning**
->
 > `clusterctl` currently supports variables with leading/trailing spaces such
 > as: `${ VAR }`, `${ VAR}`,`${VAR }`.
 >
@@ -528,9 +520,7 @@ Please note that during move:
   * Namespaced objects which are part of an owner chain that starts with a global object (e.g. a secret containing
     credentials for an infrastructure Provider ClusterIdentity) are treated as Global objects.
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > When using the "move" label, if the CRD is a global resource, the object is copied to the target cluster but not removed from the source cluster. It is up to the user to remove the source object as necessary.
 
 If moving some of excluded object is required, the provider authors should create documentation describing the
@@ -541,8 +531,8 @@ Additionally, provider authors should be aware that `clusterctl move` assumes al
 cluster being paused, `clusterctl move` can be blocked from creating any resources on the destination
 management cluster by annotating any resource to be moved with `clusterctl.cluster.x-k8s.io/block-move`.
 
-> [!NOTE]
-> **Warning: Status subresource is never restored**
+> [!WARNING]
+> **Status subresource is never restored**
 >
 > Every object's `Status` subresource, including every nested field (e.g. `Status.Conditions`), is never
 > restored during a `move` operation. A `Status` subresource should never contain fields that cannot

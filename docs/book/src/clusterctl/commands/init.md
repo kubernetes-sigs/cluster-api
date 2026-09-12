@@ -10,7 +10,7 @@ management cluster.
 
 The `clusterctl init` command accepts in input a list of providers to install.
 
-> [!NOTE]
+> [!TIP]
 > **Which providers can I use?**
 >
 > You can use the `clusterctl config repositories` command to get a list of supported providers and their repository configuration.
@@ -30,9 +30,13 @@ For example, to get a fully operational management cluster with the `aws` infras
 
 `clusterctl init --infrastructure aws`
 
-> [!NOTE]
-> **Warning**
+> [!TIP]
+> **Is it possible to skip automatic install?**
 >
+> To skip automatic provider installation use  `--bootstrap "-"` or  `--control-plane "-"`.
+> Note it is not possible to skip automatic installation of the `cluster-api` core provider.
+
+> [!WARNING]
 > The `cluster-api` core provider, the `kubeadm` bootstrap provider, and the `kubeadm` control-plane provider are automatically installed only if:
 > - The user doesn't explicitly require to install a core/bootstrap/control-plane provider using the `--core` flag, the `--bootstrap` flag or the `--control-plane` flags;
 > - There is not an instance of a CoreProvider already installed in the cluster;
@@ -40,18 +44,12 @@ For example, to get a fully operational management cluster with the `aws` infras
 > Please note that the second rule allows to execute `clusterctl init` more times: the first call actually initializes
 > the management cluster, while the subsequent calls can be used to add more providers.
 
-> [!NOTE]
-> **Is it possible to skip automatic install?**
->
-> To skip automatic provider installation use  `--bootstrap "-"` or  `--control-plane "-"`.
-> Note it is not possible to skip automatic installation of the `cluster-api` core provider.
-
 #### Provider version
 
 The `clusterctl init` command by default installs the latest version available
 for each selected provider.
 
-> [!NOTE]
+> [!TIP]
 > **Is it possible to install a specific version of a provider?**
 >
 > You can specify the provider version by appending a version tag to the provider name, e.g. `aws:v0.4.1`.
@@ -60,7 +58,7 @@ for each selected provider.
 > (usually required in an enterprise environment). Version pinning should always be used when using [image overrides](../configuration.md#image-overrides), or when relying on internal repositories with a separated
 > software supply chain, or a custom versioning schema.
 
-> [!NOTE]
+> [!WARNING]
 > **Pre-release provider versions**
 >
 > `clusterctl init` does not install pre-release versions by default. For
@@ -76,16 +74,14 @@ The `clusterctl init` command by default installs each provider in the default t
 
 See the provider documentation for more details.
 
-> [!NOTE]
+> [!TIP]
 > **Is it possible to change the target namespace ?**
 >
 > You can specify the target namespace by using the `--target-namespace` flag.
 >
 > Please, note that the `--target-namespace` flag applies to all the providers to be installed during a `clusterctl init` operation.
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > The `clusterctl init` command forbids users from installing two instances of the *same* provider in the
 > same target namespace.
 
@@ -105,7 +101,7 @@ In such cases, disabling the go proxy functionality via `GOPROXY=off` should be 
 
 See [clusterctl configuration](../configuration.md) for more info about provider repository configurations.
 
-> [!NOTE]
+> [!TIP]
 > **Is it possible to override files read from a provider repository?**
 >
 > If, for any reasons, the user wants to replace the assets available on a provider repository with a locally available asset,
@@ -121,12 +117,10 @@ Providers can use variables in the components YAML published in the provider's r
 During `clusterctl init`, those variables are replaced with environment variables or with variables read from the
 [clusterctl configuration](../configuration.md).
 
-> [!NOTE]
-> **Action Required**
->
+> [!IMPORTANT]
 > The user should ensure the variables required by a provider are set in advance.
 
-> [!NOTE]
+> [!TIP]
 > **How can I know which variables a provider requires?**
 >
 > Users can refer to the provider documentation for the list of variables to be set or use the
@@ -150,9 +144,7 @@ subsequent moments of the provider's lifecycle, e.g. upgrades.
 This object keeps track of the provider version, and other useful information
 for the inventory of the providers currently installed in the management cluster.
 
-> [!NOTE]
-> **Warning**
->
+> [!CAUTION]
 > The `clusterctl.cluster.x-k8s.io` labels, the `cluster.x-k8s.io/provider` labels and the `Provider` objects MUST NOT be altered.
 > If this happens, there are no guarantees about the proper functioning of `clusterctl`.
 
@@ -165,8 +157,6 @@ install a default version (currently cert-manager v1.21.2). See [clusterctl conf
 available options to customize this operation.
 
 > [!NOTE]
-> **Warning**
->
 > Please note that, if clusterctl installs cert-manager, it will take care of its lifecycle, eventually upgrading it
 > during clusterctl upgrade. Instead, if cert-manager is provided by the users, the user is responsible for
 > upgrading this component when required.

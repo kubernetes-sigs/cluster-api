@@ -1,8 +1,6 @@
 # Deploy Runtime Extensions
 
-> [!NOTE]
-> **Caution**
->
+> [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
 Cluster API requires that each Runtime Extension must be deployed using an endpoint accessible from the Cluster API

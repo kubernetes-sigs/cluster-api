@@ -1,8 +1,6 @@
 # Implementing Topology Mutation Hook Runtime Extensions
 
-> [!NOTE]
-> **Caution**
->
+> [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
 ## Introduction
@@ -177,9 +175,7 @@ Some considerations:
 * [Conway's law](https://en.wikipedia.org/wiki/Conway%27s_law) might make it not feasible in large organizations 
   to use a single extension. In those cases it's important that boundaries between extensions are clearly defined.
 
-> [!NOTE]
-> **Caution**
->
+> [!WARNING]
 > Please note that the Cluster API test framework is not validating scenarios with using multiple external patch extensions, 
 > so user choosing this option should take care of performing additional validation before deploying this in production.
 

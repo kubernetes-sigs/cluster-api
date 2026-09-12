@@ -7,8 +7,6 @@ interactive completion of clusterctl commands.
 ## Bash
 
 > [!NOTE]
-> **Note**
->
 > This requires the bash-completion framework.
 
 To install `bash-completion` on macOS, use Homebrew:
@@ -42,8 +40,6 @@ all your shell sessions. There are multiple ways to achieve this:
 ## Zsh
 
 > [!NOTE]
-> **Note**
->
 > Zsh completions are only supported in versions of zsh >= 5.2
 
 The clusterctl completion script for Zsh can be generated with the command

@@ -51,9 +51,7 @@ The table below documents support matrix for Cluster API versions.
 | v1.11.x       | EOL                     | EOL since 2026-08-18 - v1.14.0 release date                                                 |
 | v1.10.x       | EOL                     | EOL since 2026-04-21 - v1.13.0 release date                                                 |
 
-> [!NOTE]
-> **Warning**
->
+> [!IMPORTANT]
 > When importing Cluster API go modules as a dependency, you MUST consider any Cluster API behaviour that is not defined 
 > by an API field or by a well-defined extension point, as a Cluster API internal implementation detail, and internal 
 > implementation details can change at any time.
@@ -70,10 +68,8 @@ The table below documents support matrix for Cluster API versions.
 > The Cluster API maintainers welcome feedback and contributions to improve project's extensibility point, 
 > please [open an issue](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md) on the Cluster API repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
 
-> [!NOTE]
-> **Warning**
->
-> Forks of the CLuster API project are not recommended, instead, Cluster API maintainers welcome feedback and contributions 
+> [!CAUTION]
+> Forks of the Cluster API project are not recommended, instead, Cluster API maintainers welcome feedback and contributions 
 > to improve project's extensibility point, please [open an issue](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md) on the Cluster API repo or add an item 
 > to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
 >
@@ -87,18 +83,14 @@ Cluster API supports at maximum n-3 minor version skip upgrades.
 For example, if you are running Cluster API v1.6.x, you can upgrade up to Cluster API v1.9.x skipping intermediate
 minor versions (v1.6 is v1.9 minus three minor versions).
 
-> [!NOTE]
-> **Warning**
->
+> [!CAUTION]
 > Upgrades outside from version older n-3 might lead to a management cluster in a non-functional state.
 
 #### Downgrades
 
 Cluster API does not support version downgrades.
 
-> [!NOTE]
-> **Warning**
->
+> [!CAUTION]
 > Version downgrades might lead to a management cluster in a non-functional state.
 
 #### Cluster API release vs API versions
@@ -149,21 +141,17 @@ Please also note that issues might happen more frequently when:
 - In the same environment there are multiple clients with different versions acting on the same API object and especially 
   if they are acting on fields of type `array` (Merge Patch has limitations in this case).
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > We noticed that usage of server side apply in environments with multiple API versions might lead to issues
-> (see e.g. https://github.com/kubernetes/kubernetes/issues/136919).
+> (see e.g. [#136919](https://github.com/kubernetes/kubernetes/issues/136919)).
 >
-> We are working with the Kubernetes community to get this issue fixed (https://github.com/kubernetes/kubernetes/pull/136949) 
-> and we've put mitigations in place (https://github.com/kubernetes-sigs/cluster-api/pull/13338).
+> We are working with the Kubernetes community to get this issue fixed (see [#136949](https://github.com/kubernetes/kubernetes/pull/136949)) 
+> and we've put mitigations in place (see [13338](https://github.com/kubernetes-sigs/cluster-api/pull/13338)).
 >
 > We welcome additional help from Cluster API users to further validate the proper functioning of the system
 > under these circumstances, report issues, and to ensure consensus to get these issues fixed.
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > Note: Removal of a deprecated APIVersion in Kubernetes can cause issues with garbage collection by the kube-controller-manager.
 > This means that some objects which rely on garbage collection for cleanup - e.g. MachineSets and their descendent objects, 
 > like Machines and InfrastructureMachines, may not be cleaned up properly if those objects were created with an APIVersion 
@@ -224,7 +212,7 @@ implement the CustomResourceDefinition (CRD) fields and/or expected behaviors de
 
 As a corollary, provider's version number and provider's API version number are not required to match Cluster API versions.
 
-> [!NOTE]
+> [!TIP]
 > The Cluster API command line tool, `clusterctl`, will take care of ensuring all the providers are on the
 > same contract version both during init and upgrade of a management cluster.
 
@@ -263,9 +251,7 @@ Example:
   * v1.26.x to v1.31.x for the management cluster
   * v1.24.x to v1.31.x for the workload cluster
 
-> [!NOTE]
-> **Warning**
->
+> [!IMPORTANT]
 > Cluster API support for older Kubernetes version is not a replacement/alternative for upstream Kubernetes support policies!
 >
 > Support for versions of Kubernetes which itself are out of support is limited to "Cluster API can start a Cluster with this Kubernetes version"
@@ -312,9 +298,7 @@ See [Cluster API release support](#cluster-api-release-support) and [Kubernetes 
 
 See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
 
-> [!NOTE]
-> **Warning**
->
+> [!CAUTION]
 > Cluster API is tested with upstream, fully conformant, Kubernetes releases.
 >
 > It might be possible to use Cluster API also with non conformant Kubernetes releases, but it is up to users

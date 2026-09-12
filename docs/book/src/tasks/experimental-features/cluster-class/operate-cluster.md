@@ -228,7 +228,7 @@ Following recommendation apply:
 
 For more details about how changes can affect a Cluster, please look at [reference](change-clusterclass.md#reference).
 
-> [!NOTE]
+> [!CAUTION]
 > **Effects of concurrent changes**
 >
 > When applying concurrent changes to a Cluster, the topology controller will immediately act in order to
@@ -285,7 +285,7 @@ spec:
 ...
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > **Bumping apiVersions in ClusterClass**
 >
 > When upgrading the apiVersions in references in the ClusterClass the corresponding patches have to be changed accordingly.

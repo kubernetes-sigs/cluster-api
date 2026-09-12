@@ -21,7 +21,7 @@ in order to address very specific needs).
 In order to facilitate the initial design for each InfraCluster resource, a few [implementation best practices] and [infrastructure Provider Security Guidance]
 are explicitly called out in dedicated pages.
 
-> [!NOTE]
+> [!IMPORTANT]
 > **Never rely on Cluster API behaviours not defined as a contract rule!**
 >
 > When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
@@ -153,9 +153,7 @@ labels:
 
 An example of this is in the [Kubeadm Bootstrap provider](https://github.com/kubernetes-sigs/cluster-api/blob/release-1.1/controlplane/kubeadm/config/crd/kustomization.yaml).
 
-> [!NOTE]
-> **Important**
->
+> [!IMPORTANT]
 > If the provider implements the [clusterctl provider contract], the contract version defined in the
 > label above must be consistent with the contract version defined in the `metadata.yaml` file.
 

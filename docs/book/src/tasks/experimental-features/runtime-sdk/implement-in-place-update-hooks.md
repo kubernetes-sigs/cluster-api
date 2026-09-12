@@ -1,13 +1,9 @@
 # Implementing in-place update hooks
 
-> [!NOTE]
-> **Caution**
->
+> [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
-> [!NOTE]
-> **Caution**
->
+> [!CAUTION]
 > For Clusters that have been created with CAPI <= v1.11 it will only be possible to unset fields during in-place updates after:
 > * a regular rollout that replaces all Machines
 > * an in-place update that updates all Machines
@@ -50,9 +46,7 @@ options like MaxSurge/MaxUnavailable. With this regard:
   - **Use this feature with caution!**
 - No in-place updates are performed for workers machines when using rollout strategy `OnDelete`.
 
-> [!NOTE]
-> **Important!**
->
+> [!IMPORTANT]
 > Cluster API will call the in-place extensions only if the `InPlaceUpdates` feature flag is enabled.
 >
 > Also, please note that the current implementation of the [in-place updates proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md) only allows registering one extension for the `CanUpdateMachine`, `CanUpdateMachineSet` and `UpdateMachine` hooks.

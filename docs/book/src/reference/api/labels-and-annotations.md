@@ -66,7 +66,7 @@
 
 Following annotation are used by CAPI internally. 
 
-> [!NOTE]
+> [!IMPORTANT]
 > **Internal annotations should not be used outside CAPI controllers**
 >
 > Name, meaning and semantic of internal annotations can change anytime. 

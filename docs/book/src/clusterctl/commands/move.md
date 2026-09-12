@@ -3,9 +3,7 @@
 The `clusterctl move` command allows to move the Cluster API objects defining workload clusters, like e.g. Cluster, Machines,
 MachineDeployments, etc. from one management cluster to another management cluster.
 
-> [!NOTE]
-> **Warning**
->
+> [!IMPORTANT]
 > Before running `clusterctl move`, the user should take care of preparing the target management cluster, including also installing
 > all the required provider using `clusterctl init`.
 >
@@ -34,9 +32,7 @@ The discovery mechanism for determining the objects to be moved is in the [provi
 > The `Cluster` object created in the target management cluster instead will be actively reconciled as soon as the move
 > process completes.
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > `clusterctl move` has been designed and developed around the bootstrap use case described below, and currently this is the only
 > use case verified by Cluster API E2E tests.
 >
@@ -53,7 +49,7 @@ The discovery mechanism for determining the objects to be moved is in the [provi
 > User can use `clusterctl move --to-directory` and `clusterctl move --from-directory` instead; this will hopefully
 > make it clear those operation have the same limitations of the move command.
 
-> [!NOTE]
+> [!WARNING]
 > **Warning: Status subresource is never restored**
 >
 > Every object's `Status` subresource, including every nested field (e.g. `Status.Conditions`), is never restored during a `move` operation. A `Status` subresource should never contain fields that cannot be recreated or derived from information in spec, metadata, or external systems.

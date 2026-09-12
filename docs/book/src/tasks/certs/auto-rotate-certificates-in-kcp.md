@@ -51,7 +51,7 @@ The annotation value is a [RFC3339] format timestamp. The annotation value on th
 >
 > It is assumed that all certificates on a control plane node have roughly the same expiration time (+/- a few minutes). KCP decides when a rotation is needed based on the expiry of the kube-apiserver certificate.
 
-> [!NOTE]
+> [!CAUTION]
 > **Manual certificate rotation**
 >
 > If certificates on control plane nodes are rotated manually (e.g. via `kubeadm certs renew`), please be aware that the rotation is only

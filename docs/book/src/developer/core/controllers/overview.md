@@ -2,7 +2,7 @@
 
 This section of the book provides an overview about "core" controllers in Cluster API.
 
-> [!NOTE]
+> [!IMPORTANT]
 > **The code is the source of truth!**
 >
 > While we put a great effort in ensuring a good documentation for Cluster API, we also recognize that some

@@ -25,8 +25,8 @@ flags are provided:
 - Providers MUST support the `--namespace` flag in their controllers.
 - Providers MUST support the `--watch-filter` flag in their controllers.
 
-> [!NOTE]
-> **⚠️ Users selecting this deployment model, please be aware:**
+> [!CAUTION]
+> Users selecting this deployment model, please be aware:
 >
 > - Giving the increasingly complex task that is to manage multiple instances of the same controllers,
 >   the Cluster API community may only provide best effort support for users that choose this model.

@@ -125,10 +125,8 @@ kubectl api-resources --verbs=list -o name | xargs -n 1 kubectl get --show-kind 
 
 If you want to manage and install your own cert-manager, you'll need to remove this label from all API resources.
 
-> [!NOTE]
-> **Warning**
->
-> Cluster API has a direct dependency on cert-manager. It's possible you could encounter issues if you use a different version to the Cluster API default version.
+> [!WARNING]
+> Cluster API has a direct dependency on cert-manager. It's possible you could encounter issues if you use a different cert-manager version than the one tested with Cluster API (default version).
 
 ## Avoiding GitHub rate limiting
 
@@ -136,10 +134,8 @@ Follow [this](./overview.md#avoiding-github-rate-limiting)
 
 ## Overrides Layer
 
-> [!NOTE]
-> **Warning!**
->
-> Overrides only provide file replacements; instead, provider version resolution is based only on the actual repository structure.
+> [!WARNING]
+> Overrides only provide single file replacements; instead, provider version resolution is usually inferred from the repository structure.
 
 `clusterctl` uses an overrides layer to read in injected provider components,
 cluster templates and metadata. By default, it reads the files from
@@ -218,9 +214,7 @@ overridesFolder: /Users/foobar/workspace/dev-releases
 
 ## Image overrides
 
-> [!NOTE]
-> **Warning!**
->
+> [!CAUTION]
 > Image override is an advanced feature and wrong configuration can easily lead to non-functional clusters.
 > It's strongly recommended to test configurations on dev/test environments before using this functionality in production.
 >

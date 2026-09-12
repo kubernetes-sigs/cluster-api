@@ -53,7 +53,7 @@ the recommended way for updating templates is by template rotation:
 - Update the template reference in the ClusterClass
 - Delete the old template
 
-> [!NOTE]
+> [!WARNING]
 > **In place template mutations**
 >
 > In case a provider supports in place template mutations, the Cluster API topology controller
@@ -63,7 +63,7 @@ the recommended way for updating templates is by template rotation:
 > The maximum time for the next full reconciliation is equal to the CAPI controller
 > sync period (defaults to 10 minutes).
 
-> [!NOTE]
+> [!CAUTION]
 > **Reusing templates across ClusterClasses**
 >
 > As already discussed in [writing a cluster class](write-clusterclass.md), while it is technically possible to
@@ -101,9 +101,7 @@ Cluster, e.g. changing the InfrastructureProvider from AWS to Azure.
 
 If the proposed changes are evaluated as dangerous, the operation is rejected.
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > In the current implementation there are no compatibility rules for changes to provider
 > templates, so you should refer to the provider documentation to avoid
 > potentially dangerous changes on those objects.

@@ -42,9 +42,7 @@ a target [management cluster] on the selected [infrastructure provider].
 
 2. **Kind**
 
-   > [!NOTE]
-   > **Warning**
-   >
+   > [!WARNING]
    > [kind] is not designed for production use.
    >
    > **Minimum [kind] supported version**: v0.32.0
@@ -531,9 +529,7 @@ clusterctl init --infrastructure digitalocean
 
 {{#tab Docker}}
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > The Docker provider is not designed for production use and is intended for development environments only.
 
 The Docker provider requires the `ClusterTopology` and `MachinePool` features to deploy ClusterClass-based clusters.
@@ -696,8 +692,6 @@ EOF
 ```
 
 > [!NOTE]
-> **Notice**
->
 > The example above is based on the Docker container runtime. The output of `docker network inspect` may be different when
 > using another runtime. In such a case, the IPAddressPool's `spec.addresses` field should be populated manually,
 > according to the specific network.
@@ -972,9 +966,7 @@ See the [AWS provider prerequisites] document for more details.
 {{#/tab }}
 {{#tab Azure}}
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > Make sure you choose a VM size which is available in the desired location for your subscription. To see available SKUs, use `az vm list-skus -l <your_location> -r virtualMachines -o table`
 
 ```bash
@@ -1072,9 +1064,7 @@ export DO_NODE_MACHINE_IMAGE==<your-capi-image-id>
 
 {{#tab Docker}}
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > The Docker provider is not designed for production use and is intended for development environments only.
 
 The Docker provider does not require additional configurations for cluster templates.
@@ -1302,8 +1292,6 @@ export CRI_PATH="unix:///var/run/containerd/containerd.sock"
 Please visit the [KubeVirt project][KubeVirt provider] for more information.
 
 > [!NOTE]
-> **Note**
->
 > Find additional images under [quay.io/capk/ubuntu-2404-container-disk](https://quay.io/capk/ubuntu-2404-container-disk),
 > [quay.io/capk/ubuntu-2204-container-disk](https://quay.io/capk/ubuntu-2204-container-disk),
 > or [quay.io/capk/ubuntu-2004-container-disk](https://quay.io/capk/ubuntu-2004-container-disk).
@@ -1678,9 +1666,7 @@ For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 {{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, Azure, Other providers..."}}
 {{#tab Docker}}
 
-> [!NOTE]
-> **Warning**
->
+> [!WARNING]
 > The Docker provider is not designed for production use and is intended for development environments only.
 
 ```bash
@@ -1818,8 +1804,6 @@ capi-quickstart-g2trk   capi-quickstart   true                                 3
 ```
 
 > [!NOTE]
-> **Warning**
->
 > The control plane won't be `Ready` until we install a CNI in the next step.
 
 After the first control plane node is up and running, we can retrieve the [workload cluster] Kubeconfig.
@@ -1842,8 +1826,8 @@ For Docker Desktop on macOS, Linux or Windows use kind to retrieve the kubeconfi
 kind get kubeconfig --name capi-quickstart > capi-quickstart.kubeconfig
 ```
 
-> [!NOTE]
-> Note: To use the default clusterctl method to retrieve kubeconfig for a workload cluster created with the Docker provider when using Docker Desktop see [Additional Notes for the Docker provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
+> [!WARNING]
+> To use the default clusterctl method to retrieve kubeconfig for a workload cluster created with the Docker provider when using Docker Desktop see [Additional Notes for the Docker provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
 
 {{#/tab }}
 {{#/tabs }}
@@ -2105,7 +2089,7 @@ capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1
 {{#/tab }}
 {{#/tabs }}
 
-> [!NOTE]
+> [!TIP]
 > **Troubleshooting**
 >
 > If the nodes don't become ready after a long period, read the pods in the `kube-system` namespace
@@ -2168,8 +2152,8 @@ Delete workload cluster.
 ```bash
 kubectl delete cluster capi-quickstart
 ```
-> [!NOTE]
-> IMPORTANT: In order to ensure a proper cleanup of your infrastructure you must always delete the cluster object. Deleting the entire cluster template with `kubectl delete -f capi-quickstart.yaml` might lead to pending resources to be cleaned up manually.
+> [!IMPORTANT]
+> In order to ensure a proper cleanup of your infrastructure you must always delete the cluster object. Deleting the entire cluster template with `kubectl delete -f capi-quickstart.yaml` might lead to pending resources to be cleaned up manually.
 
 Delete management cluster
 ```bash

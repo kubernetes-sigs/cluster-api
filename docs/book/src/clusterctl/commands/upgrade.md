@@ -72,7 +72,7 @@ clusterctl upgrade apply \
     --infrastructure docker:v1.2.4
 ```
 
-> [!NOTE]
+> [!CAUTION]
 > **Skip upgrades**
 >
 > Please check providers documentation before performing skip upgrades (skip minor versions).
@@ -81,15 +81,13 @@ clusterctl upgrade apply \
 > For Core provider, Kubeadm bootstrap provider, Kubeadm control plane provider and Docker infrastructure provider
 > please look at [skip upgrades](../../reference/versions.md#skip-upgrades) rules.
 
-> [!NOTE]
-> **Warning!**
->
+> [!WARNING]
 > The current implementation of the upgrade process does not preserve controllers flags that are not set through the
 > components YAML/at the installation time.
 >
 > User is required to re-apply flag values after the upgrade completes.
 
-> [!NOTE]
+> [!TIP]
 > **Upgrading to pre-release provider versions**
 >
 > In order to upgrade to a provider's pre-release version, we can do
@@ -105,7 +103,7 @@ clusterctl upgrade apply \
 >
 > In this case, all the provider's versions must be explicitly stated.
 
-> [!NOTE]
+> [!TIP]
 > **Upgrading to Cluster API core components pre-release versions**
 >
 > Use `clusterctl` CLI options to target the [desired version](https://github.com/kubernetes-sigs/cluster-api/releases).  
@@ -121,7 +119,7 @@ clusterctl upgrade apply \
 >     --core=cluster-api:${TARGET_VERSION}
 > ```
 
-> [!NOTE]
+> [!TIP]
 > **Deploying nightly release images**
 >
 > Cluster API publishes nightly versions of the project components' manifests from the `main` branch to a Google storage bucket for user consumption. The syntax for the URL is: `https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_<YYYYMMDD>/<COMPONENT_NAME>-components.yaml`.

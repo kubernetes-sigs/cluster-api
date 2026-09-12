@@ -17,7 +17,7 @@ Nevertheless, it is always recommended to take a look at Cluster API controllers
 in-tree providers, other providers and use them as a reference implementation (unless custom solutions are required
 in order to address very specific needs).
 
-> [!NOTE]
+> [!IMPORTANT]
 > **Never rely on Cluster API behaviours not defined as a contract rule!**
 >
 > When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
@@ -141,9 +141,7 @@ labels:
 
 An example of this is in the [AWS infrastructure provider](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/config/crd/kustomization.yaml).
 
-> [!NOTE]
-> **Important**
->
+> [!IMPORTANT]
 > If the provider implements the [clusterctl provider contract], the contract version defined in the
 > label above must be consistent with the contract version defined in the `metadata.yaml` file.
 

@@ -87,9 +87,7 @@ As you might notice, the command is using the `$XDG_CONFIG_HOME/cluster-api/dev-
 containing all the required setting to make clusterctl use the local repository (it fallbacks to `$HOME` if `$XDG_CONFIG_HOME` 
 is not set on your machine).
 
-> [!NOTE]
-> **Warnings**
->
+> [!IMPORTANT]
 > You must pass `--config ...` to all the clusterctl commands you are running during your dev session.
 >
 > The above config file changes the location of the [overrides layer] folder thus ensuring
@@ -98,7 +96,7 @@ is not set on your machine).
 > With the exceptions of the Docker provider, the local repository folder does not contain cluster templates,
 > so the `clusterctl generate cluster` command will fail if you don't copy a template into the local repository.
 
-> [!NOTE]
+> [!TIP]
 > **Nightly builds**
 >
 > if you want to run your tests using a Cluster API nightly build, you can run the hack passing the nightly build folder

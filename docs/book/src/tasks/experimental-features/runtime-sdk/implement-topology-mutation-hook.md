@@ -25,27 +25,6 @@ Three different hooks are called as part of Topology Mutation - two in the Clust
 Please see the corresponding [CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220330-topology-mutation-hook.md)
 for additional background information.
 
-<!-- TOC -->
-* [Implementing Topology Mutation Hook Runtime Extensions](#implementing-topology-mutation-hook-runtime-extensions)
-  * [Introduction](#introduction)
-  * [Guidelines](#guidelines)
-  * [Definitions](#definitions)
-  * [Inline vs. external patches](#inline-vs-external-patches)
-  * [External variable definitions](#external-variable-definitions)
-    * [External variable discovery in the ClusterClass](#external-variable-discovery-in-the-clusterclass)
-    * [Variable definition conflicts](#variable-definition-conflicts)
-    * [Setting values for variables in the Cluster](#setting-values-for-variables-in-the-cluster)
-  * [Using one or multiple external patch extensions](#using-one-or-multiple-external-patch-extensions)
-  * [Guidelines](#guidelines-1)
-    * [Patch extension guidelines](#patch-extension-guidelines)
-    * [Variable discovery guidelines](#variable-discovery-guidelines)
-  * [Definitions](#definitions-1)
-    * [GeneratePatches](#generatepatches)
-    * [ValidateTopology](#validatetopology)
-    * [DiscoverVariables](#discovervariables)
-  * [Dealing with Cluster API upgrades with apiVersion bumps](#dealing-with-cluster-api-upgrades-with-apiversion-bumps)
-<!-- TOC -->
-
 ## Guidelines
 
 All guidelines defined in [Implementing Runtime Extensions](implement-extensions.md#guidelines) apply to the

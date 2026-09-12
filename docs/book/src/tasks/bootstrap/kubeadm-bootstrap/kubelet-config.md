@@ -2,17 +2,6 @@
 
 CAPBK has several ways to configure kubelet.
 
-- [Kubelet Configuration](#kubelet-configuration)
-  - [Pass `KubeletConfiguration` file via `KubeadmConfigSpec.files`](#pass-kubeletconfiguration-file-via-kubeadmconfigspecfiles)
-    - [KubeadmControlPlaneTemplate](#kubeadmcontrolplanetemplate)
-    - [KubeadmConfigTemplate](#kubeadmconfigtemplate)
-  - [Set kubelet flags via `KubeadmConfigSpec.kubeletExtraArgs`](#set-kubelet-flags-via-kubeadmconfigspeckubeletextraargs)
-    - [KubeadmControlPlaneTemplate](#kubeadmcontrolplanetemplate-1)
-    - [KubeadmConfigTemplate](#kubeadmconfigtemplate-1)
-  - [Use kubeadm's `kubeletconfiguration` patch target](#use-kubeadms-kubeletconfiguration-patch-target)
-    - [KubeadmControlPlaneTemplate](#kubeadmcontrolplanetemplate-2)
-    - [KubeadmConfigTemplate](#kubeadmconfigtemplate-2)
-
 ## Pass `KubeletConfiguration` file via `KubeadmConfigSpec.files`
 
 You can use `KubeadmConfigSpec.files` to put any files on nodes. This example puts a `KubeletConfiguration` file on nodes via `KubeadmConfigSpec.files`, and makes kubelet use it via `KubeadmConfigSpec.kubeletExtraArgs`. You can check available configurations of `KubeletConfiguration` on [Kubelet Configuration (v1beta1) | Kubernetes](https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/#kubelet-config-k8s-io-v1beta1-KubeletConfiguration).

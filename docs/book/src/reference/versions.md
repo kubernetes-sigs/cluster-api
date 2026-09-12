@@ -1,32 +1,5 @@
 # Cluster API and Kubernetes version support
 
-<!-- TOC -->
-* [Cluster API and Kubernetes version support](#cluster-api-and-kubernetes-version-support)
-  * [Version support policies](#version-support-policies)
-    * [Cluster API release support](#cluster-api-release-support)
-      * [Skip upgrades](#skip-upgrades)
-      * [Downgrades](#downgrades)
-      * [Cluster API release vs API versions](#cluster-api-release-vs-api-versions)
-      * [API changes, multiple API versions, and recommendations for users and applications interacting with Cluster API objects](#api-changes-multiple-api-versions-and-recommendations-for-users-and-applications-interacting-with-cluster-api-objects)
-      * [Cluster API release vs contract versions](#cluster-api-release-vs-contract-versions)
-      * [Supported Cluster API - Cluster API provider version Skew](#supported-cluster-api---cluster-api-provider-version-skew)
-    * [Kubernetes versions support](#kubernetes-versions-support)
-      * [Maximum version skew between various Kubernetes components](#maximum-version-skew-between-various-kubernetes-components)
-  * [Supported versions matrix by provider or component](#supported-versions-matrix-by-provider-or-component)
-    * [Core provider (`cluster-api-controller`)](#core-provider-cluster-api-controller)
-    * [Kubeadm Bootstrap provider (`kubeadm-bootstrap-controller`)](#kubeadm-bootstrap-provider-kubeadm-bootstrap-controller-)
-      * [Kubeadm configuration API Support](#kubeadm-configuration-api-support)
-    * [Kubeadm Control Plane provider (`kubeadm-control-plane-controller`)](#kubeadm-control-plane-provider-kubeadm-control-plane-controller)
-      * [Bootstrap provider Support](#bootstrap-provider-support)
-      * [Etcd API Support](#etcd-api-support)
-      * [CoreDNS Support](#coredns-support)
-    * [Other providers](#other-providers)
-    * [clusterctl](#clusterctl)
-  * [Annexes](#annexes)
-    * [Kubernetes version Support and Cluster API deployment model](#kubernetes-version-support-and-cluster-api-deployment-model)
-    * [Kubernetes version specific notes](#kubernetes-version-specific-notes)
-<!-- TOC -->
-
 ## Version support policies
 
 ### Cluster API release support

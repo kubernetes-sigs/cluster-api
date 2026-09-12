@@ -371,7 +371,7 @@ with a subset of the Kubernetes versions supported by Cluster API version N.
 
 ### clusterctl
 
-It is strongly recommended to always use the latest patch version of [clusterctl](../clusterctl/overview.md) to get all the fixes/latest changes.
+It is strongly recommended to always use the latest patch version of [clusterctl](clusterctl/overview.md) to get all the fixes/latest changes.
 
 In case of upgrades, clusterctl should be upgraded first and then used to upgrade all the other components.
 

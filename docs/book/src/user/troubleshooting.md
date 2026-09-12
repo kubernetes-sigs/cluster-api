@@ -166,9 +166,9 @@ cert-manager:
   url: "https://github.com/cert-manager/cert-manager/releases/latest/cert-manager.yaml"
 ```
 
-Alternatively a Cert Manager yaml file can be placed in the [clusterctl overrides layer](../clusterctl/configuration.md#overrides-layer) which is by default in `$XDG_CONFIG_HOME/cluster-api/overrides`. A Cert Manager yaml file can be placed at e.g. `$XDG_CONFIG_HOME/cluster-api/overrides/cert-manager/v1.11.0/cert-manager.yaml`
+Alternatively a Cert Manager yaml file can be placed in the [clusterctl overrides layer](../reference/clusterctl/configuration.md#overrides-layer) which is by default in `$XDG_CONFIG_HOME/cluster-api/overrides`. A Cert Manager yaml file can be placed at e.g. `$XDG_CONFIG_HOME/cluster-api/overrides/cert-manager/v1.11.0/cert-manager.yaml`
 
-More information on the clusterctl config file can be found at [its page in the book](../clusterctl/configuration.md#clusterctl-configuration-file)
+More information on the clusterctl config file can be found at [its page in the book](../reference/clusterctl/configuration.md#clusterctl-configuration-file)
 
 ## Failed clusterctl upgrade apply - 'failed to update cert-manager component'
 
@@ -197,7 +197,7 @@ More information about the change in Cert Manager can be found at [their upgrade
 
 ## Clusterctl failing to start providers due to outdated image overrides
 
-clusterctl allows users to configure [image overrides](../clusterctl/configuration.md#image-overrides) via the clusterctl config file.
+clusterctl allows users to configure [image overrides](../reference/clusterctl/configuration.md#image-overrides) via the clusterctl config file.
 However, when the image override is pinning a provider image to a specific version, it could happen that this
 conflicts with clusterctl behavior of picking the latest version of a provider.
 

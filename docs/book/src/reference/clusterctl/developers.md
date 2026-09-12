@@ -211,6 +211,6 @@ sed -i -e "s/server:.*/server: https:\/\/$(docker port capi-quickstart-lb 6443/t
 [kind]: https://kind.sigs.k8s.io/
 [providers repositories]: configuration.md#provider-repositories
 [overrides layer]: configuration.md#overrides-layer
-[Install and/or configure a Kubernetes cluster]: ../user/quick-start.md#install-andor-configure-a-kubernetes-cluster
+[Install and/or configure a Kubernetes cluster]: ../../user/quick-start.md#install-andor-configure-a-kubernetes-cluster
 [kind-docker-hub]: https://hub.docker.com/r/kindest/node/tags
 [issue 3795]: https://github.com/kubernetes-sigs/cluster-api/issues/3795

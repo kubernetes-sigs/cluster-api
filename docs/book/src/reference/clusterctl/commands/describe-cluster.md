@@ -5,7 +5,7 @@ to help the user in quickly understanding if there are problems and where.
 
 For example `clusterctl describe cluster capi-quickstart` will provide an output similar to:
 
-![](../../images/describe-cluster.png)
+![](../../../images/describe-cluster.png)
 
 The "at a glance" view is based on the idea that clusterctl should avoid overloading the user with information,
 but instead surface problems, if any.
@@ -16,7 +16,7 @@ necessary to repeat the same information three times.
 
 If this is not the case, and machines have different states, the visualization is going to use different lines:
 
-![](../../images/describe-cluster-how-grouping-works.png)
+![](../../../images/describe-cluster-how-grouping-works.png)
 
 You might also notice that the visualization does not represent the infrastructure machine or the
 bootstrap object linked to a machine, unless their state differs from the machine's state.
@@ -29,17 +29,17 @@ of simplicity and shortness. However, if required, the user can ask for showing 
 By using `--grouping=false`, the user can force the visualization to show all the machines
 on separated lines, no matter if they have the same state or not:
 
-![](../../images/describe-cluster-disable-grouping.png)
+![](../../../images/describe-cluster-disable-grouping.png)
 
 By using the `--echo` flag, the user can force the visualization to show infrastructure machines and
 bootstrap objects linked to machines, no matter if they have the same state or not:
 
-![](../../images/describe-cluster-echo.png)
+![](../../../images/describe-cluster-echo.png)
 
 It is also possible to force the visualization to show all the conditions for an object (instead of showing
 only the ready condition). e.g. with `--show-conditions KubeadmControlPlane` you get:
 
-![](../../images/describe-cluster-show-conditions.png)
+![](../../../images/describe-cluster-show-conditions.png)
 
 Please note that this option is flexible, and you can pass a comma separated list of `kind` or `kind/name` for
 which the command should show all the object's conditions (use 'all' to show conditions for everything).

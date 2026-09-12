@@ -37,8 +37,8 @@ If a provider does not follow Go's semantic versioning, `clusterctl` may fail wh
 In such cases, disabling the go proxy functionality via `GOPROXY=off` should be considered.
 
 # Installing clusterctl
-Instructions are available in the [Quick Start](../user/quick-start.md#install-clusterctl).
+Instructions are available in the [Quick Start](../../user/quick-start.md#install-clusterctl).
 
 <!-- links -->
-[management cluster]: ../reference/glossary.md#management-cluster
-[provider components]: ../reference/glossary.md#provider-components
+[management cluster]: ../../reference/glossary.md#management-cluster
+[provider components]: ../../reference/glossary.md#provider-components

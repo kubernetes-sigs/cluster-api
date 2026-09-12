@@ -907,7 +907,7 @@ You can now create your first workload cluster by running the following:
 > Throughout this quickstart guide we've given instructions on setting parameters using environment variables. For most
 > environment variables in the rest of the guide, you can also set them in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`
 >
-> See [`clusterctl init`](../clusterctl/commands/init.md) for more details.
+> See [`clusterctl init`](../reference/clusterctl/commands/init.md) for more details.
 
 ## Create your first workload cluster
 
@@ -1827,7 +1827,7 @@ kind get kubeconfig --name capi-quickstart > capi-quickstart.kubeconfig
 ```
 
 > [!WARNING]
-> To use the default clusterctl method to retrieve kubeconfig for a workload cluster created with the Docker provider when using Docker Desktop see [Additional Notes for the Docker provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
+> To use the default clusterctl method to retrieve kubeconfig for a workload cluster created with the Docker provider when using Docker Desktop see [Additional Notes for the Docker provider](../reference/clusterctl/developers.md#additional-notes-for-the-docker-provider).
 
 {{#/tab }}
 {{#/tabs }}
@@ -2176,9 +2176,9 @@ kind delete cluster
 [capa]: https://cluster-api-aws.sigs.k8s.io
 [capv-upload-images]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-machine-images
 [clusterawsadm]: https://cluster-api-aws.sigs.k8s.io/clusterawsadm/clusterawsadm.html
-[clusterctl generate cluster]: ../clusterctl/commands/generate-cluster.md
-[clusterctl get kubeconfig]: ../clusterctl/commands/get-kubeconfig.md
-[clusterctl]: ../clusterctl/overview.md
+[clusterctl generate cluster]: ../reference/clusterctl/commands/generate-cluster.md
+[clusterctl get kubeconfig]: ../reference/clusterctl/commands/get-kubeconfig.md
+[clusterctl]: ../reference/clusterctl/overview.md
 [Docker]: https://www.docker.com/
 [GCP provider]: https://cluster-api-gcp.sigs.k8s.io/
 [Helm]: https://helm.sh/docs/intro/install/

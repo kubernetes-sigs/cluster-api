@@ -19,14 +19,6 @@ According to the proposal, there are two ways to provide Cluster API the informa
 
 This document defines the hook for the second option and provides recommendations on how to implement it.
 
-<!-- TOC -->
-* [Implementing Upgrade Plan Runtime Extensions](#implementing-upgrade-plan-runtime-extensions)
-  * [Introduction](#introduction)
-  * [Guidelines](#guidelines)
-  * [Definitions](#definitions)
-    * [GenerateUpgradePlan](#generateupgradeplan)
-<!-- TOC -->
-
 ## Guidelines
 
 All guidelines defined in [Implementing Runtime Extensions](implement-extensions.md#guidelines) apply to the

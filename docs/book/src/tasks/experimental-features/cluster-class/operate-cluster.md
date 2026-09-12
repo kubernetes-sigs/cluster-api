@@ -2,16 +2,6 @@
 
 The `spec.topology` field added to the Cluster object as part of ClusterClass allows changes made on the Cluster to be propagated across all relevant objects. This means the Cluster object can be used as a single point of control for making changes to objects that are part of the Cluster, including the ControlPlane and MachineDeployments. 
 
-A managed Cluster can be used to:
-* [Upgrade a Cluster](#upgrade-a-cluster)
-* [Scale a ControlPlane](#scale-a-controlplane)
-* [Scale a MachineDeployment](#scale-a-machinedeployment)
-* [Add a MachineDeployment](#add-a-machinedeployment)
-* [Use variables in a Cluster](#use-variables)
-* [Rebase a Cluster to a different ClusterClass](#rebase-a-cluster)
-* [Upgrading Cluster API](#upgrading-cluster-api)
-* [Tips and tricks](#tips-and-tricks)
-
 ## Upgrade a Cluster
 Using a managed topology the operation to upgrade a Kubernetes cluster is a one-touch operation.
 Let's assume we have created a CAPD cluster with ClusterClass and specified Kubernetes v1.21.2 (as documented in the [Quick Start guide]). Specifying the version is done when running `clusterctl generate cluster`. Looking at the cluster, the version of the control plane and the MachineDeployments is v1.21.2.

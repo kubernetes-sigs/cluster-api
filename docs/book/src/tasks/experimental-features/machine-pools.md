@@ -4,16 +4,6 @@
 
 **Variable name to enable/disable the feature gate**: `EXP_MACHINE_POOL`
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [What is a MachinePool?](#what-is-a-machinepool)
-- [Why MachinePool?](#why-machinepool)
-- [When to use MachinePool vs MachineDeployment](#when-to-use-machinepool-vs-machinedeployment)
-- [Enabling MachinePool](#enabling-machinepool)
-- [MachinePool provider implementations](#machinepool-provider-implementations)
-- [Additional Resources](#additional-resources)
-
 ## Introduction
 
 Cluster API (CAPI) manages Kubernetes worker nodes primarily through Machine, MachineSet, and MachineDeployment objects. These primitives manage nodes individually (Machines), and have served well across a wide variety of providers.

@@ -118,7 +118,7 @@ This feature is only available for KubeadmControlPlane.
 
 </aside>
 
-KubeadmControlPlane allows to control how remediation happen by defining an optional `remediation`;
+KubeadmControlPlane allows controlling how remediation happen by defining an optional `remediation`;
 this feature can be used for preventing unnecessary load on infrastructure provider e.g. in case of quota problems,or for allowing the infrastructure provider to stabilize in case of temporary problems.
 
 ```yaml

@@ -212,19 +212,19 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, m *clusterv1.Machine
 	}
 	if failureReason != "" {
 		machineStatusFailure := capierrors.MachinePoolStatusFailure(failureReason)
-		if m.Status.Deprecated != nil {
+		if m.Status.Deprecated == nil {
 			m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 		}
-		if m.Status.Deprecated.V1Beta1 != nil {
+		if m.Status.Deprecated.V1Beta1 == nil {
 			m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 		}
 		m.Status.Deprecated.V1Beta1.FailureReason = &machineStatusFailure
 	}
 	if failureMessage != "" {
-		if m.Status.Deprecated != nil {
+		if m.Status.Deprecated == nil {
 			m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 		}
-		if m.Status.Deprecated.V1Beta1 != nil {
+		if m.Status.Deprecated.V1Beta1 == nil {
 			m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 		}
 		m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
@@ -251,19 +251,19 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		// Set failure reason and message, if any.
 		if failureReason := bootstrapConfig.GetFailureReason(); failureReason != "" {
 			machineStatusFailure := capierrors.MachinePoolStatusFailure(failureReason)
-			if m.Status.Deprecated != nil {
+			if m.Status.Deprecated == nil {
 				m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 			}
-			if m.Status.Deprecated.V1Beta1 != nil {
+			if m.Status.Deprecated.V1Beta1 == nil {
 				m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 			}
 			m.Status.Deprecated.V1Beta1.FailureReason = &machineStatusFailure
 		}
 		if failureMessage := bootstrapConfig.GetFailureMessage(); failureMessage != "" {
-			if m.Status.Deprecated != nil {
+			if m.Status.Deprecated == nil {
 				m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 			}
-			if m.Status.Deprecated.V1Beta1 != nil {
+			if m.Status.Deprecated.V1Beta1 == nil {
 				m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 			}
 			m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(

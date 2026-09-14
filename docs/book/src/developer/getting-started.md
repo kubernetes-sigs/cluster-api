@@ -11,7 +11,7 @@ This guide will walk you through getting that daemon, known as [CAPD], up and ru
 Other providers may have additional steps you need to follow to get up and running.
 
 [capa]: https://github.com/kubernetes-sigs/cluster-api-provider-aws
-[capi-manager]: https://github.com/kubernetes-sigs/cluster-api/blob/main/main.go
+[capi-manager]: https://github.com/kubernetes-sigs/cluster-api/blob/main/core/main.go
 [capa-manager]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/main.go
 [Docker]: https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker
 [CAPD]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/README.md

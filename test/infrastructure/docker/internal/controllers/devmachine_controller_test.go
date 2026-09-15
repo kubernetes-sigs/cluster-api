@@ -208,9 +208,9 @@ func TestDockerMachineBackend_ReconcileDeleteMissingDevClusterUsesExpectedContai
 			machinePoolOwned: true,
 		},
 		{
-			name:             "regular machine",
-			machineName:      "regular-machine",
-			devMachineName:   "different-devmachine",
+			name:           "regular machine",
+			machineName:    "regular-machine",
+			devMachineName: "different-devmachine",
 		},
 	}
 

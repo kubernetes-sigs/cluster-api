@@ -262,27 +262,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		return allWarnings, allErrs
 	}
 
-	// version should be valid.
-	if !strings.HasPrefix(newCluster.Spec.Topology.Version, "v") {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				fldPath.Child("version"),
-				newCluster.Spec.Topology.Version,
-				"must start with v",
-			),
-		)
-	}
-	if _, err := semver.Parse(strings.TrimPrefix(newCluster.Spec.Topology.Version, "v")); err != nil {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				fldPath.Child("version"),
-				newCluster.Spec.Topology.Version,
-				"version must be a valid semantic version",
-			),
-		)
-	}
+	allErrs = append(allErrs, validateTopologyVersion(newCluster.Spec.Topology, fldPath)...)
 
 	// metadata in topology should be valid
 	allErrs = append(allErrs, validateTopologyMetadata(newCluster.Spec.Topology, fldPath)...)
@@ -357,51 +337,9 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			return allWarnings, allErrs
 		}
 
-		inVersion, err := semver.ParseTolerant(newCluster.Spec.Topology.Version)
-		if err != nil {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					fldPath.Child("version"),
-					newCluster.Spec.Topology.Version,
-					"version must be a valid semantic version",
-				),
-			)
-		}
-		oldVersion, err := semver.ParseTolerant(oldCluster.Spec.Topology.Version)
-		if err != nil {
-			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					fldPath.Child("version"),
-					oldCluster.Spec.Topology.Version,
-					"old version must be a valid semantic version",
-				),
-			)
-		}
-
-		if _, ok := newCluster.GetAnnotations()[clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation]; ok {
-			log := ctrl.LoggerFrom(ctx)
-			warningMsg := fmt.Sprintf("Skipping version validation for Cluster because annotation %q is set.", clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation)
-			log.Info(warningMsg)
-			allWarnings = append(allWarnings, warningMsg)
-		} else {
-			// NOTE: Validate the version ceiling only if:
-			// * there are no Kubernetes versions defined in the ClusterClass and
-			// * there is no generateUpgradePlan extension defined in the ClusterClass
-			//
-			// If there are Kubernetes versions defined, we will instead validate that the Cluster.spec.topology.version
-			// is one of these versions and then we can use the chained upgrade feature to upgrade to that version.
-			// Note: The ClusterClass webhook ensures the KubernetesVersions in the ClusterClass don't have any gaps.
-			//
-			// If a generateUpgradePlan extension is defined, we assume that additionally a Cluster validating webhook is implemented
-			// that validates Cluster.spec.topology.version in a way that matches with GenerateUpgradePlan responses.
-			shouldValidateVersionCeiling := len(clusterClass.Spec.KubernetesVersions) == 0 && clusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension == ""
-			if err := webhook.validateTopologyVersionUpdate(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, newCluster, oldCluster, shouldValidateVersionCeiling); err != nil {
-				allErrs = append(allErrs, err)
-			}
-		}
+		versionWarnings, versionErrs := webhook.validateTopologyVersionUpdate(ctx, oldCluster, newCluster, clusterClass, fldPath)
+		allWarnings = append(allWarnings, versionWarnings...)
+		allErrs = append(allErrs, versionErrs...)
 
 		// If the ClusterClass referenced in the Topology has changed compatibility checks are needed.
 		if oldCluster.GetClassKey() != newCluster.GetClassKey() {
@@ -428,7 +366,97 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	return allWarnings, allErrs
 }
 
-func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, newCluster, oldCluster *clusterv1.Cluster, shouldValidateCeiling bool) *field.Error {
+// validateTopologyVersion validates the versions defined in the topology independently of any
+// previous state of the Cluster. It is the entry point for version validation on create; on update
+// it runs in addition to validateTopologyVersionUpdate.
+func validateTopologyVersion(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// version should be valid.
+	if !strings.HasPrefix(topology.Version, "v") {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				fldPath.Child("version"),
+				topology.Version,
+				"must start with v",
+			),
+		)
+	}
+	if _, err := semver.Parse(strings.TrimPrefix(topology.Version, "v")); err != nil {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				fldPath.Child("version"),
+				topology.Version,
+				"version must be a valid semantic version",
+			),
+		)
+	}
+
+	return allErrs
+}
+
+// validateTopologyVersionUpdate validates changes to the versions defined in the topology. It is the
+// entry point for version validation on update.
+// Note: The ClusterClass must not be nil.
+func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass, fldPath *field.Path) (admission.Warnings, field.ErrorList) {
+	var allWarnings admission.Warnings
+	var allErrs field.ErrorList
+
+	inVersion, err := semver.ParseTolerant(newCluster.Spec.Topology.Version)
+	if err != nil {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				fldPath.Child("version"),
+				newCluster.Spec.Topology.Version,
+				"version must be a valid semantic version",
+			),
+		)
+	}
+	oldVersion, err := semver.ParseTolerant(oldCluster.Spec.Topology.Version)
+	if err != nil {
+		// NOTE: this should never happen. Nevertheless, handling this for extra caution.
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				fldPath.Child("version"),
+				oldCluster.Spec.Topology.Version,
+				"old version must be a valid semantic version",
+			),
+		)
+	}
+
+	if _, ok := newCluster.GetAnnotations()[clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation]; ok {
+		log := ctrl.LoggerFrom(ctx)
+		warningMsg := fmt.Sprintf("Skipping version validation for Cluster because annotation %q is set.", clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation)
+		log.Info(warningMsg)
+		allWarnings = append(allWarnings, warningMsg)
+		return allWarnings, allErrs
+	}
+
+	// NOTE: Validate the version ceiling only if:
+	// * there are no Kubernetes versions defined in the ClusterClass and
+	// * there is no generateUpgradePlan extension defined in the ClusterClass
+	//
+	// If there are Kubernetes versions defined, we will instead validate that the Cluster.spec.topology.version
+	// is one of these versions and then we can use the chained upgrade feature to upgrade to that version.
+	// Note: The ClusterClass webhook ensures the KubernetesVersions in the ClusterClass don't have any gaps.
+	//
+	// If a generateUpgradePlan extension is defined, we assume that additionally a Cluster validating webhook is implemented
+	// that validates Cluster.spec.topology.version in a way that matches with GenerateUpgradePlan responses.
+	shouldValidateVersionCeiling := len(clusterClass.Spec.KubernetesVersions) == 0 && clusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension == ""
+	if err := webhook.validateClusterVersionUpdate(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, newCluster, oldCluster, shouldValidateVersionCeiling); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	return allWarnings, allErrs
+}
+
+// validateClusterVersionUpdate validates a change of Cluster.spec.topology.version, the version
+// of the control plane and of all the MachineDeployments/MachinePools managed by the Cluster.
+func (webhook *Cluster) validateClusterVersionUpdate(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, newCluster, oldCluster *clusterv1.Cluster, shouldValidateCeiling bool) *field.Error {
 	// Nothing to do if the version doesn't change.
 	if inVersion.String() == oldVersion.String() {
 		return nil

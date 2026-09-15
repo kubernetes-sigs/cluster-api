@@ -280,7 +280,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         HuaweiProviderName,
-			url:          "https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei/releases/latest/infrastructure-components.yaml",
+			url:          "https://github.com/huaweicloud-samples/cloudnative-cluster-api-provider-huawei/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

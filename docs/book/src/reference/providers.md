@@ -36,7 +36,6 @@ source of inspiration and ideas for others.
 - [Kamaji](https://github.com/clastix/cluster-api-control-plane-provider-kamaji)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-control-plane-provider-microk8s)
-- [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [RKE2](https://github.com/rancher/cluster-api-provider-rke2)
 - [Talos](https://github.com/siderolabs/cluster-api-control-plane-provider-talos)
 
@@ -65,7 +64,6 @@ source of inspiration and ideas for others.
 - [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)
 - [metal-stack](https://github.com/metal-stack/cluster-api-provider-metal-stack)
 - [Microvm](https://github.com/liquidmetal-dev/cluster-api-provider-microvm)
-- [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix)
 - [Oracle Cloud Infrastructure (OCI)](https://github.com/oracle/cluster-api-provider-oci)
 - [OpenNebula](https://github.com/OpenNebula/cluster-api-provider-opennebula)

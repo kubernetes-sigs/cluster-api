@@ -103,6 +103,11 @@ func (s *LoadBalancer) containerName() string {
 	return fmt.Sprintf("%s-lb", s.name)
 }
 
+// Exists returns true if the load balancer container exists.
+func (s *LoadBalancer) Exists() bool {
+	return s.container != nil
+}
+
 // Create creates a docker container hosting a load balancer for the cluster.
 func (s *LoadBalancer) Create(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)

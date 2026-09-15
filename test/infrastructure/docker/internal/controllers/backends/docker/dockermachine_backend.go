@@ -840,16 +840,36 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 	if dockerMachine.Spec.Backend.Docker == nil {
 		return ctrl.Result{}, pkgerrors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
 	}
-	if dockerCluster.Spec.Backend.Docker == nil {
+	if dockerCluster != nil && dockerCluster.Spec.Backend.Docker == nil {
 		return ctrl.Result{}, pkgerrors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 
 	// Cancel all the provisioning tasks for this machine.
 	r.TaskManager.Cancel(dockerMachine)
 
-	externalMachine, externalLoadBalancer, err := r.getExternalObjects(ctx, cluster, dockerCluster, machine, dockerMachine)
-	if err != nil {
-		return ctrl.Result{}, err
+	var externalMachine *docker.Machine
+	var externalLoadBalancer *docker.LoadBalancer
+	var err error
+	if dockerCluster != nil {
+		externalMachine, externalLoadBalancer, err = r.getExternalObjects(ctx, cluster, dockerCluster, machine, dockerMachine)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		externalMachine, err = docker.NewMachine(ctx, cluster, machine.Name, nil)
+		if err != nil {
+			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to create helper for managing the externalMachine")
+		}
+
+		if util.IsControlPlaneMachine(machine) {
+			externalLoadBalancer, err = docker.NewLoadBalancer(ctx, cluster, "", "", "0")
+			if err != nil {
+				return ctrl.Result{}, pkgerrors.Wrap(err, "failed to create helper for managing the externalLoadBalancer")
+			}
+			if externalLoadBalancer.Exists() {
+				return ctrl.Result{}, pkgerrors.New("DevCluster is missing while the external load balancer still exists")
+			}
+		}
 	}
 
 	// Set the ContainerProvisionedCondition reporting delete is started, and issue a patch in order to make
@@ -858,11 +878,13 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 	// nevertheless we are issuing a patch so we can test a pattern that will be used by other providers as well
 	if conditions.GetReason(dockerMachine, infrav1.DevMachineDockerContainerProvisionedCondition) != infrav1.DevMachineDockerContainerDeletingReason {
 		v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedV1Beta1Condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
-		conditions.Set(dockerCluster, metav1.Condition{
-			Type:   infrav1.DevMachineDockerContainerProvisionedCondition,
-			Status: metav1.ConditionFalse,
-			Reason: infrav1.DevMachineDockerContainerDeletingReason,
-		})
+		if dockerCluster != nil {
+			conditions.Set(dockerCluster, metav1.Condition{
+				Type:   infrav1.DevMachineDockerContainerProvisionedCondition,
+				Status: metav1.ConditionFalse,
+				Reason: infrav1.DevMachineDockerContainerDeletingReason,
+			})
+		}
 	}
 
 	// delete the machine
@@ -872,8 +894,10 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
 	if util.IsControlPlaneMachine(machine) {
-		if err := r.reconcileLoadBalancerConfiguration(ctx, cluster, dockerCluster, externalLoadBalancer); err != nil {
-			return ctrl.Result{}, err
+		if dockerCluster != nil {
+			if err := r.reconcileLoadBalancerConfiguration(ctx, cluster, dockerCluster, externalLoadBalancer); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 

@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -3601,6 +3602,105 @@ func TestClusterClassPollingErrors(t *testing.T) {
 				g.Expect(warnings).NotTo(BeEmpty())
 			} else {
 				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func Test_validateTopologyVersionUpdate(t *testing.T) {
+	clusterAt := func(version string) *clusterv1.Cluster {
+		return builder.Cluster("fooboo", "cluster1").
+			WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+			WithTopology(builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion(version).
+				Build()).
+			Build()
+	}
+	// A control plane that is up to date, so that only the version ceiling can reject an upgrade.
+	controlPlaneObjects := []client.Object{
+		builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
+			WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+			Build(),
+		// Note: CRD is needed to look up the apiVersion from contract labels.
+		builder.GenericControlPlaneCRD,
+	}
+	withUnsafeAnnotation := func(c *clusterv1.Cluster) *clusterv1.Cluster {
+		c.Annotations = map[string]string{clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation: ""}
+		return c
+	}
+
+	tests := []struct {
+		name          string
+		old           *clusterv1.Cluster
+		new           *clusterv1.Cluster
+		clusterClass  *clusterv1.ClusterClass
+		expectErrs    []string
+		expectWarning bool
+	}{
+		{
+			name:         "should pass an upgrade within the version ceiling",
+			old:          clusterAt("v1.19.1"),
+			new:          clusterAt("v1.20.0"),
+			clusterClass: builder.ClusterClass("fooboo", "foo").Build(),
+		},
+		{
+			name:         "should reject an upgrade beyond the version ceiling",
+			old:          clusterAt("v1.19.1"),
+			new:          clusterAt("v1.21.0"),
+			clusterClass: builder.ClusterClass("fooboo", "foo").Build(),
+			expectErrs:   []string{"version cannot be increased"},
+		},
+		{
+			// The ceiling is replaced by the versions defined in the ClusterClass.
+			name:         "should skip the version ceiling if the ClusterClass defines Kubernetes versions",
+			old:          clusterAt("v1.19.1"),
+			new:          clusterAt("v1.21.0"),
+			clusterClass: builder.ClusterClass("fooboo", "foo").WithVersions("v1.19.1", "v1.20.0", "v1.21.0").Build(),
+		},
+		{
+			// Without a ClusterClass there is nothing that could replace the ceiling.
+			name:       "should validate the version ceiling if the ClusterClass is not available",
+			old:        clusterAt("v1.19.1"),
+			new:        clusterAt("v1.21.0"),
+			expectErrs: []string{"version cannot be increased"},
+		},
+		{
+			// Parsed strictly, like on create.
+			name:         "should reject a version that is not a strict semantic version",
+			old:          clusterAt("v1.19.1"),
+			new:          clusterAt("v1.20"),
+			clusterClass: builder.ClusterClass("fooboo", "foo").Build(),
+			expectErrs:   []string{"version must be a valid semantic version"},
+		},
+		{
+			name:          "should skip validation with a warning if the unsafe annotation is set",
+			old:           clusterAt("v1.19.1"),
+			new:           withUnsafeAnnotation(clusterAt("v1.25.0")),
+			clusterClass:  builder.ClusterClass("fooboo", "foo").Build(),
+			expectWarning: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			webhook := &Cluster{Client: fake.NewClientBuilder().WithObjects(controlPlaneObjects...).WithScheme(fakeScheme).Build()}
+
+			warnings, errs := webhook.validateTopologyVersionUpdate(ctx, tt.old, tt.new, tt.clusterClass, field.NewPath("spec", "topology"))
+
+			if tt.expectWarning {
+				g.Expect(warnings).ToNot(BeEmpty())
+			} else {
+				g.Expect(warnings).To(BeEmpty())
+			}
+			if len(tt.expectErrs) == 0 {
+				g.Expect(errs).To(BeEmpty())
+				return
+			}
+			g.Expect(errs).To(HaveLen(len(tt.expectErrs)))
+			for i, expectErr := range tt.expectErrs {
+				g.Expect(errs[i].Error()).To(ContainSubstring(expectErr))
 			}
 		})
 	}

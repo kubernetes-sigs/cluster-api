@@ -314,7 +314,7 @@ func TestDockerMachineBackend_ReconcileDeleteMissingDevClusterErrorKeepsFinalize
 		machine,
 		devMachine,
 	)
-	g.Expect(err).To(MatchError("failed to create helper for managing the externalMachine: list containers: container lookup failed"))
+	g.Expect(err).To(MatchError("failed to create helper for managing the externalMachine: failed to list containers: failed to list containers: container lookup failed"))
 	g.Expect(devMachine.Finalizers).To(ConsistOf(infrav1.MachineFinalizer))
 }
 

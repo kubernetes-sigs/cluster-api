@@ -29,9 +29,7 @@ const (
 )
 
 /*
-NOTE: we are commenting const for MachinePool's V1Beta2 conditions and reasons because not yet implemented for the 1.9 CAPI release.
-However, we are keeping the v1beta2 struct in the MachinePool struct because the code that will collect conditions and replica
-counters at cluster level is already implemented.
+NOTE: constants for MachinePool's remaining v1beta2 conditions stay commented until the corresponding conditions are implemented.
 
 // Conditions that will be used for the MachinePool object in v1Beta2 API version.
 const (
@@ -47,9 +45,6 @@ const (
 	// MachinePoolMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
 	MachinePoolMachinesReadyCondition = clusterv1.MachinesReadyCondition
 
-	// MachinePoolMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
-	MachinePoolMachinesUpToDateCondition = clusterv1.MachinesUpToDateCondition
-
 	// MachinePoolScalingUpCondition is true if available replicas < desired replicas.
 	MachinePoolScalingUpCondition = clusterv1.ScalingUpCondition
 
@@ -63,6 +58,33 @@ const (
 	MachinePoolDeletingCondition = clusterv1.DeletingCondition
 ).
 */
+
+// MachinePoolMachineSupportUnknownReason surfaces when the controller cannot determine if a MachinePool uses per-instance Machines.
+const MachinePoolMachineSupportUnknownReason = "MachineSupportUnknown"
+
+// MachinePool's MachinesUpToDate condition and corresponding reasons.
+const (
+	// MachinePoolMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
+	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
+	MachinePoolMachinesUpToDateCondition = MachinesUpToDateCondition
+
+	// MachinePoolMachinesUpToDateReason surfaces when all the controlled machine's UpToDate conditions are true.
+	MachinePoolMachinesUpToDateReason = UpToDateReason
+
+	// MachinePoolMachinesNotUpToDateReason surfaces when at least one of the controlled machine's UpToDate conditions is false.
+	MachinePoolMachinesNotUpToDateReason = NotUpToDateReason
+
+	// MachinePoolMachinesUpToDateUnknownReason surfaces when at least one of the controlled machine's UpToDate conditions is unknown
+	// and none of the controlled machine's UpToDate conditions is false.
+	MachinePoolMachinesUpToDateUnknownReason = UpToDateUnknownReason
+
+	// MachinePoolMachinesUpToDateNoReplicasReason surfaces when no machines exist for the MachinePool.
+	MachinePoolMachinesUpToDateNoReplicasReason = NoReplicasReason
+
+	// MachinePoolMachinesUpToDateInternalErrorReason surfaces unexpected failures when listing machines
+	// or aggregating status.
+	MachinePoolMachinesUpToDateInternalErrorReason = InternalErrorReason
+)
 
 // MachinePoolSpec defines the desired state of MachinePool.
 type MachinePoolSpec struct {

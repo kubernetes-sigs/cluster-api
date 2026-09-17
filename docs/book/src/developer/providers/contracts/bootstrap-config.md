@@ -529,6 +529,6 @@ The following diagram shows the typical logic for a bootstrap provider:
 [clusterctl provider contract]: clusterctl.md
 [implementation best practices]: ../best-practices.md
 [Server Side Apply]: https://kubernetes.io/docs/reference/using-api/server-side-apply/
-[the DevMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/devmachinetemplate.go
+[the DevMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/webhooks/admission/devmachinetemplate.go
 [BootstrapConfig: pausing]: #bootstrapconfig-pausing
 [Cluster API v1.11 migration notes]: https://release-1-11.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.10-to-v1.11

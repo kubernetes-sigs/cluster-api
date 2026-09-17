@@ -956,6 +956,9 @@ func spokeMachineDeploymentTopology(in *clusterv1beta1.MachineDeploymentTopology
 	if in.NodeDeletionTimeout != nil {
 		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+	if in.MachineNaming != nil && (in.MachineNaming.Template == nil || *in.MachineNaming.Template == "") {
+		in.MachineNaming = nil
+	}
 	if in.Variables != nil && reflect.DeepEqual(in.Variables, &clusterv1beta1.MachineDeploymentVariables{}) {
 		in.Variables = nil
 	}
@@ -1028,6 +1031,9 @@ func spokeMachineDeploymentClass(in *clusterv1beta1.MachineDeploymentClass, c ra
 	}
 	if in.NodeDeletionTimeout != nil {
 		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.MachineNaming != nil && (in.MachineNaming.Template == nil || *in.MachineNaming.Template == "") {
+		in.MachineNaming = nil
 	}
 	if in.Strategy != nil {
 		if in.Strategy.RollingUpdate != nil {

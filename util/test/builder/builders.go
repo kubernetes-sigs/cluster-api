@@ -578,6 +578,7 @@ type MachineDeploymentClassBuilder struct {
 	strategy                      clusterv1.MachineDeploymentClassRolloutStrategy
 	deletionOrder                 clusterv1.MachineSetDeletionOrder
 	naming                        *clusterv1.MachineDeploymentClassNamingSpec
+	machineNaming                 *clusterv1.MachineNamingSpec
 	taints                        []clusterv1.MachineTaint
 }
 
@@ -672,6 +673,13 @@ func (m *MachineDeploymentClassBuilder) WithNaming(n *clusterv1.MachineDeploymen
 	return m
 }
 
+// WithMachineNaming sets the MachineNaming for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithMachineNaming(machineNaming clusterv1.MachineNamingSpec) *MachineDeploymentClassBuilder {
+	machineNamingCopy := machineNaming
+	m.machineNaming = &machineNamingCopy
+	return m
+}
+
 // WithTaints sets the Taints for the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) WithTaints(taints []clusterv1.MachineTaint) *MachineDeploymentClassBuilder {
 	m.taints = taints
@@ -714,6 +722,9 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	}
 	obj.Rollout.Strategy = m.strategy
 	obj.Deletion.Order = m.deletionOrder
+	if m.machineNaming != nil {
+		obj.MachineNaming = *m.machineNaming
+	}
 	if m.naming != nil {
 		obj.Naming = *m.naming
 	}

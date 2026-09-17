@@ -321,6 +321,12 @@ type MachineDeploymentClass struct {
 	// +optional
 	NamingStrategy *MachineDeploymentClassNamingStrategy `json:"namingStrategy,omitempty"`
 
+	// machineNaming allows changing the naming pattern used when creating Machines within the MachineDeployment.
+	// If not defined, Machines will use the default naming pattern: `{{ .machineSet.name }}-{{ .random }}`.
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	MachineNaming *MachineDeploymentClassMachineNamingStrategy `json:"machineNaming,omitempty"`
+
 	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
@@ -419,6 +425,22 @@ type MachineDeploymentClassNamingStrategy struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
+	Template *string `json:"template,omitempty"`
+}
+
+// MachineDeploymentClassMachineNamingStrategy defines the naming strategy for machines within a machine deployment.
+type MachineDeploymentClassMachineNamingStrategy struct {
+	// template defines the template to use for generating the names of Machine objects.
+	// If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`.
+	// If the generated name string exceeds 63 characters, it will be trimmed to 58 characters
+	// and concatenated with a random suffix of length 5.
+	// The templating mechanism provides the following arguments:
+	// * `.cluster.name`: The name of the cluster object.
+	// * `.machineSet.name`: The name of the MachineSet object.
+	// * `.random`: A random alphanumeric string, without vowels, of length 5 (required).
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Template *string `json:"template,omitempty"`
 }
 

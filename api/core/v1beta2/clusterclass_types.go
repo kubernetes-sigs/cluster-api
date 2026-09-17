@@ -475,6 +475,12 @@ type MachineDeploymentClass struct {
 	// +optional
 	Naming MachineDeploymentClassNamingSpec `json:"naming,omitempty,omitzero"`
 
+	// machineNaming allows changing the naming pattern used when creating Machines within the MachineDeployment.
+	// If not defined, Machines will use the default naming pattern: `{{ .machineSet.name }}-{{ .random }}`.
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	MachineNaming MachineNamingSpec `json:"machineNaming,omitempty,omitzero"`
+
 	// deletion contains configuration options for Machine deletion.
 	// +optional
 	Deletion MachineDeploymentClassMachineDeletionSpec `json:"deletion,omitempty,omitzero"`

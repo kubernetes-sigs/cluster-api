@@ -1176,7 +1176,7 @@ func newFileLogger(t *testing.T, name, fileName string) *fileLogger {
 	t.Helper()
 
 	l := &fileLogger{t: t, testCaseStringBuilder: strings.Builder{}}
-	fmt.Fprintf(&l.testCaseStringBuilder, "## %s\n\n", name)
+	fmt.Fprintf(&l.testCaseStringBuilder, "[Test] %s\n\n", name)
 	l.testCase = name
 	l.fileName = fileName
 	return l

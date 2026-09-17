@@ -1,4 +1,4 @@
-## Regular rollout, 3 Replicas, maxSurge 0, maxUnavailable 1
+[Test] Regular rollout, 3 Replicas, maxSurge 0, maxUnavailable 1
 
 [Test] Legend:
       - X/Y replicas is status.replicas/spec.replicas
@@ -11,9 +11,10 @@
 [Test] Initial state
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 3/3 replicas, 3 available, 0 upToDate (m1,m2,m3)
-[Test] Rollout 3 replicas, MaxSurge=0, MaxUnavailable=1
   
-[MD controller] Reconcile
+[Test] Strategy=RollingUpdate, MaxSurge=0, MaxUnavailable=1
+  
+[MD controller] Reconcile md
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: from 3/3 to 3/2 replicas, 3 available, 0 upToDate (m1,m2,m3)
       - Scaled down old MachineSet ms1 from 3 to 2 replicas (-1)
@@ -21,78 +22,78 @@
         - Diff: replicas 2,cluster.x-k8s.io/disable-machine-create: false
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
       - MachineSet ms2 created, it is now the current MachineSet
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
       - ms1 scaled down to 2/2 replicas (m1 deleted)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 2/3 replicas, 2 available, 0 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
     ms2: from 0/0 to 0/1 replicas, 0 available, 0 upToDate ()
       - Scaled up current MachineSet ms2 from 0 to 1 replicas (+1)
         - Reason: 2 current Machines < 3 MachineDeployment spec.replicas + 0 maxSurge
         - Diff: replicas 1
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
       - ms2 scaled up to 1/1 replicas (m4 created)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 3/3 replicas, 3 available, 1 upToDate
     ms1: from 2/2 to 2/1 replicas, 2 available, 0 upToDate (m2,m3)
       - Scaled down old MachineSet ms1 from 2 to 1 replicas (-1)
         - Reason: 3 available replicas > 2 minimum available replicas
         - Diff: replicas 1
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 1/1 replicas, 1 available, 0 upToDate (m3)
       - ms1 scaled down to 1/1 replicas (m2 deleted)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 2/3 replicas, 2 available, 1 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m3)
     ms2: from 1/1 to 1/2 replicas, 1 available, 1 upToDate (m4)
       - Scaled up current MachineSet ms2 from 1 to 2 replicas (+1)
         - Reason: 2 current Machines < 3 MachineDeployment spec.replicas + 0 maxSurge
         - Diff: replicas 2
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 1/1 replicas, 1 available, 0 upToDate (m3)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
       - ms2 scaled up to 2/2 replicas (m5 created)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 3/3 replicas, 3 available, 2 upToDate
     ms1: from 1/1 to 1/0 replicas, 1 available, 0 upToDate (m3)
       - Scaled down old MachineSet ms1 from 1 to 0 replicas (-1)
         - Reason: 3 available replicas > 2 minimum available replicas
         - Diff: replicas 0
     ms2: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
       - ms1 scaled down to 0/0 replicas (m3 deleted)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 2/3 replicas, 2 available, 2 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: from 2/2 to 2/3 replicas, 2 available, 2 upToDate (m4,m5)
       - Scaled up current MachineSet ms2 from 2 to 3 replicas (+1)
         - Reason: 2 current Machines < 3 MachineDeployment spec.replicas + 0 maxSurge
         - Diff: replicas 3
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 3/3 replicas, 3 available, 3 upToDate (m4,m5,m6)
       - ms2 scaled up to 3/3 replicas (m6 created)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 3/3 replicas, 3 available, 3 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 3/3 replicas, 3 available, 3 upToDate (m4,m5,m6)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 3/3 replicas, 3 available, 3 upToDate (m4,m5,m6)
   
 [Test] Final state

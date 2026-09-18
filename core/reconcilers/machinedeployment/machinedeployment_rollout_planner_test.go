@@ -675,6 +675,7 @@ func machineSetControllerMutatorCreateMachines(ms *clusterv1.MachineSet, scope *
 	// Sort machines of the target MS to ensure consistent reporting during tests.
 	sortMachinesByName(scope.machineSetMachines[ms.Name])
 
+	scope.machinesCreated += len(machinesAdded)
 	fmt.Fprintf(logLines, "      - %s scaled up to %d/%[2]d replicas (%s created)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesAdded, ","))
 }
 
@@ -753,6 +754,7 @@ func machineSetControllerMutatorMoveMachines(ms *clusterv1.MachineSet, scope *ro
 		machinesMoved = append(machinesMoved, m.Name)
 	}
 	scope.machineSetMachines[ms.Name] = machinesSetMachines
+	scope.machinesUpdatedInPlace += len(machinesMoved)
 	fmt.Fprintf(logLines, "      - %s scaled down to %d/%d replicas (%s moved to %s)", ms.Name, len(scope.machineSetMachines[ms.Name]), ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesMoved, ","), targetMS.Name)
 
 	// Sort machines of the target MS to ensure consistent reporting during tests.
@@ -793,6 +795,7 @@ func machineSetControllerMutatorDeleteMachines(ms *clusterv1.MachineSet, scope *
 	// Sort machines to ensure consistent reporting during tests.
 	sortMachinesByName(scope.machineSetMachines[ms.Name])
 
+	scope.machinesDeleted += len(machinesDeleted)
 	fmt.Fprintf(logLines, "      - %s scaled down to %d/%[2]d replicas (%s deleted)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesDeleted, ","))
 }
 
@@ -828,6 +831,10 @@ type rolloutScope struct {
 	machineSetMachines map[string][]*clusterv1.Machine
 
 	machineUID int32
+
+	machinesCreated        int
+	machinesDeleted        int
+	machinesUpdatedInPlace int
 }
 
 func initCurrentRolloutScope(currentMachineNames []string, mdOptions ...machineDeploymentOption) (current *rolloutScope) {
@@ -932,9 +939,12 @@ func (r *rolloutScope) Clone() *rolloutScope {
 	}
 
 	c := &rolloutScope{
-		machineDeployment:  r.machineDeployment.DeepCopy(),
-		machineSetMachines: map[string][]*clusterv1.Machine{},
-		machineUID:         r.machineUID,
+		machineDeployment:      r.machineDeployment.DeepCopy(),
+		machineSetMachines:     map[string][]*clusterv1.Machine{},
+		machineUID:             r.machineUID,
+		machinesCreated:        r.machinesCreated,
+		machinesDeleted:        r.machinesDeleted,
+		machinesUpdatedInPlace: r.machinesUpdatedInPlace,
 	}
 	for _, ms := range r.machineSets {
 		c.machineSets = append(c.machineSets, ms.DeepCopy())

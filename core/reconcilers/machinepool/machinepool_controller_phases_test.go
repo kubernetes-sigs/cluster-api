@@ -1111,6 +1111,36 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
 			},
 		},
+		{
+			// Same lazy allocation as the infrastructure path, same inverted guard.
+			name: "new machinepool, bootstrap config reports a failure",
+			bootstrapConfig: map[string]interface{}{
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"deprecated": map[string]interface{}{
+						"v1beta1": map[string]interface{}{
+							"failureReason":  "InvalidConfiguration",
+							"failureMessage": "the bootstrap provider rejected the spec",
+						},
+					},
+				},
+			},
+			expectError: false,
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(m.Status.Deprecated).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).ToNot(BeNil())
+				g.Expect(string(*m.Status.Deprecated.V1Beta1.FailureReason)).To(Equal("InvalidConfiguration"))
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).ToNot(BeNil())
+				g.Expect(*m.Status.Deprecated.V1Beta1.FailureMessage).To(ContainSubstring("the bootstrap provider rejected the spec"))
+			},
+		},
 	}
 
 	bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind)
@@ -1325,6 +1355,66 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
 				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).To(BeNil())
 				g.Expect(m.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseRunning))
+			},
+		},
+		{
+			// The v1beta1 failure fields are lazily allocated. Guarding that
+			// allocation on the pointer being non-nil skips it exactly when it is
+			// needed, so recording a failure nil-derefs instead.
+			name: "new machinepool, infrastructure reports a failure",
+			infraConfig: map[string]interface{}{
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":          false,
+					"failureReason":  "InvalidConfiguration",
+					"failureMessage": "the provider rejected the spec",
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(m.Status.Deprecated).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).ToNot(BeNil())
+				g.Expect(string(*m.Status.Deprecated.V1Beta1.FailureReason)).To(Equal("InvalidConfiguration"))
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).ToNot(BeNil())
+				g.Expect(*m.Status.Deprecated.V1Beta1.FailureMessage).To(ContainSubstring("the provider rejected the spec"))
+			},
+		},
+		{
+			// Allocating unconditionally would be just as wrong the other way:
+			// it drops whatever the rest of the v1beta1 status already holds.
+			name: "existing machinepool with v1beta1 status, infrastructure reports a failure",
+			machinepool: func() *clusterv1.MachinePool {
+				mp := defaultMachinePool.DeepCopy()
+				mp.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{
+					V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
+						ReadyReplicas: 3,
+					},
+				}
+				return mp
+			}(),
+			infraConfig: map[string]interface{}{
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":          false,
+					"failureMessage": "the provider rejected the spec",
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.ReadyReplicas).To(Equal(int32(3)),
+					"recording a failure must not discard the rest of the v1beta1 status")
 			},
 		},
 	}

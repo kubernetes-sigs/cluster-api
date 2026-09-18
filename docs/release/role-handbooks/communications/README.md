@@ -192,7 +192,6 @@ We should inform at least the following providers via a new issue on their respe
 * Kubevirt: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/issues/new
 * IBMCloud: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/issues/new
 * Metal3: https://github.com/metal3-io/cluster-api-provider-metal3/issues/new
-* Nested (read-only): https://github.com/kubernetes-retired/cluster-api-provider-nested/issues
 * OCI: https://github.com/oracle/cluster-api-provider-oci/issues/new
 * Openstack: https://github.com/kubernetes-sigs/cluster-api-provider-openstack/issues/new
 * Operator: https://github.com/kubernetes-sigs/cluster-api-operator/issues/new

@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
@@ -508,9 +509,11 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 	fakeInfraCluster := builder.InfrastructureCluster("test-ns", "test-cluster").Build()
 
 	tests := []struct {
-		name       string
-		cluster    *clusterv1.Cluster
-		wantDelete bool
+		name                string
+		cluster             *clusterv1.Cluster
+		infraCluster        *unstructured.Unstructured
+		wantDelete          bool
+		wantDeletingMessage string
 	}{
 		{
 			name: "should proceed with delete if the cluster has the ok-to-delete annotation",
@@ -522,19 +525,40 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				fakeCluster.Annotations[runtimev1.OkToDeleteAnnotation] = ""
 				return fakeCluster
 			}(),
-			wantDelete: true,
+			infraCluster:        fakeInfraCluster.DeepCopy(),
+			wantDelete:          true,
+			wantDeletingMessage: "Waiting for GenericInfrastructureCluster to be deleted",
 		},
 		{
-			name:       "should not proceed with delete if the cluster does not have the ok-to-delete annotation",
-			cluster:    builder.Cluster("test-ns", "test-cluster").WithTopology(&clusterv1.Topology{ClassRef: clusterv1.ClusterClassRef{Name: "class"}}).WithInfrastructureCluster(fakeInfraCluster).Build(),
-			wantDelete: false,
+			name:         "should not proceed with delete if the cluster does not have the ok-to-delete annotation",
+			cluster:      builder.Cluster("test-ns", "test-cluster").WithTopology(&clusterv1.Topology{ClassRef: clusterv1.ClusterClassRef{Name: "class"}}).WithInfrastructureCluster(fakeInfraCluster).Build(),
+			infraCluster: fakeInfraCluster.DeepCopy(),
+			wantDelete:   false,
+		},
+		{
+			name: "should surface the InfraCluster Deleting condition message while waiting for deletion",
+			cluster: func() *clusterv1.Cluster {
+				fakeCluster := builder.Cluster("test-ns", "test-cluster").WithTopology(&clusterv1.Topology{ClassRef: clusterv1.ClusterClassRef{Name: "class"}}).WithInfrastructureCluster(fakeInfraCluster).Build()
+				if fakeCluster.Annotations == nil {
+					fakeCluster.Annotations = map[string]string{}
+				}
+				fakeCluster.Annotations[runtimev1.OkToDeleteAnnotation] = ""
+				return fakeCluster
+			}(),
+			infraCluster: func() *unstructured.Unstructured {
+				i := fakeInfraCluster.DeepCopy()
+				condition{Type: clusterv1.DeletingCondition, Status: metav1.ConditionTrue, Reason: "SomeReason", Message: "Deleting 2 worker machines"}.ApplyToInfraCluster(i)
+				return i
+			}(),
+			wantDelete:          true,
+			wantDeletingMessage: "Waiting for GenericInfrastructureCluster to be deleted: Deleting 2 worker machines",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithObjects(fakeInfraCluster, tt.cluster).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.infraCluster, tt.cluster).Build()
 			r := &Reconciler{
 				Client:    fakeClient,
 				APIReader: fakeClient,
@@ -543,13 +567,16 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 
 			s := &scope{
 				cluster:                 tt.cluster,
-				infraCluster:            fakeInfraCluster,
+				infraCluster:            tt.infraCluster,
 				getDescendantsSucceeded: true,
 			}
 			_, _ = r.reconcileDelete(ctx, s)
 			infraCluster := builder.InfrastructureCluster("", "").Build()
-			err := fakeClient.Get(ctx, client.ObjectKeyFromObject(fakeInfraCluster), infraCluster)
+			err := fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.infraCluster), infraCluster)
 			g.Expect(apierrors.IsNotFound(err)).To(Equal(tt.wantDelete))
+			if tt.wantDeletingMessage != "" {
+				g.Expect(s.deletingMessage).To(Equal(tt.wantDeletingMessage))
+			}
 		})
 	}
 }

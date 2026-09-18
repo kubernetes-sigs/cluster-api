@@ -213,6 +213,7 @@ type MachineDeploymentTopologyBuilder struct {
 	annotations map[string]string
 	class       string
 	name        string
+	version     string
 	replicas    *int32
 	mhc         clusterv1.MachineDeploymentTopologyHealthCheck
 	variables   []clusterv1.ClusterVariable
@@ -234,6 +235,12 @@ func (m *MachineDeploymentTopologyBuilder) WithAnnotations(annotations map[strin
 // WithClass adds a class string used as the MachineDeploymentTopology class.
 func (m *MachineDeploymentTopologyBuilder) WithClass(class string) *MachineDeploymentTopologyBuilder {
 	m.class = class
+	return m
+}
+
+// WithVersion adds a version used as the MachineDeploymentTopology version.
+func (m *MachineDeploymentTopologyBuilder) WithVersion(version string) *MachineDeploymentTopologyBuilder {
+	m.version = version
 	return m
 }
 
@@ -263,6 +270,7 @@ func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTo
 		},
 		Class:       m.class,
 		Name:        m.name,
+		Version:     m.version,
 		Replicas:    m.replicas,
 		HealthCheck: m.mhc,
 	}
@@ -280,6 +288,7 @@ func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTo
 type MachinePoolTopologyBuilder struct {
 	class          string
 	name           string
+	version        string
 	replicas       *int32
 	failureDomains []string
 	variables      []clusterv1.ClusterVariable
@@ -295,6 +304,12 @@ func MachinePoolTopology(name string) *MachinePoolTopologyBuilder {
 // WithClass adds a class string used as the MachinePoolTopology class.
 func (m *MachinePoolTopologyBuilder) WithClass(class string) *MachinePoolTopologyBuilder {
 	m.class = class
+	return m
+}
+
+// WithVersion adds a version used as the MachinePoolTopology version.
+func (m *MachinePoolTopologyBuilder) WithVersion(version string) *MachinePoolTopologyBuilder {
+	m.version = version
 	return m
 }
 
@@ -321,6 +336,7 @@ func (m *MachinePoolTopologyBuilder) Build() clusterv1.MachinePoolTopology {
 	mp := clusterv1.MachinePoolTopology{
 		Class:          m.class,
 		Name:           m.name,
+		Version:        m.version,
 		Replicas:       m.replicas,
 		FailureDomains: m.failureDomains,
 	}

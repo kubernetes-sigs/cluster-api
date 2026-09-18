@@ -29,6 +29,16 @@ import (
 	goproxytest "sigs.k8s.io/cluster-api/internal/goproxy/test"
 )
 
+func TestClient_GetVersionsHonorsCanceledContext(t *testing.T) {
+	g := NewWithT(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := NewClient("https", "proxy.golang.org").GetVersions(ctx, "github.com/o/r")
+	g.Expect(err).To(MatchError(context.Canceled))
+}
+
 func TestClient_GetVersions(t *testing.T) {
 	retryableOperationInterval = 200 * time.Millisecond
 	retryableOperationTimeout = 1 * time.Second

@@ -146,6 +146,11 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 		in, out := &in.controlPlaneInfrastructureMachineTemplate, &out.controlPlaneInfrastructureMachineTemplate
 		*out = (*in).DeepCopy()
 	}
+	if in.controlPlaneInfrastructureMachineTemplateInline != nil {
+		in, out := &in.controlPlaneInfrastructureMachineTemplateInline, &out.controlPlaneInfrastructureMachineTemplateInline
+		*out = new(v1beta2.ClusterClassTemplate)
+		**out = **in
+	}
 	in.controlPlaneMHC.DeepCopyInto(&out.controlPlaneMHC)
 	if in.controlPlaneNodeDrainTimeout != nil {
 		in, out := &in.controlPlaneNodeDrainTimeout, &out.controlPlaneNodeDrainTimeout

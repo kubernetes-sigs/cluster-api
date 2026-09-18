@@ -44,6 +44,46 @@ func ConvertClusterClassV1Beta1ToHub(_ context.Context, src *clusterv1beta1.Clus
 		return err
 	}
 
+	if ok {
+		// Note: Did not backport the Template fields to v1beta1 as it would have been relatively high effort and
+		// it is only relevant to preserve field ownership when the ClusterClass object is written with v1beta1 and SSA.
+		dst.Spec.Infrastructure.Template = restored.Spec.Infrastructure.Template
+		dst.Spec.ControlPlane.Template = restored.Spec.ControlPlane.Template
+		dst.Spec.ControlPlane.MachineInfrastructure.Template = restored.Spec.ControlPlane.MachineInfrastructure.Template
+		for i, dstMD := range dst.Spec.Workers.MachineDeployments {
+			var restoredMD *clusterv1.MachineDeploymentClass
+			for _, md := range restored.Spec.Workers.MachineDeployments {
+				if dstMD.Class == md.Class {
+					restoredMD = &md
+					break
+				}
+			}
+			if restoredMD == nil {
+				continue
+			}
+
+			dstMD.Bootstrap.Template = restoredMD.Bootstrap.Template
+			dstMD.Infrastructure.Template = restoredMD.Infrastructure.Template
+			dst.Spec.Workers.MachineDeployments[i] = dstMD
+		}
+		for i, dstMP := range dst.Spec.Workers.MachinePools {
+			var restoredMP *clusterv1.MachinePoolClass
+			for _, md := range restored.Spec.Workers.MachinePools {
+				if dstMP.Class == md.Class {
+					restoredMP = &md
+					break
+				}
+			}
+			if restoredMP == nil {
+				continue
+			}
+
+			dstMP.Bootstrap.Template = restoredMP.Bootstrap.Template
+			dstMP.Infrastructure.Template = restoredMP.Infrastructure.Template
+			dst.Spec.Workers.MachinePools[i] = dstMP
+		}
+	}
+
 	// Recover intent for bool values converted to *bool.
 	for i, patch := range dst.Spec.Patches {
 		for j, definition := range patch.Definitions {

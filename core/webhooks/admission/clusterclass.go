@@ -97,6 +97,13 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 			"can be set only if the ClusterTopology feature flag is enabled",
 		)
 	}
+	if !feature.Gates.Enabled(feature.ClusterClassInlineTemplates) && anyInlineTemplateIsSet(newClusterClass) {
+		return field.Forbidden(
+			field.NewPath("spec"),
+			"inline templates can only be set if the ClusterClassInlineTemplates feature flag is enabled",
+		)
+	}
+
 	var allErrs field.ErrorList
 
 	// Ensure all template references are valid.
@@ -400,7 +407,7 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 
 		// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
-		if !clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
+		if !clusterClass.Spec.ControlPlane.MachineInfrastructure.IsDefined() {
 			allErrs = append(allErrs, field.Forbidden(
 				fldPath,
 				"can be only set if spec.controlPlane.machineInfrastructure is set",
@@ -577,4 +584,34 @@ func validateKubernetesVersions(versions []string) field.ErrorList {
 		previousVersion = &semV
 	}
 	return allErrs
+}
+
+func anyInlineTemplateIsSet(clusterClass *clusterv1.ClusterClass) bool {
+	if clusterClass.Spec.Infrastructure.Template.IsDefined() {
+		return true
+	}
+	if clusterClass.Spec.ControlPlane.Template.IsDefined() {
+		return true
+	}
+	if clusterClass.Spec.ControlPlane.MachineInfrastructure.Template.IsDefined() {
+		return true
+	}
+	for _, mdClass := range clusterClass.Spec.Workers.MachineDeployments {
+		if mdClass.Infrastructure.Template.IsDefined() {
+			return true
+		}
+		if mdClass.Bootstrap.Template.IsDefined() {
+			return true
+		}
+	}
+	for _, mpClass := range clusterClass.Spec.Workers.MachinePools {
+		if mpClass.Infrastructure.Template.IsDefined() {
+			return true
+		}
+		if mpClass.Bootstrap.Template.IsDefined() {
+			return true
+		}
+	}
+
+	return false
 }

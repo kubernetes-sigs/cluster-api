@@ -154,10 +154,15 @@ type ClusterClassSpec struct {
 }
 
 // InfrastructureClass defines the class for the infrastructure cluster.
+// +kubebuilder:validation:XValidation:rule="has(self.templateRef) != has(self.template)",message="either templateRef or template must be set, but not both"
 type InfrastructureClass struct {
 	// templateRef contains the reference to a provider-specific infrastructure cluster template.
-	// +required
+	// +optional
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+
+	// template contains a provider-specific infrastructure cluster template.
+	// +optional
+	Template ClusterClassTemplate `json:"template,omitempty,omitzero"`
 
 	// naming allows changing the naming pattern used when creating the infrastructure cluster object.
 	// +optional
@@ -165,6 +170,7 @@ type InfrastructureClass struct {
 }
 
 // ControlPlaneClass defines the class for the control plane.
+// +kubebuilder:validation:XValidation:rule="has(self.templateRef) != has(self.template)",message="either templateRef or template must be set, but not both"
 type ControlPlaneClass struct {
 	// metadata is the metadata applied to the ControlPlane and the Machines of the ControlPlane
 	// if the ControlPlaneTemplate referenced is machine based. If not, it is applied only to the
@@ -177,8 +183,12 @@ type ControlPlaneClass struct {
 	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// templateRef contains the reference to a provider-specific control plane template.
-	// +required
+	// +optional
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+
+	// template contains a provider-specific control plane template.
+	// +optional
+	Template ClusterClassTemplate `json:"template,omitempty,omitzero"`
 
 	// machineInfrastructure defines the metadata and infrastructure information
 	// for control plane machines.
@@ -1521,38 +1531,71 @@ type ExternalPatchDefinition struct {
 }
 
 // ControlPlaneClassMachineInfrastructureTemplate defines the template for a MachineInfrastructure of a ControlPlane.
+// +kubebuilder:validation:XValidation:rule="has(self.templateRef) != has(self.template)",message="either templateRef or template must be set, but not both"
 type ControlPlaneClassMachineInfrastructureTemplate struct {
-	// templateRef is a required reference to the template for a MachineInfrastructure of a ControlPlane.
-	// +required
+	// templateRef contains the reference to the template for a MachineInfrastructure of a ControlPlane.
+	// +optional
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+
+	// template contains a provider-specific template for a MachineInfrastructure of a ControlPlane.
+	// +optional
+	Template ClusterClassTemplate `json:"template,omitempty,omitzero"`
+}
+
+// IsDefined returns true if the ControlPlaneClassMachineInfrastructureTemplate is set.
+func (r *ControlPlaneClassMachineInfrastructureTemplate) IsDefined() bool {
+	if r == nil {
+		return false
+	}
+	return r.TemplateRef.IsDefined() || r.Template.IsDefined()
 }
 
 // MachineDeploymentClassBootstrapTemplate defines the BootstrapTemplate for a MachineDeployment.
+// +kubebuilder:validation:XValidation:rule="has(self.templateRef) != has(self.template)",message="either templateRef or template must be set, but not both"
 type MachineDeploymentClassBootstrapTemplate struct {
-	// templateRef is a required reference to the BootstrapTemplate for a MachineDeployment.
-	// +required
+	// templateRef contains the reference to the BootstrapTemplate for a MachineDeployment.
+	// +optional
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+
+	// template contains a provider-specific BootstrapTemplate for a MachineDeployment.
+	// +optional
+	Template ClusterClassTemplate `json:"template,omitempty,omitzero"`
 }
 
 // MachineDeploymentClassInfrastructureTemplate defines the InfrastructureTemplate for a MachineDeployment.
+// +kubebuilder:validation:XValidation:rule="has(self.templateRef) != has(self.template)",message="either templateRef or template must be set, but not both"
 type MachineDeploymentClassInfrastructureTemplate struct {
-	// templateRef is a required reference to the InfrastructureTemplate for a MachineDeployment.
-	// +required
+	// templateRef contains the reference to the InfrastructureTemplate for a MachineDeployment.
+	// +optional
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+
+	// template contains a provider-specific InfrastructureTemplate for a MachineDeployment.
+	// +optional
+	Template ClusterClassTemplate `json:"template,omitempty,omitzero"`
 }
 
 // MachinePoolClassBootstrapTemplate defines the BootstrapTemplate for a MachinePool.
+// +kubebuilder:validation:XValidation:rule="has(self.templateRef) != has(self.template)",message="either templateRef or template must be set, but not both"
 type MachinePoolClassBootstrapTemplate struct {
-	// templateRef is a required reference to the BootstrapTemplate for a MachinePool.
-	// +required
+	// templateRef contains the reference to the BootstrapTemplate for a MachinePool.
+	// +optional
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+
+	// template contains a provider-specific BootstrapTemplate for a MachinePool.
+	// +optional
+	Template ClusterClassTemplate `json:"template,omitempty,omitzero"`
 }
 
 // MachinePoolClassInfrastructureTemplate defines the InfrastructureTemplate for a MachinePool.
+// +kubebuilder:validation:XValidation:rule="has(self.templateRef) != has(self.template)",message="either templateRef or template must be set, but not both"
 type MachinePoolClassInfrastructureTemplate struct {
-	// templateRef is a required reference to the InfrastructureTemplate for a MachinePool.
-	// +required
+	// templateRef contains the reference to the InfrastructureTemplate for a MachinePool.
+	// +optional
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+
+	// template contains a provider-specific InfrastructureTemplate for a MachinePool.
+	// +optional
+	Template ClusterClassTemplate `json:"template,omitempty,omitzero"`
 }
 
 // ClusterClassTemplateReference is a reference to a ClusterClass template.
@@ -1601,6 +1644,33 @@ func (r *ClusterClassTemplateReference) ToObjectReference(namespace string) *cor
 		Namespace:  namespace,
 		Name:       r.Name,
 	}
+}
+
+// ClusterClassTemplate is a minimal ClusterClass template.
+type ClusterClassTemplate struct {
+	// apiVersion of the template.
+	// apiVersion must be fully qualified domain name followed by / and a version.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=317
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
+	APIVersion string `json:"apiVersion,omitempty"`
+
+	// kind of the template.
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	Kind string `json:"kind,omitempty"`
+}
+
+// IsDefined returns true if the ClusterClassTemplate is set.
+func (r *ClusterClassTemplate) IsDefined() bool {
+	if r == nil {
+		return false
+	}
+	return r.Kind != "" || r.APIVersion != ""
 }
 
 // GroupVersionKind gets the GroupVersionKind for a ClusterClassTemplateReference.

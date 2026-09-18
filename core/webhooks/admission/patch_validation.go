@@ -178,29 +178,29 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 	}
 
 	if ptr.Deref(selector.MatchResources.InfrastructureCluster, false) {
-		if !selectorMatchTemplate(selector, class.Spec.Infrastructure.TemplateRef) {
+		if !selectorMatchTemplate(selector, class.Spec.Infrastructure.TemplateRef, class.Spec.Infrastructure.Template) {
 			allErrs = append(allErrs, field.Invalid(
 				path.Child("matchResources", "infrastructureCluster"),
 				selector.MatchResources.InfrastructureCluster,
-				"selector is enabled but does not match the infrastructure ref",
+				"selector is enabled but does not match the infrastructure template",
 			))
 		}
 	}
 
 	if ptr.Deref(selector.MatchResources.ControlPlane, false) {
 		match := false
-		if selectorMatchTemplate(selector, class.Spec.ControlPlane.TemplateRef) {
+		if selectorMatchTemplate(selector, class.Spec.ControlPlane.TemplateRef, class.Spec.ControlPlane.Template) {
 			match = true
 		}
-		if class.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() &&
-			selectorMatchTemplate(selector, class.Spec.ControlPlane.MachineInfrastructure.TemplateRef) {
+		if class.Spec.ControlPlane.MachineInfrastructure.IsDefined() &&
+			selectorMatchTemplate(selector, class.Spec.ControlPlane.MachineInfrastructure.TemplateRef, class.Spec.ControlPlane.MachineInfrastructure.Template) {
 			match = true
 		}
 		if !match {
 			allErrs = append(allErrs, field.Invalid(
 				path.Child("matchResources", "controlPlane"),
 				selector.MatchResources.ControlPlane,
-				"selector is enabled but matches neither the controlPlane ref nor the controlPlane machineInfrastructure ref",
+				"selector is enabled but matches neither the controlPlane nor the controlPlane machineInfrastructure template",
 			))
 		}
 	}
@@ -224,8 +224,8 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				}
 
 				if matches {
-					if selectorMatchTemplate(selector, md.Infrastructure.TemplateRef) ||
-						selectorMatchTemplate(selector, md.Bootstrap.TemplateRef) {
+					if selectorMatchTemplate(selector, md.Infrastructure.TemplateRef, md.Infrastructure.Template) ||
+						selectorMatchTemplate(selector, md.Bootstrap.TemplateRef, md.Bootstrap.Template) {
 						match = true
 						break
 					}
@@ -235,7 +235,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				allErrs = append(allErrs, field.Invalid(
 					path.Child("matchResources", "machineDeploymentClass", "names").Index(i),
 					name,
-					"selector is enabled but matches neither the bootstrap ref nor the infrastructure ref of a MachineDeployment class",
+					"selector is enabled but matches neither the bootstrap nor the infrastructure template of a MachineDeployment class",
 				))
 			}
 		}
@@ -260,8 +260,8 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				}
 
 				if matches {
-					if selectorMatchTemplate(selector, mp.Infrastructure.TemplateRef) ||
-						selectorMatchTemplate(selector, mp.Bootstrap.TemplateRef) {
+					if selectorMatchTemplate(selector, mp.Infrastructure.TemplateRef, mp.Infrastructure.Template) ||
+						selectorMatchTemplate(selector, mp.Bootstrap.TemplateRef, mp.Bootstrap.Template) {
 						match = true
 						break
 					}
@@ -271,7 +271,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				allErrs = append(allErrs, field.Invalid(
 					path.Child("matchResources", "machinePoolClass", "names").Index(i),
 					name,
-					"selector is enabled but matches neither the bootstrap ref nor the infrastructure ref of a MachinePool class",
+					"selector is enabled but matches neither the bootstrap nor the infrastructure template of a MachinePool class",
 				))
 			}
 		}
@@ -311,8 +311,9 @@ func validateSelectorName(name string, path *field.Path, resourceName string, in
 }
 
 // selectorMatchTemplate returns true if APIVersion and Kind for the given selector match the reference.
-func selectorMatchTemplate(selector clusterv1.PatchSelector, reference clusterv1.ClusterClassTemplateReference) bool {
-	return selector.Kind == reference.Kind && selector.APIVersion == reference.APIVersion
+func selectorMatchTemplate(selector clusterv1.PatchSelector, reference clusterv1.ClusterClassTemplateReference, template clusterv1.ClusterClassTemplate) bool {
+	return (selector.Kind == reference.Kind && selector.APIVersion == reference.APIVersion) ||
+		(selector.Kind == template.Kind && selector.APIVersion == template.APIVersion)
 }
 
 var validOps = sets.Set[string]{}.Insert("add", "replace", "remove")

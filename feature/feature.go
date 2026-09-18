@@ -40,6 +40,11 @@ const (
 	// alpha: v0.4
 	ClusterTopology featuregate.Feature = "ClusterTopology"
 
+	// ClusterClassInlineTemplates is a feature gate for the ClusterClass inline templates functionality.
+	//
+	// alpha: v1.15
+	ClusterClassInlineTemplates featuregate.Feature = "ClusterClassInlineTemplates"
+
 	// RuntimeSDK is a feature gate for the Runtime hooks and extensions functionality.
 	//
 	// alpha: v1.2
@@ -105,4 +110,5 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},
 	InPlaceUpdates:                 {Default: false, PreRelease: featuregate.Alpha},
 	MachineTaintPropagation:        {Default: false, PreRelease: featuregate.Alpha},
+	ClusterClassInlineTemplates:    {Default: false, PreRelease: featuregate.Alpha},
 }

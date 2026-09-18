@@ -16,6 +16,9 @@ Currently Cluster API has the following experimental features:
 * `ReconcilerRateLimiting` (env var: `EXP_RECONCILER_RATE_LIMITING`): Enables reconciler rate-limiting: https://github.com/kubernetes-sigs/cluster-api/issues/13005
   * Note: starting from CAPI v1.12.4 `ReconcilerRateLimiting` also requires `PriorityQueue`
 * `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](./runtime-sdk/index.md)
+* `ClusterClassInlineTemplates` (env var: `EXP_CLUSTERCLASS_INLINE_TEMPLATES`):
+  * Feature gate to enable the ClusterClass inline templates functionality, for more details see https://github.com/kubernetes-sigs/cluster-api/pull/14092
+  * This feature gate should only be enabled if there are no more clients in the environment that are using the v1beta1 ClusterClass API.
 
 ## Enabling Experimental Features for Management Clusters Started with clusterctl
 

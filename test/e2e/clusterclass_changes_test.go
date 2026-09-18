@@ -31,7 +31,7 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", Label("Clus
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                "in-memory-topology",
+			Flavor:                "in-memory-topology-templaterefs",
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
 			// The below values are used when creating the cluster-wide ExtensionConfig to refer

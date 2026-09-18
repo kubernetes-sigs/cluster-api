@@ -290,8 +290,8 @@ help:  # Display this help
 ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure test-extension
 
 .PHONY: generate
-generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-* and generate-go-openapi targets
-	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-go-openapi
+generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-*, generate-go-openapi and generate-crd-docs targets
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-go-openapi generate-crd-docs
 
 .PHONY: generate-manifests
 generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## Run all generate-manifests-* targets

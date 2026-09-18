@@ -1,77 +1,3 @@
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DevClusterTemplate
-metadata:
-  name: in-memory-cluster
-spec:
-  template:
-    spec:
-      backend:
-        inMemory: {}
----
-apiVersion: controlplane.cluster.x-k8s.io/v1beta2
-kind: KubeadmControlPlaneTemplate
-metadata:
-  name: in-memory-control-plane
-# Note: Intentionally using an empty object here to verify the Cluster topology controller can handle it.
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DevMachineTemplate
-metadata:
-  name: in-memory-control-plane
-spec:
-  template:
-    spec:
-      backend:
-        inMemory:
-          vm:
-            provisioning:
-              startupDuration: "10s"
-              startupJitter: "0.2"
-          node:
-            provisioning:
-              startupDuration: "2s"
-              startupJitter: "0.2"
-          apiServer:
-            provisioning:
-              startupDuration: "2s"
-              startupJitter: "0.2"
-          etcd:
-            provisioning:
-              startupDuration: "2s"
-              startupJitter: "0.2"
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DevMachineTemplate
-metadata:
-  name: in-memory-default-worker-machinetemplate
-spec:
-  template:
-    spec:
-      backend:
-        inMemory:
-          vm:
-            provisioning:
-              startupDuration: "10s"
-              startupJitter: "0.2"
-          node:
-            provisioning:
-              startupDuration: "2s"
-              startupJitter: "0.2"
-          apiServer:
-            provisioning:
-              startupDuration: "2s"
-              startupJitter: "0.2"
-          etcd:
-            provisioning:
-              startupDuration: "2s"
-              startupJitter: "0.2"
----
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-kind: KubeadmConfigTemplate
-metadata:
-  name: in-memory-default-worker-bootstraptemplate
-# Note: Intentionally using an empty object here to verify the Cluster topology controller can handle it.
----
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
@@ -84,14 +10,12 @@ spec:
       annotations:
         ClusterClass.controlPlane.annotation: "ClusterClass.controlPlane.annotationValue"
     machineInfrastructure:
-      templateRef:
+      template:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DevMachineTemplate
-        name: in-memory-control-plane
-    templateRef:
+    template:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
-      name: in-memory-control-plane
     healthCheck:
       checks:
         unhealthyNodeConditions:
@@ -102,10 +26,9 @@ spec:
             status: "False"
             timeoutSeconds: 300
   infrastructure:
-    templateRef:
+    template:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DevClusterTemplate
-      name: in-memory-cluster
   workers:
     machineDeployments:
       - class: default-worker
@@ -115,15 +38,13 @@ spec:
           annotations:
             ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
         bootstrap:
-          templateRef:
+          template:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
-            name: in-memory-default-worker-bootstraptemplate
         infrastructure:
-          templateRef:
+          template:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DevMachineTemplate
-            name: in-memory-default-worker-machinetemplate
         healthCheck:
           checks:
             unhealthyNodeConditions:
@@ -138,6 +59,8 @@ spec:
       external:
         generatePatchesExtension: generate-patches.${EXTENSION_CONFIG_NAME:-"scale"}
         discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:-"scale"}
+        settings:
+          backend: inMemory
   upgrade:
     external:
       generateUpgradePlanExtension: generate-upgrade-plan.${EXTENSION_CONFIG_NAME:-"scale"}

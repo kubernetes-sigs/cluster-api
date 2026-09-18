@@ -486,10 +486,6 @@ is implemented in BootstrapConfig controllers:
 
 ## Behavior
 
-A bootstrap provider must respond to changes to its bootstrap resources. This process is
-typically called reconciliation. The provider must watch for new, updated, and deleted resources and respond
-accordingly.
-
 The following diagram shows the typical logic for a bootstrap provider:
 
 ![Bootstrap provider activity diagram](../../../images/bootstrap-provider.png)

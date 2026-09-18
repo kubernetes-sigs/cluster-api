@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v90/github"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"

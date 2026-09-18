@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -58,6 +59,15 @@ type ManagerOptions struct {
 	InsecureDiagnostics bool
 }
 
+// WebhookCertificateOptions provides command line flags for loading a webhook certificate from a Secret.
+type WebhookCertificateOptions struct {
+	// SecretName is the name of the Secret containing the webhook certificate.
+	// If it is empty, the webhook server reads its certificate from the configured files.
+	SecretName string
+	// SecretNamespace is the namespace of the Secret containing the webhook certificate.
+	SecretNamespace string
+}
+
 // AddManagerOptions adds the manager options flags to the flag set.
 func AddManagerOptions(fs *pflag.FlagSet, options *ManagerOptions) {
 	fs.StringVar(&options.TLSMinVersion, "tls-min-version", "VersionTLS12",
@@ -88,6 +98,14 @@ func AddManagerOptions(fs *pflag.FlagSet, options *ManagerOptions) {
 
 	fs.BoolVar(&options.InsecureDiagnostics, "insecure-diagnostics", false,
 		"Enable insecure diagnostics serving. For more details see the description of --diagnostics-address.")
+}
+
+// AddWebhookCertificateOptions adds webhook certificate Secret flags to the flag set.
+func AddWebhookCertificateOptions(fs *pflag.FlagSet, options *WebhookCertificateOptions) {
+	fs.StringVar(&options.SecretName, "webhook-cert-secret-name", "",
+		"Name of the Secret containing the webhook server certificate. If set, the Secret is watched directly instead of reading the certificate from files.")
+	fs.StringVar(&options.SecretNamespace, "webhook-cert-secret-namespace", os.Getenv("POD_NAMESPACE"),
+		"Namespace of the Secret containing the webhook server certificate. Defaults to the POD_NAMESPACE environment variable.")
 }
 
 // GetManagerOptions returns options which can be used to configure a Manager.

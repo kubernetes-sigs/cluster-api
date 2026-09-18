@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	goruntime "runtime"
+	"slices"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -35,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -56,6 +58,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/feature"
+	secretcertwatcher "sigs.k8s.io/cluster-api/pkg/certwatcher"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
@@ -94,6 +97,7 @@ var (
 	webhookKeyName              string
 	healthAddr                  string
 	managerOptions              = flags.ManagerOptions{}
+	webhookCertificateOptions   = flags.WebhookCertificateOptions{}
 	logOptions                  = logs.NewOptions()
 	// CAPD specific flags.
 	devMachineConcurrency         int
@@ -198,6 +202,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The address the health endpoint binds to.")
 
 	flags.AddManagerOptions(fs, &managerOptions)
+	flags.AddWebhookCertificateOptions(fs, &webhookCertificateOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -251,6 +256,23 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "Unable to start manager: invalid flags")
 		os.Exit(1)
+	}
+
+	// Setup the context that's going to be used in controllers and for the manager.
+	ctx := ctrl.SetupSignalHandler()
+
+	webhookTLSOptions := slices.Clone(tlsOptions)
+	var webhookCertificateWatcher *secretcertwatcher.Watcher
+	if webhookCertificateOptions.SecretName != "" {
+		webhookCertificateWatcher, err = secretcertwatcher.New(ctx, restConfig, types.NamespacedName{
+			Namespace: webhookCertificateOptions.SecretNamespace,
+			Name:      webhookCertificateOptions.SecretName,
+		})
+		if err != nil {
+			setupLog.Error(err, "Unable to start manager")
+			os.Exit(1)
+		}
+		webhookTLSOptions = append(webhookTLSOptions, webhookCertificateWatcher.TLSConfig)
 	}
 
 	var watchNamespaces map[string]ctrlcache.Config
@@ -312,7 +334,7 @@ func main() {
 				CertDir:  webhookCertDir,
 				CertName: webhookCertName,
 				KeyName:  webhookKeyName,
-				TLSOpts:  tlsOptions,
+				TLSOpts:  webhookTLSOptions,
 			},
 		),
 	}
@@ -323,8 +345,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup the context that's going to be used in controllers and for the manager.
-	ctx := ctrl.SetupSignalHandler()
+	if webhookCertificateWatcher != nil {
+		if err := mgr.Add(webhookCertificateWatcher); err != nil {
+			setupLog.Error(err, "Unable to add webhook certificate Secret watcher to manager")
+			os.Exit(1)
+		}
+	}
 
 	setupChecks(mgr)
 	setupReconcilers(ctx, mgr)

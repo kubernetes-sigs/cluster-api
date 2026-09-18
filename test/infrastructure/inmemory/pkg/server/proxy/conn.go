@@ -18,6 +18,7 @@ package proxy
 
 import (
 	"net"
+	"sync"
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -26,6 +27,7 @@ import (
 
 // Conn is a Kubernetes API server proxied type of net/conn.
 type Conn struct {
+	lock          sync.Mutex
 	connection    httpstream.Connection
 	stream        httpstream.Stream
 	readDeadline  time.Time
@@ -59,6 +61,8 @@ func (c *Conn) RemoteAddr() net.Addr {
 
 // SetDeadline sets the read and write deadlines to the specified interval.
 func (c *Conn) SetDeadline(t time.Time) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	c.readDeadline = t
 	c.writeDeadline = t
 	return nil
@@ -66,12 +70,16 @@ func (c *Conn) SetDeadline(t time.Time) error {
 
 // SetWriteDeadline sets the read and write deadlines to the specified interval.
 func (c *Conn) SetWriteDeadline(t time.Time) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	c.writeDeadline = t
 	return nil
 }
 
 // SetReadDeadline sets the read and write deadlines to the specified interval.
 func (c *Conn) SetReadDeadline(t time.Time) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	c.readDeadline = t
 	return nil
 }

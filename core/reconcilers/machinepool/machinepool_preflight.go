@@ -276,12 +276,12 @@ func (r *Reconciler) skippedPreflightChecks(ctx context.Context, mp *clusterv1.M
 
 	// Fallback to try to read skip annotation from BootstrapConfigTemplate.
 	if skip == "" && mp.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
-		apiVersion, err := contract.GetAPIVersion(ctx, r.Client, mp.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
+		_, refGVK, err := contract.GetGVKFromGK(ctx, r.Client, mp.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
 		if err != nil {
 			return nil, pkgerrors.Wrapf(err, "failed to read %s annotation", clusterv1.MachinePoolSkipPreflightChecksAnnotation)
 		}
 		templateRef := &corev1.ObjectReference{
-			APIVersion: apiVersion,
+			APIVersion: refGVK.GroupVersion().String(),
 			Kind:       mp.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
 			Namespace:  mp.Namespace,
 			Name:       mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name,

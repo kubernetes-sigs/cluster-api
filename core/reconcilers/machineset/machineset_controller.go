@@ -1329,6 +1329,9 @@ func (r *Reconciler) getOwnerMachineDeployment(ctx context.Context, machineSet *
 
 	md := &clusterv1.MachineDeployment{}
 	if err := r.Client.Get(ctx, client.ObjectKey{Namespace: machineSet.Namespace, Name: mdName}, md); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to retrieve owner MachineDeployment for MachineSet %s: %w", klog.KObj(machineSet), err)
 	}
 	return md, nil
@@ -1672,7 +1675,9 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 
 	// If the MachineSet is part of a MachineDeployment, only allow remediations if
 	// it's the desired revision.
-	if isDeploymentChild(ms) {
+	// If the owning MachineDeployment is not found, skip revision and MaxInFlight checks
+	// and fall through to the default behavior (all machines can be remediated at once).
+	if isDeploymentChild(ms) && owner != nil {
 		if owner.Annotations[clusterv1.RevisionAnnotation] != ms.Annotations[clusterv1.RevisionAnnotation] {
 			// MachineSet is part of a MachineDeployment but isn't the current revision, no remediations allowed.
 			// Note: While remediation won't delete these Machines deleteMachines or startMoveMachines will delete

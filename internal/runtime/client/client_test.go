@@ -1917,6 +1917,152 @@ func TestExtensionNameFromHandlerName(t *testing.T) {
 	}
 }
 
+func Test_responseToExtensionConfig(t *testing.T) {
+	extensionConfig := &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: "runtime1"}}
+
+	t.Run("detects added, modified, unchanged and deleted handlers", func(t *testing.T) {
+		g := NewWithT(t)
+
+		existing := extensionConfig.DeepCopy()
+		existing.Status.Handlers = []runtimev1.ExtensionHandler{
+			{
+				Name: "unchanged-handler.runtime1",
+				RequestHook: runtimev1.GroupVersionHook{
+					APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+					Hook:       "BeforeClusterCreate",
+				},
+				TimeoutSeconds: 10,
+				FailurePolicy:  runtimev1.FailurePolicyFail,
+			},
+			{
+				Name: "modified-handler.runtime1",
+				RequestHook: runtimev1.GroupVersionHook{
+					APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+					Hook:       "BeforeClusterUpgrade",
+				},
+				TimeoutSeconds: 10,
+				FailurePolicy:  runtimev1.FailurePolicyFail,
+			},
+			{
+				Name: "deleted-handler.runtime1",
+				RequestHook: runtimev1.GroupVersionHook{
+					APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+					Hook:       "BeforeClusterDelete",
+				},
+				TimeoutSeconds: 10,
+				FailurePolicy:  runtimev1.FailurePolicyFail,
+			},
+		}
+
+		response := &runtimehooksv1.DiscoveryResponse{
+			Handlers: []runtimehooksv1.ExtensionHandler{
+				{
+					Name: "unchanged-handler",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+						Hook:       "BeforeClusterCreate",
+					},
+					TimeoutSeconds: ptr.To[int32](10),
+					FailurePolicy:  ptr.To(runtimehooksv1.FailurePolicyFail),
+				},
+				{
+					Name: "modified-handler",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+						Hook:       "BeforeClusterUpgrade",
+					},
+					TimeoutSeconds: ptr.To[int32](20), // Timeout changed from 10 to 20.
+					FailurePolicy:  ptr.To(runtimehooksv1.FailurePolicyFail),
+				},
+				{
+					Name: "added-handler",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+						Hook:       "BeforeClusterCreate",
+					},
+					TimeoutSeconds: ptr.To[int32](10),
+					FailurePolicy:  ptr.To(runtimehooksv1.FailurePolicyFail),
+				},
+			},
+		}
+
+		modifiedExtensionConfig, changes, err := responseToExtensionConfig(response, existing)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// The Status.Handlers list always reflects the latest discovery response.
+		g.Expect(modifiedExtensionConfig.Status.Handlers).To(ConsistOf(
+			runtimev1.ExtensionHandler{
+				Name: "unchanged-handler.runtime1",
+				RequestHook: runtimev1.GroupVersionHook{
+					APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+					Hook:       "BeforeClusterCreate",
+				},
+				TimeoutSeconds: 10,
+				FailurePolicy:  runtimev1.FailurePolicyFail,
+			},
+			runtimev1.ExtensionHandler{
+				Name: "modified-handler.runtime1",
+				RequestHook: runtimev1.GroupVersionHook{
+					APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+					Hook:       "BeforeClusterUpgrade",
+				},
+				TimeoutSeconds: 20,
+				FailurePolicy:  runtimev1.FailurePolicyFail,
+			},
+			runtimev1.ExtensionHandler{
+				Name: "added-handler.runtime1",
+				RequestHook: runtimev1.GroupVersionHook{
+					APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+					Hook:       "BeforeClusterCreate",
+				},
+				TimeoutSeconds: 10,
+				FailurePolicy:  runtimev1.FailurePolicyFail,
+			},
+		))
+
+		g.Expect(changes.UnsortedList()).To(ConsistOf(
+			"added-handler added",
+			"modified-handler modified",
+			"deleted-handler.runtime1 deleted",
+		))
+	})
+
+	t.Run("does not report changes when the discovery response is unchanged", func(t *testing.T) {
+		g := NewWithT(t)
+
+		existing := extensionConfig.DeepCopy()
+		existing.Status.Handlers = []runtimev1.ExtensionHandler{
+			{
+				Name: "unchanged-handler.runtime1",
+				RequestHook: runtimev1.GroupVersionHook{
+					APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+					Hook:       "BeforeClusterCreate",
+				},
+				TimeoutSeconds: 10,
+				FailurePolicy:  runtimev1.FailurePolicyFail,
+			},
+		}
+
+		response := &runtimehooksv1.DiscoveryResponse{
+			Handlers: []runtimehooksv1.ExtensionHandler{
+				{
+					Name: "unchanged-handler",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						APIVersion: "hooks.cluster.x-k8s.io/v1alpha1",
+						Hook:       "BeforeClusterCreate",
+					},
+					TimeoutSeconds: ptr.To[int32](10),
+					FailurePolicy:  ptr.To(runtimehooksv1.FailurePolicyFail),
+				},
+			},
+		}
+
+		_, changes, err := responseToExtensionConfig(response, existing)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(changes).To(BeEmpty())
+	})
+}
+
 // The following certs were generated using openssl by the https://github.com/kubernetes/kubernetes/blob/481c2d8e03508dba2c28aeb4bba48ce48904183b/staging/src/k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts/gencerts.sh
 // script and are used as certificates for the Runtime SDK unit tests.
 

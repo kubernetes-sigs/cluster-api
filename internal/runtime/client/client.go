@@ -29,6 +29,7 @@ import (
 	"net/url"
 	"path"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/transport"
 	"k8s.io/klog/v2"
@@ -189,30 +191,69 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 		return nil, pkgerrors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
 	}
 
+	modifiedExtensionConfig, changes, err := responseToExtensionConfig(response, extensionConfig)
+	if err != nil {
+		return nil, err
+	}
+	if changes.Len() > 0 {
+		messages := changes.UnsortedList()
+		sort.Strings(messages)
+		log.Info(fmt.Sprintf("Discovery detected following changes: %s", strings.Join(messages, ", ")))
+	}
+
+	return modifiedExtensionConfig, nil
+}
+
+func responseToExtensionConfig(response *runtimehooksv1.DiscoveryResponse, extensionConfig *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, sets.Set[string], error) {
 	modifiedExtensionConfig := extensionConfig.DeepCopy()
 	// Reset the handlers that were previously registered with the ExtensionConfig.
 	modifiedExtensionConfig.Status.Handlers = []runtimev1.ExtensionHandler{}
 
+	handlerNames := sets.Set[string]{}
+	changes := sets.Set[string]{}
 	for _, handler := range response.Handlers {
 		handlerName, err := NameForHandler(handler, extensionConfig)
 		if err != nil {
-			return nil, pkgerrors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
+			return nil, nil, pkgerrors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
+		}
+		handlerNames.Insert(handlerName)
+		newHandler := runtimev1.ExtensionHandler{
+			Name: handlerName, // Uniquely identifies a handler of an Extension.
+			RequestHook: runtimev1.GroupVersionHook{
+				APIVersion: handler.RequestHook.APIVersion,
+				Hook:       handler.RequestHook.Hook,
+			},
+			TimeoutSeconds: ptr.Deref(handler.TimeoutSeconds, 0),
+			FailurePolicy:  runtimev1.FailurePolicy(ptr.Deref(handler.FailurePolicy, "")),
 		}
 		modifiedExtensionConfig.Status.Handlers = append(
 			modifiedExtensionConfig.Status.Handlers,
-			runtimev1.ExtensionHandler{
-				Name: handlerName, // Uniquely identifies a handler of an Extension.
-				RequestHook: runtimev1.GroupVersionHook{
-					APIVersion: handler.RequestHook.APIVersion,
-					Hook:       handler.RequestHook.Hook,
-				},
-				TimeoutSeconds: ptr.Deref(handler.TimeoutSeconds, 0),
-				FailurePolicy:  runtimev1.FailurePolicy(ptr.Deref(handler.FailurePolicy, "")),
-			},
+			newHandler,
 		)
+
+		var oldHandler *runtimev1.ExtensionHandler
+		for _, h := range extensionConfig.Status.Handlers {
+			if h.Name == newHandler.Name {
+				oldHandler = &h
+				break
+			}
+		}
+		if oldHandler == nil {
+			changes.Insert(fmt.Sprintf("%s added", handler.Name))
+			continue
+		}
+		if !reflect.DeepEqual(newHandler, *oldHandler) {
+			changes.Insert(fmt.Sprintf("%s modified", handler.Name))
+			continue
+		}
 	}
 
-	return modifiedExtensionConfig, nil
+	for _, h := range extensionConfig.Status.Handlers {
+		if !handlerNames.Has(h.Name) {
+			changes.Insert(fmt.Sprintf("%s deleted", h.Name))
+		}
+	}
+	return modifiedExtensionConfig, changes, nil
 }
 
 func (c *client) Register(extensionConfig *runtimev1.ExtensionConfig) error {

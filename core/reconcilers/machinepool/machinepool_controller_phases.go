@@ -215,7 +215,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, m *clusterv1.Machine
 		if m.Status.Deprecated != nil {
 			m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 		}
-		if m.Status.Deprecated.V1Beta1 != nil {
+		if m.Status.Deprecated.V1Beta1 == nil {
 			m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 		}
 		m.Status.Deprecated.V1Beta1.FailureReason = &machineStatusFailure
@@ -224,7 +224,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, m *clusterv1.Machine
 		if m.Status.Deprecated != nil {
 			m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 		}
-		if m.Status.Deprecated.V1Beta1 != nil {
+		if m.Status.Deprecated.V1Beta1 == nil {
 			m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 		}
 		m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
@@ -254,7 +254,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 			if m.Status.Deprecated != nil {
 				m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 			}
-			if m.Status.Deprecated.V1Beta1 != nil {
+			if m.Status.Deprecated.V1Beta1 == nil {
 				m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 			}
 			m.Status.Deprecated.V1Beta1.FailureReason = &machineStatusFailure
@@ -263,7 +263,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 			if m.Status.Deprecated != nil {
 				m.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 			}
-			if m.Status.Deprecated.V1Beta1 != nil {
+			if m.Status.Deprecated.V1Beta1 == nil {
 				m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 			}
 			m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(

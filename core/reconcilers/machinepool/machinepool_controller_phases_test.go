@@ -17,6 +17,7 @@ limitations under the License.
 package machinepool
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -2373,6 +2374,136 @@ func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReconcileExternalFailureRecording(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	ctx = log.IntoContext(ctx, logr.New(log.NullLogSink{}))
+
+	defaultMachinePool := &clusterv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machinepool-test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: clusterName,
+			},
+		},
+		Spec: clusterv1.MachinePoolSpec{
+			ClusterName: clusterName,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachineTemplateKind,
+						Name:     "infra-config1",
+					},
+				},
+			},
+		},
+	}
+
+	infra := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       builder.TestInfrastructureMachineTemplateKind,
+			"apiVersion": builder.InfrastructureGroupVersion.String(),
+			"metadata": map[string]interface{}{
+				"name":      "infra-config1",
+				"namespace": metav1.NamespaceDefault,
+			},
+			"spec": map[string]interface{}{},
+			"status": map[string]interface{}{
+				"failureReason": "InsufficientCapacity",
+				"failureMessage": "Insufficient capacity in AZ",
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithObjects(infra).Build()
+
+	r := &Reconciler{
+		Client: fakeClient,
+		externalTracker: external.ObjectTracker{
+			Controller:      externalfake.Controller{},
+			Cache:           &informertest.FakeInformers{},
+			Scheme:          fakeClient.Scheme(),
+			PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+		},
+	}
+
+	result, err := r.reconcileExternal(ctx, defaultMachinePool, defaultMachinePool.Spec.Template.Spec.InfrastructureRef)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result).NotTo(BeNil())
+
+	g.Expect(defaultMachinePool.Status.Deprecated).NotTo(BeNil())
+	g.Expect(defaultMachinePool.Status.Deprecated.V1Beta1).NotTo(BeNil())
+	g.Expect(defaultMachinePool.Status.Deprecated.V1Beta1.FailureReason).NotTo(BeNil())
+	g.Expect(defaultMachinePool.Status.Deprecated.V1Beta1.FailureMessage).NotTo(BeNil())
+}
+
+func TestReconcileBootstrapFailureRecording(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	ctx = log.IntoContext(ctx, logr.New(log.NullLogSink{}))
+
+	defaultMachinePool := &clusterv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machinepool-test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: clusterName,
+			},
+		},
+		Spec: clusterv1.MachinePoolSpec{
+			ClusterName: clusterName,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	bootstrap := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       builder.TestBootstrapConfigKind,
+			"apiVersion": builder.BootstrapGroupVersion.String(),
+			"metadata": map[string]interface{}{
+				"name":      "bootstrap-config1",
+				"namespace": metav1.NamespaceDefault,
+			},
+			"spec": map[string]interface{}{},
+			"status": map[string]interface{}{
+				"failureReason": "InvalidConfiguration",
+				"failureMessage": "Cloud-init failed",
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithObjects(bootstrap).Build()
+
+	r := &Reconciler{
+		Client:       fakeClient,
+		DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
+	}
+
+	scope := &scope{
+		machinePool: defaultMachinePool,
+	}
+
+	_, err := r.reconcileBootstrap(ctx, scope)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(defaultMachinePool.Status.Deprecated).NotTo(BeNil())
+	g.Expect(defaultMachinePool.Status.Deprecated.V1Beta1).NotTo(BeNil())
+	g.Expect(defaultMachinePool.Status.Deprecated.V1Beta1.FailureReason).NotTo(BeNil())
+	g.Expect(defaultMachinePool.Status.Deprecated.V1Beta1.FailureMessage).NotTo(BeNil())
 }
 
 func reconcileNormalFuncsForTest(mpr *Reconciler) []machinePoolReconcileFunc {

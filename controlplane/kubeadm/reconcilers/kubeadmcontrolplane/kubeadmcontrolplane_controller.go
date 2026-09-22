@@ -1501,9 +1501,15 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 	etcdMemberNameToBeDeleted := r.tryGetEtcdMemberName(ctx, controlPlane, deletingMachine)
 	addEtcdMember := false
 
+	// If it was not possible to get the name of the etcd member hosted on the machine being deleted, try
+	// to infer it by looking at the list of members and at the list of Machines.
+	if etcdMemberNameToBeDeleted == "" {
+		etcdMemberNameToBeDeleted = r.tryInferMemberToBeDeleted(controlPlane, deletingMachine)
+	}
+
 	// If it was not possible to get the name of the etcd member hosted on this machine or if the etcd member doesn't have
 	// a name yet, no other checks can be performed. Continue with deletion.
-	// Note: reconcileEtcMembers acts a safeguard/cleanup procedure if an etcdMember is added/reported after this point
+	// Note: reconcileEtcdMembers acts a safeguard/cleanup procedure if an etcdMember is added/reported after this point
 	// and for etcd member without a name.
 	if etcdMemberNameToBeDeleted == "" {
 		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
@@ -1553,6 +1559,55 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 
 	log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+}
+
+func (r *Reconciler) tryInferMemberToBeDeleted(controlPlane *pkg.ControlPlane, deletingMachine *clusterv1.Machine) string {
+	expectedMembers := sets.New[string]()
+	unexpectedProvisioningMachine := false
+	for _, machine := range controlPlane.Machines {
+		if !machine.Status.NodeRef.IsDefined() {
+			// Note: the machine being deleted should be the only machine without a node.
+			if machine.Name != deletingMachine.Name {
+				unexpectedProvisioningMachine = true
+			}
+			continue
+		}
+		expectedMembers.Insert(machine.Status.NodeRef.Name)
+	}
+	unexpectedMembers := sets.New[*etcd.Member]()
+	for _, member := range controlPlane.EtcdMembers {
+		if expectedMembers.Has(member.Name) {
+			continue
+		}
+		unexpectedMembers.Insert(member)
+	}
+
+	// If there is only a single unexpected etcd member, we can assume it is the member hosted
+	// on the machine being deleted / still without a node name.
+	// This assumption is considered the last option to safely remove the etcd member hosted on the
+	// machine before the machine deletion; deleting the member cleanly prevents etcd
+	// losing quorum in case we have only two etcd members, one of them hosted on the Machine being deleted.
+	// Note: unexpectedProvisioningMachine is a safeguard preventing KCP from making a wrong assumption
+	// if there is more than one machine without a node ref, but this should never happen because KCP
+	// does only one operation at time.
+	// Note: at this point the unexpectedMembers could also be a member without a name, which is usually also a learner.
+	// In this case it is ok to remove PreTerminateHookAnnotation hook without removing the etcd member, reconcileEtcdMembers
+	// will clean it up at the next reconcile.
+	// TODO: it might happen that the member name is assigned after machine deletion; current implementation does
+	//  not hadle this edge case; in order to do so (GAP).
+	if len(unexpectedMembers) == 1 && !unexpectedProvisioningMachine {
+		return unexpectedMembers.UnsortedList()[0].Name
+	}
+
+	// If there are no unexpected etcd members, then it is ok to remove the PreTerminateHookAnnotation
+	// and continue with deletion.
+
+	// If it was not possible to infer the match and there are still unexpected etcd members, this code
+	// should not make unsafe assumptions and defer to reconcileEtcdMembers to clean up in a next reconcile.
+	// Note: this approach is considered acceptable because this case should never happen given that
+	// KCP does only one operation at time; in the future we might revisit this and call reconcileEtcdMembers
+	// directly here to try to clean up all the exceeding members before deleting the machine.
+	return ""
 }
 
 func (r *Reconciler) forwardEtcdLeadership(ctx context.Context, workloadCluster pkg.WorkloadCluster, controlPlane *pkg.ControlPlane, deletingMachine *clusterv1.Machine) error {

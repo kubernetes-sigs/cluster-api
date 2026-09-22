@@ -1,0 +1,5 @@
+# These two golang.org/x/crypto vulnerabilities are fixed in 0.56.0,
+# but that requires go 1.26.0. According to govulncheck, the vulnerabble
+# code is not called by CAPI anyway, so we can ignore these for now.
+CVE-2026-56855
+CVE-2026-78662

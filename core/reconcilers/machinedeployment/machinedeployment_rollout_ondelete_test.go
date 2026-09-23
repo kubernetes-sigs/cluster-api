@@ -572,12 +572,11 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 		"    - After each reconcile, the resulting status is reported with notes about relevant changes, if any\n\n")
 
 	// Log initial state
-	fLogger.Logf("[Test] Initial state\n%s", current.summary())
-	random := ""
+	fLogger.Logf("[Test] Initial state\n%s\n", current.summary())
+	fLogger.Logf("[Test] Strategy=OnDelete\n\n")
 	if tt.randomControllerOrder {
-		random = fmt.Sprintf(", random(%d)", tt.seed)
+		fLogger.Logf("[Test] Random reconcile sequence, seed=%d\n\n", tt.seed)
 	}
-	fLogger.Logf("[Test] Rollout %d replicas, onDeleteStrategy%s\n\n", len(current.machines()), random)
 	i := 1
 	maxIterations := tt.maxIterations
 
@@ -641,7 +640,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 				current.machineDeployment.Status.AvailableReplicas = mdutil.GetAvailableReplicaCountForMachineSets(current.machineSets)
 
 				// Log state after this reconcile
-				fLogger.Logf("[MD controller] Reconcile\n  %s", current.rolloutPlannerResultSummary(p))
+				fLogger.Logf("[MD controller] Reconcile %s\n  %s", current.machineDeployment.Name, current.rolloutPlannerResultSummary(p))
 			}
 
 			// Simulate the user deleting machines not upToDate; in order to make this realistic deletion will be performed
@@ -689,7 +688,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 			// Run mutators faking MS controllers
 			for _, ms := range current.machineSets {
 				if ms.Name == task {
-					fLogger.Logf("[MS controller] Reconcile\n")
+					fLogger.Logf("[MS controller] Reconcile %s\n", ms.Name)
 					err := machineSetControllerMutator(fLogger, ms, current)
 					g.Expect(err).ToNot(HaveOccurred())
 					break
@@ -700,7 +699,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 			for _, ms := range current.machineSets {
 				for _, m := range current.machineSetMachines[ms.Name] {
 					if m.Name == task {
-						fLogger.Logf("[M controller] Reconcile\n")
+						fLogger.Logf("[M controller] Reconcile %s\n", m.Name)
 						machineControllerMutator(fLogger, m, current)
 					}
 				}

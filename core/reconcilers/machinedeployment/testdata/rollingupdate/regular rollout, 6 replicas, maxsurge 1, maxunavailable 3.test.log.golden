@@ -1,4 +1,4 @@
-## Regular rollout, 6 Replicas, maxSurge 1, maxUnavailable 3
+[Test] Regular rollout, 6 Replicas, maxSurge 1, maxUnavailable 3
 
 [Test] Legend:
       - X/Y replicas is status.replicas/spec.replicas
@@ -11,9 +11,10 @@
 [Test] Initial state
     md: 6/6 replicas, 6 available, 0 upToDate
     ms1: 6/6 replicas, 6 available, 0 upToDate (m1,m2,m3,m4,m5,m6)
-[Test] Rollout 6 replicas, MaxSurge=1, MaxUnavailable=3
   
-[MD controller] Reconcile
+[Test] Strategy=RollingUpdate, MaxSurge=1, MaxUnavailable=3
+  
+[MD controller] Reconcile md
     md: 6/6 replicas, 6 available, 0 upToDate
     ms1: from 6/6 to 6/3 replicas, 6 available, 0 upToDate (m1,m2,m3,m4,m5,m6)
       - Scaled down old MachineSet ms1 from 6 to 3 replicas (-3)
@@ -23,13 +24,13 @@
       - MachineSet ms2 created, it is now the current MachineSet
       - Scaled up current MachineSet ms2 from 0 to 1 replicas (+1)
         - Reason: 6 current Machines < 6 MachineDeployment spec.replicas + 1 maxSurge
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 3/3 replicas, 3 available, 0 upToDate (m4,m5,m6)
       - ms1 scaled down to 3/3 replicas (m1,m2,m3 deleted)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 1/1 replicas, 1 available, 1 upToDate (m7)
       - ms2 scaled up to 1/1 replicas (m7 created)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 4/6 replicas, 4 available, 1 upToDate
     ms1: from 3/3 to 3/2 replicas, 3 available, 0 upToDate (m4,m5,m6)
       - Scaled down old MachineSet ms1 from 3 to 2 replicas (-1)
@@ -39,13 +40,13 @@
       - Scaled up current MachineSet ms2 from 1 to 4 replicas (+3)
         - Reason: 4 current Machines < 6 MachineDeployment spec.replicas + 1 maxSurge
         - Diff: replicas 4
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 2/2 replicas, 2 available, 0 upToDate (m5,m6)
       - ms1 scaled down to 2/2 replicas (m4 deleted)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 4/4 replicas, 4 available, 4 upToDate (m7,m8,m9,m10)
       - ms2 scaled up to 4/4 replicas (m8,m9,m10 created)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 6/6 replicas, 6 available, 4 upToDate
     ms1: from 2/2 to 2/0 replicas, 2 available, 0 upToDate (m5,m6)
       - Scaled down old MachineSet ms1 from 2 to 0 replicas (-2)
@@ -55,31 +56,31 @@
       - Scaled up current MachineSet ms2 from 4 to 5 replicas (+1)
         - Reason: 6 current Machines < 6 MachineDeployment spec.replicas + 1 maxSurge
         - Diff: replicas 5
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
       - ms1 scaled down to 0/0 replicas (m5,m6 deleted)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 5/5 replicas, 5 available, 5 upToDate (m7,m8,m9,m10,m11)
       - ms2 scaled up to 5/5 replicas (m11 created)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 5/6 replicas, 5 available, 5 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: from 5/5 to 5/6 replicas, 5 available, 5 upToDate (m7,m8,m9,m10,m11)
       - Scaled up current MachineSet ms2 from 5 to 6 replicas (+1)
         - Reason: 5 current Machines < 6 MachineDeployment spec.replicas + 1 maxSurge
         - Diff: replicas 6
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 6/6 replicas, 6 available, 6 upToDate (m7,m8,m9,m10,m11,m12)
       - ms2 scaled up to 6/6 replicas (m12 created)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 6/6 replicas, 6 available, 6 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 6/6 replicas, 6 available, 6 upToDate (m7,m8,m9,m10,m11,m12)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 6/6 replicas, 6 available, 6 upToDate (m7,m8,m9,m10,m11,m12)
   
 [Test] Final state

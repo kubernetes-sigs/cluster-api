@@ -1,4 +1,4 @@
-## 3 replicas, maxUserUnavailable 1
+[Test] 3 replicas, maxUserUnavailable 1
 
 [Test] Legend:
       - X/Y replicas is status.replicas/spec.replicas
@@ -7,170 +7,171 @@
 [Test] Initial state
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 3/3 replicas, 3 available, 0 upToDate (m1,m2,m3)
-[Test] Rollout 3 replicas, onDeleteStrategy
   
-[MD controller] Reconcile
+[Test] Strategy=OnDelete
+  
+[MD controller] Reconcile md
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 3/3 replicas, 3 available, 0 upToDate (m1,m2,m3)
       - Updated old MachineSet ms1
         - Diff: cluster.x-k8s.io/disable-machine-create: true
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
       - MachineSet ms2 created, it is now the current MachineSet
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 3/3 replicas, 3 available, 0 upToDate (m1,m2,m3)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
 [User] Deleting machine m1
-[M controller] Reconcile
+[M controller] Reconcile m1
     m1 metadata.deletionTimestamp set, finalizer removed
-[M controller] Reconcile
+[M controller] Reconcile m2
     m2 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m3
     m3 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 3/3 replicas, 3 available, 0 upToDate (m2,m3)
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 2/3 replicas, 2 available, 0 upToDate (m2,m3)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
-[M controller] Reconcile
+[M controller] Reconcile m2
     m2 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m3
     m3 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 2/3 replicas, 2 available, 0 upToDate
     ms1: from 2/3 to 2/2 replicas, 2 available, 0 upToDate (m2,m3)
       - Scaled down old MachineSet ms1 from 3 to 2 replicas (-1)
         - Reason: scale down to align to existing Machines
         - Diff: replicas 2
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
-[M controller] Reconcile
+[M controller] Reconcile m2
     m2 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m3
     m3 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 2/3 replicas, 2 available, 0 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
     ms2: from 0/0 to 0/1 replicas, 0 available, 0 upToDate ()
       - Scaled up current MachineSet ms2 from 0 to 1 replicas (+1)
         - Reason: 2 current Machines < 3 MachineDeployment spec.replicas
         - Diff: replicas 1
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
       - ms2 scaled up to 1/1 replicas (m4 created)
 [User] Deleting machine m2
-[M controller] Reconcile
+[M controller] Reconcile m2
     m2 metadata.deletionTimestamp set, finalizer removed
-[M controller] Reconcile
+[M controller] Reconcile m3
     m3 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 2/2 replicas, 2 available, 0 upToDate (m3)
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 1/2 replicas, 1 available, 0 upToDate (m3)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
-[M controller] Reconcile
+[M controller] Reconcile m3
     m3 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m4
     m4 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 2/3 replicas, 2 available, 0 upToDate
     ms1: from 1/2 to 1/1 replicas, 1 available, 0 upToDate (m3)
       - Scaled down old MachineSet ms1 from 2 to 1 replicas (-1)
         - Reason: scale down to align to existing Machines
         - Diff: replicas 1
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 1/1 replicas, 1 available, 0 upToDate (m3)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
-[M controller] Reconcile
+[M controller] Reconcile m3
     m3 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m4
     m4 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 2/3 replicas, 2 available, 0 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m3)
     ms2: from 1/1 to 1/2 replicas, 1 available, 1 upToDate (m4)
       - Scaled up current MachineSet ms2 from 1 to 2 replicas (+1)
         - Reason: 2 current Machines < 3 MachineDeployment spec.replicas
         - Diff: replicas 2
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 1/1 replicas, 1 available, 0 upToDate (m3)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
       - ms2 scaled up to 2/2 replicas (m5 created)
 [User] Deleting machine m3
-[M controller] Reconcile
+[M controller] Reconcile m3
     m3 metadata.deletionTimestamp set, finalizer removed
-[M controller] Reconcile
+[M controller] Reconcile m4
     m4 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate ()
     ms2: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/1 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
-[M controller] Reconcile
+[M controller] Reconcile m4
     m4 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m5
     m5 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 2/3 replicas, 2 available, 0 upToDate
     ms1: from 0/1 to 0/0 replicas, 0 available, 0 upToDate ()
       - Scaled down old MachineSet ms1 from 1 to 0 replicas (-1)
         - Reason: scale down to align to existing Machines
         - Diff: replicas 0
     ms2: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
-[M controller] Reconcile
+[M controller] Reconcile m4
     m4 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m5
     m5 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 2/3 replicas, 2 available, 0 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: from 2/2 to 2/3 replicas, 2 available, 2 upToDate (m4,m5)
       - Scaled up current MachineSet ms2 from 2 to 3 replicas (+1)
         - Reason: 2 current Machines < 3 MachineDeployment spec.replicas
         - Diff: replicas 3
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 3/3 replicas, 3 available, 3 upToDate (m4,m5,m6)
       - ms2 scaled up to 3/3 replicas (m6 created)
-[M controller] Reconcile
+[M controller] Reconcile m4
     m4 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m5
     m5 metadata.deletionTimestamp not set
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 3/3 replicas, 3 available, 3 upToDate (m4,m5,m6)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 3/3 replicas, 3 available, 3 upToDate (m4,m5,m6)
-[M controller] Reconcile
+[M controller] Reconcile m4
     m4 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m5
     m5 metadata.deletionTimestamp not set
-[M controller] Reconcile
+[M controller] Reconcile m6
     m6 metadata.deletionTimestamp not set
   
 [Test] Final state

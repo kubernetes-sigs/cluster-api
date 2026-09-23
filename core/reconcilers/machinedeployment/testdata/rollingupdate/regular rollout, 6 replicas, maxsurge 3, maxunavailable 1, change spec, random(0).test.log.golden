@@ -1,4 +1,4 @@
-## Regular rollout, 6 Replicas, maxSurge 3, maxUnavailable 1, change spec, random(0)
+[Test] Regular rollout, 6 Replicas, maxSurge 3, maxUnavailable 1, change spec, random(0)
 
 [Test] Legend:
       - X/Y replicas is status.replicas/spec.replicas
@@ -12,13 +12,16 @@
     md: 6/6 replicas, 6 available, 0 upToDate
     ms1: 3/3 replicas, 3 available, 0 upToDate (m4,m5,m6)
     ms2: 3/3 replicas, 3 available, 0 upToDate (m7,m8,m9)
-[Test] Rollout 6 replicas, MaxSurge=3, MaxUnavailable=1, random(0)
   
-[MS controller] Reconcile
+[Test] Strategy=RollingUpdate, MaxSurge=3, MaxUnavailable=1
+  
+[Test] Random reconcile sequence, seed=0
+  
+[MS controller] Reconcile ms2
     ms2: 3/3 replicas, 3 available, 0 upToDate (m7,m8,m9)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 3/3 replicas, 3 available, 0 upToDate (m4,m5,m6)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 6/6 replicas, 6 available, 0 upToDate
     ms1: from 3/3 to 3/2 replicas, 3 available, 0 upToDate (m4,m5,m6)
       - Scaled down old MachineSet ms1 from 3 to 2 replicas (-1)
@@ -31,14 +34,14 @@
       - MachineSet ms3 created, it is now the current MachineSet
       - Scaled up current MachineSet ms3 from 0 to 3 replicas (+3)
         - Reason: 6 current Machines < 6 MachineDeployment spec.replicas + 3 maxSurge
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 3/3 replicas, 3 available, 0 upToDate (m7,m8,m9)
-[MS controller] Reconcile
+[MS controller] Reconcile ms3
     ms3: 3/3 replicas, 3 available, 3 upToDate (m10,m11,m12)
       - ms3 scaled up to 3/3 replicas (m10,m11,m12 created)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 3/3 replicas, 3 available, 0 upToDate (m7,m8,m9)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 9/6 replicas, 9 available, 3 upToDate
     ms1: from 3/2 to 3/0 replicas, 3 available, 0 upToDate (m4,m5,m6)
       - Scaled down old MachineSet ms1 from 2 to 0 replicas (-2)
@@ -46,16 +49,16 @@
         - Diff: replicas 0
     ms2: 3/3 replicas, 3 available, 0 upToDate (m7,m8,m9)
     ms3: 3/3 replicas, 3 available, 3 upToDate (m10,m11,m12)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
       - ms1 scaled down to 0/0 replicas (m4,m5,m6 deleted)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 3/3 replicas, 3 available, 0 upToDate (m7,m8,m9)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms3
     ms3: 3/3 replicas, 3 available, 3 upToDate (m10,m11,m12)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 6/6 replicas, 6 available, 3 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: from 3/3 to 3/2 replicas, 3 available, 0 upToDate (m7,m8,m9)
@@ -66,19 +69,19 @@
       - Scaled up current MachineSet ms3 from 3 to 6 replicas (+3)
         - Reason: 6 current Machines < 6 MachineDeployment spec.replicas + 3 maxSurge
         - Diff: replicas 6
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 6/6 replicas, 6 available, 3 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 3/2 replicas, 3 available, 0 upToDate (m7,m8,m9)
     ms3: 3/6 replicas, 3 available, 3 upToDate (m10,m11,m12)
-[MS controller] Reconcile
+[MS controller] Reconcile ms3
     ms3: 6/6 replicas, 6 available, 6 upToDate (m10,m11,m12,m13,m14,m15)
       - ms3 scaled up to 6/6 replicas (m13,m14,m15 created)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms3
     ms3: 6/6 replicas, 6 available, 6 upToDate (m10,m11,m12,m13,m14,m15)
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 9/6 replicas, 9 available, 6 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: from 3/2 to 3/0 replicas, 3 available, 0 upToDate (m7,m8,m9)
@@ -86,27 +89,27 @@
         - Reason: 9 available replicas > 5 minimum available replicas
         - Diff: replicas 0
     ms3: 6/6 replicas, 6 available, 6 upToDate (m10,m11,m12,m13,m14,m15)
-[MS controller] Reconcile
+[MS controller] Reconcile ms3
     ms3: 6/6 replicas, 6 available, 6 upToDate (m10,m11,m12,m13,m14,m15)
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
       - ms2 scaled down to 0/0 replicas (m7,m8,m9 deleted)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms3
     ms3: 6/6 replicas, 6 available, 6 upToDate (m10,m11,m12,m13,m14,m15)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MD controller] Reconcile
+[MD controller] Reconcile md
     md: 6/6 replicas, 6 available, 6 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
     ms3: 6/6 replicas, 6 available, 6 upToDate (m10,m11,m12,m13,m14,m15)
-[MS controller] Reconcile
+[MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
-[MS controller] Reconcile
+[MS controller] Reconcile ms2
     ms2: 0/0 replicas, 0 available, 0 upToDate ()
   
 [Test] Final state

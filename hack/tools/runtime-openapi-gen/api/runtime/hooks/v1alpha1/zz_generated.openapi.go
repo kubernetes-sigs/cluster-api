@@ -2110,6 +2110,22 @@ func schema_api_runtime_hooks_v1alpha1_DiscoveryRequest(ref common.ReferenceCall
 							Format:      "",
 						},
 					},
+					"settings": {
+						SchemaProps: spec.SchemaProps{
+							Description: "settings defines key value pairs to be passed to the call.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},

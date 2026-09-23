@@ -183,8 +183,10 @@ RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com
     touch /process.txt && chmod 0777 /process.txt `# pre-create PID file to allow even non-root users to run the image`
 """
 
+# For tilt we use a small distroless debug image; using base instead of static so we can build in both ways; it is not
+# possible to use -nonroot because CAPD needs access to the docker socket.
 tilt_dockerfile_header = """
-FROM golang:1.26.6 as tilt
+FROM gcr.io/distroless/base-debian13:debug as tilt
 WORKDIR /
 COPY --from=tilt-helper /process.txt .
 COPY --from=tilt-helper /start.sh .

@@ -204,6 +204,21 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredReason))
 	})
 
+	t.Run("requeues quickly after a successful reconcile within the post-startup window", func(*testing.T) {
+		// Simulate the controller having just started: successful reconciles should be
+		// requeued after postStartupRequeueAfter instead of relying only on watches.
+		r.startTime = time.Now()
+		res, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.RequeueAfter).To(Equal(postStartupRequeueAfter))
+
+		// Simulate the controller having started well outside the window: no fast requeue should happen.
+		r.startTime = time.Now().Add(-(postStartupRequeueWindow + time.Minute))
+		res, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.RequeueAfter).To(BeZero())
+	})
+
 	t.Run("Successful reconcile and discovery on Extension update", func(*testing.T) {
 		// Start a new ExtensionServer where the second handler is removed.
 		updatedServer, err := fakeSecureExtensionServer(discoveryHandler("first", "third"))

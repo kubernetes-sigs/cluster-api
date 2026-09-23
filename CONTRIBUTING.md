@@ -1,149 +1,26 @@
 # Contributing Guidelines
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Contributor License Agreements](#contributor-license-agreements)
-- [Finding Things That Need Help](#finding-things-that-need-help)
-- [Versioning](#versioning)
-  - [Codebase and Go Modules](#codebase-and-go-modules)
-    - [Backporting a patch](#backporting-a-patch)
-  - [APIs](#apis)
-  - [CLIs](#clis)
-- [Branches](#branches)
-- [Contributing a Patch](#contributing-a-patch)
-  - [AI Guidance](#ai-guidance)
-- [Documentation changes](#documentation-changes)
-- [Releases](#releases)
-- [Proposal process (CAEP)](#proposal-process-caep)
-- [Triaging issues](#triaging-issues)
-- [Triaging E2E test failures](#triaging-e2e-test-failures)
-- [Reviewing a Patch](#reviewing-a-patch)
-  - [Reviews](#reviews)
-  - [Approvals](#approvals)
-- [Features and bugs](#features-and-bugs)
-- [Breaking Changes](#breaking-changes)
-- [Dependency Licence Management](#dependency-licence-management)
-- [API conventions](#api-conventions)
-  - [CRD additionalPrinterColumns](#crd-additionalprintercolumns)
-- [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
-- [Issue and Pull Request Management](#issue-and-pull-request-management)
-- [Contributors Ladder](#contributors-ladder)
+Contributions are very welcome in the form of [issues](#opening-an-issue) and [pull requests](#code-contributions-pull-requests) but also:
+- help in [triaging issues](#triaging-issues) or participating in issue discussion
+- help in [triaging failing or flaky tests](#triaging-pr-or-periodic-test-failures) and possibly implement corresponding fixes 
+- being part of the [release team][Cluster API release team]
+- help in reviewing PRs 
+- help in moderating office hours
+- help to new contributors by answering questions in the slack channel 
+- see [Kubernetes Non Code Contributions][Kubernetes Non Code Contributions] for more.
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+Contributors who are not used to working in the Kubernetes ecosystem should also take a look at the [New Contributor Course][Kubernetes New Contributor Course] and 
+the [Contributors Cheatsheet][Kubernetes Contributors Cheatsheet].
 
-Read the following guide if you're interested in contributing to cluster-api.
+## Code of Conduct
 
-Contributors who are not used to working in the Kubernetes ecosystem should also take a look at the Kubernetes [New Contributor Course.](https://www.kubernetes.dev/docs/onboarding/)
+Please read carefully the [Community Code of Conduct][Kubernetes Code of conduct].
 
-## Contributor License Agreements
+## AI Guidance
 
-We'd love to accept your patches! Before we can take them, we have to jump a couple of legal hurdles.
+The project aligns to [Kubernetes AI guidance][Kubernetes AI guidance].
 
-Please fill out either the individual or corporate Contributor License Agreement (CLA). More information about the CLA
-and instructions for signing it [can be found here](https://git.k8s.io/community/CLA.md).
-
-***NOTE***: Only original source code from you and other people that have signed the CLA can be accepted into the
-*repository.
-
-## Finding Things That Need Help
-
-If you're new to the project and want to help, but don't know where to start, we have a semi-curated list of issues that
-should not need deep knowledge of the system. [Have a look and see if anything sounds
-interesting](https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22).
-Before starting to work on the issue, check if the issue has been assigned, if yes, reach out to the assignee.
-Alternatively, read some docs on other controllers and try to write your own, file and fix any/all issues that
-come up, including gaps in documentation!
-
-If you're a more experienced contributor, looking at unassigned issues in the next release milestone is a good way to find work that has been prioritized. For example, if the latest minor release is `v1.0`, the next release milestone is `v1.1`.
-
-Help and contributions are very welcome in the form of code contributions but also in helping to moderate office hours, triaging issues, fixing/investigating flaky tests, being part of the [release team](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-team.md), helping new contributors with their questions, reviewing proposals, etc.
-
-## Versioning
-
-### Codebase and Go Modules
-
-> ⚠ The project does not follow Go Modules guidelines for compatibility requirements for 1.x semver releases.
-
-Cluster API follows upstream Kubernetes semantic versioning. With the v1 release of our codebase, we guarantee the following:
-
-- A (*minor*) release CAN include:
-  - Introduction of new API versions, or new Kinds.
-  - Compatible API changes like field additions, deprecation notices, etc.
-  - Breaking API changes for deprecated APIs, fields, or code.
-  - Features, promotion or removal of feature gates.
-  - And more!
-
-- A (*patch*) release SHOULD only include backwards compatible set of bugfixes.
-
-see [Cluster API release support](https://cluster-api.sigs.k8s.io/reference/versions.html#cluster-api-release-support) for
-more details about supported releases and for considerations that might apply if you are importing Cluster API go modules as a dependency.
-
-#### Backporting a patch
-
-Pull Requests against the main branch can be backported using `/cherry-pick` prow command.
-Any backport MUST NOT be breaking for API or behavioral changes.
-
-We usually backport critical bugs or security fixes, changes to support new Kubernetes minor versions (see [supported Kubernetes versions](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions)), documentation and test signal improvements. Everything else is considered case by case.
-
-Release branches outside of the [standard support period](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#cluster-api-release-support) are usually frozen,
-although maintainers may allow backports to releases in [maintenance mode](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#cluster-api-release-support) in specific situations
-like CVEs, security, and other critical bug fixes.
-
-### APIs
-
-API versioning and guarantees are inspired by the [Kubernetes deprecation policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/)
-and [API change guidelines](https://github.com/kubernetes/community/blob/f0eec4d19d407c13681431b3c436be67da8c448d/contributors/devel/sig-architecture/api_changes.md).
-We follow the API guidelines as much as possible adapting them if necessary and on a case-by-case basis to CustomResourceDefinition.
-
-### CLIs
-
-Any command line interface in Cluster API (e.g. clusterctl) share the same versioning schema of the codebase.
-CLI guarantees are inspired by [Kubernetes deprecation policy for CLI](https://kubernetes.io/docs/reference/using-api/deprecation-policy/#deprecating-a-flag-or-cli),
-however we allow breaking changes after 8 months or 2 releases (whichever is longer) from deprecation.
-
-## Branches
-
-Cluster API has two types of branches: the *main* branch and
-*release-X* branches.
-
-The *main* branch is where development happens. All the latest and
-greatest code, including breaking changes, happens on main.
-
-The *release-X* branches contain stable, backwards compatible code. On every
-major or minor release, a new branch is created. It is from these
-branches that minor and patch releases are tagged. In some cases, it may
-be necessary to open PRs for bugfixes directly against stable branches, but
-this should generally not be the case.
-
-## Contributing a Patch
-
-1. If you haven't already done so, sign a Contributor License Agreement (see details above).
-1. If working on an issue, signal other contributors that you are actively working on it by assigning it to yourself.
-1. Fork the desired repo, develop and test your code changes.
-1. Submit a pull request.
-    1. All code PR must be labeled with one of
-        - ⚠️ (`:warning:`, major or breaking changes)
-        - ✨ (`:sparkles:`, feature additions)
-        - 🐛 (`:bug:`, patch and bugfixes)
-        - 📖 (`:book:`, documentation or proposals)
-        - 🌱 (`:seedling:`, minor or other)
-1. If your PR has multiple commits, you must [squash them into a single commit](https://kubernetes.io/docs/contribute/new-content/open-a-pr/#squashing-commits) before merging your PR.
-
-Individual commits should not be tagged separately, but will generally be
-assumed to match the PR. For instance, if you have a bugfix in with
-a breaking change, it's generally encouraged to submit the bugfix
-separately, but if you must put them in one PR, mark the commit
-separately.
-
-All changes must be code reviewed. Coding conventions and standards are explained in the official [developer
-docs](https://git.k8s.io/community/contributors/devel). Expect reviewers to request that you
-avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
-
-### AI Guidance
-
-The project aligns to [Kubernetes AI guidance](https://www.kubernetes.dev/docs/guide/pull-requests/#ai-guidance).
-
-Above all, as a Cluster API project maintainers and reviewers we want to engage directly with you, not with a bot.
+Above all, as Cluster API project maintainers and reviewers we want to engage directly with you, not with a bot.
 
 Accordingly, when you engage with maintainers and reviewers in this project:
 - When writing a comment, please keep in mind that your opinion and your concrete use cases are unique, important and valuable, while a comment generated by a bot is not.
@@ -153,9 +30,76 @@ Accordingly, when you engage with maintainers and reviewers in this project:
 - If a user will repeatedly disrupt discussion threads with AI generated comments, we are going to report it.
 
 TL;DR; Great contributors use AI wisely to amplify their impact and reputation, but if your plan is to rely on AI only,
-Cluster API project maintainers and reviewers would not invest time in your work (see [Cluster API manifesto#community](https://cluster-api.sigs.k8s.io/user/manifesto#community)).
+Cluster API project maintainers and reviewers would not invest time in your work (see [Cluster API manifesto#community][Cluster API manifesto#community]).
 
-## Documentation changes
+## Office hours, Slack channel
+
+Chat with us on the Kubernetes [Slack][Kubernetes Slack] in the [#cluster-api][Cluster API Slack] channel.
+
+Subscribe to the [SIG Cluster Lifecycle][SIG Cluster Lifecycle Google Group] Google Group for access to documents and calendars.
+
+Join our Cluster API office hour meeting where we share the latest project news, demos, answer questions, discuss issues and pull requests.
+  - Weekly on Wednesdays @ 10:00 PT on [Zoom][Cluster API meeting zoom], [agenda][Cluster API meeting agenda]
+  - Previous meetings [recordings][Cluster API meeting recordings], [notes][Cluster API meeting agenda]
+
+## Opening an issue
+
+Carefully read the [AI guidance](#ai-guidance).
+
+Before opening a new issue, please check if there is already an [existing issue][Cluster API issues] about
+the same topic (duplicated issues will be closed).
+
+Open a [New issues][Cluster API new issue] to report bugs, propose new features, ask for support.
+
+Each new issue will be automatically labeled as `needs-triage`, which will surface the issue to maintainers
+during the [triage process](#triaging-issues); make sure to follow up to maintainers question during this phase.
+
+Depending on the outcomes of the triage process `needs-triage` will be removed and replaced by one of the following:
+
+- `triage/accepted`: Indicates an issue or PR is ready to be actively worked on.
+- `triage/needs-information`: Indicates an issue needs more information in order to work on it.
+- `triage/not-reproducible`: Indicates an issue can not be reproduced as described.
+- `triage/duplicate`: Indicates an issue is a duplicate of another open issue.
+
+For big features, API and contract changes, or complex changes you might also be required to
+write a [Cluster API enhancement proposal](#cluster-api-enhancement-proposal-caep) as outlined below.
+
+## Code contributions (pull requests)
+
+- Important!
+  - Carefully read the [AI guidance](#ai-guidance)
+  - If you haven't already done so, sign a Contributor License Agreement. See [Kubernetes CLA][Kubernetes CLA]).
+  - Contributors who are not used to working in the Kubernetes ecosystem should also take a look at [Kubernetes GitHub Workflow][Kubernetes GitHub Workflow].
+
+- Unless you are working on a trivial change, make sure that there is an issue describing what you are achieving. See [existing issue][Cluster API issues], [Opening an issue](#opening-an-issue)
+  - check that the issue has the `triage/accepted` label; if not it means that there is not yet agreement on how to address the issue and most likely your PR will be closed immediately. See [triaging issues](#triaging-issues) 
+  - signal other contributors that you are actively working on the by assigning it to yourself. See [issue management](#issue-comments-and-pull-request-comments-and-review).
+  - If in the issue there are comments stating that additional research is required, make sure 
+    to share the outcomes of this work and to get consensus on a way forward before opening the pull request. 
+  - Note: We have a semi-curated list of [Good first issue][Cluster API Good first issue] that should not need deep knowledge of the system; [Help wanted issues][Cluster API Help wanted issues]
+    instead required deeper knowledge of the system and are not recommended for newcomers.
+  
+- Develop and test your code changes locally.
+  - Please refer to the [Cluster API developer guide] for setting up your environment and gain familiarity with the project. 
+  - Kubernetes official conventions and standards are explained in [Kubernetes Coding Conventions][Kubernetes Coding Conventions].
+  - Please also read [Kubernetes Best Practices for Faster Reviews][Kubernetes Best Practices for Faster Reviews], this could significantly improve your contributor experience.
+  - Depending on your code change, you might be required to run generators, e.g. `make generate-manifests`, `make generate-go-deepcopy` etc.
+  - Make sure that unit test, integration tests and linter pass on your changes, e.g. `make test`, `make lint` etc. see [run unit and integration tests][Cluster API testing, unit tests].
+  - Test your changes with tilt or using E2E tests. see [iterative development with tilt][Cluster API tilt], [run e2e tests locally][Cluster API testing, e2e tests].
+  - Expect reviewers to ask you to [document your changes](#documentation-changes).
+  
+- Submit the pull request.
+  - All code PR must be labeled with one of
+    - ⚠️ (`:warning:`, major or breaking changes)
+    - ✨ (`:sparkles:`, feature additions)
+    - 🐛 (`:bug:`, patch and bugfixes)
+    - 📖 (`:book:`, documentation or proposals)
+    - 🌱 (`:seedling:`, minor or other)
+  - Unfinished PR should be marked with the [WIP] prefix.
+- Ensure that all the linters and the E2E tests included in the CI signal for your PR are passing, see [triaging failing or flaky tests](#triaging-pr-or-periodic-test-failures)
+- All code changes must be reviewed and approved
+
+### Documentation changes
 
 The documentation is published in form of a book at: https://cluster-api.sigs.k8s.io
 
@@ -175,23 +119,44 @@ When submitting the PR remember to label it with the 📖 (:book:) icon.
 
 [mdBook]: https://github.com/rust-lang/mdBook
 
-## Releases
+## Issue comments, and Pull Request comments and review
 
-Cluster API release process is described in [this document](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-cycle.md).
+Anyone may comment on issues and submit reviews for pull requests. However, in order to be assigned an issue or pull
+request, you must be a member of the [Kubernetes SIGs][Kubernetes SIGs] GitHub organization.
 
-## Proposal process (CAEP)
+In case you are not a member of the [Kubernetes SIGs][Kubernetes SIGs] GitHub organization, Cluster API maintainers can assign 
+you an issue or pull request by leaving a `/assign <your Github ID>` comment on the issue or pull request.
 
-The Cluster API Enhancement Proposal is the process this project uses to adopt new features, changes to the APIs, changes to contracts between components, or changes to CLI interfaces.
+### Backporting a pull request
 
-The [template](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/YYYYMMDD-template.md), and accepted proposals live under [docs/proposals](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/proposals).
+The *main* branch is where development happens. All the latest and
+greatest code, including breaking changes, happens on main.
+
+The *release-X* branches contain stable, backwards compatible code. It is from these
+branches that minor and patch releases are tagged.
+
+If a pull requests against the main branch is backward compatible, it can be backported
+to a release branch using `/cherry-pick` prow command.
+
+In some cases, it may be necessary to open PRs for bugfixes directly against stable branches, but
+this should generally not be the case.
+
+Note: maintainers will monitor strictly backport requests to ensure stability of the release branches.
+
+## Cluster API enhancement proposal (CAEP)
+
+Cluster API Enhancement Proposals are documents that this project uses to discuss new features, changes to the APIs, 
+changes to contracts between components, or changes to CLI interfaces.
+
+The [template][Cluster API CAEP template], and accepted proposals live under [docs/proposals][Cluster API CAEP folder].
 
 - Proposals or requests for enhancements (RFEs) MUST be associated with an issue.
   - Issues can be placed on the roadmap during planning if there is one or more folks
     that can dedicate time to writing a CAEP and/or implementing it after approval.
 - A proposal SHOULD be introduced and discussed during the weekly community meetings or on the
- [SIG Cluster Lifecycle mailing list](https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle).
-  - Submit and discuss proposals using a collaborative writing platform, preferably Google Docs, share documents with edit permissions with the [SIG Cluster Lifecycle mailing list](https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle).
-- A proposal in a Google Doc MUST turn into a [Pull Request](https://github.com/kubernetes-sigs/cluster-api/pulls).
+  [SIG Cluster Lifecycle mailing list][SIG Cluster Lifecycle Google Group].
+  - Submit and discuss proposals using a collaborative writing platform, preferably Google Docs, share documents with edit permissions with the [SIG Cluster Lifecycle mailing list][SIG Cluster Lifecycle Google Group].
+- A proposal in a Google Doc MUST turn into a [Pull Request][Cluster API pull requests].
 - Proposals MUST be merged and in `implementable` state to be considered part of a major or minor release.
 
 ## Triaging issues
@@ -250,10 +215,13 @@ Please note that:
   the issue implementation (usually lack of contributors), engage with the community, find ways to help and free up
   maintainers/other contributors time from other tasks, or `/assign` the issue and send a PR.
 
-## Triaging E2E test failures
+## Triaging PR or periodic test failures
 
 When you submit a change to the Cluster API repository as set of validation jobs is automatically executed by
 prow and the results report is added to a comment at the end of your PR.
+
+Tests jobs are also run periodically on all the supported branches, see [test-grid][Cluster API test-grid]
+for latest test results.
 
 Some jobs run linters or unit test, and in case of failures, you can repeat the same operation locally using `make test lint [etc..]`
 in order to investigate and potential issues. Prow logs usually provide hints about the make target you should use
@@ -269,166 +237,64 @@ The artifact folder contains:
     - Dump of the Cluster API resources (only if the cluster is a management cluster).
     - Machine logs (only if the cluster is a workload cluster)
 
-In case you want to run E2E test locally, please refer to the [Testing](https://cluster-api.sigs.k8s.io/developer/core/testing#running-unit-and-integration-tests) guide. All our e2e test jobs (and also all our other jobs) can be found in [k8s.io/test-infra](https://github.com/kubernetes/test-infra/tree/master/config/jobs/kubernetes-sigs/cluster-api).
+In case you want to run E2E test locally, please refer to the [Cluster API testing][Cluster API testing] guide.
 
-## Reviewing a Patch
-
-### Reviews
-
-> Parts of the following content have been adapted from https://google.github.io/eng-practices/review.
-
-Any Kubernetes organization member can leave reviews and `/lgtm` a pull request.
-
-Code reviews should generally look at:
-
-- **Design**: Is the code well-designed and consistent with the rest of the system?
-- **Functionality**: Does the code behave as the author (or linked issue) intended? Is the way the code behaves good for its users?
-- **Complexity**: Could the code be made simpler?  Would another developer be able to easily understand and use this code when they come across it in the future?
-- **Tests**: Does the code have correct and well-designed tests?
-- **Naming**: Did the developer choose clear names for variable, types, methods, functions, etc.?
-- **Comments**: Are the comments clear and useful? Do they explain why rather than what?
-- **Documentation**: Did the developer also update relevant documentation?
-
-See [Code Review in Cluster API](REVIEWING.md) for a more focused list of review items.
-
-### Approvals
-
-Please see the [Kubernetes community document on pull
-requests](https://git.k8s.io/community/contributors/guide/pull-requests.md) for more information about the merge
-process.
-
-- A PR is approved by one of the project maintainers and owners after reviews.
-- Approvals should be the very last action a maintainer takes on a pull request.
-
-## Features and bugs
-
-Open [issues](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose) to report bugs, or discuss minor feature implementation.
-
-Each new issue will be automatically labeled as `needs-triage`; after being triaged by the maintainers the label
-will be removed and replaced by one of the following:
-
-- `triage/accepted`: Indicates an issue or PR is ready to be actively worked on.
-- `triage/duplicate`: Indicates an issue is a duplicate of another open issue.
-- `triage/needs-information`: Indicates an issue needs more information in order to work on it.
-- `triage/not-reproducible`: Indicates an issue can not be reproduced as described.
-- `triage/unresolved`: Indicates an issue that can not or will not be resolved.
-
-For big feature, API and contract amendments, we follow the CAEP process as outlined below.
-
-## Breaking Changes
-
-Breaking changes are generally allowed in the `main` branch, as this is the branch used to develop the next minor
-release of Cluster API.
-
-There may be times, however, when `main` is closed for breaking changes. This is likely to happen as we near the
-release of a new minor version.
-
-Breaking changes are not allowed in release branches, as these represent minor versions that have already been released.
-These versions have consumers who expect the APIs, behaviors, etc. to remain stable during the lifetime of the patch
-stream for the minor release.
-
-Examples of breaking changes include:
-
-- Removing or renaming a field in a CRD
-- Removing or renaming a CRD
-- Removing or renaming an exported constant, variable, type, or function
-- Updating the version of critical libraries such as controller-runtime, client-go, apimachinery, etc.
-    - Some version updates may be acceptable, for picking up bug fixes, but maintainers must exercise caution when
-      reviewing.
-
-There may, at times, need to be exceptions where breaking changes are allowed in release branches. These are at the
-discretion of the project's maintainers, and must be carefully considered before merging. An example of an allowed
-breaking change might be a fix for a behavioral bug that was released in an initial minor version (such as `v0.3.0`).
-
-## Dependency Licence Management
-
-Cluster API follows the [license policy of the CNCF](https://github.com/cncf/foundation/blob/main/policies-guidance/allowed-third-party-license-policy.md). This sets limits on which
-licenses dependencies and other artifacts use. For go dependencies only dependencies listed in the `go.mod` are considered dependencies. This is in line with [how dependencies are reviewed in Kubernetes](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/vendor.md#reviewing-and-approving-dependency-changes).
-
-## API conventions
-
-This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
-We enforce the API conventions via [kube-api-linter](https://github.com/kubernetes-sigs/kube-api-linter).
-The corresponding configuration field can be found [here](https://github.com/kubernetes-sigs/cluster-api/blob/main/.golangci-kal.yml).
-
-Minor additions to the conventions are listed below.
-
-### CRD additionalPrinterColumns
-
-All our CRD objects should have the following `additionalPrinterColumns` order (if the respective field exists in the CRD):
-* Namespace (added automatically)
-* Name (added automatically)
-* ClusterClass and/or Cluster owning this resource
-* Available or Ready condition
-* Replica-related fields
-* Other fields for -o wide (fields with priority `1` are only shown with `-o wide` and not per default)
-* Paused (only shows with -o wide)
-* Phase
-* Age (mandatory field for all CRDs)
-* Version
-
-***NOTE***: The columns can be configured via the `kubebuilder:printcolumn` annotation on root objects. For examples, please see the `./api` package.
-
-Examples:
-```bash
-kubectl get kubeadmcontrolplane
-```
-```bash
-NAMESPACE            NAME                               INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE     VERSION
-quick-start-d5ufye   quick-start-ntysk0-control-plane   true          true                   1          1       1                       2m44s   v1.23.3
-```
-```bash
-kubectl get machinedeployment
-```
-```bash
-NAMESPACE            NAME                      CLUSTER              REPLICAS   READY   UPDATED   UNAVAILABLE   PHASE       AGE     VERSION
-quick-start-d5ufye   quick-start-ntysk0-md-0   quick-start-ntysk0   1                  1         1             ScalingUp   3m28s   v1.23.3
-```
-
-## Google Doc Viewing Permissions
-
-To gain viewing permissions to google docs in this project, please join either the
-[kubernetes-dev](https://groups.google.com/forum/#!forum/kubernetes-dev) or
-[sig-cluster-lifecycle](https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle) google group.
-
-## Issue and Pull Request Management
-
-Anyone may comment on issues and submit reviews for pull requests. However, in order to be assigned an issue or pull
-request, you must be a member of the [Kubernetes SIGs](https://github.com/kubernetes-sigs) GitHub organization.
-
-If you are a Kubernetes GitHub organization member, you are eligible for membership in the Kubernetes SIGs GitHub
-organization and can request membership by [opening an
-issue](https://github.com/kubernetes/org/issues/new?template=membership.md&title=REQUEST%3A%20New%20membership%20for%20%3Cyour-GH-handle%3E)
-against the kubernetes/org repo.
-
-However, if you are a member of the related Kubernetes GitHub organizations but not of the Kubernetes org, you
-will need explicit sponsorship for your membership request. You can read more about Kubernetes membership and
-sponsorship [here](https://git.k8s.io/community/community-membership.md).
-
-Cluster API maintainers can assign you an issue or pull request by leaving a `/assign <your Github ID>` comment on the
-issue or pull request.
 
 ## Contributors Ladder
+
+The project follows the [Kubernetes community membership guidelines][Kubernetes community membership guidelines].
 
 New contributors are welcomed to the community by existing members, helped with PR workflow, and directed to relevant documentation and communication channels.
 We are also committed in helping people willing to do so in stepping up through the contributor ladder and this paragraph describes how we are trying to make this to happen.
 
 As the project adoption increases and the codebase keeps growing, we’re trying to break down ownership into self-driven subareas of interest.
-Requirements from the [Kubernetes community membership guidelines](https://github.com/kubernetes/community/blob/master/community-membership.md) apply for reviewers, maintainers and any member of these subareas.
-Whenever you meet requisites for taking responsibilities in a subarea, the following procedure should be followed:
-1. Submit a PR.
-2. Propose at community meeting.
+Whenever you meet requisites for taking responsibilities in a subarea as a reviewer or maintainer, the following procedure should be followed:
+1. Submit a PR adding yourself to the OWNERS file.
+2. Broadcast your request at the community meeting.
 3. Get positive feedback and +1s in the PR and wait one week lazy consensus after agreement.
 
 As of today there are following OWNERS files/Owner groups defining sub areas:
 - [Clusterctl](https://github.com/kubernetes-sigs/cluster-api/tree/main/cmd/clusterctl)
 - [kubeadm Bootstrap Provider (CABPK)](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
 - [kubeadm Control Plane Provider (KCP)](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
-- [Cluster Managed topologies, ClusterClass](https://github.com/kubernetes-sigs/cluster-api/tree/main/internal/controllers/topology)
+- [Cluster Managed topologies, ClusterClass](https://github.com/kubernetes-sigs/cluster-api/tree/main/core/reconcilers/topology)
 - [Infrastructure Provider Docker (CAPD)](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker)
 - [Infrastructure Provider in-memory](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/inmemory)
 - [Test](https://github.com/kubernetes-sigs/cluster-api/tree/main/test)
 - [Test Framework](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/framework)
 - [Docs](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs)
-- [Machine pools](https://github.com/kubernetes-sigs/cluster-api/tree/main/internal/controllers/machinepool)
-- Ignition support [in kubeadm Bootstrap Provider](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm/internal/ignition) and [in CAPD](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker/internal/provisioning/ignition)
+- [Machine pools](https://github.com/kubernetes-sigs/cluster-api/tree/main/core/reconcilers/machinepool)
+- Ignition support [in kubeadm Bootstrap Provider](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm/pkg/ignition) and [in CAPD](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker/internal/provisioning/ignition)
+
+[Kubernetes Code of conduct]: https://www.kubernetes.dev/includes/cncf-code-of-conduct/
+[Kubernetes CLA]: https://github.com/kubernetes/community/blob/main/CLA.md
+[Kubernetes Slack]: http://slack.k8s.io
+[Kubernetes AI guidance]: https://www.kubernetes.dev/docs/guide/pull-requests/#ai-guidance
+[Kubernetes New Contributor Course]: https://www.kubernetes.dev/docs/onboarding/
+[Kubernetes Contributors Cheatsheet]: https://www.kubernetes.dev/docs/contributor-cheatsheet/
+[Kubernetes Non Code Contributions]: https://www.kubernetes.dev/docs/guide/non-code-contributions/
+[Kubernetes community membership guidelines]: https://github.com/kubernetes/community/blob/master/community-membership.md
+[Kubernetes GitHub Workflow]: https://www.kubernetes.dev/docs/guide/github-workflow/
+[Kubernetes Coding Conventions]: https://www.kubernetes.dev/docs/guide/coding-convention/
+[Kubernetes Best Practices for Faster Reviews]: https://www.kubernetes.dev/docs/guide/pull-requests/#best-practices-for-faster-reviews
+[Kubernetes SIGs]: https://github.com/kubernetes-sigs
+[SIG Cluster Lifecycle Google Group]: https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle
+[Cluster API manifesto#community]: https://cluster-api.sigs.k8s.io/user/manifesto#community
+[Cluster API release team]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-team.md
+[Cluster API meeting agenda]: https://cluster-api.sigs.k8s.io/agenda
+[Cluster API meeting recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
+[Cluster API meeting zoom]: https://zoom.us/j/861487554
+[Cluster API Slack]: https://kubernetes.slack.com/archives/C8TSNPY4T
+[Cluster API issues]: https://github.com/kubernetes-sigs/cluster-api/issues
+[Cluster API pull requests]: https://github.com/kubernetes-sigs/cluster-api/pulls
+[Cluster API new issue]:https://github.com/kubernetes-sigs/cluster-api/issues/new/choose
+[Cluster API Good first issue]: https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22
+[Cluster API Help wanted issues]: https://github.com/kubernetes-sigs/cluster-api/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22
+[Cluster API developer guide]: https://cluster-api.sigs.k8s.io/developer/getting-started.html
+[Cluster API CAEP template]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/YYYYMMDD-template.md
+[Cluster API CAEP folder]: https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/proposals
+[Cluster API test-grid]: https://testgrid.k8s.io/cluster-api-core
+[Cluster API tilt]: https://cluster-api.sigs.k8s.io/developer/core/tilt.html
+[Cluster API testing]: https://cluster-api.sigs.k8s.io/developer/core/testing#running-unit-and-integration-tests
+[Cluster API testing, unit tests]: https://cluster-api.sigs.k8s.io/developer/core/testing#running-unit-and-integration-tests
+[Cluster API testing, e2e tests]: https://cluster-api.sigs.k8s.io/developer/core/testing.html#running-the-end-to-end-tests-locally

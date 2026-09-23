@@ -257,6 +257,11 @@ having the same set of folders in `/core`, `/bootstrap/kubeadm`, `/controlplane/
 
 Note: In general provider-specific code should be located within the provider package.
 
+### Dependency License Management
+
+Cluster API follows the [license policy of the CNCF](https://github.com/cncf/foundation/blob/main/policies-guidance/allowed-third-party-license-policy.md). This sets limits on which
+licenses dependencies and other artifacts use. For go dependencies only dependencies listed in the `go.mod` are considered dependencies. This is in line with [how dependencies are reviewed in Kubernetes](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/vendor.md#reviewing-and-approving-dependency-changes).
+
 ### Implementation Details/Notes/Constraints
 
 Cluster API already had a `sigs.k8s.io/cluster-api/test` Go module since a long time and the
@@ -308,7 +313,8 @@ As a consequence, we plan to reduce the usage of `/internal` packages, limiting 
 
 ## Implementation History
 
-- [ ] 2026-07-01: Present proposal at a [community meeting]
+- [x] 2026-07-01: Present proposal at a [community meeting]
+- [x] 2026-09-12: Added note on dependency license management
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

@@ -126,6 +126,5 @@
     - [Ports](./reference/ports.md)
     - [Provider List](./reference/providers.md)
     - [Glossary](./reference/glossary.md)
-  
 [Contributing to Cluster API](./CONTRIBUTING.md)
 [Code of Conduct](./code-of-conduct.md)

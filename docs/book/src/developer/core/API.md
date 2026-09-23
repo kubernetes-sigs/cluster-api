@@ -28,4 +28,4 @@ Following considerations should apply when working to API changes in this projec
 - [CRD relations](../../reference/api/crd-relationships.md) allows to model the entire set of objects in a cluster, including also provider's objects
 - [Owner references](../../reference/api/owner-references.md) are the foundation of several internal processes
 - [Metadata propagation](../../reference/api/metadata-propagation.md) defines how metadata propagates across API kinds
-- [Owner references](../../reference/api/owner-references.md) are the foundation of several internal processes
+- [Printer columns](../../reference/api/printer-columns.md) guidelines

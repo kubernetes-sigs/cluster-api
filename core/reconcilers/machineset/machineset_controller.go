@@ -382,36 +382,11 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 	for _, machine := range s.machines {
 		log := log.WithValues("Machine", klog.KObj(machine))
 
-		// If a machine is not updating in place, or if the in-place update has been already triggered, no-op
-		if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; !ok || hooks.IsPending(runtimehooksv1.UpdateMachine, machine) {
-			continue
-		}
-
-		// If the existing machine is pending acknowledge from the MD controller after a move operation,
-		// wait until if it is possible to drop the PendingAcknowledgeMove annotation.
+		// Check if the existing machine is pending acknowledge from the MD controller after a move operation.
+		// Note: CheckOrCleanupAcknowledgeMove will drop the PendingAcknowledgeMove annotation from the machine after move is acknowledged.
 		orig := machine.DeepCopy()
-		if _, ok := machine.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok {
-			// Check if this MachineSet is still accepting machines moved from other MachineSets.
-			if sourceMSs, ok := s.machineSet.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok && sourceMSs != "" {
-				// Get the list of machines acknowledged by the MD controller.
-				acknowledgedMoveReplicas := sets.Set[string]{}
-				if replicaNames, ok := s.machineSet.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && replicaNames != "" {
-					acknowledgedMoveReplicas.Insert(strings.Split(replicaNames, ",")...)
-				}
-
-				// If the current machine is in not yet in the list, it is not possible to trigger in-place yet.
-				if !acknowledgedMoveReplicas.Has(machine.Name) {
-					continue
-				}
-
-				// If the current machine is in the list, drop the annotation.
-				delete(machine.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
-			} else {
-				// If this MachineSet is not accepting anymore machines from other MS (e.g. because of MD spec changes),
-				// then drop the PendingAcknowledgeMove annotation; this machine will be treated as any other machine and either
-				// deleted or moved to another MS after completing the in-place update.
-				delete(machine.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
-			}
+		if acknowledged := mdutil.CheckOrCleanupAcknowledgeMove(ctx, s.machineSet, machine); !acknowledged {
+			continue
 		}
 
 		// Complete the move operation started by the source MachinesSet by updating machine, infraMachine and boostrapConfig
@@ -792,6 +767,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 	ms := s.machineSet
 	machines := s.machines
 
+	// Deletes InfraMachine and BootstrapConfigs owned by the MachineSet that are not referenced by any current Machine.
 	if err := r.cleanupOrphanedBootstrapConfigsInfraMachines(ctx, s); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -800,65 +776,48 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 	if ms.Spec.Replicas == nil {
 		return ctrl.Result{}, pkgerrors.Errorf("the Replicas field in Spec for MachineSet %v is nil, this should not be allowed", ms.Name)
 	}
-	diff := len(machines) - int(ptr.Deref(ms.Spec.Replicas, 0))
-	switch {
-	case diff < 0:
-		// If there are not enough Machines, create missing Machines unless Machine creation is disabled.
-		machinesToAdd := -diff
-		if ms.Annotations != nil {
-			if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok && value == "true" {
-				log.Info("Automatic creation of new machines disabled for MachineSet")
-				return ctrl.Result{}, nil
-			}
-		}
-		return r.createMachines(ctx, s, machinesToAdd)
 
-	case diff > 0:
-		// if too many replicas, delete or move exceeding machines.
+	// Compute the plan of actions required to reconcile the list of machines controller by a MachineSet to its desired spec.
+	res, err := mdutil.SyncMachinesPlanner(ctx, ms, machines)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
-		// If the MachineSet is accepting replicas from other MachineSets (and thus this is the newMS controlled by a MD),
-		// detect if there are replicas still pending AcknowledgedMove.
-		// Note: replicas still pending AcknowledgeMove should not be counted when computing the numbers of machines to delete, because those machines are not included in ms.Spec.Replicas yet.
-		// Without this check, the following logic would try to align the number of replicas to "an incomplete" ms.Spec.Replicas and as a consequence wrongly delete replicas that should be preserved.
-		notAcknowledgeMoveReplicas := sets.Set[string]{}
-		if sourceMSs, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok && sourceMSs != "" {
-			for _, m := range machines {
-				if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; !ok {
-					continue
-				}
-				notAcknowledgeMoveReplicas.Insert(m.Name)
-			}
-		}
-		if notAcknowledgeMoveReplicas.Len() > 0 {
-			log.V(5).Info(fmt.Sprintf("Machines %s moved from an old MachineSet still pending acknowledge from MachineDeployment", notAcknowledgeMoveReplicas.UnsortedList()))
-		}
+	// If there are not enough Machines, create missing Machines unless Machine creation is disabled.
+	if res.MachineCreationDisabled {
+		log.Info("Automatic creation of new machines disabled for MachineSet")
+		return ctrl.Result{}, nil
+	}
+	if res.MachinesToAdd > 0 {
+		return r.createMachines(ctx, s, res.MachinesToAdd)
+	}
 
-		machinesToDeleteOrMove := len(machines) - notAcknowledgeMoveReplicas.Len() - int(ptr.Deref(ms.Spec.Replicas, 0))
-		if machinesToDeleteOrMove == 0 {
-			return ctrl.Result{}, nil
-		}
+	// If there are replicas still pending AcknowledgedMove, report them.
+	if len(res.MachinesPendingAcknowledgeMove) > 0 {
+		log.V(5).Info(fmt.Sprintf("Machines %s moved from an old MachineSet still pending acknowledge from MachineDeployment", strings.Join(res.MachinesPendingAcknowledgeMove, ", ")))
+	}
 
-		// Move machines to the target MachineSet if the current MachineSet is instructed to do so.
-		// Note: it is required to use UnmarshalMoveMachinesToMachineSetAnnotationData instead of Unmarshal because the legacy format is an invalid json.
-		if moveMachinesToMachineSetAnnotationValue, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok && moveMachinesToMachineSetAnnotationValue != "" {
-			data := &clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{}
-			if err := mdutil.UnmarshalMoveMachinesToMachineSetAnnotationData([]byte(moveMachinesToMachineSetAnnotationValue), data); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to unmarshal %s annotation on %s", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, ms.Name)
-			}
-			if data.Name != "" {
-				// Note: The number of machines actually moved could be less than expected e.g. because some machine still updating in-place from a previous move.
-				return r.startMoveMachines(ctx, s, data.Name, machinesToDeleteOrMove, data.AffectsAvailability)
-			}
-		}
+	// if too many replicas, delete or move exceeding machines.
 
-		// Otherwise the current MachineSet is not instructed to move machines to another MachineSet,
-		// then delete all the exceeding machines.
-		return r.deleteMachines(ctx, s, machinesToDeleteOrMove)
+	// Move machines to the target MachineSet if the current MachineSet is instructed to do so.
+	if res.MachinesToMove > 0 {
+		// Note: The number of machines actually moved could be less than expected e.g. because some machine still updating in-place from a previous move.
+		return r.startMoveMachines(ctx, s, res.MoveTargetMSName, res.MachinesToMove, res.MoveAffectsAvailability)
+	}
+
+	// Otherwise the current MachineSet is not instructed to move machines to another MachineSet,
+	// then delete all the exceeding machines.
+	if res.MachinesToDelete > 0 {
+		return r.deleteMachines(ctx, s, res.MachinesToDelete)
 	}
 
 	return ctrl.Result{}, nil
 }
 
+// cleanupOrphanedBootstrapConfigsInfraMachines deletes InfraMachines and BootstrapConfigs owned by the MachineSet
+// that are not referenced by any current Machine.
+// Note: Such orphaned objects can be left over e.g. when Machine creation fails after the InfraMachine/BootstrapConfig
+// has already been created, or when a Machine is deleted without a corresponding InfraMachine/BootstrapConfig cleanup.
 func (r *Reconciler) cleanupOrphanedBootstrapConfigsInfraMachines(ctx context.Context, s *scope) error {
 	if r.overrideCleanupOrphanedBootstrapConfigsInfraMachines != nil {
 		return r.overrideCleanupOrphanedBootstrapConfigsInfraMachines(ctx, s)

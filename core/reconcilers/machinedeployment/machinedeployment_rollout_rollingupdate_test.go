@@ -2641,7 +2641,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 			for _, ms := range current.machineSets {
 				if ms.Name == task {
 					fLogger.Logf("[MS controller] Reconcile %s\n", ms.Name)
-					err := machineSetControllerMutator(fLogger, ms, current)
+					err := machineSetControllerMutator(ctx, ms, current, fLogger)
 					g.Expect(err).ToNot(HaveOccurred())
 					break
 				}

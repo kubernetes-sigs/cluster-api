@@ -29,6 +29,9 @@ const DefaultHandlersTimeoutSeconds = 10
 // +kubebuilder:object:root=true
 type DiscoveryRequest struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// CommonRequest contains fields common to all request types.
+	CommonRequest `json:",inline"`
 }
 
 var _ ResponseObject = &DiscoveryResponse{}

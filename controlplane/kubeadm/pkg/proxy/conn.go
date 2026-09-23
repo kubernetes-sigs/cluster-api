@@ -31,11 +31,10 @@ type Conn struct {
 	connection httpstream.Connection
 	stream     httpstream.Stream
 
+	deadlineLock  sync.Mutex
 	readDeadline  time.Time
 	writeDeadline time.Time
-
-	deadlineTimerLock sync.Mutex
-	deadlineTimer     *time.Timer
+	deadlineTimer *time.Timer
 }
 
 // Read from the connection.
@@ -45,12 +44,12 @@ func (c *Conn) Read(b []byte) (n int, err error) {
 
 // Close the underlying proxied connection.
 func (c *Conn) Close() error {
-	c.deadlineTimerLock.Lock()
+	c.deadlineLock.Lock()
 	if c.deadlineTimer != nil {
 		c.deadlineTimer.Stop()
 		c.deadlineTimer = nil
 	}
-	c.deadlineTimerLock.Unlock()
+	c.deadlineLock.Unlock()
 
 	return kerrors.NewAggregate([]error{c.stream.Close(), c.connection.Close()})
 }
@@ -72,8 +71,8 @@ func (c *Conn) RemoteAddr() net.Addr {
 
 // SetDeadline sets the read and write deadlines to the specified interval.
 func (c *Conn) SetDeadline(t time.Time) error {
-	c.deadlineTimerLock.Lock()
-	defer c.deadlineTimerLock.Unlock()
+	c.deadlineLock.Lock()
+	defer c.deadlineLock.Unlock()
 	c.readDeadline = t
 	c.writeDeadline = t
 	c.armDeadlineTimerLocked()
@@ -82,8 +81,8 @@ func (c *Conn) SetDeadline(t time.Time) error {
 
 // SetWriteDeadline sets the write deadline to the specified time.
 func (c *Conn) SetWriteDeadline(t time.Time) error {
-	c.deadlineTimerLock.Lock()
-	defer c.deadlineTimerLock.Unlock()
+	c.deadlineLock.Lock()
+	defer c.deadlineLock.Unlock()
 	c.writeDeadline = t
 	c.armDeadlineTimerLocked()
 	return nil
@@ -91,8 +90,8 @@ func (c *Conn) SetWriteDeadline(t time.Time) error {
 
 // SetReadDeadline sets the read deadline to the specified time.
 func (c *Conn) SetReadDeadline(t time.Time) error {
-	c.deadlineTimerLock.Lock()
-	defer c.deadlineTimerLock.Unlock()
+	c.deadlineLock.Lock()
+	defer c.deadlineLock.Unlock()
 	c.readDeadline = t
 	c.armDeadlineTimerLocked()
 	return nil

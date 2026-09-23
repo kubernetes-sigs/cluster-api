@@ -3994,7 +3994,11 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                            string
+		name string
+		// etcdMembersOverride, when set, is used as controlPlane.EtcdMembers instead of the members
+		// derived from controlPlane.Machines. This is required to simulate an etcd member that doesn't
+		// correspond to any Machine (e.g. a Machine still being provisioned).
+		etcdMembersOverride             []*etcd.Member
 		controlPlane                    *pkg.ControlPlane
 		wantResult                      ctrl.Result
 		wantErr                         string
@@ -4321,6 +4325,82 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				deletingMachineWithKCPPreTerminateHook.Name: nil, // pre-terminate hook has been removed
 			},
 		},
+		{
+			name: "Infer and remove the etcd member of a deleting Machine without a node when there is exactly one unexpected etcd member",
+			// Note: EtcdMembers has an extra member ("orphan-member") that doesn't correspond to any Machine.
+			// Because the deleting Machine is the only Machine without a node, KCP infers that the orphan
+			// member belongs to it and removes it before completing the deletion.
+			etcdMembersOverride: []*etcd.Member{
+				{Name: machine.Status.NodeRef.Name},
+				{Name: "orphan-member"},
+			},
+			controlPlane: &pkg.ControlPlane{
+				Cluster: cluster,
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					machine.Name: machine, // Leadership will be forwarded to this Machine, but no-ops because the deleting Machine has no node yet.
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						m.Status.NodeRef.Name = ""
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
+						return m
+					}(),
+				},
+				EtcdLeader: &etcd.Member{Name: machine.Status.NodeRef.Name},
+			},
+			wantForwardEtcdLeadershipCalled: 0, // no-op, deleting Machine has no node yet
+			wantRemoveEtcdMemberCalled:      1, // the inferred, orphaned etcd member is removed
+			wantResult:                      ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantMachineAnnotations: map[string]map[string]string{
+				machine.Name: machine.Annotations, // unchanged
+				deletingMachineWithKCPPreTerminateHook.Name: nil, // pre-terminate hook has been removed
+			},
+		},
+		{
+			name: "Do not infer the etcd member to remove if another Machine also has no node (ambiguous)",
+			// Note: EtcdMembers has the same single unexpected member ("orphan-member") as in the previous
+			// test case, but this time there is another Machine ("provisioning-machine") besides the deleting
+			// Machine that also doesn't have a node yet. KCP cannot tell which of the two Machines the orphan
+			// member belongs to, so it defers cleanup to reconcileEtcdMembers and continues with deletion.
+			etcdMembersOverride: []*etcd.Member{
+				{Name: machine.Status.NodeRef.Name},
+				{Name: "orphan-member"},
+			},
+			controlPlane: &pkg.ControlPlane{
+				Cluster: cluster,
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					machine.Name: machine,
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						m.Status.NodeRef.Name = ""
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
+						return m
+					}(),
+					"provisioning-machine": &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "provisioning-machine",
+						},
+					},
+				},
+			},
+			wantForwardEtcdLeadershipCalled: 0, // skipped
+			wantRemoveEtcdMemberCalled:      0, // skipped, ambiguous which Machine the orphan member belongs to
+			wantResult:                      ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantMachineAnnotations: map[string]map[string]string{
+				machine.Name: machine.Annotations, // unchanged
+				deletingMachineWithKCPPreTerminateHook.Name: nil, // pre-terminate hook has been removed
+				"provisioning-machine":                      nil,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -4342,7 +4422,11 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				Workload: &workloadCluster,
 			})
 
-			tt.controlPlane.EtcdMembers = etcdMembers(tt.controlPlane.Machines)
+			if tt.etcdMembersOverride != nil {
+				tt.controlPlane.EtcdMembers = tt.etcdMembersOverride
+			} else {
+				tt.controlPlane.EtcdMembers = etcdMembers(tt.controlPlane.Machines)
+			}
 
 			res, err := r.reconcilePreTerminateHook(ctx, tt.controlPlane)
 			if tt.wantErr != "" {

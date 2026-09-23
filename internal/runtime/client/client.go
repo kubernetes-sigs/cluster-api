@@ -168,6 +168,8 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 	}
 
 	request := &runtimehooksv1.DiscoveryRequest{}
+	request.SetSettings(extensionConfig.Spec.Settings)
+
 	response := &runtimehooksv1.DiscoveryResponse{}
 	opts := &httpCallOptions{
 		catalog:         c.catalog,

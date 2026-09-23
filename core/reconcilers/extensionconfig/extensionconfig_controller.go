@@ -52,6 +52,15 @@ import (
 const (
 	// tlsCAKey is used as a data key in Secret resources to store a CA certificate.
 	tlsCAKey = "ca.crt"
+
+	// postStartupRequeueWindow is the duration after controller start during which
+	// successful reconciles are requeued at postStartupRequeueAfter instead of relying
+	// solely on watches.
+	postStartupRequeueWindow = 30 * time.Minute
+
+	// postStartupRequeueAfter is the requeue interval used for successful reconciles that
+	// happen within postStartupRequeueWindow of controller start.
+	postStartupRequeueAfter = 1 * time.Minute
 )
 
 // +kubebuilder:rbac:groups=runtime.cluster.x-k8s.io,resources=extensionconfigs;extensionconfigs/status,verbs=get;list;watch;patch;update
@@ -69,6 +78,8 @@ type Reconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+
+	startTime time.Time
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -82,6 +93,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if !r.ReadOnly && r.PartialSecretCache == nil {
 		return pkgerrors.New("PartialSecretCache must be set if ReadOnly is false")
 	}
+
+	r.startTime = time.Now()
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "extensionconfig")
 	b := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
@@ -191,6 +204,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err = r.RuntimeClient.Register(extensionConfig); err != nil {
 			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to register ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
 		}
+	}
+
+	// Requeue more frequently for a while after controller start, since ExtensionConfig
+	// discovery may transiently fail while extension webhook servers are still starting up / upgrading.
+	if time.Since(r.startTime) < postStartupRequeueWindow {
+		return ctrl.Result{RequeueAfter: postStartupRequeueAfter}, nil
 	}
 
 	return ctrl.Result{}, nil

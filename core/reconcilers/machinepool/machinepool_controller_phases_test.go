@@ -1205,7 +1205,6 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		infraCRD           *apiextensionsv1.CustomResourceDefinition
 		machinepool        *clusterv1.MachinePool
 		expectError        bool
-		expectChanged      bool
 		expectRequeueAfter bool
 		expected           func(g *WithT, m *clusterv1.MachinePool)
 	}{
@@ -1237,8 +1236,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					},
 				},
 			},
-			expectError:   false,
-			expectChanged: true,
+			expectError: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
 				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 			},
@@ -1353,8 +1351,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					"ready": true,
 				},
 			},
-			expectError:   false,
-			expectChanged: true,
+			expectError: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
 				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 			},
@@ -1377,8 +1374,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					"ready": true,
 				},
 			},
-			expectError:   false,
-			expectChanged: true,
+			expectError: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
 				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 			},

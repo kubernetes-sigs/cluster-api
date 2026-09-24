@@ -40,9 +40,9 @@ func InfrastructureMachinePool() *InfrastructureMachinePoolContract {
 }
 
 // Provisioned returns if the InfrastructureMachinePool is provisioned.
-// Note: When using the v1beta2 version of the contract, reading status.initialization.provisioned falls back to
-// status.ready if the field is not set, thus preserving temporary compatibility with providers that have
-// not yet adopted the new field.
+// Note: The v1beta2 version of the contract handles both status.initialization.provisioned and status.ready.
+// status.ready is read only if status.initialization.provisioned is not set. Handling status.ready in the
+// v1beta2 contract is deprecated and will be removed in a future version of the contract.
 func (m *InfrastructureMachinePoolContract) Provisioned(contractVersion string) *ProvisionedBool {
 	if contractVersion == "v1beta1" {
 		return &ProvisionedBool{
@@ -61,6 +61,7 @@ func (m *InfrastructureMachinePoolContract) Provisioned(contractVersion string) 
 // MachinePool contracts are lagging behind core CAPI. So a provider will declare they are compliant with
 // CAPI v1beta2 but may not have fully adopted the v1beta2 contract for MachinePools. So this allows us to
 // fallback to the previous contract value if the new fields doesn't exist.
+// Note: The fallback is deprecated and will be removed in a future version of the contract.
 type ProvisionedBool struct {
 	path         Path
 	fallbackPath Path

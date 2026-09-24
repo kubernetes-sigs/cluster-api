@@ -8,7 +8,7 @@ reviewers:
   - "@erikgb"
   - "@phoban01"
 creation-date: 2026-08-04
-last-updated: 2026-08-04
+last-updated: 2026-09-24
 status: provisional
 see-also:
   - "/docs/proposals/20191016-clusterctl-redesign.md"
@@ -267,6 +267,8 @@ The artifact itself is a standard OCI image manifest with:
 | `cluster-api.sigs.k8s.io/provider-name` | `cluster-api` | Provider name as known to clusterctl |
 
 Consumers (clusterctl) validate the annotations after pulling and return an error when the artifact does not conform to the contract. Together, the file-name conventions and the annotations form the normative artifact contract.
+
+Providers do not need to build conformant artifacts by hand. The Go tool CAPI uses in its own release pipeline (see [Publishing pipeline](#publishing-pipeline)) is reusable ([FR7](#fr7)). Providers can run it in their own release pipelines to produce and push OCI artifacts in the format defined in this proposal.
 
 #### Naming and tagging conventions
 

@@ -56,7 +56,7 @@ require (
 	github.com/go-openapi/swag/stringutils v0.29.1 // indirect
 	github.com/go-openapi/swag/typeutils v0.29.1 // indirect
 	github.com/go-openapi/swag/yamlutils v0.29.1 // indirect
-	github.com/google/go-github/v90 v90.0.0 // indirect
+	github.com/google/go-github/v92 v92.0.0 // indirect
 )
 
 require (

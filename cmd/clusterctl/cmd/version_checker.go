@@ -28,7 +28,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/blang/semver/v4"
-	"github.com/google/go-github/v90/github"
+	"github.com/google/go-github/v92/github"
 	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"sigs.k8s.io/yaml"

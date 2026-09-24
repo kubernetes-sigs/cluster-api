@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v90/github"
+	"github.com/google/go-github/v92/github"
 	"golang.org/x/oauth2"
 
 	release "sigs.k8s.io/cluster-api/hack/tools/release/internal"

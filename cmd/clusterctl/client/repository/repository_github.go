@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/google/go-github/v90/github"
+	"github.com/google/go-github/v92/github"
 	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/util/version"

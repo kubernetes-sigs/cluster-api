@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v90/github"
+	"github.com/google/go-github/v92/github"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 

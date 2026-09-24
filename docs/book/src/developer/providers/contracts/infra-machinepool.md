@@ -338,6 +338,18 @@ Once `status.initialization.provisioned` is set, the MachinePool "core" controll
 
 <aside class="note warning">
 
+<h1>Deprecated support for status.ready in the v1beta2 contract</h1>
+
+To allow more time for providers to move to the v1beta2 contract for InfraMachinePool, the v1beta2 contract still handles both fields for InfraMachinePool resources:
+- Cluster API will try and read `status.initialization.provisioned` first.
+- If `status.initialization.provisioned` is not set, Cluster API falls back to using `status.ready`.
+
+Handling of `status.ready` in the v1beta2 contract is deprecated and will be removed in a future version of the contract. Providers SHOULD report initialization completed using `status.initialization.provisioned`.
+
+</aside>
+
+<aside class="note warning">
+
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_ preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
@@ -347,7 +359,7 @@ With regard to initialization completed:
 Cluster API will continue to temporarily support InfraMachinePool resource using `status.ready` field to report initialization completed.
 
 After compatibility with the deprecated v1beta1 contract will be removed, `status.ready` field in
-the InfraMachine resource will be ignored.
+the InfraMachinePool resource will be ignored.
 
 </aside>
 

@@ -1254,7 +1254,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 				"status": map[string]interface{}{
 					"initialization": map[string]interface{}{"provisioned": true},
-					"ready": true,
+					"ready":           true,
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",

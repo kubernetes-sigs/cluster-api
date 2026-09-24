@@ -19,6 +19,7 @@ package envtest
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"path"
@@ -30,18 +31,19 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/resourceversion"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -52,7 +54,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -63,23 +65,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/yaml"
 
+	addonsv1beta1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	ipamv1alpha1 "sigs.k8s.io/cluster-api/api/ipam/v1alpha1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
+	runtimev1alpha1 "sigs.k8s.io/cluster-api/api/runtime/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	bootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
+	bootstrapadmission "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
+	controlplaneadmission "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
+	controlplaneconversion "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
+	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
+	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 	"sigs.k8s.io/cluster-api/version"
-	"sigs.k8s.io/cluster-api/webhooks"
 )
 
 func init() {
@@ -119,18 +129,24 @@ func registerSchemes(s *runtime.Scheme) {
 	utilruntime.Must(apiextensionsv1.AddToScheme(s))
 
 	utilruntime.Must(addonsv1.AddToScheme(s))
+	utilruntime.Must(addonsv1beta1.AddToScheme(s))
 	utilruntime.Must(bootstrapv1.AddToScheme(s))
+	utilruntime.Must(bootstrapv1beta1.AddToScheme(s))
 	utilruntime.Must(clusterv1.AddToScheme(s))
+	utilruntime.Must(clusterv1beta1.AddToScheme(s))
 	utilruntime.Must(controlplanev1.AddToScheme(s))
 	utilruntime.Must(controlplanev1beta1.AddToScheme(s))
 	utilruntime.Must(ipamv1.AddToScheme(s))
+	utilruntime.Must(ipamv1alpha1.AddToScheme(s))
+	utilruntime.Must(ipamv1beta1.AddToScheme(s))
 	utilruntime.Must(runtimev1.AddToScheme(s))
+	utilruntime.Must(runtimev1alpha1.AddToScheme(s))
 }
 
 // RunInput is the input for Run.
 type RunInput struct {
 	M                           *testing.M
-	ManagerCacheOptions         cache.Options
+	SetupManagerCacheOptions    func(scheme *runtime.Scheme) ctrlcache.Options
 	ManagerClientOptions        client.Options
 	SetupIndexes                func(ctx context.Context, mgr ctrl.Manager)
 	SetupReconcilers            func(ctx context.Context, mgr ctrl.Manager)
@@ -165,13 +181,18 @@ func Run(ctx context.Context, input RunInput) int {
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(rbacv1.AddToScheme(scheme))
+	utilruntime.Must(storagev1.AddToScheme(scheme))
 	// Register additionally passed schemes.
 	if input.AdditionalSchemeBuilder != nil {
 		utilruntime.Must(input.AdditionalSchemeBuilder.AddToScheme(scheme))
 	}
 
 	// Bootstrapping test environment
-	env := newEnvironment(ctx, scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerClientOptions)
+	var cacheOptions ctrlcache.Options
+	if input.SetupManagerCacheOptions != nil {
+		cacheOptions = input.SetupManagerCacheOptions(scheme)
+	}
+	env := newEnvironment(ctx, scheme, input.AdditionalCRDDirectoryPaths, cacheOptions, input.ManagerClientOptions)
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	env.cancelManager = cancel
@@ -191,8 +212,8 @@ func Run(ctx context.Context, input RunInput) int {
 		config := kubeconfig.FromEnvTestConfig(env.Config, &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		})
-		if err := os.WriteFile(kubeconfigPath, config, 0o600); err != nil {
-			panic(errors.Wrapf(err, "failed to write the test env kubeconfig"))
+		if err := os.WriteFile(kubeconfigPath, config, 0o600); err != nil { //nolint:gosec // G703: kubeconfigPath is constructed internally.
+			panic(pkgerrors.Wrapf(err, "failed to write the test env kubeconfig"))
 		}
 	}
 
@@ -220,12 +241,12 @@ func Run(ctx context.Context, input RunInput) int {
 	var errs []error
 
 	if err := verifyPanicMetrics(); err != nil {
-		errs = append(errs, errors.Wrapf(err, "panics occurred during tests"))
+		errs = append(errs, pkgerrors.Wrapf(err, "panics occurred during tests"))
 	}
 
 	// Tearing down the test environment
 	if err := env.stop(); err != nil {
-		errs = append(errs, errors.Wrapf(err, "failed to stop the test environment"))
+		errs = append(errs, pkgerrors.Wrapf(err, "failed to stop the test environment"))
 	}
 
 	if len(errs) > 0 {
@@ -256,25 +277,35 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, managerClientOptions client.Options) *Environment {
+func newEnvironment(_ context.Context, scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions ctrlcache.Options, managerClientOptions client.Options) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
 
-	crdDirectoryPaths := []string{
-		filepath.Join(root, "config", "crd", "bases"),
+	crdDirectoryPaths := make([]string, 0, 3+len(additionalCRDDirectoryPaths))
+	crdDirectoryPaths = append(crdDirectoryPaths,
+		filepath.Join(root, "core", "config", "crd", "bases"),
 		filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
 		filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
-	}
+	)
 	for _, path := range additionalCRDDirectoryPaths {
 		crdDirectoryPaths = append(crdDirectoryPaths, filepath.Join(root, path))
 	}
 
+	// Read the CRDs from the raw bases/ manifests into memory, so we can add the
+	// contract labels before they get installed (see addContractLabelsToKubeadmCRDs).
+	crdInstallOptions := envtest.CRDInstallOptions{
+		Paths:              crdDirectoryPaths,
+		ErrorIfPathMissing: true,
+	}
+	if err := envtest.ReadCRDFiles(&crdInstallOptions); err != nil {
+		klog.Fatalf("failed to read CRD files: %v", err)
+	}
+	addContractLabelsToKubeadmCRDs(crdInstallOptions.CRDs)
+
 	// Create the test environment.
 	env := &envtest.Environment{
-		ErrorIfCRDPathMissing: true,
-		CRDDirectoryPaths:     crdDirectoryPaths,
-		CRDs: []*apiextensionsv1.CustomResourceDefinition{
+		CRDs: append(crdInstallOptions.CRDs, []*apiextensionsv1.CustomResourceDefinition{
 			builder.GenericBootstrapConfigCRD.DeepCopy(),
 			builder.GenericBootstrapConfigTemplateCRD.DeepCopy(),
 			builder.GenericControlPlaneCRD.DeepCopy(),
@@ -297,7 +328,7 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 			builder.TestBootstrapConfigCRD.DeepCopy(),
 			builder.TestControlPlaneTemplateCRD.DeepCopy(),
 			builder.TestControlPlaneCRD.DeepCopy(),
-		},
+		}...),
 		// initialize webhook here to be able to test the envtest install via webhookOptions
 		// This should set LocalServingCertDir and LocalServingPort that are used below.
 		WebhookInstallOptions: initWebhookInstallOptions(),
@@ -315,7 +346,7 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 		auditLogsDir := filepath.Join(os.Getenv("ARTIFACTS"), relativePathPackageCallerDir)
 		auditLogsFilePath := filepath.Join(auditLogsDir, "apiserver-audit-logs")
 
-		if err = os.MkdirAll(auditLogsDir, 0750); err != nil {
+		if err = os.MkdirAll(auditLogsDir, 0750); err != nil { //nolint:gosec // G703: auditLogsDir is constructed from ARTIFACTS env var.
 			klog.Fatalf("failed to create audit logs dir: %+v", err)
 		}
 
@@ -378,63 +409,73 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 	}
 
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
-	internalwebhooks.SetMinNodeStartupTimeoutSeconds(0)
+	coreadmission.SetMinNodeStartupTimeoutSeconds(0)
 
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
-	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
-		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
-	}
-	controlplanev1beta1.SetAPIVersionGetter(apiVersionGetter)
+	controlplaneconversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
+		_, gvk, err := contract.GetGVKFromGK(ctx, mgr.GetClient(), gk)
+		if err != nil {
+			return "", err
+		}
+		return gvk.GroupVersion().String(), nil
+	})
+	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
+		_, gvk, err := contract.GetGVKFromGK(ctx, mgr.GetClient(), gk)
+		if err != nil {
+			return "", err
+		}
+		return gvk.GroupVersion().String(), nil
+	})
 
-	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.Machine{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.MachineDrainRule{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineDrainRule{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&bootstrapwebhooks.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapadmission.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&bootstrapwebhooks.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapadmission.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&controlplanewebhooks.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&controlplaneadmission.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&controlplanewebhooks.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&controlplaneadmission.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for crs: %+v", err)
 	}
-	if err := (&webhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for ClusterResourceSetBinding: %+v", err)
 	}
-	if err := (&webhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for machinepool: %+v", err)
 	}
-	if err := (&webhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for extensionconfig: %+v", err)
 	}
-	if err := (&webhooks.IPAddress{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.IPAddress{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for ipaddress: %v", err)
 	}
-	if err := (&webhooks.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for ipaddressclaim: %v", err)
 	}
 
@@ -443,6 +484,30 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 		Client:  mgr.GetClient(),
 		Config:  mgr.GetConfig(),
 		env:     env,
+	}
+}
+
+// addContractLabelsToKubeadmCRDs adds the contract labels to the kubeadm CRDs, mirroring
+// what kustomize injects in production (see bootstrap/kubeadm/config/crd/kustomization.yaml
+// and controlplane/kubeadm/config/crd/kustomization.yaml). Without those labels the
+// conversion webhooks can't resolve the apiVersion of referenced objects (e.g. a Machine's
+// bootstrapConfigRef pointing to a KubeadmConfig), which leads to "cannot find any versions
+// matching contract versions" errors in test logs.
+func addContractLabelsToKubeadmCRDs(crds []*apiextensionsv1.CustomResourceDefinition) {
+	// The label keys and values are hard-coded on purpose: this must not silently
+	// change when clusterv1 is bumped to a newer version (e.g. v1beta3 or v1).
+	contractLabels := map[string]string{
+		"cluster.x-k8s.io/v1beta1": "v1beta1",
+		"cluster.x-k8s.io/v1beta2": "v1beta2",
+	}
+	for _, crd := range crds {
+		if crd.Spec.Group != bootstrapv1.GroupVersion.Group && crd.Spec.Group != controlplanev1.GroupVersion.Group {
+			continue
+		}
+		if crd.Labels == nil {
+			crd.Labels = map[string]string{}
+		}
+		maps.Copy(crd.Labels, contractLabels)
 	}
 }
 
@@ -464,7 +529,7 @@ rules:
       - group: "runtime.cluster.x-k8s.io"
 `)
 
-	if err := os.WriteFile(policyFile, policyYAML, 0600); err != nil {
+	if err := os.WriteFile(policyFile, policyYAML, 0600); err != nil { //nolint:gosec // G703: policyFile is constructed internally.
 		return "", err
 	}
 	return policyFile, nil
@@ -490,7 +555,7 @@ func (e *Environment) start(ctx context.Context) {
 // stop stops the test environment.
 func (e *Environment) stop() error {
 	fmt.Println("Stopping the test environment")
-	e.cancelManager(errors.New("test environment stopped"))
+	e.cancelManager(pkgerrors.New("test environment stopped"))
 	return e.env.Stop()
 }
 
@@ -566,7 +631,7 @@ func (e *Environment) CleanupAndWait(ctx context.Context, objs ...client.Object)
 				return false, nil
 			})
 		oBytes, _ := yaml.Marshal(oCopy)
-		errs = append(errs, errors.Wrapf(err, "Object %s is not being deleted from the testenv client cache:\n%s", klog.KObj(o), oBytes))
+		errs = append(errs, pkgerrors.Wrapf(err, "Object %s is not being deleted from the testenv client cache:\n%s", klog.KObj(o), oBytes))
 	}
 	return kerrors.NewAggregate(errs)
 }
@@ -593,7 +658,7 @@ func (e *Environment) CreateAndWait(ctx context.Context, obj client.Object, opts
 			}
 			return true, nil
 		}); err != nil {
-		return errors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+		return pkgerrors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
 	}
 	return nil
 }
@@ -624,7 +689,7 @@ func (e *Environment) DeleteAndWait(ctx context.Context, obj client.Object, opts
 			}
 			return false, nil
 		}); err != nil {
-		return errors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+		return pkgerrors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
 	}
 	return nil
 }
@@ -632,61 +697,39 @@ func (e *Environment) DeleteAndWait(ctx context.Context, obj client.Object, opts
 // PatchAndWait creates or updates the given object using server-side apply and waits for the cache to be updated accordingly.
 //
 // NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
-func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts ...client.ApplyOption) error {
+func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, fieldManager string) error {
 	objGVK, err := apiutil.GVKForObject(obj, e.Scheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to get GVK to set GVK on object")
-	}
-	// Ensure that GVK is explicitly set because e.Patch below uses json.Marshal
-	// to serialize the object and the apiserver would complain if GVK is not sent.
-	obj.GetObjectKind().SetGroupVersionKind(objGVK)
-
-	key := client.ObjectKeyFromObject(obj)
-	objCopy := obj.DeepCopyObject().(client.Object)
-	if err := e.GetAPIReader().Get(ctx, key, objCopy); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return err
-		}
-	}
-	// Store old resource version, empty string if not found.
-	oldResourceVersion := objCopy.GetResourceVersion()
-
-	// Convert to Unstructured because Apply only works with ApplyConfigurations and Unstructured.
-	objUnstructured := &unstructured.Unstructured{}
-	switch obj.(type) {
-	case *unstructured.Unstructured:
-		objUnstructured = obj.DeepCopyObject().(*unstructured.Unstructured)
-	default:
-		if err := e.Scheme().Convert(obj, objUnstructured, nil); err != nil {
-			return errors.Wrap(err, "failed to convert object to Unstructured")
-		}
+		return pkgerrors.Wrapf(err, "failed to get GVK to set GVK on object")
 	}
 
-	if err := e.Apply(ctx, client.ApplyConfigurationFromUnstructured(objUnstructured), opts...); err != nil {
+	if err := ssa.Patch(ctx, e.Client, fieldManager, obj); err != nil {
 		return err
-	}
-
-	// Write back the modified object so callers can access the patched object.
-	if err := e.Scheme().Convert(objUnstructured, obj, ctx); err != nil {
-		return errors.Wrapf(err, "failed to write object")
 	}
 
 	// Makes sure the cache is updated with the new object
 	if err := wait.ExponentialBackoff(
 		cacheSyncBackoff,
 		func() (done bool, err error) {
-			if err := e.Get(ctx, key, objCopy); err != nil {
+			objFromCache := obj.DeepCopyObject().(client.Object)
+			if err := e.Get(ctx, client.ObjectKeyFromObject(obj), objFromCache); err != nil {
 				if apierrors.IsNotFound(err) {
 					return false, nil
 				}
 				return false, err
 			}
-			if objCopy.GetResourceVersion() == oldResourceVersion {
+
+			i, err := resourceversion.CompareResourceVersion(obj.GetResourceVersion(), objFromCache.GetResourceVersion())
+			if err != nil {
+				return false, err
+			}
+
+			if i > 0 {
 				return false, nil
 			}
 			return true, nil
 		}); err != nil {
-		return errors.Wrapf(err, "object %s, %s is not being added to or did not get updated in the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+		return pkgerrors.Wrapf(err, "%s %s is not being added to or did not get updated in the testenv client cache", objGVK.Kind, klog.KObj(obj))
 	}
 	return nil
 }

@@ -45,6 +45,12 @@ Cluster API Provider AWS
 ### CABPK
 Cluster API Bootstrap Provider Kubeadm
 
+### CABPKairos
+Cluster API Bootstrap Provider Kairos
+
+### CACPKairos
+Cluster API Control Plane Provider Kairos
+
 ### CAPC
 Cluster API Provider CloudStack
 
@@ -59,9 +65,6 @@ Cluster API Google Cloud Provider
 
 ### CAPH
 Cluster API Provider Hetzner
-
-### CAPHV
-Cluster API Provider Hivelocity
 
 ### CAPHW
 Cluster API Provider Huawei
@@ -87,8 +90,14 @@ Cluster API Provider Nested
 ### CAPX
 Cluster API Provider Nutanix
 
+### CAPKF
+Cluster API Provider Kairos Fleet
+
 ### CAPKK
 Cluster API Provider KubeKey
+
+### CAPKS
+Cluster API Provider KubeSwift
 
 ### CAPK
 Cluster API Provider Kubevirt

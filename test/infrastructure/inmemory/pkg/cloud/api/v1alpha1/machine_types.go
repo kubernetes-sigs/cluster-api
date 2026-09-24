@@ -52,5 +52,5 @@ type CloudMachineList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CloudMachine{}, &CloudMachineList{})
+	objectTypes = append(objectTypes, &CloudMachine{}, &CloudMachineList{})
 }

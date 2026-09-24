@@ -77,7 +77,6 @@ func DumpAllResourcesAndLogs(ctx context.Context, clusterProxy ClusterProxy, clu
 		byf("Dumping Pods and Nodes of Cluster %s", klog.KObj(cluster))
 		DumpResourcesForCluster(ctx, DumpResourcesForClusterInput{
 			Lister:  clusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient(),
-			Cluster: cluster,
 			LogPath: filepath.Join(artifactFolder, "clusters", cluster.Name, "resources"),
 			Resources: []DumpNamespaceAndGVK{
 				{

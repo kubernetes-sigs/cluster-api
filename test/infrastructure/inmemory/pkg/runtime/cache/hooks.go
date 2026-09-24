@@ -29,7 +29,6 @@ func (c *cache) beforeCreate(_ string, obj client.Object, resourceVersion *uint6
 	now := time.Now().UTC()
 	obj.SetCreationTimestamp(metav1.Time{Time: now})
 	// TODO: UID
-	obj.SetAnnotations(appendAnnotations(obj, lastSyncTimeAnnotation, now.Format(time.RFC3339)))
 	*resourceVersion++
 	obj.SetResourceVersion(fmt.Sprintf("%d", *resourceVersion))
 	obj.SetGeneration(1)
@@ -44,14 +43,10 @@ func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object, resourceVer
 	newObj.SetResourceVersion(oldObj.GetResourceVersion())
 	newObj.SetGeneration(oldObj.GetGeneration())
 	// TODO: UID
-	newObj.SetAnnotations(appendAnnotations(newObj, lastSyncTimeAnnotation, oldObj.GetAnnotations()[lastSyncTimeAnnotation]))
 	if !oldObj.GetDeletionTimestamp().IsZero() {
 		newObj.SetDeletionTimestamp(oldObj.GetDeletionTimestamp())
 	}
 	if !reflect.DeepEqual(newObj, oldObj) {
-		now := time.Now().UTC()
-		newObj.SetAnnotations(appendAnnotations(newObj, lastSyncTimeAnnotation, now.Format(time.RFC3339)))
-
 		*resourceVersion++
 		newObj.SetResourceVersion(fmt.Sprintf("%d", *resourceVersion))
 		newObj.SetGeneration(oldObj.GetGeneration() + 1)
@@ -73,17 +68,4 @@ func (c *cache) beforeDelete(_ string, _ client.Object) error {
 }
 
 func (c *cache) afterDelete(_ string, _ client.Object) {
-}
-
-func appendAnnotations(obj client.Object, kayValuePair ...string) map[string]string {
-	newAnnotations := map[string]string{}
-	for k, v := range obj.GetAnnotations() {
-		newAnnotations[k] = v
-	}
-	for i := 0; i < len(kayValuePair)-1; i += 2 {
-		k := kayValuePair[i]
-		v := kayValuePair[i+1]
-		newAnnotations[k] = v
-	}
-	return newAnnotations
 }

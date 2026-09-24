@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // TestOutput can be used for writing testing output.
@@ -40,7 +40,7 @@ func Byf(format string, a ...interface{}) {
 func EnableFileLogging(path string) (io.WriteCloser, error) {
 	w, err := newFileWriter(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create fileWriter")
+		return nil, pkgerrors.Wrapf(err, "failed to create fileWriter")
 	}
 
 	ginkgo.GinkgoWriter.TeeTo(w)
@@ -51,7 +51,7 @@ func EnableFileLogging(path string) (io.WriteCloser, error) {
 func newFileWriter(path string) (io.WriteCloser, error) {
 	f, err := os.Create(path) //nolint:gosec // No security issue: path is safe.
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create file")
+		return nil, pkgerrors.Wrap(err, "failed to create file")
 	}
 	return &fileWriter{
 		file: f,

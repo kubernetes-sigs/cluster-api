@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
@@ -86,7 +86,7 @@ func (f *MemoryRepository) GetFile(ctx context.Context, version string, path str
 		}
 	}
 	if _, ok := f.versions[version]; !ok {
-		return nil, errors.Errorf("unable to get files for version %s", version)
+		return nil, pkgerrors.Errorf("unable to get files for version %s", version)
 	}
 
 	for p, c := range f.files {
@@ -94,7 +94,7 @@ func (f *MemoryRepository) GetFile(ctx context.Context, version string, path str
 			return c, nil
 		}
 	}
-	return nil, errors.Errorf("unable to get file %s for version %s", path, version)
+	return nil, pkgerrors.Errorf("unable to get file %s for version %s", path, version)
 }
 
 // GetVersions returns the list of versions that are available.

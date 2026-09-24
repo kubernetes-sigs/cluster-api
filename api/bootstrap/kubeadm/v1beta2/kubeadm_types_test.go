@@ -18,11 +18,9 @@ package v1beta2
 
 import (
 	"encoding/json"
+	"fmt"
+	"reflect"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
-	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 )
 
 func TestBootstrapTokenStringMarshalJSON(t *testing.T) {
@@ -36,11 +34,13 @@ func TestBootstrapTokenStringMarshalJSON(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.bts.ID, func(t *testing.T) {
-			g := NewWithT(t)
-
 			b, err := json.Marshal(rt.bts)
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(string(b)).To(Equal(rt.expected))
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if string(b) != rt.expected {
+				t.Fatalf("Expected %s to equal %s", string(b), rt.expected)
+			}
 		})
 	}
 }
@@ -62,16 +62,20 @@ func TestBootstrapTokenStringUnmarshalJSON(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.input, func(t *testing.T) {
-			g := NewWithT(t)
-
 			newbts := &BootstrapTokenString{}
 			err := json.Unmarshal([]byte(rt.input), newbts)
 			if rt.expectedError {
-				g.Expect(err).To(HaveOccurred())
+				if err == nil {
+					t.Fatalf("Expected error but didn't return an error")
+				}
 			} else {
-				g.Expect(err).ToNot(HaveOccurred())
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
 			}
-			g.Expect(newbts).To(BeComparableTo(rt.bts))
+			if *newbts != *rt.bts {
+				t.Fatalf("Expected %s to equal %s", *newbts, *rt.bts)
+			}
 		})
 	}
 }
@@ -86,9 +90,9 @@ func TestBootstrapTokenStringJSONRoundtrip(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.input, func(t *testing.T) {
-			g := NewWithT(t)
-
-			g.Expect(roundtrip(rt.input, rt.bts)).To(Succeed())
+			if err := roundtrip(rt.input, rt.bts); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
 		})
 	}
 }
@@ -100,13 +104,13 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 	// If string input was specified, roundtrip like this: string -> (unmarshal) -> object -> (marshal) -> string
 	if input != "" {
 		if err := json.Unmarshal([]byte(input), newbts); err != nil {
-			return errors.Wrap(err, "expected no unmarshal error, got error")
+			return fmt.Errorf("expected no unmarshal error, got error: %w", err)
 		}
 		if b, err = json.Marshal(newbts); err != nil {
-			return errors.Wrap(err, "expected no marshal error, got error")
+			return fmt.Errorf("expected no marshal error, got error: %w", err)
 		}
 		if input != string(b) {
-			return errors.Errorf(
+			return fmt.Errorf(
 				"expected token: %s\n\t  actual: %s",
 				input,
 				string(b),
@@ -114,17 +118,16 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 		}
 	} else { // Otherwise, roundtrip like this: object -> (marshal) -> string -> (unmarshal) -> object
 		if b, err = json.Marshal(bts); err != nil {
-			return errors.Wrap(err, "expected no marshal error, got error")
+			return fmt.Errorf("expected no marshal error, got error: %w", err)
 		}
 		if err := json.Unmarshal(b, newbts); err != nil {
-			return errors.Wrap(err, "expected no unmarshal error, got error")
+			return fmt.Errorf("expected no unmarshal error, got error: %w", err)
 		}
-		if diff := cmp.Diff(bts, newbts); diff != "" {
-			return errors.Errorf(
-				"expected object: %v\n\t  actual: %v\n\t got diff: %v",
+		if *bts != *newbts {
+			return fmt.Errorf(
+				"expected object: %v\n\t  actual: %v\n\t",
 				bts,
 				newbts,
-				diff,
 			)
 		}
 	}
@@ -142,9 +145,10 @@ func TestBootstrapTokenStringTokenFromIDAndSecret(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.bts.ID, func(t *testing.T) {
-			g := NewWithT(t)
-
-			g.Expect(rt.bts.String()).To(Equal(rt.expected))
+			actual := rt.bts.String()
+			if actual != rt.expected {
+				t.Fatalf("Expected %s to equal %s", actual, rt.expected)
+			}
 		})
 	}
 }
@@ -174,15 +178,19 @@ func TestNewBootstrapTokenString(t *testing.T) {
 	}
 	for _, rt := range tests {
 		t.Run(rt.token, func(t *testing.T) {
-			g := NewWithT(t)
-
 			actual, err := NewBootstrapTokenString(rt.token)
 			if rt.expectedError {
-				g.Expect(err).To(HaveOccurred())
+				if err == nil {
+					t.Fatalf("Expected error but didn't return an error")
+				}
 			} else {
-				g.Expect(err).ToNot(HaveOccurred())
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
 			}
-			g.Expect(actual).To(BeComparableTo(rt.bts))
+			if !reflect.DeepEqual(actual, rt.bts) {
+				t.Fatalf("Expected %s to equal %s", *actual, *rt.bts)
+			}
 		})
 	}
 }

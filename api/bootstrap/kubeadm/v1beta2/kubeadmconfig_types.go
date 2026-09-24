@@ -17,14 +17,11 @@ limitations under the License.
 package v1beta2
 
 import (
-	"fmt"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
 )
 
 // Format specifies the output format of the bootstrap data
@@ -37,16 +34,6 @@ const (
 
 	// Ignition make the bootstrap data to be of Ignition format.
 	Ignition Format = "ignition"
-)
-
-var (
-	cannotUseWithIgnition                            = fmt.Sprintf("not supported when spec.format is set to: %q", Ignition)
-	conflictingFileSourceMsg                         = "only one of content or contentFrom may be specified for a single file"
-	conflictingUserSourceMsg                         = "only one of passwd or passwdFrom may be specified for a single user"
-	kubeadmBootstrapFormatIgnitionFeatureDisabledMsg = "can be set only if the KubeadmBootstrapFormatIgnition feature gate is enabled"
-	missingSecretNameMsg                             = "secret file source must specify non-empty secret name"
-	missingSecretKeyMsg                              = "secret file source must specify non-empty secret key"
-	pathConflictMsg                                  = "path property must be unique among all files"
 )
 
 // KubeadmConfigSpec defines the desired state of KubeadmConfig.
@@ -140,271 +127,6 @@ type KubeadmConfigSpec struct {
 	// ignition contains Ignition specific configuration.
 	// +optional
 	Ignition IgnitionSpec `json:"ignition,omitempty,omitzero"`
-}
-
-// Validate ensures the KubeadmConfigSpec is valid.
-func (c *KubeadmConfigSpec) Validate(isKCP bool, pathPrefix *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
-
-	allErrs = append(allErrs, c.validateFiles(pathPrefix)...)
-	allErrs = append(allErrs, c.validateUsers(pathPrefix)...)
-	allErrs = append(allErrs, c.validateIgnition(pathPrefix)...)
-
-	// Validate JoinConfiguration.
-	if c.JoinConfiguration.IsDefined() {
-		kfg := c.JoinConfiguration.Discovery.File.KubeConfig
-		userPath := pathPrefix.Child("joinConfiguration", "discovery", "file", "kubeconfig", "user")
-		// Note: MinProperties=1 on User ensures that at least one of AuthProvider or Exec is set
-		if kfg.User.AuthProvider.IsDefined() && kfg.User.Exec.IsDefined() {
-			allErrs = append(allErrs,
-				field.Invalid(
-					userPath,
-					kfg.User,
-					"only one of authProvider or exec must be defined",
-				),
-			)
-		}
-	}
-
-	// Only ensure ControlPlaneComponentHealthCheckSeconds fields are equal for KubeadmControlPlane and KubeadmControlPlaneTemplate.
-	// In KubeadmConfig objects usually only one of InitConfiguration or JoinConfiguration is defined as a Machine uses
-	// either kubeadm init or kubeadm join, but not both.
-	if isKCP {
-		// Validate timeouts
-		// Note: When v1beta1 will be removed, we can drop this limitation.
-		tInit := "unset"
-		if c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
-			tInit = fmt.Sprintf("%d", *c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
-		}
-		tJoin := "unset"
-		if c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
-			tJoin = fmt.Sprintf("%d", *c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
-		}
-		if tInit != tJoin {
-			allErrs = append(allErrs,
-				field.Invalid(
-					pathPrefix.Child("initConfiguration", "timeouts", "controlPlaneComponentHealthCheckSeconds"),
-					tInit,
-					fmt.Sprintf("controlPlaneComponentHealthCheckSeconds must be set to the same value both in initConfiguration.timeouts (%s) and in joinConfiguration.timeouts (%s)", tInit, tJoin),
-				),
-				field.Invalid(
-					pathPrefix.Child("joinConfiguration", "timeouts", "controlPlaneComponentHealthCheckSeconds"),
-					tJoin,
-					fmt.Sprintf("controlPlaneComponentHealthCheckSeconds must be set to the same value both in initConfiguration.timeouts (%s) and in joinConfiguration.timeouts (%s)", tInit, tJoin),
-				),
-			)
-		}
-	}
-
-	return allErrs
-}
-
-func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
-
-	knownPaths := map[string]struct{}{}
-
-	for i := range c.Files {
-		file := c.Files[i]
-		if file.Content != "" && file.ContentFrom.IsDefined() {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					pathPrefix.Child("files").Index(i),
-					file,
-					conflictingFileSourceMsg,
-				),
-			)
-		}
-		// n.b.: if we ever add types besides Secret as a ContentFrom
-		// Source, we must add webhook validation here for one of the
-		// sources being non-nil.
-		if file.ContentFrom.IsDefined() {
-			if file.ContentFrom.Secret.Name == "" {
-				allErrs = append(
-					allErrs,
-					field.Required(
-						pathPrefix.Child("files").Index(i).Child("contentFrom", "secret", "name"),
-						missingSecretNameMsg,
-					),
-				)
-			}
-			if file.ContentFrom.Secret.Key == "" {
-				allErrs = append(
-					allErrs,
-					field.Required(
-						pathPrefix.Child("files").Index(i).Child("contentFrom", "secret", "key"),
-						missingSecretKeyMsg,
-					),
-				)
-			}
-		}
-		_, conflict := knownPaths[file.Path]
-		if conflict {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					pathPrefix.Child("files").Index(i).Child("path"),
-					file,
-					pathConflictMsg,
-				),
-			)
-		}
-		knownPaths[file.Path] = struct{}{}
-	}
-
-	return allErrs
-}
-
-func (c *KubeadmConfigSpec) validateUsers(pathPrefix *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
-
-	for i := range c.Users {
-		user := c.Users[i]
-		if user.Passwd != "" && user.PasswdFrom.IsDefined() {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					pathPrefix.Child("users").Index(i),
-					user,
-					conflictingUserSourceMsg,
-				),
-			)
-		}
-		// n.b.: if we ever add types besides Secret as a PasswdFrom
-		// Source, we must add webhook validation here for one of the
-		// sources being non-nil.
-		if user.PasswdFrom.IsDefined() {
-			if user.PasswdFrom.Secret.Name == "" {
-				allErrs = append(
-					allErrs,
-					field.Required(
-						pathPrefix.Child("users").Index(i).Child("passwdFrom", "secret", "name"),
-						missingSecretNameMsg,
-					),
-				)
-			}
-			if user.PasswdFrom.Secret.Key == "" {
-				allErrs = append(
-					allErrs,
-					field.Required(
-						pathPrefix.Child("users").Index(i).Child("passwdFrom", "secret", "key"),
-						missingSecretKeyMsg,
-					),
-				)
-			}
-		}
-	}
-
-	return allErrs
-}
-
-func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
-
-	if !feature.Gates.Enabled(feature.KubeadmBootstrapFormatIgnition) {
-		if c.Format == Ignition {
-			allErrs = append(allErrs, field.Forbidden(
-				pathPrefix.Child("format"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
-		}
-
-		if c.Ignition.IsDefined() {
-			allErrs = append(allErrs, field.Forbidden(
-				pathPrefix.Child("ignition"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
-		}
-
-		return allErrs
-	}
-
-	if c.Format != Ignition {
-		if c.Ignition.IsDefined() {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					pathPrefix.Child("format"),
-					c.Format,
-					fmt.Sprintf("must be set to %q if spec.ignition is set", Ignition),
-				),
-			)
-		}
-
-		return allErrs
-	}
-
-	for i, user := range c.Users {
-		if user.Inactive != nil && *user.Inactive {
-			allErrs = append(
-				allErrs,
-				field.Forbidden(
-					pathPrefix.Child("users").Index(i).Child("inactive"),
-					cannotUseWithIgnition,
-				),
-			)
-		}
-	}
-
-	for i, file := range c.Files {
-		if file.Encoding == Gzip || file.Encoding == GzipBase64 {
-			allErrs = append(
-				allErrs,
-				field.Forbidden(
-					pathPrefix.Child("files").Index(i).Child("encoding"),
-					cannotUseWithIgnition,
-				),
-			)
-		}
-	}
-
-	if c.BootCommands != nil {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				pathPrefix.Child("bootCommands"),
-				cannotUseWithIgnition,
-			),
-		)
-	}
-
-	for i, partition := range c.DiskSetup.Partitions {
-		if partition.TableType != "" && partition.TableType != "gpt" {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					pathPrefix.Child("diskSetup", "partitions").Index(i).Child("tableType"),
-					partition.TableType,
-					fmt.Sprintf(
-						"only partition type %q is supported when spec.format is set to %q",
-						"gpt",
-						Ignition,
-					),
-				),
-			)
-		}
-	}
-
-	for i, fs := range c.DiskSetup.Filesystems {
-		if fs.ReplaceFS != "" {
-			allErrs = append(
-				allErrs,
-				field.Forbidden(
-					pathPrefix.Child("diskSetup", "filesystems").Index(i).Child("replaceFS"),
-					cannotUseWithIgnition,
-				),
-			)
-		}
-
-		if fs.Partition != "" {
-			allErrs = append(
-				allErrs,
-				field.Forbidden(
-					pathPrefix.Child("diskSetup", "filesystems").Index(i).Child("partition"),
-					cannotUseWithIgnition,
-				),
-			)
-		}
-	}
-
-	return allErrs
 }
 
 // IgnitionSpec contains Ignition specific configuration.
@@ -606,6 +328,17 @@ const (
 	GzipBase64 Encoding = "gzip+base64"
 )
 
+// FileContentFormat specifies how file content is interpreted after resolving content/contentFrom and before writing bootstrap data.
+// +kubebuilder:validation:Enum=Raw;Template
+type FileContentFormat string
+
+const (
+	// FileContentFormatRaw means content is used verbatim.
+	FileContentFormatRaw FileContentFormat = "Raw"
+	// FileContentFormatTemplate means content is rendered as a Go text/template.
+	FileContentFormatTemplate FileContentFormat = "Template"
+)
+
 // File defines the input for generating write_files in cloud-init.
 type File struct {
 	// path specifies the full path on disk where to store the file.
@@ -634,6 +367,11 @@ type File struct {
 	// +optional
 	Append *bool `json:"append,omitempty"`
 
+	// defer determines whether writing the file is deferred until the cloud-init final stage,
+	// after users are created and packages are installed.
+	// +optional
+	Defer *bool `json:"defer,omitempty"`
+
 	// content is the actual content of the file.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -643,6 +381,15 @@ type File struct {
 	// contentFrom is a referenced source of content to populate the file.
 	// +optional
 	ContentFrom FileSource `json:"contentFrom,omitempty,omitzero"`
+
+	// contentFormat specifies how to interpret content after it is resolved (inline or from contentFrom).
+	// When set to "Template", content is rendered as a Go text/template.
+	// Available template variables:
+	//   - .controlPlane.version: the Kubernetes version of the control plane (e.g. "v1.35.0").
+	//     Only set when the cluster has a control plane reference that exposes spec.version.
+	// When set to "Raw" or omitted, content is used verbatim.
+	// +optional
+	ContentFormat FileContentFormat `json:"contentFormat,omitempty"`
 }
 
 // FileSource is a union of all possible external source types for file data.
@@ -823,6 +570,7 @@ func (r *DiskSetup) IsDefined() bool {
 }
 
 // Partition defines how to create and layout a partition.
+// +kubebuilder:validation:ExactlyOneOf=layout;diskLayout
 type Partition struct {
 	// device is the name of the device.
 	// +required
@@ -833,7 +581,8 @@ type Partition struct {
 	// layout specifies the device layout.
 	// If it is true, a single partition will be created for the entire device.
 	// When layout is false, it means don't partition or ignore existing partitioning.
-	// +required
+	// Mutually exclusive with diskLayout.
+	// +optional
 	Layout *bool `json:"layout,omitempty"`
 
 	// overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
@@ -847,7 +596,53 @@ type Partition struct {
 	// +optional
 	// +kubebuilder:validation:Enum=mbr;gpt
 	TableType string `json:"tableType,omitempty"`
+
+	// diskLayout specifies an ordered list of partitions, where each item defines the
+	// percentage of disk space and optional partition type for that partition.
+	// The sum of all partition percentages must not be greater than 100.
+	// Mutually exclusive with layout.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	DiskLayout []PartitionSpec `json:"diskLayout,omitempty"`
 }
+
+// PartitionSpec defines the size and optional type for a partition.
+type PartitionSpec struct {
+	// percentage of disk that partition will take (1-100)
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	// +required
+	Percentage int32 `json:"percentage,omitempty"`
+
+	// partitionType is the partition type (optional).
+	// Supported values are Linux, LinuxSwap, LinuxRAID, LVM, Fat32, NTFS,
+	// and LinuxExtended. These are translated to cloud-init partition type codes.
+	// A full GPT partition GUID is also supported as a passthrough value.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=36
+	// +kubebuilder:validation:XValidation:rule="self.matches('^(Linux|LinuxSwap|LinuxRAID|LVM|Fat32|NTFS|LinuxExtended|[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12})$')",message="partitionType must be one of Linux, LinuxSwap, LinuxRAID, LVM, Fat32, NTFS, LinuxExtended or a full GPT partition GUID"
+	PartitionType string `json:"partitionType,omitempty"`
+}
+
+const (
+	// PartitionTypeLinux maps to the cloud-init/Linux partition type code 83.
+	PartitionTypeLinux = "Linux"
+	// PartitionTypeLinuxSwap maps to the cloud-init/Linux swap partition type code 82.
+	PartitionTypeLinuxSwap = "LinuxSwap"
+	// PartitionTypeLinuxRAID maps to the cloud-init/Linux RAID partition type code fd.
+	PartitionTypeLinuxRAID = "LinuxRAID"
+	// PartitionTypeLVM maps to the cloud-init/LVM partition type code 8e.
+	PartitionTypeLVM = "LVM"
+	// PartitionTypeFat32 maps to the cloud-init/FAT32 partition type code 0c.
+	PartitionTypeFat32 = "Fat32"
+	// PartitionTypeNTFS maps to the cloud-init/NTFS partition type code 07.
+	PartitionTypeNTFS = "NTFS"
+	// PartitionTypeLinuxExtended maps to the cloud-init/Linux extended partition type code 85.
+	PartitionTypeLinuxExtended = "LinuxExtended"
+)
 
 // Filesystem defines the file systems to be created.
 type Filesystem struct {

@@ -58,8 +58,8 @@ func (c *cache) GetInformer(ctx context.Context, obj client.Object) (Informer, e
 }
 
 func (c *cache) GetInformerForKind(_ context.Context, gvk schema.GroupVersionKind) (Informer, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.informersLock.Lock()
+	defer c.informersLock.Unlock()
 
 	if _, ok := c.informers[gvk]; !ok {
 		c.informers[gvk] = &informer{}
@@ -68,8 +68,8 @@ func (c *cache) GetInformerForKind(_ context.Context, gvk schema.GroupVersionKin
 }
 
 func (c *cache) informCreate(resourceGroup string, obj client.Object) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.informersLock.RLock()
+	defer c.informersLock.RUnlock()
 
 	if i, ok := c.informers[obj.GetObjectKind().GroupVersionKind()]; ok {
 		i := i.(*informer)
@@ -83,8 +83,8 @@ func (c *cache) informCreate(resourceGroup string, obj client.Object) {
 }
 
 func (c *cache) informUpdate(resourceGroup string, oldObj, newObj client.Object) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.informersLock.RLock()
+	defer c.informersLock.RUnlock()
 
 	if i, ok := c.informers[newObj.GetObjectKind().GroupVersionKind()]; ok {
 		i := i.(*informer)
@@ -98,8 +98,8 @@ func (c *cache) informUpdate(resourceGroup string, oldObj, newObj client.Object)
 }
 
 func (c *cache) informDelete(resourceGroup string, obj client.Object) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.informersLock.RLock()
+	defer c.informersLock.RUnlock()
 
 	if i, ok := c.informers[obj.GetObjectKind().GroupVersionKind()]; ok {
 		i := i.(*informer)
@@ -108,21 +108,6 @@ func (c *cache) informDelete(resourceGroup string, obj client.Object) {
 
 		for _, h := range i.handlers {
 			h.OnDelete(resourceGroup, obj)
-		}
-	}
-}
-
-func (c *cache) informSync(resourceGroup string, obj client.Object) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	if i, ok := c.informers[obj.GetObjectKind().GroupVersionKind()]; ok {
-		i := i.(*informer)
-		i.lock.RLock()
-		defer i.lock.RUnlock()
-
-		for _, h := range i.handlers {
-			h.OnUpdate(resourceGroup, obj, obj)
 		}
 	}
 }

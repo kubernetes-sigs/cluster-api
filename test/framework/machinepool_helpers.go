@@ -23,7 +23,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
@@ -299,7 +299,7 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 		}
 
 		if matches != len(versions) {
-			return 0, errors.Errorf("old version instances remain. Expected %d instances at version %v. Got version list: %v", len(versions), input.KubernetesUpgradeVersion, versions)
+			return 0, pkgerrors.Errorf("old version instances remain. Expected %d instances at version %v. Got version list: %v", len(versions), input.KubernetesUpgradeVersion, versions)
 		}
 
 		return matches, nil
@@ -336,7 +336,7 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 			versions[i] = "unknown"
 			if nodeGetError != nil {
 				// Dump the instance name and error here so that we can log it as part of the version array later on.
-				versions[i] = fmt.Sprintf("%s error: %s", instance.Name, errors.Wrap(err, nodeGetError.Error()))
+				versions[i] = fmt.Sprintf("%s error: %s", instance.Name, pkgerrors.Wrap(err, nodeGetError.Error()))
 			}
 		} else {
 			versions[i] = node.Status.NodeInfo.KubeletVersion

@@ -37,7 +37,7 @@ While we add test coverage for the new release branch we will also drop the test
     1. Copy the `main` branch entry as `release-1.8` in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/).
     2. Modify the following at the `release-1.8` branch entry:
             * Change intervals (let's use the same as for `release-1.7`).
-2. Create a new dashboard for the new branch in: `test-infra/config/testgrids/kubernetes/sig-cluster-lifecycle/config.yaml` (`dashboard_groups` and `dashboards`).
+2. Create a new dashboard for the new branch in: `test-infra/config/testgrids/kubernetes/cluster-api-core/config.yaml` (`dashboard_groups` and `dashboards`).
 3. Do not remove old release branches during this setup phase.
 4. Review the templates and modify/remove any outdated logic in the templates.  For example, when `release-1.7` is dropped from support, it can be removed from [this if statement](https://github.com/kubernetes/test-infra/blob/fa895d9f204e912e2bf0bd42221017a6dedf6065/config/jobs/kubernetes-sigs/cluster-api/templates/cluster-api-periodics-upgrades.yaml.tpl#L42).
 5. Regenerate the prowjob configuration running `make generate-test-infra-prowjobs` command from cluster-api repository. Before running this command, ensure to export the `TEST_INFRA_DIR` variable, specifying the location of the [test-infra](https://github.com/kubernetes/test-infra/) repository in your environment. For further information, refer to this [link](https://github.com/kubernetes-sigs/cluster-api/pull/9937).
@@ -60,19 +60,20 @@ The goal of this task is to keep our tests running in CI stable.
 1. Add yourself to the [Cluster API alert mailing list](https://github.com/kubernetes/k8s.io/blob/151899b2de933e58a4dfd1bfc2c133ce5a8bbe22/groups/sig-cluster-lifecycle/groups.yaml#L20-L35)
     <br>**Note**: An alternative to the alert mailing list is manually monitoring the [testgrid dashboards](https://testgrid.k8s.io/cluster-api-core)
     (also dashboards of previous releases). Using the alert mailing list has proven to be a lot less effort though.
-2. Subscribe to `CI Activity` notifications for the Cluster API repo.
-3. Check the existing **failing-test** and **flaking-test** issue templates under `.github/ISSUE_TEMPLATE/` folder of the repo, used to create an issue for failing or flaking tests respectively. Please make sure they are up-to-date and if not, send a PR to update or improve them.
-4. Check if there are any existing jobs that got stuck (have been running for more than 12 hours) in a ['pending'](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&state=pending) state:
+2. Check the existing **failing-test** and **flaking-test** issue templates under `.github/ISSUE_TEMPLATE/` folder of the repo, used to create an issue for failing or flaking tests respectively. Please make sure they are up-to-date and if not, send a PR to update or improve them.
+3. Check if there are any existing jobs that got stuck (have been running for more than 12 hours) in a ['pending'](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&state=pending) state:
    - If that is the case, notify the maintainers and ask them to manually cancel and re-run the stuck jobs.   
-5. Triage CI failures reported by mail alerts or found by monitoring the testgrid dashboards:
+4. Triage CI failures reported by mail alerts or found by monitoring the testgrid dashboards:
     1. Create an issue using an appropriate template (failing-test) in the Cluster API repository to surface the CI failure.
     2. Identify if the issue is a known issue, new issue or a regression.
     3. Mark the issue as `release-blocking` if applicable.
-6. Triage periodic GitHub actions failures and image scan results.
-    * Ensure that the release branch is stable and all tests are passing on [testgrid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api).
+5. Triage periodic GitHub actions failures and image scan results.
+    * Ensure that the release branch is stable and all (non-PR) tests are passing on [testgrid](https://testgrid.k8s.io/cluster-api-core).
+    * Verify the push-images job is passing on [testgrid](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-push-images).
     * Verify the [Weekly security scan](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/weekly-security-scan.yaml) results are clean.
     * Eventually open issues as described above.
-7. Run periodic deep-dive sessions with the CI team to investigate failing and flaking tests. Example session recording: https://www.youtube.com/watch?v=YApWftmiDTg
+6. Join the CI Signal Team meetings. See [meeting notes](https://docs.google.com/document/d/16NC1619SkaYi66G0ZMMb7axbXYbkFE3sWA9Ood0z8SI/edit?usp=sharing) for details.
+6. Run periodic deep-dive sessions with the CI team to investigate failing and flaking tests. Example session recording: https://www.youtube.com/watch?v=YApWftmiDTg
 
   **Note**: Maintaining the health of the project is a community effort.  CI team should use all of the tools available to them to attempt to keep the CI signal clean, however the [#cluster-api](https://kubernetes.slack.com/archives/C8TSNPY4T) Slack channel should be used to increase visibility of release blocking interruptions to the CI signal and seek help from community.  This should be *additive* to the steps described above. When in doubt, err on the side of overcommunication to promote awareness and drive disruptions to resolution.  
 
@@ -91,7 +92,12 @@ To reduce the amount of flakes please periodically:
 ### Post-release cleanup
 Once the new minor release (e.g., `v1.8.0`) has been officially cut, perform the following cleanup:
 
-- Remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/) according to our policy documented in [Support and guarantees](https://cluster-api.sigs.k8s.io/reference/versions#cluster-api-release-support)
+1. In [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/), remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file according to our policy documented in [Support and guarantees](https://cluster-api.sigs.k8s.io/reference/versions#cluster-api-release-support).
 
-We can now drop test coverage for branches out of support (e.g. `release-1.5`).
+   We can now drop test coverage for branches out of support (e.g. `release-1.5`).
 
+2. Drop the oldest release branch from the `matrix.branch` list in each of the three `weekly-.*` GitHub Actions workflow files, keeping only `main` and the two most-recent supported release branches:
+
+   - `.github/workflows/weekly-md-link-check.yaml`
+   - `.github/workflows/weekly-security-scan.yaml`
+   - `.github/workflows/weekly-test-release.yaml`

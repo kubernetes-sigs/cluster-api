@@ -16,22 +16,12 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 
 <h1>ClusterAPI documentation versions</h1>
 
-This book documents ClusterAPI v1.12. For other Cluster API versions please see the corresponding documentation:
+This book documents ClusterAPI v1.14. For other Cluster API versions please see the corresponding documentation:
 * [main.cluster-api.sigs.k8s.io](https://main.cluster-api.sigs.k8s.io)
+* [release-1-13.cluster-api.sigs.k8s.io](https://release-1-13.cluster-api.sigs.k8s.io)
+* [release-1-12.cluster-api.sigs.k8s.io](https://release-1-12.cluster-api.sigs.k8s.io)
 * [release-1-11.cluster-api.sigs.k8s.io](https://release-1-11.cluster-api.sigs.k8s.io)
-* [release-1-10.cluster-api.sigs.k8s.io](https://release-1-10.cluster-api.sigs.k8s.io)
-* [release-1-9.cluster-api.sigs.k8s.io](https://release-1-9.cluster-api.sigs.k8s.io)
-* [release-1-8.cluster-api.sigs.k8s.io](https://release-1-8.cluster-api.sigs.k8s.io)
-* [release-1-7.cluster-api.sigs.k8s.io](https://release-1-7.cluster-api.sigs.k8s.io)
-* [release-1-6.cluster-api.sigs.k8s.io](https://release-1-6.cluster-api.sigs.k8s.io)
-* [release-1-5.cluster-api.sigs.k8s.io](https://release-1-5.cluster-api.sigs.k8s.io)
-* [release-1-4.cluster-api.sigs.k8s.io](https://release-1-4.cluster-api.sigs.k8s.io)
-* [release-1-3.cluster-api.sigs.k8s.io](https://release-1-3.cluster-api.sigs.k8s.io)
-* [release-1-2.cluster-api.sigs.k8s.io](https://release-1-2.cluster-api.sigs.k8s.io)
-* [release-1-1.cluster-api.sigs.k8s.io](https://release-1-1.cluster-api.sigs.k8s.io)
-* [release-1-0.cluster-api.sigs.k8s.io](https://release-1-0.cluster-api.sigs.k8s.io)
-* [release-0-4.cluster-api.sigs.k8s.io](https://release-0-4.cluster-api.sigs.k8s.io)
-* [release-0-3.cluster-api.sigs.k8s.io](https://release-0-3.cluster-api.sigs.k8s.io)
+* older version are available at similar urls by replacing minor-version numbers
 
 </aside>
 
@@ -65,7 +55,6 @@ SIG Cluster Lifecycle began the Cluster API project as a way to address these ga
 - To force all Kubernetes lifecycle products (kOps, Kubespray, GKE, AKS, EKS, IKS etc.) to support or use these APIs.
 - To manage non-Cluster API provisioned Kubernetes-conformant clusters.
 - To manage a single cluster spanning multiple infrastructure providers.
-- To configure a machine at any time other than create or upgrade.
 - To duplicate functionality that exists or is coming to other tooling, e.g., updating kubelet configuration (c.f. dynamic kubelet configuration), or updating apiserver, controller-manager, scheduler configuration (c.f. component-config effort) after the cluster is deployed.
 
 {{#include ../../../README.md:Community}}

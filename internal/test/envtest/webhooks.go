@@ -46,7 +46,7 @@ func initWebhookInstallOptions() envtest.WebhookInstallOptions {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
-	configyamlFile, err := os.ReadFile(filepath.Join(root, "config", "webhook", "manifests.yaml")) //nolint:gosec
+	configyamlFile, err := os.ReadFile(filepath.Join(root, "core", "config", "webhook", "manifests.yaml")) //nolint:gosec
 	if err != nil {
 		klog.Fatalf("Failed to read core webhook configuration file: %v ", err)
 	}
@@ -82,6 +82,9 @@ func initWebhookInstallOptions() envtest.WebhookInstallOptions {
 		ValidatingWebhooks:           validatingWebhooks,
 		MutatingWebhooks:             mutatingWebhooks,
 		LocalServingHostExternalName: os.Getenv("CAPI_WEBHOOK_HOSTNAME"),
+		// Note: Ensure conversion is configured even if the types do not implement ConvertTo/ConvertFrom/Hub,
+		// which is the case for all our CRDs.
+		IgnoreSchemeConvertible: true,
 	}
 }
 

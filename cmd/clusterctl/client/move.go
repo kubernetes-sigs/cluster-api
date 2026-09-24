@@ -20,7 +20,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
@@ -56,14 +56,14 @@ type MoveOptions struct {
 func (c *clusterctlClient) Move(ctx context.Context, options MoveOptions) error {
 	// Both backup and restore makes no sense. It's a complete move.
 	if options.FromDirectory != "" && options.ToDirectory != "" {
-		return errors.Errorf("can't set both FromDirectory and ToDirectory")
+		return pkgerrors.Errorf("can't set both FromDirectory and ToDirectory")
 	}
 
 	if !options.DryRun &&
 		options.FromDirectory == "" &&
 		options.ToDirectory == "" &&
 		options.ToKubeconfig == (Kubeconfig{}) {
-		return errors.Errorf("at least one of FromDirectory, ToDirectory and ToKubeconfig must be set")
+		return pkgerrors.Errorf("at least one of FromDirectory, ToDirectory and ToKubeconfig must be set")
 	}
 
 	if options.ToDirectory != "" {

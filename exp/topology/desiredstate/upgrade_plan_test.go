@@ -23,13 +23,13 @@ import (
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
@@ -1055,6 +1055,33 @@ func TestGetUpgradePlanFromClusterClassVersions(t *testing.T) {
 			wantErr:                     false,
 		},
 		{
+			name:                        "upgrade between patch version",
+			clusterClassVersions:        []string{"v1.35.1", "v1.35.2"},
+			desiredVersion:              "v1.35.2",
+			currentControlPlaneVersion:  "v1.35.1",
+			wantControlPlaneUpgradePlan: []string{"v1.35.2"},
+			wantWorkersUpgradePlan:      nil,
+			wantErr:                     false,
+		},
+		{
+			name:                        "upgrade between patch version",
+			clusterClassVersions:        []string{"v1.35.1", "v1.35.2", "v1.35.3"},
+			desiredVersion:              "v1.35.3",
+			currentControlPlaneVersion:  "v1.35.1",
+			wantControlPlaneUpgradePlan: []string{"v1.35.3"},
+			wantWorkersUpgradePlan:      nil,
+			wantErr:                     false,
+		},
+		{
+			name:                        "upgrade between patch version",
+			clusterClassVersions:        []string{"v1.35.1", "v1.35.2", "v1.35.3"},
+			desiredVersion:              "v1.35.2",
+			currentControlPlaneVersion:  "v1.35.1",
+			wantControlPlaneUpgradePlan: []string{"v1.35.2"},
+			wantWorkersUpgradePlan:      nil,
+			wantErr:                     false,
+		},
+		{
 			name:                        "return control plane upgrade plan for more than one minor",
 			clusterClassVersions:        []string{"v1.31.0", "v1.32.0", "v1.33.0"},
 			desiredVersion:              "v1.33.0",
@@ -1191,7 +1218,7 @@ func TestGetUpgradePlanFromExtension(t *testing.T) {
 		Build()
 
 	// Call GetUpgradePlanFromExtension
-	generateUpgradePlanCache := cache.New[GenerateUpgradePlanCacheEntry](10 * time.Minute)
+	generateUpgradePlanCache := cache.New[GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute)
 	f := GetUpgradePlanFromExtension(fakeRuntimeClient, generateUpgradePlanCache, cluster, "test-extension")
 	controlPlaneUpgradePlan, workersUpgradePlan, err := f(ctx, "v1.33.0", "v1.31.0", "v1.31.0")
 
@@ -1247,7 +1274,7 @@ func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
 			desiredVersion:             "v1.33.0",
 			currentControlPlaneVersion: "v1.31.0",
 			currentMinWorkersVersion:   "v1.31.0",
-			extensionError:             errors.New("extension call error"),
+			extensionError:             pkgerrors.New("extension call error"),
 			wantErrMessage:             "failed to get upgrade plan from extension: extension call error",
 		},
 	}
@@ -1278,7 +1305,7 @@ func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
 			fakeRuntimeClient := fakeRuntimeClientBuilder.Build()
 
 			// Call GetUpgradePlanFromExtension
-			f := GetUpgradePlanFromExtension(fakeRuntimeClient, cache.New[GenerateUpgradePlanCacheEntry](10*time.Minute), cluster, "test-extension")
+			f := GetUpgradePlanFromExtension(fakeRuntimeClient, cache.New[GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute), cluster, "test-extension")
 			_, _, err := f(ctx, tt.desiredVersion, tt.currentControlPlaneVersion, tt.currentMinWorkersVersion)
 
 			g.Expect(err).To(HaveOccurred())

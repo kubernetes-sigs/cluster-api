@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -41,7 +41,7 @@ func getKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, name
 		Name:      name,
 	}
 	if err := c.Get(ctx, kcpObjKey, kcpObj); err != nil {
-		return nil, errors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s",
+		return nil, pkgerrors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s",
 			kcpObjKey.Namespace, kcpObjKey.Name)
 	}
 	return kcpObj, nil
@@ -65,11 +65,11 @@ func patchKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, na
 		Name:      name,
 	}
 	if err := cFrom.Get(ctx, kcpObjKey, kcpObj); err != nil {
-		return errors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s", kcpObj.GetNamespace(), kcpObj.GetName())
+		return pkgerrors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s", kcpObj.GetNamespace(), kcpObj.GetName())
 	}
 
 	if err := cFrom.Patch(ctx, kcpObj, patch); err != nil {
-		return errors.Wrapf(err, "failed while patching KubeadmControlPlane %s/%s", kcpObj.GetNamespace(), kcpObj.GetName())
+		return pkgerrors.Wrapf(err, "failed while patching KubeadmControlPlane %s/%s", kcpObj.GetNamespace(), kcpObj.GetName())
 	}
 	return nil
 }

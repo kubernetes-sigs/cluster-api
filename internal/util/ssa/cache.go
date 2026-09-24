@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/cache"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -32,7 +32,9 @@ import (
 
 const (
 	// ttl is the duration for which we keep the keys in the cache.
-	ttl = 10 * time.Minute
+	// The ttl is a multiple of the default syncPeriod to ensure we have a few chances
+	// of refreshing cache entries before an entry expires.
+	ttl = 30 * time.Minute
 
 	// expirationInterval is the interval in which we will remove expired keys
 	// from the cache.
@@ -55,7 +57,7 @@ type Cache interface {
 // NewCache creates a new cache.
 func NewCache(controllerName string) Cache {
 	r := &ssaCache{
-		Store: cache.NewTTLStore(func(obj interface{}) (string, error) {
+		Store: toolscache.NewTTLStore(func(obj interface{}) (string, error) {
 			// We only add strings to the cache, so it's safe to cast to string.
 			return obj.(string), nil
 		}, ttl),
@@ -75,7 +77,7 @@ func NewCache(controllerName string) Cache {
 }
 
 type ssaCache struct {
-	cache.Store
+	toolscache.Store
 	controllerName string
 }
 
@@ -109,12 +111,12 @@ func (r *ssaCache) Has(key, kind string) bool {
 func ComputeRequestIdentifier(scheme *runtime.Scheme, resourceVersion string, obj client.Object) (string, error) {
 	objHash, err := hash.Compute(obj)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to calculate request identifier: failed to compute hash for object")
+		return "", pkgerrors.Wrapf(err, "failed to calculate request identifier: failed to compute hash for object")
 	}
 
 	gvk, err := apiutil.GVKForObject(obj, scheme)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to calculate request identifier: failed to get GroupVersionKind of object %s", klog.KObj(obj))
+		return "", pkgerrors.Wrapf(err, "failed to calculate request identifier: failed to get GroupVersionKind of object %s", klog.KObj(obj))
 	}
 
 	return fmt.Sprintf("%s.%s.%s.%d", gvk.String(), klog.KObj(obj), resourceVersion, objHash), nil

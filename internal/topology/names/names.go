@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
 )
 
@@ -134,12 +134,12 @@ func newTemplateGenerator(template, clusterName string, data map[string]interfac
 func (g *templateGenerator) GenerateName() (string, error) {
 	tpl, err := template.New("template name generator").Option("missingkey=error").Parse(g.template)
 	if err != nil {
-		return "", errors.Wrapf(err, "parsing template %q", g.template)
+		return "", pkgerrors.Wrapf(err, "parsing template %q", g.template)
 	}
 
 	var buf bytes.Buffer
 	if err := tpl.Execute(&buf, g.data); err != nil {
-		return "", errors.Wrap(err, "rendering template")
+		return "", pkgerrors.Wrap(err, "rendering template")
 	}
 
 	name := buf.String()

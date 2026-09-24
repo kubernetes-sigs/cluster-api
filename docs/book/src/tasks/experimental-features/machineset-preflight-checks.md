@@ -59,7 +59,7 @@ The enabled preflight checks can be overwritten with the `--machineset-preflight
 
 It is also possible to opt-out of one or all of the preflight checks on a per MachineSet basis by specifying a 
 comma-separated list of the preflight checks via the `machineset.cluster.x-k8s.io/skip-preflight-checks` annotation
-on the MachineSet.
+on the MachineSet or on the corresponding BootstrapConfigTemplate (annotation on the MachineSet has higher priority).
 
 Examples: 
 * To opt out of all the preflight checks set the `machineset.cluster.x-k8s.io/skip-preflight-checks: All` annotation.
@@ -72,5 +72,8 @@ Examples:
 
 Because of the [metadata propagation](../../reference/api/metadata-propagation.md#machinedeployment) rules in Cluster API you can set the `machineset.cluster.x-k8s.io/skip-preflight-checks` annotation 
 on a MachineDeployment and it will be automatically set on the MachineSets of that MachineDeployment, including any new MachineSets created when the MachineDeployment performs a rollout.
+
+Please note that if the annotation is set both on a MachineDeployment and on MachineSets the MachineDeployment controller 
+will overwrite the annotation on the MachineSets and accordingly the annotation on the MachineDeployment has higher priority.
 
 </aside>

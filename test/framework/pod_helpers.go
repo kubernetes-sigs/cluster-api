@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -65,7 +65,7 @@ func EtcdImageTagCondition(expectedTag string, expectedCount int) PodListConditi
 			}
 		}
 		if countWithCorrectTag != expectedCount {
-			return errors.Errorf("etcdImageTagCondition: expected %d pods to have image tag %q, got %d", expectedCount, expectedTag, countWithCorrectTag)
+			return pkgerrors.Errorf("etcdImageTagCondition: expected %d pods to have image tag %q, got %d", expectedCount, expectedTag, countWithCorrectTag)
 		}
 
 		// This check is to ensure that if there are three controlplane nodes,
@@ -74,7 +74,7 @@ func EtcdImageTagCondition(expectedTag string, expectedCount int) PodListConditi
 		// case where there are three etcd pods with the correct tag and one
 		// left over that has yet to be deleted.
 		if len(pl.Items) != expectedCount {
-			return errors.Errorf("etcdImageTagCondition: expected %d pods, got %d", expectedCount, len(pl.Items))
+			return pkgerrors.Errorf("etcdImageTagCondition: expected %d pods, got %d", expectedCount, len(pl.Items))
 		}
 		return nil
 	}
@@ -86,7 +86,7 @@ func PhasePodCondition(expectedPhase corev1.PodPhase) PodListCondition {
 	return func(pl *corev1.PodList) error {
 		for _, pod := range pl.Items {
 			if pod.Status.Phase != expectedPhase {
-				return errors.Errorf("pod %q is not %s", pod.Name, expectedPhase)
+				return pkgerrors.Errorf("pod %q is not %s", pod.Name, expectedPhase)
 			}
 		}
 		return nil

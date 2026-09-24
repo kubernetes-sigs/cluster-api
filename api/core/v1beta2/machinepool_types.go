@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	capierrors "sigs.k8s.io/cluster-api/errors"
+	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
 const (
@@ -140,7 +140,7 @@ type MachinePoolStatus struct {
 	// +optional
 	Initialization MachinePoolInitializationStatus `json:"initialization,omitempty,omitzero"`
 
-	// nodeRefs will point to the corresponding Nodes if it they exist.
+	// nodeRefs will point to the corresponding Nodes if they exist.
 	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10000
@@ -161,6 +161,14 @@ type MachinePoolStatus struct {
 	// upToDateReplicas is the number of up-to-date replicas targeted by this MachinePool. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in this MachinePool.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
 
 	// phase represents the current phase of cluster actuation.
 	// +optional

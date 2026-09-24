@@ -20,9 +20,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -74,11 +75,11 @@ var describeClusterClusterCmd = &cobra.Command{
 		# also when their status is the same as the status of the corresponding machine object.
 		clusterctl describe cluster test-1 --echo`),
 
-	Args: func(_ *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return errors.New("please specify a cluster name")
+	Args: func(cmd *cobra.Command, args []string) error {
+		if err := exactArgsWithMessage(1, "please specify a cluster name")(cmd, args); err != nil {
+			return err
 		}
-		return nil
+		return validateShowConditions(dc.showOtherConditions)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runDescribeCluster(cmd, args[0])
@@ -124,6 +125,15 @@ func init() {
 	describeCmd.AddCommand(describeClusterClusterCmd)
 }
 
+func validateShowConditions(showConditions string) error {
+	for _, filter := range strings.Split(showConditions, ",") {
+		if strings.TrimSpace(filter) != filter {
+			return pkgerrors.Errorf("invalid --show-conditions value %q: whitespace is not allowed", showConditions)
+		}
+	}
+	return nil
+}
+
 func runDescribeCluster(cmd *cobra.Command, name string) error {
 	ctx := context.Background()
 
@@ -156,11 +166,11 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 	switch dc.v1beta2 {
 	case true:
 		if err := cmdtree.PrintObjectTree(tree, os.Stdout); err != nil {
-			return errors.Wrap(err, "failed to print object tree")
+			return pkgerrors.Wrap(err, "failed to print object tree")
 		}
 	default:
 		if err := cmdtree.PrintObjectTreeV1Beta1(tree); err != nil {
-			return errors.Wrap(err, "failed to print object tree v1beta1")
+			return pkgerrors.Wrap(err, "failed to print object tree v1beta1")
 		}
 	}
 

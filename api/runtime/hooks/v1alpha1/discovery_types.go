@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 )
 
 // DefaultHandlersTimeoutSeconds defines the default timeout duration for client calls to ExtensionHandlers.
@@ -29,6 +29,9 @@ const DefaultHandlersTimeoutSeconds = 10
 // +kubebuilder:object:root=true
 type DiscoveryRequest struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// CommonRequest contains fields common to all request types.
+	CommonRequest `json:",inline"`
 }
 
 var _ ResponseObject = &DiscoveryResponse{}

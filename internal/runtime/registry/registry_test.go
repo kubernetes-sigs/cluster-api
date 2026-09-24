@@ -22,11 +22,11 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 func TestColdRegistry(t *testing.T) {
@@ -211,7 +211,7 @@ type ContainExtensionMatcher struct {
 func (matcher *ContainExtensionMatcher) Match(actual interface{}) (success bool, err error) {
 	ext, ok := actual.([]*ExtensionRegistration)
 	if !ok {
-		return false, errors.Errorf("Expecting *ExtensionRegistration, got %t", actual)
+		return false, pkgerrors.Errorf("Expecting *ExtensionRegistration, got %t", actual)
 	}
 
 	for _, e := range ext {

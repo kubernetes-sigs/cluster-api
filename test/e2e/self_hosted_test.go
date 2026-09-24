@@ -27,14 +27,15 @@ import (
 var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass [ClusterClass]", Label("ClusterClass"), func() {
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
-			E2EConfig:                e2eConfig,
-			ClusterctlConfigPath:     clusterctlConfigPath,
-			BootstrapClusterProxy:    bootstrapClusterProxy,
-			ArtifactFolder:           artifactFolder,
-			SkipCleanup:              skipCleanup,
-			Flavor:                   "topology",
-			ControlPlaneMachineCount: ptr.To[int64](1),
-			WorkerMachineCount:       ptr.To[int64](1),
+			E2EConfig:                   e2eConfig,
+			ClusterctlConfigPath:        clusterctlConfigPath,
+			BootstrapClusterProxy:       bootstrapClusterProxy,
+			ArtifactFolder:              artifactFolder,
+			SkipCleanup:                 skipCleanup,
+			Flavor:                      "topology",
+			ControlPlaneMachineCount:    ptr.To[int64](1),
+			WorkerMachineCount:          ptr.To[int64](1),
+			PreCleanupSelfHostedCluster: dumpAdditionalResources,
 		}
 	})
 })
@@ -42,14 +43,15 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass with a HA control plane [ClusterClass]", Label("ClusterClass"), func() {
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
-			E2EConfig:                e2eConfig,
-			ClusterctlConfigPath:     clusterctlConfigPath,
-			BootstrapClusterProxy:    bootstrapClusterProxy,
-			ArtifactFolder:           artifactFolder,
-			SkipCleanup:              skipCleanup,
-			Flavor:                   "topology",
-			ControlPlaneMachineCount: ptr.To[int64](3),
-			WorkerMachineCount:       ptr.To[int64](1),
+			E2EConfig:                   e2eConfig,
+			ClusterctlConfigPath:        clusterctlConfigPath,
+			BootstrapClusterProxy:       bootstrapClusterProxy,
+			ArtifactFolder:              artifactFolder,
+			SkipCleanup:                 skipCleanup,
+			Flavor:                      "topology",
+			ControlPlaneMachineCount:    ptr.To[int64](3),
+			WorkerMachineCount:          ptr.To[int64](1),
+			PreCleanupSelfHostedCluster: dumpAdditionalResources,
 		}
 	})
 })
@@ -65,7 +67,8 @@ var _ = Describe("When testing Cluster API working on single-node self-hosted cl
 			Flavor:                   "topology-no-workers",
 			ControlPlaneMachineCount: ptr.To[int64](1),
 			// Note: the used template is not using the corresponding variable.
-			WorkerMachineCount: ptr.To[int64](0),
+			WorkerMachineCount:          ptr.To[int64](0),
+			PreCleanupSelfHostedCluster: dumpAdditionalResources,
 		}
 	})
 })

@@ -18,8 +18,13 @@ server:
   # Used by tempo to write traces.
   - "web.enable-remote-write-receiver"
   persistentVolume:
-    # Give Prometheus more space to store metrics.
-    size: 20Gi
+    # Using 256Gi so this also works during scale tests.
+    # In kind the local-path-provisioner is used that just mounts a local
+    # directory so this doesn't take up space until it is actually needed.
+    size: 256Gi
+  global:
+    scrape_interval: 60s
+    scrape_timeout: 59s
 
 scrapeConfigs:
   kubernetes-nodes:
@@ -33,7 +38,8 @@ scrapeConfigs:
 extraScrapeConfigs: |
   - job_name: 'capi-providers'
     # 15s is a bit often for production but helps to get metrics quicker for development.
-    scrape_interval: 15s
+    scrape_interval: 30s
+    scrape_timeout: 29s
     scrape_native_histograms: true
     always_scrape_classic_histograms: true
     metrics_path: /metrics

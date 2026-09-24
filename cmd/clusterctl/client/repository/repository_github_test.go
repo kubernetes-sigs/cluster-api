@@ -26,7 +26,7 @@ import (
 
 	"github.com/google/go-github/v82/github"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -1084,7 +1084,7 @@ func Test_gitHubRepository_releaseNotFound(t *testing.T) {
 					goproxytest.HTTPTestMethod(t, r, "GET")
 					parts := strings.Split(r.RequestURI, "/")
 					version := parts[len(parts)-1]
-					fmt.Fprintf(w, "{\"id\":13, \"tag_name\": %q, \"assets\": [{\"id\": 1, \"name\": \"metadata.yaml\"}] }", version)
+					fmt.Fprintf(w, "{\"id\":13, \"tag_name\": %q, \"assets\": [{\"id\": 1, \"name\": \"metadata.yaml\"}] }", version) //nolint:gosec // G705: version comes from the test request URI, not user input.
 				})
 			}
 
@@ -1120,10 +1120,10 @@ func Test_handleGithubErr(t *testing.T) {
 	}{
 		{
 			name:    "Return error",
-			err:     errors.New("error"),
+			err:     pkgerrors.New("error"),
 			message: "message %s and %s",
 			args:    []any{"arg1", "arg2"},
-			want:    fmt.Errorf("message arg1 and arg2: %w", errors.New("error")),
+			want:    fmt.Errorf("message arg1 and arg2: %w", pkgerrors.New("error")),
 		},
 		{
 			name: "Return RateLimitError",

@@ -24,15 +24,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -81,8 +82,16 @@ type CacheOptions struct {
 	// SyncPeriod is the sync period of the cache.
 	SyncPeriod *time.Duration
 
+	// DefaultTransform is a transform function applied to all objects before they are
+	// stored in the per-cluster cache. It is equivalent to cache.Options.DefaultTransform
+	// from controller-runtime and is a convenient way to strip managedFields (or apply
+	// other mutations) from every cached object without having to enumerate every type
+	// in ByObject. When a type also has a ByObject entry with its own Transform set, that
+	// per-type transform takes precedence.
+	DefaultTransform toolscache.TransformFunc
+
 	// ByObject restricts the cache's ListWatch to the desired fields per GVK at the specified object.
-	ByObject map[client.Object]cache.ByObject
+	ByObject map[client.Object]ctrlcache.ByObject
 
 	// Indexes are the indexes added to the cache.
 	Indexes []CacheOptionsIndex
@@ -195,7 +204,7 @@ var ErrClusterNotConnected = fmt.Errorf("connection to the workload cluster is d
 type Watcher interface {
 	Name() string
 	Object() client.Object
-	Watch(cache cache.Cache) error
+	Watch(cache ctrlcache.Cache) error
 }
 
 // SourceWatcher is a scoped-down interface from Controller that only has the Watch func.
@@ -257,7 +266,7 @@ type watcher[object client.Object, request comparable] struct {
 
 func (tw *watcher[object, request]) Name() string          { return tw.name }
 func (tw *watcher[object, request]) Object() client.Object { return tw.kind }
-func (tw *watcher[object, request]) Watch(cache cache.Cache) error {
+func (tw *watcher[object, request]) Watch(cache ctrlcache.Cache) error {
 	return tw.watcher.Watch(source.TypedKind[object, request](cache, tw.kind, tw.eventHandler, tw.predicates...))
 }
 
@@ -323,6 +332,7 @@ func SetupWithManager(ctx context.Context, mgr manager.Manager, options Options,
 		client:                mgr.GetClient(),
 		clusterAccessorConfig: buildClusterAccessorConfig(mgr.GetScheme(), options, controllerPodMetadata),
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
+		clusterFilter:         options.ClusterFilter,
 		cacheCtx:              cacheCtx,
 		cacheCtxCancel:        cacheCtxCancel,
 	}
@@ -333,9 +343,9 @@ func SetupWithManager(ctx context.Context, mgr manager.Manager, options Options,
 		For(&clusterv1.Cluster{}).
 		WithOptions(controllerOptions).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), log, options.WatchFilterValue)).
-		Complete(cc)
+		Complete(ctx, cc)
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed setting up ClusterCache with a controller manager")
+		return nil, pkgerrors.WithMessage(err, "failed setting up ClusterCache with a controller manager")
 	}
 
 	return cc, nil
@@ -391,7 +401,7 @@ type clusterSource struct {
 func (cc *clusterCache) GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting client")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting client")
 	}
 	return accessor.GetClient(ctx)
 }
@@ -399,7 +409,7 @@ func (cc *clusterCache) GetClient(ctx context.Context, cluster client.ObjectKey)
 func (cc *clusterCache) GetReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting client reader")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting client reader")
 	}
 	return accessor.GetReader(ctx)
 }
@@ -409,7 +419,7 @@ func (cc *clusterCache) GetReader(ctx context.Context, cluster client.ObjectKey)
 func (cc *clusterCache) GetUncachedClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting uncached client")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting uncached client")
 	}
 	return accessor.GetUncachedClient(ctx)
 }
@@ -417,7 +427,7 @@ func (cc *clusterCache) GetUncachedClient(ctx context.Context, cluster client.Ob
 func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.ObjectKey) (*rest.Config, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return nil, errors.WithMessage(ErrClusterNotConnected, "error getting REST config")
+		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting REST config")
 	}
 	return accessor.GetRESTConfig(ctx)
 }
@@ -425,7 +435,7 @@ func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.Object
 func (cc *clusterCache) Watch(ctx context.Context, cluster client.ObjectKey, watcher Watcher) error {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return errors.WithMessagef(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
+		return pkgerrors.WithMessagef(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
 	return accessor.Watch(ctx, watcher)
 }
@@ -443,7 +453,7 @@ const (
 	defaultRequeueAfter = 10 * time.Second
 )
 
-// Reconcile reconciles Clusters and manages corresponding clusterAccessors.
+// Reconcile reconciles the passed in object.
 func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	clusterKey := client.ObjectKey{Namespace: req.Namespace, Name: req.Name}
@@ -452,12 +462,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 	if err := cc.client.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Info("Cluster has been deleted, disconnecting")
-			accessor := cc.getClusterAccessor(clusterKey)
-			if accessor != nil {
-				accessor.Disconnect(ctx)
-			}
-			cc.deleteClusterAccessor(clusterKey)
-			cc.cleanupClusterSourcesForCluster(clusterKey)
+			cc.cleanupForCluster(ctx, clusterKey)
 			return ctrl.Result{}, nil
 		}
 
@@ -469,12 +474,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 	// Apply cluster filter if set
 	if cc.clusterFilter != nil && !cc.clusterFilter(cluster) {
 		log.V(6).Info("Cluster filtered out by ClusterFilter, not connecting")
-		accessor := cc.getClusterAccessor(clusterKey)
-		if accessor != nil {
-			accessor.Disconnect(ctx)
-		}
-		cc.deleteClusterAccessor(clusterKey)
-		cc.cleanupClusterSourcesForCluster(clusterKey)
+		cc.cleanupForCluster(ctx, clusterKey)
 		return ctrl.Result{}, nil
 	}
 
@@ -638,6 +638,23 @@ func (cc *clusterCache) cleanupClusterSourcesForCluster(cluster client.ObjectKey
 	}
 }
 
+func (cc *clusterCache) cleanupMetricsForCluster(cluster client.ObjectKey) {
+	healthCheck.DeleteLabelValues(cluster.Name, cluster.Namespace)
+	connectionUp.DeleteLabelValues(cluster.Name, cluster.Namespace)
+	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "success")
+	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "error")
+}
+
+func (cc *clusterCache) cleanupForCluster(ctx context.Context, cluster client.ObjectKey) {
+	accessor := cc.getClusterAccessor(cluster)
+	if accessor != nil {
+		accessor.Disconnect(ctx)
+	}
+	cc.deleteClusterAccessor(cluster)
+	cc.cleanupClusterSourcesForCluster(cluster)
+	cc.cleanupMetricsForCluster(cluster)
+}
+
 func (cc *clusterCache) GetClusterSource(controllerName string, mapFunc func(ctx context.Context, cluster client.Object) []ctrl.Request, opts ...GetClusterSourceOption) source.Source {
 	cc.clusterSourcesLock.Lock()
 	defer cc.clusterSourcesLock.Unlock()
@@ -714,12 +731,12 @@ func (cc *clusterCache) SetConnectionCreationRetryInterval(interval time.Duratio
 // This method should only be used for tests because it hasn't been designed for production usage
 // in a manager (race conditions with manager shutdown etc.).
 func (cc *clusterCache) Shutdown() {
-	cc.cacheCtxCancel(errors.New("ClusterCache is shutdown"))
+	cc.cacheCtxCancel(pkgerrors.New("ClusterCache is shutdown"))
 }
 
 func validateAndDefaultOptions(opts *Options) error {
 	if opts.SecretClient == nil {
-		return errors.New("options.SecretClient must be set")
+		return pkgerrors.New("options.SecretClient must be set")
 	}
 
 	if opts.Client.Timeout.Nanoseconds() == 0 {
@@ -732,7 +749,7 @@ func validateAndDefaultOptions(opts *Options) error {
 		opts.Client.Burst = 30
 	}
 	if opts.Client.UserAgent == "" {
-		return errors.New("options.Client.UserAgent must be set")
+		return pkgerrors.New("options.Client.UserAgent must be set")
 	}
 
 	return nil
@@ -747,6 +764,7 @@ func buildClusterAccessorConfig(scheme *runtime.Scheme, options Options, control
 		Cache: &clusterAccessorCacheConfig{
 			InitialSyncTimeout: 5 * time.Minute,
 			SyncPeriod:         options.Cache.SyncPeriod,
+			DefaultTransform:   options.Cache.DefaultTransform,
 			ByObject:           options.Cache.ByObject,
 			Indexes:            options.Cache.Indexes,
 		},

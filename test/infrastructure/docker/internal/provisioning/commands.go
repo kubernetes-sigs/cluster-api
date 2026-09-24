@@ -21,7 +21,7 @@ package provisioning
 import (
 	"encoding/json"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // Cmd defines a shell command.
@@ -29,6 +29,7 @@ type Cmd struct {
 	Cmd   string
 	Args  []string
 	Stdin string
+	Retry int
 }
 
 // UnmarshalJSON a runcmd command
@@ -40,7 +41,7 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 	var s1 []string
 	if err := json.Unmarshal(data, &s1); err != nil {
 		if _, ok := err.(*json.UnmarshalTypeError); !ok {
-			return errors.WithStack(err)
+			return pkgerrors.WithStack(err)
 		}
 	} else {
 		c.Cmd = s1[0]
@@ -51,7 +52,7 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 	// If it's not a list, it must be a string
 	var s2 string
 	if err := json.Unmarshal(data, &s2); err != nil {
-		return errors.WithStack(err)
+		return pkgerrors.WithStack(err)
 	}
 
 	c.Cmd = "/bin/sh"

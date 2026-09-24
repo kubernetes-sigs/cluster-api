@@ -19,7 +19,7 @@ package v1beta2
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -59,7 +59,7 @@ func (o *AggregateOptions) ApplyOptions(opts []AggregateOption) *AggregateOption
 // Additionally, it is possible to inject custom merge strategies using the CustomMergeStrategy option.
 func NewAggregateCondition[T Getter](sourceObjs []T, sourceConditionType string, opts ...AggregateOption) (*metav1.Condition, error) {
 	if len(sourceObjs) == 0 {
-		return nil, errors.New("sourceObjs can't be empty")
+		return nil, pkgerrors.New("sourceObjs can't be empty")
 	}
 
 	aggregateOpt := &AggregateOptions{
@@ -68,7 +68,7 @@ func NewAggregateCondition[T Getter](sourceObjs []T, sourceConditionType string,
 	aggregateOpt.ApplyOptions(opts)
 
 	if len(aggregateOpt.negativePolarityConditionTypes) != 0 && (aggregateOpt.negativePolarityConditionTypes[0] != sourceConditionType || len(aggregateOpt.negativePolarityConditionTypes) > 1) {
-		return nil, errors.Errorf("negativePolarityConditionTypes can only be set to [%q]", sourceConditionType)
+		return nil, pkgerrors.Errorf("negativePolarityConditionTypes can only be set to [%q]", sourceConditionType)
 	}
 
 	if aggregateOpt.mergeStrategy == nil {

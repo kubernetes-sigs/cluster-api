@@ -28,18 +28,25 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 // DefaultPort is the default port that the webhook server serves.
 var DefaultPort = 9443
+
+// maxExtensionRequestBodyBytes bounds the request body a runtime extension handler
+// will buffer. Without a limit, any peer that can reach the extension's TLS port
+// (if mTLS is not configured) can stream an arbitrarily large body that io.ReadAll
+// buffers whole, OOM-killing the process. 20 MiB is above any legitimate hook request
+// (e.g. a GeneratePatchesRequest carrying the cluster's topology objects).
+const maxExtensionRequestBodyBytes = 20 << 20 // 20 MiB
 
 // Server is a runtime webhook server.
 type Server struct {
@@ -92,7 +99,7 @@ type Options struct {
 // New creates a new runtime webhook server based on the given Options.
 func New(options Options) (*Server, error) {
 	if options.Catalog == nil {
-		return nil, errors.Errorf("catalog is required")
+		return nil, pkgerrors.Errorf("catalog is required")
 	}
 	if options.Port <= 0 {
 		options.Port = DefaultPort
@@ -161,7 +168,7 @@ type ExtensionHandler struct {
 func (s *Server) AddExtensionHandler(handler ExtensionHandler) error {
 	gvh, err := s.catalog.GroupVersionHook(handler.Hook)
 	if err != nil {
-		return errors.Wrapf(err, "hook %q does not exist in catalog", runtimecatalog.HookName(handler.Hook))
+		return pkgerrors.Wrapf(err, "hook %q does not exist in catalog", runtimecatalog.HookName(handler.Hook))
 	}
 	handler.gvh = gvh
 
@@ -183,7 +190,7 @@ func (s *Server) AddExtensionHandler(handler ExtensionHandler) error {
 
 	handlerPath := runtimecatalog.GVHToPath(handler.gvh, handler.Name)
 	if _, ok := s.handlers[handlerPath]; ok {
-		return errors.Errorf("there is already a handler registered for path %q", handlerPath)
+		return pkgerrors.Errorf("there is already a handler registered for path %q", handlerPath)
 	}
 
 	s.handlers[handlerPath] = handler
@@ -198,13 +205,13 @@ func (s *Server) validateHandler(handler ExtensionHandler) error {
 
 	// Validate handler function signature.
 	if handlerFuncType.Kind() != reflect.Func {
-		return errors.Errorf("HandlerFunc must be a func")
+		return pkgerrors.Errorf("HandlerFunc must be a func")
 	}
 	if handlerFuncType.NumIn() != 3 {
-		return errors.Errorf("HandlerFunc must have three input parameter")
+		return pkgerrors.Errorf("HandlerFunc must have three input parameter")
 	}
 	if handlerFuncType.NumOut() != 0 {
-		return errors.Errorf("HandlerFunc must have no output parameter")
+		return pkgerrors.Errorf("HandlerFunc must have no output parameter")
 	}
 
 	// Get hook and handler request and response types.
@@ -215,25 +222,25 @@ func (s *Server) validateHandler(handler ExtensionHandler) error {
 	handlerResponseType := handlerFuncType.In(2)
 
 	// Validate handler request and response are pointers.
-	if handlerRequestType.Kind() != reflect.Ptr {
-		return errors.Errorf("HandlerFunc request type must be a pointer")
+	if handlerRequestType.Kind() != reflect.Pointer {
+		return pkgerrors.Errorf("HandlerFunc request type must be a pointer")
 	}
-	if handlerResponseType.Kind() != reflect.Ptr {
-		return errors.Errorf("HandlerFunc response type must be a pointer")
+	if handlerResponseType.Kind() != reflect.Pointer {
+		return pkgerrors.Errorf("HandlerFunc response type must be a pointer")
 	}
 
 	// Validate first handler parameter is a context
 	// TODO: improve check, how to check if param is a specific interface?
 	if handlerContextType.Name() != "Context" {
-		return errors.Errorf("HandlerFunc first parameter must be Context but is %s", handlerContextType.Name())
+		return pkgerrors.Errorf("HandlerFunc first parameter must be Context but is %s", handlerContextType.Name())
 	}
 
 	// Validate hook and handler request and response types are equal.
 	if hookRequestType != handlerRequestType {
-		return errors.Errorf("HandlerFunc request type must be *%s but is *%s", hookRequestType.Elem().Name(), handlerRequestType.Elem().Name())
+		return pkgerrors.Errorf("HandlerFunc request type must be *%s but is *%s", hookRequestType.Elem().Name(), handlerRequestType.Elem().Name())
 	}
 	if hookResponseType != handlerResponseType {
-		return errors.Errorf("HandlerFunc response type must be *%s but is *%s", hookResponseType.Elem().Name(), handlerResponseType.Elem().Name())
+		return pkgerrors.Errorf("HandlerFunc response type must be *%s but is *%s", hookResponseType.Elem().Name(), handlerResponseType.Elem().Name())
 	}
 
 	return nil
@@ -263,7 +270,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 // discoveryHandler generates a discovery handler based on a list of handlers.
 func discoveryHandler(handlers map[string]ExtensionHandler) func(context.Context, *runtimehooksv1.DiscoveryRequest, *runtimehooksv1.DiscoveryResponse) {
-	cachedHandlers := []runtimehooksv1.ExtensionHandler{}
+	cachedHandlers := make([]runtimehooksv1.ExtensionHandler, 0, len(handlers))
 	for _, handler := range handlers {
 		cachedHandlers = append(cachedHandlers, runtimehooksv1.ExtensionHandler{
 			Name: handler.Name,
@@ -302,7 +309,10 @@ func (s *Server) callHandler(handler ExtensionHandler, r *http.Request) runtimeh
 	request := handler.requestObject.DeepCopyObject()
 	response := handler.responseObject.DeepCopyObject().(runtimehooksv1.ResponseObject)
 
-	requestBody, err := io.ReadAll(r.Body)
+	maxBytesReader := http.MaxBytesReader(nil, r.Body, maxExtensionRequestBodyBytes)
+	defer maxBytesReader.Close()
+
+	requestBody, err := io.ReadAll(maxBytesReader)
 	if err != nil {
 		response.SetStatus(runtimehooksv1.ResponseStatusFailure)
 		response.SetMessage(fmt.Sprintf("error reading request: %v", err))

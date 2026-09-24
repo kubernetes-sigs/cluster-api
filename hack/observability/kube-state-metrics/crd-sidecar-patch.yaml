@@ -21,7 +21,7 @@ spec:
           value: "18080" # Should not conflict with kube-state-metrics port
         # This image continuously collects config maps with the specified label and
         # updates the configuration for kube-state-metrics using a script.
-        image: kiwigrid/k8s-sidecar:latest
+        image: kiwigrid/k8s-sidecar:2.7.3
         name: crd-sidecar
         volumeMounts:
         - mountPath: /etc/config
@@ -40,7 +40,7 @@ spec:
           EOF
         # This container initializes an empty configuration for kube-state-metrics
         # to have a smooth start.
-        image: kiwigrid/k8s-sidecar:latest
+        image: kiwigrid/k8s-sidecar:2.7.3
         name: init-crd-config
         volumeMounts:
         - mountPath: /etc/config

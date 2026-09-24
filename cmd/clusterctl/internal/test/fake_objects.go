@@ -418,12 +418,8 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []client.Object {
 	}
 	saSecret.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(controlPlane, controlPlane.GroupVersionKind())})
 
-	objs := []client.Object{
-		controlPlane,
-		controlPlaneInfrastructure,
-		kubeconfigSecret,
-		saSecret,
-	}
+	objs := make([]client.Object, 0, 4+len(f.machines))
+	objs = append(objs, controlPlane, controlPlaneInfrastructure, kubeconfigSecret, saSecret)
 
 	// Adds the objects for the machines controlled by the controlPlane
 	for _, machine := range f.machines {
@@ -1152,7 +1148,8 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 	// Ensure the ClusterResourceSet gets a UID to be used by dependant objects for creating OwnerReferences.
 	setUID(crs)
 
-	objs := []client.Object{crs}
+	objs := make([]client.Object, 0, 1+len(f.secrets)+len(f.configMaps)+len(f.clusters))
+	objs = append(objs, crs)
 
 	// Ensures all the resources of type Secret are created and listed as a ClusterResourceSet resources
 	for i := range f.secrets {
@@ -1567,7 +1564,7 @@ func (f *FakeClusterClass) Objs() []client.Object {
 	}
 
 	if len(f.workerMachineDeploymentClasses) > 0 {
-		mdClasses := []clusterv1.MachineDeploymentClass{}
+		mdClasses := make([]clusterv1.MachineDeploymentClass, 0, len(f.workerMachineDeploymentClasses))
 		for _, fakeMDClass := range f.workerMachineDeploymentClasses {
 			mdClasses = append(mdClasses, *fakeMDClass.Obj())
 			objMap[fakeMDClass.bootstrapTemplate] = true
@@ -1595,7 +1592,7 @@ func (f *FakeClusterClass) Objs() []client.Object {
 		}
 	}
 
-	objs := []client.Object{}
+	objs := make([]client.Object, 0, len(objMap))
 	for o := range objMap {
 		objs = append(objs, o)
 	}

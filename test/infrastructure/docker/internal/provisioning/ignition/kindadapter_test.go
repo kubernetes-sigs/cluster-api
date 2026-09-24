@@ -53,7 +53,7 @@ func TestRealUseCase(t *testing.T) {
     "systemd": {
       "units": [
         {
-          "contents": "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+          "contents": "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/bin/bash /etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
           "enabled": true,
           "name": "kubeadm.service"
         }
@@ -62,15 +62,15 @@ func TestRealUseCase(t *testing.T) {
   }`)
 
 	expectedCmds := []provisioning.Cmd{
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.crt /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/ca.crt"}},
-		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.key /dev/stdin"}},
-		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/ca.key"}},
-		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/systemd/system/kubeadm.service /dev/stdin"}},
-		{Cmd: "systemctl", Args: []string{"daemon-reload"}},
-		{Cmd: "systemctl", Args: []string{"enable", "--now", "kubeadm.service"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.crt /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/ca.crt"}, Retry: 5},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.key /dev/stdin"}, Retry: 5},
+		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/ca.key"}, Retry: 5},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/systemd/system/kubeadm.service /dev/stdin"}, Retry: 5},
+		{Cmd: "systemctl", Args: []string{"daemon-reload"}, Retry: 5},
+		{Cmd: "systemctl", Args: []string{"enable", "--now", "kubeadm.service"}, Retry: 5},
 	}
 
 	commands, err := RawIgnitionToProvisioningCommands(cloudData)
@@ -82,6 +82,7 @@ func TestRealUseCase(t *testing.T) {
 		expected := expectedCmds[i]
 		g.Expect(cmd.Cmd).To(Equal(expected.Cmd))
 		g.Expect(cmd.Args).To(ConsistOf(expected.Args))
+		g.Expect(cmd.Retry).To(BeEquivalentTo(expected.Retry))
 	}
 }
 

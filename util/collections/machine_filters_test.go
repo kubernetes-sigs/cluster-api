@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -388,19 +389,23 @@ func TestGetFilteredMachinesForCluster(t *testing.T) {
 		},
 	}
 
+	scheme := runtime.NewScheme()
+	_ = clusterv1.AddToScheme(scheme)
+
 	c := fake.NewClientBuilder().
+		WithScheme(scheme).
 		WithObjects(cluster,
 			testControlPlaneMachine("first-machine"),
 			testMachine("second-machine"),
 			testMachine("third-machine")).
 		Build()
 
-	machines, err := collections.GetFilteredMachinesForCluster(ctx, c, cluster)
+	machines, err := collections.GetFilteredMachinesForCluster(t.Context(), c, cluster)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(3))
 
 	// Test the ControlPlaneMachines works
-	machines, err = collections.GetFilteredMachinesForCluster(ctx, c, cluster, collections.ControlPlaneMachines("my-cluster"))
+	machines, err = collections.GetFilteredMachinesForCluster(t.Context(), c, cluster, collections.ControlPlaneMachines("my-cluster"))
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 
@@ -408,7 +413,7 @@ func TestGetFilteredMachinesForCluster(t *testing.T) {
 	nameFilter := func(cluster *clusterv1.Machine) bool {
 		return cluster.Name == "first-machine"
 	}
-	machines, err = collections.GetFilteredMachinesForCluster(ctx, c, cluster, collections.ControlPlaneMachines("my-cluster"), nameFilter)
+	machines, err = collections.GetFilteredMachinesForCluster(t.Context(), c, cluster, collections.ControlPlaneMachines("my-cluster"), nameFilter)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 }

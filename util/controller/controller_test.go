@@ -25,10 +25,11 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -52,12 +53,14 @@ func TestReconcile(t *testing.T) {
 	// Note: synctest.Test below will run with a fake clock, so it will add
 	// entries to the cache with a timestamp ~ 2020. We are using a high expiration
 	// time here so that the cache does not expire our entries during the test run.
-	reconcileCache := cache.New[reconcileCacheEntry](250 * 365 * 24 * time.Hour) // 250 years
+	reconcileCache := cache.New[reconcileCacheEntry](t.Context(), 250*365*24*time.Hour) // 250 years
 
 	synctest.Test(t, func(t *testing.T) {
 		g := NewWithT(t)
 
 		rateLimitInterval := 1 * time.Second
+
+		consistencyStore := &fakeConsistencyStore{}
 
 		var reconcileCounter atomic.Int64
 		r := &reconcilerWrapper{
@@ -69,6 +72,7 @@ func TestReconcile(t *testing.T) {
 			}),
 			rateLimitInterval: rateLimitInterval,
 			queueRateLimiter:  newTypedItemExponentialFailureRateLimiter[reconcile.Request](rateLimitInterval, 5*time.Millisecond, 1000*time.Second),
+			consistencyStore:  consistencyStore,
 		}
 		c := controllerWrapper{
 			reconcileCache: reconcileCache,
@@ -129,6 +133,33 @@ func TestReconcile(t *testing.T) {
 		g.Expect(counterMetricValue(reconcileTotal.WithLabelValues(r.name, labelSuccess))).To(Equal(1))
 
 		time.Sleep(1 * time.Second)
+
+		// Simulate a stale cache
+		consistencyStore.errs = []consistencyError{
+			{
+				GroupVersionKindType: StructuredObject(clusterv1.GroupVersion, "MachineDeployment"),
+				ReadRV:               "10",
+				WroteRV:              "11",
+			},
+			{
+				GroupVersionKindType: StructuredObject(clusterv1.GroupVersion, "Cluster"),
+				ReadRV:               "10",
+				WroteRV:              "15",
+			},
+		}
+
+		// Reconcile should requeue because of the stale cache
+		res, err = r.Reconcile(t.Context(), req)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.RequeueAfter).To(Equal(requeueDurationStaleCache))
+		// Metrics should only show a skipped reconcile
+		g.Expect(reconcileCounter.Load()).To(Equal(int64(1)))
+		g.Expect(counterMetricValue(reconcileTotal.WithLabelValues(r.name, labelSuccess))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "MachineDeployment"))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "Cluster"))).To(Equal(1))
+
+		// Simulate an up-to-date cache
+		consistencyStore.errs = nil
 
 		// Reconcile will reconcile and defer next reconcile by 1s.
 		res, err = r.Reconcile(t.Context(), req)
@@ -207,7 +238,7 @@ func TestReconcile(t *testing.T) {
 		// Reconcile will reconcile and return error which will trigger exponential backoff (rate-limiting should not interfere)
 		// This test is using the sourceChannel to include the controller & the priority queue because this is the only way
 		// to test the exponential backoff that is computed by the priority queue.
-		errorToReturn := errors.New("error")
+		errorToReturn := pkgerrors.New("error")
 		var errorLock sync.Mutex
 		r.reconciler = reconcile.Func(func(_ context.Context, _ reconcile.Request) (reconcile.Result, error) {
 			reconcileCounter.Add(1)
@@ -239,6 +270,10 @@ func TestReconcile(t *testing.T) {
 		g.Expect(counterMetricValue(reconcileTotal.WithLabelValues(r.name, labelSuccess))).To(Equal(4))
 		g.Expect(r.queueRateLimiter.NumRequeues(req)).To(Equal(0))
 
+		// No additional reconciles should have been skipped because of a stale cache.
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "MachineDeployment"))).To(Equal(1))
+		g.Expect(counterMetricValue(reconcileStaleCacheSkipsTotal.WithLabelValues(r.name, "Cluster"))).To(Equal(1))
+
 		ctrlCancel()
 	})
 }
@@ -248,7 +283,7 @@ func TestReconcileMetrics(t *testing.T) {
 
 	// reconcileCache has to be created outside synctest.Test, otherwise
 	// the test would fail because of the cleanup go routine in the cache.
-	reconcileCache := cache.New[reconcileCacheEntry](cache.DefaultTTL)
+	reconcileCache := cache.New[reconcileCacheEntry](t.Context(), cache.DefaultTTL)
 
 	synctest.Test(t, func(t *testing.T) {
 		g := NewWithT(t)
@@ -260,6 +295,7 @@ func TestReconcileMetrics(t *testing.T) {
 			reconcileCache:    reconcileCache,
 			rateLimitInterval: rateLimitInterval,
 			queueRateLimiter:  newTypedItemExponentialFailureRateLimiter[reconcile.Request](rateLimitInterval, 5*time.Millisecond, 1000*time.Second),
+			consistencyStore:  &fakeConsistencyStore{},
 		}
 
 		req := reconcile.Request{
@@ -290,7 +326,7 @@ func TestReconcileMetrics(t *testing.T) {
 
 		// Error
 		r.reconciler = reconcile.Func(func(_ context.Context, _ reconcile.Request) (reconcile.Result, error) {
-			return reconcile.Result{RequeueAfter: 5 * time.Second}, errors.New("error") // RequeueAfter should be dropped
+			return reconcile.Result{RequeueAfter: 5 * time.Second}, pkgerrors.New("error") // RequeueAfter should be dropped
 		})
 		res, err = r.Reconcile(t.Context(), req)
 		g.Expect(err).To(HaveOccurred())
@@ -400,4 +436,21 @@ func TestShouldRequeue(t *testing.T) {
 			g.Expect(gotRequeueAfter).To(Equal(tt.wantRequeueAfter))
 		})
 	}
+}
+
+type fakeConsistencyStore struct {
+	errs []consistencyError
+}
+
+var _ consistencyStore = &fakeConsistencyStore{}
+
+func (cs *fakeConsistencyStore) WroteAt(_ types.NamespacedName, _ types.UID, _ GroupVersionKindType, _ string) {
+}
+
+func (cs *fakeConsistencyStore) ReadAt(_ schema.GroupResource, _ string) {}
+
+func (cs *fakeConsistencyStore) Clear(_ types.NamespacedName, _ types.UID) {}
+
+func (cs *fakeConsistencyStore) EnsureReady(_ context.Context, _ types.NamespacedName) ([]consistencyError, error) {
+	return cs.errs, nil
 }

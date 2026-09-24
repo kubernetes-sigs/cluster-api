@@ -101,8 +101,9 @@ The domain for Cluster API resources is `cluster.x-k8s.io`, and control plane pr
 generally use `controlplane.cluster.x-k8s.io` as API group.
 
 If your provider uses a different API group, you MUST grant full read/write RBAC permissions for resources in your API group
-to the Cluster API core controllers. The canonical way to do so is via a `ClusterRole` resource with the [aggregation label]
-`cluster.x-k8s.io/aggregate-to-manager: "true"`.
+to the Cluster API core controllers. If any resource sets another resource as the owner with `blockOwnerDeletion` set,
+additional RBAC to update finalizers on the **owner resource** is required.
+The canonical way to do so is via a `ClusterRole` resource with the [aggregation label] `cluster.x-k8s.io/aggregate-to-manager: "true"`.
 
 The following is an example ClusterRole for a `FooControlPlane` resource in the `controlplane.foo.com` API group:
 
@@ -406,12 +407,39 @@ type FooControlPlaneSpec struct {
 }
 ```
 
-Following fields MUST be implemented in the ControlPlane `status`.
+ControlPlane providers MUST report version information in the ControlPlane `status` by implementing
+at least one of the following fields.
+
+`status.versions` is the preferred source of truth for surfacing control plane versions.
+Entries in this list MUST be ordered from the older to the newer version.
+Each entry MUST include a valid semantic version and if control of the number of replicas is supported
+the number of replicas at that version must be set as well.
+
+```go
+type FooControlPlaneStatus struct {
+    // versions is the aggregated Kubernetes versions in this control plane.
+    // +optional
+    // +listType=map
+    // +listMapKey=version
+    // +kubebuilder:validation:MinItems=1
+    // +kubebuilder:validation:MaxItems=100
+    Versions []clusterv1.StatusVersion `json:"versions,omitempty"`
+
+    // See other rules for more details about mandatory/optional fields in ControlPlane status.
+    // Other fields SHOULD be added based on the needs of your provider.
+}
+```
+
+`status.version` can be used as an alternative or as a fallback mechanism, but support
+for this field will be removed in the next Cluster API contract version.
 
 ```go
 type FooControlPlaneStatus struct {
     // version represents the minimum Kubernetes version for the control plane machines
     // in the cluster.
+    //
+    // Deprecated: This field is deprecated and is going to be removed in a future API version.
+    // Please use status.versions instead.
     // +optional
     // +kubebuilder:validation:MinLength=1
     // +kubebuilder:validation:MaxLength=256
@@ -422,11 +450,11 @@ type FooControlPlaneStatus struct {
 }
 ```
 
-NOTE: To align with API conventions, we recommend since the v1beta2 contract that the `Version` field should be 
+NOTE: To align with API conventions, we recommend since the v1beta2 contract that the `Version` field should be
 of type `string` (it was `*string` before). Both are compatible with the v1beta2 contract though.
-NOTE: The minimum Kubernetes version, and more specifically the API server version, will be used to determine 
-when a control plane is fully upgraded (spec.version == status.version) and for enforcing Kubernetes version skew 
-policies when a Cluster derived from a ClusterClass is managed by the Topology controller.
+NOTE: The minimum Kubernetes version, and more specifically the API server version, will be used to determine
+when a control plane is fully upgraded and for enforcing Kubernetes version skew policies when a Cluster derived
+from a ClusterClass is managed by the Topology controller.
 
 ### ControlPlane: machines
 
@@ -986,4 +1014,4 @@ is implemented in ControlPlane controllers:
 [Clusterctl support]: #clusterctl-support
 [ControlPlane: pausing]: #controlplane-pausing
 [implementation best practices]: ../best-practices.md
-[Cluster API v1.11 migration notes]: ../migrations/v1.10-to-v1.11.md
+[Cluster API v1.11 migration notes]: https://release-1-11.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.10-to-v1.11

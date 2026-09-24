@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"path"
@@ -42,12 +43,14 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	inmemoryproxy "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/proxy"
 	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
@@ -86,7 +89,7 @@ type ClusterProxy interface {
 	GetRESTConfig() *rest.Config
 
 	// GetCache returns a controller-runtime cache to create informer from.
-	GetCache(ctx context.Context) cache.Cache
+	GetCache(ctx context.Context) ctrlcache.Cache
 
 	// GetLogCollector returns the machine log collector for the Kubernetes cluster.
 	GetLogCollector() ClusterLogCollector
@@ -209,7 +212,7 @@ func WithRESTConfigModifier(f func(*rest.Config)) Option {
 }
 
 // WithCacheOptionsModifier allows to modify the options passed to cache.New the first time it's created.
-func WithCacheOptionsModifier(f func(*cache.Options)) Option {
+func WithCacheOptionsModifier(f func(*ctrlcache.Options)) Option {
 	return func(c *clusterProxy) {
 		c.cacheOptionsModifier = f
 	}
@@ -222,11 +225,11 @@ type clusterProxy struct {
 	scheme                  *runtime.Scheme
 	shouldCleanupKubeconfig bool
 	logCollector            ClusterLogCollector
-	cache                   cache.Cache
+	cache                   ctrlcache.Cache
 	onceCache               sync.Once
 
 	restConfigModifier   func(*rest.Config)
-	cacheOptionsModifier func(*cache.Options)
+	cacheOptionsModifier func(*ctrlcache.Options)
 }
 
 // NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
@@ -321,9 +324,9 @@ func (p *clusterProxy) GetClientSet() *kubernetes.Clientset {
 	return cs
 }
 
-func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
+func (p *clusterProxy) GetCache(ctx context.Context) ctrlcache.Cache {
 	p.onceCache.Do(func() {
-		opts := &cache.Options{
+		opts := &ctrlcache.Options{
 			Scheme: p.scheme,
 			Mapper: p.GetClient().RESTMapper(),
 		}
@@ -332,7 +335,7 @@ func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
 		}
 
 		var err error
-		p.cache, err = cache.New(p.GetRESTConfig(), *opts)
+		p.cache, err = ctrlcache.New(p.GetRESTConfig(), *opts)
 		Expect(err).ToNot(HaveOccurred(), "Failed to create controller-runtime cache")
 
 		go func() {
@@ -522,6 +525,11 @@ func (p *clusterProxy) GetWorkloadCluster(ctx context.Context, namespace, name s
 		p.fixConfig(ctx, name, config)
 	}
 
+	if p.isInMemoryCluster(ctx, namespace, name) {
+		// Add REST config modifier to use port-forwarding for in-memory clusters
+		options = append(options, p.inMemoryRESTConfigModifier(namespace, name))
+	}
+
 	return newFromAPIConfig(name, config, p.scheme, options...)
 }
 
@@ -641,7 +649,22 @@ func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, na
 		return cl.Get(ctx, key, cluster)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
 
-	return cluster.Spec.InfrastructureRef.IsDefined() && cluster.Spec.InfrastructureRef.Kind == "DockerCluster"
+	if !cluster.Spec.InfrastructureRef.IsDefined() || cluster.Spec.InfrastructureRef.Kind != "DevCluster" {
+		return false
+	}
+
+	// Get the DevCluster to check if it's using docker backend
+	devCluster, err := external.GetObjectFromContractVersionedRef(ctx, cl, cluster.Spec.InfrastructureRef, namespace)
+	if err != nil {
+		return false
+	}
+
+	// Check if the DevCluster has a docker backend
+	backend, found, err := unstructured.NestedMap(devCluster.Object, "spec", "backend", "docker")
+	if err != nil || !found {
+		return false
+	}
+	return backend != nil
 }
 
 func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.Config) {
@@ -673,6 +696,133 @@ func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.C
 	}
 	currentCluster := config.Contexts[config.CurrentContext].Cluster
 	config.Clusters[currentCluster].Server = controlPlaneURL.String()
+}
+
+// isInMemoryCluster checks if the cluster is an in-memory cluster (DevCluster with inmemory backend).
+func (p *clusterProxy) isInMemoryCluster(ctx context.Context, namespace, name string) bool {
+	cl := p.GetClient()
+
+	cluster := &clusterv1.Cluster{}
+	key := client.ObjectKey{
+		Name:      name,
+		Namespace: namespace,
+	}
+
+	Eventually(func() error {
+		return cl.Get(ctx, key, cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
+
+	if !cluster.Spec.InfrastructureRef.IsDefined() || cluster.Spec.InfrastructureRef.Kind != "DevCluster" {
+		return false
+	}
+
+	// Get the DevCluster to check if it's using inmemory backend
+	devCluster, err := external.GetObjectFromContractVersionedRef(ctx, cl, cluster.Spec.InfrastructureRef, namespace)
+	if err != nil {
+		return false
+	}
+
+	// Check if the DevCluster has an inmemory backend
+	backend, found, err := unstructured.NestedMap(devCluster.Object, "spec", "backend", "inMemory")
+	if err != nil || !found {
+		return false
+	}
+	return backend != nil
+}
+
+// inMemoryRESTConfigModifier returns an Option that modifies the REST config to use port-forwarding
+// for in-memory clusters.
+func (p *clusterProxy) inMemoryRESTConfigModifier(namespace, name string) Option {
+	return WithRESTConfigModifier(func(restConfig *rest.Config) {
+		log.Logf("Configuring port-forwarding for in-memory cluster %s/%s", namespace, name)
+
+		mgmtRESTConfig := p.GetRESTConfig()
+
+		dialer := &inMemoryDialer{
+			managementRESTConfig: mgmtRESTConfig,
+			clusterNamespace:     namespace,
+			clusterName:          name,
+		}
+
+		restConfig.Dial = func(ctx context.Context, _, address string) (net.Conn, error) {
+			log.Logf("Using custom dialer for address: %s", address)
+			return dialer.DialContext(ctx, address)
+		}
+
+		log.Logf("Port-forwarding dialer configured for in-memory cluster %s/%s", namespace, name)
+	})
+}
+
+// inMemoryDialer implements a custom dialer that port-forwards to in-memory API server pods.
+type inMemoryDialer struct {
+	managementRESTConfig *rest.Config
+	clusterNamespace     string
+	clusterName          string
+}
+
+// DialContext creates a connection to the in-memory API server using port-forwarding.
+func (d *inMemoryDialer) DialContext(ctx context.Context, addr string) (net.Conn, error) {
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse address %s: %w", addr, err)
+	}
+
+	var apiPort int
+	if _, err := fmt.Sscanf(portStr, "%d", &apiPort); err != nil {
+		return nil, fmt.Errorf("failed to parse port %s: %w", portStr, err)
+	}
+
+	log.Logf("In-memory dialer: connecting to cluster %s/%s (original address: %s:%s, port: %d)",
+		d.clusterNamespace, d.clusterName, host, portStr, apiPort)
+
+	mgmtClient, err := client.New(d.managementRESTConfig, client.Options{})
+	if err != nil {
+		log.Logf("ERROR: Failed to create management client: %v", err)
+		return nil, fmt.Errorf("failed to create management client: %w", err)
+	}
+
+	podList := &corev1.PodList{}
+	if err := mgmtClient.List(ctx, podList,
+		client.InNamespace("capd-system"),
+		client.MatchingLabels{
+			"control-plane": "controller-manager",
+		}); err != nil {
+		return nil, fmt.Errorf("failed to list capd controller manager pods: %w", err)
+	}
+
+	if len(podList.Items) == 0 {
+		return nil, fmt.Errorf("no capd-controller-manager pod found on the management cluster")
+	}
+
+	// We assume exactly one CAPD controller manager pod.
+	if len(podList.Items) > 1 {
+		return nil, fmt.Errorf("expected exactly 1 capd-controller-manager pod, got %d", len(podList.Items))
+	}
+
+	capdevPod := podList.Items[0]
+
+	log.Logf("Port-forwarding to CAPDev pod %s in namespace %s on port %d", capdevPod.Name, capdevPod.Namespace, apiPort)
+
+	proxy := inmemoryproxy.Proxy{
+		Kind:         "pods",
+		Namespace:    capdevPod.Namespace,
+		ResourceName: capdevPod.Name,
+		KubeConfig:   d.managementRESTConfig,
+		Port:         apiPort,
+	}
+
+	pfDialer, err := inmemoryproxy.NewDialer(proxy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create port-forward dialer: %w", err)
+	}
+
+	conn, err := pfDialer.DialContextWithAddr(ctx, capdevPod.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dial capdev pod %s: %w", capdevPod.Name, err)
+	}
+
+	log.Logf("Successfully established port-forward connection to CAPDev pod %s", capdevPod.Name)
+	return conn, nil
 }
 
 // Dispose clusterProxy internal resources (the operation does not affects the Kubernetes cluster).

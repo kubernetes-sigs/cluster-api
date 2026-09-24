@@ -9,9 +9,10 @@ into the proposal or into the user-facing documentation for this feature.
 
 - In-place update is always considered as potentially disruptive
   - in-place update must respect maxUnavailable
-    - if maxUnavailable is zero, a new machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed
+    - if maxUnavailable is zero, by default a new machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed
+    - if, instead, the `CanUpdateMachineSet` hook specifies that the required in-place change does not affect availability, in-place update can start immediately
   - when in-place is possible, the system should try to in-place update as many machines as possible.
-    - maxSurge is not fully used (it is used only for scale up by one if maxUnavailable =0)
+      - maxSurge is used only for scale up by one if maxUnavailable =0 and `CanUpdateMachineSet` doesn't specify that the required in-place change does not affect availability
 
 - No in-place updates are performed when using rollout strategy on delete.
 
@@ -33,14 +34,14 @@ Workflow #1: MD controller detects an in-place update is possible and it informs
 ```mermaid
 sequenceDiagram
     autonumber
-    participant MD Controller
+    participant MDController as MD controller
     participant RX
     participant MS1 (OldMS)
     participant MS2 (NewMS)
-    MD Controller-->>+RX: Can you update in-place from MS1 (OldMS) to MS2 (NewMS)?
-    RX-->>-MD Controller: Yes!
-    MD Controller->>MS1 (OldMS): Apply annotation ".../move-machines-to-machineset": "MS2"
-    MD Controller->>MS2 (NewMS): Apply annotation ".../receive-machines-from-machinesets": "MS1"
+    MDController-->>+RX: Can you update in-place from MS1 (OldMS) to MS2 (NewMS)?
+    RX-->>-MDController: Yes!
+    MDController->>MS1 (OldMS): Apply annotation ".../move-machines-to-machineset": "MS2"
+    MDController->>MS2 (NewMS): Apply annotation ".../receive-machines-from-machinesets": "MS1"
 ```
 
 Workflow #2: MS controller, when reconciling oldMS, move machines to the newMS.
@@ -48,17 +49,17 @@ Workflow #2: MS controller, when reconciling oldMS, move machines to the newMS.
 ```mermaid
 sequenceDiagram
     autonumber
-    participant MS Controller as MS Controller<br/>when reconciling<br/>MS1 (OldMS)
+    participant MSController as MS Controller<br/>when reconciling<br/>MS1 (OldMS)
     participant MS1 (OldMS)
     participant MS2 (NewMS)
     participant M1 as M1<br/>controlled by<br/>MS1 (OldMS),<br/>selected to be moved to MS2 (NewMS)
-    MS Controller-->>MS1 (OldMS): Are you scaling down?
-    MS1 (OldMS)-->>MS Controller: Yes!
-    MS Controller-->>MS1 (OldMS): Do you have the ".../move-machines-to-machineset" annotation?
-    MS1 (OldMS)-->>MS Controller: Yes, I'm instructed to move machines to MS2!
-    MS Controller-->>MS2 (NewMS): Do you have ".../receive-machines-from-machinesets" annotation?
-    MS2 (NewMS)-->>MS Controller: Yes, I'm instructed to receive machines MS1!
-    MS Controller->>M1: Move M1 to MS2 (NewMS)<br/>Apply annotation ".../pending-acknowledge-move": ""<br/>Apply annotation ".../update-in-progress": ""
+    MSController-->>MS1 (OldMS): Are you scaling down?
+    MS1 (OldMS)-->>MSController: Yes!
+    MSController-->>MS1 (OldMS): Do you have the ".../move-machines-to-machineset" annotation?
+    MS1 (OldMS)-->>MSController: Yes, I'm instructed to move machines to MS2!
+    MSController-->>MS2 (NewMS): Do you have ".../receive-machines-from-machinesets" annotation?
+    MS2 (NewMS)-->>MSController: Yes, I'm instructed to receive machines MS1!
+    MSController->>M1: Move M1 to MS2 (NewMS)<br/>Apply annotation ".../pending-acknowledge-move": ""<br/>Apply annotation ".../update-in-progress": ""
 ```
 
 MD controller recognizes that a Machine has been moved to the new MachineSet and scales up the new MachineSet to acknowledge the operation.
@@ -66,12 +67,12 @@ MD controller recognizes that a Machine has been moved to the new MachineSet and
 ```mermaid
 sequenceDiagram
     autonumber
-    participant MD Controller
+    participant MDController as MD controller
     participant MS2 (NewMS)
     participant M1 as M1<br/>now controlled by<br/>MS2 (NewMS)
-    MD Controller-->>M1: Are you pending acknowledge?
-    M1-->>MD Controller: Yes!
-    MD Controller->>MS2 (NewMS): Scale up to acknowledge receipt of M1<br/>Apply annotation ".../acknowledged-move": "M1"
+    MDController-->>M1: Are you pending acknowledge?
+    M1-->>MDController: Yes!
+    MDController->>MS2 (NewMS): Scale up to acknowledge receipt of M1<br/>Apply annotation ".../acknowledged-move": "M1"
 ```
 
 Workflow #4: MS controller, when reconciling newMS, detects that a machine has been acknowledged; it cleans up annotations on the machine, allowing the in-place update to begin.
@@ -79,12 +80,12 @@ Workflow #4: MS controller, when reconciling newMS, detects that a machine has b
 ```mermaid
 sequenceDiagram
     autonumber
-    participant MS Controller as MS Controller<br/>when reconciling<br/>MS2 (NewMS)
+    participant MSController as MS Controller<br/>when reconciling<br/>MS2 (NewMS)
     participant MS2 (NewMS)
     participant M1 as M1<br/>now controlled by<br/>MS2 (NewMS)
-    MS Controller-->>MS2 (NewMS): Is there some newly acknowledged replicas?
-    MS2 (NewMS)-->>MS Controller: Yes, M1!
-    MS Controller->>M1: Remove annotation ".../pending-acknowledge-move": ""
+    MSController-->>MS2 (NewMS): Is there some newly acknowledged replicas?
+    MS2 (NewMS)-->>MSController: Yes, M1!
+    MSController->>M1: Remove annotation ".../pending-acknowledge-move": ""
 ```
 
 ## Notes about in-place update implementation for KubeadmControlPlane
@@ -92,12 +93,12 @@ sequenceDiagram
 - In-place updates respect the existing control plane update strategy:
   - KCP controller uses `rollingUpdate` strategy with `maxSurge` (0 or 1)
   - When `maxSurge` is 0, no new machines are created during rollout; updates are performed only on existing machines via in-place updates or by scaling down outdated machines
-  - When `maxSurge` is 1:
+  - When `maxSurge` is 1 and the `CanUpdateMachine` hook confirms that the operation affects availability (default):
     - The controller first scales up by creating one new machine to maximize fault tolerance
     - Once `maxReplicas` (desiredReplicas + 1) is reached, it evaluates whether to in-place update or scale down old machines
     - For each old machine needing rollout, the controller evaluates if it is eligible for in-place update. If so, it performs the in-place update on that machine. Otherwise, it scales down the outdated machine (which will be replaced by a new one in the next reconciliation cycle)
     - This pattern repeats until all machines are up-to-date, it then scales back to the desired replica count
-  
+  - if, instead, the `CanUpdateMachine` hook specifies that the required in-place change does not affect availability, in-place update can start immediately
 - The implementation respects the existing set of responsibilities:
   - KCP controller manages control plane Machines directly
     - KCP controller enforces `maxSurge` limits during rolling updates
@@ -256,3 +257,11 @@ When triggering in-place updates:
    - labels and annotations are owned by the metadata manager
    - spec is owned by the spec manager
    - in-progress and cloned-from annotations are owned by the spec manager
+
+### Limitation for Machines created with CAPI v1.11
+
+For Clusters that have been created with CAPI <= v1.11 it will only be possible to unset fields during in-place updates after:
+* a regular rollout that replaces all Machines
+* an in-place update that updates all Machines
+
+For details see the PR description of [CAPI-12890](https://github.com/kubernetes-sigs/cluster-api/pull/12890) section "Migration from managedFields v1.11 => v1.12".

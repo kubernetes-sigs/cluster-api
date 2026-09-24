@@ -22,7 +22,7 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -127,12 +127,12 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 					wlClient := managementClusterProxy.GetWorkloadCluster(ctx, workloadClusterNamespace, workloadClusterName).GetClient()
 					nodes := corev1.NodeList{}
 					if err := wlClient.List(ctx, &nodes); err != nil {
-						return 0, errors.Wrapf(err, "failed to list nodes in workload cluster")
+						return 0, pkgerrors.Wrapf(err, "failed to list nodes in workload cluster")
 					}
 
 					kubeProxyPods := corev1.PodList{}
 					if err := wlClient.List(ctx, &kubeProxyPods, client.InNamespace(metav1.NamespaceSystem), client.MatchingLabels{"k8s-app": "kube-proxy"}); err != nil {
-						return 0, errors.Wrapf(err, "failed to list kube-proxy pods in workload cluster")
+						return 0, pkgerrors.Wrapf(err, "failed to list kube-proxy pods in workload cluster")
 					}
 
 					errList := []error{}
@@ -141,37 +141,37 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 					for _, node := range nodes.Items {
 						for _, condition := range node.Status.Conditions {
 							if condition.Type == corev1.NodeReady && condition.Status != corev1.ConditionTrue {
-								errList = append(errList, errors.Errorf("expected the Ready condition for Node %s to be true but got %s instead: %s", node.GetName(), condition.Status, condition.Message))
+								errList = append(errList, pkgerrors.Errorf("expected the Ready condition for Node %s to be true but got %s instead: %s", node.GetName(), condition.Status, condition.Message))
 							}
 						}
 					}
 
 					// Check if the expected number of kube-proxy pods exist and all of them are healthy for all existing Nodes of the Cluster.
 					if len(nodes.Items) != len(kubeProxyPods.Items) {
-						errList = append(errList, errors.Errorf("expected %d kube-proxy pods to exist, got %d", len(nodes.Items), len(kubeProxyPods.Items)))
+						errList = append(errList, pkgerrors.Errorf("expected %d kube-proxy pods to exist, got %d", len(nodes.Items), len(kubeProxyPods.Items)))
 					}
 					for _, pod := range kubeProxyPods.Items {
 						for _, condition := range pod.Status.Conditions {
 							if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
-								errList = append(errList, errors.Errorf("expected the Ready condition for Pod %s to be true but got %s instead: %s", pod.GetName(), condition.Status, condition.Message))
+								errList = append(errList, pkgerrors.Errorf("expected the Ready condition for Pod %s to be true but got %s instead: %s", pod.GetName(), condition.Status, condition.Message))
 							}
 						}
 					}
 
 					if err := kerrors.NewAggregate(errList); err != nil {
-						return 0, errors.Wrap(err, "blocking upgrade because cluster is not stable")
+						return 0, pkgerrors.Wrap(err, "blocking upgrade because cluster is not stable")
 					}
 
 					// At this stage all current machines are considered ok, so remove the pre-drain webhook from a CP to unblock the next step of the upgrade.
 					if len(deletingMachines) > 0 {
 						if len(deletingMachines) > 1 {
-							return 0, errors.Errorf("expected a maximum of 1 machine to be in deleting but got %d", len(deletingMachines))
+							return 0, pkgerrors.Errorf("expected a maximum of 1 machine to be in deleting but got %d", len(deletingMachines))
 						}
 
 						m := &deletingMachines[0]
 
 						if m.Annotations[preDrainHook] != "true" {
-							return 0, errors.Errorf("machine %s is in deletion but does not have pre-drain hook %q", klog.KObj(m), preDrainHook)
+							return 0, pkgerrors.Errorf("machine %s is in deletion but does not have pre-drain hook %q", klog.KObj(m), preDrainHook)
 						}
 
 						// Removing pre-drain hook from machine.
@@ -186,11 +186,11 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 						}
 
 						// Return to enter the function again.
-						return 0, errors.Errorf("deletion of Machine %s was blocked by pre-drain hook", klog.KObj(m))
+						return 0, pkgerrors.Errorf("deletion of Machine %s was blocked by pre-drain hook", klog.KObj(m))
 					}
 
 					if int64(len(machines)) > upgradedAndHealthy {
-						return 0, errors.New("old Machines remain")
+						return 0, pkgerrors.New("old Machines remain")
 					}
 
 					return upgradedAndHealthy, nil

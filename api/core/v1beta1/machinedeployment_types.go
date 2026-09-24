@@ -377,7 +377,7 @@ type MachineRollingUpdateDeployment struct {
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 
 	// deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
-	// Valid values are "Random, "Newest", "Oldest"
+	// Valid values are "Random", "Newest", "Oldest"
 	// When no value is supplied, the default DeletePolicy of MachineSet is used
 	// +kubebuilder:validation:Enum=Random;Newest;Oldest
 	// +optional
@@ -483,6 +483,14 @@ type MachineDeploymentStatus struct {
 	// conditions defines current service state of the MachineDeployment.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in this MachineDeployment.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in MachineDeployment's status with the V1Beta2 version.
 	// +optional

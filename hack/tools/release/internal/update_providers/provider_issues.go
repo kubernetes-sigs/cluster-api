@@ -33,7 +33,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 const (
@@ -51,7 +51,6 @@ var (
 		"kubernetes-sigs/cluster-api-provider-kubemark",
 		"kubernetes-sigs/cluster-api-provider-kubevirt",
 		"kubernetes-sigs/cluster-api-provider-ibmcloud",
-		"kubernetes-sigs/cluster-api-provider-nested",
 		"oracle/cluster-api-provider-oci",
 		"kubernetes-sigs/cluster-api-provider-openstack",
 		"kubernetes-sigs/cluster-api-operator",
@@ -75,11 +74,12 @@ type IssueResponse struct {
 
 // releaseDetails is the struct for the release details.
 type releaseDetails struct {
-	ReleaseTag       string
-	PreReleaseTag    string
-	ReleaseLink      string
-	ReleaseDate      string
-	ReleaseNotesLink string
+	ReleaseTag            string
+	PreReleaseTag         string
+	ReleaseLink           string
+	ReleaseDate           string
+	ReleaseCodeFreezeDate string
+	ReleaseNotesLink      string
 }
 
 // Example command:
@@ -264,14 +264,14 @@ func getReleaseDetails() (releaseDetails, error) {
 	// Parse the release tag
 	releaseSemVer, keySet := os.LookupEnv("RELEASE_TAG")
 	if !keySet || releaseSemVer == "" {
-		return releaseDetails{}, errors.New("release tag is a required. Refer to README.md in folder for more information")
+		return releaseDetails{}, pkgerrors.New("release tag is a required. Refer to README.md in folder for more information")
 	}
 
 	// allow patterns like v1.7.0-alpha.0, v1.7.0-beta.0, v1.7.0-rc.0
 	pattern := `^v\d+\.\d+\.\d+-(alpha|beta|rc)\.\d+$`
 	match, err := regexp.MatchString(pattern, releaseSemVer)
 	if err != nil || !match {
-		return releaseDetails{}, errors.New("release tag must be in format `^v\\d+\\.\\d+\\.\\d+-(alpha|beta|rc)\\.\\d+$` e.g. v1.7.0-beta.0")
+		return releaseDetails{}, pkgerrors.New("release tag must be in format `^v\\d+\\.\\d+\\.\\d+-(alpha|beta|rc)\\.\\d+$` e.g. v1.7.0-beta.0")
 	}
 
 	major, minor, patch := "", "", ""
@@ -283,18 +283,29 @@ func getReleaseDetails() (releaseDetails, error) {
 		minor = releaseSemVerMatch[2]
 		patch = releaseSemVerMatch[3]
 	} else {
-		return releaseDetails{}, errors.New("release tag contains invalid Major.Minor.Patch SemVer. It must be in format v(\\d+)\\.(\\d+)\\.(\\d+) e.g. v1.7.0")
+		return releaseDetails{}, pkgerrors.New("release tag contains invalid Major.Minor.Patch SemVer. It must be in format v(\\d+)\\.(\\d+)\\.(\\d+) e.g. v1.7.0")
 	}
 
 	// Parse the release date
 	releaseDate, keySet := os.LookupEnv("RELEASE_DATE")
 	if !keySet || releaseDate == "" {
-		return releaseDetails{}, errors.New("release date is a required environmental variable. Refer to README.md in folder for more information")
+		return releaseDetails{}, pkgerrors.New("release date is a required environmental variable. Refer to README.md in folder for more information")
 	}
 
 	formattedReleaseDate, err := formatDate(releaseDate)
 	if err != nil {
-		return releaseDetails{}, errors.New("unable to parse the date")
+		return releaseDetails{}, pkgerrors.New("unable to parse the date")
+	}
+
+	// Parse the release code freeze date
+	codeFreezeDate, keySet := os.LookupEnv("RELEASE_CODE_FREEZE_DATE")
+	if !keySet || codeFreezeDate == "" {
+		return releaseDetails{}, pkgerrors.New("release code freeze date is a required environmental variable. Refer to README.md in folder for more information")
+	}
+
+	formattedCodeFreezeDate, err := formatDate(codeFreezeDate)
+	if err != nil {
+		return releaseDetails{}, pkgerrors.New("unable to parse the code freeze date")
 	}
 
 	majorMinorWithoutPrefixV := fmt.Sprintf("%s.%s", major, minor) // e.g. 1.7 . Note that there is no "v" in the majorMinor
@@ -303,11 +314,12 @@ func getReleaseDetails() (releaseDetails, error) {
 	releaseNotesLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/tag/%s", releaseSemVer)
 
 	return releaseDetails{
-		ReleaseDate:      formattedReleaseDate,
-		ReleaseTag:       releaseTag,
-		PreReleaseTag:    releaseSemVer,
-		ReleaseLink:      releaseLink,
-		ReleaseNotesLink: releaseNotesLink,
+		ReleaseDate:           formattedReleaseDate,
+		ReleaseTag:            releaseTag,
+		PreReleaseTag:         releaseSemVer,
+		ReleaseLink:           releaseLink,
+		ReleaseNotesLink:      releaseNotesLink,
+		ReleaseCodeFreezeDate: formattedCodeFreezeDate,
 	}, nil
 }
 
@@ -353,6 +365,8 @@ Looking forward to your feedback before {{.ReleaseTag}} release!
 ## Following are the planned dates for the upcoming releases
 
 CAPI {{.ReleaseTag}} will be released on **{{.ReleaseDate}}**.
+
+Code Freeze for {{.ReleaseTag}} is scheduled to begin on **{{.ReleaseCodeFreezeDate}}**.
 
 More details of the upcoming schedule can be seen at [CAPI {{.ReleaseTag}} release timeline]({{.ReleaseLink}}).
 

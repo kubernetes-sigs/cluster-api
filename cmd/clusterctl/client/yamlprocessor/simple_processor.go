@@ -171,7 +171,7 @@ func traverse(root parse.Node, variables map[string]string) {
 			for _, a := range v.Args {
 				switch w := a.(type) {
 				case *parse.FuncNode:
-					b.WriteString(fmt.Sprintf("${%s}", w.Param))
+					fmt.Fprintf(&b, "${%s}", w.Param)
 				case *parse.TextNode:
 					b.WriteString(w.Value)
 				}

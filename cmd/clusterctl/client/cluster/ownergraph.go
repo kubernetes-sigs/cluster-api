@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -78,14 +78,14 @@ func GetOwnerGraph(ctx context.Context, namespace, kubeconfigPath string, filter
 	// Gets all the types defined by the CRDs installed by clusterctl plus the ConfigMap/Secret core types.
 	err := graph.getDiscoveryTypes(ctx)
 	if err != nil {
-		return OwnerGraph{}, errors.Wrap(err, "failed to retrieve discovery types")
+		return OwnerGraph{}, pkgerrors.Wrap(err, "failed to retrieve discovery types")
 	}
 
 	// graph.Discovery can not be used here as it will use the latest APIVersion for ownerReferences - not those
 	// present in the object `metadata.ownerReferences`.
 	owners, err := discoverOwnerGraph(ctx, namespace, graph, filterFn)
 	if err != nil {
-		return OwnerGraph{}, errors.Wrap(err, "failed to discovery ownerGraph types")
+		return OwnerGraph{}, pkgerrors.Wrap(err, "failed to discovery ownerGraph types")
 	}
 	return owners, nil
 }

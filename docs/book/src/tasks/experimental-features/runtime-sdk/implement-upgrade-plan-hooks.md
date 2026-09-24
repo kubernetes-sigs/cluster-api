@@ -72,7 +72,8 @@ cluster:
     ...
   status:
     ...
-fromKubernetesVersion: "v1.29.0"
+fromControlPlaneKubernetesVersion: "v1.29.0"
+fromWorkersKubernetesVersion: "v1.29.0"
 toKubernetesVersion: "v1.33.0"
 ```
 

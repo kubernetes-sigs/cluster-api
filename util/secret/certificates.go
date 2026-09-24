@@ -29,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,13 +54,13 @@ const (
 
 var (
 	// ErrMissingCertificate is an error indicating a certificate is entirely missing.
-	ErrMissingCertificate = errors.New("missing certificate")
+	ErrMissingCertificate = pkgerrors.New("missing certificate")
 
 	// ErrMissingCrt is an error indicating the crt file is missing from the certificate.
-	ErrMissingCrt = errors.New("missing crt data")
+	ErrMissingCrt = pkgerrors.New("missing crt data")
 
 	// ErrMissingKey is an error indicating the key file is missing from the certificate.
-	ErrMissingKey = errors.New("missing key data")
+	ErrMissingKey = pkgerrors.New("missing key data")
 )
 
 // Certificates are the certificates necessary to bootstrap a cluster.
@@ -229,7 +229,7 @@ func (c Certificates) LookupCached(ctx context.Context, secretCachingClient, ctr
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				if certificate.External {
-					return errors.Wrap(err, "external certificate not found")
+					return pkgerrors.Wrap(err, "external certificate not found")
 				}
 				continue
 			}
@@ -238,7 +238,7 @@ func (c Certificates) LookupCached(ctx context.Context, secretCachingClient, ctr
 		// If a user has a badly formatted secret it will prevent the cluster from working.
 		kp, err := secretToKeyPair(s)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read keypair from certificate %s", klog.KObj(s))
+			return pkgerrors.Wrapf(err, "failed to read keypair from certificate %s", klog.KObj(s))
 		}
 		certificate.KeyPair = kp
 		certificate.Secret = s
@@ -254,7 +254,7 @@ func getCertificateSecret(ctx context.Context, secretCachingClient, ctrlclient c
 		err := secretCachingClient.Get(ctx, key, secret)
 		if err != nil && !apierrors.IsNotFound(err) {
 			// Return error if we got an error which is not a NotFound error.
-			return nil, errors.Wrapf(err, "failed to get certificate %s", klog.KObj(secret))
+			return nil, pkgerrors.Wrapf(err, "failed to get certificate %s", klog.KObj(secret))
 		}
 		if err == nil {
 			return secret, nil
@@ -263,7 +263,7 @@ func getCertificateSecret(ctx context.Context, secretCachingClient, ctrlclient c
 
 	// Try to get the certificate via the uncached client.
 	if err := ctrlclient.Get(ctx, key, secret); err != nil {
-		return nil, errors.Wrapf(err, "failed to get certificate %s", klog.KObj(secret))
+		return nil, pkgerrors.Wrapf(err, "failed to get certificate %s", klog.KObj(secret))
 	}
 	return secret, nil
 }
@@ -275,11 +275,11 @@ func (c Certificates) EnsureAllExist() error {
 			return ErrMissingCertificate
 		}
 		if len(certificate.KeyPair.Cert) == 0 {
-			return errors.Wrapf(ErrMissingCrt, "for certificate: %s", certificate.Purpose)
+			return pkgerrors.Wrapf(ErrMissingCrt, "for certificate: %s", certificate.Purpose)
 		}
 		if !certificate.External {
 			if len(certificate.KeyPair.Key) == 0 {
-				return errors.Wrapf(ErrMissingKey, "for certificate: %s", certificate.Purpose)
+				return pkgerrors.Wrapf(ErrMissingKey, "for certificate: %s", certificate.Purpose)
 			}
 		}
 	}
@@ -307,7 +307,7 @@ func (c Certificates) SaveGenerated(ctx context.Context, ctrlclient client.Clien
 		}
 		s := certificate.AsSecret(clusterName, owner)
 		if err := ctrlclient.Create(ctx, s); err != nil {
-			return errors.WithStack(err)
+			return pkgerrors.WithStack(err)
 		}
 		certificate.Secret = s
 	}
@@ -353,7 +353,7 @@ type Certificate struct {
 func (c *Certificate) Hashes() ([]string, error) {
 	certificates, err := cert.ParseCertsPEM(c.KeyPair.Cert)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to parse %s certificate", c.Purpose)
+		return nil, pkgerrors.Wrapf(err, "unable to parse %s certificate", c.Purpose)
 	}
 	out := make([]string, 0)
 	for _, c := range certificates {
@@ -466,7 +466,7 @@ func (c Certificates) AsFiles() []bootstrapv1.File {
 func secretToKeyPair(s *corev1.Secret) (*certs.KeyPair, error) {
 	c, exists := s.Data[TLSCrtDataName]
 	if !exists {
-		return nil, errors.Errorf("missing data for key %s", TLSCrtDataName)
+		return nil, pkgerrors.Errorf("missing data for key %s", TLSCrtDataName)
 	}
 
 	// In some cases (external etcd) it's ok if the etcd.key does not exist.
@@ -561,9 +561,9 @@ func newSelfSignedCACert(key crypto.Signer, validityPeriodDays int32) (*x509.Cer
 
 	b, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, key.Public(), key)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create self signed CA certificate: %+v", tmpl)
+		return nil, pkgerrors.Wrapf(err, "failed to create self signed CA certificate: %+v", tmpl)
 	}
 
 	c, err := x509.ParseCertificate(b)
-	return c, errors.WithStack(err)
+	return c, pkgerrors.WithStack(err)
 }

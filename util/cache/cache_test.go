@@ -31,7 +31,7 @@ import (
 func TestCache(t *testing.T) {
 	g := NewWithT(t)
 
-	c := New[HookEntry](DefaultTTL)
+	c := New[HookEntry](t.Context(), DefaultTTL)
 
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -56,6 +56,16 @@ func TestCache(t *testing.T) {
 	entryFromCache, ok = c.Has(entryKey)
 	g.Expect(ok).To(BeTrue())
 	g.Expect(entryFromCache).To(Equal(entry))
+
+	c.Delete(entry)
+
+	_, ok = c.Has(entry.Key())
+	g.Expect(ok).To(BeFalse())
+
+	c.Add(entry)
+
+	_, ok = c.Has(entry.Key())
+	g.Expect(ok).To(BeTrue())
 
 	tests := []struct {
 		requeueAfter              time.Duration

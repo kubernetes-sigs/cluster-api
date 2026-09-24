@@ -21,9 +21,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"os"
+	"slices"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -90,12 +91,15 @@ var (
 		Short:   "Output shell completion code for the specified shell (bash, zsh or fish)",
 		Long:    templates.LongDesc(completionLong),
 		Example: completionExample,
-		Args: func(_ *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return errors.New("please specify a shell")
+		PostRun: func(cmd *cobra.Command, _ []string) {
+			// Disable PersistentPostRun on the parent command to skip the update check to avoid blocking shell startup.
+			// Setting this to a no-op function makes it work in case the command is registered at a deeper level, as long as
+			// EnableTraverseRunHooks remains false.
+			cmd.Parent().PersistentPostRunE = func(_ *cobra.Command, _ []string) error {
+				return nil
 			}
-			return nil
 		},
+		Args: exactArgsWithMessage(1, "please specify a shell"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCompletion(os.Stdout, cmd, args[0])
 		},
@@ -111,11 +115,7 @@ var (
 
 // GetSupportedShells returns a list of supported shells.
 func GetSupportedShells() []string {
-	shells := []string{}
-	for s := range completionShells {
-		shells = append(shells, s)
-	}
-	return shells
+	return slices.Collect(maps.Keys(completionShells))
 }
 
 func init() {

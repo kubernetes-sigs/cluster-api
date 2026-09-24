@@ -74,8 +74,11 @@ func Test_containerHasTerminated(t *testing.T) {
 			want:          true,
 		},
 		{
-			name: "running pod with terminated regular container",
+			name: "terminated regular container in pod with restartPolicy Never",
 			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+				},
 				Status: corev1.PodStatus{
 					Phase: corev1.PodRunning,
 					ContainerStatuses: []corev1.ContainerStatus{
@@ -92,6 +95,52 @@ func Test_containerHasTerminated(t *testing.T) {
 			},
 			containerName: "sidecar",
 			want:          true,
+		},
+		{
+			name: "terminated regular container in pod with restartPolicy Always may still restart",
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyAlways,
+				},
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name:  "flaky",
+							State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: "Error", ExitCode: 1}},
+						},
+						{
+							Name:  "main",
+							State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+						},
+					},
+				},
+			},
+			containerName: "flaky",
+			want:          false,
+		},
+		{
+			name: "terminated regular container in pod with restartPolicy OnFailure may still restart",
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyOnFailure,
+				},
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name:  "flaky",
+							State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: "Error", ExitCode: 1}},
+						},
+						{
+							Name:  "main",
+							State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+						},
+					},
+				},
+			},
+			containerName: "flaky",
+			want:          false,
 		},
 		{
 			name: "running pod — container still running",
@@ -237,6 +286,21 @@ controller_runtime_webhook_panics_total 0
 controller_runtime_conversion_webhook_panics_total 2
 `),
 			wantErr: "panics occurred in Pod default/pod1: 2 panics occurred in conversion webhooks (check logs for more details)",
+		},
+		{
+			name: "multiple informers with the same GVR",
+			data: []byte(`
+informer_store_resource_version{group="bootstrap.cluster.x-k8s.io", name="cluster-api-kubeadm-control-plane-manager", resource="kubeadmconfigtemplates", version="v1beta2"} 2439
+informer_store_resource_version{group="bootstrap.cluster.x-k8s.io", name="cluster-api-kubeadm-control-plane-manager-dynamic-cache", resource="kubeadmconfigtemplates", version="v1beta2"} 2439
+`),
+			wantErr: "there are 2 informers for GVR bootstrap.cluster.x-k8s.io/v1beta2, Resource=kubeadmconfigtemplates (names: [cluster-api-kubeadm-control-plane-manager cluster-api-kubeadm-control-plane-manager-dynamic-cache])",
+		},
+		{
+			name: "informers with different GVR",
+			data: []byte(`
+informer_store_resource_version{group="controlplane.cluster.x-k8s.io", name="cluster-api-kubeadm-control-plane-manager", resource="kubeadmcontrolplanes", version="v1beta2"} 2439
+informer_store_resource_version{group="bootstrap.cluster.x-k8s.io", name="cluster-api-kubeadm-control-plane-manager-dynamic-cache", resource="kubeadmconfigs", version="v1beta2"} 2439
+`),
 		},
 	}
 	for _, tt := range tests {

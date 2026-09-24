@@ -21,6 +21,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // NotYetReportedReason is set on missing conditions generated during mirror, aggregate or summary operations.
@@ -70,12 +72,28 @@ func newMirrorCondition(sourceCondition *metav1.Condition, sourceConditionType s
 	mirrorOpt.ApplyOptions(opts)
 
 	if sourceCondition != nil {
+		if sourceCondition.Status != metav1.ConditionFalse &&
+			sourceCondition.Status != metav1.ConditionTrue &&
+			sourceCondition.Status != metav1.ConditionUnknown {
+			return &metav1.Condition{
+				Type:    mirrorOpt.targetConditionType,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.InvalidConditionReportedReason,
+				Message: fmt.Sprintf("status for the %s condition must be one of %s, %s, %s", sourceConditionType, metav1.ConditionTrue, metav1.ConditionFalse, metav1.ConditionUnknown),
+			}
+		}
+
+		reason := sourceCondition.Reason
+		if reason == "" {
+			reason = NoReasonReported
+		}
+
 		return &metav1.Condition{
 			Type:   mirrorOpt.targetConditionType,
 			Status: sourceCondition.Status,
 			// NOTE: we are preserving the original transition time (when the underlying condition changed)
 			LastTransitionTime: sourceCondition.LastTransitionTime,
-			Reason:             sourceCondition.Reason,
+			Reason:             reason,
 			Message:            sourceCondition.Message,
 			// NOTE: ObservedGeneration will be set when this condition is added to an object by calling Set
 			// (also preserving ObservedGeneration from the source object will be confusing when the mirror conditions shows up in the target object).

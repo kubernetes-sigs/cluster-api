@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -41,16 +41,16 @@ func CheckKubernetesVersion(config *rest.Config, minK8sVersion string) error {
 	client := discovery.NewDiscoveryClientForConfigOrDie(config)
 	serverVersion, err := client.ServerVersion()
 	if err != nil {
-		return errors.Wrap(err, "failed to get the Kubernetes version")
+		return pkgerrors.Wrap(err, "failed to get the Kubernetes version")
 	}
 
 	compareResult, err := utilversion.MustParseGeneric(serverVersion.String()).Compare(minK8sVersion)
 	if err != nil {
-		return errors.Wrap(err, "failed to check MinK8sVersion")
+		return pkgerrors.Wrap(err, "failed to check MinK8sVersion")
 	}
 
 	if compareResult == -1 {
-		return errors.Errorf("unsupported management cluster server version: %s - minimum required version is %s", serverVersion.String(), minK8sVersion)
+		return pkgerrors.Errorf("unsupported management cluster server version: %s - minimum required version is %s", serverVersion.String(), minK8sVersion)
 	}
 	return nil
 }

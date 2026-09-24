@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 
@@ -66,7 +66,7 @@ func (u *providerUpgrader) getUpgradeInfo(ctx context.Context, provider clusterc
 	}
 
 	if len(repositoryVersions) == 0 {
-		return nil, errors.Errorf("failed to get available versions for the %s provider", provider.InstanceName())
+		return nil, pkgerrors.Errorf("failed to get available versions for the %s provider", provider.InstanceName())
 	}
 
 	//  Pick the provider's latest version available in the repository and use it to get the most recent metadata for the provider.
@@ -74,7 +74,7 @@ func (u *providerUpgrader) getUpgradeInfo(ctx context.Context, provider clusterc
 	for _, availableVersion := range repositoryVersions {
 		availableSemVersion, err := version.ParseSemantic(availableVersion)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse available version for the %s provider", provider.InstanceName())
+			return nil, pkgerrors.Wrapf(err, "failed to parse available version for the %s provider", provider.InstanceName())
 		}
 
 		if latestVersion == nil || latestVersion.LessThan(availableSemVersion) {
@@ -90,11 +90,11 @@ func (u *providerUpgrader) getUpgradeInfo(ctx context.Context, provider clusterc
 	// Get current provider version and check if the releaseSeries defined in metadata includes it.
 	currentVersion, err := version.ParseSemantic(provider.Version)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse current version for the %s provider", provider.InstanceName())
+		return nil, pkgerrors.Wrapf(err, "failed to parse current version for the %s provider", provider.InstanceName())
 	}
 
 	if latestMetadata.GetReleaseSeriesForVersion(currentVersion) == nil {
-		return nil, errors.Errorf("invalid provider metadata: version %s (the current version) for the provider %s does not match any release series", provider.Version, provider.InstanceName())
+		return nil, pkgerrors.Errorf("invalid provider metadata: version %s (the current version) for the provider %s does not match any release series", provider.Version, provider.InstanceName())
 	}
 
 	// Filters the versions to be considered for upgrading the provider (next
@@ -113,7 +113,7 @@ func (u *providerUpgrader) getUpgradeInfo(ctx context.Context, provider clusterc
 		}
 
 		if latestMetadata.GetReleaseSeriesForVersion(repositorySemVersion) == nil {
-			return nil, errors.Errorf("invalid provider metadata: version %s (one of the available versions) for the provider %s does not match any release series", repositoryVersion, provider.InstanceName())
+			return nil, pkgerrors.Errorf("invalid provider metadata: version %s (one of the available versions) for the provider %s does not match any release series", repositoryVersion, provider.InstanceName())
 		}
 
 		nextVersions = append(nextVersions, *repositorySemVersion)

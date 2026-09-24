@@ -23,14 +23,18 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
@@ -45,12 +49,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryapi "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/api"
 	inmemoryproxy "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/proxy"
 	"sigs.k8s.io/cluster-api/util/certs"
 )
@@ -95,7 +100,7 @@ func TestMux(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	defer func() { _ = wcmux.Shutdown(ctx) }()
 
-	listener, err := wcmux.InitWorkloadClusterListener(wcl)
+	listener, err := wcmux.InitWorkloadClusterListener(wcl, 0)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(listener.Host()).To(Equal(host))
 	g.Expect(listener.Port()).ToNot(BeZero())
@@ -136,6 +141,97 @@ func TestMux(t *testing.T) {
 
 	err = wcmux.DeleteWorkloadClusterListener(wcl)
 	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestAPI_DebugHandler(t *testing.T) {
+	t.Parallel()
+	g := NewWithT(t)
+
+	ports := getCustomPorts()
+	wcmux, _ := setupWorkloadClusterListener(g, ports)
+	defer func() { _ = wcmux.Shutdown(ctx) }()
+
+	debugBaseURL := fmt.Sprintf("http://127.0.0.1:%d", ports.DebugPort)
+	namespace, name := "default", "workload-cluster1"
+	resourceGroup := klog.KRef(namespace, name).String()
+
+	err := wcmux.RegisterResourceGroup("workload-cluster1-controlPlaneEndpoint", resourceGroup)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	t.Run("ping", func(t *testing.T) {
+		g := NewWithT(t)
+
+		resp, err := http.Get(debugBaseURL + "/") //nolint:noctx
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		body, err := io.ReadAll(resp.Body)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(strings.TrimSpace(string(body))).To(Equal(`"ok"`))
+	})
+
+	t.Run("listeners", func(t *testing.T) {
+		g := NewWithT(t)
+
+		resp, err := http.Get(debugBaseURL + "/listeners") //nolint:noctx
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		listeners := map[string]string{}
+		g.Expect(json.NewDecoder(resp.Body).Decode(&listeners)).To(Succeed())
+		g.Expect(listeners).To(HaveKey("workload-cluster1-controlPlaneEndpoint"))
+	})
+
+	t.Run("getListener for an unknown cluster returns 404", func(t *testing.T) {
+		g := NewWithT(t)
+
+		resp, err := http.Get(debugBaseURL + "/namespaces/default/clusters/does-not-exist") //nolint:noctx
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
+	})
+
+	t.Run("getListener for a registered cluster", func(t *testing.T) {
+		g := NewWithT(t)
+
+		resp, err := http.Get(fmt.Sprintf("%s/namespaces/%s/clusters/%s", debugBaseURL, namespace, name)) //nolint:noctx
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		info := &inmemoryapi.WorkloadClusterListenerDebugInfo{}
+		g.Expect(json.NewDecoder(resp.Body).Decode(info)).To(Succeed())
+		g.Expect(info.ResourceGroup).To(Equal(resourceGroup))
+		g.Expect(info.ListenerActive).To(BeTrue())
+		g.Expect(info.APIServers).To(ContainElement("kube-apiserver-1"))
+		g.Expect(info.EtcdMembers).To(ContainElement("etcd-1"))
+	})
+
+	t.Run("startOrStopListener stops and restarts the listener", func(t *testing.T) {
+		g := NewWithT(t)
+
+		listenerURL := fmt.Sprintf("%s/namespaces/%s/clusters/%s/listener", debugBaseURL, namespace, name)
+
+		resp, err := http.Post(listenerURL, "text/plain", strings.NewReader("stop")) //nolint:noctx,gosec
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		stoppedInfo := &inmemoryapi.WorkloadClusterListenerDebugInfo{}
+		g.Expect(json.NewDecoder(resp.Body).Decode(stoppedInfo)).To(Succeed())
+		g.Expect(stoppedInfo.ListenerActive).To(BeFalse())
+
+		resp, err = http.Post(listenerURL, "text/plain", strings.NewReader("start")) //nolint:noctx,gosec
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+		g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		startedInfo := &inmemoryapi.WorkloadClusterListenerDebugInfo{}
+		g.Expect(json.NewDecoder(resp.Body).Decode(startedInfo)).To(Succeed())
+		g.Expect(startedInfo.ListenerActive).To(BeTrue())
+	})
 }
 
 func TestAPI_corev1_CRUD(t *testing.T) {
@@ -276,7 +372,7 @@ func TestAPI_PortForward(t *testing.T) {
 
 	// InfraCluster controller >> when "creating the load balancer"
 	wcl1 := "workload-cluster1-controlPlaneEndpoint"
-	listener, err := wcmux.InitWorkloadClusterListener(wcl1)
+	listener, err := wcmux.InitWorkloadClusterListener(wcl1, 0)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(listener.Host()).To(Equal(host))
 	g.Expect(listener.Port()).ToNot(BeZero())
@@ -415,8 +511,11 @@ func TestAPI_corev1_Watch(t *testing.T) {
 
 	nodeBookmarkEvent := false
 	podBookmarkEvent := false
-	expectedEvents := []string{"ADDED/foo", "MODIFIED/foo", "DELETED/foo", "ADDED/bar", "MODIFIED/bar", "DELETED/bar"}
-	receivedEvents := []string{}
+	expectedEvents := map[string][]string{
+		"foo": {"ADDED/foo", "MODIFIED/foo", "DELETED/foo"},
+		"bar": {"ADDED/bar", "MODIFIED/bar", "DELETED/bar"},
+	}
+	receivedEvents := map[string][]string{}
 	done := make(chan bool)
 	go func() {
 		for {
@@ -430,7 +529,7 @@ func TestAPI_corev1_Watch(t *testing.T) {
 				if !ok {
 					return
 				}
-				receivedEvents = append(receivedEvents, fmt.Sprintf("%s/%s", event.Type, o.GetName()))
+				receivedEvents[o.GetName()] = append(receivedEvents[o.GetName()], fmt.Sprintf("%s/%s", event.Type, o.GetName()))
 			case event := <-podWatcher.ResultChan():
 				if event.Type == watch.Bookmark {
 					podBookmarkEvent = true
@@ -440,7 +539,7 @@ func TestAPI_corev1_Watch(t *testing.T) {
 				if !ok {
 					return
 				}
-				receivedEvents = append(receivedEvents, fmt.Sprintf("%s/%s", event.Type, o.GetName()))
+				receivedEvents[o.GetName()] = append(receivedEvents[o.GetName()], fmt.Sprintf("%s/%s", event.Type, o.GetName()))
 			case <-done:
 				nodeWatcher.Stop()
 				podWatcher.Stop()
@@ -662,7 +761,7 @@ func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadCluster
 	// InfraCluster controller >> when "creating the load balancer"
 	wcl1 := "workload-cluster1-controlPlaneEndpoint"
 
-	listener, err := wcmux.InitWorkloadClusterListener(wcl1)
+	listener, err := wcmux.InitWorkloadClusterListener(wcl1, 0)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(listener.Host()).To(Equal(host))
 	g.Expect(listener.Port()).ToNot(BeZero())
@@ -725,7 +824,7 @@ func getCachingClient(restConfig *rest.Config) (client.WithWatch, context.Cancel
 		return nil, nil, err
 	}
 
-	ca, err := cache.New(restConfig, cache.Options{})
+	ca, err := ctrlcache.New(restConfig, ctrlcache.Options{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -789,11 +888,11 @@ func newSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 
 	b, err := x509.CreateCertificate(cryptorand.Reader, &tmpl, &tmpl, key.Public(), key)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create self signed CA certificate: %+v", tmpl)
+		return nil, pkgerrors.Wrapf(err, "failed to create self signed CA certificate: %+v", tmpl)
 	}
 
 	c, err := x509.ParseCertificate(b)
-	return c, errors.WithStack(err)
+	return c, pkgerrors.WithStack(err)
 }
 
 func apiServerEtcdClientCertificateConfig() *certs.Config {

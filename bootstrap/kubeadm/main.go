@@ -45,9 +45,9 @@ import (
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/setup"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/webhooks"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/reconcilers/kubeadmconfig"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/setup"
+	bootstrapadmission "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -129,7 +129,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")
 
-	fs.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
+	fs.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 100,
 		"Number of kubeadm configs to process simultaneously")
 
 	fs.StringSliceVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
@@ -150,7 +150,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&clusterCacheClientBurst, "clustercache-client-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the cluster cache clients to the Kubernetes API server of workload clusters.")
 
-	fs.DurationVar(&tokenTTL, "bootstrap-token-ttl", kubeadmbootstrapcontrollers.DefaultTokenTTL,
+	fs.DurationVar(&tokenTTL, "bootstrap-token-ttl", kubeadmconfig.DefaultTokenTTL,
 		"The amount of time the bootstrap token will be valid")
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
@@ -227,6 +227,9 @@ func main() {
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
 			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			// Give the manager more time to sync the caches during startup. This is required
+			// in high scale environments when they are more objects in the system (default is 3m).
+			CacheSyncTimeout: 5 * time.Minute,
 		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,
@@ -238,7 +241,7 @@ func main() {
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
 		Metrics:                    *metricsOptions,
-		Cache:                      setup.ManagerCacheOptions(watchNamespace, syncPeriod),
+		Cache:                      setup.ManagerCacheOptions(scheme, controllerName, watchNamespace, syncPeriod),
 		Client:                     setup.ManagerClientOptions(),
 		WebhookServer: webhook.NewServer(
 			webhook.Options{
@@ -301,7 +304,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	crdMigratorSkipPhases := []crdmigrator.Phase{}
+	crdMigratorSkipPhases := make([]crdmigrator.Phase, 0, len(skipCRDMigrationPhases))
 	for _, p := range skipCRDMigrationPhases {
 		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
 	}
@@ -312,7 +315,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		// Note: The kubebuilder RBAC markers above has to be kept in sync
 		// with the CRDs that should be migrated by this provider.
 		Config: map[client.Object]crdmigrator.ByObjectConfig{
-			&bootstrapv1.KubeadmConfig{}:         {UseCache: true, UseStatusForStorageVersionMigration: true},
+			&bootstrapv1.KubeadmConfig{}:         {UseCache: false, UseStatusForStorageVersionMigration: true},
 			&bootstrapv1.KubeadmConfigTemplate{}: {UseCache: false},
 		},
 		// The CRDMigrator is run with only concurrency 1 to ensure we don't overwhelm the apiserver by patching a
@@ -322,9 +325,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
+	if err := (&kubeadmconfig.Reconciler{
 		Client:              mgr.GetClient(),
 		SecretCachingClient: secretCachingClient,
+		APIReader:           mgr.GetAPIReader(),
 		ClusterCache:        clusterCache,
 		WatchFilterValue:    watchFilterValue,
 		TokenTTL:            tokenTTL,
@@ -335,11 +339,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if err := (&webhooks.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapadmission.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
 		os.Exit(1)
 	}
-	if err := (&webhooks.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapadmission.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
 		os.Exit(1)
 	}

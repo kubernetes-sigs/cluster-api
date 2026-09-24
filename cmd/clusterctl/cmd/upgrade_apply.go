@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -61,7 +61,7 @@ var upgradeApplyCmd = &cobra.Command{
 
 		# Upgrades only the aws provider to the v2.0.1 version.
 		clusterctl upgrade apply --infrastructure aws:v2.0.1`),
-	Args: cobra.NoArgs,
+	Args: helpOnErrorArgs(cobra.NoArgs),
 	RunE: func(*cobra.Command, []string) error {
 		return runUpgradeApply()
 	},
@@ -112,10 +112,10 @@ func runUpgradeApply() error {
 		(len(ua.addonProviders) > 0)
 
 	if ua.contract == "" && !hasProviderNames {
-		return errors.New("Either the --contract flag or at least one of the following flags has to be set: --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
+		return pkgerrors.New("Either the --contract flag or at least one of the following flags has to be set: --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
 	}
 	if ua.contract != "" && hasProviderNames {
-		return errors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
+		return pkgerrors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
 	}
 
 	return c.ApplyUpgrade(ctx, client.ApplyUpgradeOptions{

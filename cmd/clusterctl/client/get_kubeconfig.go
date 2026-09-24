@@ -19,7 +19,7 @@ package client
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // GetKubeconfigOptions carries all the options supported by GetKubeconfig.
@@ -53,7 +53,7 @@ func (c *clusterctlClient) GetKubeconfig(ctx context.Context, options GetKubecon
 			return "", err
 		}
 		if currentNamespace == "" {
-			return "", errors.New("failed to identify the current namespace. Please specify the namespace where the workload cluster exists")
+			return "", pkgerrors.New("failed to identify the current namespace. Please specify the namespace where the workload cluster exists")
 		}
 		options.Namespace = currentNamespace
 	}

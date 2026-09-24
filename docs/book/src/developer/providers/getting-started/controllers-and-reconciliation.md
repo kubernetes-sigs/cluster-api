@@ -58,7 +58,13 @@ So we'll add another annotation for that, right below the other lines:
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 ```
 
-Make sure to add this annotation to `MailgunClusterReconciler`.
+If any resource sets another resource as the owner with `blockOwnerDeletion` set, additional RBAC to update finalizers on the **owner resource** is required:
+
+```go
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters/finalizers,verbs=update
+```
+
+Make sure to add this/these annotation to `MailgunClusterReconciler`.
 
 Also, for our `MailgunMachineReconciler`, access to Cluster API `Machine` object is needed, so you must add this annotation in `controllers/mailgunmachine_controller.go`:
 

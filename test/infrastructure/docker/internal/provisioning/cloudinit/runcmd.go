@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
@@ -29,7 +29,7 @@ import (
 
 // runCmd defines parameters of a shell command that is equivalent to an action found in the cloud init rundcmd module.
 type runCmd struct {
-	Cmds []provisioning.Cmd `json:"runcmd,"`
+	Cmds []provisioning.Cmd `json:"runcmd"`
 }
 
 func newRunCmdAction() action {
@@ -39,14 +39,14 @@ func newRunCmdAction() action {
 // Unmarshal the runCmd.
 func (a *runCmd) Unmarshal(userData []byte, _ kind.Mapping) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
-		return errors.Wrapf(err, "error parsing run_cmd action: %s", userData)
+		return pkgerrors.Wrapf(err, "error parsing run_cmd action: %s", userData)
 	}
 	return nil
 }
 
 // Commands returns a list of commands to run on the node.
 func (a *runCmd) Commands() ([]provisioning.Cmd, error) {
-	cmds := make([]provisioning.Cmd, 0)
+	cmds := make([]provisioning.Cmd, 0, len(a.Cmds))
 	for _, c := range a.Cmds {
 		// kubeadm in docker requires to ignore some errors, and this requires to modify the cmd generate by CABPK by default...
 		c = hackKubeadmIgnoreErrors(c)
@@ -57,25 +57,39 @@ func (a *runCmd) Commands() ([]provisioning.Cmd, error) {
 
 // ignorePreflightErrors are preflight errors that fail in CAPD and thus we have to ignore them.
 const ignorePreflightErrors = "SystemVerification,Swap,FileContent--proc-sys-net-bridge-bridge-nf-call-iptables"
+const bootstrapStartedSentinelFileCommand = "echo started > /run/cluster-api/capd.bootstrap.started"
 
 func hackKubeadmIgnoreErrors(c provisioning.Cmd) provisioning.Cmd {
 	// case kubeadm commands are defined as a string
 	if c.Cmd == "/bin/sh" && len(c.Args) >= 2 {
 		if c.Args[0] == "-c" {
-			c.Args[1] = strings.Replace(c.Args[1], "kubeadm init", fmt.Sprintf("kubeadm init --ignore-preflight-errors=%s", ignorePreflightErrors), 1)
-			c.Args[1] = strings.Replace(c.Args[1], "kubeadm join", fmt.Sprintf("kubeadm join --ignore-preflight-errors=%s", ignorePreflightErrors), 1)
+			c.Args[1] = strings.Replace(c.Args[1], "kubeadm init", fmt.Sprintf("%s && kubeadm init --ignore-preflight-errors=%s", bootstrapStartedSentinelFileCommand, ignorePreflightErrors), 1)
+			c.Args[1] = strings.Replace(c.Args[1], "kubeadm join", fmt.Sprintf("%s && kubeadm join --ignore-preflight-errors=%s", bootstrapStartedSentinelFileCommand, ignorePreflightErrors), 1)
 		}
 	}
 
 	// case kubeadm commands are defined as a list
 	if c.Cmd == "kubeadm" && len(c.Args) >= 1 {
 		if c.Args[0] == "init" || c.Args[0] == "join" {
-			// make space
-			c.Args = append(c.Args, "")
-			// shift elements
-			copy(c.Args[2:], c.Args[1:])
-			// insert the additional arg
-			c.Args[1] = fmt.Sprintf("--ignore-preflight-errors=%s", ignorePreflightErrors)
+			c.Cmd = "/bin/sh"
+			c.Args = []string{
+				"-c",
+				strings.Join(
+					append(
+						[]string{
+							// insert the command for creating the bootstrapStartedSentinelFile
+							fmt.Sprintf("%s &&", bootstrapStartedSentinelFileCommand),
+							// kubeadm init or join
+							"kubeadm",
+							c.Args[0],
+							// insert the additional arg for --ignore-preflight-errors
+							fmt.Sprintf("--ignore-preflight-errors=%s", ignorePreflightErrors),
+						},
+						// other kubeadm init or join arguments
+						c.Args[1:]...,
+					),
+					" "),
+			}
 		}
 	}
 

@@ -22,7 +22,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
 // KubeadmControlPlaneRolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.
@@ -192,7 +192,7 @@ const (
 // KubeadmControlPlane's MachinesReady condition and corresponding reasons.
 const (
 	// KubeadmControlPlaneMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
-	// Please note this will include also APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy conditions.
+	// Please note this will include also NodeKubeadmLabelsAndTaintsSet, APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy conditions.
 	// If not using an external etcd also EtcdPodHealthy, EtcdMemberHealthy conditions are included.
 	KubeadmControlPlaneMachinesReadyCondition = clusterv1.MachinesReadyCondition
 
@@ -415,6 +415,30 @@ const (
 	KubeadmControlPlaneMachineEtcdMemberDeletingReason = "Deleting"
 )
 
+// NodeKubeadmLabelsAndTaintsSet condition and corresponding reasons that will be used for KubeadmControlPlane controlled machines in v1Beta2 API version.
+const (
+	// KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition surfaces the status of node labels and taints that should exist for KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition = "NodeKubeadmLabelsAndTaintsSet"
+
+	// KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason documents a failure when inspecting the status of a
+	// node hosted on a KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason = clusterv1.InspectionFailedReason
+
+	// KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsConnectionDownReason surfaces that the connection to the workload
+	// cluster is down.
+	KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsConnectionDownReason = clusterv1.ConnectionDownReason
+
+	// KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsNotSetReason surfaces when node labels and taints that should exist for KubeadmControlPlane controlled machine are not set.
+	KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsNotSetReason = "NotSet"
+
+	// KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetReason surfaces when node labels and taints that should exist for KubeadmControlPlane controlled machine are set.
+	KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetReason = "Set"
+
+	// KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsDeletingReason surfaces when the machine hosting control plane components
+	// is being deleted.
+	KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsDeletingReason = "Deleting"
+)
+
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.
 type KubeadmControlPlaneSpec struct {
 	// replicas is the number of desired machines. Defaults to 1. When stacked etcd is used only
@@ -479,7 +503,7 @@ type KubeadmControlPlaneMachineTemplateSpec struct {
 
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition;
 	// KubeadmControlPlane will always add readinessGates for the condition it is setting on the Machine:
-	// APIServerPodHealthy, SchedulerPodHealthy, ControllerManagerPodHealthy, and if etcd is managed by CKP also
+	// NodeKubeadmLabelsAndTaintsSet, APIServerPodHealthy, SchedulerPodHealthy, ControllerManagerPodHealthy, and if etcd is managed by CKP also
 	// EtcdPodHealthy, EtcdMemberHealthy.
 	//
 	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
@@ -713,8 +737,19 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
+	// versions is the aggregated Kubernetes versions in this KubeadmControlPlane.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []clusterv1.StatusVersion `json:"versions,omitempty"`
+
 	// version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in a future API version. Please use status.versions instead.
+	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256

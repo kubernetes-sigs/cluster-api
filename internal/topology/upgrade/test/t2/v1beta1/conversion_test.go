@@ -29,13 +29,13 @@ import (
 	"sigs.k8s.io/randfill"
 
 	testv1 "sigs.k8s.io/cluster-api/internal/topology/upgrade/test/t2/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
-	t.Run("for TestResourceTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for TestResourceTemplate", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &testv1.TestResourceTemplate{},
 		Spoke:       &TestResourceTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{XTestResourceTemplateFuzzFuncs},
@@ -48,7 +48,7 @@ func TestFuzzyConversion(t *testing.T) {
 			delete(obj.Annotations, "conversionTo")
 		},
 	}))
-	t.Run("for TestResource", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+	t.Run("for TestResource", conversionutil.FuzzTestFunc(conversionutil.FuzzTestFuncInput{
 		Hub:         &testv1.TestResource{},
 		Spoke:       &TestResource{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{XTestResourceFuzzFuncs},

@@ -11,7 +11,7 @@ spec:
       cidrBlocks: ['${DOCKER_POD_IPV6_CIDRS}']
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: DockerCluster
+kind: DevCluster
 metadata:
   name: '${CLUSTER_NAME}'
 spec:

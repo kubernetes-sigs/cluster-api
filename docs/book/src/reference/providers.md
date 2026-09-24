@@ -21,6 +21,7 @@ source of inspiration and ideas for others.
 - [Canonical Kubernetes Platform](https://github.com/canonical/cluster-api-k8s)
 - [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 - [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
+- [Kairos](https://github.com/kairos-io/cluster-api-provider-kairos)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-bootstrap-provider-microk8s)
 - [RKE2](https://github.com/rancher/cluster-api-provider-rke2)
@@ -31,6 +32,7 @@ source of inspiration and ideas for others.
 - [Hosted Control Plane](https://github.com/teutonet/cluster-api-provider-hosted-control-plane)
 - [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 - [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
+- [Kairos](https://github.com/kairos-io/cluster-api-provider-kairos)
 - [Kamaji](https://github.com/clastix/cluster-api-control-plane-provider-kamaji)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-control-plane-provider-microk8s)
@@ -40,6 +42,7 @@ source of inspiration and ideas for others.
 
 ## Infrastructure
 - [Akamai (Linode)](https://linode.github.io/cluster-api-provider-linode/)
+- [Alibaba Cloud (unofficial)](https://github.com/SammZhu/openshift-capi-alicloud)
 - [AWS](https://cluster-api-aws.sigs.k8s.io/)
 - [Azure](https://github.com/kubernetes-sigs/cluster-api-provider-azure)
 - [Azure Stack HCI](https://github.com/microsoft/cluster-api-provider-azurestackhci)
@@ -50,12 +53,13 @@ source of inspiration and ideas for others.
 - [Google Cloud Platform (GCP)](https://cluster-api-gcp.sigs.k8s.io/)
 - [Harvester](https://github.com/rancher-sandbox/cluster-api-provider-harvester)
 - [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)
-- [Hivelocity](https://github.com/hivelocity/cluster-api-provider-hivelocity)
-- [Huawei Cloud](https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei)
+- [Huawei Cloud](https://github.com/huaweicloud-samples/cloudnative-cluster-api-provider-huawei)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [IONOS Cloud](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud)
+- [Kairos Fleet](https://github.com/kairos-io/cluster-api-provider-kairos-fleet)
 - [KubeKey](https://github.com/kubesphere/kubekey)
 - [k0smotron RemoteMachine (SSH)](https://github.com/k0sproject/k0smotron)
+- [KubeSwift](https://github.com/kubeswift-io/cluster-api-provider-kubeswift)
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)
 - [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)
@@ -67,6 +71,7 @@ source of inspiration and ideas for others.
 - [OpenNebula](https://github.com/OpenNebula/cluster-api-provider-opennebula)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Outscale](https://github.com/outscale/cluster-api-provider-outscale)
+- [Oxide](https://github.com/oxidecomputer/cluster-api-provider-oxide)
 - [Proxmox](https://github.com/ionos-cloud/cluster-api-provider-proxmox)
 - [Scaleway](https://github.com/scaleway/cluster-api-provider-scaleway)
 - [Sidero](https://github.com/siderolabs/sidero)
@@ -89,6 +94,7 @@ source of inspiration and ideas for others.
 
 ## Runtime Extensions
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-runtime-extensions-nutanix/)
+- [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 
 ## API Adopters
 

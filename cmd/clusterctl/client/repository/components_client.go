@@ -19,7 +19,7 @@ package repository
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
@@ -94,7 +94,7 @@ func (f *componentsClient) getRawBytes(ctx context.Context, options *ComponentsO
 		log.V(5).Info("Fetching", "file", path, "provider", f.provider.Name(), "type", f.provider.Type(), "version", options.Version)
 		file, err = f.repository.GetFile(ctx, options.Version, path)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.ManifestLabel())
+			return nil, pkgerrors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.ManifestLabel())
 		}
 	} else {
 		log.Info("Using", "override", path, "provider", f.provider.ManifestLabel(), "version", options.Version)

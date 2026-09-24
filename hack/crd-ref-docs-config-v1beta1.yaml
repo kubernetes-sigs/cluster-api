@@ -1,0 +1,15 @@
+# Configuration for crd-ref-docs (https://github.com/elastic/crd-ref-docs)
+# Used to generate CRD API reference for deprecated v1beta1 types only.
+# Keep processor/render in sync with hack/crd-ref-docs-config-v1beta2.yaml except ignoreGroupVersions.
+
+processor:
+  ignoreGroupVersions:
+    # Omit entire packages for v1beta2 version so this page documents old api versions only.
+    - ".*/v1beta2$"
+  ignoreTypes:
+    - "Time$"
+  ignoreFields:
+    - "TypeMeta$"
+
+render:
+  kubernetesVersion: "1.35"

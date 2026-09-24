@@ -27,7 +27,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
@@ -112,6 +113,18 @@ type ClusterClassChangesSpecInput struct {
 	// Allows to inject a function to be run after test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+
+	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "clusterclass-changes".
+	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
+	// name of the ExtensionConfig into the ClusterClass.
+	ExtensionConfigName string
+
+	// ExtensionServiceNamespace is the namespace where the service for the Runtime SDK is located
+	// and is used to configure in the test-namespace scoped ExtensionConfig.
+	ExtensionServiceNamespace string
+
+	// ExtensionServiceName is the name of the service to configure in the test-namespace scoped ExtensionConfig.
+	ExtensionServiceName string
 }
 
 // ClusterClassChangesSpec implements a test that verifies that ClusterClass changes are rolled out successfully.
@@ -154,6 +167,11 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.MustGetVariable(KubernetesVersion)))
 		Expect(input.ModifyControlPlaneFields).ToNot(BeEmpty(), "Invalid argument. input.ModifyControlPlaneFields can't be empty when calling %s spec", specName)
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			if input.ExtensionConfigName == "" {
+				input.ExtensionConfigName = specName
+			}
+		}
 
 		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
@@ -163,11 +181,27 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 	})
 
 	It("Should successfully rollout the managed topology upon changes to the ClusterClass", func() {
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			By("Deploy Test Extension ExtensionConfig")
+			defaultAllHandlersToBlocking := false
+			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, defaultAllHandlersToBlocking, namespace.Name, clusterClassNamespace.Name)
+			Expect(client.IgnoreAlreadyExists(input.BootstrapClusterProxy.GetClient().Create(ctx,
+				extensionConfig))).
+				To(Succeed(), "Failed to create the ExtensionConfig")
+		}
+
 		By("Creating a workload cluster")
 		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
 		if input.InfrastructureProvider != nil {
 			infrastructureProvider = *input.InfrastructureProvider
 		}
+
+		variables := map[string]string{}
+		if input.ExtensionConfigName != "" {
+			// This is used to template the name of the ExtensionConfig into the ClusterClass.
+			variables["EXTENSION_CONFIG_NAME"] = input.ExtensionConfigName
+		}
+
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -181,6 +215,7 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: ptr.To[int64](1),
 				WorkerMachineCount:       ptr.To[int64](1),
+				ClusterctlVariables:      variables,
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
@@ -301,6 +336,11 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		if !input.SkipCleanup {
+			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+				Eventually(func() error {
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
+				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
+			}
 			Byf("Deleting namespace used for hosting the %q test spec ClusterClass", specName)
 			framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
 				Deleter: input.BootstrapClusterProxy.GetClient(),
@@ -845,17 +885,17 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 				clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopology.Name,
 			})).To(Succeed())
 			if len(mdList.Items) != 1 {
-				return errors.Errorf("expected one MachineDeployment for topology %q, but got %d", mdTopology.Name, len(mdList.Items))
+				return pkgerrors.Errorf("expected one MachineDeployment for topology %q, but got %d", mdTopology.Name, len(mdList.Items))
 			}
 			md := mdList.Items[0]
 
 			// Verify the label has been set.
 			labelValue, ok := md.Spec.Template.Labels[testWorkerLabelName]
 			if !ok {
-				return errors.Errorf("label %q should be set", testWorkerLabelName)
+				return pkgerrors.Errorf("label %q should be set", testWorkerLabelName)
 			}
 			if labelValue != mdTopology.Class {
-				return errors.Errorf("label %q should be %q, but is %q", testWorkerLabelName, mdTopology.Class, labelValue)
+				return pkgerrors.Errorf("label %q should be %q, but is %q", testWorkerLabelName, mdTopology.Class, labelValue)
 			}
 
 			return nil
@@ -953,7 +993,7 @@ func deleteMachineDeploymentTopologyAndWait(ctx context.Context, input deleteMac
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopologyToDelete.Name,
 		})).To(Succeed())
 		if len(mdList.Items) != 0 {
-			return errors.Errorf("expected no MachineDeployment for topology %q, but got %d", mdTopologyToDelete.Name, len(mdList.Items))
+			return pkgerrors.Errorf("expected no MachineDeployment for topology %q, but got %d", mdTopologyToDelete.Name, len(mdList.Items))
 		}
 		return nil
 	}, input.WaitForMachineDeployments...).Should(Succeed())

@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
@@ -73,13 +73,13 @@ func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
 	// retrieve the IP address of the node using docker inspect
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed to connect to container runtime")
+		return "", "", pkgerrors.Wrap(err, "failed to connect to container runtime")
 	}
 
 	// retrieve the IP address of the node's container from the runtime
 	ipv4, ipv6, err = containerRuntime.GetContainerIPs(ctx, n.Name)
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed to get node IPs from runtime")
+		return "", "", pkgerrors.Wrap(err, "failed to get node IPs from runtime")
 	}
 
 	return ipv4, ipv6, nil
@@ -94,7 +94,7 @@ func (n *Node) IsRunning() bool {
 func (n *Node) Delete(ctx context.Context) error {
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to container runtime")
+		return pkgerrors.Wrap(err, "failed to connect to container runtime")
 	}
 
 	err = containerRuntime.DeleteContainer(ctx, n.Name)
@@ -114,7 +114,7 @@ func (n *Node) Delete(ctx context.Context) error {
 			log.Info("Got logs from the machine container", "output", strings.ReplaceAll(buffer.String(), "\\n", "\n"))
 		}
 
-		return errors.Wrapf(err, "failed to delete container %q", n.Name)
+		return pkgerrors.Wrapf(err, "failed to delete container %q", n.Name)
 	}
 
 	return nil
@@ -130,7 +130,7 @@ func (n *Node) ReadFile(ctx context.Context, dest string) ([]byte, error) {
 	command.SetStderr(&bytes.Buffer{})
 
 	if err := command.Run(ctx); err != nil {
-		return nil, errors.Wrapf(err, "failed to read file %s", dest)
+		return nil, pkgerrors.Wrapf(err, "failed to read file %s", dest)
 	}
 	return stdout.Bytes(), nil
 }
@@ -140,7 +140,7 @@ func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 	// create destination directory
 	cmd := n.Commander.Command("mkdir", "-p", filepath.Dir(dest))
 	if err := cmd.Run(ctx); err != nil {
-		return errors.Wrapf(err, "failed to create directory %s", dest)
+		return pkgerrors.Wrapf(err, "failed to create directory %s", dest)
 	}
 
 	command := n.Commander.Command("cp", "/dev/stdin", dest)
@@ -152,12 +152,12 @@ func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 func (n *Node) Kill(ctx context.Context, signal string) error {
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to container runtime")
+		return pkgerrors.Wrap(err, "failed to connect to container runtime")
 	}
 
 	err = containerRuntime.KillContainer(ctx, n.Name, signal)
 	if err != nil {
-		return errors.Wrapf(err, "failed to kill container %q", n.Name)
+		return pkgerrors.Wrapf(err, "failed to kill container %q", n.Name)
 	}
 
 	return nil
@@ -199,7 +199,7 @@ type ContainerCmd struct {
 func (c *ContainerCmd) Run(ctx context.Context) error {
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to container runtime")
+		return pkgerrors.Wrap(err, "failed to connect to container runtime")
 	}
 
 	execConfig := container.ExecContainerInput{
@@ -211,7 +211,7 @@ func (c *ContainerCmd) Run(ctx context.Context) error {
 
 	err = containerRuntime.ExecContainer(ctx, c.nameOrID, &execConfig, c.command, c.args...)
 	if err != nil {
-		return errors.WithStack(err)
+		return pkgerrors.WithStack(err)
 	}
 
 	return nil

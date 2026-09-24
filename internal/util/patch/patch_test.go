@@ -22,19 +22,20 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
-func TestCopySpec(t *testing.T) {
+func TestCopyFields(t *testing.T) {
 	tests := []struct {
 		name    string
-		input   CopySpecInput
+		input   CopyFieldsInput
 		want    *unstructured.Unstructured
 		wantErr bool
 	}{
 		{
 			name: "Field both in src and dest, no-op when equal",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
@@ -49,8 +50,12 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				SrcSpecPath:  "spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
+					},
+				},
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -62,7 +67,7 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Field both in src and dest, overwrite dest when different",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
@@ -77,8 +82,12 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				SrcSpecPath:  "spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
+					},
+				},
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -90,7 +99,7 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Nested field both in src and dest, no-op when equal",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
@@ -113,8 +122,12 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				SrcSpecPath:  "spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
+					},
+				},
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -130,7 +143,7 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Nested field both in src and dest, overwrite dest when different",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
@@ -153,8 +166,12 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				SrcSpecPath:  "spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
+					},
+				},
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -170,7 +187,7 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Field only in src, copy to dest",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
@@ -181,8 +198,12 @@ func TestCopySpec(t *testing.T) {
 				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{},
 				},
-				SrcSpecPath:  "spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
+					},
+				},
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -194,7 +215,7 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Nested field only in src, copy to dest",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
@@ -209,8 +230,12 @@ func TestCopySpec(t *testing.T) {
 				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{},
 				},
-				SrcSpecPath:  "spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
+					},
+				},
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -226,7 +251,7 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Copy field from spec.template.spec in src to spec in dest",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
@@ -241,8 +266,12 @@ func TestCopySpec(t *testing.T) {
 				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{},
 				},
-				SrcSpecPath:  "spec.template.spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec", "template", "spec"},
+						Dest: []string{"spec"},
+					},
+				},
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -254,7 +283,7 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Copy field from spec.template.spec in src to spec in dest (overwrite when different)",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
@@ -273,8 +302,12 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				SrcSpecPath:  "spec.template.spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec", "template", "spec"},
+						Dest: []string{"spec"},
+					},
+				},
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -286,7 +319,7 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Field both in src and dest, overwrite when different and preserve fields",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
@@ -325,8 +358,12 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				SrcSpecPath:  "spec.template.spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec", "template", "spec"},
+						Dest: []string{"spec"},
+					},
+				},
 				FieldsToPreserve: []contract.Path{
 					{"spec", "machineTemplate", "infrastructureRef"},
 					{"spec", "replicas"},
@@ -353,7 +390,7 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Field not in src, no-op",
-			input: CopySpecInput{
+			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"differentSpec": map[string]interface{}{
@@ -368,13 +405,95 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				SrcSpecPath:  "spec",
-				DestSpecPath: "spec",
+				Fields: []CopyFieldsInputField{
+					{
+						Src:  []string{"spec"},
+						Dest: []string{"spec"},
+					},
+				},
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"spec": map[string]interface{}{
 						"A": "A",
+					},
+				},
+			},
+		},
+		{
+			name: "Copy metadata.labels & metadata.annotations",
+			input: CopyFieldsInput{
+				Src: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]interface{}{
+								"label-keep":   "label-keep-value",
+								"label-update": "label-update-new-value",
+								"label-add":    "label-add-value",
+							},
+							"annotations": map[string]interface{}{
+								"annotation-keep":   "annotation-keep-value",
+								"annotation-update": "annotation-update-new-value",
+								"annotation-add":    "annotation-add-value",
+							},
+						},
+					},
+				},
+				Dest: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]interface{}{
+								clusterv1.ClusterNameLabel:                          "cluster-1",
+								clusterv1.ClusterTopologyOwnedLabel:                 "",
+								clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-topology-1",
+								clusterv1.ClusterTopologyMachinePoolNameLabel:       "mp-topology-1",
+								"label-keep":   "label-keep-value",
+								"label-update": "label-update-value",
+								"label-delete": "label-delete-value",
+							},
+							"annotations": map[string]interface{}{
+								clusterv1.TemplateClonedFromNameAnnotation:      "cloned-from-name",
+								clusterv1.TemplateClonedFromGroupKindAnnotation: "cloned-from-kind",
+								"annotation-keep":   "annotation-keep-value",
+								"annotation-update": "annotation-update-value",
+								"annotation-delete": "annotation-delete-value",
+							},
+						},
+					},
+				},
+				Fields: []CopyFieldsInputField{
+					{Src: []string{"doesnotexist"}, Dest: []string{"doesnotexist"}}, // Should not influence metadata copying
+					{Src: []string{"metadata", "labels"}, Dest: []string{"metadata", "labels"}},
+					{Src: []string{"metadata", "annotations"}, Dest: []string{"metadata", "annotations"}},
+				},
+				FieldsToPreserve: []contract.Path{
+					{"metadata", "labels", clusterv1.ClusterNameLabel},
+					{"metadata", "labels", clusterv1.ClusterTopologyOwnedLabel},
+					{"metadata", "labels", clusterv1.ClusterTopologyMachineDeploymentNameLabel},
+					{"metadata", "labels", clusterv1.ClusterTopologyMachinePoolNameLabel},
+					{"metadata", "annotations", clusterv1.TemplateClonedFromNameAnnotation},
+					{"metadata", "annotations", clusterv1.TemplateClonedFromGroupKindAnnotation},
+				},
+			},
+			want: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							clusterv1.ClusterNameLabel:                          "cluster-1",
+							clusterv1.ClusterTopologyOwnedLabel:                 "",
+							clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-topology-1",
+							clusterv1.ClusterTopologyMachinePoolNameLabel:       "mp-topology-1",
+							"label-keep":   "label-keep-value",
+							"label-update": "label-update-new-value",
+							"label-add":    "label-add-value",
+						},
+						"annotations": map[string]interface{}{
+							clusterv1.TemplateClonedFromNameAnnotation:      "cloned-from-name",
+							clusterv1.TemplateClonedFromGroupKindAnnotation: "cloned-from-kind",
+							"annotation-keep":   "annotation-keep-value",
+							"annotation-update": "annotation-update-new-value",
+							"annotation-add":    "annotation-add-value",
+						},
 					},
 				},
 			},
@@ -385,7 +504,7 @@ func TestCopySpec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := CopySpec(tt.input)
+			err := CopyFields(tt.input)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

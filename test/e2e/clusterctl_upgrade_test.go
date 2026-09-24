@@ -21,11 +21,13 @@ package e2e
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -41,9 +43,9 @@ var (
 )
 
 // Note: This test should be changed during "prepare main branch", it should test n-3 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-3 latest stable release
-	version := "1.10"
+	version := "1.12"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -63,19 +65,20 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 			InitWithProvidersContract:       "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:   "v1.33.0",
-			WorkloadKubernetesVersion:   "v1.33.0",
-			MgmtFlavor:                  "topology",
-			WorkloadFlavor:              "topology",
-			UseKindForManagementCluster: true,
+			InitWithKubernetesVersion:            "v1.35.0",
+			WorkloadKubernetesVersion:            "v1.35.0",
+			MgmtFlavor:                           "topology",
+			WorkloadFlavor:                       "in-memory-topology",
+			UseKindForManagementCluster:          true,
+			PreCleanupManagementClusterProviders: dumpAdditionalResources,
 		}
 	})
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-2 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.13=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-2 latest stable release
-	version := "1.11"
+	version := "1.13"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -104,19 +107,20 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>cu
 			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:   "v1.34.0",
-			WorkloadKubernetesVersion:   "v1.34.0",
-			MgmtFlavor:                  "topology",
-			WorkloadFlavor:              "topology",
-			UseKindForManagementCluster: true,
+			InitWithKubernetesVersion:            "v1.36.1",
+			WorkloadKubernetesVersion:            "v1.36.1",
+			MgmtFlavor:                           "topology",
+			WorkloadFlavor:                       "in-memory-topology",
+			UseKindForManagementCluster:          true,
+			PreCleanupManagementClusterProviders: dumpAdditionalResources,
 		}
 	})
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.14=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
-	version := "1.12"
+	version := "1.14"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -139,19 +143,20 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>cu
 			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:   "v1.35.0",
-			WorkloadKubernetesVersion:   "v1.35.0",
-			MgmtFlavor:                  "topology",
-			WorkloadFlavor:              "topology",
-			UseKindForManagementCluster: false, // Using false for one test case to ensure this code path of the test keeps working.
+			InitWithKubernetesVersion:            "v1.37.0",
+			WorkloadKubernetesVersion:            "v1.37.0",
+			MgmtFlavor:                           "topology",
+			WorkloadFlavor:                       "in-memory-topology",
+			UseKindForManagementCluster:          false, // Using false for one test case to ensure this code path of the test keeps working.
+			PreCleanupManagementClusterProviders: dumpAdditionalResources,
 		}
 	})
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>current) on K8S latest ci mgmt cluster [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.14=>current) on K8S latest ci mgmt cluster [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
-	version := "1.12"
+	version := "1.14"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -177,11 +182,12 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>cu
 			// Note: InitWithKubernetesVersion should be the latest of the next supported kubernetes version by the target Cluster API version.
 			// Note: WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:   initKubernetesVersion,
-			WorkloadKubernetesVersion:   "v1.35.0",
-			MgmtFlavor:                  "topology",
-			WorkloadFlavor:              "topology",
-			UseKindForManagementCluster: true,
+			InitWithKubernetesVersion:            initKubernetesVersion,
+			WorkloadKubernetesVersion:            "v1.37.0",
+			MgmtFlavor:                           "topology",
+			WorkloadFlavor:                       "in-memory-topology",
+			UseKindForManagementCluster:          true,
+			PreCleanupManagementClusterProviders: dumpAdditionalResources,
 		}
 	})
 })
@@ -189,4 +195,20 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>cu
 func crdShouldBeMigrated(crd apiextensionsv1.CustomResourceDefinition) bool {
 	return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
 		crd.Name != "providers.clusterctl.cluster.x-k8s.io"
+}
+
+func dumpAdditionalResources(managementClusterProxy framework.ClusterProxy) {
+	// Dump cert-manager resources, secrets, CRDs and webhook configurations to allow debugging of certificate issues.
+	framework.DumpResourcesForCluster(ctx, framework.DumpResourcesForClusterInput{
+		Lister:  managementClusterProxy.GetClient(),
+		LogPath: filepath.Join(artifactFolder, "clusters", managementClusterProxy.GetName(), "resources"),
+		Resources: []framework.DumpNamespaceAndGVK{
+			{GVK: schema.GroupVersionKind{Group: "apiextensions.k8s.io", Version: "v1", Kind: "CustomResourceDefinition"}},
+			{GVK: schema.GroupVersionKind{Group: "admissionregistration.k8s.io", Version: "v1", Kind: "MutatingWebhookConfiguration"}},
+			{GVK: schema.GroupVersionKind{Group: "admissionregistration.k8s.io", Version: "v1", Kind: "ValidatingWebhookConfiguration"}},
+			{GVK: schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: "Issuer"}},
+			{GVK: schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: "Certificate"}},
+			{GVK: schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"}},
+		},
+	})
 }

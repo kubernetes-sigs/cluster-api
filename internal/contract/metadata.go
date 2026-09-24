@@ -17,7 +17,7 @@ limitations under the License.
 package contract
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -38,7 +38,7 @@ func (m *Metadata) Get(obj *unstructured.Unstructured) (*clusterv1.ObjectMeta, e
 	labelsPath := append(m.path, "labels")
 	labelsValue, ok, err := unstructured.NestedStringMap(obj.UnstructuredContent(), labelsPath...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to retrieve control plane metadata.labels")
+		return nil, pkgerrors.Wrap(err, "failed to retrieve control plane metadata.labels")
 	}
 	if !ok {
 		labelsValue = map[string]string{}
@@ -47,7 +47,7 @@ func (m *Metadata) Get(obj *unstructured.Unstructured) (*clusterv1.ObjectMeta, e
 	annotationsPath := append(m.path, "annotations")
 	annotationsValue, ok, err := unstructured.NestedStringMap(obj.UnstructuredContent(), annotationsPath...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to retrieve control plane metadata.annotations")
+		return nil, pkgerrors.Wrap(err, "failed to retrieve control plane metadata.annotations")
 	}
 	if !ok {
 		annotationsValue = map[string]string{}
@@ -68,7 +68,7 @@ func (m *Metadata) Set(obj *unstructured.Unstructured, metadata *clusterv1.Objec
 	unstructured.RemoveNestedField(obj.UnstructuredContent(), labelsPath...)
 	if len(metadata.Labels) > 0 {
 		if err := unstructured.SetNestedStringMap(obj.UnstructuredContent(), metadata.Labels, labelsPath...); err != nil {
-			return errors.Wrap(err, "failed to set control plane metadata.labels")
+			return pkgerrors.Wrap(err, "failed to set control plane metadata.labels")
 		}
 	}
 
@@ -76,7 +76,7 @@ func (m *Metadata) Set(obj *unstructured.Unstructured, metadata *clusterv1.Objec
 	unstructured.RemoveNestedField(obj.UnstructuredContent(), annotationsPath...)
 	if len(metadata.Annotations) > 0 {
 		if err := unstructured.SetNestedStringMap(obj.UnstructuredContent(), metadata.Annotations, annotationsPath...); err != nil {
-			return errors.Wrap(err, "failed to set control plane metadata.annotations")
+			return pkgerrors.Wrap(err, "failed to set control plane metadata.annotations")
 		}
 	}
 	return nil

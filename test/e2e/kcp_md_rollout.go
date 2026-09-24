@@ -426,7 +426,7 @@ func verifyMachineDeploymentMachineAndNodeTaints(ctx context.Context, input veri
 }
 
 func toCoreV1Taints(machineTaints ...clusterv1.MachineTaint) []corev1.Taint {
-	taints := []corev1.Taint{}
+	taints := make([]corev1.Taint, 0, len(machineTaints))
 	for _, machineTaint := range machineTaints {
 		taints = append(taints, corev1.Taint{
 			Key:    machineTaint.Key,

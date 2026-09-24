@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // Diff uses cmp.Diff to compare x and y.
@@ -31,16 +31,16 @@ func Diff(x any, y any) (equal bool, diff string, matchErr error) {
 		if r := recover(); r != nil {
 			equal = false
 			if err, ok := r.(error); ok {
-				matchErr = errors.Wrapf(err, "error diffing objects")
+				matchErr = pkgerrors.Wrapf(err, "error diffing objects")
 				return
 			}
 
 			if errMsg, ok := r.(string); ok {
-				matchErr = errors.Errorf("error diffing objects: %s", errMsg)
+				matchErr = pkgerrors.Errorf("error diffing objects: %s", errMsg)
 				return
 			}
 
-			matchErr = errors.Errorf("error diffing objects: panic of unknown type %T", r)
+			matchErr = pkgerrors.Errorf("error diffing objects: panic of unknown type %T", r)
 		}
 	}()
 

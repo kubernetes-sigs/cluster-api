@@ -26,7 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -391,27 +391,27 @@ func assertDeletionPhase(ctx context.Context, c client.Client, finalizer string,
 				if apierrors.IsNotFound(err) {
 					continue
 				}
-				errs = append(errs, errors.Wrapf(err, "expected %s %s to be deleted", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				errs = append(errs, pkgerrors.Wrapf(err, "expected %s %s to be deleted", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 				continue
 			}
-			errs = append(errs, errors.Errorf("expected %s %s to be deleted but it still exists", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+			errs = append(errs, pkgerrors.Errorf("expected %s %s to be deleted but it still exists", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 		}
 
 		// Ensure expected objects are in deletion
 		for _, obj := range expectedObjectsInDeletion {
 			if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-				errs = append(errs, errors.Wrapf(err, "checking %s %s is in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				errs = append(errs, pkgerrors.Wrapf(err, "checking %s %s is in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 				continue
 			}
 			if obj.GetDeletionTimestamp().IsZero() {
-				errs = append(errs, errors.Errorf("expected %s %s to be in deletion but deletionTimestamp is not set", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				errs = append(errs, pkgerrors.Errorf("expected %s %s to be in deletion but deletionTimestamp is not set", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 				continue
 			}
 
 			// Blocking objects have our finalizer set. When being excepted to be in deletion,
 			// blocking objects should only have our finalizer, otherwise they are getting blocked by something else.
 			if sets.New[string](obj.GetFinalizers()...).Has(finalizer) && len(obj.GetFinalizers()) > 1 {
-				errs = append(errs, errors.Errorf("expected blocking %s %s to only have %s as finalizer, got [%s]", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), finalizer, strings.Join(obj.GetFinalizers(), ", ")))
+				errs = append(errs, pkgerrors.Errorf("expected blocking %s %s to only have %s as finalizer, got [%s]", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), finalizer, strings.Join(obj.GetFinalizers(), ", ")))
 				continue
 			}
 		}
@@ -419,12 +419,12 @@ func assertDeletionPhase(ctx context.Context, c client.Client, finalizer string,
 		// Ensure other objects are not in deletion.
 		for _, obj := range expectedObjectsNotInDeletion {
 			if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-				errs = append(errs, errors.Wrapf(err, "checking %s %s is not in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				errs = append(errs, pkgerrors.Wrapf(err, "checking %s %s is not in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 				continue
 			}
 
 			if !obj.GetDeletionTimestamp().IsZero() {
-				errs = append(errs, errors.Errorf("expected %s %s to not be in deletion but deletionTimestamp is set", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				errs = append(errs, pkgerrors.Errorf("expected %s %s to not be in deletion but deletionTimestamp is set", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 				continue
 			}
 		}

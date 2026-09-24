@@ -44,10 +44,10 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedCmds: []provisioning.Cmd{
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat > baz /dev/stdin"}, Stdin: "qux"},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar", Retry: 5},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > baz /dev/stdin"}, Stdin: "qux", Retry: 5},
 			},
 		},
 		{
@@ -58,9 +58,9 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedCmds: []provisioning.Cmd{
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
-				{Cmd: "chown", Args: []string{"baz:baz", "foo"}},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar", Retry: 5},
+				{Cmd: "chown", Args: []string{"baz:baz", "foo"}, Retry: 5},
 			},
 		},
 		{
@@ -71,9 +71,9 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedCmds: []provisioning.Cmd{
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
-				{Cmd: "chmod", Args: []string{"755", "foo"}},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar", Retry: 5},
+				{Cmd: "chmod", Args: []string{"755", "foo"}, Retry: 5},
 			},
 		},
 		{
@@ -84,8 +84,8 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedCmds: []provisioning.Cmd{
-				{Cmd: "mkdir", Args: []string{"-p", "."}},
-				{Cmd: "/bin/sh", Args: []string{"-c", "cat >> foo /dev/stdin"}, Stdin: "bar"},
+				{Cmd: "mkdir", Args: []string{"-p", "."}, Retry: 5},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat >> foo /dev/stdin"}, Stdin: "bar", Retry: 5},
 			},
 		},
 	}
@@ -116,54 +116,64 @@ write_files:
     ---
     ClusterConfiguration...
     ---
-    apiVersion: kubeadm.k8s.io/v1beta3
+    apiVersion: kubeadm.k8s.io/v1beta4
     kind: InitConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
       kubeletExtraArgs:
-        cloud-provider: aws
+      - name: cloud-provider
+        value: aws
   owner: root:root
   path: /run/kubeadm/kubeadm.yaml
   permissions: '0640'
 - content: |
     ---
-    apiVersion: kubeadm.k8s.io/v1beta3
+    apiVersion: kubeadm.k8s.io/v1beta4
     kind: JoinConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
       kubeletExtraArgs:
-        cloud-provider: aws
+      - name: cloud-provider
+        value: aws
   path: /run/kubeadm/kubeadm-join-config.yaml
   owner: root:root
   permissions: '0640'
 `),
-			mapping: kind.Mapping{KubernetesVersion: semver.MustParse("1.28.3"), Mode: kind.Mode0_19},
+			mapping: kind.Mapping{KubernetesVersion: semver.MustParse("1.31.3"), Mode: kind.Mode0_19},
 			expectedContent: []string{
 				`---
 ClusterConfiguration...
 ---
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: InitConfiguration
 localAPIEndpoint: {}
 nodeRegistration:
   criSocket: unix:///var/run/containerd/containerd.sock
   kubeletExtraArgs:
-    cloud-provider: aws
-    eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
-    fail-swap-on: "false"
-    image-gc-high-threshold: "100"
+  - name: cloud-provider
+    value: aws
+  - name: image-gc-high-threshold
+    value: "100"
+  - name: eviction-hard
+    value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  - name: fail-swap-on
+    value: "false"
   taints: null
 `,
-				`apiVersion: kubeadm.k8s.io/v1beta3
+				`apiVersion: kubeadm.k8s.io/v1beta4
 discovery: {}
 kind: JoinConfiguration
 nodeRegistration:
   criSocket: unix:///var/run/containerd/containerd.sock
   kubeletExtraArgs:
-    cloud-provider: aws
-    eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
-    fail-swap-on: "false"
-    image-gc-high-threshold: "100"
+  - name: cloud-provider
+    value: aws
+  - name: image-gc-high-threshold
+    value: "100"
+  - name: eviction-hard
+    value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  - name: fail-swap-on
+    value: "false"
   taints: null
 `,
 			},
@@ -176,58 +186,72 @@ write_files:
     ---
     ClusterConfiguration...
     ---
-    apiVersion: kubeadm.k8s.io/v1beta3
+    apiVersion: kubeadm.k8s.io/v1beta4
     kind: InitConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
       kubeletExtraArgs:
-        cloud-provider: aws
+      - name: cloud-provider
+        value: aws
   owner: root:root
   path: "/run/kubeadm/kubeadm.yaml"
   permissions: '0640'
 - content: |
     ---
-    apiVersion: kubeadm.k8s.io/v1beta3
+    apiVersion: kubeadm.k8s.io/v1beta4
     kind: JoinConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
       kubeletExtraArgs:
-        cloud-provider: aws
+      - name: cloud-provider
+        value: aws
   path: "/run/kubeadm/kubeadm-join-config.yaml"
   owner: root:root
   permissions: '0640'
 `),
-			mapping: kind.Mapping{KubernetesVersion: semver.MustParse("1.28.3"), Mode: kind.Mode0_20},
+			mapping: kind.Mapping{KubernetesVersion: semver.MustParse("1.31.3"), Mode: kind.Mode0_20},
 			expectedContent: []string{
 				`---
 ClusterConfiguration...
 ---
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: InitConfiguration
 localAPIEndpoint: {}
 nodeRegistration:
   criSocket: unix:///var/run/containerd/containerd.sock
   kubeletExtraArgs:
-    cgroup-root: /kubelet
-    cloud-provider: aws
-    eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
-    fail-swap-on: "false"
-    image-gc-high-threshold: "100"
-    runtime-cgroups: /system.slice/containerd.service
+  - name: cloud-provider
+    value: aws
+  - name: image-gc-high-threshold
+    value: "100"
+  - name: eviction-hard
+    value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  - name: fail-swap-on
+    value: "false"
+  - name: cgroup-root
+    value: /kubelet
+  - name: runtime-cgroups
+    value: /system.slice/containerd.service
   taints: null
 `,
-				`apiVersion: kubeadm.k8s.io/v1beta3
+				`apiVersion: kubeadm.k8s.io/v1beta4
 discovery: {}
 kind: JoinConfiguration
 nodeRegistration:
   criSocket: unix:///var/run/containerd/containerd.sock
   kubeletExtraArgs:
-    cgroup-root: /kubelet
-    cloud-provider: aws
-    eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
-    fail-swap-on: "false"
-    image-gc-high-threshold: "100"
-    runtime-cgroups: /system.slice/containerd.service
+  - name: cloud-provider
+    value: aws
+  - name: image-gc-high-threshold
+    value: "100"
+  - name: eviction-hard
+    value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  - name: fail-swap-on
+    value: "false"
+  - name: cgroup-root
+    value: /kubelet
+  - name: runtime-cgroups
+    value: /system.slice/containerd.service
   taints: null
 `,
 			},

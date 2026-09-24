@@ -47,7 +47,10 @@ type SelfHostedSpecInput struct {
 	ArtifactFolder        string
 	SkipCleanup           bool
 	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
-	Flavor                string
+	// PreCleanupSelfHostedCluster hook can be used to run code before the self-hosted cluster is cleaned up.
+	// This is for example used in core Cluster API to dump secrets, which might not be safe in general.
+	PreCleanupSelfHostedCluster func(managementClusterProxy framework.ClusterProxy)
+	Flavor                      string
 
 	// InfrastructureProviders specifies the infrastructure to use for clusterctl
 	// operations (Example: get cluster templates).
@@ -463,6 +466,10 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 
 	AfterEach(func() {
 		if selfHostedNamespace != nil {
+			if input.PreCleanupSelfHostedCluster != nil {
+				By("Running PreCleanupSelfHostedCluster steps against the self-hosted cluster")
+				input.PreCleanupSelfHostedCluster(selfHostedClusterProxy)
+			}
 			// Dump all Cluster API related resources to artifacts before pivoting back.
 			framework.DumpAllResourcesAndLogs(ctx, selfHostedClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, clusterResources.Cluster)
 		}

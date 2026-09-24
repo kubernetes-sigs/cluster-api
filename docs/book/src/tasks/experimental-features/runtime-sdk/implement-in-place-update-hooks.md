@@ -8,6 +8,18 @@ Please note Runtime SDK is an advanced feature. If implemented incorrectly, a fa
 
 </aside>
 
+<aside class="note warning">
+
+<h1>Caution</h1>
+
+For Clusters that have been created with CAPI <= v1.11 it will only be possible to unset fields during in-place updates after:
+* a regular rollout that replaces all Machines
+* an in-place update that updates all Machines
+
+For details see the PR description of [CAPI-12890](https://github.com/kubernetes-sigs/cluster-api/pull/12890) section "Migration from managedFields v1.11 => v1.12".
+
+</aside>
+
 ## Introduction
 
 The proposal for [in-place updates in Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md)
@@ -27,7 +39,8 @@ immutable rollouts.
 Cluster API will be also responsible to determine which Machine/MachineSet should be updated, as well as to handle rollout
 options like MaxSurge/MaxUnavailable. With this regard:
 
-- Machines updating in-place are considered not available, because in-place updates are always considered as potentially disruptive.
+- By default, in-place updates are considered as an operation that might affect machine availability, 
+  because in-place updates are always considered as potentially disruptive.
   - For control plane machines, if maxSurge is 1, a new machine must be created first, then as soon as there is 
     “buffer” for in-place, in-place update can proceed.
     - KCP will not use in-place in case it will detect that it can impact health of the control plane.
@@ -35,7 +48,13 @@ options like MaxSurge/MaxUnavailable. With this regard:
     is “buffer” for in-place, in-place update can proceed.
     - When in-place is possible, the system should try to in-place update as many machines as possible.
       In practice, this means that maxSurge might not be fully used (it is used only for scale up by one if maxUnavailable=0).
-  - No in-place updates are performed for workers machines when using rollout strategy `OnDelete`.
+- The `CanUpdateMachineResponse` or the `CanUpdateMachineSetResponse`hook can override the default behavior and specify 
+  that the required change does not affect availability. In this case the in-place update will start immediately, without
+  creating an additional machine/using maxSurge (if available)
+  - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
+  - If something goes wrong unexpectedly, and the operation leads to actual unavailability, control plane components or workloads could be impacted.
+  - **Use this feature with caution!**
+- No in-place updates are performed for workers machines when using rollout strategy `OnDelete`.
 
 <aside class="note warning">
 
@@ -143,12 +162,20 @@ infrastructureMachinePatch:
   ...
 boostrapConfigPatch:
   ...
+affectsAvailability: true
 ```
 
 Note: 
 - Extensions should return per-object patches to be applied on current objects to indicate which changes they can handle in-place.
 - Only fields in Machine/InfraMachine/BootstrapConfig spec have to be covered by patches
 - Patches must be in JSONPatch or JSONMergePatch format
+- `affectsAvailability` is an optional value, if missing it defaults to true.
+- When `CanUpdateMachineResponse` hook specifies that the required change does not affect availability, the in-place update will start immediately, without creating an additional machine/using maxSurge (if available)
+  - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
+  - If something goes wrong unexpectedly, and the operation leads to actual unavailability, control plane components could be impacted.
+  - **Use this feature with caution!**
+- If using KCP, KCP might override the `CanUpdateMachineResponse` and decide to scale up or down when this will be considered safer than performing in place to preserve the overall control plane health (e.g. when
+  there are unhealthy machines).
 
 ### CanUpdateMachineSet
 
@@ -214,13 +241,19 @@ infrastructureMachineTemplatePatch:
   ...
 boostrapConfigTemplatePatch:
   ...
+affectsAvailability: true
 ```
 
 Note:
 - Extensions should return per-object patches to be applied on current objects to indicate which changes they can handle in-place.
 - Only fields in MachineSet/InfraMachineTemplate/BootstrapConfigTemplate spec.template.spec have to be covered by patches
 - Patches must be in JSONPatch or JSONMergePatch format
-
+- `affectsAvailability` is an optional value, if missing it defaults to true.
+- When `CanUpdateMachineSetResponse` specifies that the required change does not affect availability, the in-place update will start immediately, without creating an additional machine/using maxSurge (if available)
+  - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
+  - If something goes wrong unexpectedly, and the operation leads to actual unavailability, workloads could be impacted.
+  - **Use this feature with caution!**
+  
 ### UpdateMachine
 
 This hook is called by the Machine controller when performing the in-place updates for a Machine.

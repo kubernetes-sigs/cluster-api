@@ -19,7 +19,7 @@ package cmd
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -84,7 +84,7 @@ var deleteCmd = &cobra.Command{
 		# Important! As a consequence of this operation all the corresponding resources on target clouds
 		# are "orphaned" and thus there may be ongoing costs incurred as a result of this.
 		clusterctl delete --all --include-crd  --include-namespace`),
-	Args: cobra.NoArgs,
+	Args: helpOnErrorArgs(cobra.NoArgs),
 	RunE: func(*cobra.Command, []string) error {
 		return runDelete()
 	},
@@ -139,11 +139,11 @@ func runDelete() error {
 		(len(dd.addonProviders) > 0)
 
 	if dd.deleteAll && hasProviderNames {
-		return errors.New("The --all flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
+		return pkgerrors.New("The --all flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
 	}
 
 	if !dd.deleteAll && !hasProviderNames {
-		return errors.New("At least one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be specified or the --all flag should be set")
+		return pkgerrors.New("At least one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be specified or the --all flag should be set")
 	}
 
 	return c.Delete(ctx, client.DeleteOptions{

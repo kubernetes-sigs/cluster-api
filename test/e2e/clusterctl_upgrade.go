@@ -123,9 +123,12 @@ type ClusterctlUpgradeSpecInput struct {
 	// PreCleanupManagementCluster hook can be used for extra steps that might be required from providers, for example, remove conflicting service (such as DHCP) running on
 	// the target management cluster and run it on bootstrap (before the latter resumes LCM) if both clusters share the same LAN
 	PreCleanupManagementCluster func(managementClusterProxy framework.ClusterProxy)
-	MgmtFlavor                  string
-	CNIManifestPath             string
-	WorkloadFlavor              string
+	// PreCleanupManagementClusterProviders hook can be used to run code before the providers on the management cluster are cleaned up.
+	// This is for example used in core Cluster API to dump secrets, which might not be safe in general.
+	PreCleanupManagementClusterProviders func(managementClusterProxy framework.ClusterProxy)
+	MgmtFlavor                           string
+	CNIManifestPath                      string
+	WorkloadFlavor                       string
 	// WorkloadKubernetesVersion is Kubernetes version used to create the workload cluster, e.g. `v1.25.0`
 	WorkloadKubernetesVersion string
 
@@ -136,6 +139,13 @@ type ClusterctlUpgradeSpecInput struct {
 
 	// ControlPlaneMachineCount specifies the number of control plane machines to create in the workload cluster.
 	ControlPlaneMachineCount *int64
+
+	// ManagementClusterControlPlaneMachineCount specifies the number of control plane machines to create for the
+	// self-hosted management cluster (the workload cluster that is pivoted into and used as the new management
+	// cluster). Defaults to 1 if not set. Setting this higher (e.g. 3) makes the management cluster's control
+	// plane highly available, which can reduce flakiness when the management cluster's API server is fronted by a
+	// load balancer. This has no effect when UseKindForManagementCluster is true.
+	ManagementClusterControlPlaneMachineCount *int64
 }
 
 // ClusterctlUpgradeSpecInputUpgrade defines an upgrade.
@@ -238,6 +248,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		initKubernetesVersion = input.InitWithKubernetesVersion
 
+		if input.ManagementClusterControlPlaneMachineCount == nil {
+			input.ManagementClusterControlPlaneMachineCount = ptr.To[int64](1)
+		}
+
 		if len(input.Upgrades) == 0 {
 			// Upgrade once to latest contract version if no upgrades are specified.
 			input.Upgrades = []ClusterctlUpgradeSpecInputUpgrade{
@@ -277,6 +291,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				Images:    input.E2EConfig.Images,
 				IPFamily:  input.E2EConfig.MustGetVariable(IPFamily),
 				LogFolder: filepath.Join(managementClusterLogFolder, "logs-kind"),
+				// Note: Older releases might not have sufficient RBAC to satisfy the OwnerReferencesPermissionEnforcement admission controller.
+				// So for now, we disable it to avoid failing upgrade tests.
+				// TODO: Remove this option to enable OwnerReferencesPermissionEnforcement admission controller in all e2e-tests.
+				DisableOwnerReferencesPermissionEnforcement: true,
 			})
 			Expect(managementClusterProvider).ToNot(BeNil(), "Failed to create a kind cluster")
 
@@ -305,7 +323,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					Namespace:                managementClusterNamespace.Name,
 					ClusterName:              managementClusterName,
 					KubernetesVersion:        initKubernetesVersion,
-					ControlPlaneMachineCount: ptr.To[int64](1),
+					ControlPlaneMachineCount: input.ManagementClusterControlPlaneMachineCount,
 					WorkerMachineCount:       ptr.To[int64](1),
 				},
 				PreWaitForCluster: func() {
@@ -320,13 +338,13 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 			}, managementClusterResources)
 
-			// If the cluster is a DockerCluster, we should load controller images into the nodes.
-			// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
+			// If the cluster is a DevCluster with Docker backend, we should load controller images into the nodes.
+			// Nb. this can be achieved also by changing the DevMachine spec, but for the time being we are using
 			// this approach because this allows to have a single source of truth for images, the e2e config
 			// Nb. the images for official version of the providers will be pulled from internet, but the latest images must be
 			// built locally and loaded into kind
 			cluster := managementClusterResources.Cluster
-			if cluster.Spec.InfrastructureRef.Kind == "DockerCluster" {
+			if cluster.Spec.InfrastructureRef.Kind == "DevCluster" {
 				Expect(bootstrap.LoadImagesToKindCluster(ctx, bootstrap.LoadImagesToKindClusterInput{
 					Name:   cluster.Name,
 					Images: input.E2EConfig.Images,
@@ -456,7 +474,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		log.Logf("Applying the cluster template yaml to the cluster in dry-run")
 		Eventually(func() error {
 			return managementClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate, framework.WithCreateOpts([]client.CreateOption{client.DryRunAll}...), framework.WithUpdateOpts([]client.UpdateOption{client.DryRunAll}...))
-		}, "1m", "10s").ShouldNot(HaveOccurred())
+		}, "2m", "10s").ShouldNot(HaveOccurred())
 
 		log.Logf("Applying the cluster template yaml to the cluster")
 		Expect(managementClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)).To(Succeed())
@@ -771,6 +789,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 	AfterEach(func() {
 		if testNamespace != nil {
+			if input.PreCleanupManagementClusterProviders != nil {
+				By("Running PreCleanupManagementClusterProviders steps against the management cluster")
+				input.PreCleanupManagementClusterProviders(managementClusterProxy)
+			}
 			// Dump all the logs from the workload cluster before deleting them.
 			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, testNamespace, &clusterv1.Cluster{
 				// DumpAllResourcesAndLogs only uses Namespace + Name from the Cluster object.

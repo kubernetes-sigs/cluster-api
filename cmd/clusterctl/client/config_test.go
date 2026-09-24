@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -58,6 +58,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.ClusterAPIProviderName,
 				config.CanonicalKubernetesBootstrapProviderName,
 				config.K0smotronBootstrapProviderName,
+				config.KairosBootstrapProviderName,
 				config.KubeadmBootstrapProviderName,
 				config.KubeKeyK3sBootstrapProviderName,
 				config.MicroK8sBootstrapProviderName,
@@ -66,6 +67,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.CanonicalKubernetesControlPlaneProviderName,
 				config.HCPControlPlaneProviderName,
 				config.K0smotronControlPlaneProviderName,
+				config.KairosControlPlaneProviderName,
 				config.KamajiControlPlaneProviderName,
 				config.KubeadmControlPlaneProviderName,
 				config.KubeKeyK3sControlPlaneProviderName,
@@ -76,6 +78,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.AWSProviderName,
 				config.AzureProviderName,
 				config.BYOHProviderName,
+				config.CloudscaleProviderName,
 				config.CloudStackProviderName,
 				config.CoxEdgeProviderName,
 				config.DOProviderName,
@@ -83,12 +86,13 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.GCPProviderName,
 				config.HarvesterProviderName,
 				config.HetznerProviderName,
-				config.HivelocityProviderName,
 				config.HuaweiProviderName,
 				config.IBMCloudProviderName,
 				config.IonosCloudProviderName,
 				config.K0smotronProviderName,
+				config.KairosFleetProviderName,
 				config.KubeKeyProviderName,
+				config.KubeSwiftProviderName,
 				config.KubevirtProviderName,
 				config.LinodeProviderName,
 				config.MAASProviderName,
@@ -100,6 +104,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.OpenNebulaProviderName,
 				config.OpenStackProviderName,
 				config.OutscaleProviderName,
+				config.OxideProviderName,
 				config.ProxmoxProviderName,
 				config.ScalewayProviderName,
 				config.SideroProviderName,
@@ -130,6 +135,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.CanonicalKubernetesBootstrapProviderName,
 				customProviderConfig.Name(),
 				config.K0smotronBootstrapProviderName,
+				config.KairosBootstrapProviderName,
 				config.KubeadmBootstrapProviderName,
 				config.KubeKeyK3sBootstrapProviderName,
 				config.MicroK8sBootstrapProviderName,
@@ -138,6 +144,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.CanonicalKubernetesControlPlaneProviderName,
 				config.HCPControlPlaneProviderName,
 				config.K0smotronControlPlaneProviderName,
+				config.KairosControlPlaneProviderName,
 				config.KamajiControlPlaneProviderName,
 				config.KubeadmControlPlaneProviderName,
 				config.KubeKeyK3sControlPlaneProviderName,
@@ -148,6 +155,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.AWSProviderName,
 				config.AzureProviderName,
 				config.BYOHProviderName,
+				config.CloudscaleProviderName,
 				config.CloudStackProviderName,
 				config.CoxEdgeProviderName,
 				config.DOProviderName,
@@ -155,12 +163,13 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.GCPProviderName,
 				config.HarvesterProviderName,
 				config.HetznerProviderName,
-				config.HivelocityProviderName,
 				config.HuaweiProviderName,
 				config.IBMCloudProviderName,
 				config.IonosCloudProviderName,
 				config.K0smotronProviderName,
+				config.KairosFleetProviderName,
 				config.KubeKeyProviderName,
+				config.KubeSwiftProviderName,
 				config.KubevirtProviderName,
 				config.LinodeProviderName,
 				config.MAASProviderName,
@@ -172,6 +181,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.OpenNebulaProviderName,
 				config.OpenStackProviderName,
 				config.OutscaleProviderName,
+				config.OxideProviderName,
 				config.ProxmoxProviderName,
 				config.ScalewayProviderName,
 				config.SideroProviderName,
@@ -909,7 +919,7 @@ func newFakeClientWithoutCluster(configClient config.Client) *fakeClient {
 		InjectConfig(fake.configClient),
 		InjectRepositoryFactory(func(_ context.Context, input RepositoryClientFactoryInput) (repository.Client, error) {
 			if _, ok := fake.repositories[input.Provider.ManifestLabel()]; !ok {
-				return nil, errors.Errorf("repository for kubeconfig %q does not exist", input.Provider.ManifestLabel())
+				return nil, pkgerrors.Errorf("repository for kubeconfig %q does not exist", input.Provider.ManifestLabel())
 			}
 			return fake.repositories[input.Provider.ManifestLabel()], nil
 		}),
@@ -1115,5 +1125,5 @@ v3: default3`,
 type errReader struct{}
 
 func (e *errReader) Read(_ []byte) (n int, err error) {
-	return 0, errors.New("read error")
+	return 0, pkgerrors.New("read error")
 }

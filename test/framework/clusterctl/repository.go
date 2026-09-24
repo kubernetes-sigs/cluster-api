@@ -30,7 +30,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -85,7 +85,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling CreateRepository")
 	Expect(os.MkdirAll(input.RepositoryFolder, 0750)).To(Succeed(), "Failed to create the clusterctl local repository folder %s", input.RepositoryFolder)
 
-	providers := []providerConfig{}
+	providers := make([]providerConfig, 0, len(input.E2EConfig.Providers))
 	for _, provider := range input.E2EConfig.Providers {
 		providerLabel := clusterctlv1.ManifestLabel(provider.Name, clusterctlv1.ProviderType(provider.Type))
 		providerURL := filepath.Join(input.RepositoryFolder, providerLabel, "latest", "components.yaml")
@@ -112,7 +112,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 				}
 
 				destinationFile := filepath.Join(filepath.Dir(destinationPath), file.TargetName)
-				Expect(os.WriteFile(destinationFile, data, 0600)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName)
+				Expect(os.WriteFile(destinationFile, data, 0600)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName) //nolint:gosec // G703: destinationFile is constructed from trusted test inputs.
 			}
 		}
 		p := providerConfig{
@@ -182,7 +182,7 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 	case URLSource:
 		buf, err := getComponentSourceFromURL(ctx, source)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get component source YAML from URL")
+			return nil, pkgerrors.Wrap(err, "failed to get component source YAML from URL")
 		}
 		data = buf
 	case KustomizeSource:
@@ -196,11 +196,11 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 			exec.WithArgs("build", source.Value))
 		stdout, stderr, err := kustomize.Run(ctx)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to execute kustomize: %s", stderr)
+			return nil, pkgerrors.Wrapf(err, "failed to execute kustomize: %s", stderr)
 		}
 		data = stdout
 	default:
-		return nil, errors.Errorf("invalid type: %q", source.Type)
+		return nil, pkgerrors.Errorf("invalid type: %q", source.Type)
 	}
 
 	for _, replacement := range source.Replacements {
@@ -228,7 +228,7 @@ func getComponentSourceFromURL(ctx context.Context, source ProviderVersionSource
 	case "", fileURIScheme:
 		buf, err = os.ReadFile(u.Path)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to read file")
+			return nil, pkgerrors.Wrap(err, "failed to read file")
 		}
 	case httpURIScheme, httpsURIScheme:
 		var getErr error
@@ -239,22 +239,22 @@ func getComponentSourceFromURL(ctx context.Context, source ProviderVersionSource
 		}, func() (bool, error) {
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, source.Value, http.NoBody)
 			if err != nil {
-				getErr = errors.Wrapf(err, "failed to get %s: failed to create request", source.Value)
+				getErr = pkgerrors.Wrapf(err, "failed to get %s: failed to create request", source.Value)
 				return false, nil
 			}
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				getErr = errors.Wrapf(err, "failed to get %s", source.Value)
+				getErr = pkgerrors.Wrapf(err, "failed to get %s", source.Value)
 				return false, nil
 			}
 			if resp.StatusCode != http.StatusOK {
-				getErr = errors.Errorf("failed to get %s: got status code %d", source.Value, resp.StatusCode)
+				getErr = pkgerrors.Errorf("failed to get %s: got status code %d", source.Value, resp.StatusCode)
 				return false, nil
 			}
 			defer resp.Body.Close()
 			buf, err = io.ReadAll(resp.Body)
 			if err != nil {
-				getErr = errors.Wrapf(err, "failed to get %s: failed to read body", source.Value)
+				getErr = pkgerrors.Wrapf(err, "failed to get %s: failed to read body", source.Value)
 				return false, nil
 			}
 
@@ -264,7 +264,7 @@ func getComponentSourceFromURL(ctx context.Context, source ProviderVersionSource
 			return nil, kerrors.NewAggregate([]error{err, getErr})
 		}
 	default:
-		return nil, errors.Errorf("unknown scheme for component source %q: allowed values are file, http, https", u.Scheme)
+		return nil, pkgerrors.Errorf("unknown scheme for component source %q: allowed values are file, http, https", u.Scheme)
 	}
 
 	return buf, nil

@@ -33,7 +33,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
@@ -288,7 +288,7 @@ func (c *E2EConfig) ResolveReleases(ctx context.Context) error {
 			releaseMarker := strings.TrimLeft(strings.TrimRight(version.Name, "}"), "{")
 			ver, err := ResolveRelease(ctx, releaseMarker)
 			if err != nil {
-				return errors.Wrapf(err, "failed resolving release url %q", version.Name)
+				return pkgerrors.Wrapf(err, "failed resolving release url %q", version.Name)
 			}
 			ver = "v" + ver
 			version.Value = strings.Replace(version.Value, version.Name, ver, 1)
@@ -304,7 +304,7 @@ func ResolveRelease(ctx context.Context, releaseMarker string) (string, error) {
 		return "", err
 	}
 	if scheme == "" || host == "" {
-		return "", errors.Errorf("releasemarker does not support disabling the go proxy: GOPROXY=%q", os.Getenv("GOPROXY"))
+		return "", pkgerrors.Errorf("releasemarker does not support disabling the go proxy: GOPROXY=%q", os.Getenv("GOPROXY"))
 	}
 	goproxyClient := goproxy.NewClient(scheme, host)
 	return resolveReleaseMarker(ctx, releaseMarker, goproxyClient, githubReleaseMetadataURL)
@@ -318,17 +318,17 @@ func ResolveRelease(ctx context.Context, releaseMarker string) (string, error) {
 // is passed as variable to be able to write a proper unit test.
 func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClient *goproxy.Client, toMetadataURL func(gomodule, version string) string) (string, error) {
 	if !strings.HasPrefix(releaseMarker, "go://") {
-		return "", errors.Errorf("unknown release marker scheme")
+		return "", pkgerrors.Errorf("unknown release marker scheme")
 	}
 
 	releaseMarker = strings.TrimPrefix(releaseMarker, "go://")
 	if releaseMarker == "" {
-		return "", errors.New("empty release url")
+		return "", pkgerrors.New("empty release url")
 	}
 
 	gomoduleParts := strings.Split(releaseMarker, "@")
 	if len(gomoduleParts) < 2 {
-		return "", errors.Errorf("go module or version missing")
+		return "", pkgerrors.Errorf("go module or version missing")
 	}
 	gomodule := gomoduleParts[0]
 
@@ -339,7 +339,7 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 	rawVersion := strings.TrimPrefix(gomoduleParts[1], "latest-") + ".0"
 	semVersion, err := semver.ParseTolerant(rawVersion)
 	if err != nil {
-		return "", errors.Wrapf(err, "parsing semver for %s", rawVersion)
+		return "", pkgerrors.Wrapf(err, "parsing semver for %s", rawVersion)
 	}
 
 	versions, err := goproxyClient.GetVersions(ctx, gomodule)
@@ -362,7 +362,7 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 	}
 
 	if len(versionCandidates) == 0 {
-		return "", errors.Errorf("no suitable release available for release marker %s", releaseMarker)
+		return "", pkgerrors.Errorf("no suitable release available for release marker %s", releaseMarker)
 	}
 
 	// Sort parsed versions by semantic version order.
@@ -389,7 +389,7 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 		versionString := "v" + v.String()
 		_, err := httpGetURL(ctx, toMetadataURL(gomodule, versionString))
 		if err != nil {
-			if errors.Is(err, errNotFound) {
+			if pkgerrors.Is(err, errNotFound) {
 				// Ignore this version
 				continue
 			}
@@ -401,13 +401,13 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 	}
 
 	// If we reached this point, it means we didn't find any release.
-	return "", errors.New("failed to find releases tagged with a valid semantic version number")
+	return "", pkgerrors.New("failed to find releases tagged with a valid semantic version number")
 }
 
 var (
 	retryableOperationInterval = 10 * time.Second
 	retryableOperationTimeout  = 1 * time.Minute
-	errNotFound                = errors.New("404 Not Found")
+	errNotFound                = pkgerrors.New("404 Not Found")
 )
 
 func githubReleaseMetadataURL(gomodule, version string) string {
@@ -431,7 +431,7 @@ func httpGetURL(ctx context.Context, url string) ([]byte, error) {
 	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(context.Context) (bool, error) {
 		resp, err := http.Get(url) //nolint:gosec,noctx
 		if err != nil {
-			retryError = errors.Wrap(err, "error sending request")
+			retryError = pkgerrors.Wrap(err, "error sending request")
 			return false, nil
 		}
 		defer resp.Body.Close()
@@ -443,13 +443,13 @@ func httpGetURL(ctx context.Context, url string) ([]byte, error) {
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			retryError = errors.Errorf("error getting file, status code: %d", resp.StatusCode)
+			retryError = pkgerrors.Errorf("error getting file, status code: %d", resp.StatusCode)
 			return false, nil
 		}
 
 		content, err = io.ReadAll(resp.Body)
 		if err != nil {
-			retryError = errors.Wrap(err, "error reading response body")
+			retryError = pkgerrors.Wrap(err, "error reading response body")
 			return false, nil
 		}
 
@@ -549,7 +549,7 @@ func (c *E2EConfig) AbsPaths(basePath string) {
 
 func errInvalidArg(format string, args ...interface{}) error {
 	msg := fmt.Sprintf(format, args...)
-	return errors.Errorf("invalid argument: %s", msg)
+	return pkgerrors.Errorf("invalid argument: %s", msg)
 }
 
 func errEmptyArg(argName string) error {

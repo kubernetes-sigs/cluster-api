@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	capierrors "sigs.k8s.io/cluster-api/errors"
+	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
 const (
@@ -458,6 +458,23 @@ type MachineSpec struct {
 	// Defaults to 10 seconds.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+
+	// taints are the node taints that Cluster API will manage.
+	// This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+	// e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+	// Only those taints defined in this list will be added or removed by core Cluster API controllers.
+	//
+	// There can be at most 64 taints.
+	// A pod would have to tolerate all existing taints to run on the corresponding node.
+	//
+	// NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +listMapKey=effect
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	Taints []MachineTaint `json:"taints,omitempty"`
 }
 
 // MachineReadinessGate contains the type of a Machine condition to be used as a readiness gate.
@@ -614,6 +631,18 @@ type MachineDeletionStatus struct {
 	// Only present when the Machine has a deletionTimestamp and waiting for volume detachments had been started.
 	// +optional
 	WaitForNodeVolumeDetachStartTime *metav1.Time `json:"waitForNodeVolumeDetachStartTime,omitempty"`
+
+	// waitForPreDrainHookStartTime is the time when waiting for pre-drain hooks started
+	// and is used to determine if the pre-drain hooks are taking too long.
+	// Only present when the Machine has a deletionTimestamp and waiting for pre-drain hooks had been started.
+	// +optional
+	WaitForPreDrainHookStartTime *metav1.Time `json:"waitForPreDrainHookStartTime,omitempty"`
+
+	// waitForPreTerminateHookStartTime is the time when waiting for pre-terminate hooks started
+	// and is used to determine if the pre-terminate hooks are taking too long.
+	// Only present when the Machine has a deletionTimestamp and waiting for pre-terminate hooks had been started.
+	// +optional
+	WaitForPreTerminateHookStartTime *metav1.Time `json:"waitForPreTerminateHookStartTime,omitempty"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.

@@ -1,4 +1,4 @@
-version: v2.7.0
+version: v2.12.2
 name: golangci-lint-kube-api-linter
 destination: ./bin
 plugins:

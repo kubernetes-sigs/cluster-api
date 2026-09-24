@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -402,7 +402,7 @@ type ConditionsMatcher struct {
 func (matcher *ConditionsMatcher) Match(actual interface{}) (success bool, err error) {
 	actualConditions, ok := actual.(clusterv1.Conditions)
 	if !ok {
-		return false, errors.New("Value should be a conditions list")
+		return false, pkgerrors.New("Value should be a conditions list")
 	}
 
 	if len(actualConditions) != len(matcher.Expected) {

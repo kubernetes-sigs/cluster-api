@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -79,5 +80,34 @@ func Test_testConfiguration(t *testing.T) {
 
 	if diff := cmp.Diff(readmeConfiguration, string(rawConfiguration)); diff != "" {
 		t.Errorf("Configuration in README.md and test/test-configuration.yaml differ:\n%s", diff)
+	}
+}
+
+func Test_bucketCron(t *testing.T) {
+	tests := []struct {
+		bucketName                                   string
+		startHour, bucketSize, bucketIntervalMinutes int
+		want                                         string
+	}{
+		// run test-e2e jobs staring at 2AM, max 3 jobs in the same cron bucket, defer exceeding jobs to the next bucket starting in 30m
+		{bucketName: "test-e2e", startHour: 2, bucketSize: 3, bucketIntervalMinutes: 30, want: "0 2 * * *"},  // job #1, first bucket
+		{bucketName: "test-e2e", startHour: 2, bucketSize: 3, bucketIntervalMinutes: 30, want: "0 2 * * *"},  // job #2, first bucket
+		{bucketName: "test-e2e", startHour: 2, bucketSize: 3, bucketIntervalMinutes: 30, want: "0 2 * * *"},  // job #3, first bucket
+		{bucketName: "test-e2e", startHour: 2, bucketSize: 3, bucketIntervalMinutes: 30, want: "30 2 * * *"}, // job #4, second bucket
+
+		// handle EOD properly
+		{bucketName: "test-e2e-update", startHour: 22, bucketSize: 1, bucketIntervalMinutes: 30, want: "0 22 * * *"},
+		{bucketName: "test-e2e-update", startHour: 22, bucketSize: 1, bucketIntervalMinutes: 30, want: "30 22 * * *"},
+		{bucketName: "test-e2e-update", startHour: 22, bucketSize: 1, bucketIntervalMinutes: 30, want: "0 23 * * *"},
+		{bucketName: "test-e2e-update", startHour: 22, bucketSize: 1, bucketIntervalMinutes: 30, want: "30 23 * * *"},
+		{bucketName: "test-e2e-update", startHour: 22, bucketSize: 1, bucketIntervalMinutes: 30, want: "0 0 * * *"},
+		{bucketName: "test-e2e-update", startHour: 22, bucketSize: 1, bucketIntervalMinutes: 30, want: "30 0 * * *"},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("bucketName %s, bucketSize: %d, hour: %d, bucketIntervalMinutes: %d", tt.bucketName, tt.bucketSize, tt.startHour, tt.bucketIntervalMinutes), func(t *testing.T) {
+			if got := cronBucket(tt.bucketName, tt.startHour, tt.bucketSize, tt.bucketIntervalMinutes); got != tt.want {
+				t.Errorf("cronBucket() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

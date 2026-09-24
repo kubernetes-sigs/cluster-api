@@ -71,6 +71,33 @@ func TestCreateNode(t *testing.T) {
 	g.Expect(runConfig.Labels["io.x-k8s.kind.cluster"]).To(Equal("TestClusterName"))
 }
 
+func TestCreateNodeWithConfiguredDockerNetwork(t *testing.T) {
+	t.Setenv("DOCKER_NETWORK", "custom-network")
+
+	g := NewWithT(t)
+	containerRuntime := &container.FakeRuntime{}
+	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	containerRuntime.ResetRunContainerCallLogs()
+
+	createOpts := &nodeCreateOpts{
+		Name:        "TestName",
+		ClusterName: "TestClusterName",
+		Role:        constants.ControlPlaneNodeRoleValue,
+		Mounts:      []v1alpha4.Mount{},
+		IPFamily:    container.IPv4IPFamily,
+		KindMapping: kind.Mapping{
+			Image: "TestImage",
+			Mode:  kind.ModeNone,
+		},
+	}
+	_, err := createNode(ctx, createOpts)
+
+	g.Expect(err).ShouldNot(HaveOccurred())
+	callLog := containerRuntime.RunContainerCalls()
+	g.Expect(callLog).To(HaveLen(1))
+	g.Expect(callLog[0].RunConfig.Network).To(Equal("custom-network"))
+}
+
 func TestCreateControlPlaneNode(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}

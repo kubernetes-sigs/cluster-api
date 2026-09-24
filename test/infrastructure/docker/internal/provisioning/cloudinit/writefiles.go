@@ -25,12 +25,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
+	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
@@ -51,16 +51,16 @@ conntrack:
 
 // writeFilesAction defines a list of files that should be written to a node.
 type writeFilesAction struct {
-	Files []files `json:"write_files,"`
+	Files []files `json:"write_files"`
 }
 
 type files struct {
-	Path        string `json:"path,"`
+	Path        string `json:"path"`
 	Encoding    string `json:"encoding,omitempty"`
 	Owner       string `json:"owner,omitempty"`
 	Permissions string `json:"permissions,omitempty"`
-	Content     string `json:"content,"`
-	Append      bool   `json:"append,"`
+	Content     string `json:"content"`
+	Append      bool   `json:"append"`
 }
 
 func newWriteFilesAction() action {
@@ -69,7 +69,7 @@ func newWriteFilesAction() action {
 
 func (a *writeFilesAction) Unmarshal(userData []byte, kindMapping kind.Mapping) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
-		return errors.Wrapf(err, "error parsing write_files action: %s", userData)
+		return pkgerrors.Wrapf(err, "error parsing write_files action: %s", userData)
 	}
 	for i, f := range a.Files {
 		if f.Path == kubeadmInitPath {
@@ -77,18 +77,18 @@ func (a *writeFilesAction) Unmarshal(userData []byte, kindMapping kind.Mapping) 
 			contentSplit := strings.Split(f.Content, "---\n")
 
 			if len(contentSplit) != 3 {
-				return errors.Errorf("invalid kubeadm config file, unable to parse it")
+				return pkgerrors.Errorf("invalid kubeadm config file, unable to parse it")
 			}
 			initConfiguration, err := kubeadmtypes.UnmarshalInitConfiguration(contentSplit[2])
 			if err != nil {
-				return errors.Wrapf(err, "failed to parse init configuration")
+				return pkgerrors.Wrapf(err, "failed to parse init configuration")
 			}
 
 			fixNodeRegistration(&initConfiguration.NodeRegistration, kindMapping)
 
 			contentSplit[2], err = kubeadmtypes.MarshalInitConfigurationForVersion(initConfiguration, kindMapping.KubernetesVersion)
 			if err != nil {
-				return errors.Wrapf(err, "failed to marshal init configuration")
+				return pkgerrors.Wrapf(err, "failed to marshal init configuration")
 			}
 			a.Files[i].Content = strings.Join(contentSplit, "---\n")
 		}
@@ -96,14 +96,14 @@ func (a *writeFilesAction) Unmarshal(userData []byte, kindMapping kind.Mapping) 
 			// NOTE: in case of join the kubeadmConfigFile contains only the join Configuration
 			joinConfiguration, err := kubeadmtypes.UnmarshalJoinConfiguration(f.Content)
 			if err != nil {
-				return errors.Wrapf(err, "failed to parse join configuration")
+				return pkgerrors.Wrapf(err, "failed to parse join configuration")
 			}
 
 			fixNodeRegistration(&joinConfiguration.NodeRegistration, kindMapping)
 
 			a.Files[i].Content, err = kubeadmtypes.MarshalJoinConfigurationForVersion(joinConfiguration, kindMapping.KubernetesVersion)
 			if err != nil {
-				return errors.Wrapf(err, "failed to marshal join configuration")
+				return pkgerrors.Wrapf(err, "failed to marshal join configuration")
 			}
 		}
 	}
@@ -171,12 +171,12 @@ func (a *writeFilesAction) Commands() ([]provisioning.Cmd, error) {
 			content += kubeproxyComponentConfig
 		}
 		if err != nil {
-			return commands, errors.Wrapf(err, "error decoding content for %s", path)
+			return commands, pkgerrors.Wrapf(err, "error decoding content for %s", path)
 		}
 
 		// Make the directory so cat + redirection will work
 		directory := filepath.Dir(path)
-		commands = append(commands, provisioning.Cmd{Cmd: "mkdir", Args: []string{"-p", directory}})
+		commands = append(commands, provisioning.Cmd{Cmd: "mkdir", Args: []string{"-p", directory}, Retry: 5})
 
 		redirects := ">"
 		if f.Append {
@@ -184,16 +184,16 @@ func (a *writeFilesAction) Commands() ([]provisioning.Cmd, error) {
 		}
 
 		// generate a command that will create a file with the expected contents.
-		commands = append(commands, provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)}, Stdin: content})
+		commands = append(commands, provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)}, Stdin: content, Retry: 5})
 
 		// if permissions are different than default ownership, add a command to modify the permissions.
 		if permissions != "0644" {
-			commands = append(commands, provisioning.Cmd{Cmd: "chmod", Args: []string{permissions, path}})
+			commands = append(commands, provisioning.Cmd{Cmd: "chmod", Args: []string{permissions, path}, Retry: 5})
 		}
 
 		// if ownership is different than default ownership, add a command to modify file ownerhsip.
 		if owner != "root:root" {
-			commands = append(commands, provisioning.Cmd{Cmd: "chown", Args: []string{owner, path}})
+			commands = append(commands, provisioning.Cmd{Cmd: "chown", Args: []string{owner, path}, Retry: 5})
 		}
 	}
 	return commands, nil
@@ -241,7 +241,7 @@ func fixContent(content string, encodings []string) (string, error) {
 		case "application/base64":
 			rByte, err := base64.StdEncoding.DecodeString(content)
 			if err != nil {
-				return content, errors.WithStack(err)
+				return content, pkgerrors.WithStack(err)
 			}
 			return string(rByte), nil
 		case "application/x-gzip":
@@ -253,7 +253,7 @@ func fixContent(content string, encodings []string) (string, error) {
 		case "text/plain":
 			return content, nil
 		default:
-			return content, errors.Errorf("Unknown bootstrap data encoding: %q", content)
+			return content, pkgerrors.Errorf("Unknown bootstrap data encoding: %q", content)
 		}
 	}
 	return content, nil
@@ -265,13 +265,13 @@ func gUnzipData(data []byte) ([]byte, error) {
 	b := bytes.NewBuffer(data)
 	r, err = gzip.NewReader(b)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, pkgerrors.WithStack(err)
 	}
 
 	var resB bytes.Buffer
 	_, err = resB.ReadFrom(r)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, pkgerrors.WithStack(err)
 	}
 
 	return resB.Bytes(), nil

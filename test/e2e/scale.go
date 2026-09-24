@@ -31,7 +31,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -312,8 +312,8 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 					},
 				}
 			}
-			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
-				extensionConfig)).
+			Expect(client.IgnoreAlreadyExists(input.BootstrapClusterProxy.GetClient().Create(ctx,
+				extensionConfig))).
 				To(Succeed(), "Failed to create the ExtensionConfig")
 		}
 
@@ -382,7 +382,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 		// Create multiple clusters concurrently from the same base cluster template.
 
 		clusterNames = make([]string, 0, clusterCount)
-		clusterNameDigits := 1 + int(math.Log10(float64(clusterCount)))
+		clusterNameDigits := max(1+int(math.Log10(float64(clusterCount))), 5)
 		for i := int64(1); i <= clusterCount; i++ {
 			// This ensures we always have the right number of leading zeros in our cluster names, e.g.
 			// clusterCount=1000 will lead to cluster names like scale-0001, scale-0002, ... .
@@ -446,7 +446,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 				WaitForEtcdUpgrade:                   input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 			})
 
-			clusterNamesToUpgrade := []string{}
+			clusterNamesToUpgrade := make([]string, 0, len(clusterCreateResults))
 			for _, result := range clusterCreateResults {
 				clusterNamesToUpgrade = append(clusterNamesToUpgrade, result.clusterName)
 			}
@@ -475,7 +475,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 
 		// TODO(ykakarap): Follow-up: Dump resources for the failed clusters (creation).
 
-		clusterNamesToDelete := []string{}
+		clusterNamesToDelete := make([]string, 0, len(clusterCreateResults))
 		for _, result := range clusterCreateResults {
 			clusterNamesToDelete = append(clusterNamesToDelete, result.clusterName)
 		}
@@ -681,9 +681,9 @@ outer:
 	for _, result := range results {
 		if result.err != nil {
 			if e, ok := result.err.(types.GinkgoError); ok {
-				errs = append(errs, errors.Errorf("[clusterName: %q] Stack trace: \n %s", result.clusterName, e.CodeLocation.FullStackTrace))
+				errs = append(errs, pkgerrors.Errorf("[clusterName: %q] Error: %v Stack trace: \n %s", result.clusterName, result.err, e.CodeLocation.FullStackTrace))
 			} else {
-				errs = append(errs, errors.Errorf("[clusterName: %q] Error: %v", result.clusterName, result.err))
+				errs = append(errs, pkgerrors.Errorf("[clusterName: %q] Error: %v", result.clusterName, result.err))
 			}
 		}
 	}
@@ -741,7 +741,6 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 				if !open {
 					return true
 				}
-				log.Logf("Creating cluster %s", clusterName)
 
 				// This defer will catch ginkgo failures and record them.
 				// The recorded panics are then handled by the parent goroutine.
@@ -763,7 +762,10 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 				// * Adjust namespace in ClusterClass YAML.
 				// * Create new namespace.
 				if deployClusterInSeparateNamespaces {
-					log.Logf("Create namespace %s", namespaceName)
+					if err := clusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: namespaceName}, &corev1.Namespace{}); err == nil {
+						return false // Skipping this namespace/cluster if the namespace already exists
+					}
+					log.Logf("Creating namespace %s", namespaceName)
 					_ = framework.CreateNamespace(ctx, framework.CreateNamespaceInput{
 						Creator:             clusterProxy.GetClient(),
 						Name:                namespaceName,
@@ -815,7 +817,12 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 				clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName))
 				clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML, []byte(scaleClusterNamePlaceholder), []byte(clusterName))
 
+				if err := clusterProxy.GetClient().Get(ctx, client.ObjectKey{Namespace: namespaceName, Name: clusterName}, &clusterv1.Cluster{}); err == nil {
+					return false // Skipping this cluster if the cluster already exists
+				}
+
 				// Deploy Cluster.
+				log.Logf("Creating cluster %s", klog.KRef(namespaceName, clusterName))
 				create(ctx, namespaceName, clusterName, clusterTemplateYAML)
 				return false
 			}
@@ -978,7 +985,6 @@ func getClusterResourcesForUpgrade(ctx context.Context, c client.Client, namespa
 	err = c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: cluster.Spec.ControlPlaneRef.Name}, controlPlane)
 	Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("error getting ControlPlane for Cluster %s: %s,", klog.KObj(cluster), err))
 
-	mds := []*clusterv1.MachineDeployment{}
 	machineDeployments := &clusterv1.MachineDeploymentList{}
 	err = c.List(ctx, machineDeployments,
 		client.MatchingLabels{
@@ -988,6 +994,7 @@ func getClusterResourcesForUpgrade(ctx context.Context, c client.Client, namespa
 		client.InNamespace(cluster.Namespace),
 	)
 	Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("error getting MachineDeployments for Cluster %s: %s", klog.KObj(cluster), err))
+	mds := make([]*clusterv1.MachineDeployment, 0, len(machineDeployments.Items))
 	for _, md := range machineDeployments.Items {
 		mds = append(mds, md.DeepCopy())
 	}

@@ -40,8 +40,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/httpstream"
-	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
+	"k8s.io/apimachinery/pkg/util/httpstream"      //nolint:staticcheck // Keep using this package for now as it's not straightforward to migrate this to k8s.io/streaming/pkg/httpstream. Eventually we stop using this package when we only support SPDYOverWebsocket.
+	"k8s.io/apimachinery/pkg/util/httpstream/spdy" //nolint:staticcheck
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/metrics"
 	"k8s.io/apiserver/pkg/endpoints/request"
@@ -158,7 +158,7 @@ func (h *apiServerHandler) globalLogging(req *restful.Request, resp *restful.Res
 		scope := metrics.CleanScope(requestInfo)
 		verb := metrics.CleanVerb(metrics.CanonicalVerb(strings.ToUpper(req.Request.Method), scope), req.Request, requestInfo)
 		component := metrics.APIServerComponent
-		baseLabelValues := []string{verb, dryRun, requestInfo.APIGroup, requestInfo.APIVersion, requestInfo.Resource, requestInfo.Subresource, scope, component}
+		baseLabelValues := []string{verb, dryRun, requestInfo.APIGroup, requestInfo.APIVersion, requestInfo.Resource, requestInfo.Subresource, scope, component} //nolint:prealloc // Not all paths append
 		requestTotalLabelValues := append(baseLabelValues, strconv.Itoa(resp.StatusCode()))
 		requestLatencyLabelValues := baseLabelValues
 
@@ -587,6 +587,34 @@ func (h *apiServerHandler) apiV1Delete(req *restful.Request, resp *restful.Respo
 			return
 		}
 		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		if apierrors.IsNotFound(err) {
+			// controller-runtime's typed client decodes the response body of a Delete call into an object,
+			// so we have to write a response.
+			_ = resp.WriteHeaderAndEntity(http.StatusOK, &metav1.Status{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "Status",
+				},
+				Status: metav1.StatusSuccess,
+			})
+			return
+		}
+		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
+			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
+			return
+		}
+		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// controller-runtime's typed client decodes the response body of a Delete call into an object,
+	// so the deleted object must be returned if it still exists.
+	if err := resp.WriteEntity(obj); err != nil {
+		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 		return
 	}
 }

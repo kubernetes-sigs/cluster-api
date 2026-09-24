@@ -11,7 +11,7 @@ This guide will walk you through getting that daemon, known as [CAPD], up and ru
 Other providers may have additional steps you need to follow to get up and running.
 
 [capa]: https://github.com/kubernetes-sigs/cluster-api-provider-aws
-[capi-manager]: https://github.com/kubernetes-sigs/cluster-api/blob/main/main.go
+[capi-manager]: https://github.com/kubernetes-sigs/cluster-api/blob/main/core/main.go
 [capa-manager]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/main.go
 [Docker]: https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker
 [CAPD]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/README.md
@@ -65,25 +65,22 @@ You'll need to [install `kubebuilder`][kubebuilder].
 
 ### Envsubst
 
-You'll need [`envsubst`][envsubst] or similar to handle clusterctl var replacement. Note: drone/envsubst releases v1.0.2 and earlier do not have the binary packaged under cmd/envsubst. It is available in Go pseudo-version `v1.0.3-0.20200709231038-aa43e1c1a629`
+You'll need [`envsubst`][envsubst] to handle variable substitution in manifests.
 
-We provide a make target to generate the `envsubst` binary if desired. See the [provider contract][provider-contract] for more details about how clusterctl uses variables.
+The GNU `gettext` version of `envsubst` does not support default values, so you must use the `drone/envsubst` version.
 
 ```bash
-make envsubst
+go install github.com/drone/envsubst/v2/cmd/envsubst@latest
 ```
 
-The generated binary can be found at ./hack/tools/bin/envsubst
-
 [envsubst]: https://github.com/drone/envsubst
-[provider-contract]: providers/contracts/clusterctl.md
 
 ### Cert-Manager
 
 You'll need to deploy [cert-manager] components on your [management cluster][mcluster], using `kubectl`
 
 ```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.4/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.21.2/cert-manager.yaml
 ```
 
 Ensure the cert-manager webhook service is ready before creating the Cluster API components.
@@ -115,10 +112,10 @@ make docker-build
 make docker-push
 
 # Apply the manifests
-kustomize build config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build bootstrap/kubeadm/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build controlplane/kubeadm/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build test/infrastructure/docker/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
+kustomize build config/default | ~/go/bin/envsubst | kubectl apply -f -
+kustomize build bootstrap/kubeadm/config/default | ~/go/bin/envsubst | kubectl apply -f -
+kustomize build controlplane/kubeadm/config/default | ~/go/bin/envsubst | kubectl apply -f -
+kustomize build test/infrastructure/docker/config/default | ~/go/bin/envsubst | kubectl apply -f -
 ```
 
 ## Testing

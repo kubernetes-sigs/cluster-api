@@ -330,8 +330,7 @@ func autoConvert_v1beta2_ExtensionHandler_To_v1alpha1_ExtensionHandler(in *v1bet
 }
 
 func autoConvert_v1alpha1_GroupVersionHook_To_v1beta2_GroupVersionHook(in *GroupVersionHook, out *v1beta2.GroupVersionHook, s conversion.Scope) error {
-	out.APIVersion = in.APIVersion
-	out.Hook = in.Hook
+	*out = *(*v1beta2.GroupVersionHook)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -341,8 +340,7 @@ func Convert_v1alpha1_GroupVersionHook_To_v1beta2_GroupVersionHook(in *GroupVers
 }
 
 func autoConvert_v1beta2_GroupVersionHook_To_v1alpha1_GroupVersionHook(in *v1beta2.GroupVersionHook, out *GroupVersionHook, s conversion.Scope) error {
-	out.APIVersion = in.APIVersion
-	out.Hook = in.Hook
+	*out = *(*GroupVersionHook)(unsafe.Pointer(in))
 	return nil
 }
 

@@ -28,6 +28,9 @@ ARG ARCH
 FROM ${builder_image} as builder
 WORKDIR /workspace
 
+ARG package=.
+ARG ARCH
+ARG ldflags
 # Run this with docker build --build-arg goproxy=$(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 # Run this with docker build --build-arg package=./controlplane/kubeadm or --build-arg package=./bootstrap/kubeadm
@@ -37,30 +40,31 @@ ENV GOPROXY=$goproxy
 COPY go.mod go.mod
 COPY go.sum go.sum
 
+COPY api/go.mod api/go.mod
+COPY api/go.sum api/go.sum
+
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN --mount=type=cache,target=/go/pkg/mod \
+RUN --mount=type=cache,id=go-mod,target=/go/pkg/mod \
     go mod download
 
 # Copy the sources
 COPY ./ ./
 
-# Cache the go build into the Go’s compiler cache folder so we take benefits of compiler caching across docker build calls
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg/mod \
-    go build .
+# Essentially, change directories into test extension
+WORKDIR /workspace/test/extension
 
-# Build
-ARG package=.
-ARG ARCH
-ARG ldflags
+# Cache the go build into the Go’s compiler cache folder so we take benefits of compiler caching across docker build calls
+RUN --mount=type=cache,id=go-build,target=/root/.cache/go-build \
+    --mount=type=cache,id=go-mod,target=/go/pkg/mod \
+    go build -o /workspace/manager ${package}
 
 # Essentially, change directories into test extension
 WORKDIR /workspace/test/extension
 
 # Do not force rebuild of up-to-date packages (do not use -a) and use the compiler cache folder
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg/mod \
+RUN --mount=type=cache,id=go-build,target=/root/.cache/go-build \
+    --mount=type=cache,id=go-mod,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -trimpath -ldflags "${ldflags} -extldflags '-static'" \
     -o /workspace/manager ${package}

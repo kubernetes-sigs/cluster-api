@@ -26,7 +26,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // KeyPair holds the raw bytes for a certificate and key.
@@ -51,15 +51,15 @@ type Config struct {
 func (cfg *Config) NewSignedCert(key crypto.Signer, caCert *x509.Certificate, caKey crypto.Signer) (*x509.Certificate, error) {
 	serial, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate random integer for signed cerficate")
+		return nil, pkgerrors.Wrap(err, "failed to generate random integer for signed cerficate")
 	}
 
 	if cfg.CommonName == "" {
-		return nil, errors.New("must specify a CommonName")
+		return nil, pkgerrors.New("must specify a CommonName")
 	}
 
 	if len(cfg.Usages) == 0 {
-		return nil, errors.New("must specify at least one ExtKeyUsage")
+		return nil, pkgerrors.New("must specify at least one ExtKeyUsage")
 	}
 
 	tmpl := x509.Certificate{
@@ -78,7 +78,7 @@ func (cfg *Config) NewSignedCert(key crypto.Signer, caCert *x509.Certificate, ca
 
 	b, err := x509.CreateCertificate(rand.Reader, &tmpl, caCert, key.Public(), caKey)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create signed certificate: %+v", tmpl)
+		return nil, pkgerrors.Wrapf(err, "failed to create signed certificate: %+v", tmpl)
 	}
 
 	return x509.ParseCertificate(b)

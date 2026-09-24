@@ -29,12 +29,13 @@ import (
 	"github.com/gobuffalo/flect"
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/tw"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -126,12 +127,12 @@ func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) error {
 	tbl.Header([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
 
 	if err := addObjectRow("", tbl, tree, tree.GetRoot()); err != nil {
-		return errors.Wrap(err, "failed to add object rows")
+		return pkgerrors.Wrap(err, "failed to add object rows")
 	}
 
 	// Prints the output table
 	if err := tbl.Render(); err != nil {
-		return errors.Wrap(err, "failed to render table")
+		return pkgerrors.Wrap(err, "failed to render table")
 	}
 
 	return nil
@@ -140,17 +141,21 @@ func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) error {
 // PrintObjectTreeV1Beta1 prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
 func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) error {
-	tbl := createObjectTreeV1Beta1(os.Stdin)
+	return printObjectTreeV1Beta1ToWriter(tree, os.Stdout)
+}
+
+func printObjectTreeV1Beta1ToWriter(tree *tree.ObjectTree, w io.Writer) error {
+	tbl := createObjectTreeV1Beta1(w)
 	tbl.Header([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
 
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
 	if err := addObjectRowV1Beta1("", tbl, tree, tree.GetRoot()); err != nil {
-		return errors.Wrap(err, "failed to add object rows")
+		return pkgerrors.Wrap(err, "failed to add object rows")
 	}
 
 	// Prints the output table
 	if err := tbl.Render(); err != nil {
-		return errors.Wrap(err, "failed to render table")
+		return pkgerrors.Wrap(err, "failed to render table")
 	}
 
 	return nil
@@ -206,7 +211,7 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 		rowDescriptor.reason,
 		rowDescriptor.age,
 		msg0}); err != nil {
-		return errors.Wrap(err, "failed to append main row")
+		return pkgerrors.Wrap(err, "failed to append main row")
 	}
 
 	multilinePrefix := getRootMultiLineObjectPrefix(obj, objectTree)
@@ -221,13 +226,13 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 			"",
 			"",
 			m}); err != nil {
-			return errors.Wrap(err, "failed to append multiline row")
+			return pkgerrors.Wrap(err, "failed to append multiline row")
 		}
 	}
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if err := addOtherConditions(prefix, tbl, objectTree, obj); err != nil {
-		return errors.Wrap(err, "failed to add other conditions")
+		return pkgerrors.Wrap(err, "failed to add other conditions")
 	}
 
 	// Add a row for each object's children, taking care of updating the tree view prefix.
@@ -236,7 +241,7 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 
 	for i, child := range childrenObj {
 		if err := addObjectRow(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child); err != nil {
-			return errors.Wrap(err, "failed to add child object row")
+			return pkgerrors.Wrap(err, "failed to add child object row")
 		}
 	}
 
@@ -291,13 +296,13 @@ func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree
 		readyDescriptor.readyColor.Sprint(readyDescriptor.reason),
 		readyDescriptor.age,
 		readyDescriptor.message}); err != nil {
-		return errors.Wrap(err, "failed to append main row")
+		return pkgerrors.Wrap(err, "failed to append main row")
 	}
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if tree.IsShowConditionsObject(obj) {
 		if err := addOtherConditionsV1Beta1(prefix, tbl, objectTree, obj); err != nil {
-			return errors.Wrap(err, "failed to add other conditions")
+			return pkgerrors.Wrap(err, "failed to add other conditions")
 		}
 	}
 
@@ -318,7 +323,7 @@ func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree
 
 	for i, child := range childrenObj {
 		if err := addObjectRowV1Beta1(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child); err != nil {
-			return errors.Wrap(err, "failed to add child object row")
+			return pkgerrors.Wrap(err, "failed to add child object row")
 		}
 	}
 
@@ -398,7 +403,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 			reason,
 			age,
 			msg0}); err != nil {
-			return errors.Wrap(err, "failed to append condition row")
+			return pkgerrors.Wrap(err, "failed to append condition row")
 		}
 
 		for _, m := range msg[1:] {
@@ -412,7 +417,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 				"",
 				"",
 				m}); err != nil {
-				return errors.Wrap(err, "failed to append multiline condition row")
+				return pkgerrors.Wrap(err, "failed to append multiline condition row")
 			}
 		}
 	}
@@ -444,7 +449,7 @@ func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree
 			otherDescriptor.readyColor.Sprint(otherDescriptor.reason),
 			otherDescriptor.age,
 			otherDescriptor.message}); err != nil {
-			return errors.Wrap(err, "failed to append other condition row")
+			return pkgerrors.Wrap(err, "failed to append other condition row")
 		}
 	}
 
@@ -578,13 +583,29 @@ func getRowName(obj ctrlclient.Object) string {
 		return obj.GetName()
 	}
 
-	objName := fmt.Sprintf("%s/%s",
+	name := fmt.Sprintf("%s %s",
 		obj.GetObjectKind().GroupVersionKind().Kind,
-		color.New(color.Bold).Sprint(obj.GetName()))
+		color.New(color.Bold).Sprint(klog.KObj(obj)))
 
-	name := objName
-	if objectPrefix := tree.GetMetaName(obj); objectPrefix != "" {
-		name = fmt.Sprintf("%s - %s", objectPrefix, gray.Sprintf("%s", name))
+	switch obj := obj.(type) {
+	case *clusterv1.Cluster:
+		if obj.Spec.Topology.IsDefined() {
+			name += fmt.Sprintf(", %s", obj.Spec.Topology.Version)
+		}
+	case *unstructured.Unstructured:
+		if tree.GetObjectContract(obj) == "ControlPlane" {
+			if version, err := contract.ControlPlane().Version().Get(obj); err == nil && version != nil {
+				name += fmt.Sprintf(", %s", *version)
+			}
+		}
+	case *clusterv1.MachineDeployment:
+		name += fmt.Sprintf(", %s", obj.Spec.Template.Spec.Version)
+	case *clusterv1.MachineSet:
+		name += fmt.Sprintf(", %s", obj.Spec.Template.Spec.Version)
+	case *clusterv1.MachinePool:
+		name += fmt.Sprintf(", %s", obj.Spec.Template.Spec.Version)
+	case *clusterv1.Machine:
+		name += fmt.Sprintf(", %s", obj.Spec.Version)
 	}
 
 	if !obj.GetDeletionTimestamp().IsZero() {

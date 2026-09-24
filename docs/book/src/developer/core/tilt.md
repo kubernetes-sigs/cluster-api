@@ -8,14 +8,13 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install/): v19.03 or newer (on MacOS e.g. via [Lima](https://github.com/lima-vm/lima))
-2. [kind](https://kind.sigs.k8s.io): v0.31.0 or newer
+2. [kind](https://kind.sigs.k8s.io): v0.33.0 or newer
 3. [Tilt](https://docs.tilt.dev/install.html): v0.33.18 or newer
 4. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
-5. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
-6. [helm](https://github.com/helm/helm): v3.7.1 or newer
-7. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository
+5. [helm](https://github.com/helm/helm): v3.7.1 or newer
+6. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository
    locally
-8. Clone the provider(s) you want to deploy locally as well
+7. Clone the provider(s) you want to deploy locally as well
 
 ## Getting started
 
@@ -124,7 +123,7 @@ provider_repos:
 kustomize_substitutions:
   # CAPK needs access to the containerd socket (replace with actual path)
   CRI_PATH: "/var/run/containerd/containerd.sock"
-  KUBERNETES_VERSION: "v1.30.1"
+  KUBERNETES_VERSION: "v1.37.0"
   # An example - replace with an appropriate container disk image for the desired k8s version
   NODE_VM_IMAGE_TEMPLATE: "quay.io/capk/ubuntu-2204-container-disk:v1.30.1"
 # Allow deploying CAPK workload clusters from the Tilt UI (optional)
@@ -303,6 +302,7 @@ Supported values are:
 * `parca`*: For visualizing profiling data.
 * `tempo`: To store traces.
 * `visualizer`*: Visualize Cluster API resources for each cluster, provide quick access to the specs and status of any resource.
+* `headlamp`*: A Kubernetes web UI with the [Cluster API plugin](https://artifacthub.io/packages/headlamp/headlamp-plugins/headlamp_cluster-api) for browsing and managing CAPI resources.
 
 \*: Note: the UI will be accessible via a link in the tilt console
 
@@ -429,7 +429,7 @@ Custom values for variable substitutions can be set using `kustomize_substitutio
 ```yaml
 kustomize_substitutions:
   NAMESPACE: "default"
-  KUBERNETES_VERSION: "v1.35.0"
+  KUBERNETES_VERSION: "v1.36.1"
   CONTROL_PLANE_MACHINE_COUNT: "1"
   WORKER_MACHINE_COUNT: "3"
 # Note: kustomize substitutions expects the values to be strings. This can be achieved by wrapping the values in quotation marks.

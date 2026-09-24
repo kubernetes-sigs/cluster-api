@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	capierrors "sigs.k8s.io/cluster-api/errors"
+	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
 const (
@@ -106,7 +106,7 @@ type MachinePoolSpec struct {
 
 // MachinePoolStatus defines the observed state of MachinePool.
 type MachinePoolStatus struct {
-	// nodeRefs will point to the corresponding Nodes if it they exist.
+	// nodeRefs will point to the corresponding Nodes if they exist.
 	// +optional
 	// +kubebuilder:validation:MaxItems=10000
 	NodeRefs []corev1.ObjectReference `json:"nodeRefs,omitempty"`
@@ -172,6 +172,14 @@ type MachinePoolStatus struct {
 	// conditions define the current service state of the MachinePool.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in this MachinePool.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in MachinePool's status with the V1Beta2 version.
 	// +optional

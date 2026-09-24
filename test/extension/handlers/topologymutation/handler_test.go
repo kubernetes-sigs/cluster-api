@@ -33,6 +33,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 )
@@ -47,35 +48,53 @@ func init() {
 	_ = bootstrapv1.AddToScheme(testScheme)
 }
 
-func Test_patchDockerClusterTemplate(t *testing.T) {
+func Test_patchDevClusterTemplate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
 		name             string
-		template         *infrav1.DockerClusterTemplate
+		template         *infrav1.DevClusterTemplate
 		variables        map[string]apiextensionsv1.JSON
-		expectedTemplate *infrav1.DockerClusterTemplate
+		expectedTemplate *infrav1.DevClusterTemplate
 		expectedErr      bool
 	}{
 		{
 			name:             "no op if imageRepository is not set",
-			template:         &infrav1.DockerClusterTemplate{},
+			template:         &infrav1.DevClusterTemplate{},
 			variables:        nil,
-			expectedTemplate: &infrav1.DockerClusterTemplate{},
+			expectedTemplate: &infrav1.DevClusterTemplate{},
 		},
 		{
-			name:     "set LoadBalancer.ImageRepository if imageRepository is set",
-			template: &infrav1.DockerClusterTemplate{},
+			name: "set LoadBalancer.ImageRepository if imageRepository is set",
+			template: &infrav1.DevClusterTemplate{
+				Spec: infrav1.DevClusterTemplateSpec{
+					Template: infrav1.DevClusterTemplateResource{
+						Spec: infrav1.DevClusterSpec{
+							Backend: infrav1.DevClusterBackendSpec{
+								Docker: &infrav1.DockerClusterBackendSpec{},
+							},
+						},
+					},
+				},
+			},
 			variables: map[string]apiextensionsv1.JSON{
 				"imageRepository": {Raw: toJSON("testImage")},
 			},
-			expectedTemplate: &infrav1.DockerClusterTemplate{
-				Spec: infrav1.DockerClusterTemplateSpec{
-					Template: infrav1.DockerClusterTemplateResource{
-						Spec: infrav1.DockerClusterSpec{
-							LoadBalancer: infrav1.DockerLoadBalancer{
-								ImageMeta: infrav1.ImageMeta{
-									ImageRepository: "testImage",
+			expectedTemplate: &infrav1.DevClusterTemplate{
+				Spec: infrav1.DevClusterTemplateSpec{
+					Template: infrav1.DevClusterTemplateResource{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+							Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+						},
+						Spec: infrav1.DevClusterSpec{
+							Backend: infrav1.DevClusterBackendSpec{
+								Docker: &infrav1.DockerClusterBackendSpec{
+									LoadBalancer: infrav1.DockerLoadBalancer{
+										ImageMeta: infrav1.ImageMeta{
+											ImageRepository: "testImage",
+										},
+									},
 								},
 							},
 						},
@@ -86,7 +105,7 @@ func Test_patchDockerClusterTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			err := patchDockerClusterTemplate(context.Background(), tt.template, tt.variables)
+			err := patchDevClusterTemplate(context.Background(), tt.template, tt.variables, "docker")
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -119,6 +138,10 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 			expectedTemplate: &controlplanev1.KubeadmControlPlaneTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 					Template: controlplanev1.KubeadmControlPlaneTemplateResource{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+							Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+						},
 						Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
 							Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
 								Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
@@ -178,26 +201,41 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 	}
 }
 
-func Test_patchDockerMachineTemplate(t *testing.T) {
+func Test_patchDevMachineTemplate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
 		name             string
-		template         *infrav1.DockerMachineTemplate
+		template         *infrav1.DevMachineTemplate
 		variables        map[string]apiextensionsv1.JSON
-		expectedTemplate *infrav1.DockerMachineTemplate
+		expectedTemplate *infrav1.DevMachineTemplate
 		expectedErr      bool
 	}{
 		{
-			name:             "fails if builtin.controlPlane.version nor builtin.machineDeployment.version is not set",
-			template:         &infrav1.DockerMachineTemplate{},
-			variables:        nil,
-			expectedTemplate: &infrav1.DockerMachineTemplate{},
-			expectedErr:      true,
+			name:      "fails if builtin.controlPlane.version nor builtin.machineDeployment.version is not set",
+			template:  &infrav1.DevMachineTemplate{},
+			variables: nil,
+			expectedTemplate: &infrav1.DevMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+					Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+				},
+			},
+			expectedErr: true,
 		},
 		{
-			name:     "sets customImage for templates linked to ControlPlane",
-			template: &infrav1.DockerMachineTemplate{},
+			name: "sets customImage for templates linked to ControlPlane",
+			template: &infrav1.DevMachineTemplate{
+				Spec: infrav1.DevMachineTemplateSpec{
+					Template: infrav1.DevMachineTemplateResource{
+						Spec: infrav1.DevMachineSpec{
+							Backend: infrav1.DevMachineBackendSpec{
+								Docker: &infrav1.DockerMachineBackendSpec{},
+							},
+						},
+					},
+				},
+			},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -205,19 +243,37 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &infrav1.DockerMachineTemplate{
-				Spec: infrav1.DockerMachineTemplateSpec{
-					Template: infrav1.DockerMachineTemplateResource{
-						Spec: infrav1.DockerMachineSpec{
-							CustomImage: "kindest/node:v1.23.0",
+			expectedTemplate: &infrav1.DevMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+					Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+				},
+				Spec: infrav1.DevMachineTemplateSpec{
+					Template: infrav1.DevMachineTemplateResource{
+						Spec: infrav1.DevMachineSpec{
+							Backend: infrav1.DevMachineBackendSpec{
+								Docker: &infrav1.DockerMachineBackendSpec{
+									CustomImage: "kindest/node:v1.23.0",
+								},
+							},
 						},
 					},
 				},
 			},
 		},
 		{
-			name:     "sets customImage for templates linked to ControlPlane for pre versions",
-			template: &infrav1.DockerMachineTemplate{},
+			name: "sets customImage for templates linked to ControlPlane for pre versions",
+			template: &infrav1.DevMachineTemplate{
+				Spec: infrav1.DevMachineTemplateSpec{
+					Template: infrav1.DevMachineTemplateResource{
+						Spec: infrav1.DevMachineSpec{
+							Backend: infrav1.DevMachineBackendSpec{
+								Docker: &infrav1.DockerMachineBackendSpec{},
+							},
+						},
+					},
+				},
+			},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -225,11 +281,19 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &infrav1.DockerMachineTemplate{
-				Spec: infrav1.DockerMachineTemplateSpec{
-					Template: infrav1.DockerMachineTemplateResource{
-						Spec: infrav1.DockerMachineSpec{
-							CustomImage: "kindest/node:v1.23.0-rc.0",
+			expectedTemplate: &infrav1.DevMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+					Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+				},
+				Spec: infrav1.DevMachineTemplateSpec{
+					Template: infrav1.DevMachineTemplateResource{
+						Spec: infrav1.DevMachineSpec{
+							Backend: infrav1.DevMachineBackendSpec{
+								Docker: &infrav1.DockerMachineBackendSpec{
+									CustomImage: "kindest/node:v1.23.0-rc.0",
+								},
+							},
 						},
 					},
 				},
@@ -238,7 +302,7 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			err := patchDockerMachineTemplate(context.Background(), tt.template, tt.variables)
+			err := patchDevMachineTemplate(context.Background(), tt.template, tt.variables, "docker")
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -249,26 +313,45 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 	}
 }
 
-func Test_patchDockerMachinePoolTemplate(t *testing.T) {
+func Test_patchDevMachinePoolTemplate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
 		name             string
-		template         *infrav1.DockerMachinePoolTemplate
+		template         *infrav1.DevMachinePoolTemplate
 		variables        map[string]apiextensionsv1.JSON
-		expectedTemplate *infrav1.DockerMachinePoolTemplate
+		expectedTemplate *infrav1.DevMachinePoolTemplate
 		expectedErr      bool
 	}{
 		{
-			name:             "fails if builtin.controlPlane.version nor builtin.machinePool.version is not set",
-			template:         &infrav1.DockerMachinePoolTemplate{},
-			variables:        nil,
-			expectedTemplate: &infrav1.DockerMachinePoolTemplate{},
-			expectedErr:      true,
+			name:      "fails if builtin.controlPlane.version nor builtin.machinePool.version is not set",
+			template:  &infrav1.DevMachinePoolTemplate{},
+			variables: nil,
+			expectedTemplate: &infrav1.DevMachinePoolTemplate{
+				Spec: infrav1.DevMachinePoolTemplateSpec{
+					Template: infrav1.DevMachinePoolTemplateResource{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+							Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+						},
+					},
+				},
+			},
+			expectedErr: true,
 		},
 		{
-			name:     "sets customImage for templates linked to ControlPlane",
-			template: &infrav1.DockerMachinePoolTemplate{},
+			name: "sets customImage for templates linked to ControlPlane",
+			template: &infrav1.DevMachinePoolTemplate{
+				Spec: infrav1.DevMachinePoolTemplateSpec{
+					Template: infrav1.DevMachinePoolTemplateResource{
+						Spec: infrav1.DevMachinePoolSpec{
+							Backend: infrav1.DevMachinePoolBackendSpec{
+								Docker: &infrav1.DockerMachinePoolBackendSpec{},
+							},
+						},
+					},
+				},
+			},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -280,12 +363,18 @@ func Test_patchDockerMachinePoolTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &infrav1.DockerMachinePoolTemplate{
-				Spec: infrav1.DockerMachinePoolTemplateSpec{
-					Template: infrav1.DockerMachinePoolTemplateResource{
-						Spec: infrav1.DockerMachinePoolSpec{
-							Template: infrav1.DockerMachinePoolMachineTemplate{
-								CustomImage: "kindest/node:v1.23.0",
+			expectedTemplate: &infrav1.DevMachinePoolTemplate{
+				Spec: infrav1.DevMachinePoolTemplateSpec{
+					Template: infrav1.DevMachinePoolTemplateResource{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+							Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
+						},
+						Spec: infrav1.DevMachinePoolSpec{
+							Backend: infrav1.DevMachinePoolBackendSpec{
+								Docker: &infrav1.DockerMachinePoolBackendSpec{
+									CustomImage: "kindest/node:v1.23.0",
+								},
 							},
 						},
 					},
@@ -295,7 +384,7 @@ func Test_patchDockerMachinePoolTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			err := patchDockerMachinePoolTemplate(context.Background(), tt.template, tt.variables)
+			err := patchDevMachinePoolTemplate(context.Background(), tt.template, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -345,22 +434,49 @@ func TestHandler_GeneratePatches(t *testing.T) {
 			APIVersion: controlplanev1.GroupVersion.String(),
 		},
 	}
-	dockerMachineTemplate := infrav1.DockerMachineTemplate{
+	devMachineTemplate := infrav1.DevMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "DockerMachineTemplate",
+			Kind:       "DevMachineTemplate",
 			APIVersion: infrav1.GroupVersion.String(),
 		},
-	}
-	dockerMachinePoolTemplate := infrav1.DockerMachinePoolTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DockerMachinePoolTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
+		Spec: infrav1.DevMachineTemplateSpec{
+			Template: infrav1.DevMachineTemplateResource{
+				Spec: infrav1.DevMachineSpec{
+					Backend: infrav1.DevMachineBackendSpec{
+						Docker: &infrav1.DockerMachineBackendSpec{},
+					},
+				},
+			},
 		},
 	}
-	dockerClusterTemplate := infrav1.DockerClusterTemplate{
+	devMachinePoolTemplate := infrav1.DevMachinePoolTemplate{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "DockerClusterTemplate",
+			Kind:       "DevMachinePoolTemplate",
 			APIVersion: infrav1.GroupVersion.String(),
+		},
+		Spec: infrav1.DevMachinePoolTemplateSpec{
+			Template: infrav1.DevMachinePoolTemplateResource{
+				Spec: infrav1.DevMachinePoolSpec{
+					Backend: infrav1.DevMachinePoolBackendSpec{
+						Docker: &infrav1.DockerMachinePoolBackendSpec{},
+					},
+				},
+			},
+		},
+	}
+	devClusterTemplate := infrav1.DevClusterTemplate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "DevClusterTemplate",
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+		Spec: infrav1.DevClusterTemplateSpec{
+			Template: infrav1.DevClusterTemplateResource{
+				Spec: infrav1.DevClusterSpec{
+					Backend: infrav1.DevClusterBackendSpec{
+						Docker: &infrav1.DockerClusterBackendSpec{},
+					},
+				},
+			},
 		},
 	}
 	tests := []struct {
@@ -372,10 +488,10 @@ func TestHandler_GeneratePatches(t *testing.T) {
 			name: "All the templates are patched",
 			requestItems: []runtimehooksv1.GeneratePatchesRequestItem{
 				requestItem("1", kubeadmControlPlaneTemplate, controlPlaneVarsV123WithMaxSurge),
-				requestItem("2", dockerMachineTemplate, controlPlaneVarsV123WithMaxSurge),
-				requestItem("3", dockerMachineTemplate, machineDeploymentVars123),
-				requestItem("4", dockerClusterTemplate, imageRepositoryVar),
-				requestItem("6", dockerMachinePoolTemplate, machinePoolVars123),
+				requestItem("2", devMachineTemplate, controlPlaneVarsV123WithMaxSurge),
+				requestItem("3", devMachineTemplate, machineDeploymentVars123),
+				requestItem("4", devClusterTemplate, imageRepositoryVar),
+				requestItem("6", devMachinePoolTemplate, machinePoolVars123),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -388,6 +504,14 @@ func TestHandler_GeneratePatches(t *testing.T) {
   "path" : "/spec",
   "value" : {
     "template" : {
+      "metadata" : {
+        "annotations" : {
+          "top-level-annotation-1": "top-level-annotation-value-1"
+        },
+        "labels" : {
+          "top-level-label-1": "top-level-label-value-1"
+        }
+      },
       "spec" : {
         "kubeadmConfigSpec" : {
           "clusterConfiguration" : {
@@ -444,18 +568,25 @@ func TestHandler_GeneratePatches(t *testing.T) {
       }
     }
   }
-} ]`),
+}
+]`),
 					responseItem("2", `[
-{"op":"add","path":"/spec/template/spec/customImage","value":"kindest/node:v1.23.0"}
+{"op":"add","path":"/spec/template/spec/backend/docker/customImage","value":"kindest/node:v1.23.0"},
+{"op":"add","path":"/metadata/annotations","value":{"top-level-annotation-1": "top-level-annotation-value-1"}},
+{"op":"add","path":"/metadata/labels","value":{"top-level-label-1": "top-level-label-value-1"}}
 ]`),
 					responseItem("3", `[
-{"op":"add","path":"/spec/template/spec/customImage","value":"kindest/node:v1.23.0"}
+{"op":"add","path":"/spec/template/spec/backend/docker/customImage","value":"kindest/node:v1.23.0"},
+{"op":"add","path":"/metadata/annotations","value":{"top-level-annotation-1": "top-level-annotation-value-1"}},
+{"op":"add","path":"/metadata/labels","value":{"top-level-label-1": "top-level-label-value-1"}}
 ]`),
 					responseItem("4", `[
-{"op":"add","path":"/spec/template/spec/loadBalancer/imageRepository","value":"docker.io"}
+{"op":"add","path":"/spec/template/spec/backend/docker/loadBalancer/imageRepository","value":"docker.io"},
+{"op":"add","path":"/spec/template/metadata","value":{"annotations":{"top-level-annotation-1": "top-level-annotation-value-1"},"labels":{"top-level-label-1": "top-level-label-value-1"}}}
 ]`),
 					responseItem("6", `[
-{"op":"add","path":"/spec/template/spec/template/customImage","value":"kindest/node:v1.23.0"}
+{"op":"add","path":"/spec/template/spec/backend/docker/customImage","value":"kindest/node:v1.23.0"},
+{"op":"add","path":"/spec/template/metadata","value":{"annotations":{"top-level-annotation-1": "top-level-annotation-value-1"},"labels":{"top-level-label-1": "top-level-label-value-1"}}}
 ]`),
 				},
 			},

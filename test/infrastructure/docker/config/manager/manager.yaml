@@ -42,6 +42,8 @@ spec:
               fieldPath: status.podIP
         - name: DOCKER_HOST
           value: ${CAPD_DOCKER_HOST:=""}
+        - name: DOCKER_NETWORK
+          value: ${CAPD_DOCKER_NETWORK:=""}
         ports:
         - containerPort: 9440
           name: healthz

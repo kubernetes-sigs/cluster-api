@@ -34,10 +34,12 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest/fake"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -335,6 +337,40 @@ func TestMinDurationOrDefault(t *testing.T) {
 
 			gotDuration := minDurationOrDefault(tt.durations, tt.defaultDuration)
 			g.Expect(gotDuration).To(Equal(tt.wantDuration))
+		})
+	}
+}
+
+func TestBuildClusterAccessorConfigDefaultTransform(t *testing.T) {
+	transform := ctrlcache.TransformStripManagedFields()
+	tests := []struct {
+		name      string
+		transform toolscache.TransformFunc
+		wantNil   bool
+	}{
+		{
+			name:      "nil transform is preserved as nil",
+			transform: nil,
+			wantNil:   true,
+		},
+		{
+			name:      "non-nil transform is propagated",
+			transform: transform,
+			wantNil:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got := buildClusterAccessorConfig(scheme.Scheme, Options{
+				Cache: CacheOptions{DefaultTransform: tt.transform},
+			}, nil)
+			if tt.wantNil {
+				g.Expect(got.Cache.DefaultTransform).To(BeNil())
+			} else {
+				g.Expect(got.Cache.DefaultTransform).ToNot(BeNil())
+			}
 		})
 	}
 }
@@ -827,4 +863,38 @@ func getCounterMetric(metricFamilyName, controllerName string) (float64, error) 
 	}
 
 	return 0, fmt.Errorf("failed to find %q metric", metricFamilyName)
+}
+
+func TestSetupWithManagerAppliesClusterFilter(t *testing.T) {
+	g := NewWithT(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	filter := func(cluster *clusterv1.Cluster) bool {
+		return cluster.Labels["cluster.x-k8s.io/included-in-clustercache-tests"] == "true"
+	}
+	cc, err := SetupWithManager(ctx, env.Manager, Options{
+		SecretClient: env.GetClient(),
+		Cache: CacheOptions{
+			Indexes: []CacheOptionsIndex{NodeProviderIDIndex},
+		},
+		Client: ClientOptions{
+			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+		},
+		ClusterFilter: filter,
+	}, controller.Options{
+		MaxConcurrentReconciles: 1,
+		// Has to be skipped as other tests in this package also register a "clustercache" controller
+		// with the same manager.
+		SkipNameValidation: ptr.To(true),
+	})
+	g.Expect(err).ToNot(HaveOccurred())
+	internalCC, ok := cc.(*clusterCache)
+	g.Expect(ok).To(BeTrue())
+	defer internalCC.Shutdown()
+	g.Expect(internalCC.clusterFilter).ToNot(BeNil(), "Options.ClusterFilter must be wired into the ClusterCache")
+	g.Expect(internalCC.clusterFilter(&clusterv1.Cluster{})).To(BeFalse())
+	g.Expect(internalCC.clusterFilter(&clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{
+		Labels: map[string]string{"cluster.x-k8s.io/included-in-clustercache-tests": "true"},
+	}})).To(BeTrue())
 }

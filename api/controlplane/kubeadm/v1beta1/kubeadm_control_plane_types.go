@@ -25,7 +25,7 @@ import (
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
 // RolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.
@@ -180,6 +180,23 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// If no value is provided, the default value for this property of the Machine resource will be used.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+
+	// taints are the node taints that Cluster API will manage.
+	// This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+	// e.g. the node controller might add the node.kubernetes.io/not-ready taint.
+	// Only those taints defined in this list will be added or removed by core Cluster API controllers.
+	//
+	// There can be at most 64 taints.
+	// A pod would have to tolerate all existing taints to run on the corresponding node.
+	//
+	// NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +listMapKey=effect
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	Taints []clusterv1beta1.MachineTaint `json:"taints,omitempty"`
 }
 
 // RolloutBefore describes when a rollout should be performed on the KCP machines.
@@ -370,6 +387,14 @@ type KubeadmControlPlaneStatus struct {
 	// lastRemediation stores info about last remediation performed.
 	// +optional
 	LastRemediation *LastRemediationStatus `json:"lastRemediation,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in this KubeadmControlPlane.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []clusterv1beta1.StatusVersion `json:"versions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in KubeadmControlPlane's status with the V1Beta2 version.
 	// +optional

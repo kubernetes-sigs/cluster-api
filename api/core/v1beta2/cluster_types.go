@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	capierrors "sigs.k8s.io/cluster-api/errors"
+	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
 const (
@@ -1129,7 +1129,7 @@ type MachineDeploymentTopologyHealthCheckRemediationTriggerIf struct {
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentTopologyMachineDeletionSpec struct {
 	// order defines the order in which Machines are deleted when downscaling.
-	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// Defaults to "Random". Valid values are "Random", "Newest", "Oldest"
 	// +optional
 	Order MachineSetDeletionOrder `json:"order,omitempty"`
 
@@ -1552,6 +1552,26 @@ type ClusterControlPlaneStatus struct {
 	// availableReplicas is the total number of available control plane machines in this cluster. A machine is considered available when Machine's Available condition is true.
 	// +optional
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in this control plane.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	Versions []StatusVersion `json:"versions,omitempty"`
+
+	// upgradePlan reports the list of versions that would be applied to the control plane object according to the upgrade plan.
+	// Note:
+	// - This field is set only when the Cluster topology is managed by Cluster API and a Cluster upgrade is in progress.
+	// - Once a version is applied to the control plane object, it is removed from the list (after a version
+	//   is applied to a control plane object, it might take some time for the actual upgrade to complete)
+	// - During a chained upgrade, the upgrade plan is continuously re-computed, and this field will
+	//   report only the last known upgrade plan.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	UpgradePlan []StatusUpgradePlanVersion `json:"upgradePlan,omitempty"`
 }
 
 // WorkersStatus groups all the observations about workers current state.
@@ -1576,6 +1596,26 @@ type WorkersStatus struct {
 	// availableReplicas is the total number of available worker machines in this cluster. A machine is considered available when Machine's Available condition is true.
 	// +optional
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in cluster workers.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	Versions []StatusVersion `json:"versions,omitempty"`
+
+	// upgradePlan reports the list of versions that would be applied to the worker objects (all MachineDeployments and MachinePools).
+	// Note:
+	// - This field is set only when the Cluster topology is managed by Cluster API and a Cluster upgrade is in progress.
+	// - Once a version is applied to the worker objects, it is removed from the list (after a version
+	//   is applied to a worker object, it might take some time for the actual upgrade to complete)
+	// - During a chained upgrade, the upgrade plan is continuously re-computed, and this field will
+	//   report only the last known upgrade plan.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	UpgradePlan []StatusUpgradePlanVersion `json:"upgradePlan,omitempty"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of ClusterPhase.

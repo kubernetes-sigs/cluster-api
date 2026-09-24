@@ -261,6 +261,22 @@ type DevMachineBackendSpec struct {
 	InMemory *InMemoryMachineBackendSpec `json:"inMemory,omitempty"`
 }
 
+// Mount specifies a host volume to mount into a container.
+// This is a simplified version of kind v1alpha4.Mount types.
+type Mount struct {
+	// Path of the mount within the container.
+	ContainerPath string `json:"containerPath,omitempty"`
+
+	// Path of the mount on the host. If the hostPath doesn't exist, then runtimes
+	// should report error. If the hostpath is a symbolic link, runtimes should
+	// follow the symlink and mount the real destination to container.
+	HostPath string `json:"hostPath,omitempty"`
+
+	// If set, the mount is read-only.
+	// +optional
+	Readonly bool `json:"readOnly,omitempty"`
+}
+
 // DockerMachineBackendSpec defines a backend for a DevMachine using docker containers.
 type DockerMachineBackendSpec struct {
 	// customImage allows customizing the container image that is used for
@@ -277,14 +293,6 @@ type DockerMachineBackendSpec struct {
 	// These may be used to bind a hostPath
 	// +optional
 	ExtraMounts []Mount `json:"extraMounts,omitempty"`
-
-	// bootstrapped is true when the kubeadm bootstrapping has been run
-	// against this machine
-	//
-	// Deprecated: This field will be removed in the next apiVersion.
-	// When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
-	// +optional
-	Bootstrapped bool `json:"bootstrapped,omitempty"`
 
 	// bootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
 	// The default value is 3m.
@@ -363,25 +371,6 @@ type DevMachineStatus struct {
 	// v1beta2 groups all the fields that will be added or modified in DevMachine's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *DevMachineV1Beta2Status `json:"v1beta2,omitempty"`
-
-	// backend defines backends status for a DevMachine.
-	// +optional
-	Backend *DevMachineBackendStatus `json:"backend,omitempty"`
-}
-
-// DevMachineBackendStatus define backend status for a DevMachine.
-type DevMachineBackendStatus struct {
-	// docker define backend status for a DevMachine for a machine using docker containers.
-	// +optional
-	Docker *DockerMachineBackendStatus `json:"docker,omitempty"`
-}
-
-// DockerMachineBackendStatus define backend status for a DevMachine for a machine using docker containers.
-type DockerMachineBackendStatus struct {
-	// loadBalancerConfigured denotes that the machine has been
-	// added to the load balancer
-	// +optional
-	LoadBalancerConfigured bool `json:"loadBalancerConfigured"`
 }
 
 // DevMachineV1Beta2Status groups all the fields that will be added or modified in DevMachine with the V1Beta2 version.

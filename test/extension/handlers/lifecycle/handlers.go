@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +37,8 @@ import (
 	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 const (
@@ -278,7 +278,7 @@ func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, clust
 	hookName := computeHookName(hook, attributes)
 	configMap := &corev1.ConfigMap{}
 	if _, ok := settings[extensionConfigNameKey]; !ok {
-		return errors.New(extensionConfigNameKey + " mest be set in settings")
+		return pkgerrors.New(extensionConfigNameKey + " mest be set in settings")
 	}
 	configMapName := configMapName(cluster.Name, settings[extensionConfigNameKey])
 	log := ctrl.LoggerFrom(ctx)
@@ -292,11 +292,11 @@ func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, clust
 				},
 			}
 			if err := m.client.Create(ctx, configMap); err != nil {
-				return errors.Wrapf(err, "failed to create the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
+				return pkgerrors.Wrapf(err, "failed to create the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
 			}
 			log.Info(fmt.Sprintf("Created ConfigMap %s", configMapName))
 		} else {
-			return errors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
+			return pkgerrors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
 		}
 	}
 	data, ok := configMap.Data[hookName+"-preloadedResponse"]
@@ -334,7 +334,7 @@ func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, clust
 	}
 
 	if err := yaml.Unmarshal([]byte(data), response); err != nil {
-		return errors.Wrapf(err, "failed to read %q response information from ConfigMap", hook)
+		return pkgerrors.Wrapf(err, "failed to read %q response information from ConfigMap", hook)
 	}
 	if r, ok := response.(runtimehooksv1.RetryResponseObject); ok {
 		log := ctrl.LoggerFrom(ctx)
@@ -347,11 +347,11 @@ func (m *ExtensionHandlers) recordCallInConfigMap(ctx context.Context, cluster *
 	hookName := computeHookName(hook, attributes)
 	configMap := &corev1.ConfigMap{}
 	if _, ok := settings[extensionConfigNameKey]; !ok {
-		return errors.New(extensionConfigNameKey + " must be set in runtime extension settings")
+		return pkgerrors.New(extensionConfigNameKey + " must be set in runtime extension settings")
 	}
 	configMapName := configMapName(cluster.Name, settings[extensionConfigNameKey])
 	if err := m.client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: configMapName}, configMap); err != nil {
-		return errors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
+		return pkgerrors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
 	}
 	var patch client.Patch
 	if r, ok := response.(runtimehooksv1.RetryResponseObject); ok {
@@ -363,7 +363,7 @@ func (m *ExtensionHandlers) recordCallInConfigMap(ctx context.Context, cluster *
 			[]byte(fmt.Sprintf(`{"data":{"%s-actualResponseStatus":"%s"}}`, hookName, response.GetStatus()))) //nolint:gocritic
 	}
 	if err := m.client.Patch(ctx, configMap, patch); err != nil {
-		return errors.Wrapf(err, "failed to update the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
+		return pkgerrors.Wrapf(err, "failed to update the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
 	}
 	return nil
 }

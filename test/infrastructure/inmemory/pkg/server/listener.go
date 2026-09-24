@@ -24,7 +24,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
@@ -161,7 +161,7 @@ func (tc *trackedConn) Close() error {
 
 func (tl *trackingListener) CloseAll() error {
 	// Stop accepting new connections first
-	if err := tl.Listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+	if err := tl.Listener.Close(); err != nil && !pkgerrors.Is(err, net.ErrClosed) {
 		return err
 	}
 
@@ -169,7 +169,7 @@ func (tl *trackingListener) CloseAll() error {
 	defer tl.mu.Unlock()
 
 	for conn := range tl.conns {
-		if err := conn.Close(); err != nil && !errors.Is(err, net.ErrClosed) { // This triggers the underlying TCP close
+		if err := conn.Close(); err != nil && !pkgerrors.Is(err, net.ErrClosed) { // This triggers the underlying TCP close
 			return err
 		}
 	}

@@ -71,18 +71,18 @@ type InformEventHandler interface {
 type cache struct {
 	scheme *runtime.Scheme
 
-	lock           sync.RWMutex
-	resourceGroups map[string]*resourceGroupTracker
-	informers      map[schema.GroupVersionKind]Informer
+	// resourceGroupsLock protects resourceGroups.
+	resourceGroupsLock sync.RWMutex
+	resourceGroups     map[string]*resourceGroupTracker
+
+	// informersLock protects informers.
+	informersLock sync.RWMutex
+	informers     map[schema.GroupVersionKind]Informer
 
 	garbageCollectorRequeueAfter             time.Duration
 	garbageCollectorRequeueAfterJitterFactor float64
 	garbageCollectorConcurrency              int
 	garbageCollectorQueue                    workqueue.TypedRateLimitingInterface[any]
-
-	syncPeriod      time.Duration
-	syncConcurrency int
-	syncQueue       workqueue.TypedRateLimitingInterface[any]
 
 	started bool
 }
@@ -125,8 +125,6 @@ func NewCache(scheme *runtime.Scheme) Cache {
 		garbageCollectorRequeueAfter:             30 * time.Second, // TODO:Expose as option
 		garbageCollectorRequeueAfterJitterFactor: 0.3,              // TODO: Expose as option
 		garbageCollectorConcurrency:              1,                // TODO: Expose as option
-		syncPeriod:                               10 * time.Minute, // TODO:Expose as option
-		syncConcurrency:                          1,                // TODO: Expose as option
 	}
 }
 
@@ -146,9 +144,6 @@ func (c *cache) Start(ctx context.Context) error {
 	if err := c.startGarbageCollector(ctx); err != nil {
 		return err
 	}
-	if err := c.startSyncer(ctx); err != nil {
-		return err
-	}
 
 	c.started = true
 	log.Info("Cache successfully started!")
@@ -156,8 +151,8 @@ func (c *cache) Start(ctx context.Context) error {
 }
 
 func (c *cache) AddResourceGroup(name string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.resourceGroupsLock.Lock()
+	defer c.resourceGroupsLock.Unlock()
 	if _, ok := c.resourceGroups[name]; ok {
 		return
 	}
@@ -169,14 +164,14 @@ func (c *cache) AddResourceGroup(name string) {
 }
 
 func (c *cache) DeleteResourceGroup(name string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.resourceGroupsLock.Lock()
+	defer c.resourceGroupsLock.Unlock()
 	delete(c.resourceGroups, name)
 }
 
 func (c *cache) resourceGroupTracker(resourceGroup string) *resourceGroupTracker {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.resourceGroupsLock.RLock()
+	defer c.resourceGroupsLock.RUnlock()
 	return c.resourceGroups[resourceGroup]
 }
 

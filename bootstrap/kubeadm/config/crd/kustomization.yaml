@@ -2,6 +2,8 @@ labels:
 - pairs:
     # Note: This is needed so the topology reconciler can figure out
     # the contract of v1beta1 when v1beta1 objects are used in ClusterClasses.
+    # Note: internal/test/envtest/environment.go mirrors these labels for
+    # envtest; if they are changed here, they have to be changed there, too.
     cluster.x-k8s.io/v1beta1: v1beta1
     cluster.x-k8s.io/v1beta2: v1beta2
 

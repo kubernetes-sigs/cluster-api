@@ -21,6 +21,9 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", Label("ClusterClass"), func() {
@@ -31,7 +34,28 @@ var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", Label("Clu
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                "topology-taints",
+			Flavor:                "in-memory-topology-templaterefs",
+			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
+			// by the test-extension-webhook-service.
+			// The below values are used when creating the cluster-wide ExtensionConfig to refer
+			// the actual service.
+			ExtensionServiceNamespace: "test-extension-system",
+			ExtensionServiceName:      "test-extension-webhook-service",
+			FilterMetadataBeforeValidation: func(object client.Object) clusterv1.ObjectMeta {
+				annotations := object.GetAnnotations()
+				labels := object.GetLabels()
+				// Annotations added by the CAPDev in-memory backend.
+				delete(annotations, "inmemorycluster.infrastructure.cluster.x-k8s.io/listener")
+				delete(annotations, "machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped")
+				// Labels & Annotations added by the test extension
+				// TODO: Implement validation that these labels/annotations are set.
+				delete(labels, "top-level-label-1")
+				delete(annotations, "top-level-annotation-1")
+				return clusterv1.ObjectMeta{
+					Labels:      labels,
+					Annotations: annotations,
+				}
+			},
 		}
 	})
 })

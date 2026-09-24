@@ -22,7 +22,7 @@ import (
 	"io"
 	"os/exec"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // Command wraps exec.Command with specific functionality.
@@ -77,25 +77,25 @@ func (c *Command) Run(ctx context.Context) ([]byte, []byte, error) {
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, pkgerrors.WithStack(err)
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, pkgerrors.WithStack(err)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, pkgerrors.WithStack(err)
 	}
 	output, err := io.ReadAll(stdout)
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, pkgerrors.WithStack(err)
 	}
 	errout, err := io.ReadAll(stderr)
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, pkgerrors.WithStack(err)
 	}
 	if err := cmd.Wait(); err != nil {
-		return output, errout, errors.WithStack(err)
+		return output, errout, pkgerrors.WithStack(err)
 	}
 	return output, errout, nil
 }

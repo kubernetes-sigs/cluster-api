@@ -151,7 +151,7 @@ type ExtensionHandler struct {
 	RequestHook GroupVersionHook `json:"requestHook"`
 
 	// timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
-	// Defaults to 10 is not set.
+	// Defaults to 10 seconds if not set.
 	// +optional
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 

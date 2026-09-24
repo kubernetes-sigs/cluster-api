@@ -17,16 +17,66 @@ limitations under the License.
 package v1beta2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
+	// ClusterFinalizer allows DockerClusterReconciler to clean up resources associated with DevCluster before
+	// removing it from the apiserver.
+	ClusterFinalizer = "dockercluster.infrastructure.cluster.x-k8s.io"
+
 	// ListenerAnnotationName tracks the name of the listener a cluster is linked to.
 	// NOTE: the annotation must be added by the components that creates the listener only if using the HotRestart feature.
 	ListenerAnnotationName = "inmemorycluster.infrastructure.cluster.x-k8s.io/listener"
 )
+
+// Deprecated v1beta1 conditions and reasons for DevCluster's docker backend.
+const (
+	// LoadBalancerAvailableV1Beta1Condition documents the availability of the container that implements the cluster load balancer.
+	//
+	// Deprecated: This condition is deprecated and is going to be removed when support for v1beta1 is dropped.
+	LoadBalancerAvailableV1Beta1Condition clusterv1.ConditionType = "LoadBalancerAvailable"
+
+	// LoadBalancerProvisioningFailedV1Beta1Reason documents a DockerCluster controller detecting
+	// an error while provisioning the container that provides the cluster load balancer.
+	//
+	// Deprecated: This reason is deprecated and is going to be removed when support for v1beta1 is dropped.
+	LoadBalancerProvisioningFailedV1Beta1Reason = "LoadBalancerProvisioningFailed"
+)
+
+// ImageMeta allows customizing the image used for components that are not
+// originated from the Kubernetes/Kubernetes release process.
+type ImageMeta struct {
+	// ImageRepository sets the container registry to pull the haproxy image from.
+	// if not set, "kindest" will be used instead.
+	// +optional
+	ImageRepository string `json:"imageRepository,omitempty"`
+
+	// ImageTag allows to specify a tag for the haproxy image.
+	// if not set, "v20210715-a6da3463" will be used instead.
+	// +optional
+	ImageTag string `json:"imageTag,omitempty"`
+}
+
+// DockerLoadBalancer allows defining configurations for the cluster load balancer.
+type DockerLoadBalancer struct {
+	// ImageMeta allows customizing the image used for the cluster load balancer.
+	ImageMeta `json:",inline"`
+
+	// CustomHAProxyConfigTemplateRef allows you to replace the default HAProxy config file.
+	// This field is a reference to a config map that contains the configuration template. The key of the config map should be equal to 'value'.
+	// The content of the config map will be processed and will replace the default HAProxy config file. Please use it with caution, as there are
+	// no checks to ensure the validity of the configuration. This template will support the following variables that will be passed by the controller:
+	// $IPv6 (bool) indicates if the cluster is IPv6, $FrontendControlPlanePort (string) indicates the frontend control plane port,
+	// $BackendControlPlanePort (string) indicates the backend control plane port, $BackendServers (map[string]string) indicates the backend server
+	// where the key is the server name and the value is the address. This map is dynamic and is updated every time a new control plane
+	// node is added or removed. The template will also support the JoinHostPort function to join the host and port of the backend server.
+	// +optional
+	CustomHAProxyConfigTemplateRef *corev1.LocalObjectReference `json:"customHAProxyConfigTemplateRef,omitempty"`
+}
 
 // DevCluster's conditions that apply to all the supported backends.
 
@@ -90,7 +140,7 @@ type DevClusterBackendSpec struct {
 	InMemory *InMemoryClusterBackendSpec `json:"inMemory,omitempty"`
 }
 
-// DockerClusterBackendSpec  defines a backend for a DevCluster using docker containers.
+// DockerClusterBackendSpec defines a backend for a DevCluster using docker containers.
 type DockerClusterBackendSpec struct {
 	// failureDomains are usually not defined in the spec.
 	// The docker provider is special since failure domains don't mean anything in a local docker environment.
@@ -183,6 +233,22 @@ type DevCluster struct {
 
 	Spec   DevClusterSpec   `json:"spec,omitempty"`
 	Status DevClusterStatus `json:"status,omitempty"`
+}
+
+// APIEndpoint represents a reachable Kubernetes API endpoint.
+// +kubebuilder:validation:MinProperties=1
+type APIEndpoint struct {
+	// host is the hostname on which the API server is serving.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Host string `json:"host,omitempty"`
+
+	// port is the port on which the API server is serving.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port,omitempty"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

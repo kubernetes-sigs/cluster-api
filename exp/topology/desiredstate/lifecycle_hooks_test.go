@@ -17,6 +17,7 @@ limitations under the License.
 package desiredstate
 
 import (
+	"context"
 	"maps"
 	"reflect"
 	"testing"
@@ -24,7 +25,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,16 +36,16 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/util/cache"
-	"sigs.k8s.io/cluster-api/util/conversion"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -57,7 +58,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 		},
 	}
 
-	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+	t.Cleanup(conversion.SwapAPIVersionGetter(func(_ context.Context, gk schema.GroupKind) (string, error) {
 		for _, gvk := range testGVKs {
 			if gvk.GroupKind() == gk {
 				return schema.GroupVersion{
@@ -66,9 +67,8 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 				}.String(), nil
 			}
 		}
-		return "", errors.Errorf("unknown GroupVersionKind: %v", gk)
-	}
-	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
+		return "", pkgerrors.Errorf("unknown GroupVersionKind: %v", gk)
+	}))
 
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
@@ -194,6 +194,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 		wantVersion                          string
 		wantIsPendingUpgrade                 bool
 		wantIsStartingUpgrade                bool
+		wantHooksToMarkPending               []string
 		wantIsWaitingForWorkersUpgrade       bool
 		wantPendingHookAnnotation            string
 		wantHookCacheEntry                   *cache.HookEntry
@@ -300,12 +301,13 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
 			wantVersion:                       "v1.2.3", // changed from previous step
 			wantIsStartingUpgrade:             true,
-			wantPendingHookAnnotation:         "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // changed from previous step
+			wantHooksToMarkPending:            []string{"AfterControlPlaneUpgrade", "AfterWorkersUpgrade", "BeforeWorkersUpgrade"},
+			wantPendingHookAnnotation:         "AfterClusterUpgrade",
 		},
 		{
 			name:                  "when control plane is upgrading: do not call hooks",
 			topologyVersion:       "v1.2.3",
-			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // Changed from a previous step by reconcileControlPlane
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version": "v1.2.3",
@@ -320,6 +322,25 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			machinePoolsUpgradePlan:       []string{"v1.2.3"},
 			wantVersion:                   "v1.2.3",
 			wantPendingHookAnnotation:     "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
+		},
+		{
+			name:                  "when control plane is upgrading: add intent to call hooks if missing", // Note: this is a variant of the step above (in case reconcileControlPlane fails to apply the HooksToMarkPending)
+			topologyVersion:       "v1.2.3",
+			pendingHookAnnotation: "AfterClusterUpgrade",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.2.3",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.2",
+				}).
+				Build(),
+			minWorkersVersion:             "v1.2.2",
+			controlPlaneUpgradePlan:       []string{"v1.2.3"},
+			machineDeploymentsUpgradePlan: []string{"v1.2.3"},
+			machinePoolsUpgradePlan:       []string{"v1.2.3"},
+			wantVersion:                   "v1.2.3",
+			wantPendingHookAnnotation:     "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // Fixed up
 		},
 		{
 			name:                  "after control plane is upgraded: call the AfterControlPlaneUpgrade hook, blocking answer",
@@ -605,12 +626,13 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
 			wantVersion:                       "v1.3.3", // changed from previous step
 			wantIsStartingUpgrade:             true,
-			wantPendingHookAnnotation:         "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previous step
+			wantHooksToMarkPending:            []string{"AfterControlPlaneUpgrade"},
+			wantPendingHookAnnotation:         "AfterClusterUpgrade",
 		},
 		{
 			name:                  "when control plane is upgrading to the first minor: do not call hooks",
 			topologyVersion:       "v1.4.4",
-			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade", // Changed from a previous step by reconcileControlPlane
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version": "v1.3.3",
@@ -714,12 +736,13 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
 			wantVersion:                       "v1.4.4", // changed from previous step
 			wantIsStartingUpgrade:             true,
-			wantPendingHookAnnotation:         "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // changed from previous step
+			wantHooksToMarkPending:            []string{"AfterControlPlaneUpgrade", "AfterWorkersUpgrade", "BeforeWorkersUpgrade"},
+			wantPendingHookAnnotation:         "AfterClusterUpgrade",
 		},
 		{
 			name:                  "when control plane is upgrading to the second minor: do not call hooks",
 			topologyVersion:       "v1.4.4",
-			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // Changed from a previous step by reconcileControlPlane
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version": "v1.4.4",
@@ -996,7 +1019,8 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
 			wantVersion:                       "v1.3.3", // changed from previous step
 			wantIsStartingUpgrade:             true,
-			wantPendingHookAnnotation:         "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previous step
+			wantHooksToMarkPending:            []string{"AfterControlPlaneUpgrade"},
+			wantPendingHookAnnotation:         "AfterClusterUpgrade",
 		},
 		{
 			name:                  "when control plane is upgrading to the first minor: do not call hooks",
@@ -1102,12 +1126,13 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
 			wantVersion:                       "v1.4.4", // changed from previous step
 			wantIsStartingUpgrade:             true,
-			wantPendingHookAnnotation:         "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previous step
+			wantHooksToMarkPending:            []string{"AfterControlPlaneUpgrade"},
+			wantPendingHookAnnotation:         "AfterClusterUpgrade",
 		},
 		{
 			name:                  "when control plane is upgrading to the second minor: do not call hooks",
 			topologyVersion:       "v1.4.4",
-			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade", // Changed from a previous step by reconcileControlPlane
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version": "v1.4.4",
@@ -1203,7 +1228,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 							Annotations: map[string]string{
 								"fizz":                             "buzz",
 								corev1.LastAppliedConfigAnnotation: "should be cleaned up",
-								conversion.DataAnnotation:          "should be cleaned up",
+								conversionutil.DataAnnotation:      "should be cleaned up",
 							},
 						},
 						// Add some more fields to check that conversion implemented when calling RuntimeExtension are properly handled.
@@ -1266,7 +1291,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 						return err
 					}
 				default:
-					return errors.Errorf("unhandled request type %T", request)
+					return pkgerrors.Errorf("unhandled request type %T", request)
 				}
 				return validateClusterParameter(s.Current.Cluster)(request)
 			}
@@ -1295,7 +1320,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			r := &generator{
 				Client:        fakeClient,
 				RuntimeClient: runtimeClient,
-				hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+				hookCache:     cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
 			}
 			version, err := r.computeControlPlaneVersion(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -1313,10 +1338,15 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			g.Expect(hooksCalled.Has("AfterWorkersUpgrade")).To(Equal(tt.wantAfterWorkersUpgradeRequest != nil), "Unexpected call/missing call to AfterWorkersUpgrade")
 
 			// check intent to call hooks
+			var hookNames []string
+			for _, hook := range s.UpgradeTracker.HooksToMarkPending {
+				hookNames = append(hookNames, runtimecatalog.HookName(hook))
+			}
+			g.Expect(hookNames).To(ConsistOf(tt.wantHooksToMarkPending))
 			if tt.wantPendingHookAnnotation != "" {
-				g.Expect(s.Current.Cluster.Annotations).To(HaveKeyWithValue(runtimev1.PendingHooksAnnotation, tt.wantPendingHookAnnotation), "Unexpected PendingHookAnnotation")
+				g.Expect(s.Current.Cluster.Annotations).To(HaveKeyWithValue(runtimev1.PendingHooksAnnotation, tt.wantPendingHookAnnotation))
 			} else {
-				g.Expect(s.Current.Cluster.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation), "Unexpected PendingHookAnnotation")
+				g.Expect(s.Current.Cluster.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation))
 			}
 
 			if tt.wantHookCacheEntry != nil {
@@ -1345,85 +1375,85 @@ func validateHookRequest(request runtimehooksv1.RequestObject, wantRequest runti
 	if request, ok := request.(*runtimehooksv1.BeforeClusterUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.BeforeClusterUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.FromKubernetesVersion != request.FromKubernetesVersion {
-				return errors.Errorf("unexpected BeforeClusterUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeClusterUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
 			}
 			if wantRequest.ToKubernetesVersion != request.ToKubernetesVersion {
-				return errors.Errorf("unexpected BeforeClusterUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeClusterUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected BeforeClusterUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeClusterUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected BeforeClusterUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeClusterUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	if request, ok := request.(*runtimehooksv1.BeforeControlPlaneUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.BeforeControlPlaneUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.FromKubernetesVersion != request.FromKubernetesVersion {
-				return errors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
 			}
 			if wantRequest.ToKubernetesVersion != request.ToKubernetesVersion {
-				return errors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeControlPlaneUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	if request, ok := request.(*runtimehooksv1.BeforeWorkersUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.BeforeWorkersUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.FromKubernetesVersion != request.FromKubernetesVersion {
-				return errors.Errorf("unexpected BeforeWorkersUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeWorkersUpgradeRequest.FromKubernetesVersion version %s, want %s", request.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
 			}
 			if wantRequest.ToKubernetesVersion != request.ToKubernetesVersion {
-				return errors.Errorf("unexpected BeforeWorkersUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
+				return pkgerrors.Errorf("unexpected BeforeWorkersUpgradeRequest.ToKubernetes version %s, want %s", request.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected BeforeWorkersUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeWorkersUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected BeforeWorkersUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected BeforeWorkersUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	if request, ok := request.(*runtimehooksv1.AfterControlPlaneUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.AfterControlPlaneUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.KubernetesVersion != request.KubernetesVersion {
-				return errors.Errorf("unexpected AfterControlPlaneUpgradeRequest.Kubernetes version %s, want %s", request.KubernetesVersion, wantRequest.KubernetesVersion)
+				return pkgerrors.Errorf("unexpected AfterControlPlaneUpgradeRequest.Kubernetes version %s, want %s", request.KubernetesVersion, wantRequest.KubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected AfterControlPlaneUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected AfterControlPlaneUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected AfterControlPlaneUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected AfterControlPlaneUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	if request, ok := request.(*runtimehooksv1.AfterWorkersUpgradeRequest); ok {
 		if wantRequest, ok := wantRequest.(*runtimehooksv1.AfterWorkersUpgradeRequest); ok && wantRequest != nil {
 			if wantRequest.KubernetesVersion != request.KubernetesVersion {
-				return errors.Errorf("unexpected AfterWorkersUpgradeRequest.Kubernetes version %s, want %s", request.KubernetesVersion, wantRequest.KubernetesVersion)
+				return pkgerrors.Errorf("unexpected AfterWorkersUpgradeRequest.Kubernetes version %s, want %s", request.KubernetesVersion, wantRequest.KubernetesVersion)
 			}
 			if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, request.ControlPlaneUpgrades) {
-				return errors.Errorf("unexpected AfterWorkersUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				return pkgerrors.Errorf("unexpected AfterWorkersUpgradeRequest.ControlPlaneUpgrades %s, want %s", request.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
 			}
 			if !reflect.DeepEqual(wantRequest.WorkersUpgrades, request.WorkersUpgrades) {
-				return errors.Errorf("unexpected AfterWorkersUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				return pkgerrors.Errorf("unexpected AfterWorkersUpgradeRequest.WorkersUpgrades %s, want %s", request.WorkersUpgrades, wantRequest.WorkersUpgrades)
 			}
 		} else {
-			return errors.Errorf("got an unexpected request of type %T", request)
+			return pkgerrors.Errorf("got an unexpected request of type %T", request)
 		}
 	}
 	return nil
@@ -1446,18 +1476,18 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		case *runtimehooksv1.AfterWorkersUpgradeRequest:
 			cluster = req.Cluster
 		default:
-			return errors.Errorf("unhandled request type %T", req)
+			return pkgerrors.Errorf("unhandled request type %T", req)
 		}
 
 		// check if managed fields and well know annotations have been removed from the Cluster parameter included in the payload lifecycle hooks calls.
 		if cluster.GetManagedFields() != nil {
-			return errors.New("managedFields should have been cleaned up")
+			return pkgerrors.New("managedFields should have been cleaned up")
 		}
 		if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
-			return errors.New("last-applied-configuration annotation should have been cleaned up")
+			return pkgerrors.New("last-applied-configuration annotation should have been cleaned up")
 		}
-		if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
-			return errors.New("conversion annotation should have been cleaned up")
+		if _, ok := cluster.Annotations[conversionutil.DataAnnotation]; ok {
+			return pkgerrors.New("conversion annotation should have been cleaned up")
 		}
 
 		// Check the Cluster parameter has been cleaned up as expected.
@@ -1467,7 +1497,7 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		if originalClusterCopy.Annotations != nil {
 			annotations := maps.Clone(cluster.Annotations)
 			delete(annotations, corev1.LastAppliedConfigAnnotation)
-			delete(annotations, conversion.DataAnnotation)
+			delete(annotations, conversionutil.DataAnnotation)
 			originalClusterCopy.Annotations = annotations
 		}
 
@@ -1475,7 +1505,7 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		originalClusterCopy.Status.Conditions = nil
 
 		if !apiequality.Semantic.DeepEqual(originalClusterCopy, &cluster) {
-			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, &cluster))
+			return pkgerrors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, &cluster))
 		}
 		return nil
 	}

@@ -20,6 +20,10 @@ limitations under the License.
 package e2e
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/utils/ptr"
 
@@ -49,8 +53,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 				}
 				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
-			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
-			Flavor: ptr.To("upgrades-runtimesdk"),
+			Flavor: ptr.To("in-memory-topology"),
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
 			// The below values are used when creating the cluster-wide ExtensionConfig to refer
@@ -64,12 +67,11 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 var _ = Describe("When upgrading a workload cluster using ClusterClass in a different NS with RuntimeSDK [ClusterClass]", Label("ClusterClass"), func() {
 	ClusterUpgradeWithRuntimeSDKSpec(ctx, func() ClusterUpgradeWithRuntimeSDKSpecInput {
 		return ClusterUpgradeWithRuntimeSDKSpecInput{
-			E2EConfig:              e2eConfig,
-			ClusterctlConfigPath:   clusterctlConfigPath,
-			BootstrapClusterProxy:  bootstrapClusterProxy,
-			ArtifactFolder:         artifactFolder,
-			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: ptr.To("docker"),
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
@@ -83,8 +85,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass in a diff
 				}
 				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
-			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
-			Flavor:                                ptr.To("upgrades-runtimesdk"),
+			Flavor:                                ptr.To("in-memory-topology"),
 			DeployClusterClassInSeparateNamespace: true,
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
@@ -125,11 +126,10 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 			// Setting Kubernetes version from
 			KubernetesVersionFrom: e2eConfig.MustGetVariable(KubernetesVersionChainedUpgradeFrom),
 			// use Kubernetes versions from the kind mapper
-			// Note: Ensure KUBERNETES_VERSION_UPGRADE_TO is always part of the list, this is required for cases where
-			// KUBERNETES_VERSION_UPGRADE_TO is not in the kind mapper, e.g. in the `e2e-latestk8s` prowjob.
-			// Note: KUBERNETES_VERSION_UPGRADE_TO has to be set either to one version in kind.GetKubernetesVersions() or
-			// to a version greater than the last in the list by at most one minor version.
-			KubernetesVersions: appendIfNecessary(kind.GetKubernetesVersions(), e2eConfig.MustGetVariable(KubernetesVersionUpgradeTo)),
+			// Note: In order to handle cases when KUBERNETES_VERSION_UPGRADE_TO is greater than the last known
+			// version the kind mapper, e.g. in the `e2e-latestk8s` prow job, append at least one version for each
+			// minor up to the target KubernetesVersion.
+			KubernetesVersions: appendMinorsIfNecessary(kind.GetKubernetesVersions(), e2eConfig.MustGetVariable(KubernetesVersionUpgradeTo)),
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
 			// The below values are used when creating the cluster-wide ExtensionConfig to refer
@@ -141,11 +141,20 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 	})
 })
 
-func appendIfNecessary(versions []string, v string) []string {
+func appendMinorsIfNecessary(versions []string, v string) []string {
+	var lastKnownMinor uint64
 	for _, version := range versions {
-		if version == v {
-			return versions
-		}
+		lastKnownMinor = max(lastKnownMinor, semver.MustParse(strings.TrimPrefix(version, "v")).Minor)
 	}
-	return append(versions, v)
+
+	targetMinor := semver.MustParse(strings.TrimPrefix(v, "v")).Minor
+	for i := lastKnownMinor + 1; i <= targetMinor; i++ {
+		if i == targetMinor {
+			versions = append(versions, v)
+			break
+		}
+		versions = append(versions, fmt.Sprintf("v1.%d.0", i))
+	}
+
+	return versions
 }

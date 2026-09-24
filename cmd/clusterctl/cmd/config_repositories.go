@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 
@@ -52,7 +52,7 @@ var cro = &configRepositoriesOptions{}
 
 var configRepositoryCmd = &cobra.Command{
 	Use:   "repositories",
-	Args:  cobra.NoArgs,
+	Args:  helpOnErrorArgs(cobra.NoArgs),
 	Short: "Display the list of providers and their repository configurations",
 	Long: templates.LongDesc(`
 		Display the list of providers and their repository configurations.
@@ -80,11 +80,11 @@ func init() {
 
 func runGetRepositories(cfgFile string, out io.Writer) error {
 	if cro.output != RepositoriesOutputText && cro.output != RepositoriesOutputYaml {
-		return errors.Errorf("invalid output format %q, valid values: %v", cro.output, RepositoriesOutputs)
+		return pkgerrors.Errorf("invalid output format %q, valid values: %v", cro.output, RepositoriesOutputs)
 	}
 
 	if out == nil {
-		return errors.New("unable to print to nil output writer")
+		return pkgerrors.New("unable to print to nil output writer")
 	}
 
 	ctx := context.Background()

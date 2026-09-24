@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	capierrors "sigs.k8s.io/cluster-api/errors"
+	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
 const (
@@ -69,7 +69,7 @@ type MachineSetSpec struct {
 	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
 
 	// deletePolicy defines the policy used to identify nodes to delete when downscaling.
-	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// Defaults to "Random". Valid values are "Random", "Newest", "Oldest"
 	// +kubebuilder:validation:Enum=Random;Newest;Oldest
 	// +optional
 	DeletePolicy string `json:"deletePolicy,omitempty"`
@@ -346,6 +346,14 @@ type MachineSetStatus struct {
 	// conditions defines current service state of the MachineSet.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in this MachineSet.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in MachineSet's status with the V1Beta2 version.
 	// +optional

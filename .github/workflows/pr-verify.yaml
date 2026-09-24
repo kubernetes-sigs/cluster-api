@@ -1,19 +1,22 @@
 name: PR title verifier
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, edited, synchronize, reopened]
+
+permissions: {}
 
 jobs:
   verify:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # tag=v6.0.2
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # tag=v7.0.1
+        with:
+          persist-credentials: false
       - name: Check if PR title is valid
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          ./hack/verify-pr-title.sh "${PR_TITLE}"
+          ./hack/scripts/verify/verify-pr-title.sh "${PR_TITLE}"
 

@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
@@ -43,7 +43,7 @@ type Dialer struct {
 // NewDialer creates a new dialer for a given API server scope.
 func NewDialer(p Proxy, options ...func(*Dialer) error) (*Dialer, error) {
 	if p.Port == 0 {
-		return nil, errors.New("port required")
+		return nil, pkgerrors.New("port required")
 	}
 
 	dialer := &Dialer{
@@ -97,7 +97,7 @@ func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn
 	// Warning: Any early return should close this connection, otherwise we're going to leak them.
 	connection, _, err := dialer.Dial(portforward.PortForwardProtocolV1Name)
 	if err != nil {
-		return nil, errors.Wrap(err, "error upgrading connection")
+		return nil, pkgerrors.Wrap(err, "error upgrading connection")
 	}
 
 	// Create the headers.
@@ -134,7 +134,7 @@ func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn
 	dataStream, err := connection.CreateStream(headers)
 	if err != nil {
 		return nil, kerrors.NewAggregate([]error{
-			errors.Wrap(err, "error creating forwarding stream"),
+			pkgerrors.Wrap(err, "error creating forwarding stream"),
 			connection.Close(),
 		})
 	}

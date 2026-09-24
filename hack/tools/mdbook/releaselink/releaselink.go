@@ -96,6 +96,6 @@ func (l ReleaseLink) Process(input *plugin.Input) error {
 func main() {
 	cfg := ReleaseLink{}
 	if err := plugin.Run(cfg, os.Stdin, os.Stdout, os.Args[1:]...); err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err.Error()) //nolint:gosec // Not worried about log injection here.
 	}
 }

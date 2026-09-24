@@ -5,7 +5,7 @@ resources:
   # Adds the configmap which contains the script to build the final crd configuration.
   - crd-sidecar-cm.yaml
   # Adds the core CAPI crd metrics configmap and CusterRole.
-  - ../../../config/metrics
+  - ../../../core/config/metrics
 
 namespace: observability
 

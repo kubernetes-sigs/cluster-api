@@ -1,0 +1,76 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: "${NAMESPACE}"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - ${DOCKER_POD_CIDRS}
+    serviceDomain: ${DOCKER_SERVICE_DOMAIN}
+    services:
+      cidrBlocks:
+      - ${DOCKER_SERVICE_CIDRS}
+  topology:
+    classRef:
+      name: in-memory-templaterefs
+      namespace: ${CLUSTER_CLASS_NAMESPACE:-${NAMESPACE}}
+    controlPlane:
+      deletion:
+        nodeDeletionTimeoutSeconds: 0
+        nodeVolumeDetachTimeoutSeconds: 300
+      metadata:
+        annotations:
+          Cluster.topology.controlPlane.annotation: Cluster.topology.controlPlane.annotationValue
+          Cluster.topology.controlPlane.annotation.node.cluster.x-k8s.io: Cluster.topology.controlPlane.nodeAnnotationValue
+        labels:
+          Cluster.topology.controlPlane.label: Cluster.topology.controlPlane.labelValue
+          Cluster.topology.controlPlane.label.node.cluster.x-k8s.io: Cluster.topology.controlPlane.nodeLabelValue
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+      taints:
+      - effect: PreferNoSchedule
+        key: pre-existing-on-initialization-taint
+        propagation: OnInitialization
+        value: on-initialization-value
+      - effect: PreferNoSchedule
+        key: pre-existing-always-taint
+        propagation: Always
+        value: always-value
+    version: ${KUBERNETES_VERSION}
+    workers:
+      machineDeployments:
+      - class: default-worker
+        deletion:
+          nodeDeletionTimeoutSeconds: 0
+          nodeVolumeDetachTimeoutSeconds: 300
+        metadata:
+          annotations:
+            Cluster.topology.machineDeployment.annotation: Cluster.topology.machineDeployment.annotationValue
+            Cluster.topology.md.annotation.node.cluster.x-k8s.io: Cluster.topology.machineDeployment.nodeAnnotationValue
+          labels:
+            Cluster.topology.machineDeployment.label: Cluster.topology.machineDeployment.labelValue
+            Cluster.topology.machineDeployment.label.node.cluster.x-k8s.io: Cluster.topology.machineDeployment.nodeLabelValue
+        minReadySeconds: 5
+        name: md-0
+        replicas: ${WORKER_MACHINE_COUNT}
+        taints:
+        - effect: PreferNoSchedule
+          key: pre-existing-on-initialization-taint
+          propagation: OnInitialization
+          value: on-initialization-value
+        - effect: PreferNoSchedule
+          key: pre-existing-always-taint
+          propagation: Always
+          value: always-value
+        rollout:
+          strategy:
+            rollingUpdate:
+              maxSurge: ${MD_MAX_SURGE:-20%}
+              maxUnavailable: ${MD_MAX_UNAVAILABLE:-0}
+            type: RollingUpdate
+    variables:
+      - name: kubeadmControlPlaneMaxSurge
+        value: "${KUBEADM_CONTROL_PLANE_MAX_SURGE:-1}"
+      - name: imageRepository
+        value: "kindest"

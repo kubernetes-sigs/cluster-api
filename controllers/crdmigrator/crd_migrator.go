@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -111,8 +111,9 @@ type ByObjectConfig struct {
 	UseStatusForStorageVersionMigration bool
 }
 
+// SetupWithManager sets up the reconciler with the Manager.
 func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, controllerOptions controller.Options) error {
-	if err := r.setup(mgr.GetScheme()); err != nil {
+	if err := r.setup(ctx, mgr.GetScheme()); err != nil {
 		return err
 	}
 
@@ -137,17 +138,17 @@ func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, co
 		).
 		Named("crdmigrator").
 		WithOptions(controllerOptions).
-		Complete(r)
+		Complete(ctx, r)
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	return nil
 }
 
-func (r *CRDMigrator) setup(scheme *runtime.Scheme) error {
+func (r *CRDMigrator) setup(ctx context.Context, scheme *runtime.Scheme) error {
 	if r.Client == nil || r.APIReader == nil || len(r.Config) == 0 {
-		return errors.New("Client and APIReader must not be nil and Config must not be empty")
+		return pkgerrors.New("Client and APIReader must not be nil and Config must not be empty")
 	}
 
 	r.crdMigrationPhasesToRun = sets.Set[Phase]{}.Insert(StorageVersionMigrationPhase, CleanupManagedFieldsPhase)
@@ -158,7 +159,7 @@ func (r *CRDMigrator) setup(scheme *runtime.Scheme) error {
 		case CleanupManagedFieldsPhase:
 			r.crdMigrationPhasesToRun.Delete(CleanupManagedFieldsPhase)
 		default:
-			return errors.Errorf("Invalid phase %s specified in SkipCRDMigrationPhases", skipPhase)
+			return pkgerrors.Errorf("Invalid phase %s specified in SkipCRDMigrationPhases", skipPhase)
 		}
 	}
 
@@ -166,16 +167,17 @@ func (r *CRDMigrator) setup(scheme *runtime.Scheme) error {
 	for obj, cfg := range r.Config {
 		gvk, err := apiutil.GVKForObject(obj, scheme)
 		if err != nil {
-			return errors.Wrap(err, "failed to get GVK for object")
+			return pkgerrors.Wrap(err, "failed to get GVK for object")
 		}
 
 		r.configByCRDName[contract.CalculateCRDName(gvk.Group, gvk.Kind)] = cfg
 	}
 
-	r.storageVersionMigrationCache = cache.New[objectEntry](1 * time.Hour)
+	r.storageVersionMigrationCache = cache.New[objectEntry](ctx, 1*time.Hour)
 	return nil
 }
 
+// Reconcile reconciles the passed in object.
 func (r *CRDMigrator) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	migrationConfig, ok := r.configByCRDName[req.Name]
 	if !ok {
@@ -219,7 +221,7 @@ func (r *CRDMigrator) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 			// Note: Optimistic locking is not required here, because if the CRD and its apiVersions was changed
 			// in the meantime, we'll reconcile it again with the next generation.
 			if err := r.Client.Patch(ctx, crd, client.MergeFrom(originalCRD)); err != nil {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to patch CustomResourceDefinition %s", crd.Name)})
+				reterr = kerrors.NewAggregate([]error{reterr, pkgerrors.Wrapf(err, "failed to patch CustomResourceDefinition %s", crd.Name)})
 			}
 		}
 	}()
@@ -246,7 +248,7 @@ func (r *CRDMigrator) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		crd.Status.StoredVersions = []string{storageVersion}
 		// Note: Using optimistic locking to ensure the CRD and its apiVersions was not changed in the meantime.
 		if err := r.Client.Status().Patch(ctx, crd, client.MergeFromWithOptions(originalCRD, client.MergeFromWithOptimisticLock{})); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to patch CustomResourceDefinition %s", crd.Name)
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to patch CustomResourceDefinition %s", crd.Name)
 		}
 	}
 
@@ -266,7 +268,7 @@ func storageVersionForCRD(crd *apiextensionsv1.CustomResourceDefinition) (string
 		}
 	}
 
-	return "", errors.Errorf("could not find storage version for CustomResourceDefinition %s", crd.Name)
+	return "", pkgerrors.Errorf("could not find storage version for CustomResourceDefinition %s", crd.Name)
 }
 
 func storageVersionMigrationRequired(crd *apiextensionsv1.CustomResourceDefinition, storageVersion string) bool {
@@ -290,15 +292,15 @@ func (r *CRDMigrator) listCustomResources(ctx context.Context, crd *apiextension
 		// Otherwise we would create an additional informer for an UnstructuredList/PartialObjectMetadataList.
 		object, err := r.Client.Scheme().New(listGVK)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list %s: failed to create %s object", crd.Spec.Names.Kind, crd.Spec.Names.ListKind)
+			return nil, pkgerrors.Wrapf(err, "failed to list %s: failed to create %s object", crd.Spec.Names.Kind, crd.Spec.Names.ListKind)
 		}
 		objectList, ok := object.(client.ObjectList)
 		if !ok {
-			return nil, errors.Wrapf(err, "failed to list %s: %s object is not an ObjectList", crd.Spec.Names.Kind, crd.Spec.Names.ListKind)
+			return nil, pkgerrors.Wrapf(err, "failed to list %s: %s object is not an ObjectList", crd.Spec.Names.Kind, crd.Spec.Names.ListKind)
 		}
 		objects, err := listObjectsFromCachedClient(ctx, r.Client, objectList)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list %s via cached client", crd.Spec.Names.Kind)
+			return nil, pkgerrors.Wrapf(err, "failed to list %s via cached client", crd.Spec.Names.Kind)
 		}
 		objs = append(objs, objects...)
 	} else {
@@ -308,7 +310,7 @@ func (r *CRDMigrator) listCustomResources(ctx context.Context, crd *apiextension
 		objectList.SetGroupVersionKind(listGVK)
 		objects, err := listObjectsFromAPIReader(ctx, r.APIReader, objectList)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list %s via live client", crd.Spec.Names.Kind)
+			return nil, pkgerrors.Wrapf(err, "failed to list %s via live client", crd.Spec.Names.Kind)
 		}
 		objs = append(objs, objects...)
 	}
@@ -326,7 +328,7 @@ func listObjectsFromCachedClient(ctx context.Context, c client.Client, objectLis
 
 	objectListItems, err := meta.ExtractList(objectList)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to extract list items")
+		return nil, pkgerrors.Wrapf(err, "failed to extract list items")
 	}
 	for _, obj := range objectListItems {
 		objs = append(objs, obj.(client.Object))
@@ -349,7 +351,7 @@ func listObjectsFromAPIReader(ctx context.Context, c client.Reader, objectList c
 
 		objectListItems, err := meta.ExtractList(objectList)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to extract list items")
+			return nil, pkgerrors.Wrapf(err, "failed to extract list items")
 		}
 		for _, obj := range objectListItems {
 			objs = append(objs, obj.(client.Object))
@@ -394,31 +396,29 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 			continue
 		}
 
-		// Based on: https://github.com/kubernetes/kubernetes/blob/v1.32.0/pkg/controller/storageversionmigrator/storageversionmigrator.go#L275-L284
+		// Based on: https://github.com/kubernetes/kubernetes/blob/v1.36.0/pkg/controller/storageversionmigrator/storageversionmigrator.go#L309-L333
 		u := &unstructured.Unstructured{}
 		u.SetGroupVersionKind(gvk)
 		u.SetNamespace(obj.GetNamespace())
 		u.SetName(obj.GetName())
-		// Set UID so that when a resource gets deleted, we get an "uid mismatch"
-		// conflict error instead of trying to create it.
-		u.SetUID(obj.GetUID())
-		// Set RV so that when a resources gets updated or deleted+recreated, we get an "object has been modified"
-		// conflict error. We do not actually need to do this for the updated case because if RV
-		// was not set, it would just result in no-op request. But for the deleted+recreated case, if RV is
-		// not set but UID is set, we would get an immutable field validation error. Hence we must set both.
 		u.SetResourceVersion(obj.GetResourceVersion())
 
+		data, err := u.MarshalJSON()
+		if err != nil {
+			errs = append(errs, pkgerrors.Wrap(err, "failed to marshal object to JSON"))
+			continue
+		}
+
 		log.V(4).Info("Migrating to new storage version", gvk.Kind, klog.KObj(u))
-		var err error
 		if migrationConfig.UseStatusForStorageVersionMigration {
-			err = r.Client.Status().Apply(ctx, client.ApplyConfigurationFromUnstructured(u), client.FieldOwner("crdmigrator"))
+			err = r.Client.Status().Patch(ctx, u, client.RawPatch(types.MergePatchType, data))
 		} else {
-			err = r.Client.Apply(ctx, client.ApplyConfigurationFromUnstructured(u), client.FieldOwner("crdmigrator"))
+			err = r.Client.Patch(ctx, u, client.RawPatch(types.MergePatchType, data))
 		}
 		// If we got a NotFound error, the object no longer exists so no need to update it.
 		// If we got a Conflict error, another client wrote the object already so no need to update it.
 		if err != nil && !apierrors.IsNotFound(err) && !apierrors.IsConflict(err) {
-			errs = append(errs, errors.Wrap(err, klog.KObj(u).String()))
+			errs = append(errs, pkgerrors.Wrap(err, klog.KObj(u).String()))
 			continue
 		}
 
@@ -426,7 +426,7 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 	}
 
 	if len(errs) > 0 {
-		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to migrate storage version of %s objects", gvk.Kind)
+		return pkgerrors.Wrapf(kerrors.NewAggregate(errs), "failed to migrate storage version of %s objects", gvk.Kind)
 	}
 
 	return nil
@@ -475,22 +475,13 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 				//       chances that the managedField entry gets cleaned up. In any case having a minimal entry only
 				//       for metadata.name is better than leaving the old entry that uses an apiVersion that is not
 				//       served anymore (see: https://github.com/kubernetes/kubernetes/issues/111937).
-				fieldV1Map := map[string]interface{}{
-					"f:metadata": map[string]interface{}{
-						"f:name": map[string]interface{}{},
-					},
-				}
-				fieldV1, err := json.Marshal(fieldV1Map)
-				if err != nil {
-					return errors.Wrap(err, "failed to create seeding managedField entry")
-				}
 				managedFields = append(managedFields, metav1.ManagedFieldsEntry{
 					Manager:    obj.GetManagedFields()[0].Manager,
 					Operation:  obj.GetManagedFields()[0].Operation,
 					APIVersion: schema.GroupVersion{Group: crd.Spec.Group, Version: storageVersion}.String(),
 					Time:       ptr.To(metav1.Now()),
 					FieldsType: "FieldsV1",
-					FieldsV1:   &metav1.FieldsV1{Raw: fieldV1},
+					FieldsV1:   metav1.NewFieldsV1(`{"f:metadata":{"f:name":{}}}`),
 				})
 			}
 
@@ -510,7 +501,7 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 			}
 			patch, err := json.Marshal(jsonPatch)
 			if err != nil {
-				return errors.Wrap(err, "failed to marshal patch")
+				return pkgerrors.Wrap(err, "failed to marshal patch")
 			}
 
 			log.V(4).Info("Cleaning up managedFields", crd.Spec.Names.Kind, klog.KObj(obj))
@@ -530,13 +521,13 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 			// Note: We always have to return the conflict error directly (instead of an aggregate) so retry on conflict works.
 			return err
 		}); err != nil {
-			errs = append(errs, errors.Wrap(kerrors.NewAggregate([]error{err, getErr}), klog.KObj(obj).String()))
+			errs = append(errs, pkgerrors.Wrap(kerrors.NewAggregate([]error{err, getErr}), klog.KObj(obj).String()))
 			continue
 		}
 	}
 
 	if len(errs) > 0 {
-		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to cleanup managedFields of %s objects", crd.Spec.Names.Kind)
+		return pkgerrors.Wrapf(kerrors.NewAggregate(errs), "failed to cleanup managedFields of %s objects", crd.Spec.Names.Kind)
 	}
 
 	return nil

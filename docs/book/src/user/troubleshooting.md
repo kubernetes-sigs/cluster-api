@@ -13,6 +13,7 @@
   * [Clusterctl failing to start providers due to outdated image overrides](#clusterctl-failing-to-start-providers-due-to-outdated-image-overrides)
   * [Managed Cluster and co-authored slices](#managed-cluster-and-co-authored-slices)
   * [Failed to removed fields from lists using Server Side Apply](#failed-to-removed-fields-from-lists-using-server-side-apply)
+  * [kubeadm join fails after upgrading to Kubernetes v1.36.1 / v1.35.5 / v1.34.8 / v1.33.12](#kubeadm-join-fails-after-upgrading-to-kubernetes-patch-releases)
 <!-- TOC -->
 
 ## Troubleshooting Quick Start with Docker (CAPD)
@@ -269,3 +270,60 @@ In case you face this issue, please use kubectl edit or kubectl apply with clien
 to remove the item from the list; after the item is removed everything should work as expected.
 
 See [comment](https://github.com/kubernetes-sigs/cluster-api/issues/11857#issuecomment-2740339933) for more details.
+
+## kubeadm join fails after upgrading to Kubernetes patch releases
+
+When upgrading a cluster to any of the following Kubernetes patch releases,
+`kubeadm join` completes but the control plane rollout gets stuck because the
+API server cannot proxy requests to the kubelet:
+
+- v1.36.1
+- v1.35.5
+- v1.34.8
+- v1.33.12
+
+**Cause:** These releases include a kubeadm security improvement
+([kubernetes/kubernetes#138957](https://github.com/kubernetes/kubernetes/pull/138957))
+that reduces the scope of the API server's kubelet client credentials.
+A dedicated `ClusterRoleBinding` named `kubeadm:apiserver-kubelet-client` is now
+required, binding the API server's certificate CN (`kube-apiserver-kubelet-client`)
+to the `system:kubelet-api-admin` ClusterRole.
+
+Without this binding, the API server cannot proxy or exec to kubelets on nodes
+with the new certificates. KCP logs will show errors similar to:
+
+```text
+unable to upgrade connection: Forbidden (user=kube-apiserver-kubelet-client,
+verb=create, resource=nodes, subresource(s)=[proxy])
+```
+
+CAPI releases prior to v1.11.11, v1.12.8, and v1.13.2 do not create this binding
+during upgrades, causing the control plane rollout to get stuck.
+
+**Fix:** Before upgrading Kubernetes to the above patch versions, upgrade CAPI to
+one of the following releases which include the corresponding fix
+([cluster-api#13664](https://github.com/kubernetes-sigs/cluster-api/pull/13664)):
+
+- v1.13.2 or later
+- v1.12.8 or later
+- v1.11.11 or later
+
+**If you are already in a broken state** and cannot upgrade CAPI first, manually
+create the missing `ClusterRoleBinding` on the workload cluster:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubeadm:apiserver-kubelet-client
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:kubelet-api-admin
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: kube-apiserver-kubelet-client
+```
+
+After applying this manifest to the workload cluster, retry the upgrade.

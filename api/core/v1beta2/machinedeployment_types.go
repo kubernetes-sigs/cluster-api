@@ -414,7 +414,7 @@ type MachineNamingSpec struct {
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentDeletionSpec struct {
 	// order defines the order in which Machines are deleted when downscaling.
-	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// Defaults to "Random". Valid values are "Random", "Newest", "Oldest"
 	// +optional
 	Order MachineSetDeletionOrder `json:"order,omitempty"`
 }
@@ -459,6 +459,14 @@ type MachineDeploymentStatus struct {
 	// upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+
+	// versions is the aggregated Kubernetes versions in this MachineDeployment.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []StatusVersion `json:"versions,omitempty"`
 
 	// phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
 	// +optional

@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 const (
@@ -71,7 +71,7 @@ func PreviousMinorRelease(searchVersion string) (string, error) {
 // * v1.28.0 => will return the same version for convenience
 // * stable-1.28 => will return the latest patch release for v1.28, e.g. v1.28.5
 // * ci/latest-1.28 => will return the latest built version from the release branch, e.g. v1.28.5-26+72feddd3acde14
-// This implementation mirrors what is implemented in ci-e2e-lib.sh k8s::resolveVersion().
+// This implementation mirrors what is implemented in hack/scripts/ci/ci-e2e-lib.sh k8s::resolveVersion().
 func ResolveVersion(ctx context.Context, version string) (string, error) {
 	if strings.HasPrefix(version, "v") {
 		// version is already a version
@@ -101,16 +101,16 @@ func calculateURL(version string) (string, error) {
 func getVersionFromMarkerFile(ctx context.Context, url string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get %s: failed to create request", url)
+		return "", pkgerrors.Wrapf(err, "failed to get %s: failed to create request", url)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get %s", url)
+		return "", pkgerrors.Wrapf(err, "failed to get %s", url)
 	}
 	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get %s: failed to read body", url)
+		return "", pkgerrors.Wrapf(err, "failed to get %s: failed to read body", url)
 	}
 
 	return strings.TrimSpace(string(b)), nil

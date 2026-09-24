@@ -92,15 +92,10 @@ Here's an example of how to do this for the `v1.11` release cycle. That means `v
       3. Add the new release, `v1.11`, to the root level `metadata.yaml`.
       4. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests, the `test/e2e/data/shared/v1.7` folder in this example.
    4. Adjust cluster templates in `test/e2e/data/infrastructure-docker`:
-      1. Create a new `v1.10` folder. It should be created based on the `main` folder and only contain the templates we use in the clusterctl upgrade tests (as of today `cluster-template` and `cluster-template-topology`).
+      1. Create a new `v1.10` folder. It should be created based on the `main` folder and only contain the files we use in the clusterctl upgrade tests (as of today `cluster-template-in-memory-topology.yaml` and `clusterclass-in-memory.yaml`).
       2. Remove old folders that are not used anymore in clusterctl upgrade tests, `test/e2e/data/infrastructure-docker/v1.7` in this example.
-   5. Add a new Makefile target
-         1. Create the new target, `generate-e2e-templates-v1.10` in this example.
-         1. Add the new target `v1.10` to `generate-e2e-templates`.
-         1. Potentially remove the Makefile target of versions that are not used anymore (if something was removed in 4.2)
-            1. In this example we removed `generate-e2e-templates-v1.7` and removed `v1.7` from `generate-e2e-templates`.
 2. Update `create-local-repository.py` and `tools/internal/tilt-prepare/main.go`: `v1.10.99` => `v1.11.99`.
-3. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-27-latest-main`).
+3. Make sure all tests are green (also run `pull-cluster-api-e2e-main` and `pull-cluster-api-e2e-upgrade-.*`).
 
 Prior art:
 
@@ -194,7 +189,7 @@ The right Go minor version for a Cluster API branch can be looked up as follows 
    * Verify the [Weekly security scan](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/weekly-security-scan.yaml) results are clean.
 2. Ask the [Communications/Docs/Release Notes Manager](../communications/README.md) to [create a PR with the release notes](../communications/README.md#create-pr-for-release-notes) for the new desired tag and review the PR. Once the PR merges, it will trigger a [GitHub Action](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/release.yaml) to create a release branch, push release tags, and create a draft release. This will also trigger a [ProwJob](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&job=post-cluster-api-push-images) to publish images to the staging repository.
 3. Promote images from the staging repository to the production registry (`registry.k8s.io/cluster-api`):
-    1. Wait until images for the tag have been built and pushed to the [staging repository](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api) by the [post push images job](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&job=post-cluster-api-push-images).
+    1. Wait until images for the tag have been built and pushed to the [staging repository](https://console.cloud.google.com/artifacts/docker/k8s-staging-cluster-api/us/gcr.io) by the [post push images job](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&job=post-cluster-api-push-images).
     2. If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.
     3. Create a PR to promote the images to the production registry:
 

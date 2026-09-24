@@ -1,6 +1,0 @@
-# Enforce that the test extension implementation and its integration tests
-# do not depend on internal packages.
-rules:
-  - selectorRegexp: .*internal.*
-    allowedPrefixes: []
-    forbiddenPrefixes: []

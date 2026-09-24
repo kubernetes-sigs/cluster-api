@@ -19,7 +19,7 @@ package scope
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -70,7 +70,7 @@ func (mds MachineDeploymentsStateMap) Upgrading(ctx context.Context, c client.Re
 	for _, md := range mds {
 		upgrading, err := md.IsUpgrading(ctx, c)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to list upgrading MachineDeployments")
+			return nil, pkgerrors.Wrap(err, "failed to list upgrading MachineDeployments")
 		}
 		if upgrading {
 			names = append(names, md.Object.Name)
@@ -112,7 +112,7 @@ func (mps MachinePoolsStateMap) Upgrading(ctx context.Context, c client.Reader) 
 	for _, mp := range mps {
 		upgrading, err := mp.IsUpgrading(ctx, c)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to list upgrading MachinePools")
+			return nil, pkgerrors.Wrap(err, "failed to list upgrading MachinePools")
 		}
 		if upgrading {
 			names = append(names, mp.Object.Name)

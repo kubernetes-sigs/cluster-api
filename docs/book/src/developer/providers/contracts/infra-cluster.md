@@ -83,8 +83,9 @@ The domain for Cluster API resources is `cluster.x-k8s.io`, and infrastructure p
 generally use `infrastructure.cluster.x-k8s.io` as API group.
 
 If your provider uses a different API group, you MUST grant full read/write RBAC permissions for resources in your API group
-to the Cluster API core controllers. The canonical way to do so is via a `ClusterRole` resource with the [aggregation label]
-`cluster.x-k8s.io/aggregate-to-manager: "true"`.
+to the Cluster API core controllers. If any resource sets another resource as the owner with `blockOwnerDeletion` set,
+additional RBAC to update finalizers on the **owner resource** is required.
+The canonical way to do so is via a `ClusterRole` resource with the [aggregation label] `cluster.x-k8s.io/aggregate-to-manager: "true"`.
 
 The following is an example ClusterRole for a `FooCluster` resource in the `infrastructure.foo.com` API group:
 
@@ -597,4 +598,4 @@ is implemented in InfraCluster controllers:
 [implementation best practices]: ../best-practices.md
 [infrastructure Provider Security Guidance]: ../security-guidelines.md
 [InfraCluster: pausing]: #infracluster-pausing
-[Cluster API v1.11 migration notes]: ../migrations/v1.10-to-v1.11.md
+[Cluster API v1.11 migration notes]: https://release-1-11.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.10-to-v1.11

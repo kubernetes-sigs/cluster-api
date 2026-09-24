@@ -17,7 +17,7 @@ limitations under the License.
 package repository
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -119,7 +119,7 @@ func NewTemplate(input TemplateInput) (Template, error) {
 	// Transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes).
 	objs, err := utilyaml.ToUnstructured(processedYaml)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse yaml")
+		return nil, pkgerrors.Wrap(err, "failed to parse yaml")
 	}
 
 	if input.TargetNamespace != "" {
@@ -128,7 +128,7 @@ func NewTemplate(input TemplateInput) (Template, error) {
 		// the clusterctl move operation (and also for many controller reconciliation loops).
 		objs, err = fixTargetNamespace(objs, input.TargetNamespace)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to set the TargetNamespace in the template")
+			return nil, pkgerrors.Wrap(err, "failed to set the TargetNamespace in the template")
 		}
 	}
 

@@ -9,7 +9,10 @@ prow_ignored:
       upgrades:
       - from: "1.29"
         to: "1.30"
-
+      other:
+        foo:
+        - from: "1.29"
+          to: "1.30"
   templates:
   - name: "test.yaml.tpl"
     template: "test-{{ .branch }}.yaml.tmp"

@@ -32,11 +32,11 @@ var _ = Describe("When using the autoscaler with Cluster API using ClusterClass 
 			BootstrapClusterProxy:                 bootstrapClusterProxy,
 			ArtifactFolder:                        artifactFolder,
 			SkipCleanup:                           skipCleanup,
-			InfrastructureMachineTemplateKind:     "dockermachinetemplates",
-			InfrastructureMachinePoolTemplateKind: "dockermachinepooltemplates",
-			InfrastructureMachinePoolKind:         "dockermachinepools",
+			InfrastructureMachineTemplateKind:     "devmachinetemplates",
+			InfrastructureMachinePoolTemplateKind: "devmachinepooltemplates",
+			InfrastructureMachinePoolKind:         "devmachinepools",
 			Flavor:                                ptr.To("topology-autoscaler"),
-			AutoscalerVersion:                     "v1.35.0",
+			AutoscalerVersion:                     "v1.36.0",
 			ScaleToAndFromZero:                    true,
 		}
 	})

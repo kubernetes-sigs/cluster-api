@@ -21,9 +21,9 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -38,7 +38,7 @@ type ObjectTracker struct {
 	m sync.Map
 
 	Controller      controller.Controller
-	Cache           cache.Cache
+	Cache           ctrlcache.Cache
 	Scheme          *runtime.Scheme
 	PredicateLogger *logr.Logger
 }
@@ -46,7 +46,7 @@ type ObjectTracker struct {
 // Watch uses the controller to issue a Watch only if the object hasn't been seen before.
 func (o *ObjectTracker) Watch(log logr.Logger, obj client.Object, handler handler.EventHandler, p ...predicate.Predicate) error {
 	if o.Controller == nil || o.Cache == nil || o.Scheme == nil || o.PredicateLogger == nil {
-		return errors.New("all of Controller, Cache, Scheme and PredicateLogger must be set for object tracker")
+		return pkgerrors.New("all of Controller, Cache, Scheme and PredicateLogger must be set for object tracker")
 	}
 
 	gvk := obj.GetObjectKind().GroupVersionKind()
@@ -64,7 +64,7 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj client.Object, handler handle
 	))
 	if err != nil {
 		o.m.Delete(key)
-		return errors.Wrapf(err, "failed to add watch on external object %q", gvk.String())
+		return pkgerrors.Wrapf(err, "failed to add watch on external object %q", gvk.String())
 	}
 	return nil
 }

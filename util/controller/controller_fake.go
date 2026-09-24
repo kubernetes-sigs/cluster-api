@@ -21,19 +21,24 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func NewFakeController() *FakeController {
 	return &FakeController{
-		Deferrals: map[reconcile.Request]time.Time{},
+		Deferrals:                   map[reconcile.Request]time.Time{},
+		DeferralsUntilCacheUpToDate: map[reconcile.Request]bool{},
 	}
 }
 
+var _ Controller = &FakeController{}
+
 type FakeController struct {
 	controller.Controller
-	Deferrals map[reconcile.Request]time.Time
+	Deferrals                   map[reconcile.Request]time.Time
+	DeferralsUntilCacheUpToDate map[reconcile.Request]bool
 }
 
 func (f *FakeController) DeferNextReconcile(req reconcile.Request, reconcileAfter time.Time) {
@@ -45,3 +50,11 @@ func (f *FakeController) DeferNextReconcileForObject(obj metav1.Object, reconcil
 		NamespacedName: types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()},
 	}] = reconcileAfter
 }
+
+func (f *FakeController) DeferNextReconcileUntilCacheUpToDate(obj metav1.Object, _ GroupVersionKindType, _ string) {
+	f.DeferralsUntilCacheUpToDate[reconcile.Request{
+		NamespacedName: types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()},
+	}] = true
+}
+
+func (f *FakeController) ClearConsistencyStore(_ client.ObjectKey, _ types.UID) {}

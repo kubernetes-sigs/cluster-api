@@ -63,30 +63,4 @@ func TestBootstrap(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal("fake-data-secret-name"))
 	})
-	t.Run("Manages optional status.failureReason", func(t *testing.T) {
-		g := NewWithT(t)
-
-		g.Expect(Bootstrap().FailureReason().Path()).To(Equal(Path{"status", "failureReason"}))
-
-		err := Bootstrap().FailureReason().Set(obj, "fake-reason")
-		g.Expect(err).ToNot(HaveOccurred())
-
-		got, err := Bootstrap().FailureReason().Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal("fake-reason"))
-	})
-	t.Run("Manages optional status.failureMessage", func(t *testing.T) {
-		g := NewWithT(t)
-
-		g.Expect(Bootstrap().FailureMessage().Path()).To(Equal(Path{"status", "failureMessage"}))
-
-		err := Bootstrap().FailureMessage().Set(obj, "fake-message")
-		g.Expect(err).ToNot(HaveOccurred())
-
-		got, err := Bootstrap().FailureMessage().Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal("fake-message"))
-	})
 }

@@ -26,6 +26,26 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
+// AddLabels sets the desired labels on the object and returns true if the labels have changed.
+func AddLabels(o metav1.Object, desired map[string]string) bool {
+	if len(desired) == 0 {
+		return false
+	}
+	labels := o.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	hasChanged := false
+	for k, v := range desired {
+		if cur, ok := labels[k]; !ok || cur != v {
+			labels[k] = v
+			hasChanged = true
+		}
+	}
+	o.SetLabels(labels)
+	return hasChanged
+}
+
 // IsTopologyOwned returns true if the object has the `topology.cluster.x-k8s.io/owned` label.
 func IsTopologyOwned(o metav1.Object) bool {
 	_, ok := o.GetLabels()[clusterv1.ClusterTopologyOwnedLabel]

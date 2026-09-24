@@ -17,7 +17,7 @@ limitations under the License.
 package test
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // FakeVariableClient provides a VariableClient backed by a map.
@@ -29,7 +29,7 @@ func (f FakeVariableClient) Get(key string) (string, error) {
 	if val, ok := f.variables[key]; ok {
 		return val, nil
 	}
-	return "", errors.Errorf("value for variable %q is not set", key)
+	return "", pkgerrors.Errorf("value for variable %q is not set", key)
 }
 
 func (f FakeVariableClient) Set(key, value string) {

@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -252,20 +252,19 @@ func retryWithExponentialBackoff(ctx context.Context, opts wait.Backoff, operati
 		return true, nil
 	})
 	if err != nil {
-		return errors.Wrapf(err, "action failed after %d attempts", i)
+		return pkgerrors.Wrapf(err, "action failed after %d attempts", i)
 	}
 	return nil
 }
 
 // newWriteBackoff creates a new API Machinery backoff parameter set suitable for use with clusterctl write operations.
 func newWriteBackoff() wait.Backoff {
-	// Return a exponential backoff configuration which returns durations for a total time of ~40s.
-	// Example: 0, .5s, 1.2s, 2.3s, 4s, 6s, 10s, 16s, 24s, 37s
+	// Return a exponential backoff configuration which returns durations for a total time of ~159s.
 	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
 	return wait.Backoff{
 		Duration: 500 * time.Millisecond,
 		Factor:   1.5,
-		Steps:    10,
+		Steps:    13,
 		Jitter:   0.4,
 	}
 }

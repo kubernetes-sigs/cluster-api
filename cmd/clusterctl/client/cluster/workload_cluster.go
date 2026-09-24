@@ -19,7 +19,7 @@ package cluster
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	utilkubeconfig "sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -55,7 +55,7 @@ func (p *workloadCluster) GetKubeconfig(ctx context.Context, workloadClusterName
 	}
 	dataBytes, err := utilkubeconfig.FromSecret(ctx, cs, obj)
 	if err != nil {
-		return "", errors.Wrapf(err, "\"%s-kubeconfig\" not found in namespace %q", workloadClusterName, namespace)
+		return "", pkgerrors.Wrapf(err, "\"%s-kubeconfig\" not found in namespace %q", workloadClusterName, namespace)
 	}
 	return string(dataBytes), nil
 }

@@ -19,7 +19,7 @@ package repository
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
@@ -63,7 +63,7 @@ func (cc *clusterClassClient) Get(ctx context.Context, name, targetNamespace str
 	log := logf.Log
 
 	if targetNamespace == "" {
-		return nil, errors.New("invalid arguments: please provide a targetNamespace")
+		return nil, pkgerrors.New("invalid arguments: please provide a targetNamespace")
 	}
 
 	version := cc.version
@@ -84,7 +84,7 @@ func (cc *clusterClassClient) Get(ctx context.Context, name, targetNamespace str
 		log.V(5).Info("Fetching", "file", filename, "provider", cc.provider.Name(), "type", cc.provider.Type(), "version", version)
 		rawArtifact, err = cc.repository.GetFile(ctx, version, filename)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", filename, cc.provider.ManifestLabel())
+			return nil, pkgerrors.Wrapf(err, "failed to read %q from provider's repository %q", filename, cc.provider.ManifestLabel())
 		}
 	} else {
 		log.V(1).Info("Using", "override", filename, "provider", cc.provider.ManifestLabel(), "version", version)

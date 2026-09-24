@@ -19,15 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # tag=v6.0.2
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # tag=v7.0.1
     - name: Calculate go version
       id: vars
       run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT
     - name: Set up Go
-      uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # tag=v6.3.0
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # tag=v7.0.0
       with:
         go-version: ${{ steps.vars.outputs.go_version }}
-    - uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # tag=v5.0.3
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # tag=v6.1.0
       name: Restore go cache
       with:
         path: |
@@ -40,7 +40,7 @@ jobs:
       run: make generate-modules
     - name: Update generated code
       run: make generate
-    - uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # tag=v9.1.4
+    - uses: EndBug/add-and-commit@cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8 # tag=v11.1.1
       name: Commit changes
       with:
         author_name: dependabot[bot]

@@ -539,10 +539,10 @@ func sendSignalToBootstrappingMachine(ctx context.Context, input sendSignalToBoo
 	Expect(input.Client.Patch(ctx, cmWithSignal, client.MergeFrom(cm))).To(Succeed(), "failed to patch mhc-test config map")
 
 	log.Logf("Waiting for Machine %s to acknowledge signal %s has been received", input.Machine, input.Signal)
-	Eventually(func() string {
-		_ = input.Client.Get(ctx, client.ObjectKeyFromObject(cmWithSignal), cmWithSignal)
-		return cmWithSignal.Data[configMapDataKey]
-	}, "1m", "10s").Should(Equal(fmt.Sprintf("ack-%s", input.Signal)), "Failed to get ack signal from machine %s", input.Machine)
+	Eventually(func(g Gomega) {
+		g.Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(cmWithSignal), cmWithSignal)).To(Succeed())
+		g.Expect(cmWithSignal.Data).To(HaveKeyWithValue(configMapDataKey, fmt.Sprintf("ack-%s", input.Signal)))
+	}, "1m", "10s").Should(Succeed(), "Failed to get ack signal from machine %s", input.Machine)
 
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -552,9 +552,10 @@ func sendSignalToBootstrappingMachine(ctx context.Context, input sendSignalToBoo
 	}
 	Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(machine), machine)).To(Succeed())
 
-	// Resetting the signal in the config map
+	// Resetting the signal in the config map.
+	cmWithSignalBase := cmWithSignal.DeepCopy()
 	cmWithSignal.Data[configMapDataKey] = "hold"
-	Expect(input.Client.Patch(ctx, cmWithSignal, client.MergeFrom(cm))).To(Succeed(), "failed to patch mhc-test config map")
+	Expect(input.Client.Patch(ctx, cmWithSignal, client.MergeFrom(cmWithSignalBase))).To(Succeed(), "failed to patch mhc-test config map")
 }
 
 type waitForMachinesInput struct {

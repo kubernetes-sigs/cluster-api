@@ -1,0 +1,686 @@
+/*
+Copyright 2025 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package machine
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/core/setup"
+	"sigs.k8s.io/cluster-api/feature"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/util/cache"
+	"sigs.k8s.io/cluster-api/util/test/builder"
+)
+
+func TestReconcileInPlaceUpdate(t *testing.T) {
+	infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
+	bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
+
+	tests := []struct {
+		name                  string
+		featureEnabled        bool
+		machine               *clusterv1.Machine
+		infraMachine          contractapi.InfraMachine
+		bootstrapConfig       contractapi.BootstrapConfig
+		updateMachineResponse *runtimehooksv1.UpdateMachineResponse
+		wantResult            ctrl.Result
+		wantErr               bool
+		wantErrContains       string
+		wantReason            string
+		wantMessage           string
+		verify                func(*testing.T, *WithT, context.Context, *Reconciler, *scope)
+	}{
+		{
+			name:           "feature gate disabled returns immediately",
+			featureEnabled: false,
+			machine:        newTestMachine(),
+			wantResult:     ctrl.Result{},
+		},
+		{
+			name:           "cleans up orphaned hook and annotations",
+			featureEnabled: true,
+			machine: func() *clusterv1.Machine {
+				machine := newTestMachine()
+				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
+				return machine
+			}(),
+			infraMachine: func() contractapi.InfraMachine {
+				infra := newTestInfraMachine("infra")
+				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
+				return infra
+			}(),
+			bootstrapConfig: func() contractapi.BootstrapConfig {
+				bootstrap := newTestBootstrapConfig("bootstrap")
+				bootstrap.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
+				return bootstrap
+			}(),
+			wantResult: ctrl.Result{},
+			verify: func(t *testing.T, g *WithT, ctx context.Context, r *Reconciler, s *scope) {
+				t.Helper()
+
+				updatedMachine := &clusterv1.Machine{}
+				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.machine), updatedMachine)).To(Succeed())
+				g.Expect(updatedMachine.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation))
+
+				updatedInfra := &unstructured.Unstructured{}
+				updatedInfra.SetGroupVersionKind(s.infraMachineGVK)
+				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.infraMachine), updatedInfra)).To(Succeed())
+				g.Expect(updatedInfra.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+
+				if s.bootstrapConfig != nil {
+					updatedBootstrap := &unstructured.Unstructured{}
+					updatedBootstrap.SetGroupVersionKind(s.bootstrapConfigGVK)
+					g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.bootstrapConfig), updatedBootstrap)).To(Succeed())
+					g.Expect(updatedBootstrap.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+				}
+			},
+		},
+		{
+			name:           "waits for pending hook to be marked",
+			featureEnabled: true,
+			machine: func() *clusterv1.Machine {
+				machine := newTestMachine()
+				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+				return machine
+			}(),
+			wantResult: ctrl.Result{},
+		},
+		{
+			name:           "fails when infra machine is missing",
+			featureEnabled: true,
+			machine: func() *clusterv1.Machine {
+				machine := newTestMachine()
+				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
+				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
+				return machine
+			}(),
+			wantResult:      ctrl.Result{},
+			wantErr:         true,
+			wantErrContains: "InfraMachine not found",
+			wantReason:      clusterv1.MachineInPlaceUpdateFailedReason,
+			wantMessage:     "In-place update not possible: InfraMachine not found",
+		},
+		{
+			name:           "requeues while UpdateMachine hook is in progress",
+			featureEnabled: true,
+			machine: func() *clusterv1.Machine {
+				machine := newTestMachine()
+				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
+				machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraMachineGVK.Group,
+					Kind:     infraMachineGVK.Kind,
+					Name:     "infra",
+				}
+				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
+				return machine
+			}(),
+			infraMachine: func() contractapi.InfraMachine {
+				infra := newTestInfraMachine("infra")
+				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
+				return infra
+			}(),
+			updateMachineResponse: &runtimehooksv1.UpdateMachineResponse{
+				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status:  runtimehooksv1.ResponseStatusSuccess,
+						Message: "processing",
+					},
+					RetryAfterSeconds: 30,
+				},
+			},
+			wantResult:  ctrl.Result{RequeueAfter: 30 * time.Second},
+			wantReason:  clusterv1.MachineInPlaceUpdatingReason,
+			wantMessage: "In-place update in progress (affects availability): processing",
+		},
+		{
+			name:           "requeues while UpdateMachine hook is in progress (does not affect availability)",
+			featureEnabled: true,
+			machine: func() *clusterv1.Machine {
+				machine := newTestMachine()
+				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = "{\"affectsAvailability\":false}"
+				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
+				machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraMachineGVK.Group,
+					Kind:     infraMachineGVK.Kind,
+					Name:     "infra",
+				}
+				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
+				return machine
+			}(),
+			infraMachine: func() contractapi.InfraMachine {
+				infra := newTestInfraMachine("infra")
+				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
+				return infra
+			}(),
+			updateMachineResponse: &runtimehooksv1.UpdateMachineResponse{
+				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status:  runtimehooksv1.ResponseStatusSuccess,
+						Message: "processing",
+					},
+					RetryAfterSeconds: 30,
+				},
+			},
+			wantResult:  ctrl.Result{RequeueAfter: 30 * time.Second},
+			wantReason:  clusterv1.MachineInPlaceUpdatingReason,
+			wantMessage: "In-place update in progress (does not affect availability): processing",
+		},
+		{
+			name:           "completes successfully and cleans annotations",
+			featureEnabled: true,
+			machine: func() *clusterv1.Machine {
+				machine := newTestMachine()
+				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
+				machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraMachineGVK.Group,
+					Kind:     infraMachineGVK.Kind,
+					Name:     "infra",
+				}
+				machine.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{
+					APIGroup: bootstrapConfigGVK.Group,
+					Kind:     bootstrapConfigGVK.Kind,
+					Name:     "bootstrap",
+				}
+				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
+				return machine
+			}(),
+			infraMachine: func() contractapi.InfraMachine {
+				infra := newTestInfraMachine("infra")
+				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
+				return infra
+			}(),
+			bootstrapConfig: func() contractapi.BootstrapConfig {
+				bootstrap := newTestBootstrapConfig("bootstrap")
+				bootstrap.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
+				return bootstrap
+			}(),
+			updateMachineResponse: &runtimehooksv1.UpdateMachineResponse{
+				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status:  runtimehooksv1.ResponseStatusSuccess,
+						Message: "done",
+					},
+					RetryAfterSeconds: 0,
+				},
+			},
+			wantResult: ctrl.Result{},
+			verify: func(t *testing.T, g *WithT, ctx context.Context, r *Reconciler, s *scope) {
+				t.Helper()
+
+				updatedMachine := &clusterv1.Machine{}
+				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.machine), updatedMachine)).To(Succeed())
+				g.Expect(updatedMachine.Annotations).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+				g.Expect(updatedMachine.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation))
+
+				updatedInfra := &unstructured.Unstructured{}
+				updatedInfra.SetGroupVersionKind(s.infraMachineGVK)
+				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.infraMachine), updatedInfra)).To(Succeed())
+				g.Expect(updatedInfra.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+
+				if s.bootstrapConfig != nil {
+					updatedBootstrap := &unstructured.Unstructured{}
+					updatedBootstrap.SetGroupVersionKind(s.bootstrapConfigGVK)
+					g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.bootstrapConfig), updatedBootstrap)).To(Succeed())
+					g.Expect(updatedBootstrap.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, tt.featureEnabled)
+
+			scheme := runtime.NewScheme()
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			scheme.AddKnownTypeWithName(infraMachineGVK, &contractv1.InfraMachine{})
+			scheme.AddKnownTypeWithName(bootstrapConfigGVK, &contractv1.BootstrapConfig{})
+			var objects []ctrlclient.Object
+			if tt.machine != nil {
+				objects = append(objects, tt.machine)
+			}
+			if tt.infraMachine != nil {
+				objects = append(objects, tt.infraMachine, builder.GenericInfrastructureMachineCRD.DeepCopy())
+			}
+			if tt.bootstrapConfig != nil {
+				objects = append(objects, tt.bootstrapConfig, builder.GenericBootstrapConfigCRD.DeepCopy())
+			}
+
+			var runtimeClient *fakeruntimeclient.RuntimeClient
+			if tt.updateMachineResponse != nil {
+				catalog := runtimecatalog.New()
+				g.Expect(runtimehooksv1.AddToCatalog(catalog)).To(Succeed())
+				updateGVH, err := catalog.GroupVersionHook(runtimehooksv1.UpdateMachine)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				runtimeClient = fakeruntimeclient.NewRuntimeClientBuilder().
+					WithCatalog(catalog).
+					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
+						updateGVH: {"test-extension"},
+					}).
+					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+						updateGVH: tt.updateMachineResponse,
+					}).
+					Build()
+			}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			r := &Reconciler{
+				Client:               fakeClient,
+				APIReader:            fakeClient,
+				DynamicCache:         dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
+				RuntimeClient:        runtimeClient,
+				hookCache:            cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+				externalObjectsCache: cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour),
+			}
+			s := &scope{
+				machine:            tt.machine,
+				infraMachine:       tt.infraMachine,
+				infraMachineGVK:    infraMachineGVK,
+				bootstrapConfig:    tt.bootstrapConfig,
+				bootstrapConfigGVK: bootstrapConfigGVK,
+			}
+
+			result, err := r.reconcileInPlaceUpdate(t.Context(), s)
+
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				if tt.wantErrContains != "" {
+					g.Expect(err.Error()).To(ContainSubstring(tt.wantErrContains))
+				}
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			g.Expect(result).To(Equal(tt.wantResult))
+			g.Expect(s.updatingReason).To(Equal(tt.wantReason))
+			g.Expect(s.updatingMessage).To(Equal(tt.wantMessage))
+
+			if tt.verify != nil {
+				tt.verify(t, g, ctx, r, s)
+			}
+		})
+	}
+}
+
+func TestCallUpdateMachineHook(t *testing.T) {
+	catalog := runtimecatalog.New()
+	if err := runtimehooksv1.AddToCatalog(catalog); err != nil {
+		t.Fatalf("failed to add hooks to catalog: %v", err)
+	}
+	updateGVH, err := catalog.GroupVersionHook(runtimehooksv1.UpdateMachine)
+	if err != nil {
+		t.Fatalf("failed to determine UpdateMachine hook: %v", err)
+	}
+
+	tests := []struct {
+		name                      string
+		getAllExtensionResponses  map[runtimecatalog.GroupVersionHook][]string
+		callAllExtensionResponses map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject
+		wantResult                ctrl.Result
+		wantMessage               string
+		wantErr                   bool
+		wantErrSubstrings         []string
+		wantHookCacheEntry        *cache.HookEntry
+	}{
+		{
+			name:                     "fails if no extensions registered",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{},
+			wantErr:                  true,
+			wantErrSubstrings:        []string{"no extensions registered for UpdateMachine hook"},
+		},
+		{
+			name: "fails if multiple extensions registered",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext-a", "ext-b"},
+			},
+			wantErr:           true,
+			wantErrSubstrings: []string{"found multiple UpdateMachine hooks (ext-a,ext-b): only one hook is supported"},
+		},
+		{
+			name: "fails when hook invocation returns error",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callAllExtensionResponses: map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+				updateGVH: &runtimehooksv1.UpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusFailure},
+					},
+				},
+			},
+			wantErr:           true,
+			wantErrSubstrings: []string{"runtime hook", "UpdateMachine", "failed"},
+		},
+		{
+			name: "returns requeue when hook succeeds with retry",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callAllExtensionResponses: map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+				updateGVH: &runtimehooksv1.UpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						CommonResponse: runtimehooksv1.CommonResponse{
+							Status:  runtimehooksv1.ResponseStatusSuccess,
+							Message: "processing",
+						},
+						RetryAfterSeconds: 45,
+					},
+				},
+			},
+			wantResult:  ctrl.Result{RequeueAfter: 45 * time.Second},
+			wantMessage: "processing",
+			wantHookCacheEntry: ptr.To(cache.NewHookEntry(newTestMachine(), runtimehooksv1.UpdateMachine,
+				time.Now().Add(45*time.Second), "processing")),
+		},
+		{
+			name: "returns message when hook succeeds",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callAllExtensionResponses: map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+				updateGVH: &runtimehooksv1.UpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						CommonResponse: runtimehooksv1.CommonResponse{
+							Status:  runtimehooksv1.ResponseStatusSuccess,
+							Message: "done",
+						},
+					},
+				},
+			},
+			wantResult:  ctrl.Result{},
+			wantMessage: "done",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCatalog(catalog).
+				WithGetAllExtensionResponses(tt.getAllExtensionResponses).
+				WithCallAllExtensionResponses(tt.callAllExtensionResponses).
+				Build()
+
+			r := &Reconciler{
+				RuntimeClient:        runtimeClient,
+				hookCache:            cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+				externalObjectsCache: cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour),
+			}
+			infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
+			bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
+
+			scope := &scope{
+				machine:            newTestMachine(),
+				infraMachine:       newTestInfraMachine("infra"),
+				infraMachineGVK:    infraMachineGVK,
+				bootstrapConfig:    newTestBootstrapConfig("bootstrap"),
+				bootstrapConfigGVK: bootstrapConfigGVK,
+			}
+			// Note: Warm up the externalObjectsCache to also test the code path with a warmed up cache.
+			// Without a cache hit callUpdateMachineHook below would fail because Reconciler.APIReader is not set.
+			// TestReconcileInPlaceUpdate in contrast is testing the code path with an empty cache.
+			infraMachineUnstructured := newTestUnstructured(scope.infraMachineGVK, scope.infraMachine.GetName())
+			infraMachineUnstructured.SetResourceVersion(scope.infraMachine.GetResourceVersion())
+			r.externalObjectsCache.Add(externalObjectsCacheEntry{obj: infraMachineUnstructured})
+			bootstrapConfigUnstructured := newTestUnstructured(scope.bootstrapConfigGVK, scope.bootstrapConfig.GetName())
+			bootstrapConfigUnstructured.SetResourceVersion(scope.bootstrapConfig.GetResourceVersion())
+			r.externalObjectsCache.Add(externalObjectsCacheEntry{obj: bootstrapConfigUnstructured})
+
+			result, message, err := r.callUpdateMachineHook(t.Context(), scope)
+
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				for _, substr := range tt.wantErrSubstrings {
+					g.Expect(err.Error()).To(ContainSubstring(substr))
+				}
+				return
+			}
+
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(result).To(Equal(tt.wantResult))
+			g.Expect(message).To(Equal(tt.wantMessage))
+
+			if tt.wantHookCacheEntry != nil {
+				// Verify the cache entry.
+				cacheEntry, ok := r.hookCache.Has(tt.wantHookCacheEntry.Key())
+				g.Expect(ok).To(BeTrue())
+				g.Expect(cacheEntry.ObjectKey).To(Equal(tt.wantHookCacheEntry.ObjectKey))
+				g.Expect(cacheEntry.HookName).To(Equal(tt.wantHookCacheEntry.HookName))
+				g.Expect(cacheEntry.ReconcileAfter).To(BeTemporally("~", tt.wantHookCacheEntry.ReconcileAfter, 5*time.Second))
+				g.Expect(cacheEntry.ResponseMessage).To(Equal(tt.wantHookCacheEntry.ResponseMessage))
+
+				// Call callUpdateMachineHook again and verify the cache hit.
+				secondResult, message, err := r.callUpdateMachineHook(context.Background(), scope)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(message).To(Equal(tt.wantHookCacheEntry.ResponseMessage))
+				// RequeueAfter should be now < then the previous RequeueAfter.
+				g.Expect(secondResult.RequeueAfter).To(BeNumerically("<", result.RequeueAfter))
+			} else {
+				g.Expect(r.hookCache.Len()).To(Equal(0))
+			}
+		})
+	}
+}
+
+func TestRemoveInPlaceUpdateAnnotation(t *testing.T) {
+	tests := []struct {
+		name        string
+		annotations map[string]string
+	}{
+		{
+			name: "removes annotation when present",
+			annotations: map[string]string{
+				clusterv1.UpdateInProgressAnnotation: "",
+			},
+		},
+		{
+			name:        "no-op when annotation missing",
+			annotations: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+			machine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "machine",
+					Namespace:   "default",
+					Annotations: tt.annotations,
+				},
+			}
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine).Build()
+
+			r := &Reconciler{Client: client}
+
+			g.Expect(r.removeInPlaceUpdateAnnotation(t.Context(), client, "Machine", machine)).To(Succeed())
+
+			g.Expect(client.Get(ctx, ctrlclient.ObjectKeyFromObject(machine), machine)).To(Succeed())
+			g.Expect(machine.Annotations).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+		})
+	}
+}
+
+func TestCompleteInPlaceUpdate_MissingInfra(t *testing.T) {
+	g := NewWithT(t)
+
+	scheme := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("failed to add clusterv1 to scheme: %v", err)
+	}
+
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "machine",
+			Namespace:   "default",
+			Annotations: map[string]string{},
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine).Build()
+
+	r := &Reconciler{Client: client}
+	scope := &scope{machine: machine, infraMachine: nil}
+
+	err := r.completeInPlaceUpdate(context.Background(), scope)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestCleanupMachine(t *testing.T) {
+	g := NewWithT(t)
+
+	original := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "machine",
+			Namespace:   "default",
+			Labels:      map[string]string{"key": "value"},
+			Annotations: map[string]string{"anno": "value"},
+		},
+	}
+	original.Status.Phase = "Running"
+
+	cleaned := cleanupMachine(original)
+
+	g.Expect(cleaned.APIVersion).To(Equal(clusterv1.GroupVersion.String()))
+	g.Expect(cleaned.Kind).To(Equal("Machine"))
+	g.Expect(cleaned.Name).To(Equal("machine"))
+	g.Expect(cleaned.Namespace).To(Equal("default"))
+	g.Expect(cleaned.Labels).To(HaveKeyWithValue("key", "value"))
+	g.Expect(cleaned.Annotations).To(HaveKeyWithValue("anno", "value"))
+	g.Expect(cleaned.Status).To(BeZero())
+}
+
+func TestCleanupUnstructured(t *testing.T) {
+	g := NewWithT(t)
+
+	original := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	original.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1beta2")
+	original.SetKind("GenericInfrastructureMachine")
+	original.SetName("infra")
+	original.SetNamespace("default")
+	original.SetLabels(map[string]string{"key": "value"})
+	original.SetAnnotations(map[string]string{"anno": "value"})
+	original.Object["spec"] = map[string]interface{}{"field": "value"}
+	original.Object["status"] = map[string]interface{}{"state": "ready"}
+
+	cleaned := cleanupUnstructured(original)
+
+	g.Expect(cleaned.GetAPIVersion()).To(Equal(original.GetAPIVersion()))
+	g.Expect(cleaned.GetKind()).To(Equal(original.GetKind()))
+	g.Expect(cleaned.GetName()).To(Equal(original.GetName()))
+	g.Expect(cleaned.GetNamespace()).To(Equal(original.GetNamespace()))
+	g.Expect(cleaned.GetLabels()).To(HaveKeyWithValue("key", "value"))
+	g.Expect(cleaned.GetAnnotations()).To(HaveKeyWithValue("anno", "value"))
+
+	spec, found, err := unstructured.NestedMap(cleaned.Object, "spec")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(found).To(BeTrue())
+	g.Expect(spec).To(HaveKeyWithValue("field", "value"))
+
+	_, found, err = unstructured.NestedFieldCopy(cleaned.Object, "status")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(found).To(BeFalse())
+}
+
+func newTestMachine() *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "machine",
+			Namespace:   "default",
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
+		},
+		Spec: clusterv1.MachineSpec{},
+	}
+}
+
+func newTestInfraMachine(name string) contractapi.InfraMachine {
+	return &contractv1.InfraMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       "default",
+			Name:            name,
+			ResourceVersion: "2",
+		},
+		Spec: contractv1.InfraMachineSpec{
+			ProviderID: "provider-id",
+		},
+	}
+}
+
+func newTestBootstrapConfig(name string) contractapi.BootstrapConfig {
+	return &contractv1.BootstrapConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       "default",
+			Name:            name,
+			ResourceVersion: "3",
+		},
+		Status: contractv1.BootstrapConfigStatus{
+			DataSecretName: "data-secret-name",
+		},
+	}
+}
+
+func newTestUnstructured(gvk schema.GroupVersionKind, name string) *unstructured.Unstructured {
+	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	u.SetAPIVersion(gvk.GroupVersion().String())
+	u.SetKind(gvk.Kind)
+	u.SetNamespace("default")
+	u.SetName(name)
+	u.SetLabels(map[string]string{})
+	u.SetAnnotations(map[string]string{})
+	u.Object["spec"] = map[string]interface{}{"field": "value"}
+	return u
+}

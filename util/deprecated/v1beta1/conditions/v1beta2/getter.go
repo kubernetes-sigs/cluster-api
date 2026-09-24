@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -97,7 +97,7 @@ func IsUnknown(from Getter, conditionType string) bool {
 //   - Objects with metav1.Condition in status.conditions
 func UnstructuredGetAll(sourceObj runtime.Unstructured) ([]metav1.Condition, error) {
 	if util.IsNil(sourceObj) {
-		return nil, errors.New("sourceObj is nil")
+		return nil, pkgerrors.New("sourceObj is nil")
 	}
 
 	ownerInfo := getConditionOwnerInfo(sourceObj)
@@ -107,7 +107,7 @@ func UnstructuredGetAll(sourceObj runtime.Unstructured) ([]metav1.Condition, err
 		if conditions, ok := value.([]interface{}); ok {
 			r, err := convertFromUnstructuredConditions(conditions)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to convert status.v1beta2.conditions from %s to []metav1.Condition", ownerInfo.Kind)
+				return nil, pkgerrors.Wrapf(err, "failed to convert status.v1beta2.conditions from %s to []metav1.Condition", ownerInfo.Kind)
 			}
 			return r, nil
 		}
@@ -118,7 +118,7 @@ func UnstructuredGetAll(sourceObj runtime.Unstructured) ([]metav1.Condition, err
 		if conditions, ok := value.([]interface{}); ok {
 			r, err := convertFromUnstructuredConditions(conditions)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to convert status.conditions from %s to []metav1.Condition", ownerInfo.Kind)
+				return nil, pkgerrors.Wrapf(err, "failed to convert status.conditions from %s to []metav1.Condition", ownerInfo.Kind)
 			}
 			return r, nil
 		}
@@ -178,7 +178,7 @@ func convertFromUnstructuredConditions(conditions []interface{}) ([]metav1.Condi
 		var lastTransitionTime metav1.Time
 		if v, ok := cMap["lastTransitionTime"]; ok && v != nil && v.(string) != "" {
 			if err := lastTransitionTime.UnmarshalQueryParameter(v.(string)); err != nil {
-				return nil, errors.Wrapf(err, "failed to unmarshal lastTransitionTime value: %s", v)
+				return nil, pkgerrors.Wrapf(err, "failed to unmarshal lastTransitionTime value: %s", v)
 			}
 		}
 
@@ -214,16 +214,16 @@ func convertFromUnstructuredConditions(conditions []interface{}) ([]metav1.Condi
 // also, only a few, minimal rules are enforced, just enough to allow surfacing a condition from a providers object with Mirror.
 func validateAndFixConvertedCondition(c *metav1.Condition) error {
 	if c.Type == "" {
-		return errors.New("type must be set for all conditions")
+		return pkgerrors.New("type must be set for all conditions")
 	}
 	if c.Status == "" {
-		return errors.Errorf("status must be set for the %s condition", c.Type)
+		return pkgerrors.Errorf("status must be set for the %s condition", c.Type)
 	}
 	switch c.Status {
 	case metav1.ConditionFalse, metav1.ConditionTrue, metav1.ConditionUnknown:
 		break
 	default:
-		return errors.Errorf("status for the %s condition must be one of %s, %s, %s", c.Type, metav1.ConditionTrue, metav1.ConditionFalse, metav1.ConditionUnknown)
+		return pkgerrors.Errorf("status for the %s condition must be one of %s, %s, %s", c.Type, metav1.ConditionTrue, metav1.ConditionFalse, metav1.ConditionUnknown)
 	}
 	if c.Reason == "" {
 		c.Reason = NoReasonReported

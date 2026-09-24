@@ -5,7 +5,6 @@ bin/
 **/*.yaml
 hack/
 docs/
-logos/
 scripts/
 **/*.md
 tilt-settings.json

@@ -161,8 +161,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1beta1_StructWithOnlyOptionalFields_To_v1beta2_StructWithOnlyOptionalFields(in *StructWithOnlyOptionalFields, out *v1beta2.StructWithOnlyOptionalFields, s conversion.Scope) error {
-	out.A = in.A
-	out.B = in.B
+	*out = *(*v1beta2.StructWithOnlyOptionalFields)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -172,8 +171,7 @@ func Convert_v1beta1_StructWithOnlyOptionalFields_To_v1beta2_StructWithOnlyOptio
 }
 
 func autoConvert_v1beta2_StructWithOnlyOptionalFields_To_v1beta1_StructWithOnlyOptionalFields(in *v1beta2.StructWithOnlyOptionalFields, out *StructWithOnlyOptionalFields, s conversion.Scope) error {
-	out.A = in.A
-	out.B = in.B
+	*out = *(*StructWithOnlyOptionalFields)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -183,9 +181,7 @@ func Convert_v1beta2_StructWithOnlyOptionalFields_To_v1beta1_StructWithOnlyOptio
 }
 
 func autoConvert_v1beta1_TestContractVersionedObjectReference_To_v1beta2_TestContractVersionedObjectReference(in *TestContractVersionedObjectReference, out *v1beta2.TestContractVersionedObjectReference, s conversion.Scope) error {
-	out.Kind = in.Kind
-	out.Name = in.Name
-	out.APIGroup = in.APIGroup
+	*out = *(*v1beta2.TestContractVersionedObjectReference)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -195,9 +191,7 @@ func Convert_v1beta1_TestContractVersionedObjectReference_To_v1beta2_TestContrac
 }
 
 func autoConvert_v1beta2_TestContractVersionedObjectReference_To_v1beta1_TestContractVersionedObjectReference(in *v1beta2.TestContractVersionedObjectReference, out *TestContractVersionedObjectReference, s conversion.Scope) error {
-	out.Kind = in.Kind
-	out.Name = in.Name
-	out.APIGroup = in.APIGroup
+	*out = *(*TestContractVersionedObjectReference)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -275,10 +269,7 @@ func Convert_v1beta2_TestResourceList_To_v1beta1_TestResourceList(in *v1beta2.Te
 }
 
 func autoConvert_v1beta1_TestResourceMachineTemplate_To_v1beta2_TestResourceMachineTemplate(in *TestResourceMachineTemplate, out *v1beta2.TestResourceMachineTemplate, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_TestResourceMachineTemplateSpec_To_v1beta2_TestResourceMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.TestResourceMachineTemplate)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -288,10 +279,7 @@ func Convert_v1beta1_TestResourceMachineTemplate_To_v1beta2_TestResourceMachineT
 }
 
 func autoConvert_v1beta2_TestResourceMachineTemplate_To_v1beta1_TestResourceMachineTemplate(in *v1beta2.TestResourceMachineTemplate, out *TestResourceMachineTemplate, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta2_TestResourceMachineTemplateSpec_To_v1beta1_TestResourceMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
+	*out = *(*TestResourceMachineTemplate)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -301,9 +289,7 @@ func Convert_v1beta2_TestResourceMachineTemplate_To_v1beta1_TestResourceMachineT
 }
 
 func autoConvert_v1beta1_TestResourceMachineTemplateSpec_To_v1beta2_TestResourceMachineTemplateSpec(in *TestResourceMachineTemplateSpec, out *v1beta2.TestResourceMachineTemplateSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_TestContractVersionedObjectReference_To_v1beta2_TestContractVersionedObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.TestResourceMachineTemplateSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -313,9 +299,7 @@ func Convert_v1beta1_TestResourceMachineTemplateSpec_To_v1beta2_TestResourceMach
 }
 
 func autoConvert_v1beta2_TestResourceMachineTemplateSpec_To_v1beta1_TestResourceMachineTemplateSpec(in *v1beta2.TestResourceMachineTemplateSpec, out *TestResourceMachineTemplateSpec, s conversion.Scope) error {
-	if err := Convert_v1beta2_TestContractVersionedObjectReference_To_v1beta1_TestContractVersionedObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
-		return err
-	}
+	*out = *(*TestResourceMachineTemplateSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -372,11 +356,7 @@ func autoConvert_v1beta2_TestResourceSpec_To_v1beta1_TestResourceSpec(in *v1beta
 }
 
 func autoConvert_v1beta1_TestResourceStatus_To_v1beta2_TestResourceStatus(in *TestResourceStatus, out *v1beta2.TestResourceStatus, s conversion.Scope) error {
-	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	out.ReadyReplicas = (*int32)(unsafe.Pointer(in.ReadyReplicas))
-	out.AvailableReplicas = (*int32)(unsafe.Pointer(in.AvailableReplicas))
-	out.UpToDateReplicas = (*int32)(unsafe.Pointer(in.UpToDateReplicas))
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	*out = *(*v1beta2.TestResourceStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -386,11 +366,7 @@ func Convert_v1beta1_TestResourceStatus_To_v1beta2_TestResourceStatus(in *TestRe
 }
 
 func autoConvert_v1beta2_TestResourceStatus_To_v1beta1_TestResourceStatus(in *v1beta2.TestResourceStatus, out *TestResourceStatus, s conversion.Scope) error {
-	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	out.ReadyReplicas = (*int32)(unsafe.Pointer(in.ReadyReplicas))
-	out.AvailableReplicas = (*int32)(unsafe.Pointer(in.AvailableReplicas))
-	out.UpToDateReplicas = (*int32)(unsafe.Pointer(in.UpToDateReplicas))
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	*out = *(*TestResourceStatus)(unsafe.Pointer(in))
 	return nil
 }
 

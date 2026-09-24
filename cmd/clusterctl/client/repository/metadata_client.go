@@ -19,7 +19,7 @@ package repository
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
@@ -78,7 +78,7 @@ func (f *metadataClient) Get(ctx context.Context) (*clusterctlv1.Metadata, error
 		log.V(5).Info("Fetching", "file", metadataFile, "provider", f.provider.Name(), "type", f.provider.Type(), "version", version)
 		file, err = f.repository.GetFile(ctx, version, metadataFile)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read %q from the repository for provider %q", metadataFile, f.provider.ManifestLabel())
+			return nil, pkgerrors.Wrapf(err, "failed to read %q from the repository for provider %q", metadataFile, f.provider.ManifestLabel())
 		}
 	} else {
 		log.V(1).Info("Using", "override", metadataFile, "provider", f.provider.ManifestLabel(), "version", version)
@@ -89,7 +89,7 @@ func (f *metadataClient) Get(ctx context.Context) (*clusterctlv1.Metadata, error
 	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
 
 	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, obj); err != nil {
-		return nil, errors.Wrapf(err, "error decoding %q for provider %q", metadataFile, f.provider.ManifestLabel())
+		return nil, pkgerrors.Wrapf(err, "error decoding %q for provider %q", metadataFile, f.provider.ManifestLabel())
 	}
 
 	if err := validateMetadata(obj, f.provider.ManifestLabel()); err != nil {
@@ -109,20 +109,20 @@ func (f *metadataClient) Get(ctx context.Context) (*clusterctlv1.Metadata, error
 func validateMetadata(metadata *clusterctlv1.Metadata, providerLabel string) error {
 	// Check if metadata has the correct apiVersion and kind
 	if metadata.APIVersion != clusterctlv1.GroupVersion.String() {
-		return errors.Errorf("invalid provider metadata: unexpected apiVersion %q for provider %s (expected %q)",
+		return pkgerrors.Errorf("invalid provider metadata: unexpected apiVersion %q for provider %s (expected %q)",
 			metadata.APIVersion, providerLabel, clusterctlv1.GroupVersion.String())
 	}
 
 	// v1.11 started enforcing the Metadata Kind, but several providers did not actually have the field serialized.
 	// Ratchet validation so that an empty Kind is accepted.
 	if metadata.Kind != "Metadata" && metadata.Kind != "" {
-		return errors.Errorf("invalid provider metadata: unexpected kind %q for provider %s (expected \"Metadata\")",
+		return pkgerrors.Errorf("invalid provider metadata: unexpected kind %q for provider %s (expected \"Metadata\")",
 			metadata.Kind, providerLabel)
 	}
 
 	// Check if metadata has at least one release series
 	if len(metadata.ReleaseSeries) == 0 {
-		return errors.Errorf("invalid provider metadata: releaseSeries is empty in metadata.yaml for provider %s", providerLabel)
+		return pkgerrors.Errorf("invalid provider metadata: releaseSeries is empty in metadata.yaml for provider %s", providerLabel)
 	}
 
 	return nil

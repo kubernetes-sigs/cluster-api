@@ -270,6 +270,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*PartitionSpec)(nil), (*v1beta2.PartitionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_PartitionSpec_To_v1beta2_PartitionSpec(a.(*PartitionSpec), b.(*v1beta2.PartitionSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.PartitionSpec)(nil), (*PartitionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_PartitionSpec_To_v1beta1_PartitionSpec(a.(*v1beta2.PartitionSpec), b.(*PartitionSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*PasswdSource)(nil), (*v1beta2.PasswdSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_PasswdSource_To_v1beta2_PasswdSource(a.(*PasswdSource), b.(*v1beta2.PasswdSource), scope)
 	}); err != nil {
@@ -534,8 +544,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1beta2.APIEndpoint, s conversion.Scope) error {
-	out.AdvertiseAddress = in.AdvertiseAddress
-	out.BindPort = in.BindPort
+	*out = *(*v1beta2.APIEndpoint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -545,8 +554,7 @@ func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1
 }
 
 func autoConvert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(in *v1beta2.APIEndpoint, out *APIEndpoint, s conversion.Scope) error {
-	out.AdvertiseAddress = in.AdvertiseAddress
-	out.BindPort = in.BindPort
+	*out = *(*APIEndpoint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -621,8 +629,7 @@ func Convert_v1beta2_BootstrapTokenDiscovery_To_v1beta1_BootstrapTokenDiscovery(
 }
 
 func autoConvert_v1beta1_BootstrapTokenString_To_v1beta2_BootstrapTokenString(in *BootstrapTokenString, out *v1beta2.BootstrapTokenString, s conversion.Scope) error {
-	out.ID = in.ID
-	out.Secret = in.Secret
+	*out = *(*v1beta2.BootstrapTokenString)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -632,8 +639,7 @@ func Convert_v1beta1_BootstrapTokenString_To_v1beta2_BootstrapTokenString(in *Bo
 }
 
 func autoConvert_v1beta2_BootstrapTokenString_To_v1beta1_BootstrapTokenString(in *v1beta2.BootstrapTokenString, out *BootstrapTokenString, s conversion.Scope) error {
-	out.ID = in.ID
-	out.Secret = in.Secret
+	*out = *(*BootstrapTokenString)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -665,6 +671,9 @@ func autoConvert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in
 	out.CertificatesDir = in.CertificatesDir
 	out.ImageRepository = in.ImageRepository
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
+	out.CertificateValidityPeriodDays = in.CertificateValidityPeriodDays
+	out.CACertificateValidityPeriodDays = in.CACertificateValidityPeriodDays
+	out.EncryptionAlgorithm = v1beta2.EncryptionAlgorithmType(in.EncryptionAlgorithm)
 	// WARNING: in.ClusterName requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -689,9 +698,9 @@ func autoConvert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in
 	out.CertificatesDir = in.CertificatesDir
 	out.ImageRepository = in.ImageRepository
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
-	// WARNING: in.CertificateValidityPeriodDays requires manual conversion: does not exist in peer-type
-	// WARNING: in.CACertificateValidityPeriodDays requires manual conversion: does not exist in peer-type
-	// WARNING: in.EncryptionAlgorithm requires manual conversion: does not exist in peer-type
+	out.CertificateValidityPeriodDays = in.CertificateValidityPeriodDays
+	out.CACertificateValidityPeriodDays = in.CACertificateValidityPeriodDays
+	out.EncryptionAlgorithm = EncryptionAlgorithmType(in.EncryptionAlgorithm)
 	return nil
 }
 
@@ -810,7 +819,7 @@ func Convert_v1beta2_DiskSetup_To_v1beta1_DiskSetup(in *v1beta2.DiskSetup, out *
 }
 
 func autoConvert_v1beta1_EnvVar_To_v1beta2_EnvVar(in *EnvVar, out *v1beta2.EnvVar, s conversion.Scope) error {
-	out.EnvVar = in.EnvVar
+	*out = *(*v1beta2.EnvVar)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -820,7 +829,7 @@ func Convert_v1beta1_EnvVar_To_v1beta2_EnvVar(in *EnvVar, out *v1beta2.EnvVar, s
 }
 
 func autoConvert_v1beta2_EnvVar_To_v1beta1_EnvVar(in *v1beta2.EnvVar, out *EnvVar, s conversion.Scope) error {
-	out.EnvVar = in.EnvVar
+	*out = *(*EnvVar)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -842,10 +851,7 @@ func autoConvert_v1beta2_Etcd_To_v1beta1_Etcd(in *v1beta2.Etcd, out *Etcd, s con
 }
 
 func autoConvert_v1beta1_ExternalEtcd_To_v1beta2_ExternalEtcd(in *ExternalEtcd, out *v1beta2.ExternalEtcd, s conversion.Scope) error {
-	out.Endpoints = *(*[]string)(unsafe.Pointer(&in.Endpoints))
-	out.CAFile = in.CAFile
-	out.CertFile = in.CertFile
-	out.KeyFile = in.KeyFile
+	*out = *(*v1beta2.ExternalEtcd)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -855,10 +861,7 @@ func Convert_v1beta1_ExternalEtcd_To_v1beta2_ExternalEtcd(in *ExternalEtcd, out 
 }
 
 func autoConvert_v1beta2_ExternalEtcd_To_v1beta1_ExternalEtcd(in *v1beta2.ExternalEtcd, out *ExternalEtcd, s conversion.Scope) error {
-	out.Endpoints = *(*[]string)(unsafe.Pointer(&in.Endpoints))
-	out.CAFile = in.CAFile
-	out.CertFile = in.CertFile
-	out.KeyFile = in.KeyFile
+	*out = *(*ExternalEtcd)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -875,8 +878,10 @@ func autoConvert_v1beta1_File_To_v1beta2_File(in *File, out *v1beta2.File, s con
 	if err := v1.Convert_bool_To_Pointer_bool(&in.Append, &out.Append, s); err != nil {
 		return err
 	}
+	out.Defer = (*bool)(unsafe.Pointer(in.Defer))
 	out.Content = in.Content
 	// WARNING: in.ContentFrom requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileSource vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileSource)
+	out.ContentFormat = v1beta2.FileContentFormat(in.ContentFormat)
 	return nil
 }
 
@@ -888,8 +893,10 @@ func autoConvert_v1beta2_File_To_v1beta1_File(in *v1beta2.File, out *File, s con
 	if err := v1.Convert_Pointer_bool_To_bool(&in.Append, &out.Append, s); err != nil {
 		return err
 	}
+	out.Defer = (*bool)(unsafe.Pointer(in.Defer))
 	out.Content = in.Content
 	// WARNING: in.ContentFrom requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileSource vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileSource)
+	out.ContentFormat = FileContentFormat(in.ContentFormat)
 	return nil
 }
 
@@ -922,9 +929,7 @@ func autoConvert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeCon
 }
 
 func autoConvert_v1beta1_FileSource_To_v1beta2_FileSource(in *FileSource, out *v1beta2.FileSource, s conversion.Scope) error {
-	if err := Convert_v1beta1_SecretFileSource_To_v1beta2_SecretFileSource(&in.Secret, &out.Secret, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.FileSource)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -934,9 +939,7 @@ func Convert_v1beta1_FileSource_To_v1beta2_FileSource(in *FileSource, out *v1bet
 }
 
 func autoConvert_v1beta2_FileSource_To_v1beta1_FileSource(in *v1beta2.FileSource, out *FileSource, s conversion.Scope) error {
-	if err := Convert_v1beta2_SecretFileSource_To_v1beta1_SecretFileSource(&in.Secret, &out.Secret, s); err != nil {
-		return err
-	}
+	*out = *(*FileSource)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1106,9 +1109,7 @@ func autoConvert_v1beta2_JoinConfiguration_To_v1beta1_JoinConfiguration(in *v1be
 }
 
 func autoConvert_v1beta1_JoinControlPlane_To_v1beta2_JoinControlPlane(in *JoinControlPlane, out *v1beta2.JoinControlPlane, s conversion.Scope) error {
-	if err := Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(&in.LocalAPIEndpoint, &out.LocalAPIEndpoint, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.JoinControlPlane)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1118,9 +1119,7 @@ func Convert_v1beta1_JoinControlPlane_To_v1beta2_JoinControlPlane(in *JoinContro
 }
 
 func autoConvert_v1beta2_JoinControlPlane_To_v1beta1_JoinControlPlane(in *v1beta2.JoinControlPlane, out *JoinControlPlane, s conversion.Scope) error {
-	if err := Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(&in.LocalAPIEndpoint, &out.LocalAPIEndpoint, s); err != nil {
-		return err
-	}
+	*out = *(*JoinControlPlane)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1162,8 +1161,7 @@ func Convert_v1beta2_KubeConfigAuthExec_To_v1beta1_KubeConfigAuthExec(in *v1beta
 }
 
 func autoConvert_v1beta1_KubeConfigAuthExecEnv_To_v1beta2_KubeConfigAuthExecEnv(in *KubeConfigAuthExecEnv, out *v1beta2.KubeConfigAuthExecEnv, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Value = in.Value
+	*out = *(*v1beta2.KubeConfigAuthExecEnv)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1173,8 +1171,7 @@ func Convert_v1beta1_KubeConfigAuthExecEnv_To_v1beta2_KubeConfigAuthExecEnv(in *
 }
 
 func autoConvert_v1beta2_KubeConfigAuthExecEnv_To_v1beta1_KubeConfigAuthExecEnv(in *v1beta2.KubeConfigAuthExecEnv, out *KubeConfigAuthExecEnv, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Value = in.Value
+	*out = *(*KubeConfigAuthExecEnv)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1184,8 +1181,7 @@ func Convert_v1beta2_KubeConfigAuthExecEnv_To_v1beta1_KubeConfigAuthExecEnv(in *
 }
 
 func autoConvert_v1beta1_KubeConfigAuthProvider_To_v1beta2_KubeConfigAuthProvider(in *KubeConfigAuthProvider, out *v1beta2.KubeConfigAuthProvider, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Config = *(*map[string]string)(unsafe.Pointer(&in.Config))
+	*out = *(*v1beta2.KubeConfigAuthProvider)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1195,8 +1191,7 @@ func Convert_v1beta1_KubeConfigAuthProvider_To_v1beta2_KubeConfigAuthProvider(in
 }
 
 func autoConvert_v1beta2_KubeConfigAuthProvider_To_v1beta1_KubeConfigAuthProvider(in *v1beta2.KubeConfigAuthProvider, out *KubeConfigAuthProvider, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Config = *(*map[string]string)(unsafe.Pointer(&in.Config))
+	*out = *(*KubeConfigAuthProvider)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1588,8 +1583,7 @@ func autoConvert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in *v1beta2.LocalEtcd, o
 }
 
 func autoConvert_v1beta1_NTP_To_v1beta2_NTP(in *NTP, out *v1beta2.NTP, s conversion.Scope) error {
-	out.Servers = *(*[]string)(unsafe.Pointer(&in.Servers))
-	out.Enabled = (*bool)(unsafe.Pointer(in.Enabled))
+	*out = *(*v1beta2.NTP)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1599,8 +1593,7 @@ func Convert_v1beta1_NTP_To_v1beta2_NTP(in *NTP, out *v1beta2.NTP, s conversion.
 }
 
 func autoConvert_v1beta2_NTP_To_v1beta1_NTP(in *v1beta2.NTP, out *NTP, s conversion.Scope) error {
-	out.Servers = *(*[]string)(unsafe.Pointer(&in.Servers))
-	out.Enabled = (*bool)(unsafe.Pointer(in.Enabled))
+	*out = *(*NTP)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1640,6 +1633,7 @@ func autoConvert_v1beta1_Partition_To_v1beta2_Partition(in *Partition, out *v1be
 	if err := v1.Convert_Pointer_string_To_string(&in.TableType, &out.TableType, s); err != nil {
 		return err
 	}
+	out.DiskLayout = *(*[]v1beta2.PartitionSpec)(unsafe.Pointer(&in.DiskLayout))
 	return nil
 }
 
@@ -1657,6 +1651,7 @@ func autoConvert_v1beta2_Partition_To_v1beta1_Partition(in *v1beta2.Partition, o
 	if err := v1.Convert_string_To_Pointer_string(&in.TableType, &out.TableType, s); err != nil {
 		return err
 	}
+	out.DiskLayout = *(*[]PartitionSpec)(unsafe.Pointer(&in.DiskLayout))
 	return nil
 }
 
@@ -1665,10 +1660,28 @@ func Convert_v1beta2_Partition_To_v1beta1_Partition(in *v1beta2.Partition, out *
 	return autoConvert_v1beta2_Partition_To_v1beta1_Partition(in, out, s)
 }
 
+func autoConvert_v1beta1_PartitionSpec_To_v1beta2_PartitionSpec(in *PartitionSpec, out *v1beta2.PartitionSpec, s conversion.Scope) error {
+	*out = *(*v1beta2.PartitionSpec)(unsafe.Pointer(in))
+	return nil
+}
+
+// Convert_v1beta1_PartitionSpec_To_v1beta2_PartitionSpec is an autogenerated conversion function.
+func Convert_v1beta1_PartitionSpec_To_v1beta2_PartitionSpec(in *PartitionSpec, out *v1beta2.PartitionSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_PartitionSpec_To_v1beta2_PartitionSpec(in, out, s)
+}
+
+func autoConvert_v1beta2_PartitionSpec_To_v1beta1_PartitionSpec(in *v1beta2.PartitionSpec, out *PartitionSpec, s conversion.Scope) error {
+	*out = *(*PartitionSpec)(unsafe.Pointer(in))
+	return nil
+}
+
+// Convert_v1beta2_PartitionSpec_To_v1beta1_PartitionSpec is an autogenerated conversion function.
+func Convert_v1beta2_PartitionSpec_To_v1beta1_PartitionSpec(in *v1beta2.PartitionSpec, out *PartitionSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_PartitionSpec_To_v1beta1_PartitionSpec(in, out, s)
+}
+
 func autoConvert_v1beta1_PasswdSource_To_v1beta2_PasswdSource(in *PasswdSource, out *v1beta2.PasswdSource, s conversion.Scope) error {
-	if err := Convert_v1beta1_SecretPasswdSource_To_v1beta2_SecretPasswdSource(&in.Secret, &out.Secret, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.PasswdSource)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1678,9 +1691,7 @@ func Convert_v1beta1_PasswdSource_To_v1beta2_PasswdSource(in *PasswdSource, out 
 }
 
 func autoConvert_v1beta2_PasswdSource_To_v1beta1_PasswdSource(in *v1beta2.PasswdSource, out *PasswdSource, s conversion.Scope) error {
-	if err := Convert_v1beta2_SecretPasswdSource_To_v1beta1_SecretPasswdSource(&in.Secret, &out.Secret, s); err != nil {
-		return err
-	}
+	*out = *(*PasswdSource)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1690,7 +1701,7 @@ func Convert_v1beta2_PasswdSource_To_v1beta1_PasswdSource(in *v1beta2.PasswdSour
 }
 
 func autoConvert_v1beta1_Patches_To_v1beta2_Patches(in *Patches, out *v1beta2.Patches, s conversion.Scope) error {
-	out.Directory = in.Directory
+	*out = *(*v1beta2.Patches)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1700,7 +1711,7 @@ func Convert_v1beta1_Patches_To_v1beta2_Patches(in *Patches, out *v1beta2.Patche
 }
 
 func autoConvert_v1beta2_Patches_To_v1beta1_Patches(in *v1beta2.Patches, out *Patches, s conversion.Scope) error {
-	out.Directory = in.Directory
+	*out = *(*Patches)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1710,8 +1721,7 @@ func Convert_v1beta2_Patches_To_v1beta1_Patches(in *v1beta2.Patches, out *Patche
 }
 
 func autoConvert_v1beta1_SecretFileSource_To_v1beta2_SecretFileSource(in *SecretFileSource, out *v1beta2.SecretFileSource, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Key = in.Key
+	*out = *(*v1beta2.SecretFileSource)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1721,8 +1731,7 @@ func Convert_v1beta1_SecretFileSource_To_v1beta2_SecretFileSource(in *SecretFile
 }
 
 func autoConvert_v1beta2_SecretFileSource_To_v1beta1_SecretFileSource(in *v1beta2.SecretFileSource, out *SecretFileSource, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Key = in.Key
+	*out = *(*SecretFileSource)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1732,8 +1741,7 @@ func Convert_v1beta2_SecretFileSource_To_v1beta1_SecretFileSource(in *v1beta2.Se
 }
 
 func autoConvert_v1beta1_SecretPasswdSource_To_v1beta2_SecretPasswdSource(in *SecretPasswdSource, out *v1beta2.SecretPasswdSource, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Key = in.Key
+	*out = *(*v1beta2.SecretPasswdSource)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1743,8 +1751,7 @@ func Convert_v1beta1_SecretPasswdSource_To_v1beta2_SecretPasswdSource(in *Secret
 }
 
 func autoConvert_v1beta2_SecretPasswdSource_To_v1beta1_SecretPasswdSource(in *v1beta2.SecretPasswdSource, out *SecretPasswdSource, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Key = in.Key
+	*out = *(*SecretPasswdSource)(unsafe.Pointer(in))
 	return nil
 }
 

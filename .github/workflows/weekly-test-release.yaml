@@ -17,13 +17,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [ main, release-1.12, release-1.11 ]
+        branch: [ main, release-1.14, release-1.13 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # tag=v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # tag=v7.0.1
         with:
           ref: ${{ matrix.branch }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Set env
         run:  echo "RELEASE_TAG=v9.9.9-fake" >> $GITHUB_ENV
       - name: Set fake tag for release
@@ -32,7 +33,7 @@ jobs:
       - name: Calculate go version
         run: echo "go_version=$(make go-version)" >> $GITHUB_ENV
       - name: Set up Go
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # tag=v6.3.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # tag=v7.0.0
         with:
           go-version: ${{ env.go_version }}
       - name: Test release

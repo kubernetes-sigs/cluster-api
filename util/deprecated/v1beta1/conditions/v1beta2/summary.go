@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -64,12 +64,12 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 	}
 
 	if len(summarizeOpt.conditionTypes) == 0 {
-		return nil, errors.New("option ForConditionTypes not provided or empty")
+		return nil, pkgerrors.New("option ForConditionTypes not provided or empty")
 	}
 
 	for _, conditionType := range summarizeOpt.conditionTypes {
 		if conditionType == targetConditionType {
-			return nil, errors.Errorf("option ForConditionTypes cannot include %s (target condition type)", targetConditionType)
+			return nil, pkgerrors.Errorf("option ForConditionTypes cannot include %s (target condition type)", targetConditionType)
 		}
 	}
 
@@ -86,13 +86,13 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 	overrideConditionsByType := map[string]ConditionWithOwnerInfo{}
 	for _, c := range summarizeOpt.overrideConditions {
 		if _, ok := overrideConditionsByType[c.Type]; ok {
-			return nil, errors.Errorf("override condition %s specified multiple times", c.Type)
+			return nil, pkgerrors.Errorf("override condition %s specified multiple times", c.Type)
 		}
 
 		overrideConditionsByType[c.Type] = c
 
 		if _, ok := conditionsByType[c.Type]; !ok {
-			return nil, errors.Errorf("override condition %s must exist in source object", c.Type)
+			return nil, pkgerrors.Errorf("override condition %s must exist in source object", c.Type)
 		}
 	}
 
@@ -134,7 +134,7 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 	}
 
 	if len(conditionsInScope) == 0 {
-		return nil, errors.New("summary can't be performed when the list of conditions to be summarized is empty")
+		return nil, pkgerrors.New("summary can't be performed when the list of conditions to be summarized is empty")
 	}
 
 	status, reason, message, err := summarizeOpt.mergeStrategy.Merge(SummaryMergeOperation, conditionsInScope, summarizeOpt.conditionTypes)

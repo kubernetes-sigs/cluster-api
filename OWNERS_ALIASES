@@ -34,7 +34,7 @@ aliases:
   - sivchari
 
   # -----------------------------------------------------------
-  # OWNER_ALIASES for controllers/topology
+  # OWNER_ALIASES for core/controllers/topology
   # -----------------------------------------------------------
 
   cluster-api-topology-maintainers:
@@ -49,11 +49,11 @@ aliases:
   - g-gaston
 
   # -----------------------------------------------------------
-  # OWNER_ALIASES for bootstrap/kubeadm/internal/ignition
+  # OWNER_ALIASES for bootstrap/kubeadm/pkg/ignition
   # -----------------------------------------------------------
 
   cluster-api-bootstrap-provider-kubeadm-ignition-maintainers:
-  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers: []
+  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers:
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for controlplane/kubeadm
@@ -72,7 +72,7 @@ aliases:
   - Jont828
 
   # -----------------------------------------------------------
-  # OWNER_ALIASES for internal/controllers/machinepool
+  # OWNER_ALIASES for core/controllers/machinepool
   # -----------------------------------------------------------
 
   cluster-api-machinepool-maintainers:

@@ -20,12 +20,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 
 	ignitionTypes "github.com/flatcar/ignition/config/v2_3/types"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vincent-petithory/dataurl"
 	"sigs.k8s.io/yaml"
 
@@ -48,7 +48,7 @@ conntrack:
 func RawIgnitionToProvisioningCommands(config []byte) ([]provisioning.Cmd, error) {
 	// Ensure Ignition is a valid YAML document.
 	if err := yaml.Unmarshal(config, &map[string]interface{}{}); err != nil {
-		return nil, errors.Wrapf(err, "invalid YAML")
+		return nil, pkgerrors.Wrapf(err, "invalid YAML")
 	}
 
 	// Parse the Ignition YAML into a slice of Ignition actions.
@@ -94,11 +94,11 @@ func getActions(userData []byte) ([]provisioning.Cmd, error) {
 
 		commands = append(commands, []provisioning.Cmd{
 			// Idempotently create the directory.
-			{Cmd: "mkdir", Args: []string{"-p", filepath.Dir(f.Path)}},
+			{Cmd: "mkdir", Args: []string{"-p", path.Dir(f.Path)}, Retry: 5},
 			// Write the file.
-			{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat > %s /dev/stdin", f.Path)}, Stdin: contents},
+			{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat > %s /dev/stdin", f.Path)}, Stdin: contents, Retry: 5},
 			// Set file permissions.
-			{Cmd: "chmod", Args: []string{mode, f.Path}},
+			{Cmd: "chmod", Args: []string{mode, f.Path}, Retry: 5},
 		}...)
 	}
 
@@ -107,12 +107,12 @@ func getActions(userData []byte) ([]provisioning.Cmd, error) {
 		path := fmt.Sprintf("/etc/systemd/system/%s", u.Name)
 
 		commands = append(commands, []provisioning.Cmd{
-			{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat > %s /dev/stdin", path)}, Stdin: contents},
-			{Cmd: "systemctl", Args: []string{"daemon-reload"}},
+			{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat > %s /dev/stdin", path)}, Stdin: contents, Retry: 5},
+			{Cmd: "systemctl", Args: []string{"daemon-reload"}, Retry: 5},
 		}...)
 
 		if u.Enable || (u.Enabled != nil && *u.Enabled) {
-			commands = append(commands, provisioning.Cmd{Cmd: "systemctl", Args: []string{"enable", "--now", u.Name}})
+			commands = append(commands, provisioning.Cmd{Cmd: "systemctl", Args: []string{"enable", "--now", u.Name}, Retry: 5})
 		}
 	}
 
@@ -124,11 +124,12 @@ func hackKubeadmIgnoreErrors(s string) string {
 	lines := strings.Split(s, "\n")
 
 	for idx, line := range lines {
-		if !strings.Contains(line, "kubeadm init") && !strings.Contains(line, "kubeadm join") {
-			continue
+		if strings.Contains(line, "kubeadm init") {
+			lines[idx] = strings.ReplaceAll(line, "kubeadm init", "mkdir -p /run/cluster-api && echo started > /run/cluster-api/capd.bootstrap.started && kubeadm init --ignore-preflight-errors=all")
 		}
-
-		lines[idx] = line + " --ignore-preflight-errors=all"
+		if strings.Contains(line, "kubeadm join") {
+			lines[idx] = strings.ReplaceAll(line, "kubeadm join", "mkdir -p /run/cluster-api && echo started > /run/cluster-api/capd.bootstrap.started && kubeadm join --ignore-preflight-errors=all")
+		}
 	}
 
 	return strings.Join(lines, "\n")

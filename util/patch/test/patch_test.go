@@ -65,8 +65,8 @@ func TestPatchHelper(t *testing.T) {
 			},
 			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "foo.cluster.x-k8s.io",
-					Kind:     "TestCluster",
+					APIGroup: builder.InfrastructureGroupVersion.Group,
+					Kind:     builder.TestInfrastructureClusterKind,
 					Name:     "infra-1",
 				},
 			},
@@ -730,7 +730,7 @@ func TestPatchHelper(t *testing.T) {
 			obj.Spec.Paused = ptr.To(true)
 			obj.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
-				Kind:     "test-kind",
+				Kind:     builder.TestInfrastructureClusterKind,
 				Name:     "test-ref",
 			}
 
@@ -819,7 +819,7 @@ func TestPatchHelper(t *testing.T) {
 			obj.Spec.Paused = ptr.To(true)
 			obj.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
-				Kind:     "test-kind",
+				Kind:     builder.TestInfrastructureClusterKind,
 				Name:     "test-ref",
 			}
 

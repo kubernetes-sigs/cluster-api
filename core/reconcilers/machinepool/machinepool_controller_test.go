@@ -1207,7 +1207,6 @@ func TestMachinePoolConditions(t *testing.T) {
 				APIReader:    clientFake,
 				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				DynamicCache: dynamiccache.NewFakeDynamicCache(clientFake, setup.DynamicCacheOptions()),
-				recorder:     record.NewFakeRecorder(32),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},

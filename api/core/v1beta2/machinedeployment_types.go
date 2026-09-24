@@ -233,11 +233,13 @@ const (
 )
 
 // MachineDeploymentSpec defines the desired state of MachineDeployment.
+// +kubebuilder:validation:XValidation:rule="self.clusterName == self.template.spec.clusterName",message="spec.clusterName must match spec.template.spec.clusterName"
 type MachineDeploymentSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	ClusterName string `json:"clusterName,omitempty"`
 
 	// replicas is the number of desired machines.
@@ -269,7 +271,9 @@ type MachineDeploymentSpec struct {
 	// selector is the label selector for machines. Existing MachineSets whose machines are
 	// selected by this will be the ones affected by this deployment.
 	// It must match the machine template's labels.
+	// This field is immutable.
 	// +required
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	Selector metav1.LabelSelector `json:"selector,omitempty,omitzero"`
 
 	// template describes the machines that will be created.

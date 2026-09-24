@@ -74,11 +74,13 @@ type MachineSetMoveMachinesToMachineSetAnnotationData struct {
 }
 
 // MachineSetSpec defines the desired state of MachineSet.
+// +kubebuilder:validation:XValidation:rule="self.clusterName == self.template.spec.clusterName",message="spec.clusterName must match spec.template.spec.clusterName"
 type MachineSetSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	ClusterName string `json:"clusterName,omitempty"`
 
 	// replicas is the number of desired replicas.
@@ -104,8 +106,10 @@ type MachineSetSpec struct {
 	// selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
 	// It must match the machine template's labels.
+	// This field is immutable.
 	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
 	// +required
+	// +kubebuilder:validation:XValidation:rule="oldSelf == self",message="field is immutable"
 	Selector metav1.LabelSelector `json:"selector,omitempty,omitzero"`
 
 	// template is the object that describes the machine that will be created if

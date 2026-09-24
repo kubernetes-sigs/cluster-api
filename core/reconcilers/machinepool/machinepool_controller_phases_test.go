@@ -1253,6 +1253,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
+					"initialization": map[string]interface{}{"provisioned": true},
 					"ready": true,
 					"addresses": []interface{}{
 						map[string]interface{}{
@@ -1332,6 +1333,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					"providerIDList": []interface{}{},
 				},
 				"status": map[string]interface{}{
+					"initialization": map[string]interface{}{"provisioned": true},
 					"ready": true,
 					"addresses": []interface{}{
 						map[string]interface{}{
@@ -1371,9 +1373,10 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":          false,
-					"failureReason":  "InvalidConfiguration",
-					"failureMessage": "the provider rejected the spec",
+					"initialization": map[string]interface{}{"provisioned": false},
+					"ready":           false,
+					"failureReason":   "InvalidConfiguration",
+					"failureMessage":  "the provider rejected the spec",
 				},
 			},
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
@@ -1407,8 +1410,9 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":          false,
-					"failureMessage": "the provider rejected the spec",
+					"initialization": map[string]interface{}{"provisioned": false},
+					"ready":           false,
+					"failureMessage":  "the provider rejected the spec",
 				},
 			},
 			expected: func(g *WithT, m *clusterv1.MachinePool) {

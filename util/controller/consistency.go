@@ -59,6 +59,12 @@ type informerGetter interface {
 	GetInformer(ctx context.Context, obj client.Object, opts ...ctrlcache.InformerGetOption) (ctrlcache.Informer, error)
 }
 
+// storeGetter is implemented by informers that expose their underlying store,
+// such as toolscache.SharedIndexInformer.
+type storeGetter interface {
+	GetStore() toolscache.Store
+}
+
 type realConsistencyStore struct {
 	// writesLock guards reads/additions/deletions to the writes map.
 	// individual records are responsible for managing their own thread safety.
@@ -294,7 +300,7 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 		return store, nil
 	}
 
-	var sharedIndexInformer toolscache.SharedIndexInformer
+	var informer ctrlcache.Informer
 	if gvkt.Type == ObjectTypeDynamicCacheStructured {
 		if c.dynamicCache == nil {
 			return nil, fmt.Errorf("failed to create %s informer: DynamicCache not configured", gvkt.Kind)
@@ -309,15 +315,10 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 		// Note: Using GetInformerForKind instead of GetInformer because we cannot create an obj because c.scheme does
 		// not contain the type we need. GetInformerForKind will create the object internally instead
 		// using the cache's own scheme, which has the required type.
-		informer, err := dc.GetInformerForKind(ctx, gvkt.GroupVersionKind, ctrlcache.BlockUntilSynced(false))
+		var err error
+		informer, err = dc.GetInformerForKind(ctx, gvkt.GroupVersionKind, ctrlcache.BlockUntilSynced(false))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
-		}
-		var ok bool
-		sharedIndexInformer, ok = informer.(toolscache.SharedIndexInformer)
-		if !ok {
-			// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
-			return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
 		}
 	} else {
 		var obj client.Object
@@ -341,18 +342,25 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 		}
 
 		// Note: This creates the informer if it doesn't exist already, but it doesn't  wait for the cache to sync.
-		informer, err := c.informerGetter.GetInformer(ctx, obj, ctrlcache.BlockUntilSynced(false))
+		var err error
+		informer, err = c.informerGetter.GetInformer(ctx, obj, ctrlcache.BlockUntilSynced(false))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
 		}
-		var ok bool
-		sharedIndexInformer, ok = informer.(toolscache.SharedIndexInformer)
-		if !ok {
-			// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
-			return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
-		}
 	}
 
-	c.stores[gvkt] = sharedIndexInformer.GetStore()
+	// Extract the store from the informer. Most informer implementations (e.g.
+	// toolscache.SharedIndexInformer) expose GetStore(). When the manager is
+	// configured with --namespace, controller-runtime creates a multiNamespaceCache
+	// whose GetInformer() returns a multiNamespaceInformer that does not implement
+	// storeGetter. In that case, fall back to a store that always reports readiness,
+	// effectively preserving the pre-v1.14.0 behavior for namespaced deployments.
+	if sg, ok := informer.(storeGetter); ok {
+		c.stores[gvkt] = sg.GetStore()
+	} else {
+		s := toolscache.NewStore(toolscache.MetaNamespaceKeyFunc)
+		s.Bookmark("9223372036854775807")
+		c.stores[gvkt] = s
+	}
 	return c.stores[gvkt], nil
 }

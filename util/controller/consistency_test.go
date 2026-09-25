@@ -383,6 +383,15 @@ func TestConsistencyStore_getStore(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, dynGVK, dynObj.GroupVersionKind())
 	assert.Len(t, cDynamic.stores, 1)
+
+	// Get store when informer does not implement storeGetter (e.g. multiNamespaceInformer).
+	// Should fall back to an always-ready store instead of returning an error.
+	cNoStore := newConsistencyStore(scheme, &fakeNoStoreInformerGetter{}, nil)
+	store, err = getStore(t.Context(), cNoStore, StructuredObject(clusterv1.GroupVersion, "Machine"))
+	assert.Nil(t, err)
+	assert.NotNil(t, store)
+	assert.Equal(t, "9223372036854775807", store.LastStoreSyncResourceVersion())
+	assert.Len(t, cNoStore.stores, 1)
 }
 
 type fakeInformerGetter struct{}
@@ -405,6 +414,20 @@ func (f *fakeInformer) GetStore() toolscache.Store {
 type fakeStore struct {
 	obj client.Object
 	toolscache.Store
+}
+
+// fakeNoStoreInformerGetter returns an informer that does NOT implement
+// storeGetter, simulating the behavior of controller-runtime's
+// multiNamespaceInformer returned when DefaultNamespaces is configured.
+type fakeNoStoreInformerGetter struct{}
+
+func (f *fakeNoStoreInformerGetter) GetInformer(_ context.Context, _ client.Object, _ ...ctrlcache.InformerGetOption) (ctrlcache.Informer, error) {
+	return &fakeNoStoreInformer{}, nil
+}
+
+// fakeNoStoreInformer implements ctrlcache.Informer but NOT storeGetter.
+type fakeNoStoreInformer struct {
+	ctrlcache.Informer
 }
 
 type fakeDynamicCache struct {

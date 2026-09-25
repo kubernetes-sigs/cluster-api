@@ -249,7 +249,7 @@ clusterctl.exe version
 {{#/tab }}
 {{#/tabs }}
 
-### Initialize the management cluster
+## Initialize the management cluster
 
 Now that we've got clusterctl installed and all the prerequisites in place, let's transform the Kubernetes cluster
 into a management cluster by using `clusterctl init`.
@@ -258,7 +258,7 @@ The command accepts as input a list of providers to install; when executed for t
 automatically adds to the list the `cluster-api` core provider, and if unspecified, it also adds the `kubeadm` bootstrap
 and `kubeadm` control-plane providers.
 
-#### Enabling Feature Gates
+### Enabling Feature Gates
 
 Feature gates can be enabled by exporting environment variables before executing `clusterctl init`.
 For example, the `ClusterTopology` feature, which is required to enable support for managed topologies and ClusterClass,
@@ -268,7 +268,7 @@ export CLUSTER_TOPOLOGY=true
 ```
 Additional documentation about experimental features can be found in [Experimental Features].
 
-#### Initialization for common providers
+### Initialization for common providers
 
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
@@ -669,7 +669,6 @@ As described above, we want to use a LoadBalancer service in order to expose the
 example below, we will use [MetalLB](https://metallb.universe.tf/) solution to implement load balancing to our kind
 cluster. Other solution should work as well.
 
-#### Install MetalLB for load balancing
 Install MetalLB, as described [here](https://metallb.universe.tf/installation/#installation-by-manifest); for example:
 ```bash
 METALLB_VER=$(curl "https://api.github.com/repos/metallb/metallb/releases/latest" | jq -r ".tag_name")
@@ -712,7 +711,8 @@ according to the specific network.
 
 </aside>
 
-#### Install KubeVirt on the kind cluster
+Install KubeVirt on the kind cluster
+
 ```bash
 # get KubeVirt version
 KV_VER=$(curl "https://api.github.com/repos/kubevirt/kubevirt/releases/latest" | jq -r ".tag_name")
@@ -723,7 +723,8 @@ kubectl apply -f "https://github.com/kubevirt/kubevirt/releases/download/${KV_VE
 kubectl wait -n kubevirt kv kubevirt --for=condition=Available --timeout=10m
 ```
 
-#### Initialize the management cluster with the KubeVirt Provider
+Initialize the management cluster with the KubeVirt Provider
+
 ```bash
 clusterctl init --infrastructure kubevirt
 ```
@@ -926,11 +927,9 @@ See [`clusterctl init`](../clusterctl/commands/init.md) for more details.
 
 </aside>
 
-### Create your first workload cluster
+## Create your first workload cluster
 
 Once the management cluster is ready, you can create your first workload cluster.
-
-#### Preparing the workload cluster configuration
 
 The `clusterctl generate cluster` command returns a YAML template for creating a [workload cluster].
 
@@ -955,7 +954,7 @@ details about how to use alternative sources for cluster templates.
 
 </aside>
 
-#### Required configuration for common providers
+### Required configuration for common providers
 
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before configuring a cluster with Cluster API. Instructions are provided for common providers below.
@@ -1699,7 +1698,7 @@ export SSHKEY_ID=<sshKey_id>
 {{#/tab }}
 {{#/tabs }}
 
-#### Generating the cluster configuration
+### Preparing the workload cluster yaml
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
@@ -1794,7 +1793,7 @@ The file can be eventually modified using your editor of choice.
 
 See [clusterctl generate cluster] for more details.
 
-#### Apply the workload cluster
+### Apply the workload cluster
 
 When ready, run the following command to apply the cluster manifest.
 
@@ -1814,7 +1813,7 @@ dockermachinetemplate.infrastructure.cluster.x-k8s.io/capi-quickstart-md-0 creat
 kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io/capi-quickstart-md-0 created
 ```
 
-#### Accessing the workload cluster
+### Accessing the workload cluster
 
 The cluster will now start provisioning. You can check status with:
 
@@ -2201,7 +2200,7 @@ kube-scheduler-capi-quickstart-control-plane-kjjbb            1/1     Running   
 ```
 </aside>
 
-### Clean Up
+## Clean Up
 
 Delete workload cluster.
 ```bash

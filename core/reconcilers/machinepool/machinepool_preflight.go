@@ -79,6 +79,11 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		return nil, nil
 	}
 
+	// If the cluster does not have a control plane reference then there is nothing to do. Return early.
+	if !cluster.Spec.ControlPlaneRef.IsDefined() {
+		return nil, nil
+	}
+
 	skipped, err := r.skippedPreflightChecks(ctx, mp)
 	if err != nil {
 		return nil, err
@@ -86,11 +91,6 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 
 	// If all the preflight checks are skipped then return early.
 	if len(r.PreflightChecks) == 0 || skipped.Has(clusterv1.MachinePoolPreflightCheckAll) {
-		return nil, nil
-	}
-
-	// If the cluster does not have a control plane reference then there is nothing to do. Return early.
-	if !cluster.Spec.ControlPlaneRef.IsDefined() {
 		return nil, nil
 	}
 

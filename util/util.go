@@ -238,6 +238,26 @@ func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersion
 	}
 }
 
+// ClusterToControlPlaneMapFunc maps a Cluster event onto its control plane object,
+// ignoring clusters whose controlPlaneRef points at a different GroupKind.
+func ClusterToControlPlaneMapFunc(gk schema.GroupKind) handler.MapFunc {
+	return func(_ context.Context, o client.Object) []reconcile.Request {
+		cluster, ok := o.(*clusterv1.Cluster)
+		if !ok {
+			return nil
+		}
+
+		ref := cluster.Spec.ControlPlaneRef
+		if !ref.IsDefined() || ref.GroupKind() != gk {
+			return nil
+		}
+
+		return []reconcile.Request{{
+			NamespacedName: client.ObjectKey{Namespace: cluster.Namespace, Name: ref.Name},
+		}}
+	}
+}
+
 // GetOwnerMachine returns the Machine object owning the current resource.
 func GetOwnerMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Machine, error) {
 	for _, ref := range obj.GetOwnerReferences() {

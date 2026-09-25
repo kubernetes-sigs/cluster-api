@@ -149,6 +149,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "kubeadmcontrolplane")
+	clusterToKubeadmControlPlane := util.ClusterToControlPlaneMapFunc(controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind).GroupKind())
 	c, err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
@@ -156,14 +157,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmControlPlane),
+			handler.EnqueueRequestsFromMapFunc(clusterToKubeadmControlPlane),
 			predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 			predicates.Any(mgr.GetScheme(), predicateLog,
 				predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 				predicates.ClusterTopologyVersionChanged(mgr.GetScheme(), predicateLog),
 			),
 		).
-		WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmcontrolplane", r.ClusterToKubeadmControlPlane,
+		WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmcontrolplane", clusterToKubeadmControlPlane,
 			clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod))).
 		Build(ctx, r)
 	if err != nil {
@@ -865,17 +866,11 @@ func (r *Reconciler) removePreTerminateHookAnnotationFromMachine(ctx context.Con
 
 // ClusterToKubeadmControlPlane is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for KubeadmControlPlane based on updates to a Cluster.
-func (r *Reconciler) ClusterToKubeadmControlPlane(_ context.Context, o client.Object) []ctrl.Request {
-	c, ok := o.(*clusterv1.Cluster)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
-	}
-
-	if c.Spec.ControlPlaneRef.Kind == kubeadmControlPlaneKind {
-		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: c.Spec.ControlPlaneRef.Name}}}
-	}
-
-	return nil
+//
+// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API.
+// Use util.ClusterToControlPlaneMapFunc instead.
+func (r *Reconciler) ClusterToKubeadmControlPlane(ctx context.Context, o client.Object) []ctrl.Request {
+	return util.ClusterToControlPlaneMapFunc(controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind).GroupKind())(ctx, o)
 }
 
 // syncMachines updates Machines, InfrastructureMachines and KubeadmConfigs to propagate in-place mutable fields from KCP.

@@ -454,6 +454,7 @@ func TestRegenerateClientCerts(t *testing.T) {
 		},
 	}
 
+	validSecret := validSecret.DeepCopy()
 	c := fake.NewClientBuilder().WithObjects(validSecret, caSecret).Build()
 
 	oldConfig, err := clientcmd.Load(validSecret.Data[secret.KubeconfigDataName])

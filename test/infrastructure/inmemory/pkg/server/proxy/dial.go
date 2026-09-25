@@ -75,13 +75,23 @@ func (d *Dialer) DialContextWithAddr(ctx context.Context, addr string) (net.Conn
 }
 
 // DialContext creates proxied port-forwarded connections.
-// ctx is currently unused, but fulfils the type signature used by GRPC.
-func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn, error) {
+func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Conn, error) {
+	// Check if context is already cancelled or timed out
+	select {
+	case <-ctx.Done():
+		return nil, pkgerrors.Wrap(ctx.Err(), "context cancelled before establishing connection")
+	default:
+	}
+
 	proxyTransport, upgrader, err := spdy.RoundTripperFor(d.proxy.KubeConfig)
 	if err != nil {
 		return nil, err
 	}
+
 	httpClient := &http.Client{Transport: proxyTransport}
+	if deadline, ok := ctx.Deadline(); ok {
+		httpClient.Timeout = time.Until(deadline)
+	}
 
 	req := d.clientset.CoreV1().RESTClient().
 		Post().
@@ -140,17 +150,15 @@ func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn
 	}
 
 	// Create the net.Conn and return.
-	return NewConn(connection, dataStream), nil
-}
-
-// DialTimeout sets the timeout.
-func DialTimeout(duration time.Duration) func(*Dialer) error {
-	return func(d *Dialer) error {
-		return d.setTimeout(duration)
+	// If there is context deadline, also apply it to the stream inside the connection.
+	conn := NewConn(connection, dataStream)
+	if deadline, ok := ctx.Deadline(); ok {
+		if err := conn.SetDeadline(deadline); err != nil {
+			return nil, kerrors.NewAggregate([]error{
+				err,
+				connection.Close(),
+			})
+		}
 	}
-}
-
-func (d *Dialer) setTimeout(duration time.Duration) error {
-	d.timeout = duration
-	return nil
+	return conn, nil
 }

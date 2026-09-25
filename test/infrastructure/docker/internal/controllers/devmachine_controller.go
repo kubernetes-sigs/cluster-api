@@ -194,14 +194,22 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Fetch the DevCluster.
-	devCluster := &infrav1.DevCluster{}
+	var devCluster *infrav1.DevCluster
 	devClusterName := client.ObjectKey{
 		Namespace: devMachine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	if err := r.Get(ctx, devClusterName, devCluster); err != nil {
-		log.Info("DevCluster is not available yet")
-		return ctrl.Result{}, nil
+	devClusterObject := &infrav1.DevCluster{}
+	if err := r.Get(ctx, devClusterName, devClusterObject); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+		if devMachine.DeletionTimestamp.IsZero() {
+			log.Info("DevCluster is not available yet")
+			return ctrl.Result{}, nil
+		}
+	} else {
+		devCluster = devClusterObject
 	}
 
 	backendReconciler := r.backendReconcilerFactory(ctx, devMachine)

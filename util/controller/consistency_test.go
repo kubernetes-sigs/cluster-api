@@ -20,9 +20,11 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -70,7 +72,7 @@ func TestOwnerRecord_IsReady(t *testing.T) {
 	gvktDS := StructuredObject(schema.GroupVersion{Group: "apps", Version: "v1"}, "DaemonSet")
 	podStore := toolscache.NewStore(toolscache.MetaNamespaceKeyFunc)
 	dsStore := toolscache.NewStore(toolscache.MetaNamespaceKeyFunc)
-	resourceStores := map[GroupVersionKindType]toolscache.Store{
+	resourceStores := map[GroupVersionKindType]lastStoreSyncResourceVersionGetter{
 		gvktPod: podStore,
 		gvktDS:  dsStore,
 	}
@@ -286,7 +288,7 @@ func TestConsistencyStore_IsReady(t *testing.T) {
 	uid1 := types.UID("uid-1")
 	gvktPod := StructuredObject(schema.GroupVersion{Group: "", Version: "v1"}, "Pod")
 	podStore := toolscache.NewStore(toolscache.MetaNamespaceKeyFunc)
-	resourceStores := map[GroupVersionKindType]toolscache.Store{
+	resourceStores := map[GroupVersionKindType]lastStoreSyncResourceVersionGetter{
 		gvktPod: podStore,
 	}
 
@@ -383,6 +385,67 @@ func TestConsistencyStore_getStore(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, dynGVK, dynObj.GroupVersionKind())
 	assert.Len(t, cDynamic.stores, 1)
+}
+
+// TestConsistencyStore_getStore_MultiNamespaceInformer exercises getStore against a real
+// controller-runtime cache configured with DefaultNamespaces. Such a cache returns an
+// unexported *cache.multiNamespaceInformer from GetInformer, which does not itself implement
+// toolscache.SharedIndexInformer. Before resourceVersionGetterFromInformer's reflection-based
+// fallback was added, this made getStore fail with "failed to cast ... to SharedIndexInformer".
+// This can only be reproduced against a real multi-namespace cache, since the wrapper type is
+// unexported and can't be constructed by a test double.
+func TestConsistencyStore_getStore_MultiNamespaceInformer(t *testing.T) {
+	ctx := t.Context()
+
+	nsA, err := env.CreateNamespace(ctx, "consistency-multi-ns-a")
+	require.NoError(t, err)
+	nsB, err := env.CreateNamespace(ctx, "consistency-multi-ns-b")
+	require.NoError(t, err)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	multiNSCache, err := ctrlcache.New(env.GetConfig(), ctrlcache.Options{
+		Scheme: scheme,
+		DefaultNamespaces: map[string]ctrlcache.Config{
+			nsA.Name: {},
+			nsB.Name: {},
+		},
+	})
+	require.NoError(t, err)
+
+	cacheCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		_ = multiNSCache.Start(cacheCtx)
+	}()
+	require.True(t, multiNSCache.WaitForCacheSync(cacheCtx))
+
+	c := newConsistencyStore(scheme, multiNSCache, nil)
+	gvkt := StructuredObject(corev1.SchemeGroupVersion, "ConfigMap")
+
+	rvGetter, err := getStore(ctx, c, gvkt)
+	require.NoError(t, err)
+	assert.NotNil(t, rvGetter)
+
+	owner := types.NamespacedName{Name: "owner-1", Namespace: nsA.Name}
+	ownerUID := types.UID("owner-uid-1")
+
+	cmA := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "cm", Namespace: nsA.Name}}
+	require.NoError(t, env.CreateAndWait(ctx, cmA))
+	// Created after cmA, so on a single apiserver its resourceVersion is guaranteed to be the
+	// newer of the two.
+	cmB := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "cm", Namespace: nsB.Name}}
+	require.NoError(t, env.CreateAndWait(ctx, cmB))
+
+	// EnsureReady must wait until *both* namespace informers behind the multiNamespaceInformer
+	// have caught up to cmB's resourceVersion, not just whichever one syncs first.
+	c.WroteAt(owner, ownerUID, gvkt, cmB.ResourceVersion)
+
+	require.Eventually(t, func() bool {
+		consistencyErrors, err := c.EnsureReady(ctx, owner)
+		return err == nil && len(consistencyErrors) == 0
+	}, 10*time.Second, 100*time.Millisecond, "consistency store should become ready once both namespace informers catch up")
 }
 
 type fakeInformerGetter struct{}

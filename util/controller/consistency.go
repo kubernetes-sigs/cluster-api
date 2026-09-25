@@ -19,7 +19,9 @@ package controller
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sync"
+	"unsafe"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -59,6 +61,13 @@ type informerGetter interface {
 	GetInformer(ctx context.Context, obj client.Object, opts ...ctrlcache.InformerGetOption) (ctrlcache.Informer, error)
 }
 
+type lastStoreSyncResourceVersionGetter interface {
+	// LastStoreSyncResourceVersion returns the latest resource version that the store has seen.
+	// This is used to determine the latest resource version the store has seen from objects
+	// observed being written to the store.
+	LastStoreSyncResourceVersion() string
+}
+
 type realConsistencyStore struct {
 	// writesLock guards reads/additions/deletions to the writes map.
 	// individual records are responsible for managing their own thread safety.
@@ -67,7 +76,7 @@ type realConsistencyStore struct {
 	writes map[types.NamespacedName]*ownerRecord
 
 	storesLock sync.RWMutex
-	stores     map[GroupVersionKindType]toolscache.Store
+	stores     map[GroupVersionKindType]lastStoreSyncResourceVersionGetter
 
 	scheme         *runtime.Scheme
 	informerGetter informerGetter
@@ -77,7 +86,7 @@ type realConsistencyStore struct {
 func newConsistencyStore(scheme *runtime.Scheme, cache informerGetter, dynamicCache DynamicCache) *realConsistencyStore {
 	return &realConsistencyStore{
 		writes:         map[types.NamespacedName]*ownerRecord{},
-		stores:         map[GroupVersionKindType]toolscache.Store{},
+		stores:         map[GroupVersionKindType]lastStoreSyncResourceVersionGetter{},
 		scheme:         scheme,
 		informerGetter: cache,
 		dynamicCache:   dynamicCache,
@@ -276,7 +285,7 @@ func (w *ownerRecord) EnsureReady(ctx context.Context, c *realConsistencyStore) 
 	return errs, nil
 }
 
-func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKindType) (toolscache.Store, error) {
+func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKindType) (lastStoreSyncResourceVersionGetter, error) {
 	c.storesLock.RLock()
 	store, exists := c.stores[gvkt]
 	c.storesLock.RUnlock()
@@ -294,7 +303,7 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 		return store, nil
 	}
 
-	var sharedIndexInformer toolscache.SharedIndexInformer
+	var resourceVersionGetter lastStoreSyncResourceVersionGetter
 	if gvkt.Type == ObjectTypeDynamicCacheStructured {
 		if c.dynamicCache == nil {
 			return nil, fmt.Errorf("failed to create %s informer: DynamicCache not configured", gvkt.Kind)
@@ -313,11 +322,9 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 		if err != nil {
 			return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
 		}
-		var ok bool
-		sharedIndexInformer, ok = informer.(toolscache.SharedIndexInformer)
-		if !ok {
-			// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
-			return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
+		resourceVersionGetter, err = resourceVersionGetterFromInformer(informer, gvkt.Kind)
+		if err != nil {
+			return nil, err
 		}
 	} else {
 		var obj client.Object
@@ -345,14 +352,82 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 		if err != nil {
 			return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
 		}
-		var ok bool
-		sharedIndexInformer, ok = informer.(toolscache.SharedIndexInformer)
-		if !ok {
-			// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
-			return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
+		resourceVersionGetter, err = resourceVersionGetterFromInformer(informer, gvkt.Kind)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	c.stores[gvkt] = sharedIndexInformer.GetStore()
+	c.stores[gvkt] = resourceVersionGetter
 	return c.stores[gvkt], nil
+}
+
+// multiNamespaceInformerNamespaceToInformerField is the name of the unexported field on
+// sigs.k8s.io/controller-runtime/pkg/cache's multiNamespaceInformer that holds the
+// namespace-scoped informers it wraps.
+const multiNamespaceInformerNamespaceToInformerField = "namespaceToInformer"
+
+// multiSharedIndexInformerStore aggregates LastStoreSyncResourceVersion across the
+// SharedIndexInformers of a multi-namespace cache. It reports the oldest resource version
+// observed by any of them, so a write is only considered observed once every namespace's
+// informer has caught up to it.
+type multiSharedIndexInformerStore struct {
+	sharedIndexInformers []toolscache.SharedIndexInformer
+}
+
+func (s *multiSharedIndexInformerStore) LastStoreSyncResourceVersion() string {
+	oldest := ""
+	for _, sharedIndexInformer := range s.sharedIndexInformers {
+		rv := sharedIndexInformer.GetStore().LastStoreSyncResourceVersion()
+		if rv == "" {
+			return ""
+		}
+		if oldest == "" {
+			oldest = rv
+			continue
+		}
+		if cmp, err := resourceversion.CompareResourceVersion(oldest, rv); err == nil && cmp > 0 {
+			oldest = rv
+		}
+	}
+	return oldest
+}
+
+// resourceVersionGetterFromInformer returns a lastStoreSyncResourceVersionGetter for informer.
+// informer is usually a toolscache.SharedIndexInformer, but when the cache is configured to
+// watch a set of namespaces individually (e.g. via cache.Options.DefaultNamespaces),
+// controller-runtime instead returns a *cache.multiNamespaceInformer, an unexported type that
+// wraps one SharedIndexInformer per namespace but doesn't itself implement SharedIndexInformer.
+// Since controller-runtime doesn't expose a way to get at those per-namespace informers, we use
+// reflection to pull them out of the unexported namespaceToInformer field.
+func resourceVersionGetterFromInformer(informer ctrlcache.Informer, kind string) (lastStoreSyncResourceVersionGetter, error) {
+	if sharedIndexInformer, ok := informer.(toolscache.SharedIndexInformer); ok {
+		return sharedIndexInformer.GetStore(), nil
+	}
+
+	v := reflect.ValueOf(informer)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("failed to retrieve resourceVersions from %T", informer)
+	}
+	field := v.FieldByName(multiNamespaceInformerNamespaceToInformerField)
+	if !field.IsValid() || field.Kind() != reflect.Map {
+		return nil, fmt.Errorf("failed to retrieve resourceVersions from %T", informer)
+	}
+	// field is unexported, so it cannot be read directly via reflection; reach around that
+	// with unsafe so we can still call Interface() on the values it holds.
+	field = reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem()
+
+	sharedIndexInformers := make([]toolscache.SharedIndexInformer, 0, field.Len())
+	iter := field.MapRange()
+	for iter.Next() {
+		namespacedInformer, ok := iter.Value().Interface().(toolscache.SharedIndexInformer)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast namespaced %s informer of type %T to SharedIndexInformer", kind, iter.Value().Interface())
+		}
+		sharedIndexInformers = append(sharedIndexInformers, namespacedInformer)
+	}
+	return &multiSharedIndexInformerStore{sharedIndexInformers: sharedIndexInformers}, nil
 }

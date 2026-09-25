@@ -1111,6 +1111,36 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
 			},
 		},
+		{
+			// Same lazy allocation as the infrastructure path, same inverted guard.
+			name: "new machinepool, bootstrap config reports a failure",
+			bootstrapConfig: map[string]interface{}{
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"deprecated": map[string]interface{}{
+						"v1beta1": map[string]interface{}{
+							"failureReason":  "InvalidConfiguration",
+							"failureMessage": "the bootstrap provider rejected the spec",
+						},
+					},
+				},
+			},
+			expectError: false,
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(m.Status.Deprecated).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).ToNot(BeNil())
+				g.Expect(string(*m.Status.Deprecated.V1Beta1.FailureReason)).To(Equal("InvalidConfiguration"))
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).ToNot(BeNil())
+				g.Expect(*m.Status.Deprecated.V1Beta1.FailureMessage).To(ContainSubstring("the bootstrap provider rejected the spec"))
+			},
+		},
 	}
 
 	bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind)
@@ -1202,9 +1232,9 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		name               string
 		bootstrapConfig    map[string]interface{}
 		infraConfig        map[string]interface{}
-		infraCRD           *apiextensionsv1.CustomResourceDefinition
 		machinepool        *clusterv1.MachinePool
 		expectError        bool
+		expectChanged      bool
 		expectRequeueAfter bool
 		expected           func(g *WithT, m *clusterv1.MachinePool)
 	}{
@@ -1223,7 +1253,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
+					"initialization": map[string]interface{}{"provisioned": true}, "ready": true,
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1236,7 +1266,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					},
 				},
 			},
-			expectError: false,
+			expectError:   false,
+			expectChanged: true,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
 				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 			},
@@ -1301,7 +1332,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					"providerIDList": []interface{}{},
 				},
 				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
+					"initialization": map[string]interface{}{"provisioned": true}, "ready": true,
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1327,14 +1358,10 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			},
 		},
 		{
-			name: "new machinepool, infrastructure config ready via deprecated v1beta1 contract status.ready",
-			infraCRD: func() *apiextensionsv1.CustomResourceDefinition {
-				crd := builder.TestInfrastructureMachineTemplateCRD.DeepCopy()
-				crd.Labels = map[string]string{
-					clusterv1.GroupVersion.Group + "/v1beta1": builder.InfrastructureGroupVersion.Version,
-				}
-				return crd
-			}(),
+			// The v1beta1 failure fields are lazily allocated. Guarding that
+			// allocation on the pointer being non-nil skips it exactly when it is
+			// needed, so recording a failure nil-derefs instead.
+			name: "new machinepool, infrastructure reports a failure",
 			infraConfig: map[string]interface{}{
 				"kind":       builder.TestInfrastructureMachineTemplateKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
@@ -1342,48 +1369,31 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
-						"test://id-1",
-					},
-				},
+				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{"provisioned": false}, "ready": false, "failureReason": "InvalidConfiguration", "failureMessage": "the provider rejected the spec",
 				},
 			},
-			expectError: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+				g.Expect(m.Status.Deprecated).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).ToNot(BeNil())
+				g.Expect(string(*m.Status.Deprecated.V1Beta1.FailureReason)).To(Equal("InvalidConfiguration"))
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).ToNot(BeNil())
+				g.Expect(*m.Status.Deprecated.V1Beta1.FailureMessage).To(ContainSubstring("the provider rejected the spec"))
 			},
 		},
 		{
-			name: "new machinepool, infrastructure config on the v1beta2 contract reporting only status.ready falls back to it",
-			infraConfig: map[string]interface{}{
-				"kind":       builder.TestInfrastructureMachineTemplateKind,
-				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": metav1.NamespaceDefault,
-				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
-						"test://id-1",
-					},
-				},
-				"status": map[string]interface{}{
-					"ready": true,
-				},
-			},
-			expectError: false,
-			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
-			},
-		},
-		{
-			name: "infrastructure provisioned does not flip back to false when the infrastructure config reports not provisioned",
+			// Allocating unconditionally would be just as wrong the other way:
+			// it drops whatever the rest of the v1beta1 status already holds.
+			name: "existing machinepool with v1beta1 status, infrastructure reports a failure",
 			machinepool: func() *clusterv1.MachinePool {
 				mp := defaultMachinePool.DeepCopy()
-				mp.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				mp.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{
+					V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
+						ReadyReplicas: 3,
+					},
+				}
 				return mp
 			}(),
 			infraConfig: map[string]interface{}{
@@ -1393,18 +1403,15 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
-						"test://id-1",
-					},
-				},
+				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": false},
+					"initialization": map[string]interface{}{"provisioned": false}, "ready": false, "failureMessage": "the provider rejected the spec",
 				},
 			},
-			expectError: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.ReadyReplicas).To(Equal(int32(3)),
+					"recording a failure must not discard the rest of the v1beta1 status")
 			},
 		},
 	}
@@ -1417,13 +1424,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				tc.machinepool = defaultMachinePool.DeepCopy()
 			}
 
-			infraCRD := builder.TestInfrastructureMachineTemplateCRD
-			if tc.infraCRD != nil {
-				infraCRD = tc.infraCRD
-			}
-
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
-			fakeClient := fake.NewClientBuilder().WithObjects(tc.machinepool, infraConfig, builder.TestBootstrapConfigCRD, infraCRD).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tc.machinepool, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 			r := &Reconciler{
 				Client:       fakeClient,
 				ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -1500,7 +1502,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
+					"ready": true,
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1571,7 +1573,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
+					"ready": true,
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1639,7 +1641,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
+					"ready": true,
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1913,7 +1915,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			},
 			"spec": map[string]interface{}{},
 			"status": map[string]interface{}{
-				"initialization": map[string]interface{}{"provisioned": true},
+				"ready": true,
 			},
 		},
 	}

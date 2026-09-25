@@ -21,12 +21,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/kubetest"
@@ -174,6 +179,26 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			WaitForMachinePools:          input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		}, clusterResources)
 
+		By("Recording Machines before the upgrade")
+		preUpgradeMachines := framework.GetMachinesByCluster(ctx, framework.GetMachinesByClusterInput{
+			Lister:      input.BootstrapClusterProxy.GetClient(),
+			ClusterName: clusterResources.Cluster.Name,
+			Namespace:   namespace.Name,
+		})
+		preUpgradeMachineNames := sets.New[string]()
+		for _, m := range preUpgradeMachines {
+			// Excluding MachinePool Machines as they are harder to reason about, e.g.
+			// we don't know if MachinePool Machines are supported by the infra provider.
+			if isMachinePoolMachine(m) {
+				continue
+			}
+			preUpgradeMachineNames.Insert(m.Name)
+		}
+
+		// Continuously track Machines for the duration of the upgrade so that we can check
+		// if there have been any unexpected Machine creations.
+		stopTrackingMachines := trackMachineNames(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster.Name, namespace.Name)
+
 		if clusterResources.Cluster.Spec.Topology.IsDefined() {
 			// Cluster is using ClusterClass, upgrade via topology.
 			By("Upgrading the Cluster topology")
@@ -267,6 +292,13 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 
+		Byf("Verify the expected number of Machines were created by the upgrade")
+		observedMachineNames := stopTrackingMachines()
+		newMachineNames := observedMachineNames.Difference(preUpgradeMachineNames)
+		Expect(newMachineNames).To(HaveLen(len(preUpgradeMachineNames)),
+			"Expected %d new Machines to be created by the upgrade, got %d: pre-upgrade Machines: %v, post-upgrade Machines: %v",
+			len(preUpgradeMachineNames), len(newMachineNames), sets.List(preUpgradeMachineNames), sets.List(newMachineNames))
+
 		Byf("Verify Cluster Available condition is true")
 		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
 			Getter:    input.BootstrapClusterProxy.GetClient(),
@@ -305,4 +337,65 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		// Dumps all the resources in the spec Namespace, then cleanups the cluster object and the spec Namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
+}
+
+// trackMachineNames polls for Machines belonging to clusterName in the background and returns a function
+// that stops the polling and returns the set of every Machine name that was observed while polling was active.
+func trackMachineNames(ctx context.Context, c client.Client, clusterName, namespace string) func() sets.Set[string] {
+	var mu sync.Mutex
+	observed := sets.New[string]()
+
+	poll := func() {
+		machineList := &clusterv1.MachineList{}
+		if err := c.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName}); err != nil {
+			// Ignore transient list errors, the next tick (or the final poll on stop) will pick up the state.
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		for _, m := range machineList.Items {
+			if isMachinePoolMachine(m) {
+				// Excluding MachinePool Machines as they are harder to reason about, e.g.
+				// we don't know if MachinePool Machines are supported by the infra provider.
+				continue
+			}
+			observed.Insert(m.Name)
+		}
+	}
+
+	stopCtx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer GinkgoRecover()
+		defer close(done)
+
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			poll()
+			select {
+			case <-stopCtx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
+
+	return func() sets.Set[string] {
+		cancel()
+		<-done
+
+		// Final poll to catch the state right before stopping (uses the original, non-cancelled ctx).
+		poll()
+
+		mu.Lock()
+		defer mu.Unlock()
+		return observed.Clone()
+	}
+}
+
+// isMachinePoolMachine returns true if m is owned by a MachinePool.
+func isMachinePoolMachine(m clusterv1.Machine) bool {
+	_, ok := m.Labels[clusterv1.MachinePoolNameLabel]
+	return ok
 }

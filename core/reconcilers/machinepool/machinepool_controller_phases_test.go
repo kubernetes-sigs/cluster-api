@@ -267,7 +267,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Set infra ready.
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
@@ -334,7 +334,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
@@ -451,7 +451,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
@@ -515,7 +515,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, int64(4), "status", "replicas")
@@ -586,7 +586,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
@@ -653,7 +653,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
@@ -750,7 +750,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{

@@ -135,10 +135,16 @@ k8s::resolveVersion() {
   fi
 
   if [[ "$version" =~ ^ci/ ]]; then
-    resolveVersion=$(curl -LsS "http://dl.k8s.io/ci/${version#ci/}.txt")
+    resolveVersion=$(curl -LsS "https://dl.k8s.io/ci/${version#ci/}.txt")
   else
-    resolveVersion=$(curl -LsS "http://dl.k8s.io/release/${version}.txt")
+    resolveVersion=$(curl -LsS "https://dl.k8s.io/release/${version}.txt")
   fi
+
+  if ! [[ "$resolveVersion" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+    echo "+ $variableName=\"$version\" resolved to \"$resolveVersion\", which is not a valid semver version" 1>&2
+    return 1
+  fi
+
   echo "+ $variableName=\"$version\" resolved to \"$resolveVersion\""
 }
 

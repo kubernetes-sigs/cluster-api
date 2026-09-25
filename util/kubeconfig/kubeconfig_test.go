@@ -454,17 +454,18 @@ func TestRegenerateClientCerts(t *testing.T) {
 		},
 	}
 
-	c := fake.NewClientBuilder().WithObjects(validSecret, caSecret).Build()
+	validSec := validSecret.DeepCopy()
+	c := fake.NewClientBuilder().WithObjects(validSec, caSecret).Build()
 
-	oldConfig, err := clientcmd.Load(validSecret.Data[secret.KubeconfigDataName])
+	oldConfig, err := clientcmd.Load(validSec.Data[secret.KubeconfigDataName])
 	g.Expect(err).ToNot(HaveOccurred())
 	oldCert, err := certs.DecodeCertPEM(oldConfig.AuthInfos["test1-admin"].ClientCertificateData)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(RegenerateSecret(ctx, c, validSecret)).To(Succeed())
+	g.Expect(RegenerateSecret(ctx, c, validSec)).To(Succeed())
 
 	newSecret := &corev1.Secret{}
-	g.Expect(c.Get(ctx, util.ObjectKey(validSecret), newSecret)).To(Succeed())
+	g.Expect(c.Get(ctx, util.ObjectKey(validSec), newSecret)).To(Succeed())
 	newConfig, err := clientcmd.Load(newSecret.Data[secret.KubeconfigDataName])
 	g.Expect(err).ToNot(HaveOccurred())
 	newCert, err := certs.DecodeCertPEM(newConfig.AuthInfos["test1-admin"].ClientCertificateData)

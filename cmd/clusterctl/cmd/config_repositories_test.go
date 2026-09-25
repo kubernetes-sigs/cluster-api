@@ -117,7 +117,6 @@ kamaji                     ControlPlaneProvider       https://github.com/clastix
 kubeadm                    ControlPlaneProvider       https://github.com/kubernetes-sigs/cluster-api/releases/latest/                                   control-plane-components.yaml
 kubekey-k3s                ControlPlaneProvider       https://github.com/kubesphere/kubekey/releases/latest/                                            control-plane-components.yaml
 microk8s                   ControlPlaneProvider       https://github.com/canonical/cluster-api-control-plane-provider-microk8s/releases/latest/         control-plane-components.yaml
-nested                     ControlPlaneProvider       https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/                   control-plane-components.yaml
 rke2                       ControlPlaneProvider       https://github.com/rancher/cluster-api-provider-rke2/releases/latest/                             control-plane-components.yaml
 talos                      ControlPlaneProvider       https://github.com/siderolabs/cluster-api-control-plane-provider-talos/releases/latest/           control-plane-components.yaml
 aws                        InfrastructureProvider                                                                                                       my-aws-infrastructure-components.yaml
@@ -144,7 +143,6 @@ maas                       InfrastructureProvider     https://github.com/spectro
 metal-stack                InfrastructureProvider     https://github.com/metal-stack/cluster-api-provider-metal-stack/releases/latest/                  infrastructure-components.yaml
 metal3                     InfrastructureProvider     https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                         infrastructure-components.yaml
 my-infra-provider          InfrastructureProvider     /home/.config/cluster-api/overrides/infrastructure-docker/latest/                                 infrastructure-components.yaml
-nested                     InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/                   infrastructure-components.yaml
 nutanix                    InfrastructureProvider     https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/             infrastructure-components.yaml
 oci                        InfrastructureProvider     https://github.com/oracle/cluster-api-provider-oci/releases/latest/                               infrastructure-components.yaml
 opennebula                 InfrastructureProvider     https://github.com/OpenNebula/cluster-api-provider-opennebula/releases/latest/                    infrastructure-components.yaml
@@ -241,10 +239,6 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: microk8s
   ProviderType: ControlPlaneProvider
   URL: https://github.com/canonical/cluster-api-control-plane-provider-microk8s/releases/latest/
-- File: control-plane-components.yaml
-  Name: nested
-  ProviderType: ControlPlaneProvider
-  URL: https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/
 - File: control-plane-components.yaml
   Name: rke2
   ProviderType: ControlPlaneProvider
@@ -349,10 +343,6 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: my-infra-provider
   ProviderType: InfrastructureProvider
   URL: /home/.config/cluster-api/overrides/infrastructure-docker/latest/
-- File: infrastructure-components.yaml
-  Name: nested
-  ProviderType: InfrastructureProvider
-  URL: https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/
 - File: infrastructure-components.yaml
   Name: nutanix
   ProviderType: InfrastructureProvider

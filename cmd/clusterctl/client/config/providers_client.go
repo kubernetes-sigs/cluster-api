@@ -53,7 +53,6 @@ const (
 	IBMCloudProviderName       = "ibmcloud"
 	LinodeProviderName         = "linode-linode"
 	Metal3ProviderName         = "metal3"
-	NestedProviderName         = "nested"
 	NutanixProviderName        = "nutanix"
 	OCIProviderName            = "oci"
 	OpenStackProviderName      = "openstack"
@@ -96,7 +95,6 @@ const (
 	KubeadmControlPlaneProviderName             = "kubeadm"
 	TalosControlPlaneProviderName               = "talos"
 	MicroK8sControlPlaneProviderName            = "microk8s"
-	NestedControlPlaneProviderName              = "nested"
 	KubeKeyK3sControlPlaneProviderName          = "kubekey-k3s"
 	KamajiControlPlaneProviderName              = "kamaji"
 	RKE2ControlPlaneProviderName                = "rke2"
@@ -221,11 +219,6 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         Metal3ProviderName,
 			url:          "https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/infrastructure-components.yaml",
-			providerType: clusterctlv1.InfrastructureProviderType,
-		},
-		&provider{
-			name:         NestedProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -430,11 +423,6 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         MicroK8sControlPlaneProviderName,
 			url:          "https://github.com/canonical/cluster-api-control-plane-provider-microk8s/releases/latest/control-plane-components.yaml",
-			providerType: clusterctlv1.ControlPlaneProviderType,
-		},
-		&provider{
-			name:         NestedControlPlaneProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{

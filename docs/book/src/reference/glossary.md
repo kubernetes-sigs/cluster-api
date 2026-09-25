@@ -1,6 +1,4 @@
-# Table of Contents
-
-[A](#a) | [B](#b) | [C](#c) | [D](#d) | [E](#e) | [H](#h) | [I](#i) | [K](#k) | [L](#l)| [M](#m) | [N](#n) | [O](#o) | [P](#p) | [R](#r) | [S](#s) | [T](#t) | [U](#u) |[W](#w)
+# Glossary
 
 # A
 ---

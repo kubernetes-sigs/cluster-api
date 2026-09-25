@@ -66,16 +66,6 @@ Also, please note that the current implementation of the [in-place updates propo
 
 </aside>
 
-<!-- TOC -->
-* [Implementing in-place update hooks](#implementing-in-place-update-hooks)
-  * [Introduction](#introduction)
-  * [Guidelines](#guidelines)
-  * [Definitions](#definitions)
-    * [CanUpdateMachine](#canupdatemachine)
-    * [CanUpdateMachineSet](#canupdatemachineset)
-    * [UpdateMachine](#updatemachine)
-<!-- TOC -->
-
 ## Guidelines
 
 All guidelines defined in [Implementing Runtime Extensions](implement-extensions.md#guidelines) apply to the

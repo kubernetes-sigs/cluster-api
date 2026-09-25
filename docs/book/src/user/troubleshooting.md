@@ -1,21 +1,5 @@
 # Troubleshooting
 
-<!-- TOC -->
-* [Troubleshooting](#troubleshooting)
-  * [Troubleshooting Quick Start with Docker (CAPD)](#troubleshooting-quick-start-with-docker-capd)
-  * [Node bootstrap failures when using CABPK with cloud-init](#node-bootstrap-failures-when-using-cabpk-with-cloud-init)
-  * [Labeling nodes with reserved labels such as `node-role.kubernetes.io` fails with kubeadm error during bootstrap](#labeling-nodes-with-reserved-labels-such-as-node-rolekubernetesio-fails-with-kubeadm-error-during-bootstrap)
-  * [Cluster API with Docker - common issues with docker -](#cluster-api-with-docker---common-issues-with-docker---)
-  * [Cluster API with Docker  - "too many open files"](#cluster-api-with-docker---too-many-open-files)
-    * [MacOS and Docker Desktop -  "too many open files"](#macos-and-docker-desktop---too-many-open-files)
-  * [Failed clusterctl init - 'failed to get cert-manager object'](#failed-clusterctl-init---failed-to-get-cert-manager-object)
-  * [Failed clusterctl upgrade apply - 'failed to update cert-manager component'](#failed-clusterctl-upgrade-apply---failed-to-update-cert-manager-component)
-  * [Clusterctl failing to start providers due to outdated image overrides](#clusterctl-failing-to-start-providers-due-to-outdated-image-overrides)
-  * [Managed Cluster and co-authored slices](#managed-cluster-and-co-authored-slices)
-  * [Failed to removed fields from lists using Server Side Apply](#failed-to-removed-fields-from-lists-using-server-side-apply)
-  * [kubeadm join fails after upgrading to Kubernetes v1.36.1 / v1.35.5 / v1.34.8 / v1.33.12](#kubeadm-join-fails-after-upgrading-to-kubernetes-patch-releases)
-<!-- TOC -->
-
 ## Troubleshooting Quick Start with Docker (CAPD)
 
 <aside class="note warning">

@@ -41,6 +41,14 @@ fi
 source "$(dirname "$0")/../ensure/ensure-utils.sh"
 ROOT_PATH=$(get_root_path)
 
+# Expected sha256 for each pinned version/OS combination. When bumping
+# SHELLCHECK_VER in the Makefile, update these from the release assets.
+# Read via indirect expansion below, so shellcheck can't see the usage.
+# shellcheck disable=SC2034
+SHELLCHECK_SHA256_linux="6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87"
+# shellcheck disable=SC2034
+SHELLCHECK_SHA256_darwin="ef27684f23279d112d8ad84e0823642e43f838993bbb8c0963db9b58a90464c2"
+
 # create a temporary directory
 TMP_DIR=$(mktemp -d)
 OUT="${TMP_DIR}/out.log"
@@ -63,10 +71,13 @@ trap cleanup EXIT
 SHELLCHECK="${ROOT_PATH}/hack/tools/bin/shellcheck/${VERSION}/shellcheck"
 
 if [ ! -f "$SHELLCHECK" ]; then
-  # install buildifier
-  cd "${TMP_DIR}" || exit
+  # install shellcheck
   DOWNLOAD_FILE="shellcheck-${VERSION}.${OS}.x86_64.tar.xz"
-  curl -L "https://github.com/koalaman/shellcheck/releases/download/${VERSION}/${DOWNLOAD_FILE}" -o "${TMP_DIR}/shellcheck.tar.xz"
+  SHELLCHECK_SHA256_VAR="SHELLCHECK_SHA256_${OS}"
+  SHELLCHECK_SHA256="${!SHELLCHECK_SHA256_VAR:?no known sha256 for shellcheck ${VERSION} on ${OS}, add it to $0}"
+
+  download_and_verify "https://github.com/koalaman/shellcheck/releases/download/${VERSION}/${DOWNLOAD_FILE}" "${SHELLCHECK_SHA256}" "${TMP_DIR}/shellcheck.tar.xz"
+  cd "${TMP_DIR}" || exit
   tar xf "${TMP_DIR}/shellcheck.tar.xz"
   cd "${ROOT_PATH}"
   mkdir -p "${ROOT_PATH}/hack/tools/bin/shellcheck/${VERSION}"

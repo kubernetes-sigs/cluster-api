@@ -1,10 +1,7 @@
 name: PR dependabot code generation and go modules fix
 
-# This action runs on other PRs opened by dependabot. It updates modules and generated code on PRs opened by dependabot.
+# This action runs on other PRs opened by dependabot. It updates modules on PRs opened by dependabot.
 on:
-  pull_request:
-    branches:
-      - dependabot/**
   push:
     branches:
       - dependabot/**
@@ -17,6 +14,9 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # limit who can run this job to dependabot only (this job should not run accidentally in forks with branches matching the dependabot/** filter above).
+    if: github.actor == 'dependabot[bot]'
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # tag=v7.0.1
@@ -38,8 +38,6 @@ jobs:
           ${{ runner.os }}-go-
     - name: Update all modules
       run: make generate-modules
-    - name: Update generated code
-      run: make generate
     - uses: EndBug/add-and-commit@cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8 # tag=v11.1.1
       name: Commit changes
       with:

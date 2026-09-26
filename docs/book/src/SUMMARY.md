@@ -31,6 +31,7 @@
     - [Experimental Features](./tasks/experimental-features/experimental-features.md)
         - [MachinePools](./tasks/experimental-features/machine-pools.md)
         - [MachineSetPreflightChecks](./tasks/experimental-features/machineset-preflight-checks.md)
+        - [MachinePoolPreflightChecks](./tasks/experimental-features/machinepool-preflight-checks.md)
         - [ClusterClass](./tasks/experimental-features/cluster-class/index.md)
             - [Writing a ClusterClass](./tasks/experimental-features/cluster-class/write-clusterclass.md)
             - [Changing a ClusterClass](./tasks/experimental-features/cluster-class/change-clusterclass.md)

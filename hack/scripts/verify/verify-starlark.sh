@@ -26,6 +26,9 @@ fi
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 ROOT_PATH="$(cd "${SCRIPT_DIR}"/../../.. && pwd)"
 
+# shellcheck source=./hack/scripts/ensure/ensure-utils.sh
+source "${SCRIPT_DIR}/../ensure/ensure-utils.sh"
+
 VERSION="0.29.0"
 
 MODE="check"
@@ -34,10 +37,19 @@ if [[ "$*" == "fix" ]]; then
   MODE="fix"
 fi
 
+# Expected sha256 for each pinned version/OS binary. Update these whenever
+# VERSION is bumped, using the sha256 of the release asset.
+# shellcheck disable=SC2034
+BUILDIFIER_SHA256_linux="4c985c883eafdde9c0e8cf3c8595b8bfdf32e77571c369bf8ddae83b042028d6"
+# shellcheck disable=SC2034
+BUILDIFIER_SHA256_darwin="9b108decaa9a624fbac65285e529994088c5d15fecc1a30866afc03a48619245"
+
 if [[ "${OSTYPE}" == "linux"* ]]; then
   BINARY="buildifier"
+  BUILDIFIER_OS="linux"
 elif [[ "${OSTYPE}" == "darwin"* ]]; then
   BINARY="buildifier.mac"
+  BUILDIFIER_OS="darwin"
 fi
 
 # create a temporary directory
@@ -64,8 +76,10 @@ BUILDIFIER="${ROOT_PATH}/hack/tools/bin/buildifier/${VERSION}/buildifier"
 
 if [ ! -f "$BUILDIFIER" ]; then
   # install buildifier
-  cd "${TMP_DIR}" || exit
-  curl -L "https://github.com/bazelbuild/buildtools/releases/download/${VERSION}/${BINARY}" -o "${TMP_DIR}/buildifier"
+  BUILDIFIER_SHA256_VAR="BUILDIFIER_SHA256_${BUILDIFIER_OS}"
+  BUILDIFIER_SHA256="${!BUILDIFIER_SHA256_VAR:?no known sha256 for buildifier ${VERSION} on ${BUILDIFIER_OS}, add it to $0}"
+
+  download_and_verify "https://github.com/bazelbuild/buildtools/releases/download/${VERSION}/${BINARY}" "${BUILDIFIER_SHA256}" "${TMP_DIR}/buildifier"
   chmod +x "${TMP_DIR}/buildifier"
   cd "${ROOT_PATH}"
   mkdir -p "${ROOT_PATH}/hack/tools/bin/buildifier/${VERSION}"

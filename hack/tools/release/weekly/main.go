@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v92/github"
 	"golang.org/x/oauth2"
 
 	release "sigs.k8s.io/cluster-api/hack/tools/release/internal"
@@ -80,7 +80,11 @@ func run() int {
 	}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
-	client := createGitHubClient(ghToken)
+	client, err := createGitHubClient(ghToken)
+	if err != nil {
+		fmt.Println("Unable to create GitHub client:", err.Error())
+		return 1
+	}
 
 	branchValid, err := isValidBranch(branch, owner, repo, client)
 	if err != nil {
@@ -280,16 +284,16 @@ func isValidBranch(branchName string, owner string, repo string, client *github.
 // Using a token enables more api requests until we run into rate limitation
 // This is not necessary, but a nice to have when extending this script and going beyond
 // normal usage.
-func createGitHubClient(ghToken string) *github.Client {
+func createGitHubClient(ghToken string) (*github.Client, error) {
+	var opts []github.ClientOptionsFunc
 	if ghToken != "" {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: ghToken},
 		)
 
 		tc := oauth2.NewClient(context.Background(), ts)
-
-		return github.NewClient(tc)
+		opts = append(opts, github.WithHTTPClient(tc))
 	}
 
-	return github.NewClient(nil)
+	return github.NewClient(opts...)
 }

@@ -49,3 +49,32 @@ EOF
         return 2
     fi
 }
+
+# sha256 prints the sha256 digest of the given file.
+sha256() {
+    local file="${1}"
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "${file}" | awk '{print $1}'
+    else
+        shasum -a 256 "${file}" | awk '{print $1}'
+    fi
+}
+
+# download_and_verify downloads url to output_file and verifies its sha256 digest against
+# expected_sha256, removing output_file and returning non-zero on mismatch.
+download_and_verify() {
+    local url="${1}"
+    local expected_sha256="${2}"
+    local output_file="${3}"
+    local actual_sha256
+
+    curl --retry 5 --retry-all-errors -sL -o "${output_file}" "${url}"
+
+    actual_sha256="$(sha256 "${output_file}")"
+    if [[ "${actual_sha256}" != "${expected_sha256}" ]]; then
+        echo "error: checksum mismatch for ${url}: expected sha ${expected_sha256}, got sha ${actual_sha256}" 1>&2
+        rm -f "${output_file}"
+        return 1
+    fi
+}

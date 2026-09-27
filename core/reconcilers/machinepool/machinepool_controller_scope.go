@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
 // scope holds the different objects that are read and used during the reconcile.
@@ -53,10 +54,13 @@ func (s *scope) hasMachinePoolMachines() (bool, error) {
 		return false, errors.New("infra machine pool not set on scope")
 	}
 
-	machineKind, found, err := unstructured.NestedString(s.infraMachinePool.Object, "status", "infrastructureMachineKind")
+	machineKind, err := contract.InfrastructureMachinePool().InfrastructureMachineKind().Get(s.infraMachinePool)
 	if err != nil {
+		if errors.Is(err, contract.ErrFieldNotFound) {
+			return false, nil
+		}
 		return false, fmt.Errorf("failed to lookup infrastructureMachineKind: %w", err)
 	}
 
-	return found && (machineKind != ""), nil
+	return *machineKind != "", nil
 }

@@ -20,6 +20,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# shellcheck source=./hack/scripts/ensure/ensure-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/ensure-utils.sh"
+
 VERSION=${1}
 OUTPUT_PATH=${2}
 
@@ -48,12 +51,6 @@ esac
 ARCHIVE="$(mktemp -t mdbook.XXXXXX).tar.gz"
 trap 'rm -f "${ARCHIVE}"' EXIT
 
-curl -L -o "${ARCHIVE}" "https://github.com/rust-lang/mdBook/releases/download/${VERSION}/mdbook-${VERSION}-${RELEASE_NAME}"
-
-ACTUAL_SHA256="$(shasum -a 256 "${ARCHIVE}" | awk '{print $1}')"
-if [[ "${ACTUAL_SHA256}" != "${EXPECTED_SHA256}" ]]; then
-  echo "sha256 mismatch for mdbook-${VERSION}-${RELEASE_NAME}: expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}"
-  exit 1
-fi
+download_and_verify "https://github.com/rust-lang/mdBook/releases/download/${VERSION}/mdbook-${VERSION}-${RELEASE_NAME}" "${EXPECTED_SHA256}" "${ARCHIVE}"
 
 tar -xvz -C "${OUTPUT_PATH}" -f "${ARCHIVE}"

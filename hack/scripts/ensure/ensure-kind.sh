@@ -34,6 +34,19 @@ goos="$(go env GOOS)"
 # Note: When updating the MINIMUM_KIND_VERSION new shas MUST be added in `preBuiltMappings` at `test/infrastructure/kind/mapper.go`
 MINIMUM_KIND_VERSION=v0.33.0
 
+# Expected sha256 for each pinned version/OS/ARCH combination. Read via indirect
+# expansion below, so shellcheck can't see the usage. Update these whenever
+# MINIMUM_KIND_VERSION is bumped, using the sha256sum published alongside each
+# release binary.
+# shellcheck disable=SC2034
+KIND_SHA256_linux_amd64="aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d"
+# shellcheck disable=SC2034
+KIND_SHA256_linux_arm64="20022bee6cfcd5086cb7234d218e3454e6090022f2a8f55d1fa7fcf42c3867a2"
+# shellcheck disable=SC2034
+KIND_SHA256_darwin_amd64="5a99f26f57246dc9319dd294803313197a0f34d33c525b3ea8b655db5916ece0"
+# shellcheck disable=SC2034
+KIND_SHA256_darwin_arm64="0c8c7dbe5e23594a198b786c4bc13dacc101fa6196b0cb0b23a1ca44e61f4b4f"
+
 
 # install_kind downloads and installs the required kind version into GOPATH_BIN.
 install_kind() {
@@ -42,7 +55,9 @@ install_kind() {
     if ! [ -d "${GOPATH_BIN}" ]; then
       mkdir -p "${GOPATH_BIN}"
     fi
-    curl --retry 5 --retry-all-errors -sLo "${GOPATH_BIN}/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-${goos}-${goarch}"
+    KIND_SHA256_VAR="KIND_SHA256_${goos}_${goarch}"
+    KIND_SHA256="${!KIND_SHA256_VAR:?no known sha256 for kind ${MINIMUM_KIND_VERSION} on ${goos}/${goarch}, add it to $0}"
+    download_and_verify "https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-${goos}-${goarch}" "${KIND_SHA256}" "${GOPATH_BIN}/kind"
     chmod +x "${GOPATH_BIN}/kind"
     verify_gopath_bin
   else

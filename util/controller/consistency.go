@@ -19,7 +19,9 @@ package controller
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sync"
+	"unsafe"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -313,11 +315,9 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 		if err != nil {
 			return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
 		}
-		var ok bool
-		sharedIndexInformer, ok = informer.(toolscache.SharedIndexInformer)
-		if !ok {
-			// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
-			return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
+		sharedIndexInformer, err = toSharedIndexInformer(informer, gvkt.Kind)
+		if err != nil {
+			return nil, err
 		}
 	} else {
 		var obj client.Object
@@ -345,14 +345,66 @@ func getStore(ctx context.Context, c *realConsistencyStore, gvkt GroupVersionKin
 		if err != nil {
 			return nil, fmt.Errorf("failed to create %s informer: %w", gvkt.Kind, err)
 		}
-		var ok bool
-		sharedIndexInformer, ok = informer.(toolscache.SharedIndexInformer)
-		if !ok {
-			// Note: This should never happen as controller-runtime only uses SharedIndexInformer.
-			return nil, fmt.Errorf("failed to cast %s informer to SharedIndexInformer", gvkt.Kind)
+		sharedIndexInformer, err = toSharedIndexInformer(informer, gvkt.Kind)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	c.stores[gvkt] = sharedIndexInformer.GetStore()
 	return c.stores[gvkt], nil
+}
+
+// toSharedIndexInformer converts a ctrlcache.Informer to a toolscache.SharedIndexInformer.
+// Usually the informer is a toolscache.SharedIndexInformer, but when the cache is configured to
+// watch a specific namespace (e.g. via cache.Options.DefaultNamespaces),
+// controller-runtime instead returns a *cache.multiNamespaceInformer, an unexported type that
+// wraps one SharedIndexInformer per namespace but doesn't itself implement SharedIndexInformer.
+// Since controller-runtime doesn't expose a way to get at those per-namespace informers, we use
+// reflection to pull them out of the unexported namespaceToInformer field.
+// Controller-runtime issue: https://github.com/kubernetes-sigs/controller-runtime/issues/3607.
+func toSharedIndexInformer(informer ctrlcache.Informer, kind string) (toolscache.SharedIndexInformer, error) {
+	if sharedIndexInformer, ok := informer.(toolscache.SharedIndexInformer); ok {
+		return sharedIndexInformer, nil
+	}
+
+	v := reflect.ValueOf(informer)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("failed to convert %s informer to SharedIndexInformer: informer is not a struct", kind)
+	}
+
+	field := v.FieldByName("namespaceToInformer") // Name of the field that holds informers in multiNamespaceInformer.
+	if !field.IsValid() || field.Kind() != reflect.Map {
+		return nil, fmt.Errorf("failed to convert %s informer to SharedIndexInformer: informer does not have map field namespaceToInformer", kind)
+	}
+	// Field is unexported, so it cannot be read directly via reflection, use
+	// unsafe so we can still call Interface() on the values it holds.
+	field = reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem() //nolint:gosec // Using unsafe here is ~ fine.
+
+	sharedIndexInformers := make([]toolscache.SharedIndexInformer, 0, field.Len())
+	iter := field.MapRange()
+	for iter.Next() {
+		namespacedInformer, ok := iter.Value().Interface().(toolscache.SharedIndexInformer)
+		if !ok {
+			return nil, fmt.Errorf("failed to convert %s informer to SharedIndexInformer: field namespaceToInformer does not contain SharedIndexInformer", kind)
+		}
+		sharedIndexInformers = append(sharedIndexInformers, namespacedInformer)
+	}
+
+	// Note: In CAPI we only support two configurations:
+	// * CAPI watches all namespaces
+	// * CAPI watches a single namespace
+	// A multiNamespaceInformer is only used when CAPI watches a single namespace.
+	// For namespaced objects multiNamespaceInformer will contain a single namespaced informer
+	// For cluster-wide objects multiNamespaceInformer will contain a single cluster-wide informer.
+	// Accordingly, we are only handling these cases and avoid the complexity of handling e.g. when multiple namespaces are configured.
+
+	if len(sharedIndexInformers) != 1 {
+		return nil, fmt.Errorf("failed to convert %s informer to SharedIndexInformer: field namespaceToInformer contains multiple informers which is not supported", kind)
+	}
+
+	return sharedIndexInformers[0], nil
 }

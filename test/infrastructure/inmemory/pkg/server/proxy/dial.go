@@ -79,7 +79,7 @@ func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Co
 	// Check if context is already cancelled or timed out
 	select {
 	case <-ctx.Done():
-		return nil, pkgerrors.Wrap(ctx.Err(), "context cancelled before establishing connection")
+		return nil, errors.Wrap(ctx.Err(), "context cancelled before establishing connection")
 	default:
 	}
 

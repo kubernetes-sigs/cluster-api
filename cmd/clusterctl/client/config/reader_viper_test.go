@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/spf13/viper"
 )
 
 func Test_viperReader_Init(t *testing.T) {
@@ -204,6 +205,9 @@ func Test_viperReader_GetWithoutDefaultConfig(t *testing.T) {
 
 func Test_viperReader_Set(t *testing.T) {
 	g := NewWithT(t)
+
+	// viperReader uses the global viper instance; reset it so values set here do not leak into other tests.
+	t.Cleanup(viper.Reset)
 
 	dir := t.TempDir()
 

@@ -5,24 +5,6 @@ A ClusterClass becomes more useful and valuable when it can be used to create ma
 shape. The goal of this document is to explain how ClusterClasses can be written in a way that they are 
 flexible enough to be used in as many Clusters as possible by supporting variants of the same base Cluster shape.
 
-**Table of Contents**
-
-* [Basic ClusterClass](#basic-clusterclass)
-* [ClusterClass with MachineHealthChecks](#clusterclass-with-machinehealthchecks)
-* [ClusterClass with patches](#clusterclass-with-patches)
-* [ClusterClass with custom naming strategies](#clusterclass-with-custom-naming-strategies)
-    * [Defining a custom naming strategy for ControlPlane objects](#defining-a-custom-naming-strategy-for-controlplane-objects)
-    * [Defining a custom naming strategy for MachineDeployment objects](#defining-a-custom-naming-strategy-for-machinedeployment-objects)
-    * [Defining a custom naming strategy for MachinePool objects](#defining-a-custom-naming-strategy-for-machinepool-objects)
-* [Advanced features of ClusterClass with patches](#advanced-features-of-clusterclass-with-patches)
-    * [MachineDeployment variable overrides](#machinedeployment-and-machinepool-variable-overrides)
-    * [Builtin variables](#builtin-variables)
-    * [Complex variable types](#complex-variable-types)
-    * [Using variable values in JSON patches](#using-variable-values-in-json-patches)
-    * [Optional patches](#optional-patches)
-    * [Version-aware patches](#version-aware-patches)
-* [JSON patches tips &amp; tricks](#json-patches-tips--tricks)
-
 ## Basic ClusterClass
 
 The following example shows a basic ClusterClass. It contains templates to shape the control plane, 

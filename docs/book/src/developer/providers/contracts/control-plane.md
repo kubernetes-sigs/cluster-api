@@ -35,25 +35,22 @@ are explicitly called out in dedicated pages.
 On top of that special consideration MUST be done to ensure
 security around private key material required to create and run the Kubernetes control plane.
 
-<aside class="note warning">
-
-<h1>Never rely on Cluster API behaviours not defined as a contract rule!</h1>
-
-When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
-as a Cluster API internal implementation detail, and internal implementation details can change at any time.
-
-Accordingly, in order to not expose users to the risk that your provider breaks when the Cluster API internal behavior
-changes, you MUST NOT rely on any Cluster API internal behaviour when implementing a ControlPlane resource.
-
-Instead, whenever you need something more from the Cluster API contract, you MUST engage the community.
-
-The Cluster API maintainers welcome feedback and contributions to the contract in order to improve how it's defined,
-its clarity and visibility to provider implementers and its suitability across the different kinds of Cluster API providers.
-
-To provide feedback or open a discussion about the provider contract please [open an issue on the Cluster API](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md)
-repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
-
-</aside>
+> [!NOTE]
+> **Never rely on Cluster API behaviours not defined as a contract rule!**
+>
+> When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
+> as a Cluster API internal implementation detail, and internal implementation details can change at any time.
+>
+> Accordingly, in order to not expose users to the risk that your provider breaks when the Cluster API internal behavior
+> changes, you MUST NOT rely on any Cluster API internal behaviour when implementing a ControlPlane resource.
+>
+> Instead, whenever you need something more from the Cluster API contract, you MUST engage the community.
+>
+> The Cluster API maintainers welcome feedback and contributions to the contract in order to improve how it's defined,
+> its clarity and visibility to provider implementers and its suitability across the different kinds of Cluster API providers.
+>
+> To provide feedback or open a discussion about the provider contract please [open an issue on the Cluster API](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md)
+> repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
 
 ## Rules (contract version v1beta2)
 
@@ -174,14 +171,11 @@ labels:
 
 An example of this is in the [Kubeadm Bootstrap provider](https://github.com/kubernetes-sigs/cluster-api/blob/release-1.1/controlplane/kubeadm/config/crd/kustomization.yaml).
 
-<aside  class="note warning">
-
-<h1>Important</h1>
-
-If the provider implements the [clusterctl provider contract], the contract version defined in the
-label above must be consistent with the contract version defined in the `metadata.yaml` file.
-
-</aside>
+> [!NOTE]
+> **Important**
+>
+> If the provider implements the [clusterctl provider contract], the contract version defined in the
+> label above must be consistent with the contract version defined in the `metadata.yaml` file.
 
 ### ControlPlane, ControlPlaneList resource definition
 
@@ -277,34 +271,31 @@ the Cluster controller will surface this info in Cluster's `spec.controlPlaneEnd
 If instead you are developing a control plane provider which is NOT responsible to provide a control plane endpoint,
 the implementer should exit reconciliation until it sees Cluster's `spec.controlPlaneEndpoint` populated.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-```go
-type FooControlPlaneSpec struct {
-    // controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
-    // +optional
-    ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
-    
-    // See other rules for more details about mandatory/optional fields in ControlPlane spec.
-    // Other fields SHOULD be added based on the needs of your provider.
-}
-
-// APIEndpoint represents a reachable Kubernetes API endpoint.
-type APIEndpoint struct {
-    // host is the hostname on which the API server is serving.
-    Host string `json:"host"`
-    
-    // port is the port on which the API server is serving.
-    Port int32 `json:"port"`
-}
-```
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> ```go
+> type FooControlPlaneSpec struct {
+>     // controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+>     // +optional
+>     ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
+>
+>     // See other rules for more details about mandatory/optional fields in ControlPlane spec.
+>     // Other fields SHOULD be added based on the needs of your provider.
+> }
+>
+> // APIEndpoint represents a reachable Kubernetes API endpoint.
+> type APIEndpoint struct {
+>     // host is the hostname on which the API server is serving.
+>     Host string `json:"host"`
+>
+>     // port is the port on which the API server is serving.
+>     Port int32 `json:"port"`
+> }
+> ```
 
 ### ControlPlane: replicas
 
@@ -373,18 +364,15 @@ More information about the [scale subresource can be found in the Kubernetes
 documentation][scale].
 
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regards to v1beta1 replica counters, the Cluster controller with temporarily continue to read
-`status.readyReplicas`,  `status.updatedReplicas` and `status.unavailableReplicas`, even if the semantic of the 
-field might be different from what expected.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regards to v1beta1 replica counters, the Cluster controller with temporarily continue to read
+> `status.readyReplicas`,  `status.updatedReplicas` and `status.unavailableReplicas`, even if the semantic of the 
+> field might be different from what expected.
 
 ### ControlPlane: version
 
@@ -528,20 +516,17 @@ Please note that some of the above fields (`metadata`, `nodeDrainTimeoutSeconds`
 must be propagated to machines without triggering rollouts.
 See [In place propagation of changes affecting Kubernetes objects only] as well as [Metadata propagation] for more details.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-For reference. The v1beta1 contract had `nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout` fields
-of type `*metav1.Duration` instead of the new fields with `Seconds` suffix of type `*int32`.
-`infrastructureRef` was of type `corev1.ObjectReference`, the new field has the type  `clusterv1.ContractVersionedObjectReference`.
-In v1beta2 we also moved `infrastructureRef` into the newly introduced `spec.machineTemplate.spec` field and `nodeDrainTimeoutSeconds`,
-`nodeVolumeDetachTimeoutSeconds` and `nodeDeletionTimeoutSeconds` into the newly introduced `spec.machineTemplate.spec.deletion` field.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> For reference. The v1beta1 contract had `nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout` fields
+> of type `*metav1.Duration` instead of the new fields with `Seconds` suffix of type `*int32`.
+> `infrastructureRef` was of type `corev1.ObjectReference`, the new field has the type  `clusterv1.ContractVersionedObjectReference`.
+> In v1beta2 we also moved `infrastructureRef` into the newly introduced `spec.machineTemplate.spec` field and `nodeDrainTimeoutSeconds`,
+> `nodeVolumeDetachTimeoutSeconds` and `nodeDeletionTimeoutSeconds` into the newly introduced `spec.machineTemplate.spec.deletion` field.
 
 In case you are developing a control plane provider that allows definition of machine readiness gates, you SHOULD also implement
 the following `spec.machineTemplate.spec` field.
@@ -693,22 +678,19 @@ Once `status.initialization.controlPlaneInitialized` is set the Cluster "core" c
 
 If defined, also ControlPlane's `spec.controlPlaneEndpoint` will be surfaced on Cluster's corresponding fields at the same time.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regards to initialization completed:
-
-Cluster API will continue to temporarily support ControlPlane resource using the `status.initialized` field to
-report initialization completed.
-
-After compatibility with the deprecated v1beta1 contract will be removed, the `status.initialized` field in
-the ControlPlane resource will be ignored.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regards to initialization completed:
+>
+> Cluster API will continue to temporarily support ControlPlane resource using the `status.initialized` field to
+> report initialization completed.
+>
+> After compatibility with the deprecated v1beta1 contract will be removed, the `status.initialized` field in
+> the ControlPlane resource will be ignored.
 
 ### ControlPlane: in-place updates
 
@@ -723,18 +705,15 @@ Supporting in-place updates requires:
 
 After above steps are completed, the machine controller will take over and complete the in-place upgrade.
 
-<aside class="note warning">
-
-<h1>High complexity</h1>
-
-Implementing the in-place update transition in a race condition-free, re-entrant way is more complex than it might seem.
-
-Please read the proposal's [implementation notes](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates-implementation-notes.md)
-carefully.
-
-Also, it is highly recommended to use the KCP implementation as a reference.
-
-</aside>
+> [!NOTE]
+> **High complexity**
+>
+> Implementing the in-place update transition in a race condition-free, re-entrant way is more complex than it might seem.
+>
+> Please read the proposal's [implementation notes](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates-implementation-notes.md)
+> carefully.
+>
+> Also, it is highly recommended to use the KCP implementation as a reference.
 
 
 ### ControlPlane: conditions
@@ -770,21 +749,18 @@ them to compute a Cluster level `RollingOut`, `ScalingUp`, `ScalingDown` conditi
 
 See [Improving status in CAPI resources] for more context.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regards to conditions:
-
-Cluster API will continue to read conditions from providers using deprecated Cluster API condition types.
-
-Please note that provider that will continue to use deprecated Cluster API condition types MUST carefully take into account
-the implication of this choice which are described both in the [Cluster API v1.11 migration notes] and in the [Improving status in CAPI resources] proposal.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regards to conditions:
+>
+> Cluster API will continue to read conditions from providers using deprecated Cluster API condition types.
+>
+> Please note that provider that will continue to use deprecated Cluster API condition types MUST carefully take into account
+> the implication of this choice which are described both in the [Cluster API v1.11 migration notes] and in the [Improving status in CAPI resources] proposal.
 
 ### ControlPlane: terminal failures
 
@@ -795,26 +771,23 @@ it is up to consumers to treat them accordingly.
 
 See [Improving status in CAPI resources] for more context.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regards to terminal failures:
-
-In case a Control Plane provider reports that a ControlPlane resource is in a state that cannot be recovered (terminal failure) by
-setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract,
-the "core" Cluster controller will surface those info in the corresponding fields in the Cluster's `status.deprecated.v1beta1` struct.
-
-However, those info won't have any impact on the Cluster lifecycle as before (the Cluster controller won't consider the
-presence of `status.failureReason` and `status.failureMessage` info as "terminal failures").
-
-After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
-fields in the ControlPlane resource will be ignored and Cluster's `status.deprecated.v1beta1` struct will be dropped.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regards to terminal failures:
+>
+> In case a Control Plane provider reports that a ControlPlane resource is in a state that cannot be recovered (terminal failure) by
+> setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract,
+> the "core" Cluster controller will surface those info in the corresponding fields in the Cluster's `status.deprecated.v1beta1` struct.
+>
+> However, those info won't have any impact on the Cluster lifecycle as before (the Cluster controller won't consider the
+> presence of `status.failureReason` and `status.failureMessage` info as "terminal failures").
+>
+> After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
+> fields in the ControlPlane resource will be ignored and Cluster's `status.deprecated.v1beta1` struct will be dropped.
 
 ### ControlPlaneTemplate, ControlPlaneTemplateList resource definition
 
@@ -923,28 +896,25 @@ propagated to Kubernetes Nodes.
 
 ### MinReadySeconds and UpToDate propagation
 
-<aside class="note warning">
-
-<h1>Heads up! this will change with the v1beta2 contract</h1>
-
-When the v1beta2 contract will be released (August 2025), Cluster API is going to standardize how
-machines determine if they are available or up to date with the spec of the owner resource.
-
-In order to ensure a nice and consistent user experience across the entire Cluster, also ControlPlane providers
-are expected to align to this effort and implement the following behaviours:
-
-Control plane providers will be expected to continuously set Machines `spec.minReadySeconds` and Machine's 
-`status.conditions[UpToDate]` condition.
-
-Please note that a CP provider implementation can decide to enforce `spec.minReadySeconds` to be 0 and do not
-introduce a difference between readiness and availability or introduce it at a later stage (e.g. KCP will do this). 
-
-Additionally, please note that the `spec.minReadySeconds` field MUST be treated like other fields propagated /updated in place, 
-and thus propagated to Machines without triggering rollouts.
-
-See [Improving status in CAPI resources] and [In place propagation of changes affecting Kubernetes objects only] for more context.
-
-</aside>
+> [!NOTE]
+> **Heads up! this will change with the v1beta2 contract**
+>
+> When the v1beta2 contract will be released (August 2025), Cluster API is going to standardize how
+> machines determine if they are available or up to date with the spec of the owner resource.
+>
+> In order to ensure a nice and consistent user experience across the entire Cluster, also ControlPlane providers
+> are expected to align to this effort and implement the following behaviours:
+>
+> Control plane providers will be expected to continuously set Machines `spec.minReadySeconds` and Machine's 
+> `status.conditions[UpToDate]` condition.
+>
+> Please note that a CP provider implementation can decide to enforce `spec.minReadySeconds` to be 0 and do not
+> introduce a difference between readiness and availability or introduce it at a later stage (e.g. KCP will do this). 
+>
+> Additionally, please note that the `spec.minReadySeconds` field MUST be treated like other fields propagated /updated in place, 
+> and thus propagated to Machines without triggering rollouts.
+>
+> See [Improving status in CAPI resources] and [In place propagation of changes affecting Kubernetes objects only] for more context.
 
 ### Support for running multiple instances
 

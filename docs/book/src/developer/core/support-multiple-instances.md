@@ -25,16 +25,13 @@ flags are provided:
 - Providers MUST support the `--namespace` flag in their controllers.
 - Providers MUST support the `--watch-filter` flag in their controllers.
 
-<aside class="note warning">
-
-<h1>⚠️ Users selecting this deployment model, please be aware:</h1>
-
-- Giving the increasingly complex task that is to manage multiple instances of the same controllers,
-  the Cluster API community may only provide best effort support for users that choose this model.
-- Cluster API (incl. every provider managed under `kubernetes-sigs`) won't release a specialized components file
-  supporting the scenario described above; however, users should be able to create such deployment model from
-  the `/config` folder.
-- Cluster API (incl. every provider managed under `kubernetes-sigs`) testing infrastructure won't run test cases
-  with multiple instances of the same provider.
-
-</aside>
+> [!NOTE]
+> **⚠️ Users selecting this deployment model, please be aware:**
+>
+> - Giving the increasingly complex task that is to manage multiple instances of the same controllers,
+>   the Cluster API community may only provide best effort support for users that choose this model.
+> - Cluster API (incl. every provider managed under `kubernetes-sigs`) won't release a specialized components file
+>   supporting the scenario described above; however, users should be able to create such deployment model from
+>   the `/config` folder.
+> - Cluster API (incl. every provider managed under `kubernetes-sigs`) testing infrastructure won't run test cases
+>   with multiple instances of the same provider.

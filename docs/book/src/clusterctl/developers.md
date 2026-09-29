@@ -87,34 +87,28 @@ As you might notice, the command is using the `$XDG_CONFIG_HOME/cluster-api/dev-
 containing all the required setting to make clusterctl use the local repository (it fallbacks to `$HOME` if `$XDG_CONFIG_HOME` 
 is not set on your machine).
 
-<aside class="note warning">
+> [!NOTE]
+> **Warnings**
+>
+> You must pass `--config ...` to all the clusterctl commands you are running during your dev session.
+>
+> The above config file changes the location of the [overrides layer] folder thus ensuring
+> you dev session isn't hijacked by other local artifacts.
+>
+> With the exceptions of the Docker provider, the local repository folder does not contain cluster templates,
+> so the `clusterctl generate cluster` command will fail if you don't copy a template into the local repository.
 
-<h1>Warnings</h1>
-
-You must pass `--config ...` to all the clusterctl commands you are running during your dev session.
-
-The above config file changes the location of the [overrides layer] folder thus ensuring
-you dev session isn't hijacked by other local artifacts.
-
-With the exceptions of the Docker provider, the local repository folder does not contain cluster templates,
-so the `clusterctl generate cluster` command will fail if you don't copy a template into the local repository.
-
-</aside>
-
-<aside class="note warning">
-
-<h1>Nightly builds</h1>
-
-if you want to run your tests using a Cluster API nightly build, you can run the hack passing the nightly build folder
-(change the date at the end of the bucket name according to your needs):
-
-```bash
-cmd/clusterctl/hack/create-local-repository.py https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240425
-```
-
-Note: this works only with core Cluster API nightly builds. 
-
-</aside>
+> [!NOTE]
+> **Nightly builds**
+>
+> if you want to run your tests using a Cluster API nightly build, you can run the hack passing the nightly build folder
+> (change the date at the end of the bucket name according to your needs):
+>
+> ```bash
+> cmd/clusterctl/hack/create-local-repository.py https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240425
+> ```
+>
+> Note: this works only with core Cluster API nightly builds. 
 
 #### Available providers
 

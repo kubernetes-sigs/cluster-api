@@ -6,13 +6,10 @@ interactive completion of clusterctl commands.
 
 ## Bash
 
-<aside class="note">
-
-<h1>Note</h1>
-
-This requires the bash-completion framework.
-
-</aside>
+> [!NOTE]
+> **Note**
+>
+> This requires the bash-completion framework.
 
 To install `bash-completion` on macOS, use Homebrew:
 
@@ -44,13 +41,10 @@ all your shell sessions. There are multiple ways to achieve this:
 
 ## Zsh
 
-<aside class="note">
-
-<h1>Note</h1>
-
-Zsh completions are only supported in versions of zsh >= 5.2
-
-</aside>
+> [!NOTE]
+> **Note**
+>
+> Zsh completions are only supported in versions of zsh >= 5.2
 
 The clusterctl completion script for Zsh can be generated with the command
 `clusterctl completion zsh`.

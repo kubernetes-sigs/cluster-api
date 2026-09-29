@@ -2,19 +2,13 @@
 
 The Runtime SDK feature provides an extensibility mechanism that allows systems, products, and services built on top of Cluster API to hook into a workload cluster’s lifecycle.
 
-<aside class="note warning">
+> [!NOTE]
+> All currently implemented hooks except for [In-Place Update Hooks](./implement-in-place-update-hooks.md) require to also enable the [ClusterClass](../cluster-class/index.md) feature, and are only invoked for Clusters created using ClusterClass.
 
-All currently implemented hooks except for [In-Place Update Hooks](./implement-in-place-update-hooks.md) require to also enable the [ClusterClass](../cluster-class/index.md) feature, and are only invoked for Clusters created using ClusterClass.
-
-</aside>
-
-<aside class="note warning">
-
-<h1>Caution</h1>
-
-Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
-
-</aside>
+> [!NOTE]
+> **Caution**
+>
+> Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
 **Feature gate name**: `RuntimeSDK`
 

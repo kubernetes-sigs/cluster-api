@@ -3,11 +3,8 @@
 The ClusterClass feature introduces a new way to create clusters which reduces boilerplate and enables flexible and powerful customization of clusters.
 ClusterClass is a powerful abstraction implemented on top of existing interfaces and offers a set of tools and operations to streamline cluster lifecycle management while maintaining the same underlying API.
 
-<aside class="note warning">
-
-In order to use the ClusterClass (alpha) experimental feature the Kubernetes Version for the management cluster must be >= 1.22.0.
-
-</aside>
+> [!NOTE]
+> In order to use the ClusterClass (alpha) experimental feature the Kubernetes Version for the management cluster must be >= 1.22.0.
 
 **Feature gate name**: `ClusterTopology`
 

@@ -66,15 +66,12 @@
 
 Following annotation are used by CAPI internally. 
 
-<aside class="note warning">
-
-<h1>Internal annotations should not be used outside CAPI controllers</h1>
-
-Name, meaning and semantic of internal annotations can change anytime. 
-
-Users must not change or remove internal annotation on CAPI resources, because this can lead to issues or unexpected behaviour of the system.
-
-</aside>
+> [!NOTE]
+> **Internal annotations should not be used outside CAPI controllers**
+>
+> Name, meaning and semantic of internal annotations can change anytime. 
+>
+> Users must not change or remove internal annotation on CAPI resources, because this can lead to issues or unexpected behaviour of the system.
 
 | Annotation                                                                   | Note                                                                                                                                                                                                                                                      | Applies to |
 |------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|

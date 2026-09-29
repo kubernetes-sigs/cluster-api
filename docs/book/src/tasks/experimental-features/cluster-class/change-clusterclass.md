@@ -53,26 +53,22 @@ the recommended way for updating templates is by template rotation:
 - Update the template reference in the ClusterClass
 - Delete the old template
 
-<aside class="note">
-<h1>In place template mutations</h1>
+> [!NOTE]
+> **In place template mutations**
+>
+> In case a provider supports in place template mutations, the Cluster API topology controller
+> will adapt to them during the next reconciliation, but the system is not watching for those changes. 
+> Meaning, when the underlying template is updated the changes
+> may not be reflected immediately, however they will be picked up during the next full reconciliation.
+> The maximum time for the next full reconciliation is equal to the CAPI controller
+> sync period (defaults to 10 minutes).
 
-In case a provider supports in place template mutations, the Cluster API topology controller
-will adapt to them during the next reconciliation, but the system is not watching for those changes. 
-Meaning, when the underlying template is updated the changes
-may not be reflected immediately, however they will be picked up during the next full reconciliation.
-The maximum time for the next full reconciliation is equal to the CAPI controller
-sync period (defaults to 10 minutes).
-
-</aside>
-
-<aside class="note warning">
-<h1>Reusing templates across ClusterClasses</h1>
-
-As already discussed in [writing a cluster class](write-clusterclass.md), while it is technically possible to
-re-use a template across ClusterClasses, this practice is not recommended because it makes it difficult
-to reason about the impact of changing such a template can have on existing Clusters.
-
-</aside>
+> [!NOTE]
+> **Reusing templates across ClusterClasses**
+>
+> As already discussed in [writing a cluster class](write-clusterclass.md), while it is technically possible to
+> re-use a template across ClusterClasses, this practice is not recommended because it makes it difficult
+> to reason about the impact of changing such a template can have on existing Clusters.
 
 Also in case of changes to the ClusterClass templates, please make sure to:
 
@@ -105,14 +101,12 @@ Cluster, e.g. changing the InfrastructureProvider from AWS to Azure.
 
 If the proposed changes are evaluated as dangerous, the operation is rejected.
 
-<aside class="note warning">
-<h1>Warning</h1>
-
-In the current implementation there are no compatibility rules for changes to provider
-templates, so you should refer to the provider documentation to avoid
-potentially dangerous changes on those objects.
-
-</aside>
+> [!NOTE]
+> **Warning**
+>
+> In the current implementation there are no compatibility rules for changes to provider
+> templates, so you should refer to the provider documentation to avoid
+> potentially dangerous changes on those objects.
 
 ## Planning ClusterClass changes
 
@@ -171,13 +165,11 @@ More specifically, the topology controller uses [Server Side Apply](https://kube
 to write/patch topology owned objects; using SSA allows other controllers to co-author the generated objects, 
 like e.g. adding info for subnets in CAPA.
 
-<aside class="note">
-<h1>What about patches?</h1>
-
-The considerations above apply also when using patches, the only difference being that the
-set of fields that are enforced should be determined by applying patches on top of the templates. 
-
-</aside>
+> [!NOTE]
+> **What about patches?**
+>
+> The considerations above apply also when using patches, the only difference being that the
+> set of fields that are enforced should be determined by applying patches on top of the templates. 
 
 A corollary of the behaviour described above is that it is technically possible to change fields in the object 
 which are not derived from the templates and patches, but we advise against using the possibility

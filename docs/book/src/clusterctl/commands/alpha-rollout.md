@@ -2,16 +2,13 @@
 
 The `clusterctl alpha rollout` command manages the rollout of a Cluster API resource. It consists of several sub-commands which are documented below. 
 
-<aside class="note">
-
-<h1> Valid Resource Types </h1>
-
-Currently, only the following Cluster API resources are supported by the rollout command:
-
-- kubeadmcontrolplanes
-- machinedeployments
-
-</aside>
+> [!NOTE]
+> **Valid Resource Types**
+>
+> Currently, only the following Cluster API resources are supported by the rollout command:
+>
+> - kubeadmcontrolplanes
+> - machinedeployments
 
 ### Restart 
 
@@ -35,10 +32,7 @@ Use the `resume` sub-command to resume a currently paused Cluster API resource. 
 clusterctl alpha rollout resume machinedeployment/my-md-0
 ```
 
-<aside class="note warning">
-
-<h1> Warning </h1>
-
-Paused resources will not be reconciled by a controller. By resuming a resource, we allow it to be reconciled again. 
-
-</aside>
+> [!NOTE]
+> **Warning**
+>
+> Paused resources will not be reconciled by a controller. By resuming a resource, we allow it to be reconciled again. 

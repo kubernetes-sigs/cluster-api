@@ -106,14 +106,11 @@ We recommend using the [ClusterTemplate method] and the [Apply method] for creat
 This methods mimics the recommended user workflows, and it is based on `cluster-templates.yaml` files that can be
 provided via the [E2E config file], and thus easily swappable when changing the target infrastructure provider.
 
-<aside class="note">
-
-<h1>Tips</h1>
-
-If you need control over object creation but want to preserve portability, you can create many templates
-files each one creating only a small set of objects (instead of using a single template creating a full cluster).
-
-</aside>
+> [!NOTE]
+> **Tips**
+>
+> If you need control over object creation but want to preserve portability, you can create many templates
+> files each one creating only a small set of objects (instead of using a single template creating a full cluster).
 
 After creating objects in the cluster, use the existing methods in the [Cluster API test framework] to discover
 which object were created in the cluster so your code can adapt to different `cluster-templates.yaml` files.

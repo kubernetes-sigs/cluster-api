@@ -21,25 +21,22 @@ in order to address very specific needs).
 In order to facilitate the initial design for each InfraCluster resource, a few [implementation best practices] and [infrastructure Provider Security Guidance]
 are explicitly called out in dedicated pages.
 
-<aside class="note warning">
-
-<h1>Never rely on Cluster API behaviours not defined as a contract rule!</h1>
-
-When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
-as a Cluster API internal implementation detail, and internal implementation details can change at any time.
-
-Accordingly, in order to not expose users to the risk that your provider breaks when the Cluster API internal behavior
-changes, you MUST NOT rely on any Cluster API internal behaviour when implementing an InfraCluster resource.
-
-Instead, whenever you need something more from the Cluster API contract, you MUST engage the community.
-
-The Cluster API maintainers welcome feedback and contributions to the contract in order to improve how it's defined,
-its clarity and visibility to provider implementers and its suitability across the different kinds of Cluster API providers.
-
-To provide feedback or open a discussion about the provider contract please [open an issue on the Cluster API](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md)
-repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
-
-</aside>
+> [!NOTE]
+> **Never rely on Cluster API behaviours not defined as a contract rule!**
+>
+> When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
+> as a Cluster API internal implementation detail, and internal implementation details can change at any time.
+>
+> Accordingly, in order to not expose users to the risk that your provider breaks when the Cluster API internal behavior
+> changes, you MUST NOT rely on any Cluster API internal behaviour when implementing an InfraCluster resource.
+>
+> Instead, whenever you need something more from the Cluster API contract, you MUST engage the community.
+>
+> The Cluster API maintainers welcome feedback and contributions to the contract in order to improve how it's defined,
+> its clarity and visibility to provider implementers and its suitability across the different kinds of Cluster API providers.
+>
+> To provide feedback or open a discussion about the provider contract please [open an issue on the Cluster API](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md)
+> repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
 
 ## Rules (contract version v1beta2)
 
@@ -156,14 +153,11 @@ labels:
 
 An example of this is in the [Kubeadm Bootstrap provider](https://github.com/kubernetes-sigs/cluster-api/blob/release-1.1/controlplane/kubeadm/config/crd/kustomization.yaml).
 
-<aside  class="note warning">
-
-<h1>Important</h1>
-
-If the provider implements the [clusterctl provider contract], the contract version defined in the
-label above must be consistent with the contract version defined in the `metadata.yaml` file.
-
-</aside>
+> [!NOTE]
+> **Important**
+>
+> If the provider implements the [clusterctl provider contract], the contract version defined in the
+> label above must be consistent with the contract version defined in the `metadata.yaml` file.
 
 ### InfraCluster, InfraClusterList resource definition
 
@@ -259,34 +253,31 @@ the Cluster controller will surface this info in Cluster's `spec.controlPlaneEnd
 If instead you are developing an infrastructure provider which is NOT responsible to provide a control plane endpoint,
 the implementer should exit reconciliation until it sees Cluster's `spec.controlPlaneEndpoint` populated.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-```go
-type FooClusterSpec struct {
-    // controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
-    // +optional
-    ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
-    
-    // See other rules for more details about mandatory/optional fields in InfraCluster spec.
-    // Other fields SHOULD be added based on the needs of your provider.
-}
-
-// APIEndpoint represents a reachable Kubernetes API endpoint.
-type APIEndpoint struct {
-    // host is the hostname on which the API server is serving.
-    Host string `json:"host"`
-    
-    // port is the port on which the API server is serving.
-    Port int32 `json:"port"`
-}
-```
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> ```go
+> type FooClusterSpec struct {
+>     // controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+>     // +optional
+>     ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
+>
+>     // See other rules for more details about mandatory/optional fields in InfraCluster spec.
+>     // Other fields SHOULD be added based on the needs of your provider.
+> }
+>
+> // APIEndpoint represents a reachable Kubernetes API endpoint.
+> type APIEndpoint struct {
+>     // host is the hostname on which the API server is serving.
+>     Host string `json:"host"`
+>
+>     // port is the port on which the API server is serving.
+>     Port int32 `json:"port"`
+> }
+> ```
 
 ### InfraCluster: failure domains
 
@@ -316,20 +307,17 @@ type FooClusterStatus struct {
 Once `status.failureDomains` is set on the InfraCluster resource and the [InfraCluster initialization completed],
 the Cluster controller will surface this info in Cluster's `status.failureDomains`.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-For reference, with the v1beta1 contract the field is of type `clusterv1beta1.FailureDomains`, which is a map defined as 
-`map[string]clusterv1beta1.FailureDomainSpec`. A unique key must be used for each `FailureDomainSpec`.
-`FailureDomainSpec` is defined as:
-- `controlPlane bool`: indicates if failure domain is appropriate for running control plane instances.
-- `attributes map[string]string`: arbitrary attributes for users to apply to a failure domain.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> For reference, with the v1beta1 contract the field is of type `clusterv1beta1.FailureDomains`, which is a map defined as 
+> `map[string]clusterv1beta1.FailureDomainSpec`. A unique key must be used for each `FailureDomainSpec`.
+> `FailureDomainSpec` is defined as:
+> - `controlPlane bool`: indicates if failure domain is appropriate for running control plane instances.
+> - `attributes map[string]string`: arbitrary attributes for users to apply to a failure domain.
 
 ### InfraCluster: initialization completed
 
@@ -361,22 +349,19 @@ Once `status.initialization.provisioned` is set the Cluster "core" controller wi
 `status.initialization.infrastructureProvisioned`; if defined, also InfraCluster's `spec.controlPlaneEndpoint` 
 and `status.failureDomains` will be surfaced on Cluster's corresponding fields at the same time.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regards to initialization completed:
-
-Cluster API will continue to temporarily support InfraCluster resource using `status.ready` field to
-report initialization completed.
-
-After compatibility with the deprecated v1beta1 contract will be removed, `status.ready` field in
-the InfraCluster resource will be ignored.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regards to initialization completed:
+>
+> Cluster API will continue to temporarily support InfraCluster resource using `status.ready` field to
+> report initialization completed.
+>
+> After compatibility with the deprecated v1beta1 contract will be removed, `status.ready` field in
+> the InfraCluster resource will be ignored.
 
 ### InfraCluster: conditions
 
@@ -401,21 +386,18 @@ including initial provisioning, the final deletion process, and the period in be
 
 See [Improving status in CAPI resources] for more context.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regards to conditions:
-
-Cluster API will continue to read conditions from providers using deprecated Cluster API condition types.
-
-Please note that provider that will continue to use deprecated Cluster API condition types MUST carefully take into account
-the implication of this choice which are described both in the [Cluster API v1.11 migration notes] and in the [Improving status in CAPI resources] proposal.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regards to conditions:
+>
+> Cluster API will continue to read conditions from providers using deprecated Cluster API condition types.
+>
+> Please note that provider that will continue to use deprecated Cluster API condition types MUST carefully take into account
+> the implication of this choice which are described both in the [Cluster API v1.11 migration notes] and in the [Improving status in CAPI resources] proposal.
 
 ### InfraCluster: terminal failures
 
@@ -426,26 +408,23 @@ it is up to consumers to treat them accordingly.
 
 See [Improving status in CAPI resources] for more context.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regards to terminal failures:
-
-In case an infrastructure provider reports that a InfraCluster resource is in a state that cannot be recovered (terminal failure) by
-setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract,
-the "core" Cluster controller will surface those info in the corresponding fields in the Cluster's `status.deprecated.v1beta1` struct.
-
-However, those info won't have any impact on the Cluster lifecycle as before (the Cluster controller won't consider the
-presence of `status.failureReason` and `status.failureMessage` info as "terminal failures").
-
-After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
-fields in the InfraCluster resource will be ignored and Cluster's `status.deprecated.v1beta1` struct will be dropped.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regards to terminal failures:
+>
+> In case an infrastructure provider reports that a InfraCluster resource is in a state that cannot be recovered (terminal failure) by
+> setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract,
+> the "core" Cluster controller will surface those info in the corresponding fields in the Cluster's `status.deprecated.v1beta1` struct.
+>
+> However, those info won't have any impact on the Cluster lifecycle as before (the Cluster controller won't consider the
+> presence of `status.failureReason` and `status.failureMessage` info as "terminal failures").
+>
+> After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
+> fields in the InfraCluster resource will be ignored and Cluster's `status.deprecated.v1beta1` struct will be dropped.
 
 ### InfraClusterTemplate, InfraClusterTemplateList resource definition
 

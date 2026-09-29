@@ -125,13 +125,10 @@ kubectl api-resources --verbs=list -o name | xargs -n 1 kubectl get --show-kind 
 
 If you want to manage and install your own cert-manager, you'll need to remove this label from all API resources.
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-Cluster API has a direct dependency on cert-manager. It's possible you could encounter issues if you use a different version to the Cluster API default version.
-
-</aside>
+> [!NOTE]
+> **Warning**
+>
+> Cluster API has a direct dependency on cert-manager. It's possible you could encounter issues if you use a different version to the Cluster API default version.
 
 ## Avoiding GitHub rate limiting
 
@@ -139,13 +136,10 @@ Follow [this](./overview.md#avoiding-github-rate-limiting)
 
 ## Overrides Layer
 
-<aside class="note warning">
-
-<h1> Warning! </h1>
-
-Overrides only provide file replacements; instead, provider version resolution is based only on the actual repository structure.
-
-</aside>
+> [!NOTE]
+> **Warning!**
+>
+> Overrides only provide file replacements; instead, provider version resolution is based only on the actual repository structure.
 
 `clusterctl` uses an overrides layer to read in injected provider components,
 cluster templates and metadata. By default, it reads the files from
@@ -224,17 +218,14 @@ overridesFolder: /Users/foobar/workspace/dev-releases
 
 ## Image overrides
 
-<aside class="note warning">
-
-<h1> Warning! </h1>
-
-Image override is an advanced feature and wrong configuration can easily lead to non-functional clusters.
-It's strongly recommended to test configurations on dev/test environments before using this functionality in production.
-
-This feature must always be used in conjunction with
-[version tag](commands/init.md#provider-version) when executing clusterctl commands.
-
-</aside>
+> [!NOTE]
+> **Warning!**
+>
+> Image override is an advanced feature and wrong configuration can easily lead to non-functional clusters.
+> It's strongly recommended to test configurations on dev/test environments before using this functionality in production.
+>
+> This feature must always be used in conjunction with
+> [version tag](commands/init.md#provider-version) when executing clusterctl commands.
 
 When working in air-gapped environments, it's necessary to alter the manifests to be installed in order to pull
 images from a local/custom image repository instead of public ones (e.g. `gcr.io`, or `quay.io`).

@@ -97,39 +97,33 @@ Run `make test` to execute all unit and integration tests.
 
 Integration tests use the [envtest](https://github.com/kubernetes-sigs/controller-runtime/blob/main/pkg/envtest/doc.go) test framework. The tests need to know the location of the executables called by the framework. The `make test` target installs these executables, and passes this location to the tests as an environment variable.
 
-<aside class="note">
-
-<h1>Tips</h1>
-
-When testing individual packages, you can speed up the test execution by running the tests with a local kind cluster.
-This avoids spinning up a testenv with each test execution. It also makes it easier to debug, because it's straightforward
-to access a kind cluster with kubectl during test execution. For further instructions, run: `./hack/scripts/dev/kind-create-for-envtest.sh`.
-
-When running individual tests, it could happen that a testenv is started if this is required by the `suite_test.go` file.
-However, if the tests you are running don't require testenv (i.e. they are only using fake client), you can skip the testenv
-creation by setting the environment variable `CAPI_DISABLE_TEST_ENV` (to any non-empty value).
-
-To debug testenv unit tests it is possible to use:
-* `CAPI_TEST_ENV_KUBECONFIG` to write out a kubeconfig for the testenv to a file location.
-* `CAPI_TEST_ENV_SKIP_STOP` to skip stopping the testenv after test execution.
-
-</aside>
+> [!NOTE]
+> **Tips**
+>
+> When testing individual packages, you can speed up the test execution by running the tests with a local kind cluster.
+> This avoids spinning up a testenv with each test execution. It also makes it easier to debug, because it's straightforward
+> to access a kind cluster with kubectl during test execution. For further instructions, run: `./hack/scripts/dev/kind-create-for-envtest.sh`.
+>
+> When running individual tests, it could happen that a testenv is started if this is required by the `suite_test.go` file.
+> However, if the tests you are running don't require testenv (i.e. they are only using fake client), you can skip the testenv
+> creation by setting the environment variable `CAPI_DISABLE_TEST_ENV` (to any non-empty value).
+>
+> To debug testenv unit tests it is possible to use:
+> * `CAPI_TEST_ENV_KUBECONFIG` to write out a kubeconfig for the testenv to a file location.
+> * `CAPI_TEST_ENV_SKIP_STOP` to skip stopping the testenv after test execution.
 
 ### Test execution via IDE
 
 Your IDE needs to know the location of the executables called by the framework, so that it can pass the location to the tests as an environment variable.
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-If you see this error when running a test in your IDE, the test uses the envtest framework, and probably does not know the location of the envtest executables.
-
-```console
-E0210 16:11:04.222471  132945 server.go:329] controller-runtime/test-env "msg"="unable to start the controlplane" "error"="fork/exec /usr/local/kubebuilder/bin/etcd: no such file or directory" "tries"=0
-```
-
-</aside>
+> [!NOTE]
+> **Warning**
+>
+> If you see this error when running a test in your IDE, the test uses the envtest framework, and probably does not know the location of the envtest executables.
+>
+> ```console
+> E0210 16:11:04.222471  132945 server.go:329] controller-runtime/test-env "msg"="unable to start the controlplane" "error"="fork/exec /usr/local/kubebuilder/bin/etcd: no such file or directory" "tries"=0
+> ```
 
 #### VSCode
 
@@ -289,36 +283,33 @@ Add the launch.json file in the .vscode folder in your repo:
 
 Execute the run configuration with `Debug`.
 
-<aside class="note">
-
-<h1>Tips</h1>
-
-The e2e tests create a new management cluster with kind on each run. To avoid this and speed up the test execution the tests can
-also be run against a management cluster created by [tilt](tilt.md):
-```bash
-# Prereqs for e2e testing with tilt
-make tilt-e2e-prerequisites
-# Create a kind cluster and start tilt
-make tilt-up
-```
-
-Now you can start the e2e test via IDE as described above but with the additional `-e2e.use-existing-cluster=true` flag.
-
-**Note**: This can also be used to debug controllers during e2e tests as described in [Developing Cluster API with Tilt](tilt.md#wiring-up-debuggers).
-
-The e2e tests also create a local clusterctl repository. After it has been created on a first test execution this step can also be
-skipped by setting `-e2e.clusterctl-config=<ARTIFACTS>/repository/clusterctl-config.yaml`. This also works with a clusterctl repository created
-via [Create the local repository](http://localhost:3000/clusterctl/developers.html#create-the-local-repository).
-
-**Feature gates**: E2E tests often use features which need to be enabled first. Make sure to enable the feature gates in the tilt settings file:
-```yaml
-kustomize_substitutions:
-  CLUSTER_TOPOLOGY: "true"
-  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
-  EXP_RUNTIME_SDK: "true"
-```
-
-</aside>
+> [!NOTE]
+> **Tips**
+>
+> The e2e tests create a new management cluster with kind on each run. To avoid this and speed up the test execution the tests can
+> also be run against a management cluster created by [tilt](tilt.md):
+> ```bash
+> # Prereqs for e2e testing with tilt
+> make tilt-e2e-prerequisites
+> # Create a kind cluster and start tilt
+> make tilt-up
+> ```
+>
+> Now you can start the e2e test via IDE as described above but with the additional `-e2e.use-existing-cluster=true` flag.
+>
+> **Note**: This can also be used to debug controllers during e2e tests as described in [Developing Cluster API with Tilt](tilt.md#wiring-up-debuggers).
+>
+> The e2e tests also create a local clusterctl repository. After it has been created on a first test execution this step can also be
+> skipped by setting `-e2e.clusterctl-config=<ARTIFACTS>/repository/clusterctl-config.yaml`. This also works with a clusterctl repository created
+> via [Create the local repository](http://localhost:3000/clusterctl/developers.html#create-the-local-repository).
+>
+> **Feature gates**: E2E tests often use features which need to be enabled first. Make sure to enable the feature gates in the tilt settings file:
+> ```yaml
+> kustomize_substitutions:
+>   CLUSTER_TOPOLOGY: "true"
+>   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
+>   EXP_RUNTIME_SDK: "true"
+> ```
 
 ### Running specific tests
 
@@ -377,15 +368,12 @@ analyzing them via Grafana.
       logcli query '{app="capi-controller-manager"}' --timezone=UTC --from="2022-02-22T10:00:00Z"
       ```
 
-<aside class="note">
-
-<h1>Caveats</h1>
-
-* Make sure you query the correct time range via Grafana or `logcli`.
-* The logs are currently uploaded by using now as the timestamp, because otherwise it would
-  take a few minutes until the logs show up in Loki. The original timestamp is preserved as `original_ts`.
-
-</aside>
+> [!NOTE]
+> **Caveats**
+>
+> * Make sure you query the correct time range via Grafana or `logcli`.
+> * The logs are currently uploaded by using now as the timestamp, because otherwise it would
+>   take a few minutes until the logs show up in Loki. The original timestamp is preserved as `original_ts`.
 
 As alternative to loki, JSON logs can be visualized with a human readable timestamp using `jq`:
 

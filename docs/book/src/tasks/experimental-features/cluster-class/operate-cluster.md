@@ -228,35 +228,32 @@ Following recommendation apply:
 
 For more details about how changes can affect a Cluster, please look at [reference](change-clusterclass.md#reference).
 
-<aside class="note warning">
-
-<h1>Effects of concurrent changes</h1>
-
-When applying concurrent changes to a Cluster, the topology controller will immediately act in order to
-reconcile to the desired state, and thus proxy all the required changes to the underlying objects which
-in turn take action, and this might require rolling  out machines (create new, delete old).
-
-As noted above, when executed at scale this might create excessive turnover on the underlying infrastructure
-or bottlenecks in the Cluster trying to move workloads from one machine to the other.
-
-Additionally, in case of change of the Kubernetes version and other concurrent changes for Machines deployments
-this could lead to double rollout of the worker nodes:
-- The first rollout triggered by the changes to the machine deployments immediately applied to the underlying objects
-  (e.g change of labels). 
-- The second rollout triggered by the upgrade workflow changing the MachineDeployment version only after the control 
-  upgrade is completed (see [upgrade a cluster](#upgrade-a-cluster) above).
-
-Please note that:
-- Cluster API already implements strategies to ensure changes in a Cluster are executed in a safe way under
-  most of the circumstances, including users occasionally not acting according to above best practices;
-- The above-mentioned strategies are currently implemented on the abstraction controlling a single set of machines,
-  the control-plane (KCP) or the MachineDeployment;
-- In future Managed topologies could be improved by introducing strategies to ensure a higher safety across all
-  abstraction controlling Machines in a Cluster, but this work is currently at its initial stage and user feedback
-  could help in shaping out those improvements.
-- Similarly, in future we might consider implementing strategies to controlling changes across many Clusters. 
-
-</aside>
+> [!NOTE]
+> **Effects of concurrent changes**
+>
+> When applying concurrent changes to a Cluster, the topology controller will immediately act in order to
+> reconcile to the desired state, and thus proxy all the required changes to the underlying objects which
+> in turn take action, and this might require rolling  out machines (create new, delete old).
+>
+> As noted above, when executed at scale this might create excessive turnover on the underlying infrastructure
+> or bottlenecks in the Cluster trying to move workloads from one machine to the other.
+>
+> Additionally, in case of change of the Kubernetes version and other concurrent changes for Machines deployments
+> this could lead to double rollout of the worker nodes:
+> - The first rollout triggered by the changes to the machine deployments immediately applied to the underlying objects
+>   (e.g change of labels). 
+> - The second rollout triggered by the upgrade workflow changing the MachineDeployment version only after the control 
+>   upgrade is completed (see [upgrade a cluster](#upgrade-a-cluster) above).
+>
+> Please note that:
+> - Cluster API already implements strategies to ensure changes in a Cluster are executed in a safe way under
+>   most of the circumstances, including users occasionally not acting according to above best practices;
+> - The above-mentioned strategies are currently implemented on the abstraction controlling a single set of machines,
+>   the control-plane (KCP) or the MachineDeployment;
+> - In future Managed topologies could be improved by introducing strategies to ensure a higher safety across all
+>   abstraction controlling Machines in a Cluster, but this work is currently at its initial stage and user feedback
+>   could help in shaping out those improvements.
+> - Similarly, in future we might consider implementing strategies to controlling changes across many Clusters. 
 
 # Upgrading Cluster API
 
@@ -288,74 +285,71 @@ spec:
 ...
 ```
 
-<aside class="note warning">
-
-<h1>Bumping apiVersions in ClusterClass</h1>
-
-When upgrading the apiVersions in references in the ClusterClass the corresponding patches have to be changed accordingly.
-This includes bumping the apiVersion in the patch selector and potentially updating the JSON patch to changes in the new 
-apiVersion of the referenced CRD. The following example shows how to upgrade the ClusterClass in this case. 
-
-ClusterClass with the old apiVersion:
-```yaml
-apiVersion: cluster.x-k8s.io/v1beta2
-kind: ClusterClass
-metadata:
-  name: quick-start
-spec:
-  infrastructure:
-    templateRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-      kind: DockerClusterTemplate
-...
-  patches:
-  - name: lbImageRepository
-    definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerClusterTemplate
-        matchResources:
-          infrastructureCluster: true
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/loadBalancer/imageRepository"
-        valueFrom:
-          variable: lbImageRepository
-```
-
-ClusterClass with the new apiVersion:
-```yaml
-apiVersion: cluster.x-k8s.io/v1beta2
-kind: ClusterClass
-metadata:
-  name: quick-start
-spec:
-  infrastructure:
-    templateRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2 # apiVersion updated
-      kind: DockerClusterTemplate
-...
-  patches:
-  - name: lbImageRepository
-    definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2 # apiVersion updated
-        kind: DockerClusterTemplate
-        matchResources:
-          infrastructureCluster: true
-      jsonPatches:
-      - op: add
-        # Path has been updated, as in this example imageRepository has been renamed 
-        # to imageRepo in v1beta2 of DockerClusterTemplate.
-        path: "/spec/template/spec/loadBalancer/imageRepo"
-        valueFrom:
-          variable: lbImageRepository
-```
-
-If external patches are used in the ClusterClass, it has to be ensured that all external patches support the new apiVersion 
-before bumping apiVersions.
-
-</aside>
+> [!NOTE]
+> **Bumping apiVersions in ClusterClass**
+>
+> When upgrading the apiVersions in references in the ClusterClass the corresponding patches have to be changed accordingly.
+> This includes bumping the apiVersion in the patch selector and potentially updating the JSON patch to changes in the new 
+> apiVersion of the referenced CRD. The following example shows how to upgrade the ClusterClass in this case. 
+>
+> ClusterClass with the old apiVersion:
+> ```yaml
+> apiVersion: cluster.x-k8s.io/v1beta2
+> kind: ClusterClass
+> metadata:
+>   name: quick-start
+> spec:
+>   infrastructure:
+>     templateRef:
+>       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+>       kind: DockerClusterTemplate
+> ...
+>   patches:
+>   - name: lbImageRepository
+>     definitions:
+>     - selector:
+>         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+>         kind: DockerClusterTemplate
+>         matchResources:
+>           infrastructureCluster: true
+>       jsonPatches:
+>       - op: add
+>         path: "/spec/template/spec/loadBalancer/imageRepository"
+>         valueFrom:
+>           variable: lbImageRepository
+> ```
+>
+> ClusterClass with the new apiVersion:
+> ```yaml
+> apiVersion: cluster.x-k8s.io/v1beta2
+> kind: ClusterClass
+> metadata:
+>   name: quick-start
+> spec:
+>   infrastructure:
+>     templateRef:
+>       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2 # apiVersion updated
+>       kind: DockerClusterTemplate
+> ...
+>   patches:
+>   - name: lbImageRepository
+>     definitions:
+>     - selector:
+>         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2 # apiVersion updated
+>         kind: DockerClusterTemplate
+>         matchResources:
+>           infrastructureCluster: true
+>       jsonPatches:
+>       - op: add
+>         # Path has been updated, as in this example imageRepository has been renamed 
+>         # to imageRepo in v1beta2 of DockerClusterTemplate.
+>         path: "/spec/template/spec/loadBalancer/imageRepo"
+>         valueFrom:
+>           variable: lbImageRepository
+> ```
+>
+> If external patches are used in the ClusterClass, it has to be ensured that all external patches support the new apiVersion 
+> before bumping apiVersions.
 
 [Quick Start guide]: ../../../user/quick-start.md
 [ClusterClass rebase]: ./change-clusterclass.md#rebase

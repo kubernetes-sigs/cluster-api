@@ -19,20 +19,17 @@ for more information.
 If you already know how `kubebuilder` works, if you know how to write Kubernetes controllers, or if you are planning 
 to use something different than `kubebuilder` to develop your own Cluster API provider, you can skip this guide entirely.
 
-<aside class="note warning">
-
-<h1>We need your help!</h1>
-
-While we put a great effort in ensuring a good documentation for Cluster API, we also recognize that some
-part of the documentation are more prone to become outdated.
-
-Unfortunately, this guide is one of those parts, simply because Cluster API maintainers do not create new providers very often,
-while things in Cluster API and in the Kubernetes ecosystem change fast.
-
-This is why we need your help to identify outdated part of this guide as well as any improvement that can make it
-even more valuable for the newcomers that will follow you.
-
-</aside>
+> [!NOTE]
+> **We need your help!**
+>
+> While we put a great effort in ensuring a good documentation for Cluster API, we also recognize that some
+> part of the documentation are more prone to become outdated.
+>
+> Unfortunately, this guide is one of those parts, simply because Cluster API maintainers do not create new providers very often,
+> while things in Cluster API and in the Kubernetes ecosystem change fast.
+>
+> This is why we need your help to identify outdated part of this guide as well as any improvement that can make it
+> even more valuable for the newcomers that will follow you.
 
 ## Prerequisites
 

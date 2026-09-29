@@ -1,12 +1,9 @@
 # Implementing Lifecycle Hook Runtime Extensions
 
-<aside class="note warning">
-
-<h1>Caution</h1>
-
-Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
-
-</aside>
+> [!NOTE]
+> **Caution**
+>
+> Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
 ## Introduction
 

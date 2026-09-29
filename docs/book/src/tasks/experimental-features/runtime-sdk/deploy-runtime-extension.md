@@ -1,12 +1,9 @@
 # Deploy Runtime Extensions
 
-<aside class="note warning">
-
-<h1>Caution</h1>
-
-Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
-
-</aside>
+> [!NOTE]
+> **Caution**
+>
+> Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
 Cluster API requires that each Runtime Extension must be deployed using an endpoint accessible from the Cluster API
 controllers. The recommended deployment model is to deploy a Runtime Extension in the management cluster by:

@@ -4,15 +4,12 @@
 
 Before attempting to configure a MachineHealthCheck, you should have a working [management cluster] with at least one MachineDeployment or MachineSet deployed.
 
-<aside class="note warning">
-
-<h1> Important </h1>
-
-Please note that MachineHealthChecks currently **only** support Machines that are owned by a MachineSet or a KubeadmControlPlane.
-Please review the [Limitations and Caveats of a MachineHealthCheck](#limitations-and-caveats-of-a-machinehealthcheck)
-at the bottom of this page for full details of MachineHealthCheck limitations.
-
-</aside>
+> [!NOTE]
+> **Important**
+>
+> Please note that MachineHealthChecks currently **only** support Machines that are owned by a MachineSet or a KubeadmControlPlane.
+> Please review the [Limitations and Caveats of a MachineHealthCheck](#limitations-and-caveats-of-a-machinehealthcheck)
+> at the bottom of this page for full details of MachineHealthCheck limitations.
 
 ## What is a MachineHealthCheck?
 
@@ -99,24 +96,18 @@ spec:
       unhealthyLessThanOrEqualTo: 100%
 ```
 
-<aside class="note warning">
-
-<h1> Important </h1>
-
-If you are defining more than one `MachineHealthCheck` for the same Cluster, make sure that the selectors **do not overlap**
-in order to prevent conflicts or unexpected behaviors when trying to remediate the same set of machines.
-
-</aside>
+> [!NOTE]
+> **Important**
+>
+> If you are defining more than one `MachineHealthCheck` for the same Cluster, make sure that the selectors **do not overlap**
+> in order to prevent conflicts or unexpected behaviors when trying to remediate the same set of machines.
 
 ## Controlling remediation retries
 
-<aside class="note warning">
-
-<h1> Important </h1>
-
-This feature is only available for KubeadmControlPlane.
-
-</aside>
+> [!NOTE]
+> **Important**
+>
+> This feature is only available for KubeadmControlPlane.
 
 KubeadmControlPlane allows controlling how remediation happen by defining an optional `remediation`;
 this feature can be used for preventing unnecessary load on infrastructure provider e.g. in case of quota problems,or for allowing the infrastructure provider to stabilize in case of temporary problems.
@@ -149,15 +140,12 @@ If a machine is marked as unhealthy after `minHealthyPeriodSeconds` (default 360
 
 If `maxRetry` is not set (default), remediation will be retried infinitely.
 
-<aside class="note">
-
-<h1> Retry again once maxRetry is exhausted</h1>
-
-If for some reasons you want to remediate once maxRetry is exhausted there are two options:
-- Temporarily increase  `maxRetry` (recommended)
-- Remove the `controlplane.cluster.x-k8s.io/remediation-for` annotation from the unhealthy machine or decrease `retryCount` in the annotation value.
-
-</aside>
+> [!NOTE]
+> **Retry again once maxRetry is exhausted**
+>
+> If for some reasons you want to remediate once maxRetry is exhausted there are two options:
+> - Temporarily increase  `maxRetry` (recommended)
+> - Remove the `controlplane.cluster.x-k8s.io/remediation-for` annotation from the unhealthy machine or decrease `retryCount` in the annotation value.
 
 ## Remediation Short-Circuiting
 
@@ -170,14 +158,11 @@ If the user defines a value for the `unhealthyLessThanOrEqualTo` field (either a
 before remediating any Machines, the MachineHealthCheck will compare the value of `unhealthyLessThanOrEqualTo` with the number of Machines it has determined to be unhealthy.
 If the number of unhealthy Machines exceeds the limit set by `unhealthyLessThanOrEqualTo`, remediation will **not** be performed.
 
-<aside class="note warning">
-
-<h1> Warning </h1>
-
-The default value for `unhealthyLessThanOrEqualTo` is `100%`.
-This means the short circuiting mechanism is **disabled by default** and Machines will be remediated no matter the state of the cluster.
-
-</aside>
+> [!NOTE]
+> **Warning**
+>
+> The default value for `unhealthyLessThanOrEqualTo` is `100%`.
+> This means the short circuiting mechanism is **disabled by default** and Machines will be remediated no matter the state of the cluster.
 
 #### With an Absolute Value
 
@@ -205,13 +190,10 @@ If the user defines a value for the `unhealthyInRange` field (bracketed values t
 the MachineHealthCheck will check if the number of Machines it has determined to be unhealthy is within the range specified by `unhealthyInRange`.
 If it is not within the range set by `unhealthyInRange`, remediation will **not** be performed.
 
-<aside class="note warning">
-
-<h1> Important </h1>
-
-If both `unhealthyLessThanOrEqualTo` and `unhealthyInRange` are specified, `unhealthyInRange` takes precedence.
-
-</aside>
+> [!NOTE]
+> **Important**
+>
+> If both `unhealthyLessThanOrEqualTo` and `unhealthyInRange` are specified, `unhealthyInRange` takes precedence.
 
 #### With a range of values
 

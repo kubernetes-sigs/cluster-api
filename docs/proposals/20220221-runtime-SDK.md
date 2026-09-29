@@ -276,8 +276,8 @@ mechanism allowing to:
 
 The following sections have been moved to the Cluster API book to avoid duplication:
 
-* [Implementing Runtime Extensions](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-extensions.md)
-* [Deploying Runtime Extensions](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-extensions.md)
+* [Implementing Runtime Extensions](../../docs/book/src/developer/runtime-extensions/implement-extensions.md)
+* [Deploying Runtime Extensions](../../docs/book/src/developer/runtime-extensions/implement-extensions.md)
 
 ### Registering Runtime Extensions
 

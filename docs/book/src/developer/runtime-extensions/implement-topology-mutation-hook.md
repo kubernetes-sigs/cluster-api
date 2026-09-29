@@ -15,7 +15,7 @@ Three different hooks are called as part of Topology Mutation - two in the Clust
 **ClusterClass reconciliation**
 * **DiscoverVariables**: DiscoverVariables is responsible for providing variable definitions for a specific external patch.
 
-![Cluster topology reconciliation](../../../images/runtime-sdk-topology-mutation.png)
+![Cluster topology reconciliation](../../images/runtime-sdk-topology-mutation.png)
 
 Please see the corresponding [CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220330-topology-mutation-hook.md)
 for additional background information.

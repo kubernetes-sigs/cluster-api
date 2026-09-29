@@ -332,7 +332,7 @@ Kubeadm Control plane Provider
 ### Lifecycle hook
 A [Runtime Hook](#runtime-hook) that allows external components to interact with the lifecycle of a Cluster.
 
-See [Implementing Lifecycle Hooks](../tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md)
+See [Implementing Lifecycle Hooks](../developer/runtime-extensions/implement-lifecycle-hooks.md)
 # M
 ---
 
@@ -449,7 +449,7 @@ Runtime Extension provider's interaction with Cluster API are based on the Open 
 
 ### Runtime Hook
 
-A single, well identified, extension point allowing applications built on top of Cluster API to hook into specific moments of the [Cluster API Runtime](#cluster-api-runtime), e.g. [BeforeClusterUpgrade](../tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md#beforeclusterupgrade), [TopologyMutationHook](#topology-mutation-hook).
+A single, well identified, extension point allowing applications built on top of Cluster API to hook into specific moments of the [Cluster API Runtime](#cluster-api-runtime), e.g. [BeforeClusterUpgrade](../developer/runtime-extensions/implement-lifecycle-hooks.md#beforeclusterupgrade), [TopologyMutationHook](#topology-mutation-hook).
 
 See [Runtime SDK](#runtime-sdk)
 
@@ -457,7 +457,7 @@ See [Runtime SDK](#runtime-sdk)
 
 A developer toolkit required to build Runtime Hooks and Runtime Extensions.
 
-See [Runtime SDK](../tasks/experimental-features/runtime-sdk/index.md)
+See [Runtime SDK](../developer/runtime-extensions/index.md)
 
 # S
 ---
@@ -490,7 +490,7 @@ See [ClusterClass](#clusterclass)
 
 A [Runtime Hook](#runtime-hook) that allows external components to generate [patches](#patch) for customizing Kubernetes objects that are part of a [Cluster topology](#topology).
 
-See [Topology Mutation](../tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md)
+See [Topology Mutation](../developer/runtime-extensions/implement-topology-mutation-hook.md)
 
 # U
 ---

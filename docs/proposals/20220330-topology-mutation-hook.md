@@ -190,17 +190,17 @@ This section documents when the Topology Mutation Hook is going to be called dur
 
 ![Cluster topology reconciliation](./images/topology-mutation-hook/topology-reconciliation.png)
 
-The remainder of this section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md#introduction)
+The remainder of this section has been moved to the Cluster API [book](../../docs/book/src/developer/runtime-extensions/implement-topology-mutation-hook.md#introduction)
 to avoid duplication.
 
 #### Definitions
 
-This section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md#definitions)
+This section has been moved to the Cluster API [book](../../docs/book/src/developer/runtime-extensions/implement-topology-mutation-hook.md#definitions)
 to avoid duplication.
 
 #### Guidelines
 
-This section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md#guidelines)
+This section has been moved to the Cluster API [book](../../docs/book/src/developer/runtime-extensions/implement-topology-mutation-hook.md#guidelines)
 to avoid duplication.
 
 #### clusterctl alpha topology plan

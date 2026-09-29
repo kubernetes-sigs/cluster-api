@@ -6,7 +6,7 @@ The Runtime SDK feature provides an extensibility mechanism that allows systems,
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
 > [!IMPORTANT]
-> All currently implemented hooks except for [In-Place Update Hooks](./implement-in-place-update-hooks.md) require to also enable the [ClusterClass](../cluster-class/index.md) feature, and are only invoked for Clusters created using ClusterClass.
+> All currently implemented hooks except for [In-Place Update Hooks](./implement-in-place-update-hooks.md) require to also enable the [ClusterClass](../../tasks/experimental-features/cluster-class/index.md) feature, and are only invoked for Clusters created using ClusterClass.
 
 **Feature gate name**: `RuntimeSDK`
 

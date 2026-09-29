@@ -15,7 +15,7 @@ Currently Cluster API has the following experimental features:
 * `PriorityQueue` (env var: `EXP_PRIORITY_QUEUE`): Enables the usage of the controller-runtime PriorityQueue: https://github.com/kubernetes-sigs/controller-runtime/issues/2374
 * `ReconcilerRateLimiting` (env var: `EXP_RECONCILER_RATE_LIMITING`): Enables reconciler rate-limiting: https://github.com/kubernetes-sigs/cluster-api/issues/13005
   * Note: starting from CAPI v1.12.4 `ReconcilerRateLimiting` also requires `PriorityQueue`
-* `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](./runtime-sdk/index.md)
+* `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](../../developer/runtime-extensions/index.md)
 * `ClusterClassInlineTemplates` (env var: `EXP_CLUSTERCLASS_INLINE_TEMPLATES`):
   * Feature gate to enable the ClusterClass inline templates functionality, for more details see https://github.com/kubernetes-sigs/cluster-api/pull/14092
   * This feature gate should only be enabled if there are no more clients in the environment that are using the v1beta1 ClusterClass API.
@@ -106,7 +106,7 @@ Following controller manager deployments have to be edited in order to enable/di
 * [Ignition Bootstrap configuration](./ignition.md):
   * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
   * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).
-* [Runtime SDK](runtime-sdk/index.md):
+* [Runtime SDK](../../developer/runtime-extensions/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
 
 ## Active Experimental Features
@@ -114,7 +114,7 @@ Following controller manager deployments have to be edited in order to enable/di
 * [MachinePools](./machine-pools.md)
 * [ClusterClass](./cluster-class/index.md)
 * [Ignition Bootstrap configuration](./ignition.md)
-* [Runtime SDK](runtime-sdk/index.md)
+* [Runtime SDK](../../developer/runtime-extensions/index.md)
 
 **Warning**: Experimental features are unreliable, i.e., some may one day be promoted to the main repository, or they may be modified arbitrarily or even disappear altogether.
 In short, they are not subject to any compatibility or deprecation promise.

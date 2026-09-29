@@ -172,7 +172,7 @@ This proposal introduces three new Update Hooks named `CanUpdateMachine`, `CanUp
 
 Multiple external updaters can be registered, each of them only covering a subset of machine changes (*). The CAPI controllers will ask the external updaters what kind of changes they can handle and, based on the response, compose and orchestrate them to achieve the desired state.
 
-With the introduction of this experimental feature, users may want to apply the in-place updates workflow to a subset of CAPI clusters only. By leveraging CAPI's `RuntimeExtension`, we can provide a namespace selector via [`ExtensionConfig`](https://cluster-api.sigs.k8s.io/tasks/experimental-features/runtime-sdk/implement-extensions#extensionconfig). This allows us to support cluster selection at the namespace level (only clusters/machines namespaces that match the selector) without applying API changes.
+With the introduction of this experimental feature, users may want to apply the in-place updates workflow to a subset of CAPI clusters only. By leveraging CAPI's `RuntimeExtension`, we can provide a namespace selector via [`ExtensionConfig`](https://cluster-api.sigs.k8s.io/developer/runtime-extensions/implement-extensions#extensionconfig). This allows us to support cluster selection at the namespace level (only clusters/machines namespaces that match the selector) without applying API changes.
 
 (*) In the first iteration the number of external updaters will be limited to one.
 

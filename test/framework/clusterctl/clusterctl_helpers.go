@@ -47,6 +47,7 @@ type InitManagementClusterAndWatchControllerLogsInput struct {
 	AddonProviders            []string
 	LogFolder                 string
 	DisableMetricsCollection  bool
+	CheckForPodRestarts       bool
 	ClusterctlBinaryPath      string
 }
 
@@ -125,6 +126,13 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 				ClientSet:   input.ClusterProxy.GetClientSet(),
 				Deployment:  deployment,
 				MetricsPath: filepath.Join(input.LogFolder, "metrics", deployment.GetNamespace()),
+			})
+		}
+
+		if input.CheckForPodRestarts {
+			framework.WatchPodRestarts(ctx, framework.WatchPodRestartsInput{
+				GetLister:  client,
+				Deployment: deployment,
 			})
 		}
 	}

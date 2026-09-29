@@ -351,6 +351,6 @@ spec:
 > If external patches are used in the ClusterClass, it has to be ensured that all external patches support the new apiVersion 
 > before bumping apiVersions.
 
-[Quick Start guide]: ../../../user/quick-start.md
+[Quick Start guide]: ../../user/quick-start.md
 [ClusterClass rebase]: ./change-clusterclass.md#rebase
 [Changing a ClusterClass]: ./change-clusterclass.md

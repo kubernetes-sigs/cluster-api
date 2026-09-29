@@ -22,5 +22,5 @@ Additional documentation:
     * [Operating a managed Cluster](./operate-cluster.md)
 
 <!-- links -->
-[Quick Start guide]: ../../../user/quick-start.md
-[clusterctl Provider contract]: ../../../developer/providers/contracts/clusterctl.md
+[Quick Start guide]: ../../user/quick-start.md
+[clusterctl Provider contract]: ../../developer/providers/contracts/clusterctl.md

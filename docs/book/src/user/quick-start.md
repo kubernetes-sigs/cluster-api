@@ -2167,7 +2167,7 @@ kind delete cluster
 - See the [clusterctl] documentation for more detail about clusterctl supported actions.
 
 <!-- links -->
-[Experimental Features]: ../tasks/experimental-features/experimental-features.md
+[Experimental Features]: ../reference/feature-gates.md
 [Akamai (Linode) provider]: https://linode.github.io/cluster-api-provider-linode/introduction.html
 [AWS provider prerequisites]: https://cluster-api-aws.sigs.k8s.io/topics/using-clusterawsadm-to-fulfill-prerequisites.html
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases

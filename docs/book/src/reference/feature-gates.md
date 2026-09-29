@@ -4,18 +4,18 @@ Cluster API now ships with a new experimental package that lives under the `exp/
 temporary location for features which will be moved to their permanent locations after graduation. Users can experiment with these features by enabling them using feature gates.
 
 Currently Cluster API has the following experimental features:
-* `ClusterTopology` (env var: `CLUSTER_TOPOLOGY`): [ClusterClass](./cluster-class/index.md)
+* `ClusterTopology` (env var: `CLUSTER_TOPOLOGY`): [ClusterClass](../tasks/cluster-class/index.md)
 * `InPlaceUpdates` (env var: `EXP_IN_PLACE_UPDATES`):
   * Allows users to execute changes on existing machines without deleting the Machine and creating a new one.
   * See the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md) for more details.
-* `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](../ignition.md)
-* `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](../machine-pools.md)
-* `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](../machineset-preflight-checks.md)
-* `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`): [Taint propagation](../../reference/api/taint-propagation.md)  
+* `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](../tasks/ignition.md)
+* `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](../tasks/machine-pools.md)
+* `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](../tasks/machineset-preflight-checks.md)
+* `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`): [Taint propagation](api/taint-propagation.md)  
 * `PriorityQueue` (env var: `EXP_PRIORITY_QUEUE`): Enables the usage of the controller-runtime PriorityQueue: https://github.com/kubernetes-sigs/controller-runtime/issues/2374
 * `ReconcilerRateLimiting` (env var: `EXP_RECONCILER_RATE_LIMITING`): Enables reconciler rate-limiting: https://github.com/kubernetes-sigs/cluster-api/issues/13005
   * Note: starting from CAPI v1.12.4 `ReconcilerRateLimiting` also requires `PriorityQueue`
-* `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](../../developer/runtime-extensions/index.md)
+* `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](../developer/runtime-extensions/index.md)
 * `ClusterClassInlineTemplates` (env var: `EXP_CLUSTERCLASS_INLINE_TEMPLATES`):
   * Feature gate to enable the ClusterClass inline templates functionality, for more details see https://github.com/kubernetes-sigs/cluster-api/pull/14092
   * This feature gate should only be enabled if there are no more clients in the environment that are using the v1beta1 ClusterClass API.
@@ -65,7 +65,7 @@ kustomize_substitutions:
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: 'true'
 ```
 
-For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../../developer/core/tilt.md)
+For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../developer/core/tilt.md)
 
 ## Enabling Experimental Features on Existing Management Clusters
 
@@ -91,30 +91,30 @@ kubectl describe -n capi-system deployment.apps/capi-controller-manager
 
 Following controller manager deployments have to be edited in order to enable/disable their respective experimental features:
 
-* [MachinePools](../machine-pools.md):
+* [MachinePools](../tasks/machine-pools.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
   * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
   * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
     might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
     regarding this.
-* [ClusterClass](./cluster-class/index.md):
+* [ClusterClass](../tasks/cluster-class/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
   * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).
   * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
     might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
     regarding this.
-* [Ignition Bootstrap configuration](../ignition.md):
+* [Ignition Bootstrap configuration](../tasks/ignition.md):
   * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
   * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).
-* [Runtime SDK](../../developer/runtime-extensions/index.md):
+* [Runtime SDK](../developer/runtime-extensions/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
 
 ## Active Experimental Features
 
-* [MachinePools](../machine-pools.md)
-* [ClusterClass](./cluster-class/index.md)
-* [Ignition Bootstrap configuration](../ignition.md)
-* [Runtime SDK](../../developer/runtime-extensions/index.md)
+* [MachinePools](../tasks/machine-pools.md)
+* [ClusterClass](../tasks/cluster-class/index.md)
+* [Ignition Bootstrap configuration](../tasks/ignition.md)
+* [Runtime SDK](../developer/runtime-extensions/index.md)
 
 **Warning**: Experimental features are unreliable, i.e., some may one day be promoted to the main repository, or they may be modified arbitrarily or even disappear altogether.
 In short, they are not subject to any compatibility or deprecation promise.

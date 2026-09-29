@@ -138,7 +138,7 @@ A MachineDeployment works similarly to a core Kubernetes [Deployment](https://ku
 
 ### MachinePool
 
-A MachinePool is a declarative spec for a group of Machines. It is similar to a MachineDeployment, but is specific to a particular Infrastructure Provider. For more information, please check out [MachinePool](../tasks/experimental-features/machine-pools.md).
+A MachinePool is a declarative spec for a group of Machines. It is similar to a MachineDeployment, but is specific to a particular Infrastructure Provider. For more information, please check out [MachinePool](../tasks/machine-pools.md).
 
 ### MachineSet
 

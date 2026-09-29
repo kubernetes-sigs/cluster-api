@@ -22,9 +22,9 @@ This guide explains how to deploy an AWS workload cluster using Ignition.
 
 ## Configure a management cluster
 
-Follow [this](../../user/quick-start.md#install-andor-configure-a-kubernetes-cluster) section of the quick start guide to deploy a Kubernetes cluster or connect to an existing one.
+Follow [this](../user/quick-start.md#install-andor-configure-a-kubernetes-cluster) section of the quick start guide to deploy a Kubernetes cluster or connect to an existing one.
 
-Follow [this](../../user/quick-start.md#install-clusterctl) section of the quick start guide to install `clusterctl`.
+Follow [this](../user/quick-start.md#install-clusterctl) section of the quick start guide to install `clusterctl`.
 
 ## Initialize the management cluster
 
@@ -165,7 +165,7 @@ kubectl delete cluster ignition-cluster
 
 ### Supported infrastructure providers
 
-Cluster API has multiple [infrastructure providers](../../user/concepts.md#infrastructure-provider) which can be used to deploy workload clusters.
+Cluster API has multiple [infrastructure providers](../user/concepts.md#infrastructure-provider) which can be used to deploy workload clusters.
 
 The following infrastructure providers already have Ignition support:
 

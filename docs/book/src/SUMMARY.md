@@ -72,7 +72,6 @@
     - [Getting started](./developer/getting-started.md)
     - [Developing "core" Cluster API](developer/core/overview.md)
         - [Rapid iterative development with Tilt](developer/core/tilt.md)
-        - [Repository Layout](developer/core/repository-layout.md)
         - [API](./developer/core/API.md)
         - [Controllers](./developer/core/controllers/overview.md)
           - [Cluster](./developer/core/controllers/cluster.md)

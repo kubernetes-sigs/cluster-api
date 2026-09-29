@@ -161,7 +161,7 @@ A full Kubernetes deployment. See Management Cluster and Workload Cluster.
 ### ClusterClass
 
 A collection of templates that define a topology (control plane and workers) to be used to continuously reconcile one or more Clusters.
-See [ClusterClass](../tasks/experimental-features/cluster-class/index.md)
+See [ClusterClass](../tasks/cluster-class/index.md)
 
 ### Cluster API
 

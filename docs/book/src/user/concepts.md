@@ -40,7 +40,7 @@ spec:
 ```
 
 In most recent versions of Cluster API, the Cluster object can be used as a single point of control for the entire cluster.
-See [ClusterClass](../tasks/experimental-features/cluster-class)
+See [ClusterClass](../tasks/cluster-class)
 
 ### Machine
 

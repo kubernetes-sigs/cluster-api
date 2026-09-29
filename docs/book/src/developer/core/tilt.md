@@ -49,39 +49,33 @@ To create a kind cluster with CAPK, run the following:
 make kind-cluster-kubevirt
 ```
 
-<aside class="note">
+> [!NOTE]
+> KubeVirt uses *container disks* to create VMs inside pods. These are special container images which
+> need to be pulled from a registry. To support pulling container disks from private registries as
+> well as avoid getting rate-limited by Docker Hub (if used), the CAPK script mounts your Docker
+> config file inside the kind cluster to let the Kubelet access your credentials.
+>
+> The script looks for the Docker config file at `$HOME/.docker/config.json` by default. To specify
+> a different path, set the following variable before running Make above:
+>
+> ```bash
+> export DOCKER_CONFIG_FILE="/foo/config.json"
+> ```
 
-KubeVirt uses *container disks* to create VMs inside pods. These are special container images which
-need to be pulled from a registry. To support pulling container disks from private registries as
-well as avoid getting rate-limited by Docker Hub (if used), the CAPK script mounts your Docker
-config file inside the kind cluster to let the Kubelet access your credentials.
-
-The script looks for the Docker config file at `$HOME/.docker/config.json` by default. To specify
-a different path, set the following variable before running Make above:
-
-```bash
-export DOCKER_CONFIG_FILE="/foo/config.json"
-```
-
-</aside>
-
-<aside class="note">
-
-The CAPK script uses [MetalLB](https://metallb.org/) to expose the API servers of workload clusters
-on the local machine. The API servers are exposed as LoadBalancer services handled by MetalLB. For
-this to work, MetalLB needs to figure out your container runtime IP prefix. The script assumes
-Docker is used and figures the IP prefix out automatically. In case a different runtime is used,
-specify your container runtime's IP prefix manually (the first two octets only):
-
-```bash
-export CAPI_METALLB_IP_PREFIX="172.20"
-```
-
-The script uses 255.200-255.250 in the last two octets to set the range MetalLB should use to
-allocate IPs to LoadBalancer services. For example, for `172.20` the resulting IP range is
-`172.20.255.200-172.20.255.250`.
-
-</aside>
+> [!NOTE]
+> The CAPK script uses [MetalLB](https://metallb.org/) to expose the API servers of workload clusters
+> on the local machine. The API servers are exposed as LoadBalancer services handled by MetalLB. For
+> this to work, MetalLB needs to figure out your container runtime IP prefix. The script assumes
+> Docker is used and figures the IP prefix out automatically. In case a different runtime is used,
+> specify your container runtime's IP prefix manually (the first two octets only):
+>
+> ```bash
+> export CAPI_METALLB_IP_PREFIX="172.20"
+> ```
+>
+> The script uses 255.200-255.250 in the last two octets to set the range MetalLB should use to
+> allocate IPs to LoadBalancer services. For example, for `172.20` the resulting IP range is
+> `172.20.255.200-172.20.255.250`.
 
 {{#/tab }}
 {{#/tabs }}
@@ -147,11 +141,8 @@ enable_providers:
 - kubeadm-control-plane
 ```
 
-<aside class="note">
-
-If you prefer JSON, you can create a `tilt-settings.json` file instead. YAML will be preferred if both files are present.
-
-</aside>
+> [!NOTE]
+> If you prefer JSON, you can create a `tilt-settings.json` file instead. YAML will be preferred if both files are present.
 
 #### tilt-settings fields
 
@@ -487,11 +478,8 @@ config:
 ```
 
 
-<aside class="note">
-
-If you prefer JSON, you can create a `tilt-provider.json` file instead. YAML will be preferred if both files are present.
-
-</aside>
+> [!NOTE]
+> If you prefer JSON, you can create a `tilt-provider.json` file instead. YAML will be preferred if both files are present.
 
 #### config fields
 

@@ -20,38 +20,27 @@ Optionally, the provider repository can include the following files:
 
 * ClusterClass definitions
 
-<aside class="note">
+> [!NOTE]
+> **Pre-defined list of providers**
+>
+> The `clusterctl` command ships with a pre-defined list of provider repositories that allows a simpler "out-of-the-box" user experience.
+> As a provider implementer, if you are interested in being added to this list, please see next paragraph.
 
-<h1> Pre-defined list of providers </h1>
-
-The `clusterctl` command ships with a pre-defined list of provider repositories that allows a simpler "out-of-the-box" user experience.
-As a provider implementer, if you are interested in being added to this list, please see next paragraph.
-
-</aside>
-
-<aside class="note">
-
-<h1>Customizing the list of providers</h1>
-
-It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
-
-</aside>
+> [!TIP]
+> **Customizing the list of providers**
+>
+> It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
 
 #### Adding a provider to clusterctl
 
 As a Cluster API project, we always have been more than happy to give visibility to all the open source CAPI providers
 by allowing provider's maintainers to add their own project to the pre-defined list of provider shipped with `clusterctl`.
 
-<aside class="note">
-
-<h1>Important! it is visibility only</h1>
-
-Provider's maintainer are the ultimately responsible for their own project.
-
-Adding a provider to the `clusterctl` provider list does not imply any form of quality assessment, market screening,
-entitlement, recognition or support by the Cluster API maintainers.
-
-</aside>
+> [!IMPORTANT]
+> Provider's maintainer are the ultimately responsible for their own project.
+>
+> Adding a provider to the `clusterctl` provider list does not imply any form of quality assessment, market screening,
+> entitlement, recognition or support by the Cluster API maintainers.
 
 This is the process to add a new provider to the pre-defined list of providers shipped with `clusterctl`:
 - As soon as possible, create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api) declaring the intent to add a new provider;
@@ -69,34 +58,28 @@ for the next Cluster API minor release, changes will be included in the release,
 release. Maintainers will also consider if possible/convenient to backport to the current Cluster API minor release
 branch to include it in the next patch release.
 
-<aside class="note">
+> [!NOTE]
+> **What about closed source providers?**
+>
+> Closed source provider can not be added to the pre-defined list of provider shipped with `clusterctl`, however,
+> those providers could be used with `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
 
-<h1>What about closed source providers?</h1>
-
-Closed source provider can not be added to the pre-defined list of provider shipped with `clusterctl`, however,
-those providers could be used with `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
-
-</aside>
-
-<aside class="note">
-
-<h1>Provider's GitHub org prefix</h1>
-
-The need to add a prefix for providers not in the kubernetes-sigs org applies to all the providers being added to
-`clusterctl`'s pre-defined list of provider starting from January 2024. This rule doesn't apply retroactively
-to the existing pre-defined providers, but we reserve the right to reconsider this in the future.
-
-In the case of a provider being developed by an entity that owns multiple GitHub orgs, then it is up to the
-provider to specify which of GitHub org to use as a prefix and it is the responsibility of the entity to avoid
-or address provider name conflicts.
-
-If prefixing the provider with the provider's GitHub org prefix leads to stuttering, e.g. an `example` provider
-from the `example` GitHub org would lead to `example-example`, then it is acceptable to omit the prefix.
-
-Please note that the need to add a prefix for providers not in the kubernetes-sigs org does not apply to providers added by
-changing the [clusterctl configuration](../../../clusterctl/configuration.md).
-
-</aside>
+> [!NOTE]
+> **Provider's GitHub org prefix**
+>
+> The need to add a prefix for providers not in the kubernetes-sigs org applies to all the providers being added to
+> `clusterctl`'s pre-defined list of provider starting from January 2024. This rule doesn't apply retroactively
+> to the existing pre-defined providers, but we reserve the right to reconsider this in the future.
+>
+> In the case of a provider being developed by an entity that owns multiple GitHub orgs, then it is up to the
+> provider to specify which of GitHub org to use as a prefix and it is the responsibility of the entity to avoid
+> or address provider name conflicts.
+>
+> If prefixing the provider with the provider's GitHub org prefix leads to stuttering, e.g. an `example` provider
+> from the `example` GitHub org would lead to `example-example`, then it is acceptable to omit the prefix.
+>
+> Please note that the need to add a prefix for providers not in the kubernetes-sigs org does not apply to providers added by
+> changing the [clusterctl configuration](../../../clusterctl/configuration.md).
 
 #### Creating a provider repository on GitHub
 
@@ -205,19 +188,14 @@ releaseSeries:
   contract: v1alpha2
 ```
 
-<aside  class="note warning">
-
-<h1>Important</h1>
-
-The contract version for a specific release series must match the contract version that is declared in the CRD for different provider's objects.
-
-More specifically, you can consider the contract version in `metadata.yaml` as a “preview” of the contract version supported by the provider, 
-but this value is used only during `clusterctl init` or `clusterctl upgrade`, not at runtime.
-
-At runtime, the system will use the contract version that is defined in the provider's CRD that are installed in the cluster.
-See contract rules for different providers for more details.
-
-</aside>
+> [!IMPORTANT]
+> The contract version for a specific release series must match the contract version that is declared in the CRD for different provider's objects.
+>
+> More specifically, you can consider the contract version in `metadata.yaml` as a “preview” of the contract version supported by the provider, 
+> but this value is used only during `clusterctl init` or `clusterctl upgrade`, not at runtime.
+>
+> At runtime, the system will use the contract version that is defined in the provider's CRD that are installed in the cluster.
+> See contract rules for different providers for more details.
 
 #### Validation Rules
 
@@ -260,17 +238,12 @@ when creating the provider components.
 All the objects in the components YAML MUST belong to the target namespace, with the exception of objects that
 are not namespaced, like ClusterRoles/ClusterRoleBinding and CRD objects.
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-If the generated component YAML doesn't contain a Namespace object, the user will be required to provide one to `clusterctl init`
-using the `--target-namespace` flag.
-
-In case there is more than one Namespace object in the components YAML, `clusterctl` will generate an error and abort
-the provider installation.
-
-</aside>
+> [!WARNING]
+> If the generated component YAML doesn't contain a Namespace object, the user will be required to provide one to `clusterctl init`
+> using the `--target-namespace` flag.
+>
+> In case there is more than one Namespace object in the components YAML, `clusterctl` will generate an error and abort
+> the provider installation.
 
 #### Controllers & Watching namespace
 
@@ -290,15 +263,11 @@ While defining Pods for Deployments, canonical names should be used for images.
 The components YAML can contain environment variables matching the format ${VAR}; it is highly
 recommended to prefix the variable name with the provider name e.g. `${AWS_CREDENTIALS}`
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-`clusterctl` currently supports variables with leading/trailing spaces such
-as: `${ VAR }`, `${ VAR}`,`${VAR }`.
-
-Formats such as `${VAR$FOO}` are not supported.
-</aside>
+> [!NOTE]
+> `clusterctl` currently supports variables with leading/trailing spaces such
+> as: `${ VAR }`, `${ VAR}`,`${VAR }`.
+>
+> Formats such as `${VAR$FOO}` are not supported.
 
 `clusterctl` uses the library [drone/envsubst][drone-envsubst] to perform
 variable substitution.
@@ -551,13 +520,8 @@ Please note that during move:
   * Namespaced objects which are part of an owner chain that starts with a global object (e.g. a secret containing
     credentials for an infrastructure Provider ClusterIdentity) are treated as Global objects.
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-When using the "move" label, if the CRD is a global resource, the object is copied to the target cluster but not removed from the source cluster. It is up to the user to remove the source object as necessary.
-
-</aside>
+> [!WARNING]
+> When using the "move" label, if the CRD is a global resource, the object is copied to the target cluster but not removed from the source cluster. It is up to the user to remove the source object as necessary.
 
 If moving some of excluded object is required, the provider authors should create documentation describing the
 exact move sequence to be executed by the user.
@@ -567,18 +531,15 @@ Additionally, provider authors should be aware that `clusterctl move` assumes al
 cluster being paused, `clusterctl move` can be blocked from creating any resources on the destination
 management cluster by annotating any resource to be moved with `clusterctl.cluster.x-k8s.io/block-move`.
 
-<aside class="note warning">
-
-<h1> Warning: Status subresource is never restored </h1>
-
-Every object's `Status` subresource, including every nested field (e.g. `Status.Conditions`), is never
-restored during a `move` operation. A `Status` subresource should never contain fields that cannot
-be recreated or derived from information in spec, metadata, or external systems.
-
-Provider implementers should not store non-ephemeral data in the `Status`.
-`Status` should be able to be fully rebuilt by controllers by observing the current state of resources.
-
-</aside>
+> [!WARNING]
+> **Status subresource is never restored**
+>
+> Every object's `Status` subresource, including every nested field (e.g. `Status.Conditions`), is never
+> restored during a `move` operation. A `Status` subresource should never contain fields that cannot
+> be recreated or derived from information in spec, metadata, or external systems.
+>
+> Provider implementers should not store non-ephemeral data in the `Status`.
+> `Status` should be able to be fully rebuilt by controllers by observing the current state of resources.
 
 <!--LINKS-->
 [drone-envsubst]: https://github.com/drone/envsubst

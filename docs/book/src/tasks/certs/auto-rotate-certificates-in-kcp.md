@@ -46,24 +46,18 @@ KCP uses the value in the corresponding Control Plane machine's `Machine.Status.
 
 The annotation value is a [RFC3339] format timestamp. The annotation value on the machine object, if provided, will take precedence.  
 
-<aside class="note warning">
+> [!NOTE]
+> **Certificate Expiry Time**
+>
+> It is assumed that all certificates on a control plane node have roughly the same expiration time (+/- a few minutes). KCP decides when a rotation is needed based on the expiry of the kube-apiserver certificate.
 
-<h1>Certificate Expiry Time</h1>
-
-It is assumed that all certificates on a control plane node have roughly the same expiration time (+/- a few minutes). KCP decides when a rotation is needed based on the expiry of the kube-apiserver certificate.
-
-</aside>
-
-<aside class="note warning">
-
-<h1>Manual certificate rotation</h1>
-
-If certificates on control plane nodes are rotated manually (e.g. via `kubeadm certs renew`), please be aware that the rotation is only
-complete after all components including the kube-apiserver are using the new certificates. Thus, kube-apiserver, kube-controller-manager, kube-scheduler and etcd have to be restarted after certificate renewal.
-To allow KCP to re-discover the expiry date please remove the `machine.cluster.x-k8s.io/certificates-expiry` annotation from the
-KubeadmConfig corresponding to the current machine.
-
-</aside>
+> [!CAUTION]
+> **Manual certificate rotation**
+>
+> If certificates on control plane nodes are rotated manually (e.g. via `kubeadm certs renew`), please be aware that the rotation is only
+> complete after all components including the kube-apiserver are using the new certificates. Thus, kube-apiserver, kube-controller-manager, kube-scheduler and etcd have to be restarted after certificate renewal.
+> To allow KCP to re-discover the expiry date please remove the `machine.cluster.x-k8s.io/certificates-expiry` annotation from the
+> KubeadmConfig corresponding to the current machine.
 
 <!-- links -->
 [RFC3339]: https://www.ietf.org/rfc/rfc3339.txt

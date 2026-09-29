@@ -2,23 +2,13 @@
 
 Using the Kubeadm control plane type to manage a control plane provides several ways to upgrade control plane machines.
 
-<aside class="note warning">
+> [!IMPORTANT]
+> KubeadmControlPlane is solely supporting CoreDNS as a DNS server at this time.
 
-<h1>Warning</h1>
-
-KubeadmControlPlane is solely supporting CoreDNS as a DNS server at this time.
-
-</aside>
-
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-KubeadmControlPlane does not automatically upgrade CoreDNS when the Kubernetes version is upgraded, unlike
-`kubeadm upgrade`. CoreDNS is only upgraded if you explicitly set the target version, see
-[How to upgrade CoreDNS][upgrade-coredns].
-
-</aside>
+> [!IMPORTANT]
+> KubeadmControlPlane does not automatically upgrade CoreDNS when the Kubernetes version is upgraded, unlike
+> `kubeadm upgrade`. CoreDNS is only upgraded if you explicitly set the target version, see
+> [How to upgrade CoreDNS][upgrade-coredns].
 
 ### Kubeconfig management
 

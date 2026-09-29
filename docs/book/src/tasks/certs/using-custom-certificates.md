@@ -13,13 +13,10 @@ Each certificate must be stored in a single secret named one of:
 
 The certificates *must* also be labeled with the key-value pair `cluster.x-k8s.io/cluster-name=[cluster name]` (where `[cluster name]` is the name of the cluster it should be used with).
 
-<aside class="note warning">
-
-<h1>CA Key Age</h1>
-
-Note that rotating CA certificates is non-trivial and it is recommended to create a long-lived CA or use a long-lived root/offline CA with a short lived intermediary CA
-
-</aside>
+> [!TIP]
+> **CA Key Age**
+>
+> Note that rotating CA certificates is non-trivial and it is recommended to create a long-lived CA or use a long-lived root/offline CA with a short lived intermediary CA
 
 **Example**
 ```yaml

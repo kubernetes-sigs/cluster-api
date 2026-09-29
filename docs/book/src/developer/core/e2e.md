@@ -106,14 +106,9 @@ We recommend using the [ClusterTemplate method] and the [Apply method] for creat
 This methods mimics the recommended user workflows, and it is based on `cluster-templates.yaml` files that can be
 provided via the [E2E config file], and thus easily swappable when changing the target infrastructure provider.
 
-<aside class="note">
-
-<h1>Tips</h1>
-
-If you need control over object creation but want to preserve portability, you can create many templates
-files each one creating only a small set of objects (instead of using a single template creating a full cluster).
-
-</aside>
+> [!TIP]
+> If you need control over object creation but want to preserve portability, you can create many templates
+> files each one creating only a small set of objects (instead of using a single template creating a full cluster).
 
 After creating objects in the cluster, use the existing methods in the [Cluster API test framework] to discover
 which object were created in the cluster so your code can adapt to different `cluster-templates.yaml` files.
@@ -197,7 +192,7 @@ test specs for the most common Cluster API use cases.
 [WaitForClusterToProvision]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#WaitForClusterToProvision
 [WaitForKubeadmControlPlaneMachinesToExist]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#WaitForKubeadmControlPlaneMachinesToExist
 [controller-runtime Client]: https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.5.2/pkg/client?tab=doc#Client
-[boskos]: https://git.k8s.io/test-infra/boskos
+[boskos]: https://github.com/kubernetes-sigs/boskos
 [E2E config file]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/clusterctl?tab=doc#E2EConfig
 [example E2E config file]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/config/docker.yaml
 [NewKindClusterProvider]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/bootstrap?tab=doc#NewKindClusterProvider

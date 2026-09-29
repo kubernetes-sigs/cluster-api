@@ -18,23 +18,18 @@ Additionally, Cluster API includes CAPD with support for both Docker and in-memo
 - CAPD with docker backend gives you a fully functional cluster running in containers; scalability and performance are limited by the size of your machine.
 - CAPD with the inmemory backend gives you a fake cluster running in memory; you can scale more easily but the clusters do not support any Kubernetes feature other than what is strictly required for CAPI, CABPK and KCP to work.
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-Maintainers are continuously working on improving Cluster API developer environment and tooling; any help is more than welcome and with the community contribution we can make this happen sooner!
-
-With regards to this document, following areas could benefit from community help:
-
-- Controller runtime currently has a limited set of metrics for client-go, making it more complex to observe phenomenon like client-go rate limiting; we should start a discussion with the controller runtime-team about how to get those metrics, even if only temporarily during bottleneck investigation.
-
-- Cluster API metrics still exists only as a dev tool, and work is required to automate metrics config generation and/or to improve consumption from kube-state-metrics; when this work will be completed it will be much more easier for other providers/other controllers to implement metrics and for user to get access to them. See [#7158](https://github.com/kubernetes-sigs/cluster-api/issues/7158).
-
-- Tracing in Cluster API is not yet implemented; this will make much more easier to investigate slowness in reconcile loops as well as provide a visual and intuitive representation of Cluster API reconcile loops. See [#3760](https://github.com/kubernetes-sigs/cluster-api/issues/3760).
-
-Please reach out to maintainers if you are interested in helping us to make progress in this area.
-
-</aside>
+> [!NOTE]
+> Maintainers are continuously working on improving Cluster API developer environment and tooling; any help is more than welcome and with the community contribution we can make this happen sooner!
+>
+> With regards to this document, following areas could benefit from community help:
+>
+> - Controller runtime currently has a limited set of metrics for client-go, making it more complex to observe phenomenon like client-go rate limiting; we should start a discussion with the controller runtime-team about how to get those metrics, even if only temporarily during bottleneck investigation.
+>
+> - Cluster API metrics still exists only as a dev tool, and work is required to automate metrics config generation and/or to improve consumption from kube-state-metrics; when this work will be completed it will be much more easier for other providers/other controllers to implement metrics and for user to get access to them. See [#7158](https://github.com/kubernetes-sigs/cluster-api/issues/7158).
+>
+> - Tracing in Cluster API is not yet implemented; this will make much more easier to investigate slowness in reconcile loops as well as provide a visual and intuitive representation of Cluster API reconcile loops. See [#3760](https://github.com/kubernetes-sigs/cluster-api/issues/3760).
+>
+> Please reach out to maintainers if you are interested in helping us to make progress in this area.
 
 ## Analyzing metrics, traces and profiles
 

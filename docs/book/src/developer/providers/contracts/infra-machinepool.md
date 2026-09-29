@@ -17,24 +17,21 @@ Nevertheless, it is always recommended to take a look at Cluster API controllers
 in-tree providers, other providers and use them as a reference implementation (unless custom solutions are required
 in order to address very specific needs).
 
-<aside class="note warning">
-
-<h1>Never rely on Cluster API behaviours not defined as a contract rule!</h1>
-
-When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
-as a Cluster API internal implementation detail, and internal implementation details can change at any time.
-
-Accordingly, in order to not expose users to the risk that your provider breaks when the Cluster API internal behavior
-changes, you MUST NOT rely on any Cluster API internal behaviour when implementing an InfraMachinePool resource.
-
-Instead, whenever you need something more from the Cluster API contract, you MUST engage the community.
-
-The Cluster API maintainers welcome feedback and contributions to the contract in order to improve how it's defined,
-its clarity and visibility to provider implementers and its suitability across the different kinds of Cluster API providers.
-
-To provide feedback or open a discussion about the provider contract please [open an issue on the Cluster API](https://github.com/kubernetes-sigs/cluster-api/issues/new?template=feature_request.yaml) repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
-
-</aside>
+> [!IMPORTANT]
+> **Never rely on Cluster API behaviours not defined as a contract rule!**
+>
+> When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
+> as a Cluster API internal implementation detail, and internal implementation details can change at any time.
+>
+> Accordingly, in order to not expose users to the risk that your provider breaks when the Cluster API internal behavior
+> changes, you MUST NOT rely on any Cluster API internal behaviour when implementing an InfraMachinePool resource.
+>
+> Instead, whenever you need something more from the Cluster API contract, you MUST engage the community.
+>
+> The Cluster API maintainers welcome feedback and contributions to the contract in order to improve how it's defined,
+> its clarity and visibility to provider implementers and its suitability across the different kinds of Cluster API providers.
+>
+> To provide feedback or open a discussion about the provider contract please [open an issue on the Cluster API](https://github.com/kubernetes-sigs/cluster-api/issues/new?template=feature_request.yaml) repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
 
 ## Rules (contract version v1beta2)
 
@@ -144,14 +141,9 @@ labels:
 
 An example of this is in the [AWS infrastructure provider](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/config/crd/kustomization.yaml).
 
-<aside  class="note warning">
-
-<h1>Important</h1>
-
-If the provider implements the [clusterctl provider contract], the contract version defined in the
-label above must be consistent with the contract version defined in the `metadata.yaml` file.
-
-</aside>
+> [!IMPORTANT]
+> If the provider implements the [clusterctl provider contract], the contract version defined in the
+> label above must be consistent with the contract version defined in the `metadata.yaml` file.
 
 ### InfraMachinePool, InfraMachinePoolList resource definition
 
@@ -336,32 +328,26 @@ type FooMachinePoolInitializationStatus struct {
 
 Once `status.initialization.provisioned` is set, the MachinePool "core" controller will bubble this info in the MachinePool's `status.initialization.infrastructureProvisioned`; also InfraMachinePools’s `spec.providerIDList` and `status.replicas` will be surfaced on MachinePool’s corresponding fields at the same time.
 
-<aside class="note warning">
+> [!NOTE]
+> **Deprecated support for status.ready in the v1beta2 contract**
+>
+> To allow more time for providers to move to the v1beta2 contract for InfraMachinePool, the v1beta2 contract still handles both fields for InfraMachinePool resources:
+> - Cluster API will try and read `status.initialization.provisioned` first.
+> - If `status.initialization.provisioned` is not set, Cluster API falls back to using `status.ready`.
+>
+> Handling of `status.ready` in the v1beta2 contract is deprecated and will be removed in a future version of the contract. Providers SHOULD report initialization completed using `status.initialization.provisioned`.
 
-<h1>Deprecated support for status.ready in the v1beta2 contract</h1>
-
-To allow more time for providers to move to the v1beta2 contract for InfraMachinePool, the v1beta2 contract still handles both fields for InfraMachinePool resources:
-- Cluster API will try and read `status.initialization.provisioned` first.
-- If `status.initialization.provisioned` is not set, Cluster API falls back to using `status.ready`.
-
-Handling of `status.ready` in the v1beta2 contract is deprecated and will be removed in a future version of the contract. Providers SHOULD report initialization completed using `status.initialization.provisioned`.
-
-</aside>
-
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_ preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regard to initialization completed:
-
-Cluster API will continue to temporarily support InfraMachinePool resource using `status.ready` field to report initialization completed.
-
-After compatibility with the deprecated v1beta1 contract will be removed, `status.ready` field in
-the InfraMachinePool resource will be ignored.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_ preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regard to initialization completed:
+>
+> Cluster API will continue to temporarily support InfraMachinePool resource using `status.ready` field to report initialization completed.
+>
+> After compatibility with the deprecated v1beta1 contract will be removed, `status.ready` field in
+> the InfraMachinePool resource will be ignored.
 
 ### InfraMachinePool: pausing
 
@@ -392,21 +378,18 @@ Please note that the `Ready` condition is expected to surface the status of the 
 
 See [Improving status in CAPI resources] for more context.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regards to conditions:
-
-Cluster API will continue to read conditions from providers using deprecated Cluster API condition types.
-
-Please note that provider that will continue to use deprecated Cluster API condition types MUST carefully take into account
-the implication of this choice which are described both in the [Cluster API v1.11 migration notes] and in the [Improving status in CAPI resources] proposal.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+> preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regards to conditions:
+>
+> Cluster API will continue to read conditions from providers using deprecated Cluster API condition types.
+>
+> Please note that provider that will continue to use deprecated Cluster API condition types MUST carefully take into account
+> the implication of this choice which are described both in the [Cluster API v1.11 migration notes] and in the [Improving status in CAPI resources] proposal.
 
 ### InfraMachinePool: replicas
 
@@ -433,19 +416,16 @@ In case necessary, "terminal failures" should be surfaced using conditions, with
 
 See [Improving status in CAPI resources] for more context.
 
-<aside class="note warning">
-
-<h1>Compatibility with the deprecated v1beta1 contract</h1>
-
-In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_ preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
-
-With regards to terminal failures:
-
-In case an infrastructure provider reports that a InfraMachinePool resource is in a state that cannot be recovered (terminal failure) by setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract, the "core" MachinePool controller will surface those info in the corresponding fields in the MachinePools's `status.deprecated.v1beta1` struct.
-
-After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage` fields in the InfraMachine resource will be ignored and Machine's `status.deprecated.v1beta1` struct will be dropped.
-
-</aside>
+> [!NOTE]
+> **Compatibility with the deprecated v1beta1 contract**
+>
+> In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_ preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
+>
+> With regards to terminal failures:
+>
+> In case an infrastructure provider reports that a InfraMachinePool resource is in a state that cannot be recovered (terminal failure) by setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract, the "core" MachinePool controller will surface those info in the corresponding fields in the MachinePools's `status.deprecated.v1beta1` struct.
+>
+> After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage` fields in the InfraMachine resource will be ignored and Machine's `status.deprecated.v1beta1` struct will be dropped.
 
 ### InfraMachinePoolTemplate, InfraMachineTemplatePoolList resource definition
 

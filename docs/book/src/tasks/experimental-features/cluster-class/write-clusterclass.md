@@ -96,13 +96,10 @@ Best practices:
 * Don't reuse the same template in multiple ClusterClasses. This is automatically taken care
   of by prefixing the templates with the name of the ClusterClass.
 
-<aside class="note">
-
-For a full example ClusterClass for CAPD you can take a look at
-[clusterclass-quickstart.yaml](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/templates/clusterclass-quick-start.yaml)
-(which is also used in the CAPD quickstart with ClusterClass).
-
-</aside>
+> [!NOTE]
+> For a full example ClusterClass for CAPD you can take a look at
+> [clusterclass-quickstart.yaml](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/templates/clusterclass-quick-start.yaml)
+> (which is also used in the CAPD quickstart with ClusterClass).
 
 ## ClusterClass with MachinePools
 
@@ -248,14 +245,11 @@ spec:
         example: registry.k8s.io
 ```
 
-<aside class="note">
-
-<h1>Supported types</h1>
-
-The following basic types are supported: `string`, `integer`, `number` and `boolean`. We are also 
-supporting complex types, please see the [complex variable types](#complex-variable-types) section.
-
-</aside>
+> [!NOTE]
+> **Supported types**
+>
+> The following basic types are supported: `string`, `integer`, `number` and `boolean`. We are also 
+> supporting complex types, please see the [complex variable types](#complex-variable-types) section.
 
 **Defining patches in the ClusterClass**
 
@@ -287,38 +281,35 @@ spec:
           variable: imageRepository
 ```
 
-<aside class="note">
-
-<h1>Writing JSON patches</h1>
-
-* Only fields below `metadata.{labels,annotations}`, `spec.template.spec` and `spec.template.metadata.{labels,annotations}` can be patched. 
-* Patching `metadata.{labels,annotations}` makes only sense when another template will be originated from the 
-  template object linked in the ClusterClass e.g. 
-  * It makes sense patching `VSphereMachineTemplate.metadata` when this object is referenced from a 
-    MachineDeploymentClass because another `VSphereMachineTemplate` will be generated for each MachineDeployment using this class.
-  * It does not make sense patching `KubeadmControlPlaneTemplate.metadata.labels` because this field will be ignored 
-     when generating the `KubeadmControlPlane` object for a Cluster (`KubeadmControlPlane` derives from `KubeadmControlPlaneTemplate.spec.template`).
-* A JSON patch that targets `metadata.labels` or `metadata.annotations` as a whole (e.g. 
-  `path: /spec/template/metadata/labels`) replaces the entire map, the same way a patch fully replaces any 
-  other field it targets. It does not merge with labels/annotations the topology has already set, so it can 
-  silently drop them. To add or change a single label/annotation without touching the others, target that 
-  specific key instead:
-  ```yaml
-        jsonPatches:
-        - op: add
-          path: /spec/template/metadata/labels/example.com~1cost-center
-          value: eng-42
-  ```
-  (Per [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901#section-3), `/` in a label/annotation key must be
-  escaped as `~1` in the JSON pointer path, e.g. `example.com/cost-center` becomes
-  `example.com~1cost-center`.)
-* Only `add`, `remove` and `replace` operations are supported.
-* It's only possible to append and prepend to arrays. Insertions at a specific index are 
-  not supported.
-* Be careful, appending or prepending an array variable to an array leads to a nested array
-  (for more details please see this [issue](https://github.com/kubernetes-sigs/cluster-api/issues/5944)).
-
-</aside>
+> [!NOTE]
+> **Writing JSON patches**
+>
+> * Only fields below `metadata.{labels,annotations}`, `spec.template.spec` and `spec.template.metadata.{labels,annotations}` can be patched. 
+> * Patching `metadata.{labels,annotations}` makes only sense when another template will be originated from the 
+>   template object linked in the ClusterClass e.g. 
+>   * It makes sense patching `VSphereMachineTemplate.metadata` when this object is referenced from a 
+>     MachineDeploymentClass because another `VSphereMachineTemplate` will be generated for each MachineDeployment using this class.
+>   * It does not make sense patching `KubeadmControlPlaneTemplate.metadata.labels` because this field will be ignored 
+>      when generating the `KubeadmControlPlane` object for a Cluster (`KubeadmControlPlane` derives from `KubeadmControlPlaneTemplate.spec.template`).
+> * A JSON patch that targets `metadata.labels` or `metadata.annotations` as a whole (e.g. 
+>   `path: /spec/template/metadata/labels`) replaces the entire map, the same way a patch fully replaces any 
+>   other field it targets. It does not merge with labels/annotations the topology has already set, so it can 
+>   silently drop them. To add or change a single label/annotation without touching the others, target that 
+>   specific key instead:
+>   ```yaml
+>         jsonPatches:
+>         - op: add
+>           path: /spec/template/metadata/labels/example.com~1cost-center
+>           value: eng-42
+>   ```
+>   (Per [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901#section-3), `/` in a label/annotation key must be
+>   escaped as `~1` in the JSON pointer path, e.g. `example.com/cost-center` becomes
+>   `example.com~1cost-center`.)
+> * Only `add`, `remove` and `replace` operations are supported.
+> * It's only possible to append and prepend to arrays. Insertions at a specific index are 
+>   not supported.
+> * Be careful, appending or prepending an array variable to an array leads to a nested array
+>   (for more details please see this [issue](https://github.com/kubernetes-sigs/cluster-api/issues/5944)).
 
 **Setting variable values in the Cluster**
 
@@ -338,14 +329,11 @@ spec:
       value: my.custom.registry
 ```
 
-<aside class="note">
-
-<h1>Variable defaulting</h1>
-
-If the user does not set the value, but the corresponding variable definition in ClusterClass has
-a default value, the value is automatically added to the variables list.
-
-</aside>
+> [!NOTE]
+> **Variable defaulting**
+>
+> If the user does not set the value, but the corresponding variable definition in ClusterClass has
+> a default value, the value is automatically added to the variables list.
 
 ## ClusterClass with custom naming strategies
 
@@ -849,16 +837,13 @@ spec:
         value: "my.custom.registry"
 ```
 
-<aside class="note">
-
-<h1>Variable paths</h1>
-
-* Paths can be used in `.valueFrom.template` and `.valueFrom.variable` to access nested fields of arrays and objects.
-* `.` is used to access a field of an object, e.g. `httpProxy.url`.
-* `[i]` is used to access an array element, e.g. `dnsServers[0]`.
-* Because of the way Go templates work, the paths in templates have to start with a dot.
-
-</aside>
+> [!NOTE]
+> **Variable paths**
+>
+> * Paths can be used in `.valueFrom.template` and `.valueFrom.variable` to access nested fields of arrays and objects.
+> * `.` is used to access a field of an object, e.g. `httpProxy.url`.
+> * `[i]` is used to access an array element, e.g. `dnsServers[0]`.
+> * Because of the way Go templates work, the paths in templates have to start with a dot.
 
 **Tips & Tricks**
 
@@ -926,15 +911,12 @@ With `semverCompare` and `coalesce` a feature can be enabled in newer versions o
     enabledIf: '{{ semverCompare "^1.22.0" (coalesce .builtin.controlPlane.version .builtin.machineDeployment.version )}}'
 ```
 
-<aside class="note">
-
-<h1>Builtin Variables</h1>
-
-Please be aware that while you can use builtin variables, if you use for example a MachineDeployment-specific variable this
-can mean that patches are only applied to some MachineDeployments. `enabledIf` is evaluated for each template that should be patched
-individually.
-
-</aside>
+> [!NOTE]
+> **Builtin Variables**
+>
+> Please be aware that while you can use builtin variables, if you use for example a MachineDeployment-specific variable this
+> can mean that patches are only applied to some MachineDeployments. `enabledIf` is evaluated for each template that should be patched
+> individually.
 
 ### Version-aware patches
 

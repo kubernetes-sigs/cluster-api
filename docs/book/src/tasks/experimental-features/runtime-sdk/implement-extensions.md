@@ -1,12 +1,7 @@
 # Implementing Runtime Extensions
 
-<aside class="note warning">
-
-<h1>Caution</h1>
-
-Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
-
-</aside>
+> [!CAUTION]
+> Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
 ## Introduction
 
@@ -290,15 +285,10 @@ and recorded in Cluster API controller's logs. As a consequence:
 - Error message must be deterministic, and must avoid to including timestamps or values changing at every call.
 - Error message must not contain external errors when it's not clear if those errors are deterministic (e.g. errors return from cloud APIs).
 
-<aside class="note warning">
-
-<h1>Caution</h1>
-
-If an error message is not deterministic and it changes at every call even if the problem is the same, it could
-lead to to Kubernetes resources conditions continuously changing, and this generates a denial attack to
-controllers processing those resource that might impact system stability.
-
-</aside>
+> [!CAUTION]
+> If an error message is not deterministic and it changes at every call even if the problem is the same, it could
+> lead to to Kubernetes resources conditions continuously changing, and this generates a denial attack to
+> controllers processing those resource that might impact system stability.
 
 ### ExtensionConfig
 

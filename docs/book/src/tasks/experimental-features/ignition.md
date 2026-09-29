@@ -2,25 +2,15 @@
 
 The default configuration engine for bootstrapping workload cluster machines is [cloud-init](https://cloudinit.readthedocs.io/). **Ignition** is an alternative engine used by Linux distributions such as [Flatcar Container Linux](https://www.flatcar.org/docs/latest/provisioning/ignition/) and [Fedora CoreOS](https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/) and therefore should be used when choosing an Ignition-based distribution as the underlying OS for workload clusters.
 
-<aside class="note warning">
+> [!NOTE]
+> This initial implementation uses Ignition **v2** and was tested with **Flatcar Container Linux** only. 
 
-<h1>Note</h1>
-
-This initial implementation uses Ignition **v2** and was tested with **Flatcar Container Linux** only. Future releases are expected to add Ignition **v3** support and cover more Linux distributions.
-
-</aside>
-
-<aside class="note warning">
-
-<h1>Note</h1>
-
-If using ignition with CAPD you should take care of setting `kubeletExtraArgs` for the `kindest/node` image in use,
-because default CAPD templates do not include anymore those settings since when the cloud-init shim for CAPD is automatically taking care of this.
-An example of how to set `kubeletExtraArgs` for the `kindest/node` can be found under `cluster-api/test/e2e/data/infrastructure-docker/main/cluster-template-ignition`.
-
-Hopefully, this will be automated for Ignition too in a future release.
-
-</aside>
+> [!IMPORTANT]
+> If using ignition with CAPD you should take care of setting `kubeletExtraArgs` for the `kindest/node` image in use,
+> because default CAPD templates do not include anymore those settings since when the cloud-init shim for CAPD is automatically taking care of this.
+> An example of how to set `kubeletExtraArgs` for the `kindest/node` can be found under `cluster-api/test/e2e/data/infrastructure-docker/main/cluster-template-ignition`.
+>
+> Hopefully, this will be automated for Ignition too in a future release.
 
 This guide explains how to deploy an AWS workload cluster using Ignition.
 

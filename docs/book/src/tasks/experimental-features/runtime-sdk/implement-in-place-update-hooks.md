@@ -1,24 +1,14 @@
 # Implementing in-place update hooks
 
-<aside class="note warning">
+> [!CAUTION]
+> Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
-<h1>Caution</h1>
-
-Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
-
-</aside>
-
-<aside class="note warning">
-
-<h1>Caution</h1>
-
-For Clusters that have been created with CAPI <= v1.11 it will only be possible to unset fields during in-place updates after:
-* a regular rollout that replaces all Machines
-* an in-place update that updates all Machines
-
-For details see the PR description of [CAPI-12890](https://github.com/kubernetes-sigs/cluster-api/pull/12890) section "Migration from managedFields v1.11 => v1.12".
-
-</aside>
+> [!CAUTION]
+> For Clusters that have been created with CAPI <= v1.11 it will only be possible to unset fields during in-place updates after:
+> * a regular rollout that replaces all Machines
+> * an in-place update that updates all Machines
+>
+> For details see the PR description of [CAPI-12890](https://github.com/kubernetes-sigs/cluster-api/pull/12890) section "Migration from managedFields v1.11 => v1.12".
 
 ## Introduction
 
@@ -56,15 +46,10 @@ options like MaxSurge/MaxUnavailable. With this regard:
   - **Use this feature with caution!**
 - No in-place updates are performed for workers machines when using rollout strategy `OnDelete`.
 
-<aside class="note warning">
-
-<h1>Important!</h1>
-
-Cluster API will call the in-place extensions only if the `InPlaceUpdates` feature flag is enabled.
-
-Also, please note that the current implementation of the [in-place updates proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md) only allows registering one extension for the `CanUpdateMachine`, `CanUpdateMachineSet` and `UpdateMachine` hooks.
-
-</aside>
+> [!IMPORTANT]
+> Cluster API will call the in-place extensions only if the `InPlaceUpdates` feature flag is enabled.
+>
+> Also, please note that the current implementation of the [in-place updates proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md) only allows registering one extension for the `CanUpdateMachine`, `CanUpdateMachineSet` and `UpdateMachine` hooks.
 
 ## Guidelines
 

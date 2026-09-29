@@ -42,21 +42,16 @@ a target [management cluster] on the selected [infrastructure provider].
 
 2. **Kind**
 
-   <aside class="note warning">
-
-   <h1>Warning</h1>
-
-   [kind] is not designed for production use.
-
-   **Minimum [kind] supported version**: v0.32.0
-
-   **Help with common issues can be found in the [Troubleshooting Guide](./troubleshooting.md).**
-
-   Note for macOS users: you may need to [increase the memory available](https://docs.docker.com/docker-for-mac/#resources) for containers (recommend 6 GB for CAPD).
-
-   Note for Linux users: you may need to [increase `ulimit` and `inotify` when using Docker (CAPD)](./troubleshooting.md#cluster-api-with-docker----too-many-open-files).
-
-   </aside>
+   > [!WARNING]
+   > [kind] is not designed for production use.
+   >
+   > **Minimum [kind] supported version**: v0.32.0
+   >
+   > **Help with common issues can be found in the [Troubleshooting Guide](./troubleshooting.md).**
+   >
+   > Note for macOS users: you may need to [increase the memory available](https://docs.docker.com/docker-for-mac/#resources) for containers (recommend 6 GB for CAPD).
+   >
+   > Note for Linux users: you may need to [increase `ulimit` and `inotify` when using Docker (CAPD)](./troubleshooting.md#cluster-api-with-docker----too-many-open-files).
 
    [kind] can be used for creating a local Kubernetes cluster for development environments or for
    the creation of a temporary [bootstrap cluster] used to provision a target [management cluster] on the selected infrastructure provider.
@@ -534,13 +529,8 @@ clusterctl init --infrastructure digitalocean
 
 {{#tab Docker}}
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-The Docker provider is not designed for production use and is intended for development environments only.
-
-</aside>
+> [!WARNING]
+> The Docker provider is not designed for production use and is intended for development environments only.
 
 The Docker provider requires the `ClusterTopology` and `MachinePool` features to deploy ClusterClass-based clusters.
 We are only supporting ClusterClass-based cluster-templates in this quickstart as ClusterClass makes it possible to
@@ -701,15 +691,10 @@ metadata:
 EOF
 ```
 
-<aside class="note warning">
-
-<h1>Notice</h1>
-
-The example above is based on the Docker container runtime. The output of `docker network inspect` may be different when
-using another runtime. In such a case, the IPAddressPool's `spec.addresses` field should be populated manually,
-according to the specific network.
-
-</aside>
+> [!NOTE]
+> The example above is based on the Docker container runtime. The output of `docker network inspect` may be different when
+> using another runtime. In such a case, the IPAddressPool's `spec.addresses` field should be populated manually,
+> according to the specific network.
 
 Install KubeVirt on the kind cluster
 
@@ -916,16 +901,13 @@ You can now create your first workload cluster by running the following:
   clusterctl generate cluster [name] --kubernetes-version [version] | kubectl apply -f -
 ```
 
-<aside class="note">
-
-<h1>Alternatives to environment variables</h1>
-
-Throughout this quickstart guide we've given instructions on setting parameters using environment variables. For most
-environment variables in the rest of the guide, you can also set them in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`
-
-See [`clusterctl init`](../clusterctl/commands/init.md) for more details.
-
-</aside>
+> [!NOTE]
+> **Alternatives to environment variables**
+>
+> Throughout this quickstart guide we've given instructions on setting parameters using environment variables. For most
+> environment variables in the rest of the guide, you can also set them in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`
+>
+> See [`clusterctl init`](../clusterctl/commands/init.md) for more details.
 
 ## Create your first workload cluster
 
@@ -933,26 +915,20 @@ Once the management cluster is ready, you can create your first workload cluster
 
 The `clusterctl generate cluster` command returns a YAML template for creating a [workload cluster].
 
-<aside class="note">
+> [!NOTE]
+> **Which provider will be used for my cluster?**
+>
+> The `clusterctl generate cluster` command uses smart defaults in order to simplify the user experience; for example,
+> if only the `aws` infrastructure provider is deployed, it detects and uses that when creating the cluster.
 
-<h1> Which provider will be used for my cluster? </h1>
-
-The `clusterctl generate cluster` command uses smart defaults in order to simplify the user experience; for example,
-if only the `aws` infrastructure provider is deployed, it detects and uses that when creating the cluster.
-
-</aside>
-
-<aside class="note">
-
-<h1> What topology will be used for my cluster? </h1>
-
-The `clusterctl generate cluster` command by default uses cluster templates which are provided by the infrastructure
-providers. See the provider's documentation for more information.
-
-See the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for
-details about how to use alternative sources for cluster templates.
-
-</aside>
+> [!NOTE]
+> **What topology will be used for my cluster?**
+>
+> The `clusterctl generate cluster` command by default uses cluster templates which are provided by the infrastructure
+> providers. See the provider's documentation for more information.
+>
+> See the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for
+> details about how to use alternative sources for cluster templates.
 
 ### Required configuration for common providers
 
@@ -990,13 +966,8 @@ See the [AWS provider prerequisites] document for more details.
 {{#/tab }}
 {{#tab Azure}}
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-Make sure you choose a VM size which is available in the desired location for your subscription. To see available SKUs, use `az vm list-skus -l <your_location> -r virtualMachines -o table`
-
-</aside>
+> [!WARNING]
+> Make sure you choose a VM size which is available in the desired location for your subscription. To see available SKUs, use `az vm list-skus -l <your_location> -r virtualMachines -o table`
 
 ```bash
 # Name of the Azure datacenter location. Change this value to your desired location.
@@ -1093,13 +1064,8 @@ export DO_NODE_MACHINE_IMAGE==<your-capi-image-id>
 
 {{#tab Docker}}
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-The Docker provider is not designed for production use and is intended for development environments only.
-
-</aside>
+> [!WARNING]
+> The Docker provider is not designed for production use and is intended for development environments only.
 
 The Docker provider does not require additional configurations for cluster templates.
 
@@ -1325,17 +1291,12 @@ export CRI_PATH="unix:///var/run/containerd/containerd.sock"
 ```
 Please visit the [KubeVirt project][KubeVirt provider] for more information.
 
-<aside class="note">
-
-<h1>Note</h1>
-
-Find additional images under [quay.io/capk/ubuntu-2404-container-disk](https://quay.io/capk/ubuntu-2404-container-disk),
-[quay.io/capk/ubuntu-2204-container-disk](https://quay.io/capk/ubuntu-2204-container-disk),
-or [quay.io/capk/ubuntu-2004-container-disk](https://quay.io/capk/ubuntu-2004-container-disk).
-
-Alternatively, create your own image; see [here](https://github.com/kubernetes-sigs/image-builder).
-
-</aside>
+> [!NOTE]
+> Find additional images under [quay.io/capk/ubuntu-2404-container-disk](https://quay.io/capk/ubuntu-2404-container-disk),
+> [quay.io/capk/ubuntu-2204-container-disk](https://quay.io/capk/ubuntu-2204-container-disk),
+> or [quay.io/capk/ubuntu-2004-container-disk](https://quay.io/capk/ubuntu-2004-container-disk).
+>
+> Alternatively, create your own image; see [here](https://github.com/kubernetes-sigs/image-builder).
 
 {{#/tab }}
 {{#tab Metal3}}
@@ -1705,13 +1666,8 @@ For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 {{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, Azure, Other providers..."}}
 {{#tab Docker}}
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-The Docker provider is not designed for production use and is intended for development environments only.
-
-</aside>
+> [!WARNING]
+> The Docker provider is not designed for production use and is intended for development environments only.
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
@@ -1847,13 +1803,8 @@ NAME                    CLUSTER           INITIALIZED   API SERVER AVAILABLE   R
 capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.37.0
 ```
 
-<aside class="note warning">
-
-<h1> Warning </h1>
-
-The control plane won't be `Ready` until we install a CNI in the next step.
-
-</aside>
+> [!NOTE]
+> The control plane won't be `Ready` until we install a CNI in the next step.
 
 After the first control plane node is up and running, we can retrieve the [workload cluster] Kubeconfig.
 
@@ -1875,11 +1826,8 @@ For Docker Desktop on macOS, Linux or Windows use kind to retrieve the kubeconfi
 kind get kubeconfig --name capi-quickstart > capi-quickstart.kubeconfig
 ```
 
-<aside class="note warning">
-
-Note: To use the default clusterctl method to retrieve kubeconfig for a workload cluster created with the Docker provider when using Docker Desktop see [Additional Notes for the Docker provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
-
-</aside>
+> [!WARNING]
+> To use the default clusterctl method to retrieve kubeconfig for a workload cluster created with the Docker provider when using Docker Desktop see [Additional Notes for the Docker provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
 
 {{#/tab }}
 {{#/tabs }}
@@ -2141,64 +2089,62 @@ capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1
 {{#/tab }}
 {{#/tabs }}
 
-<aside class="note">
-
-<h1>Troubleshooting</h1>
-
-If the nodes don't become ready after a long period, read the pods in the `kube-system` namespace
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig get pod -n kube-system
-```
-
-If the Calico pods are in image pull error state (`ErrImagePull`), it's probably because of the Docker Hub pull rate limit.
-We can try to fix that by adding a secret with our Docker Hub credentials, and use it;
-see [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials)
-for details.
-
-First, create the secret. Please notice the Docker config file path, and adjust it to your local setting.
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig create secret generic docker-creds \
-    --from-file=.dockerconfigjson=<YOUR DOCKER CONFIG FILE PATH> \
-    --type=kubernetes.io/dockerconfigjson \
-    -n kube-system
-```
-
-Now, if the `calico-node` pods are with status of `ErrImagePull`, patch their DaemonSet to make them use the new secret to pull images:
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig patch daemonset \
-    -n kube-system calico-node \
-    -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"docker-creds"}]}}}}'
-```
-
-After a short while, the calico-node pods will be with `Running` status. Now, if the calico-kube-controllers pod is also
-in `ErrImagePull` status, patch its deployment to fix the problem:
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig patch deployment \
-    -n kube-system calico-kube-controllers \
-    -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"docker-creds"}]}}}}'
-```
-
-Read the pods again
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig get pod -n kube-system
-```
-
-Eventually, all the pods in the kube-system namespace will run, and the result should be similar to this:
-```text
-NAME                                                          READY   STATUS    RESTARTS   AGE
-calico-kube-controllers-c969cf844-dgld6                       1/1     Running   0          50s
-calico-node-7zz7c                                             1/1     Running   0          54s
-calico-node-jmjd6                                             1/1     Running   0          54s
-coredns-64897985d-dspjm                                       1/1     Running   0          3m49s
-coredns-64897985d-pgtgz                                       1/1     Running   0          3m49s
-etcd-capi-quickstart-control-plane-kjjbb                      1/1     Running   0          3m57s
-kube-apiserver-capi-quickstart-control-plane-kjjbb            1/1     Running   0          3m57s
-kube-controller-manager-capi-quickstart-control-plane-kjjbb   1/1     Running   0          3m57s
-kube-proxy-b9g5m                                              1/1     Running   0          3m12s
-kube-proxy-p6xx8                                              1/1     Running   0          3m49s
-kube-scheduler-capi-quickstart-control-plane-kjjbb            1/1     Running   0          3m57s
-```
-</aside>
+> [!TIP]
+> **Troubleshooting**
+>
+> If the nodes don't become ready after a long period, read the pods in the `kube-system` namespace
+> ```bash
+> kubectl --kubeconfig=./capi-quickstart.kubeconfig get pod -n kube-system
+> ```
+>
+> If the Calico pods are in image pull error state (`ErrImagePull`), it's probably because of the Docker Hub pull rate limit.
+> We can try to fix that by adding a secret with our Docker Hub credentials, and use it;
+> see [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials)
+> for details.
+>
+> First, create the secret. Please notice the Docker config file path, and adjust it to your local setting.
+> ```bash
+> kubectl --kubeconfig=./capi-quickstart.kubeconfig create secret generic docker-creds \
+>     --from-file=.dockerconfigjson=<YOUR DOCKER CONFIG FILE PATH> \
+>     --type=kubernetes.io/dockerconfigjson \
+>     -n kube-system
+> ```
+>
+> Now, if the `calico-node` pods are with status of `ErrImagePull`, patch their DaemonSet to make them use the new secret to pull images:
+> ```bash
+> kubectl --kubeconfig=./capi-quickstart.kubeconfig patch daemonset \
+>     -n kube-system calico-node \
+>     -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"docker-creds"}]}}}}'
+> ```
+>
+> After a short while, the calico-node pods will be with `Running` status. Now, if the calico-kube-controllers pod is also
+> in `ErrImagePull` status, patch its deployment to fix the problem:
+> ```bash
+> kubectl --kubeconfig=./capi-quickstart.kubeconfig patch deployment \
+>     -n kube-system calico-kube-controllers \
+>     -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"docker-creds"}]}}}}'
+> ```
+>
+> Read the pods again
+> ```bash
+> kubectl --kubeconfig=./capi-quickstart.kubeconfig get pod -n kube-system
+> ```
+>
+> Eventually, all the pods in the kube-system namespace will run, and the result should be similar to this:
+> ```text
+> NAME                                                          READY   STATUS    RESTARTS   AGE
+> calico-kube-controllers-c969cf844-dgld6                       1/1     Running   0          50s
+> calico-node-7zz7c                                             1/1     Running   0          54s
+> calico-node-jmjd6                                             1/1     Running   0          54s
+> coredns-64897985d-dspjm                                       1/1     Running   0          3m49s
+> coredns-64897985d-pgtgz                                       1/1     Running   0          3m49s
+> etcd-capi-quickstart-control-plane-kjjbb                      1/1     Running   0          3m57s
+> kube-apiserver-capi-quickstart-control-plane-kjjbb            1/1     Running   0          3m57s
+> kube-controller-manager-capi-quickstart-control-plane-kjjbb   1/1     Running   0          3m57s
+> kube-proxy-b9g5m                                              1/1     Running   0          3m12s
+> kube-proxy-p6xx8                                              1/1     Running   0          3m49s
+> kube-scheduler-capi-quickstart-control-plane-kjjbb            1/1     Running   0          3m57s
+> ```
 
 ## Clean Up
 
@@ -2206,10 +2152,8 @@ Delete workload cluster.
 ```bash
 kubectl delete cluster capi-quickstart
 ```
-<aside class="note warning">
-
-IMPORTANT: In order to ensure a proper cleanup of your infrastructure you must always delete the cluster object. Deleting the entire cluster template with `kubectl delete -f capi-quickstart.yaml` might lead to pending resources to be cleaned up manually.
-</aside>
+> [!IMPORTANT]
+> In order to ensure a proper cleanup of your infrastructure you must always delete the cluster object. Deleting the entire cluster template with `kubectl delete -f capi-quickstart.yaml` might lead to pending resources to be cleaned up manually.
 
 Delete management cluster
 ```bash

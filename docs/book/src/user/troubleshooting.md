@@ -2,13 +2,8 @@
 
 ## Troubleshooting Quick Start with Docker (CAPD)
 
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-If you've run the Quick Start before ensure that you've [cleaned up](./quick-start.md#clean-up) all resources before trying it again. Check `docker ps` to ensure there are no running containers left before beginning the Quick Start.
-
-</aside>
+> [!WARNING]
+> If you've run the Quick Start before ensure that you've [cleaned up](./quick-start.md#clean-up) all resources before trying it again. Check `docker ps` to ensure there are no running containers left before beginning the Quick Start.
 
 This guide assumes you've completed the [apply the workload cluster](./quick-start.md#apply-the-workload-cluster) section of the Quick Start using Docker.
 

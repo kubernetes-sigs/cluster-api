@@ -1,28 +1,23 @@
-# Experimental Features
+# Feature Gates
 
-Cluster API now ships with a new experimental package that lives under the `exp/` directory. This is a
-temporary location for features which will be moved to their permanent locations after graduation. Users can experiment with these features by enabling them using feature gates.
+The following tables are a summary of the feature gates that are available in Cluster API.
 
-Currently Cluster API has the following experimental features:
-* `ClusterTopology` (env var: `CLUSTER_TOPOLOGY`): [ClusterClass](../tasks/cluster-class/index.md)
-* `InPlaceUpdates` (env var: `EXP_IN_PLACE_UPDATES`):
-  * Allows users to execute changes on existing machines without deleting the Machine and creating a new one.
-  * See the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md) for more details.
-* `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](../tasks/ignition.md)
-* `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](../tasks/machine-pools.md)
-* `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](../tasks/machineset-preflight-checks.md)
-* `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`): [Taint propagation](api/taint-propagation.md)  
-* `PriorityQueue` (env var: `EXP_PRIORITY_QUEUE`): Enables the usage of the controller-runtime PriorityQueue: https://github.com/kubernetes-sigs/controller-runtime/issues/2374
-* `ReconcilerRateLimiting` (env var: `EXP_RECONCILER_RATE_LIMITING`): Enables reconciler rate-limiting: https://github.com/kubernetes-sigs/cluster-api/issues/13005
-  * Note: starting from CAPI v1.12.4 `ReconcilerRateLimiting` also requires `PriorityQueue`
-* `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](../developer/runtime-extensions/index.md)
-* `ClusterClassInlineTemplates` (env var: `EXP_CLUSTERCLASS_INLINE_TEMPLATES`):
-  * Feature gate to enable the ClusterClass inline templates functionality, for more details see https://github.com/kubernetes-sigs/cluster-api/pull/14092
-  * This feature gate should only be enabled if there are no more clients in the environment that are using the v1beta1 ClusterClass API.
+| Feature gate                     | Maturity level | Note                                                                                                                                                                                                                                                                                                                                 |
+|----------------------------------|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ClusterClassInlineTemplates`    | Alpha          | env var: `EXP_CLUSTERCLASS_INLINE_TEMPLATES`<br>See this [ClusterClass with inline templates](../tasks/cluster-class/write-clusterclass.md#clusterclass-with-inline-templates).<br>Important!: This feature gate should only be enabled if there are no more clients in the environment that are using the v1beta1 ClusterClass API. |
+| `ClusterTopology`                | Alpha          | env var: `CLUSTER_TOPOLOGY`<br>See [ClusterClass](../tasks/cluster-class/index.md).                                                                                                                                                                                                                                                  |
+| `InPlaceUpdates`                 | Alpha          | env var: `EXP_IN_PLACE_UPDATES`<br>See [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md).<br>Important!: Also requires `RuntimeSDK`.                                                                                                                                  |
+| `KubeadmBootstrapFormatIgnition` | Alpha          | env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`<br>See [Ignition](../tasks/ignition.md).                                                                                                                                                                                                                                            |
+| `MachinePool`                    | Beta           | env var: `EXP_MACHINE_POOL`<br>See [MachinePools](../tasks/machine-pools.md).                                                                                                                                                                                                                                                        |
+| `MachineSetPreflightChecks`      | Beta           | env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`<br>See [MachineSetPreflightChecks](../tasks/machineset-preflight-checks.md).                                                                                                                                                                                                             |
+| `MachineTaintPropagation`        | Alpha          | env var: `EXP_MACHINE_TAINT_PROPAGATION`<br>See [Taint propagation](api/taint-propagation.md).                                                                                                                                                                                                                                       |
+| `PriorityQueue`                  | GA             | env var: `EXP_PRIORITY_QUEUE`<br>See [issue](https://github.com/kubernetes-sigs/controller-runtime/issues/2374).                                                                                                                                                                                                                     |
+| `ReconcilerRateLimiting`         | GA             | env var: `EXP_RECONCILER_RATE_LIMITING`<br>See [issue](https://github.com/kubernetes-sigs/cluster-api/issues/13005).<br>Important!: starting from CAPI v1.12.4 `ReconcilerRateLimiting` also requires `PriorityQueue`.                                                                                                               |
+| `RuntimeSDK`                     | Alpha          | env var: `EXP_RUNTIME_SDK`<br>See [Runtime extensions](../developer/runtime-extensions/index.md).                                                                                                                                                                                                                                    |
 
-## Enabling Experimental Features for Management Clusters Started with clusterctl
+## Enabling Feature Gates for Management Clusters Started with clusterctl
 
-Users can enable/disable features by setting OS environment variables before running `clusterctl init`, e.g.:
+Users can enable/disable features gates by setting OS environment variables before running `clusterctl init`, e.g.:
 
 ```yaml
 export EXP_SOME_FEATURE_NAME=true
@@ -36,15 +31,17 @@ As an alternative to environment variables, it is also possible to set variables
 EXP_SOME_FEATURE_NAME: "true"
 ```
 In case a variable is defined in both the config file and as an OS environment variable, the environment variable takes precedence.
-For more information on how to set variables for clusterctl, see [clusterctl Configuration File](../../reference/clusterctl/configuration.md)
+For more information on how to set variables for clusterctl, see [clusterctl Configuration File](clusterctl/configuration.md)
 
 Some features like `MachinePools` may require infrastructure providers to implement a separate CRD that handles the infrastructure side of the feature too.
 For such a feature to work, infrastructure providers should also enable their controllers if it is implemented as a feature. If it is not implemented as a feature, no additional step is necessary.
 As an example, Cluster API Provider Azure (CAPZ) has support for MachinePool through the infrastructure type `AzureMachinePool`.
 
-## Enabling Experimental Features for e2e Tests
+## Enabling Feature Gates for e2e Tests
 
-One way is to set experimental variables on the clusterctl config file. For CAPI, these configs are under ./test/e2e/config/... such as `docker.yaml`:
+One way to enable fature gates for E2E tests it to set environment variables on the clusterctl config file used
+to boostrap the management cluster used during the test. For CAPI, these configs are under ./test/e2e/config/... such as `docker.yaml`:
+
 ```yaml
 variables:
   CLUSTER_TOPOLOGY: "true"
@@ -54,9 +51,9 @@ variables:
 
 Another way is to set them as environmental variables before running e2e tests.
 
-## Enabling Experimental Features on Tilt
+## Enabling Feature Gates on Tilt
 
-On development environments started with `Tilt`, features can be enabled by setting the feature variables in `kustomize_substitutions`, e.g.:
+On development environments started with `Tilt`, features gates can be enabled by setting the feature variables in `kustomize_substitutions`, e.g.:
 
 ```yaml
 kustomize_substitutions:
@@ -67,9 +64,9 @@ kustomize_substitutions:
 
 For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../developer/core/tilt.md)
 
-## Enabling Experimental Features on Existing Management Clusters
+## Enabling Feature Gates on Existing Management Clusters
 
-To enable/disable features on existing management clusters, users can edit the corresponding controller manager
+To enable/disable features gates on existing management clusters, users can edit the corresponding controller manager
 deployments, which will then trigger a restart with the requested features. E.g. for the CAPI controller manager
 deployment:
 
@@ -89,14 +86,8 @@ Similarly, to **validate** if a particular feature is enabled, see the arguments
 kubectl describe -n capi-system deployment.apps/capi-controller-manager
 ```
 
-Following controller manager deployments have to be edited in order to enable/disable their respective experimental features:
+Following controller manager deployments have to be edited in order to enable/disable their respective feature gates:
 
-* [MachinePools](../tasks/machine-pools.md):
-  * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
-  * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
-  * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
-    might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
-    regarding this.
 * [ClusterClass](../tasks/cluster-class/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
   * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).
@@ -106,15 +97,11 @@ Following controller manager deployments have to be edited in order to enable/di
 * [Ignition Bootstrap configuration](../tasks/ignition.md):
   * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
   * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).
+* [MachinePools](../tasks/machine-pools.md):
+  * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
+  * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
+  * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
+    might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
+    regarding this.
 * [Runtime SDK](../developer/runtime-extensions/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
-
-## Active Experimental Features
-
-* [MachinePools](../tasks/machine-pools.md)
-* [ClusterClass](../tasks/cluster-class/index.md)
-* [Ignition Bootstrap configuration](../tasks/ignition.md)
-* [Runtime SDK](../developer/runtime-extensions/index.md)
-
-**Warning**: Experimental features are unreliable, i.e., some may one day be promoted to the main repository, or they may be modified arbitrarily or even disappear altogether.
-In short, they are not subject to any compatibility or deprecation promise.

@@ -122,7 +122,6 @@ This proposal does not intend to solve the issue of add-ons in all of Kubernetes
 - Handle the upgrade of Cluster add-ons when the workload Cluster is upgraded to a new Kubernetes version.
 - Provide support for advanced orchestration use cases leveraging on Cluster API’s lifecycle hooks for Cluster API.
 - Introduce capabilities to reconcile add-ons in an order that respects dependencies between add-ons.
-- Deprecate or remove the ClusterResourceSet experimental feature.
 
 ## Proposal
 

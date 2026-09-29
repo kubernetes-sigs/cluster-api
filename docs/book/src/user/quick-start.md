@@ -261,7 +261,7 @@ can be enabled via:
 ```bash
 export CLUSTER_TOPOLOGY=true
 ```
-Additional documentation about experimental features can be found in [Experimental Features].
+See documentation about supported [Feature Gates].
 
 ### Initialization for common providers
 
@@ -538,7 +538,7 @@ adapt configuration based on Kubernetes version. This is required to install Kub
 for the upgrade from v1.23 to v1.24 as we have to use different cgroupDrivers depending on Kubernetes version.
 
 ```bash
-# Enable the experimental Cluster topology feature.
+# Enable the ClusterTopology feature gate.
 export CLUSTER_TOPOLOGY=true
 
 # Initialize the management cluster
@@ -2167,7 +2167,7 @@ kind delete cluster
 - See the [clusterctl] documentation for more detail about clusterctl supported actions.
 
 <!-- links -->
-[Experimental Features]: ../reference/feature-gates.md
+[Feature Gates]: ../reference/feature-gates.md
 [Akamai (Linode) provider]: https://linode.github.io/cluster-api-provider-linode/introduction.html
 [AWS provider prerequisites]: https://cluster-api-aws.sigs.k8s.io/topics/using-clusterawsadm-to-fulfill-prerequisites.html
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
@@ -2189,7 +2189,7 @@ kind delete cluster
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
 [ionoscloud provider]: https://github.com/ionos-cloud/cluster-api-provider-ionoscloud
 [kind]: https://kind.sigs.k8s.io/
-[KubeadmControlPlane]: ../developer/core/controllers/control-plane.md
+[KubeadmControlPlane]: ../developer/providers/contracts/control-plane.md
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/docs/getting-started.md

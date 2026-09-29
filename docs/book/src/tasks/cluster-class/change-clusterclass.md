@@ -1,5 +1,9 @@
 # Changing a ClusterClass
 
+> [!IMPORTANT]
+> The `ClusterTopology` feature flag must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
+
 ## Selecting a strategy
 
 When planning a change to a ClusterClass, users should always take into consideration

@@ -1,4 +1,11 @@
-# Implementing Lifecycle Hook Runtime Extensions
+# Implementing Lifecycle Hook Hooks
+
+> [!IMPORTANT]
+> Both the `RuntimeSDK` and the `ClusterTopology` feature gates must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
+
+> [!IMPORTANT]
+> Lifecycle hooks are only invoked for Clusters created using ClusterClass.
 
 > [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.

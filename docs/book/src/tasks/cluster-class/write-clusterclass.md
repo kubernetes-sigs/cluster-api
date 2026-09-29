@@ -1,5 +1,10 @@
-
 # Writing a ClusterClass
+
+> [!IMPORTANT]
+> The `ClusterTopology` feature flag must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
+
+## Introduction
 
 A ClusterClass becomes more useful and valuable when it can be used to create many Cluster of a similar 
 shape. The goal of this document is to explain how ClusterClasses can be written in a way that they are 
@@ -100,6 +105,42 @@ Best practices:
 > For a full example ClusterClass for CAPD you can take a look at
 > [clusterclass-quickstart.yaml](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/templates/clusterclass-quick-start.yaml)
 > (which is also used in the CAPD quickstart with ClusterClass).
+
+## ClusterClass with inline templates
+
+If the content of templates used by a ClusterClass is entirely computed via a RuntimeExtension it is
+possible to define empty `template` inline instead of having `templateRef` referencing empty template CRs.
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: in-memory
+spec:
+  controlPlane:
+    machineInfrastructure:
+      template:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: DevMachineTemplate
+    template:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      kind: KubeadmControlPlaneTemplate
+  infrastructure:
+    template:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: DevClusterTemplate
+  workers:
+    machineDeployments:
+      - class: default-worker
+        bootstrap:
+          template:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+            kind: KubeadmConfigTemplate
+        infrastructure:
+          template:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            kind: DevMachineTemplate
+```
 
 ## ClusterClass with MachinePools
 

@@ -1,4 +1,11 @@
-# Implementing Topology Mutation Hook Runtime Extensions
+# Implementing Topology Mutation Hooks
+
+> [!IMPORTANT]
+> Both the `RuntimeSDK` and the `ClusterTopology` feature gates must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
+
+> [!IMPORTANT]
+> Topology mutation hooks are only invoked for Clusters created using ClusterClass.
 
 > [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.

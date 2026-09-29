@@ -29,7 +29,7 @@ Optionally, the provider repository can include the following files:
 > [!TIP]
 > **Customizing the list of providers**
 >
-> It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
+> It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](../../../reference/clusterctl/configuration.md).
 
 #### Adding a provider to clusterctl
 
@@ -62,7 +62,7 @@ branch to include it in the next patch release.
 > **What about closed source providers?**
 >
 > Closed source provider can not be added to the pre-defined list of provider shipped with `clusterctl`, however,
-> those providers could be used with `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
+> those providers could be used with `clusterctl` by changing the [clusterctl configuration](../../../reference/clusterctl/configuration.md).
 
 > [!NOTE]
 > **Provider's GitHub org prefix**
@@ -79,7 +79,7 @@ branch to include it in the next patch release.
 > from the `example` GitHub org would lead to `example-example`, then it is acceptable to omit the prefix.
 >
 > Please note that the need to add a prefix for providers not in the kubernetes-sigs org does not apply to providers added by
-> changing the [clusterctl configuration](../../../clusterctl/configuration.md).
+> changing the [clusterctl configuration](../../../reference/clusterctl/configuration.md).
 
 #### Creating a provider repository on GitHub
 
@@ -140,7 +140,7 @@ for the core provider:
         - metadata.yaml
   ```
 
-- Use the following [`clusterctl` configuration](../../../clusterctl/configuration.md):
+- Use the following [`clusterctl` configuration](../../../reference/clusterctl/configuration.md):
 
   ```yaml
   providers:

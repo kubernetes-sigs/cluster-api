@@ -1,4 +1,8 @@
-# Implementing in-place update hooks
+# Implementing In-Place Update Hooks
+
+> [!IMPORTANT]
+> Both the `RuntimeSDK` and the `InPlaceUpdates` feature gates must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
 
 > [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.

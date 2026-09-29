@@ -1,7 +1,11 @@
 # Taint propagation
+
+> [!IMPORTANT]
+> The `MachineTaintPropagation` feature gate must be set to true in order to use this feature.
+> See [Feature Gates](../feature-gates.md) for more details.
+
 Cluster API controllers implement consistent taint propagation across Cluster API resources and from Machines to
 corresponding Kubernetes Node in the workload cluster.
-Note: To enable this feature it is required to set the `MachineTaintPropagation` feature gate to `true`.
 
 See the proposal [Propagating taints from Cluster API to Nodes](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20250513-propogate-taints.md) for more information.
 

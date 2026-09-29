@@ -250,7 +250,7 @@ We could consider refactoring MachineDeployment/MachineSet to support the option
 
 While it is valuable that MachineDeployments are provider-agnostic, MachinePools take advantage of scalable resources unique to an infra provider, which may have advantages in speed or reliability. MachinePools allow an infrastructure provider to decide which native features to use, while still conforming to some basic common behaviors.
 
- To merge MachinePool behavior — along with the changes proposed here — into MachineDeployment would effectively deprecate the experimental MachinePool API and would increase the overall scope of work significantly, while increasing challenges to maintaining backward compatibility in the stable API.
+ To merge MachinePool behavior — along with the changes proposed here — into MachineDeployment would effectively deprecate the MachinePool API and would increase the overall scope of work significantly, while increasing challenges to maintaining backward compatibility in the stable API.
 
 ## Upgrade Strategy
 
@@ -264,7 +264,7 @@ The clusterctl client will be updated to discover and list MachinePool Machines.
 
 ### Graduation Criteria
 
-This feature is linked to experimental MachinePools, and therefore awaits its graduation.
+This feature is linked to MachinePools feature, and therefore awaits its graduation.
 
 ## Implementation History
 

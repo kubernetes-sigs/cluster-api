@@ -22,7 +22,7 @@ reviewers:
   - "@wking"
 creation-date: "2024-08-07"
 last-updated: "2024-08-07"
-status: experimental
+status: implemented
 ---
 
 # In-place updates in Cluster API
@@ -172,7 +172,7 @@ This proposal introduces three new Update Hooks named `CanUpdateMachine`, `CanUp
 
 Multiple external updaters can be registered, each of them only covering a subset of machine changes (*). The CAPI controllers will ask the external updaters what kind of changes they can handle and, based on the response, compose and orchestrate them to achieve the desired state.
 
-With the introduction of this experimental feature, users may want to apply the in-place updates workflow to a subset of CAPI clusters only. By leveraging CAPI's `RuntimeExtension`, we can provide a namespace selector via [`ExtensionConfig`](https://cluster-api.sigs.k8s.io/developer/runtime-extensions/implement-extensions#extensionconfig). This allows us to support cluster selection at the namespace level (only clusters/machines namespaces that match the selector) without applying API changes.
+With the introduction of this feature, users may want to apply the in-place updates workflow to a subset of CAPI clusters only. By leveraging CAPI's `RuntimeExtension`, we can provide a namespace selector via [`ExtensionConfig`](https://cluster-api.sigs.k8s.io/tasks/experimental-features/runtime-sdk/implement-extensions#extensionconfig). This allows us to support cluster selection at the namespace level (only clusters/machines namespaces that match the selector) without applying API changes.
 
 (*) In the first iteration the number of external updaters will be limited to one.
 
@@ -748,7 +748,7 @@ To test the external update strategy, we will implement a "CAPD Kubeadm Updater"
 
 The initial plan is to provide support for external update strategy in the KCP and MD controllers under a feature flag (which would be unset by default) and to have the webhook API in an `alpha` stage ) which will allow us to iterate faster).
 
-The main criteria for graduating this feature will be community adoption and API stability. Once the feature is stable, we have fixes to any known bugs and the webhook API has remained stable without backward incompatible changes for some time, we will propose to the community moving the API out of the `alpha` stage. It will then be promoted out of experimental and the feature flag for enabling/disabling the functionality will be deprecated. When this happens
+The main criteria for graduating this feature will be community adoption and API stability. Once the feature is stable, we have fixes to any known bugs and the webhook API has remained stable without backward incompatible changes for some time, we will propose to the community moving the API out of the `alpha` stage. It will then be promoted to GA and the feature flag for enabling/disabling the functionality will be deprecated. When this happens
 we will provide a way to toggle the in-place possibly though the API.
 
 ## Implementation History

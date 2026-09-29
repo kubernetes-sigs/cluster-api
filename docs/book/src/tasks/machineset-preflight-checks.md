@@ -1,4 +1,8 @@
-# Experimental Feature: MachineSetPreflightChecks (beta)
+# MachineSetPreflightChecks
+
+> [!IMPORTANT]
+> The `MachineSetPreflightChecks` feature gate must be set to true in order to use this feature.
+> See [Feature Gates](../reference/feature-gates.md) for more details.
 
 The `MachineSetPreflightChecks` feature can provide additional safety while creating new Machines and remediating existing unhealthy Machines of a MachineSet.
 

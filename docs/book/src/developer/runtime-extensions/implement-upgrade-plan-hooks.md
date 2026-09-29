@@ -1,4 +1,11 @@
-# Implementing Upgrade Plan Runtime Extensions
+# Implementing Upgrade Plan Hooks
+
+> [!IMPORTANT]
+> Both the `RuntimeSDK` and the `ClusterTopology` feature gates must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
+
+> [!IMPORTANT]
+> Upgrade plan hooks are only invoked for Clusters created using ClusterClass.
 
 > [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
@@ -10,7 +17,7 @@ introduced support for upgrading by more than one minor when working with Cluste
 
 According to the proposal, there are two ways to provide Cluster API the information required to compute the upgrade plan:
 - By setting the list of versions in the `spec.kubernetesVersions` field in the `ClusterClass` object.
-- By calling the runtime hook defined in the `spec.upgrade` field in the `ClusterClass` object.
+- By calling the runtime extensions defined in the `spec.upgrade` field in the `ClusterClass` object.
 
 This document defines the hook for the second option and provides recommendations on how to implement it.
 

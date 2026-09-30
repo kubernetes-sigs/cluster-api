@@ -79,7 +79,7 @@ clusterctl upgrade apply \
 > Not supported skip upgrades might lead to non functional management clusters. 
 >
 > For Core provider, Kubeadm bootstrap provider, Kubeadm control plane provider and Docker infrastructure provider
-> please look at [skip upgrades](../../reference/versions.md#skip-upgrades) rules.
+> please look at [skip upgrades](../../../reference/versions.md#skip-upgrades) rules.
 
 > [!WARNING]
 > The current implementation of the upgrade process does not preserve controllers flags that are not set through the

@@ -1,7 +1,7 @@
 # Running multiple providers
 
 Cluster API supports running multiple infrastructure/bootstrap/control plane providers on the same management cluster. It's highly recommended to rely on
-[clusterctl init](../clusterctl/commands/init.md) command in this case. [clusterctl](../clusterctl/overview.md) will help ensure that all providers support the same
+[clusterctl init](../reference/clusterctl/commands/init.md) command in this case. [clusterctl](../reference/clusterctl/overview.md) will help ensure that all providers support the same
 [API Version of Cluster API](../developer/providers/contracts/clusterctl.md#metadata-yaml) (contract).
 
 > [!WARNING]

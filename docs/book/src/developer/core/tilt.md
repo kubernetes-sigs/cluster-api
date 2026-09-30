@@ -450,7 +450,7 @@ some of the clusterctl commands like clusterctl config won't work.
 
 This limitation is an acceptable trade-off while executing fast dev-test iterations on controllers logic. If instead
 you are interested in testing clusterctl workflows, you should refer to the
-[clusterctl developer instructions](../../clusterctl/developers.md).
+[clusterctl developer instructions](../../reference/clusterctl/developers.md).
 
 ## Available providers
 

@@ -36,7 +36,7 @@ As an alternative to environment variables, it is also possible to set variables
 EXP_SOME_FEATURE_NAME: "true"
 ```
 In case a variable is defined in both the config file and as an OS environment variable, the environment variable takes precedence.
-For more information on how to set variables for clusterctl, see [clusterctl Configuration File](../../clusterctl/configuration.md)
+For more information on how to set variables for clusterctl, see [clusterctl Configuration File](../../reference/clusterctl/configuration.md)
 
 Some features like `MachinePools` may require infrastructure providers to implement a separate CRD that handles the infrastructure side of the feature too.
 For such a feature to work, infrastructure providers should also enable their controllers if it is implemented as a feature. If it is not implemented as a feature, no additional step is necessary.

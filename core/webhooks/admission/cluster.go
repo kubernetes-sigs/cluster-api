@@ -287,7 +287,14 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	// metadata in topology should be valid
 	allErrs = append(allErrs, validateTopologyMetadata(newCluster.Spec.Topology, fldPath)...)
 
-	allErrs = append(allErrs, validateTopologyRollout(newCluster.Spec.Topology, fldPath)...)
+	var oldTopology *clusterv1.Topology
+	if oldCluster != nil && oldCluster.Spec.Topology.IsDefined() {
+		oldTopology = &oldCluster.Spec.Topology
+	}
+	rolloutWarnings, rolloutErrs := validateTopologyRollout(oldTopology, newCluster.Spec.Topology, fldPath)
+	allWarnings = append(allWarnings, rolloutWarnings...)
+	allErrs = append(allErrs, rolloutErrs...)
+	allWarnings = append(allWarnings, machineHealthCheckDisabledWarnings(newCluster)...)
 
 	allErrs = append(allErrs, validateTopologyTaints(newCluster.Spec.Topology, fldPath)...)
 
@@ -643,15 +650,50 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 	return nil
 }
 
-func validateTopologyRollout(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
+// validateTopologyRollout validates MachineDeployment rollout strategy fields in a Cluster topology.
+// It returns warnings when unchanged pre-existing invalid rollingUpdate values are ratchet-allowed.
+func validateTopologyRollout(oldTopology *clusterv1.Topology, topology clusterv1.Topology, fldPath *field.Path) (admission.Warnings, field.ErrorList) {
+	var allWarnings admission.Warnings
+	var allErrs field.ErrorList
 
 	for _, md := range topology.Workers.MachineDeployments {
 		fldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("rollout")
-		allErrs = append(allErrs, validateRolloutStrategy(fldPath.Child("strategy"), md.Rollout.Strategy.RollingUpdate.MaxUnavailable, md.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+		enforceTypeMismatchValidation := true
+		if oldTopology != nil {
+			if oldMD := machineDeploymentTopologyOfName(oldTopology, md.Name); oldMD != nil {
+				enforceTypeMismatchValidation = shouldEnforceRolloutStrategyTypeMismatchValidation(
+					md.Rollout.Strategy.Type,
+					md.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					md.Rollout.Strategy.RollingUpdate.MaxSurge,
+					oldMD.Rollout.Strategy.Type,
+					oldMD.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					oldMD.Rollout.Strategy.RollingUpdate.MaxSurge,
+				)
+			}
+		}
+		rolloutStrategyPath := fldPath.Child("strategy")
+		rolloutStrategyTypeMismatchErrs := field.ErrorList{}
+		if enforceTypeMismatchValidation {
+			rolloutStrategyTypeMismatchErrs = validateRolloutStrategyTypeMismatch(
+				rolloutStrategyPath,
+				md.Rollout.Strategy.Type,
+				md.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				md.Rollout.Strategy.RollingUpdate.MaxSurge,
+			)
+			allErrs = append(allErrs, rolloutStrategyTypeMismatchErrs...)
+		} else {
+			allWarnings = append(allWarnings, rolloutStrategyTypeMismatchWarning(rolloutStrategyPath, md.Rollout.Strategy.Type))
+		}
+		if len(rolloutStrategyTypeMismatchErrs) == 0 {
+			allErrs = append(allErrs, validateRolloutStrategy(
+				rolloutStrategyPath,
+				md.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				md.Rollout.Strategy.RollingUpdate.MaxSurge,
+			)...)
+		}
 	}
 
-	return allErrs
+	return allWarnings, allErrs
 }
 
 func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
@@ -670,6 +712,23 @@ func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) fi
 	}
 
 	return allErrs
+}
+
+// machineDeploymentTopologyOfName finds a MachineDeploymentTopology of the given name in the provided topology.
+// Returns nil if it can not find one.
+func machineDeploymentTopologyOfName(topology *clusterv1.Topology, name string) *clusterv1.MachineDeploymentTopology {
+	for i := range topology.Workers.MachineDeployments {
+		if topology.Workers.MachineDeployments[i].Name == name {
+			return &topology.Workers.MachineDeployments[i]
+		}
+	}
+	return nil
+}
+
+// rolloutStrategyTypeMismatchWarning returns the warning shown when an unchanged invalid rollingUpdate configuration is
+// ratchet-allowed.
+func rolloutStrategyTypeMismatchWarning(fldPath *field.Path, strategyType clusterv1.MachineDeploymentRolloutStrategyType) string {
+	return fmt.Sprintf("%s: rollingUpdate configuration is ignored while type is %s; remove rollingUpdate fields", fldPath.Child("rollingUpdate").String(), strategyType)
 }
 
 func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
@@ -735,6 +794,30 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 	}
 
 	return allErrs
+}
+
+// machineHealthCheckDisabledWarnings returns warnings, not errors, for MachineHealthCheck overrides set while enabled is false.
+// Setting overrides while remediation is disabled is legitimate when temporarily pausing remediation without losing
+// configuration, so rejecting it would break existing Clusters and that workflow.
+func machineHealthCheckDisabledWarnings(cluster *clusterv1.Cluster) admission.Warnings {
+	var allWarnings admission.Warnings
+
+	controlPlaneHealthCheck := &cluster.Spec.Topology.ControlPlane.HealthCheck
+	if controlPlaneHealthCheck.Enabled != nil && !*controlPlaneHealthCheck.Enabled && controlPlaneHealthCheck.IsDefined() {
+		fldPath := field.NewPath("spec", "topology", "controlPlane", "healthCheck")
+		allWarnings = append(allWarnings, fmt.Sprintf("%s: checks and remediation are ignored while enabled is false", fldPath.String()))
+	}
+
+	for i := range cluster.Spec.Topology.Workers.MachineDeployments {
+		md := cluster.Spec.Topology.Workers.MachineDeployments[i]
+		mdHealthCheck := &md.HealthCheck
+		if mdHealthCheck.Enabled != nil && !*mdHealthCheck.Enabled && mdHealthCheck.IsDefined() {
+			fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("healthCheck")
+			allWarnings = append(allWarnings, fmt.Sprintf("%s: checks and remediation are ignored while enabled is false", fldPath.String()))
+		}
+	}
+
+	return allWarnings
 }
 
 // machineDeploymentClassOfName find a MachineDeploymentClass of the given name in the provided ClusterClass.

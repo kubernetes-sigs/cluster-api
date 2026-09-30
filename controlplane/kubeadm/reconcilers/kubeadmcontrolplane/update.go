@@ -64,9 +64,10 @@ func (r *Reconciler) updateControlPlane(
 	if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.IsDefined() {
 		// Get the imageRepository or the correct value if nothing is set and a migration is necessary.
 		imageRepository := pkg.ImageRepositoryFromClusterConfig(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration)
+		dnsImageRepository := controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageRepository
 
 		kubeadmCMMutators = append(kubeadmCMMutators,
-			workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(imageRepository),
+			workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(imageRepository, dnsImageRepository),
 			workloadCluster.UpdateFeatureGatesInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec, parsedVersion),
 			workloadCluster.UpdateAPIServerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer),
 			workloadCluster.UpdateControllerManagerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager),

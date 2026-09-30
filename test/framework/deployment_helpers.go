@@ -553,6 +553,44 @@ func verifyMetrics(data []byte, pod *corev1.Pod) error {
 	return nil
 }
 
+// WatchPodRestartsInput is the input for WatchPodRestarts.
+type WatchPodRestartsInput struct {
+	GetLister  GetLister
+	Deployment *appsv1.Deployment
+}
+
+// WatchPodRestarts fails the test if a Pod of the Deployment restarts.
+func WatchPodRestarts(ctx context.Context, input WatchPodRestartsInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for WatchPodRestarts")
+	Expect(input.GetLister).NotTo(BeNil(), "input.GetLister is required for WatchPodRestarts")
+	Expect(input.Deployment).NotTo(BeNil(), "input.Deployment is required for WatchPodRestarts")
+
+	selector, err := metav1.LabelSelectorAsMap(input.Deployment.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred(), "Failed to create Pods selector for deployment %s", klog.KObj(input.Deployment))
+
+	ticker := time.NewTicker(time.Second * 10)
+	go func() {
+		defer GinkgoRecover()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				pods := &corev1.PodList{}
+				if err := input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector)); err != nil {
+					log.Logf("Error listing Pods for deployment %s: %v", klog.KObj(input.Deployment), err)
+					continue
+				}
+				for _, pod := range pods.Items {
+					for _, c := range pod.Status.ContainerStatuses {
+						Expect(c.RestartCount).To(BeZero(), "container %s in Pod %s restarted %d times (check logs for more details)", c.Name, klog.KObj(&pod), c.RestartCount)
+					}
+				}
+			}
+		}
+	}()
+}
+
 // WaitForDNSUpgradeInput is the input for WaitForDNSUpgrade.
 type WaitForDNSUpgradeInput struct {
 	Getter     Getter

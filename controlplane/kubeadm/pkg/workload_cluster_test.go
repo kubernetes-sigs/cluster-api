@@ -405,6 +405,8 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 		clusterConfigurationData string
 		newImageRepository       string
 		wantImageRepository      string
+		newDNSImageRepository    string
+		wantDNSImageRepository   string
 	}{
 		{
 			name: "it should set the image repository",
@@ -422,6 +424,16 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 				imageRepository: foo.bar/baz.io`),
 			newImageRepository:  "",
 			wantImageRepository: "foo.bar/baz.io",
+		},
+		{
+			name:                "it should set both the image repository and the DNS image repository together",
+			clusterConfigurationData: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta4
+				kind: ClusterConfiguration`),
+			newImageRepository:     "registry.example.org",
+			wantImageRepository:    "registry.example.org",
+			newDNSImageRepository:  "registry.example.org/coredns",
+			wantDNSImageRepository: "registry.example.org/coredns",
 		},
 	}
 
@@ -441,7 +453,7 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.31.1"), w.UpdateImageRepositoryInKubeadmConfigMap(tt.newImageRepository))
+			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.31.1"), w.UpdateImageRepositoryInKubeadmConfigMap(tt.newImageRepository, tt.newDNSImageRepository))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var actualConfig corev1.ConfigMap
@@ -451,6 +463,9 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 				&actualConfig,
 			)).To(Succeed())
 			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring(tt.wantImageRepository))
+			if tt.wantDNSImageRepository != "" {
+				g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring(tt.wantDNSImageRepository))
+			}
 		})
 	}
 }

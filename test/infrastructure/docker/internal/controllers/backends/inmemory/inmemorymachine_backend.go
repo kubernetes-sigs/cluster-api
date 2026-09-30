@@ -1065,6 +1065,9 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 	if inMemoryMachine.Spec.Backend.InMemory == nil {
 		return ctrl.Result{}, pkgerrors.New("InMemoryBackendReconciler can't be called for DevMachines without an InMemory backend")
 	}
+	if inMemoryCluster == nil {
+		return ctrl.Result{}, pkgerrors.New("InMemoryBackendReconciler can't delete a DevMachine without its DevCluster")
+	}
 	if inMemoryCluster.Spec.Backend.InMemory == nil {
 		return ctrl.Result{}, pkgerrors.New("InMemoryBackendReconciler can't be called for DevCluster without an InMemory backend")
 	}

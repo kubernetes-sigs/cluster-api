@@ -2031,7 +2031,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 
 			// Check PendingHookAnnotation
 			gotCluster := &clusterv1.Cluster{}
-			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(cluster), gotCluster)).To(Succeed())
+			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(cluster), gotCluster)).To(Succeed())
 			if tt.wantPendingHookAnnotation != "" {
 				g.Expect(gotCluster.Annotations).To(HaveKeyWithValue(runtimev1.PendingHooksAnnotation, tt.wantPendingHookAnnotation), "Unexpected PendingHookAnnotation")
 			} else {

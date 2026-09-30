@@ -189,7 +189,7 @@ var _ = SynchronizedAfterSuite(func() {
 	// After all ParallelNodes.
 
 	By("Dumping logs from the bootstrap cluster")
-	dumpKindClusterLogs(ctx, artifactFolder, bootstrapClusterProxy)
+	dumpKindClusterLogsAndPods(ctx, artifactFolder, bootstrapClusterProxy)
 
 	By("Tearing down the management cluster")
 	if !skipCleanup {

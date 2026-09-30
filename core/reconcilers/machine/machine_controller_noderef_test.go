@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,12 +32,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -83,6 +86,7 @@ func TestReconcileNode(t *testing.T) {
 		name                            string
 		machine                         *clusterv1.Machine
 		node                            *corev1.Node
+		controlPlaneInitialized         bool
 		featureGateMachineTaintsEnabled bool
 		nodeGetErr                      bool
 		expectResult                    ctrl.Result
@@ -111,9 +115,19 @@ func TestReconcileNode(t *testing.T) {
 			expectNodeGetError:              true,
 		},
 		{
-			name:                            "waiting for the node to exist, no op",
+			name:                            "waiting for the node to exist before the control plane is initialized, requeue",
 			machine:                         defaultMachine.DeepCopy(),
 			node:                            nil,
+			featureGateMachineTaintsEnabled: false,
+			nodeGetErr:                      false,
+			expectResult:                    ctrl.Result{RequeueAfter: externalReadyWait},
+			expectError:                     false,
+		},
+		{
+			name:                            "waiting for the node to exist after the control plane is initialized, no op",
+			machine:                         defaultMachine.DeepCopy(),
+			node:                            nil,
+			controlPlaneInitialized:         true,
 			featureGateMachineTaintsEnabled: false,
 			nodeGetErr:                      false,
 			expectResult:                    ctrl.Result{},
@@ -300,12 +314,25 @@ func TestReconcileNode(t *testing.T) {
 				defer func() { _ = c.Delete(ctx, tc.node) }()
 			}
 
+			cluster := defaultCluster.DeepCopy()
+			var watches []string
+			if tc.controlPlaneInitialized {
+				conditions.Set(cluster, metav1.Condition{
+					Type:   clusterv1.ClusterControlPlaneInitializedCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.ClusterControlPlaneInitializedReason,
+				})
+				// The Node watch exists once the control plane is initialized.
+				watches = append(watches, "machine-watchNodes")
+			}
+
 			r := &Reconciler{
-				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(defaultCluster)),
+				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(cluster), watches...),
 				Client:       c,
 				recorder:     record.NewFakeRecorder(10),
+				predicateLog: ptr.To(logr.New(log.NullLogSink{})),
 			}
-			s := &scope{cluster: defaultCluster, machine: tc.machine}
+			s := &scope{cluster: cluster, machine: tc.machine}
 			result, err := r.reconcileNode(ctx, s)
 			g.Expect(result).To(BeComparableTo(tc.expectResult))
 			if tc.expectError {

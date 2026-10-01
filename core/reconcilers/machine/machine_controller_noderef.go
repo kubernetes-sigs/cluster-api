@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/labels"
@@ -95,7 +96,13 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 			}
 			v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeProvisioningV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Waiting for a node with matching ProviderID to exist")
 			log.Info("Infrastructure provider reporting spec.providerID, matching Kubernetes Node is not yet available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID)
-			// No need to requeue here. Nodes emit an event that triggers reconciliation.
+			// The Node watch is only set up once the control plane is initialized (see watchClusterNodes), and a
+			// control plane made of stand-alone Machines is initialized only once one of them has a nodeRef. Until
+			// then no event reconciles this Machine when its Node shows up or gets its providerID, so requeue
+			// instead of waiting for the next resync.
+			if !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
+				return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+			}
 			return ctrl.Result{}, nil
 		}
 		s.nodeGetError = err

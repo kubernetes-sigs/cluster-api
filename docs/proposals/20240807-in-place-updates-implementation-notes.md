@@ -16,6 +16,12 @@ into the proposal or into the user-facing documentation for this feature.
 
 - No in-place updates are performed when using rollout strategy on delete.
 
+- When the `CanUpdateMachineSet` hook returns `preserveOnInsufficientCoverage: true` and coverage is insufficient:
+  - MD controller cancels rollout-driven scale-down for affected old MachineSets and does not move Machines to new MachineSet
+  - Affected Machines remain in the old MachineSet with their current spec
+  - Machine controller sets `UpToDate=False` with reason `NotUpToDate` (normal behavior when Machine doesn't match MD template)
+  - MD controller surfaces the preservation state on the MD `MachinesUpToDate` condition with reason `InPlaceUpdateBlocked`
+
 - The implementation respects the existing set of responsibilities of each controller:
   - MD controller manages MS:
     - MD controller enforces maxUnavailable, maxSurge
@@ -90,6 +96,12 @@ sequenceDiagram
 
 ## Notes about in-place update implementation for KubeadmControlPlane
 
+- When the `CanUpdateMachine` hook returns `preserveOnInsufficientCoverage: true` and coverage is insufficient:
+  - KCP controller does not update the Machine spec or call `scaleDownControlPlane` for this Machine
+  - KCP controller sets the Machine's `UpToDate` condition to `False` with reason `InPlaceUpdateBlocked`
+  - Terminal state depends on `maxSurge`: with `maxSurge=0`, replicas stay at `desiredReplicas`; with `maxSurge=1`, a surge Machine may have been created and remains
+  - The rollout blocks at this Machine; no further rollout candidates are evaluated in this reconciliation
+
 - In-place updates respect the existing control plane update strategy:
   - KCP controller uses `rollingUpdate` strategy with `maxSurge` (0 or 1)
   - When `maxSurge` is 0, no new machines are created during rollout; updates are performed only on existing machines via in-place updates or by scaling down outdated machines
@@ -114,8 +126,12 @@ sequenceDiagram
     - Check if we already have enough up-to-date replicas (if `currentUpToDateReplicas >= desiredReplicas`, skip in-place and scale down)
     - Run preflight checks to ensure control plane stability
     - Call the `CanUpdateMachine` hook on registered runtime extensions
-    - If all checks pass, trigger in-place update. Otherwise, fall back to scale down/recreate
-  - This flow repeats on each reconciliation until all machines are up-to-date
+    - If in-place is possible, trigger in-place update. If insufficient coverage with preservation, skip this Machine and block the rollout. Otherwise, fall back to scale down/recreate
+  - This flow repeats on each reconciliation until all machines are up-to-date or preserved
+
+- If preflight checks fail only for the selected candidate, retain the existing direct fallback to scale down. Preservation does not apply because the `CanUpdateMachine` hook was not called.
+
+- Preserved Machines remain included when computing the `RollingOut` condition because they are not up-to-date. `RollingOut` remains `True`, while `MachinesUpToDate=False` with reason `InPlaceUpdateBlocked` surfaces that rollout progress is blocked.
   
 - Orchestration of in-place updates uses two key annotations:
   - `in-place-updates.internal.cluster.x-k8s.io/update-in-progress` - Marks a Machine as undergoing in-place update

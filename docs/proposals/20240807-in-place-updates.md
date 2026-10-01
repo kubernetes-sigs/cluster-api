@@ -21,7 +21,7 @@ reviewers:
   - "@elmiko"
   - "@wking"
 creation-date: "2024-08-07"
-last-updated: "2024-08-07"
+last-updated: "2026-07-20"
 status: experimental
 ---
 
@@ -50,8 +50,10 @@ status: experimental
     - [Story 4](#story-4)
     - [Story 5](#story-5)
     - [Story 6](#story-6)
+    - [Story 7](#story-7)
   - [High level flow](#high-level-flow)
   - [Deciding the update strategy](#deciding-the-update-strategy)
+    - [Extension-declared Machine preservation](#extension-declared-machine-preservation)
   - [MachineDeployment updates](#machinedeployment-updates)
   - [KCP updates](#kcp-updates)
   - [Machine updates](#machine-updates)
@@ -86,7 +88,7 @@ The proposal introduces update extensions allowing users to execute changes on e
 
 An External Update Extension will report the subset of changes they know how to perform. Cluster API will orchestrate the different extensions, polling the update progress from them.
 
-If the totality of the required changes cannot be covered by the defined extensions, Cluster API will fall back to the current behavior (rolling update).
+If the totality of the required changes cannot be covered by the defined extensions, Cluster API will fall back to the current behavior (rolling update), unless an extension requests preservation.
 
 ## Motivation
 
@@ -133,7 +135,7 @@ This proposal, with the introduction of update extensions, expands the set of to
 
 #### Fallback to Immutable rollouts
 
-If external update extensions can not cover the totality of the desired changes, CAPI will defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
+If external update extensions can not cover the totality of the desired changes, CAPI will defer to Cluster API’s default, immutable rollouts, unless an extension requests preservation. This is important for a couple of reasons:
 
 * It allows to implement in-place update capabilities incrementally, without the need to cover all use cases up-front.
 * There are cases when replacing the machine will always be necessary:
@@ -198,6 +200,9 @@ As a cluster operator, I want to update machine attributes supported by my infra
 #### Story 6
 As a cluster service provider, I want guidance/documentation on how to write external update extension for my own use case.
 
+#### Story 7
+As a runtime extension author implementing in-place updates for infrastructure that cannot be replaced (e.g. bare metal, nodes with local storage, or license-bound nodes), I want to declare in my hook response that when my extension cannot cover all required changes, CAPI should preserve the existing Machine and report why the update cannot proceed, rather than automatically replacing it. This allows cluster operators to make informed decisions about how to proceed.
+
 ### High level flow
 
 ```mermaid
@@ -230,7 +235,7 @@ sequenceDiagram
 
 When configured, external updates will, roughly, follow these steps:
 1. CP/MD Controller: detect an update is required.
-2. CP/MD Controller: query defined update extensions, and based on the response decides if an update should happen in-place. If not, the update will be performed as of today (rollout).
+2. CP/MD Controller: query defined update extensions, and based on the response decides if an update should happen in-place. If not, the update will be performed as of today (rollout), unless an extension requests preservation.
 3. CP/MD Controller: mark machines as updating in-place.
 4. Machine Controller: invoke all registered updaters, sequentially, one by one.
 5. Machine Controller: once updaters finish Mark Machine as UpToDate.
@@ -257,9 +262,11 @@ sequenceDiagram
     hook->>capi: Set of changes supported<br/>by the external updater 1
     capi->>+hook2: Can update in-place?
     hook2->>capi: Set of changes supported<br/>by the external updater 2
-    alt Are all the changes <br/> covered by external updaters?
+    alt All changes covered by external updaters
         capi->>apiserver: Mark machines as updating in-place
-    else
+    else Changes not fully covered + preservation requested
+        capi->>apiserver: Preserve affected Machines, report blocked
+    else Changes not fully covered + preservation not requested
         capi->>apiserver: Re-create machines (regular rollout)
     end
 ```
@@ -276,7 +283,44 @@ The changes supported by an updater can be the complete set of desired changes, 
 
 If the combination of the updaters can handle ALL the desired changes then CAPI will determine that the update can be performed in-place. 
 
-If ANY of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, it will fallback to the rolling update strategy, replacing machines as needed. 
+#### Extension-declared Machine preservation
+
+For infrastructure that cannot be replaced (bare metal, local storage, license-bound nodes), extensions can request preservation when they cannot cover all required changes.
+
+**API field** (added to both `CanUpdateMachineResponse` and `CanUpdateMachineSetResponse`):
+
+```go
+// PreserveOnInsufficientCoverage prevents CAPI from falling back to
+// replacement when the patches returned by this extension do not cover
+// the complete desired-state diff.
+//
+// Extensions should only set this when replacement is unsafe or infeasible
+// for the affected Machines, not merely because the extension doesn't support
+// a particular field.
+//
+// When omitted or false, CAPI falls back to rolling replacement.
+// +optional
+PreserveOnInsufficientCoverage bool `json:"preserveOnInsufficientCoverage,omitempty"`
+```
+
+When the extension sets this field to `true` and coverage is insufficient, CAPI preserves the Machine in its current state without updating the spec or falling back to replacement.
+
+**For MachineDeployment workers**: The affected Machine remains in the old MachineSet with `UpToDate=False` (reason `NotUpToDate`). The MachineDeployment's `MachinesUpToDate` condition reports `InPlaceUpdateBlocked`.
+
+**For KubeadmControlPlane**: The Machine's `UpToDate` condition reports `InPlaceUpdateBlocked`.
+
+**Warning!** Preserved Machines cannot reach the desired configuration. Users must adjust the desired spec or force replacement via `spec.rollout.after`.
+
+**Preservation behavior:**
+
+| Event | Preservation applies |
+|-------|---------------------|
+| Patch coverage insufficient | Yes, if extension sets `preserveOnInsufficientCoverage` |
+| User-initiated deletion | No |
+| MachineHealthCheck remediation | No |
+| `spec.rollout.after` set | No, forces replacement |
+| Hook call returns error | Reconcile returns error and retries; Machine is not deleted |
+| No extension registered | Not applicable; in-place is not attempted, normal replacement proceeds |
 
 ### MachineDeployment updates
 
@@ -342,6 +386,9 @@ In order to do so:
 - By default, machines updating in-place are considered not available, and as a consequence, if maxSurge is 1, a new Machine must be created first; then as soon as there is “buffer” for in-place, in-place update can proceed.
 - If, instead, the `CanUpdateMachine` hook specifies that the required in-place change does not affect availability, the assumption above is dropped and machine updating in-place are considered available, and as a consequence in-place update starts immediately also if maxSurge is 1.
 - If maxSurge is 0, in-place update can proceed immediately.
+- Preserved Machines remain part of `currentReplicas` and availability calculations, but are excluded from actionable
+  rollout candidates. With `maxSurge=1`, the surge Machine remains until the preserved Machine is resolved; KCP must not
+  delete a preserved Machine in order to reclaim surge capacity.
 - Note: to better understand above points, you might want to consider that maxSurge in KCP is a way to express if the 
   control plane rollout should be performed "scaling-out" or "scaling-in"
 - Note: KCP has its own definition of availability, that is preserved during a rollout no matter of if it is performed using
@@ -713,13 +760,15 @@ Both the `kcp-version-update` and the `vsphere-vm-memory-update` extensions info
 
 ```json
 {
+  "status": "Success",
+  "preserveOnInsufficientCoverage": true,
   "machineSetPatch": [],
   "infrastructureMachineTemplatePatch": [],
-  "bootstrapConfigTemplatePatch": [],
+  "bootstrapConfigTemplatePatch": []
 }
 ```
 
-The MachineDeployment controller detects that not all the changes can be performed in-place, and thus it proceeds with the rollout process as it does today, replacing the old machines with new ones.
+The MachineDeployment controller detects that not all the changes can be performed in-place. If the extension requested preservation, the Machines remain unchanged and the condition reports `InPlaceUpdateBlocked`. Otherwise, it falls back to replacement.
 
 ### Security Model
 
@@ -764,6 +813,7 @@ we will provide a way to toggle the in-place possibly though the API.
 - [x] 2025-04: Proposal merged
 - [x] 2025-12: Update proposal after first implementation
 - [x] 2026-09: Introduce support for in-place update changes that do not impact availability
+- [ ] 2026-09: Proposed extension-declared Machine preservation on insufficient coverage as a follow-up iteration.
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

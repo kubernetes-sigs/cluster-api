@@ -18,15 +18,20 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
@@ -218,10 +223,11 @@ func Test_CheckCAPIContract(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+		name            string
+		fields          fields
+		args            args
+		wantErr         bool
+		wantErrContains string
 	}{
 		{
 			name: "Fails if Cluster API is not installed",
@@ -230,6 +236,99 @@ func Test_CheckCAPIContract(t *testing.T) {
 			},
 			args:    args{},
 			wantErr: true,
+		},
+		{
+			name: "Fails if the Cluster CRD is gone and the inventory lists providers, without AllowCAPINotInstalledWithInventory",
+			fields: fields{
+				proxy: inventoryWithProviders(clusterctlv1.GroupVersion.Version),
+			},
+			args:            args{},
+			wantErr:         true,
+			wantErrContains: "failed to check Cluster API version",
+		},
+		{
+			name: "Fails if the Cluster CRD is gone and there is no inventory CRD, with AllowCAPINotInstalledWithInventory",
+			fields: fields{
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system"),
+			},
+			args: args{
+				options: []CheckCAPIContractOption{AllowCAPINotInstalledWithInventory{}},
+			},
+			wantErr:         true,
+			wantErrContains: "failed to check Cluster API version",
+		},
+		{
+			name: "Fails if the Cluster CRD is gone and the inventory lists no providers, with AllowCAPINotInstalledWithInventory",
+			fields: fields{
+				proxy: test.NewFakeProxy().WithObjs(inventoryCRDWithVersion(clusterctlv1.GroupVersion.Version)),
+			},
+			args: args{
+				options: []CheckCAPIContractOption{AllowCAPINotInstalledWithInventory{}},
+			},
+			wantErr:         true,
+			wantErrContains: "failed to check Cluster API version",
+		},
+		{
+			name: "Fails if the Cluster CRD is gone and the inventory CRD has another version, with AllowCAPINotInstalledWithInventory",
+			fields: fields{
+				proxy: inventoryWithProviders("v1alpha2"),
+			},
+			args: args{
+				options: []CheckCAPIContractOption{AllowCAPINotInstalledWithInventory{}},
+			},
+			wantErr:         true,
+			wantErrContains: "clusterctl inventory CRD does not defines the",
+		},
+		{
+			name: "Fails if reading the Cluster CRD fails for another reason, with AllowCAPINotInstalledWithInventory",
+			fields: fields{
+				proxy: inventoryWithProviders(clusterctlv1.GroupVersion.Version).
+					WithInterceptorFuncs(forbidGet(fmt.Sprintf("clusters.%s", clusterv1.GroupVersion.Group))),
+			},
+			args: args{
+				options: []CheckCAPIContractOption{AllowCAPINotInstalledWithInventory{}},
+			},
+			wantErr:         true,
+			wantErrContains: "is forbidden",
+		},
+		{
+			name: "Fails if reading the inventory CRD fails, with AllowCAPINotInstalledWithInventory",
+			fields: fields{
+				proxy: inventoryWithProviders(clusterctlv1.GroupVersion.Version).
+					WithInterceptorFuncs(forbidGet(fmt.Sprintf("providers.%s", clusterctlv1.GroupVersion.Group))),
+			},
+			args: args{
+				options: []CheckCAPIContractOption{AllowCAPINotInstalledWithInventory{}},
+			},
+			wantErr:         true,
+			wantErrContains: "failed to check if the clusterctl inventory CRD exists",
+		},
+		{
+			name: "Fails if listing the inventory fails, with AllowCAPINotInstalledWithInventory",
+			fields: fields{
+				proxy: inventoryWithProviders(clusterctlv1.GroupVersion.Version).
+					WithInterceptorFuncs(interceptor.Funcs{
+						List: func(_ context.Context, _ client.WithWatch, _ client.ObjectList, _ ...client.ListOption) error {
+							return apierrors.NewForbidden(schema.GroupResource{Group: clusterctlv1.GroupVersion.Group, Resource: "providers"}, "", nil)
+						},
+					}),
+			},
+			args: args{
+				options: []CheckCAPIContractOption{AllowCAPINotInstalledWithInventory{}},
+			},
+			wantErr:         true,
+			wantErrContains: "failed to list providers in the clusterctl inventory",
+		},
+		{
+			name: "Pass if the Cluster CRD is gone but the inventory lists providers, with AllowCAPINotInstalledWithInventory",
+			fields: fields{
+				proxy: inventoryWithProviders(clusterctlv1.GroupVersion.Version),
+			},
+			args: args{
+				options: []CheckCAPIContractOption{AllowCAPINotInstalledWithInventory{}},
+			},
+			wantErr: false,
 		},
 		{
 			name: "Pass if Cluster API is not installed, but this is explicitly tolerated",
@@ -339,6 +438,9 @@ func Test_CheckCAPIContract(t *testing.T) {
 			err := p.CheckCAPIContract(context.Background(), tt.args.options...)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
+				if tt.wantErrContains != "" {
+					g.Expect(err).To(MatchError(ContainSubstring(tt.wantErrContains)))
+				}
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
@@ -391,5 +493,34 @@ func Test_inventoryClient_CheckSingleProviderInstance(t *testing.T) {
 
 			g.Expect(err).ToNot(HaveOccurred())
 		})
+	}
+}
+
+// inventoryCRDWithVersion returns the clusterctl inventory CRD serving the given version.
+func inventoryCRDWithVersion(version string) *apiextensionsv1.CustomResourceDefinition {
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("providers.%s", clusterctlv1.GroupVersion.Group)},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: version, Storage: true}},
+		},
+	}
+}
+
+// inventoryWithProviders returns a cluster without the Cluster CRD whose inventory, served at the given version,
+// still lists a provider.
+func inventoryWithProviders(version string) *test.FakeProxy {
+	return test.NewFakeProxy().WithObjs(inventoryCRDWithVersion(version)).
+		WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system")
+}
+
+// forbidGet makes Get of the CRD with the given name fail as forbidden.
+func forbidGet(name string) interceptor.Funcs {
+	return interceptor.Funcs{
+		Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if key.Name == name {
+				return apierrors.NewForbidden(schema.GroupResource{Group: "apiextensions.k8s.io", Resource: "customresourcedefinitions"}, key.Name, nil)
+			}
+			return c.Get(ctx, key, obj, opts...)
+		},
 	}
 }

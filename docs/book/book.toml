@@ -8,6 +8,7 @@ title = "The Cluster API Book"
 smart-punctuation = true
 git-repository-url = "https://sigs.k8s.io/cluster-api"
 additional-css = ["theme/css/custom.css"]
+no-section-label = true
 
 [output.html.fold]
 enable = true

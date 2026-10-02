@@ -2,7 +2,7 @@
 
 CAPBK has several ways to configure kubelet.
 
-## Pass `KubeletConfiguration` file via `KubeadmConfigSpec.files`
+## Pass `KubeletConfiguration` File Via `KubeadmConfigSpec.files`
 
 You can use `KubeadmConfigSpec.files` to put any files on nodes. This example puts a `KubeletConfiguration` file on nodes via `KubeadmConfigSpec.files`, and makes kubelet use it via `KubeadmConfigSpec.kubeletExtraArgs`. You can check available configurations of `KubeletConfiguration` on [Kubelet Configuration (v1beta1) | Kubernetes](https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/#kubelet-config-k8s-io-v1beta1-KubeletConfiguration).
 
@@ -180,7 +180,7 @@ spec:
               value: "/etc/kubernetes/kubelet/config.yaml"
 ```
 
-## Set kubelet flags via `KubeadmConfigSpec.kubeletExtraArgs`
+## Set kubelet Flags Via `KubeadmConfigSpec.kubeletExtraArgs`
 
 We can pass kubelet command-line flags via `KubeadmConfigSpec.kubeletExtraArgs`. This example is equivalent to setting `--kube-reserved`, `--system-reserved`, and `--eviction-hard` flags for the kubelet command.
 
@@ -246,7 +246,7 @@ spec:
               value: "memory.available<500Mi,nodefs.available<10%"
 ```
 
-## Use kubeadm's `kubeletconfiguration` patch target
+## Use kubeadm's `kubeletconfiguration` Patch Target
 
 We can use kubeadm's `kubeletconfiguration` patch target to patch the kubelet configuration file. In this example, we put a patch file for `kubeletconfiguration` target in `strategic` `patchtype` on nodes via `KubeadmConfigSpec.files`. For more details, see [Customizing components with the kubeadm API | Kubernetes](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/control-plane-flags/#patches)
 

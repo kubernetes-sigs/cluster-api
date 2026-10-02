@@ -1,5 +1,5 @@
-# MicroK8s control plane provider
-## What is the Cluster API MicroK8s control plane provider ?
+# MicroK8s Control Plane Provider
+## What Is the Cluster API MicroK8s Control Plane Provider?
 
 Cluster API MicroK8s control plane provider (CACPM) is a component responsible for managing the control plane of the provisioned clusters. This implementation uses [MicroK8s](https://github.com/canonical/microk8s) for cluster provisioning and management.
 

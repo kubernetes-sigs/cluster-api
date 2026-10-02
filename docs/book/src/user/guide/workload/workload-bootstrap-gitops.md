@@ -1,15 +1,15 @@
-# Workload bootstrap using GitOps
+# Workload Bootstrap Using GitOps
 
 Cluster API can be utilized in combination with the [Cluster API addon provider for helm (CAAPH)](https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/blob/main/docs/quick-start.md) to install and configure a GitOps agent and then the GitOps agent hydrates clusters automatically with various workloads.
 
 ## Prerequisites
 
-Follow the quickstart setup guide for your provider but ensure that CAAPH is installed via including the `addon=helm` with either:
+Follow the quickstart setup guide for your provider but ensure that CAAPH is installed by including the `helm` addon (`--addon helm`) with either:
 
-1. [clusterctl](https://cluster-api.sigs.k8s.io/user/quick-start#initialize-the-management-cluster) using `clusterctl init --infrastructure ### --addon helm` or
-1. [Cluster API Operator](https://cluster-api.sigs.k8s.io/user/quick-start-operator) using `helm install capi-operator capi-operator/cluster-api-operator ... --set infrastructure=#### --set addon=helm`
+1. [clusterctl](https://cluster-api.sigs.k8s.io/user/quick-start#initialize-the-management-cluster) using `clusterctl init --infrastructure <provider> --addon helm` or
+1. [Cluster API Operator](https://cluster-api.sigs.k8s.io/user/quick-start-operator) using `helm install capi-operator capi-operator/cluster-api-operator ... --set infrastructure=<provider> --set addon=helm`
 
-## Bootstrap ManagedCluster using ArgoCD
+## Bootstrap a Workload Cluster Using ArgoCD
 
 Add the labels `argoCDChart: enabled` and `guestbook: enabled` to your desired workload cluster yaml file in the `Cluster` metadata section, for example:
 
@@ -24,7 +24,7 @@ metadata:
     guestbook: enabled
 ```
 
-Then create and `kubectl apply -f` the following file on the management cluster to install the ArgoCD agent and the sample guestbook app to the workload cluster via the argo helm charts using CAAPH:
+Then save the following manifest to a file and apply it on the management cluster with `kubectl apply -f` to install the ArgoCD agent and the sample guestbook app to the workload cluster via the argo helm charts using CAAPH:
 
 ```yaml
 apiVersion: addons.cluster.x-k8s.io/v1alpha1

@@ -54,7 +54,7 @@ Exiting PID 1...
 
 To resolve this specific error please read [Cluster API with Docker  - "too many open files"](#cluster-api-with-docker----too-many-open-files).
 
-## Node bootstrap failures when using CABPK with cloud-init
+## Node Bootstrap Failures When Using CABPK with Cloud-init
 
 Failures during Node bootstrapping can have a lot of different causes. For example, Cluster API resources might be
 misconfigured or there might be problems with the network. The following steps describe how bootstrap failures can
@@ -72,7 +72,7 @@ be troubleshooted systematically.
 5. If Node bootstrapping consistently fails and the kubeadm logs are not verbose enough, the `kubeadm` verbosity
    can be increased via `KubeadmConfigSpec.Verbosity`.
 
-## Labeling nodes with reserved labels such as `node-role.kubernetes.io` fails with kubeadm error during bootstrap
+## Labeling Nodes with Reserved Labels Such as `node-role.kubernetes.io` Fails with kubeadm Error During Bootstrap
 
 Self-assigning Node labels such as `node-role.kubernetes.io` using the kubelet `--node-labels` flag
 (see `kubeletExtraArgs` in the [CABPK examples](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm))
@@ -95,7 +95,7 @@ kubectl get nodes --no-headers -l '!node-role.kubernetes.io/master' -o jsonpath=
 kubectl get nodes --no-headers -l '!node-role.kubernetes.io/control-plane' -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | xargs -I{} kubectl label node {} node-role.kubernetes.io/worker=''
 ```
 
-## Cluster API with Docker - common issues with docker - 
+## Cluster API with Docker - Common Issues with Docker - 
 
 When provisioning workload clusters using Cluster API with the Docker infrastructure provider,
 provisioning might be stuck:
@@ -107,7 +107,7 @@ provisioning might be stuck:
     * Run [docker system prune --volumes](https://docs.docker.com/engine/reference/commandline/system_prune/) to prune dangling images, containers, volumes and networks.
 
 
-## Cluster API with Docker  - "too many open files"
+## Cluster API with Docker  - "Too Many Open Files"
 When creating many nodes using Cluster API and Docker infrastructure, either by creating large Clusters or a number of small Clusters, the OS may run into inotify limits which prevent new nodes from being provisioned.
 If the error  `Failed to create inotify object: Too many open files` is present in the logs of the Docker Infrastructure provider this limit is being hit.
 
@@ -120,7 +120,7 @@ sysctl fs.inotify.max_user_instances=8192
 
 Newly created clusters should be able to take advantage of the increased limits.
 
-### MacOS and Docker Desktop -  "too many open files"
+### MacOS and Docker Desktop -  "Too Many Open Files"
 This error was also observed in Docker Desktop 4.3 and 4.4 on MacOS. It can be resolved by updating to Docker Desktop for Mac 4.5 or using a version lower than 4.3.
 
 [The upstream issue for this error is closed as of the release of Docker 4.5.0](https://github.com/docker/for-mac/issues/6071)
@@ -145,7 +145,7 @@ sysctl fs.inotify.max_user_instances=8192
 exit
 ```
 
-## Failed clusterctl init - 'failed to get cert-manager object'
+## Failed clusterctl Init - 'Failed to Get cert-manager Object'
 
 When using older versions of Cluster API 0.4 and 1.0 releases - 0.4.6, 1.0.3 and older respectively - Cert Manager may not be downloadable due to a change in the repository location. This will cause `clusterctl init` to fail with the error:
 
@@ -170,7 +170,7 @@ Alternatively a Cert Manager yaml file can be placed in the [clusterctl override
 
 More information on the clusterctl config file can be found at [its page in the book](../../reference/clusterctl/configuration.md#clusterctl-configuration-file)
 
-## Failed clusterctl upgrade apply - 'failed to update cert-manager component'
+## Failed clusterctl Upgrade Apply - 'Failed to Update cert-manager Component'
 
 Upgrading Cert Manager may fail due to a breaking change introduced in Cert Manager release v1.6.
 An upgrade using `clusterctl` is affected when:
@@ -195,7 +195,7 @@ The Cert Manager maintainers provide documentation to [migrate the deprecated AP
 
 More information about the change in Cert Manager can be found at [their upgrade notes from v1.5 to v1.6](https://cert-manager.io/docs/installation/upgrading/upgrading-1.5-1.6).
 
-## Clusterctl failing to start providers due to outdated image overrides
+## Clusterctl Failing to Start Providers Due to Outdated Image Overrides
 
 clusterctl allows users to configure [image overrides](../../reference/clusterctl/configuration.md#image-overrides) via the clusterctl config file.
 However, when the image override is pinning a provider image to a specific version, it could happen that this
@@ -219,7 +219,7 @@ Even if slightly verbose, pinning the version provides a better control over wha
 required in an enterprise environment, especially if you rely on an internal repository with a separated
 software supply chain or a custom versioning schema.
 
-## Managed Cluster and co-authored slices
+## Managed Cluster and Co-authored Slices
 
 As documented in [#6320](https://github.com/kubernetes-sigs/cluster-api/issues/6320) managed topologies
 assumes a slice to be either authored from templates or by the users/the infrastructure controllers.
@@ -229,7 +229,7 @@ fills in other info) this can lead to infinite reconcile.
 
 A solution to this problem is being investigated, but in the meantime you should avoid co-authored slices.
 
-## Failed to removed fields from lists using Server Side Apply
+## Failed to Remove Fields from Lists Using Server Side Apply
 
 The Cluster API projects is continuously improving its API, including improving the support for Server Side Apply, 
 which allows for a more granular ownership of list items. 
@@ -250,7 +250,7 @@ to remove the item from the list; after the item is removed everything should wo
 
 See [comment](https://github.com/kubernetes-sigs/cluster-api/issues/11857#issuecomment-2740339933) for more details.
 
-## kubeadm join fails after upgrading to Kubernetes patch releases
+## kubeadm Join Fails After Upgrading to Kubernetes Patch Releases
 
 When upgrading a cluster to any of the following Kubernetes patch releases,
 `kubeadm join` completes but the control plane rollout gets stuck because the

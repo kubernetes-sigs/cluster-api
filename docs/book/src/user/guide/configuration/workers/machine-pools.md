@@ -1,4 +1,4 @@
-# MachinePool
+# MachinePools
 
 > [!IMPORTANT]
 > The `MachinePool` feature gate must be set to true in order to use this feature.
@@ -12,7 +12,7 @@ However, many infrastructure providers already offer first-class abstractions fo
 
 MachinePool brings these provider features into Cluster API by introducing a higher-level abstraction for managing a group of machines as a single unit.
 
-## What is a MachinePool?
+## What Is a MachinePool?
 
 A MachinePool is a Cluster API resource representing a group of worker nodes. Instead of reconciling each machine individually, CAPI delegates lifecycle management to the infrastructure provider.
 
@@ -35,7 +35,7 @@ The MachinePool controller coordinates between the Cluster API core and provider
 
 ## Why MachinePool?
 
-### Leverage provider primitives
+### Leverage Provider Primitives
 
 Most cloud providers already manage scaling, instance replacement, and health monitoring at the group level. MachinePool lets CAPI delegate lifecycle operations instead of duplicating that logic.
 
@@ -43,7 +43,7 @@ Most cloud providers already manage scaling, instance replacement, and health mo
 - AWS Auto Scaling Groups replace failed nodes automatically.
 - Azure VM Scale Sets support rolling upgrades with configurable surge/availability strategies.
 
-### Simplify upgrades and scaling
+### Simplify Upgrades and Scaling
 
 Upgrades and scaling events are managed at the pool level:
 - Update Kubernetes version or bootstrap template → cloud provider handles rolling replacement.
@@ -51,11 +51,11 @@ Upgrades and scaling events are managed at the pool level:
 
 This provides more predictable, cloud-native semantics compared to reconciling many individual Machine objects.
 
-### Autoscaling integration
+### Autoscaling Integration
 
 MachinePool integrates with the Cluster Autoscaler in the same way that MachineDeployments do. In practice, the autoscaler treats a MachinePool as a node group, enabling scale-up and scale-down decisions based on cluster load.
 
-### Tradeoffs and limitations
+### Tradeoffs and Limitations
 
 While powerful, MachinePool comes with tradeoffs:
 
@@ -67,16 +67,16 @@ While powerful, MachinePool comes with tradeoffs:
 - **Draining**: The cloud resources for MachinePool may not necessarily support draining of Kubernetes worker nodes. For example, with an AWSMachinePool, AWS would normally terminate instances as quickly as possible. To solve this, tools like `aws-node-termination-handler` combined with ASG lifecycle hooks (defined in `AWSMachine.spec.lifecycleHooks`) must be installed, and is not a built-in feature of the infrastructure provider (CAPA in this example).
 - **Maturity**: The MachinePool API is still considered a beta feature.
 
-## When to use MachinePool vs MachineDeployment
+## When to Use MachinePool vs MachineDeployment
 
 Both MachineDeployment and MachinePool are valid options for managing worker nodes in Cluster API. The right choice depends on your infrastructure provider's capabilities and your operational requirements.
 
-### Use MachinePool when:
+### Use MachinePool When:
 
 - **Cloud provider supports scaling group primitives**: AWS Auto Scaling Groups, Azure Virtual Machine Scale Sets, GCP Managed Instance Groups, OCI Compute Instances, Scaleway Kapsule. These resources natively handle scaling, rolling upgrades, and health checks.
 - **You want to leverage cloud provider-level features**: MachinePool enables direct use of cloud-native upgrade strategies (e.g., surge, maxUnavailable) and autoscaling behaviors.
 
-### Use MachineDeployment when:
+### Use MachineDeployment When:
 
 - **The provider does not support scaling groups**: Common in environments such as bare metal, vSphere, or Docker.
 - **You need fine-grained per-machine control**: MachineDeployments allow unique bootstrap configurations, labels, and taints across different MachineSets.
@@ -100,7 +100,7 @@ export EXP_MACHINE_POOL=true
 clusterctl upgrade
 ```
 
-## MachinePool provider implementations
+## MachinePool Provider Implementations
 
 The following Cluster API infrastructure providers have implemented support for MachinePools:
 

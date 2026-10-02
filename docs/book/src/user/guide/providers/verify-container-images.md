@@ -1,4 +1,4 @@
-# Verification of CAPI artifacts
+# Verification of Container Images
 
 ## Requirements 
 You will need to have the following tools installed:

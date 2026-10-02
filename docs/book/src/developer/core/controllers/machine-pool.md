@@ -2,7 +2,7 @@
 
 ![](../../../images/cluster-admission-machinepool-controller.png)
 
-📖 **For conceptual information about MachinePools, when to use them, and how they compare to MachineDeployments**, see the [MachinePool Guide](../../../user/guide/lifecycle/machine-management/machine-pools.md).
+📖 **For conceptual information about MachinePools, when to use them, and how they compare to MachineDeployments**, see the [MachinePool Guide](../../../user/guide/configuration/workers/machine-pools.md).
 
 The MachinePool controller's main responsibilities are:
 

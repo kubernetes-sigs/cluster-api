@@ -1,5 +1,4 @@
-# Cluster Configuration
+# Cluster Creation
 
-This section provides details about configuring a Cluster, from choosing the bootstrap
-and control plane providers to use, to customizing cluster creation, to authoring a
-ClusterClass.
+This section provides details about defining the initial configuration of a cluster managed by Cluster API
+and the steps required to create it.

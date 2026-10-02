@@ -1,5 +1,5 @@
-# Cluster API bootstrap provider kubeadm
-## What is the Cluster API bootstrap provider kubeadm?
+# Cluster API Bootstrap Provider Kubeadm
+## What Is the Cluster API Bootstrap Provider kubeadm?
 
 Cluster API bootstrap provider Kubeadm (CABPK) is a component responsible for generating a cloud-init script to
 turn a Machine into a Kubernetes Node. This implementation uses [kubeadm](https://github.com/kubernetes/kubeadm)
@@ -10,7 +10,7 @@ for Kubernetes bootstrap.
 * [design doc](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20190610-machine-states-preboot-bootstrapping.md)
 * [The Kubebuilder Book](https://book.kubebuilder.io)
 
-## How does CABPK work?
+## How Does CABPK Work?
 
 Assuming you have deployed the CAPI and CAPD controllers, create a `Cluster` object and its corresponding `DockerCluster`
 infrastructure object.
@@ -73,7 +73,7 @@ going to turn a Machine into a Kubernetes Node using `kubeadm`.
 The cloud-init script will be saved into a secret `KubeadmConfig.Status.DataSecretName` and then the infrastructure provider
 (CAPD in this example) will pick up this value and proceed with the machine creation and the actual bootstrap.
 
-### KubeadmConfig objects
+### KubeadmConfig Objects
 The `KubeadmConfig` object allows full control of Kubeadm init/join operations by exposing raw `InitConfiguration`,
 `ClusterConfiguration` and `JoinConfiguration` objects.
 

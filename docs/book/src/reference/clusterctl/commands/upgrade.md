@@ -28,14 +28,13 @@ cluster-api             capi-system                         CoreProvider        
 infrastructure-docker   capd-system                         InfrastructureProvider   v0.4.0           v1.0.0
 ```
 
+The output contains the latest release available for each Cluster API contract version available at the moment.
+
 You can now apply the upgrade by executing the following command:
 
 ```bash
    clusterctl upgrade apply --contract v1beta1
 ```
-
-The output contains the latest release available for each Cluster API contract version.
-available at the moment.
 
 > [!NOTE]
 > **Pre-release provider versions**

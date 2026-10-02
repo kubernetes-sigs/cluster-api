@@ -1,9 +1,9 @@
-# ClusterResourceSet (GA)
+# ClusterResourceSet
 
 The `ClusterResourceSet` feature is introduced to provide a way to automatically apply a set of resources (such as CNI/CSI) defined by users to matching newly-created/existing clusters.
 `ClusterResourceSet` provides a basic solution for installing & managing resources, while for advanced use cases an addon provider must be used.
 
-`ClusterResourceSet` is namespace-scoped, all resources and clusters referenced in the `ClusterResourceSet` spec need to be in the same namespace as the ClusterResourceSet. 
+`ClusterResourceSet` is namespace-scoped, all resources and clusters referenced in the `ClusterResourceSet` spec need to be in the same namespace as the ClusterResourceSet.
 
 More details on `ClusterResourceSet` can be found at:
 [ClusterResourceSet CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200220-cluster-resource-set.md)
@@ -43,7 +43,7 @@ kubectl create configmap cloud-provider-openstack --from-file=cloud-provider-ope
 
 Note that it is required that the `Secret` has the type `addons.cluster.x-k8s.io/resource-set` for it to be picked up.
 
-## Update from `ApplyOnce` to `Reconcile`
+## Update from `ApplyOnce` To `Reconcile`
 
 The `strategy` field is immutable so existing CRS can't be updated directly. However, CAPI won't delete the managed resources in the target cluster when the CRS is deleted.
 So if you want to start using the `Reconcile` strategy, delete your existing CRS and create it again with the updated `strategy`.

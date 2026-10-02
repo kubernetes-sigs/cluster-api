@@ -5,11 +5,11 @@ Pod Security Admission allows applying [Pod Security Standards] during creation 
 The flavor `development-topology` for the Docker provider used in [Quick Start](../../quick-start.md) already includes a basic Pod Security Standard configuration.
 It is using ClusterClass variables and patches to inject the configuration.
 
-## Adding a basic Pod Security Standards configuration to a ClusterClass
+## Adding a Basic Pod Security Standards Configuration to a ClusterClass
 
 By adding the following variables and patches Pod Security Standards can be added to every ClusterClass which references a [Kubeadm based control plane](../configuration/control-plane/kubeadm-control-plane/index.md).
 
-### Adding the variables to a ClusterClass
+### Adding the Variables to a ClusterClass
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta2
@@ -47,7 +47,7 @@ spec:
 * The version field in Pod Security Admission Config defaults to `latest`.
 * The `kube-system` namespace is exempt from Pod Security Standards enforcement, because it runs control-plane pods that need higher privileges.
 
-### Adding the patches to a ClusterClass
+### Adding the Patches to a ClusterClass
 
 The following snippet contains the patch to be added to the ClusterClass.
 
@@ -188,7 +188,7 @@ spec:
 
 [Pod Security Standards]: https://kubernetes.io/docs/concepts/security/pod-security-standards
 
-### Create a secure Cluster using the ClusterClass
+### Create a Secure Cluster Using the ClusterClass
 
 After adding the variables and patches the Pod Security Standards would be applied by default.
 It is also possible to disable this patch or configure different levels for the configuration 

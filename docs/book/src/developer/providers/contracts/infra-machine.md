@@ -607,7 +607,7 @@ on the cluster autoscaler implementation. For example, the Cluster API implement
 will assume the host is running either the architecture set in the `CAPI_SCALE_ZERO_DEFAULT_ARCH` environment variable of
 the cluster autoscaler pod environment, or the amd64 architecture and Linux operating system as default values.
 
-See [autoscaling](../../../user/guide/lifecycle/machine-management/autoscaling.md).
+See [autoscaling](../../../user/guide/lifecycle/autoscaling.md).
 
 ## Typical InfraMachine reconciliation workflow
 

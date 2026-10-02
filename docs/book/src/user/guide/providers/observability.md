@@ -1,8 +1,10 @@
-# Diagnostics
+# Configuring Observability
 
 ## Introduction
 
-With CAPI v1.6 we introduced new flags to allow serving metrics, the pprof endpoint and an endpoint to dynamically change log levels securely in production.
+This document describes observability options for Cluster API and providers.
+
+Since CAPI v1.6, new flags allow serving metrics, the pprof endpoint and an endpoint to dynamically change log levels securely in production.
 
 This feature is enabled by default via:
 ```yaml
@@ -29,12 +31,12 @@ clusterctl init ...
 
 **Note**: If insecure serving is configured the pprof and log level endpoints are disabled for security reasons.
 
-## Scraping metrics
+## Scraping Metrics
 
-A ServiceAccount token is now required to scrape metrics. The corresponding ServiceAccount needs permissions on the `/metrics` path.
+A ServiceAccount token is required to scrape metrics. The corresponding ServiceAccount needs permissions on the `/metrics` path.
 This can be achieved e.g. by following the [Kubernetes documentation](https://kubernetes.io/docs/concepts/cluster-administration/system-metrics/).
 
-### via Prometheus
+### Via Prometheus
 
 With the Prometheus Helm chart it is as easy as using the following config for the Prometheus job scraping the Cluster API controllers:
 ```yaml
@@ -52,10 +54,10 @@ For more details please see our Prometheus development setup: [Prometheus](https
 
 **Note**: The Prometheus Helm chart deploys the required ClusterRole out-of-the-box.
 
-### via kubectl
+### Via kubectl
 
 First deploy the following RBAC configuration:
-```yaml
+```bash
 cat << EOT | kubectl apply -f -
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -82,7 +84,7 @@ subjects:
 EOT
 ```
 
-Then let's open a port-forward, create a ServiceAccount token and scrape the metrics:
+Then open a port-forward, create a ServiceAccount token and scrape the metrics:
 ```bash
 # Terminal 1
 kubectl -n capi-system port-forward deployments/capi-controller-manager 8443
@@ -92,17 +94,17 @@ TOKEN=$(kubectl create token default)
 curl https://localhost:8443/metrics --header "Authorization: Bearer $TOKEN" -k
 ```
 
-## Collecting profiles
+## Collecting Profiles
 
-### via Parca
+### Via Parca
 
 Parca can be used to continuously scrape profiles from CAPI providers. For more details please see our Parca 
 development setup: [parca](https://github.com/kubernetes-sigs/cluster-api/tree/main/hack/observability/parca)
 
-### via kubectl
+### Via kubectl
 
 First deploy the following RBAC configuration:
-```yaml
+```bash
 cat << EOT | kubectl apply -f -
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -129,7 +131,7 @@ subjects:
 EOT
 ```
 
-Then let's open a port-forward, create a ServiceAccount token and scrape the profile:
+Then open a port-forward, create a ServiceAccount token and scrape the profile:
 ```bash
 # Terminal 1
 kubectl -n capi-system port-forward deployments/capi-controller-manager 8443
@@ -145,12 +147,12 @@ curl "https://localhost:8443/debug/pprof/profile?seconds=10" --header "Authoriza
 go tool pprof -http=:8080 ./profile.out
 ```
 
-## Changing the log level
+## Changing the Log Level
 
-### via kubectl
+### Via kubectl
 
 First deploy the following RBAC configuration:
-```yaml
+```bash
 cat << EOT | kubectl apply -f -
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -177,7 +179,7 @@ subjects:
 EOT
 ```
 
-Then let's open a port-forward, create a ServiceAccount token and change the log level to `8`:
+Then open a port-forward, create a ServiceAccount token and change the log level to `8`:
 ```bash
 # Terminal 1
 kubectl -n capi-system port-forward deployments/capi-controller-manager 8443

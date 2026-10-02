@@ -2,7 +2,7 @@
 
 This document compiles security best practices for using Cluster API. These guidelines are based on the [Cluster API Security Self-Assessment](https://github.com/kubernetes/sig-security/blob/main/sig-security-assessments/cluster-api/self-assessment.md#threat-modeling-with-stride) conducted by the Kubernetes SIG Security. We recommend that organizations adapt these guidelines to their specific infrastructure and security requirements to ensure safe operations.
 
-## Comprehensive auditing
+## Comprehensive Auditing
 
 To ensure comprehensive auditing, the following components require audit configuration:
 
@@ -19,11 +19,11 @@ To ensure comprehensive auditing, the following components require audit configu
 
 After configuring these audit sources, centralize the logs using aggregation tools and implement real-time monitoring and alerting to detect suspicious activities and security incidents.
 
-## Use least privileges
+## Use Least Privileges
 
 To minimize security risks related to cloud provider access, create dedicated cloud credentials that have only the necessary permissions to manage the lifecycle of a cluster. Avoid using administrative or root accounts for Cluster API operations, and use separate credentials for different purposes such as management cluster versus workload clusters.
 
-## Limit access
+## Limit Access
 
 Implement access restrictions to protect cluster infrastructure.
 
@@ -39,11 +39,11 @@ Limit who can create pods on control plane nodes through multiple methods:
 
 Disable or restrict SSH access to nodes in a cluster to prevent unauthorized modifications and access to sensitive files.
 
-## Second pair of eyes
+## Second Pair of Eyes
 
 Implement a review process where at least two people must approve privileged actions such as creating, deleting, or updating clusters. GitOps provides an effective way to enforce this requirement through pull request workflows, where changes to cluster configurations must be reviewed and approved by another team member before being merged and applied to the infrastructure.
 
-## Implement comprehensive alerting
+## Implement Comprehensive Alerting
 
 Configure alerts in the centralized audit log system to detect security incidents and resource anomalies.
 
@@ -67,7 +67,7 @@ Configure alerts in the centralized audit log system to detect security incident
 - Track usage against cloud provider quotas and organizational limits
 - Alert on excessive API calls or resource creation requests
 
-## Cluster isolation and segregation
+## Cluster Isolation and Segregation
 
 Implement multiple layers of isolation to prevent privilege escalation from workload clusters to management cluster.
 
@@ -83,6 +83,6 @@ Separate workload and management clusters at the network level through VPC bound
 
 Do not build a chain of trust for cluster CAs. Each cluster must have its own independent CA to ensure that workload cluster CA compromise does not provide access to the management cluster. See [Kubernetes PKI certificates and requirements](https://kubernetes.io/docs/setup/best-practices/certificates/) for best practices.
 
-## Prevent runtime updates
+## Prevent Runtime Updates
 
 Implement controls to prevent tampering of machine images at runtime. Disable or restrict updates to machine images at runtime and prevent unauthorized modifications through SSH access restrictions. Following [immutable infrastructure](https://glossary.cncf.io/immutable-infrastructure/) practices ensures that any changes require deploying new images rather than modifying running systems.

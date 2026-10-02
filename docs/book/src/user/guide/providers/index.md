@@ -1,4 +1,4 @@
-# Managing Providers
+# Cluster API and Provider Management
 
-This section provides details about installing, upgrading and operating Cluster API
+This section provides details about installing, upgrading and operating Cluster API and 
 providers.

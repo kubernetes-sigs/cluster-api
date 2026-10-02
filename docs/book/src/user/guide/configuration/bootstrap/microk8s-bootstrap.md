@@ -1,5 +1,5 @@
-# Cluster API bootstrap provider MicroK8s
-## What is the Cluster API bootstrap provider MicroK8s?
+# Cluster API Bootstrap Provider MicroK8s
+## What Is the Cluster API Bootstrap Provider MicroK8s?
 
 Cluster API bootstrap provider MicroK8s (CABPM) is a component responsible for generating a cloud-init script to turn a Machine into a Kubernetes Node. This implementation uses [MicroK8s](https://github.com/canonical/microk8s) for Kubernetes bootstrap.
 
@@ -8,7 +8,7 @@ Cluster API bootstrap provider MicroK8s (CABPM) is a component responsible for g
 * [CABPM Repository](https://github.com/canonical/cluster-api-bootstrap-provider-microk8s)
 * [Official MicroK8s site](https://microk8s.io)
 
-## CABPM configuration options
+## CABPM Configuration Options
 
 MicroK8s defines a `MicroK8sControlPlane` definition as well as the `MachineDeployment` to configure the control plane and worker nodes respectively. The `MicroK8sControlPlane` is linked in the cluster definition as shown in the following example:
 
@@ -83,7 +83,7 @@ Some of the configuration options available via `MicroK8sConfig` are:
   * `MicroK8sConfig.spec.initConfiguration.addons`: the list of addons to be enabled, defaults to dns.
   * `MicroK8sConfig.spec.clusterConfiguration.portCompatibilityRemap`: option to reuse the security group ports set for kubeadm, defaults to true.
 
-### How does CABPM work?
+### How Does CABPM Work?
 
 The main purpose of the MicroK8s bootstrap provider is to translate the users needs to a number of cloud-init files applicable for each type of cluster nodes. There are three types of cloud-inits:
 

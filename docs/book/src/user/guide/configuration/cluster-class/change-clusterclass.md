@@ -4,19 +4,19 @@
 > The `ClusterTopology` feature flag must be set to true in order to use this feature.
 > See [Feature Gates](../../../../reference/feature-gates.md) for more details.
 
-## Selecting a strategy
+## Selecting a Strategy
 
 When planning a change to a ClusterClass, users should always take into consideration
 how those changes might impact the existing Clusters already using the ClusterClass, if any.
 
 There are two strategies for defining how a ClusterClass change rolls out to existing Clusters: 
 
-- Roll out ClusterClass changes to existing Cluster in a controlled/incremental fashion.
-- Roll out ClusterClass changes to all the existing Cluster immediately.
+- Roll out ClusterClass changes to existing clusters in a controlled/incremental fashion.
+- Roll out ClusterClass changes to all the existing clusters immediately.
 
 The first strategy is the recommended choice for people starting with ClusterClass; it
 requires the users to create a new ClusterClass with the expected changes, and then
-[rebase](#rebase) each Cluster to use the newly created ClusterClass.
+[rebase](#rebase) each cluster to use the newly created ClusterClass.
 
 By splitting the change to the ClusterClass and its rollout
 to Clusters into separate steps the user will reduce the risk of introducing unexpected
@@ -43,7 +43,7 @@ about the internals of the topology reconciler you can start reading the notes i
 [Plan ClusterClass changes](#planning-clusterclass-changes) documentation or looking at the [reference](#reference)
 documentation at the end of this page.
 
-## Changing ClusterClass templates
+## Changing ClusterClass Templates
 
 Templates are an integral part of a ClusterClass, and thus the same considerations
 described in the previous paragraph apply. When changing
@@ -51,7 +51,7 @@ a template referenced in a ClusterClass users should also always plan for how th
 change should be propagated to the existing Clusters and choose the strategy that best
 suits expectations.
 
-According to the [Cluster API operational practices](../../lifecycle/updating-machine-templates.md),
+According to the [Cluster API operational practices](../../lifecycle/rollout.md),
 the recommended way for updating templates is by template rotation:
 - Create a new template
 - Update the template reference in the ClusterClass
@@ -85,8 +85,8 @@ looking at the [reference](#reference) documentation at the end of this page.
 
 ## Rebase
 
-Rebasing is an operational practice for transitioning a Cluster from one ClusterClass to another,
-and the operation can be triggered by simply changing the value in `Cluster.spec.topology.class`.
+Rebasing is an operational practice for transitioning a cluster from one ClusterClass to another,
+and the operation can be triggered by simply changing the value in `Cluster.spec.topology.classRef.name`.
 
 Also in this case, please make sure to:
 
@@ -101,7 +101,7 @@ looking at the [reference](#reference) documentation at the end of this page.
 
 When changing a ClusterClass, the system validates the required changes according to
 a set of compatibility rules to prevent changes which would lead to a non-functional
-Cluster, e.g. changing the InfrastructureProvider from AWS to Azure.
+cluster, e.g. changing the InfrastructureProvider from AWS to Azure.
 
 If the proposed changes are evaluated as dangerous, the operation is rejected.
 
@@ -110,18 +110,18 @@ If the proposed changes are evaluated as dangerous, the operation is rejected.
 > templates, so you should refer to the provider documentation to avoid
 > potentially dangerous changes on those objects.
 
-## Planning ClusterClass changes
+## Planning ClusterClass Changes
 
 Some general notes that can help you to understand what you should
 expect when planning your ClusterClass changes:
 
-- Users should expect the resources in a Cluster (e.g. MachineDeployments) to behave consistently
-  no matter if a change is applied via a ClusterClass or directly as you do in a Cluster without
+- Users should expect the resources in a cluster (e.g. MachineDeployments) to behave consistently
+  no matter if a change is applied via a ClusterClass or directly as you do in a cluster without
   a ClusterClass. In other words, if someone changes something on a KCP object triggering a
   control plane Machines rollout, you should expect the same to happen when the same change
   is applied to the KCP template in ClusterClass.
 
-- User should expect the Cluster topology to change consistently irrespective of how the change has been
+- User should expect the cluster topology to change consistently irrespective of how the change has been
   implemented inside the ClusterClass or applied to the ClusterClass. In other words,
   if you change a template field "in place", or if you rotate the template referenced in the
   ClusterClass by pointing to a new template with the same field changed, or if you change the
@@ -133,7 +133,7 @@ See [reference](#reference) for more details.
 
 ### Effects on the Clusters
 
-The following table documents the effects each ClusterClass change can have on a Cluster;
+The following table documents the effects each ClusterClass change can have on a cluster;
 Similar considerations apply to changes introduced by changes in `Cluster.Topology` or by
 changes introduced by patches.
 
@@ -158,10 +158,10 @@ underlying objects like control plane and MachineDeployment act in the same way 
 | workers.machineDeployments[].template.nodeDeletionTimeout     | If the value is changed the MachineDeployment is updated in-place.<br/> <br/> The change is propagated in-place to the MachineDeployment Machine.                                                                                                                                                                                                                                                                                                                                                                                            |
 | workers.machineDeployments[].template.minReadySeconds         | If the value is changed the MachineDeployment is updated in-place.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
-### How the topology controller reconciles template fields
+### How the Topology Controller Reconciles Template Fields
 
 The topology reconciler enforces values defined in the ClusterClass templates into the topology
-owned objects in a Cluster.
+owned objects in a cluster.
 
 More specifically, the topology controller uses [Server Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/)
 to write/patch topology owned objects; using SSA allows other controllers to co-author the generated objects, 
@@ -176,4 +176,4 @@ like e.g. adding info for subnets in CAPA.
 A corollary of the behaviour described above is that it is technically possible to change fields in the object 
 which are not derived from the templates and patches, but we advise against using the possibility
 or making ad-hoc changes in generated objects unless otherwise needed for a workaround. It is always
-preferable to improve ClusterClasses by supporting new Cluster variants in a reusable way.
+preferable to improve ClusterClasses by supporting new cluster variants in a reusable way.

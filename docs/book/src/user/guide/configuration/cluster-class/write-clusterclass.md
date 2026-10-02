@@ -6,14 +6,14 @@
 
 ## Introduction
 
-A ClusterClass becomes more useful and valuable when it can be used to create many Cluster of a similar 
+A ClusterClass becomes more useful and valuable when it can be used to create many clusters of a similar 
 shape. The goal of this document is to explain how ClusterClasses can be written in a way that they are 
 flexible enough to be used in as many Clusters as possible by supporting variants of the same base Cluster shape.
 
 ## Basic ClusterClass
 
 The following example shows a basic ClusterClass. It contains templates to shape the control plane, 
-infrastructure and workers of a Cluster. When a Cluster is using this ClusterClass, the templates 
+infrastructure and workers of a Cluster. When a cluster is using this ClusterClass, the templates 
 are used to generate the objects of the managed topology of the Cluster.
 
 ```yaml
@@ -52,7 +52,7 @@ spec:
           name: docker-clusterclass-v0.1.0-default-worker
 ```
 
-The following example shows a Cluster using this ClusterClass. In this case a `KubeadmControlPlane` 
+The following example shows a cluster using this ClusterClass. In this case a `KubeadmControlPlane` 
 with the corresponding `DockerMachineTemplate`, a `DockerCluster` and a `MachineDeployment` with 
 the corresponding `KubeadmConfigTemplate` and `DockerMachineTemplate` will be created. This basic 
 ClusterClass is already very flexible. Via the topology on the Cluster the following can be configured:
@@ -106,7 +106,7 @@ Best practices:
 > [clusterclass-quickstart.yaml](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/templates/clusterclass-quick-start.yaml)
 > (which is also used in the CAPD quickstart with ClusterClass).
 
-## ClusterClass with inline templates
+## ClusterClass with Inline Templates
 
 If the content of templates used by a ClusterClass is entirely computed via a RuntimeExtension it is
 possible to define empty `template` inline instead of having `templateRef` referencing empty template CRs.
@@ -250,7 +250,7 @@ spec:
             unhealthyInRange: "[0-2]"
 ```
 
-## ClusterClass with patches
+## ClusterClass with Patches
 
 As shown above, basic ClusterClasses are already very powerful. But there are cases where 
 more powerful mechanisms are required. Let's assume you want to manage multiple Clusters 
@@ -376,7 +376,7 @@ spec:
 > If the user does not set the value, but the corresponding variable definition in ClusterClass has
 > a default value, the value is automatically added to the variables list.
 
-## ClusterClass with custom naming strategies
+## ClusterClass with Custom Naming Strategies
 
 The controller needs to generate names for new objects when a Cluster is getting created
 from a ClusterClass. These names have to be unique for each namespace. The naming
@@ -387,7 +387,7 @@ and MachinePool objects.
 
 The generated names must comply with the [RFC 1123](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names) standard.
 
-### Defining a custom naming strategy for ControlPlane objects
+### Defining a Custom Naming Strategy for ControlPlane Objects
 
 The naming strategy for ControlPlane supports the following properties:
 
@@ -413,7 +413,7 @@ spec:
   ...
 ```
 
-### Defining a custom naming strategy for MachineDeployment objects
+### Defining a Custom Naming Strategy for MachineDeployment Objects
 
 The naming strategy for MachineDeployments supports the following properties:
 
@@ -443,7 +443,7 @@ spec:
         template: "{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}"
 ```
 
-### Defining a custom naming strategy for MachinePool objects
+### Defining a Custom Naming Strategy for MachinePool Objects
 
 The naming strategy for MachinePools supports the following properties:
 
@@ -473,11 +473,11 @@ spec:
         template: "{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}"
 ```
 
-### Defining a custom namespace for ClusterClass object
+### Defining a Custom Namespace for ClusterClass Object
 
 As a user, I may need to create a `Cluster` from a `ClusterClass` object that exists only in a different namespace. To uniquely identify the `ClusterClass`, a `NamespacedName` ref is constructed from combination of:
 * `cluster.spec.topology.classNamespace` - namespace of the `ClusterClass` object.
-* `cluster.spec.topology.class` - name of the `ClusterClass` object.
+* `cluster.spec.topology.classRef.name` - name of the `ClusterClass` object.
 
 Example of the `Cluster` object with the `name/namespace` reference:
 
@@ -504,7 +504,7 @@ spec:
 ```
 
 
-#### Securing cross-namespace reference to the ClusterClass
+#### Securing Cross-namespace Reference to the ClusterClass
 
 It is often desirable to restrict free cross-namespace `ClusterClass` access for the `Cluster` object. This can be implemented by defining a [`ValidatingAdmissionPolicy`](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/#what-is-validating-admission-policy) on the `Cluster` object.
 
@@ -550,11 +550,11 @@ data:
   default: ""
 ```
 
-## Advanced features of ClusterClass with patches
+## Advanced Features of ClusterClass with Patches
 
 This section will explain more advanced features of ClusterClass patches.
 
-### MachineDeployment and MachinePool variable overrides
+### MachineDeployment and MachinePool Variable Overrides
 
 If you want to use many variations of MachineDeployments in Clusters, you can either define
 a MachineDeployment class for every variation or you can define patches and variables to
@@ -641,7 +641,7 @@ spec:
       value: t3.large
 ```
 
-### Builtin variables
+### Builtin Variables
 
 In addition to variables specified in the ClusterClass, the following builtin variables can be 
 referenced in patches:
@@ -720,7 +720,7 @@ spec:
             kindest/node:{{ .builtin.machineDeployment.version }}
 ```
 
-### Complex variable types
+### Complex Variable Types
 
 Variables can also be objects, maps and arrays. An object is specified with the type `object` and
 by the schemas of the fields of the object. A map is specified with the type `object` and the schema 
@@ -838,7 +838,7 @@ when those values are used in patch or when the generated templates are created 
 As a consequence we recommend avoiding this practice while we are considering alternatives to make
 it explicit for the ClusterClass authors to opt in this feature, thus accepting the implied risks.
 
-### Using variable values in JSON patches
+### Using Variable Values in JSON Patches
 
 We already saw above that it's possible to use variable values in JSON patches. It's also 
 possible to calculate values via Go templating or to use hard-coded values.
@@ -899,7 +899,7 @@ When writing templates, a subset of functions from [the Sprig library](https://m
 write expressions, e.g., `{{ .name | upper }}`. Only functions that are guaranteed to evaluate to the same result
 for a given input are allowed (e.g. `upper` or `max` can be used, while `now` or `randAlpha` cannot be used).
 
-### Optional patches
+### Optional Patches
 
 Patches can also be conditionally enabled. This can be done by configuring a Go template via `enabledIf`. 
 The patch is then only applied if the Go template evaluates to `true`. In the following example the `httpProxy` 
@@ -959,7 +959,7 @@ With `semverCompare` and `coalesce` a feature can be enabled in newer versions o
 > can mean that patches are only applied to some MachineDeployments. `enabledIf` is evaluated for each template that should be patched
 > individually.
 
-### Version-aware patches
+### Version-aware Patches
 
 In some cases the ClusterClass authors want a patch to be computed according to the Kubernetes version in use.
 
@@ -997,7 +997,7 @@ A simple approach to solve this problem is to define a map of version-aware vari
 being the Kubernetes version. Patch could then use the proper builtin variables as a lookup entry to fetch 
 the corresponding values for the Kubernetes version in use by each object.
 
-## JSON patches tips & tricks
+## JSON Patches Tips & Tricks
 
 JSON patches specification [RFC6902] requires that the target of
 add operation must exist.

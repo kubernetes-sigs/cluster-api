@@ -1,4 +1,4 @@
-## Automatically rotating certificates using Kubeadm Control Plane provider
+## Automatically Rotating Certificates Using Kubeadm Control Plane Provider
 
 When using Kubeadm Control Plane provider (KCP) it is possible to configure automatic certificate rotations. KCP does this by triggering a rollout when the certificates on the control plane machines are about to expire.
 

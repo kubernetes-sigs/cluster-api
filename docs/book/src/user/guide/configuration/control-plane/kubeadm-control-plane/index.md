@@ -1,4 +1,4 @@
-# Kubeadm control plane
+# Kubeadm Control Plane
 
 Using the Kubeadm control plane type to manage a control plane provides several ways to upgrade control plane machines.
 
@@ -10,7 +10,7 @@ Using the Kubeadm control plane type to manage a control plane provides several 
 > `kubeadm upgrade`. CoreDNS is only upgraded if you explicitly set the target version, see
 > [How to upgrade CoreDNS][upgrade-coredns].
 
-### Kubeconfig management
+### Kubeconfig Management
 
 KCP will generate and manage the admin Kubeconfig for clusters. The client certificate for the admin user is created
 with a valid lifespan of a year, and will be automatically regenerated when the cluster is reconciled and has less than
@@ -18,9 +18,9 @@ with a valid lifespan of a year, and will be automatically regenerated when the 
 
 ### Upgrades
 
-See the section on [upgrading clusters][upgrades].
+See [Upgrade the Kubernetes version].
 
-### Running workloads on control plane machines
+### Running Workloads on Control Plane Machines
 
 We don't suggest running workloads on control planes, and highly encourage avoiding it unless absolutely necessary.
 
@@ -37,7 +37,7 @@ Cluster API Machines:
   [Machine Deletion Phase Hooks proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200602-machine-deletion-phase-hooks.md)
   for additional details.
 
-### In-place propagation
+### In-place Propagation
 Changes to the following fields of KubeadmControlPlane are propagated in-place to the Machines and do not trigger a full rollout:
 - `.spec.machineTemplate.metadata.labels`
 - `.spec.machineTemplate.metadata.annotations`
@@ -52,5 +52,5 @@ Changes to the following fields of KubeadmControlPlane are propagated in-place t
 Note: Changes to these fields will not be propagated to Machines, InfraMachines and KubeadmConfigs that are marked for deletion (example: because of scale down).
 
 <!-- links -->
-[upgrades]: ../../../lifecycle/upgrading-clusters.md#how-to-upgrade-the-kubernetes-control-plane-version
-[upgrade-coredns]: ../../../lifecycle/upgrading-clusters.md#how-to-upgrade-coredns
+[Upgrade the Kubernetes version]: ../../../lifecycle/upgrades.md#control-plane
+[upgrade-coredns]: ../../../lifecycle/upgrades.md#how-to-upgrade-coredns

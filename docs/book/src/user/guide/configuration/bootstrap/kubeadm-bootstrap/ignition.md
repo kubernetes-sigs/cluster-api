@@ -24,13 +24,13 @@ This guide explains how to deploy an AWS workload cluster using Ignition.
 - [clusterawsadm](https://cluster-api-aws.sigs.k8s.io/introduction.html#clusterawsadm) installed locally - download from the [releases](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) page of the AWS provider
 - [kind](https://kind.sigs.k8s.io/) and [Docker](https://www.docker.com/) installed locally (when using kind to create a management cluster)
 
-## Configure a management cluster
+## Configure a Management Cluster
 
 Follow [this](../../../../quick-start.md#install-andor-configure-a-kubernetes-cluster) section of the quick start guide to deploy a Kubernetes cluster or connect to an existing one.
 
 Follow [this](../../../../quick-start.md#install-clusterctl) section of the quick start guide to install `clusterctl`.
 
-## Initialize the management cluster
+## Initialize the Management Cluster
 
 Before workload clusters can be deployed, Cluster API components must be deployed to the management cluster.
 
@@ -60,7 +60,7 @@ export EXP_BOOTSTRAP_FORMAT_IGNITION=true # Used by the AWS provider
 clusterctl init --infrastructure aws
 ```
 
-## Generate a workload cluster configuration
+## Generate a Workload Cluster Configuration
 
 ```bash
 # Deploy the workload cluster in the following AWS region.
@@ -86,7 +86,7 @@ clusterctl generate cluster ignition-cluster \
 
 NOTE: Only certain Kubernetes versions have pre-built Kubernetes AMIs. See [list](https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis) of published pre-built Kubernetes AMIs.
 
-## Apply the workload cluster
+## Apply the Workload Cluster
 
 ```bash
 kubectl apply -f ignition-cluster.yaml
@@ -105,7 +105,7 @@ NAME                             CLUSTER            INITIALIZED   API SERVER AVA
 ignition-cluster-control-plane   ignition-cluster   true                                 1                  1         1             7m7s   v1.22.2
 ```
 
-## Connect to the workload cluster
+## Connect to the Workload Cluster
 
 Generate a kubeconfig for the workload cluster:
 
@@ -134,7 +134,7 @@ CoreDNS is running at https://ignition-cluster-apiserver-284992524.us-east-1.elb
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 ```
 
-## Deploy a CNI plugin
+## Deploy a CNI Plugin
 
 A [CNI plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/) must be deployed to the workload cluster for the cluster to become ready. We use [Calico](https://www.tigera.io/project-calico/) here, however other CNI plugins could be used, too.
 
@@ -157,7 +157,7 @@ ip-10-0-127-59.us-east-1.compute.internal    Ready    <none>                 13m
 ip-10-0-89-169.us-east-1.compute.internal    Ready    <none>                 13m   v1.22.2
 ```
 
-## Clean up
+## Clean Up
 
 Delete the workload cluster (from a shell connected to the *management* cluster):
 
@@ -167,7 +167,7 @@ kubectl delete cluster ignition-cluster
 
 ## Caveats
 
-### Supported infrastructure providers
+### Supported Infrastructure Providers
 
 Cluster API has multiple [infrastructure providers](../../../../concepts.md#infrastructure-provider) which can be used to deploy workload clusters.
 

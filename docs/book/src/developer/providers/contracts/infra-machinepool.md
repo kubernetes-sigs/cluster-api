@@ -533,4 +533,4 @@ The clusterctl command is designed to work with all the providers compliant with
 [infrastructure Provider Security Guidance]: ../security-guidelines.md
 [Support running multiple instances of the same provider]: ../../core/support-multiple-instances.md
 [clusterctl provider contract]: clusterctl.md
-[MachineHealthChecks]: ../../../user/guide/lifecycle/machine-management/healthchecking.md
+[MachineHealthChecks]: ../../../user/guide/lifecycle/healthchecking.md

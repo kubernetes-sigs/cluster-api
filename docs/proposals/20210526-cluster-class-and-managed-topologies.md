@@ -140,7 +140,7 @@ for all fields of all templates referenced in a ClusterClass.
 **Notes**:
 - Only compatible changes should be allowed.
 - Changes to InfrastructureMachineTemplates and BootstrapTemplates should be rolled out according to the established operational practices documented in 
-[Updating Machine Infrastructure and Bootstrap Templates](https://cluster-api.sigs.k8s.io/user/guide/lifecycle/updating-machine-templates.html), i.e. "template rotation".
+[Updating Machine Infrastructure and Bootstrap Templates](https://cluster-api.sigs.k8s.io/tasks/updating-machine-templates.html), i.e. "template rotation".
 - There are provider-specific incompatible changes which cannot be validated in a "core" webhook, e.g. changing an immutable field of `KubeadmControlPlane`. Those changes 
   will inevitably lead to errors during topology reconciliation. Those errors should be surfaced on the Cluster resource.
 
@@ -213,7 +213,7 @@ at high level the new CRD contains:
   [proposal: Chained and efficient upgrades for Clusters with managed topologies](20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md).
 
 The following paragraph provides some additional context on some of the above values; more info can
-be found in [writing a ClusterClass](https://cluster-api.sigs.k8s.io/user/guide/configuration/experimental-features/cluster-class/write-clusterclass.html).
+be found in [writing a ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html).
 
 **ClusterClass variable definitions**
 
@@ -236,7 +236,7 @@ There are two ways to define patches, by providing inline JSON patches in the Cl
  [Topology Mutation Hook proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220330-topology-mutation-hook.md).
 
 However, it's important to notice that  while defining patches, the author can reference both variable values
-provided in the Cluster spec (see next paragraph for more details) as well as a set of [built in variables](https://cluster-api.sigs.k8s.io/user/guide/configuration/experimental-features/cluster-class/write-clusterclass.html#builtin-variables)
+provided in the Cluster spec (see next paragraph for more details) as well as a set of [built in variables](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html#builtin-variables)
 providing generic information about the cluster or the template being patched. 
 
 #### Modification to existing API Types
@@ -261,7 +261,7 @@ At high level the cluster topology is defined by:
 - A set of variables allowing to customize the cluster topology through patches. Please note that it is also possible
   to define variable overrides for each MachineDeployment or MachinePool.
 
-More info in [writing a ClusterClass](https://cluster-api.sigs.k8s.io/user/guide/configuration/experimental-features/cluster-class/write-clusterclass.html).
+More info in [writing a ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html).
 
 #### Validation and Defaulting
 
@@ -294,10 +294,10 @@ is not yet implemented as of today.
 This section lists out the basic behavior for Cluster objects using a ClusterClass in case of creates and updates. The following examples 
 intentionally use resources without patches and variables to focus on the simplest case.
 
-More info in [writing a ClusterClass](https://cluster-api.sigs.k8s.io/user/guide/configuration/experimental-features/cluster-class/write-clusterclass.html)
+More info in [writing a ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html)
 as well as in
-- [changing a ClusterClass](https://cluster-api.sigs.k8s.io/user/guide/configuration/experimental-features/cluster-class/change-clusterclass.html)
-- [operating a managed Cluster](https://cluster-api.sigs.k8s.io/user/guide/configuration/experimental-features/cluster-class/operate-cluster.html)
+- [changing a ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/change-clusterclass.html)
+- [operating a managed Cluster](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/operate-cluster.html)
 
 ##### Create a new Cluster using ClusterClass object
 

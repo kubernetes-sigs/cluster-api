@@ -1,4 +1,4 @@
-# Machine deletion process
+# Machine Deletion Process
 
 Machine deletions occur in various cases, for example:
 * Control plane (e.g. KCP) or MachineDeployment rollouts
@@ -35,7 +35,7 @@ Machine deletion can be broken down into the following phases:
 Note: There are cases where Node drain, wait for volume detach and Node deletion is skipped. For these please take a look at the 
 implementation of the [`isDeleteNodeAllowed` function](https://github.com/kubernetes-sigs/cluster-api/blob/v1.8.0/internal/controllers/machine/machine_controller.go#L346).
 
-## Node drain
+## Node Drain
 
 This section describes details of the Node drain process in Cluster API. Cluster API implements Node drain aligned
 with `kubectl drain`. One major difference is that the Cluster API controller does not actively wait during `Reconcile` 
@@ -179,7 +179,7 @@ I0830 13:29:56.235398      17 machine_controller.go:702] "Drain completed" ... N
 If this doesn't happen, please take a closer at the logs to determine which Pods still have to be evicted or haven't gone away yet
 (i.e. deletionTimestamp is set but the Pod objects still exist).
 
-### Related documentation
+### Related Documentation
 
 For more information, please see:
 * [Disruptions: Pod disruption budgets](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets)

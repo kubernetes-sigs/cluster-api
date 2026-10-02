@@ -1,4 +1,4 @@
-# Operating a managed Cluster
+# Operating a Managed Cluster
 
 > [!IMPORTANT]
 > The `ClusterTopology` feature flag must be set to true in order to use this feature.
@@ -6,7 +6,7 @@
 
 ## Introduction
 
-The `spec.topology` field added to the Cluster object as part of ClusterClass allows changes made on the Cluster to be propagated across all relevant objects. This means the Cluster object can be used as a single point of control for making changes to objects that are part of the Cluster, including the ControlPlane and MachineDeployments. 
+The `spec.topology` field added to the Cluster object as part of ClusterClass allows changes made on the Cluster to be propagated across all relevant objects. This means the Cluster object can be used as a single point of control for making changes to objects that are part of the cluster, including the ControlPlane and MachineDeployments. 
 
 ## Upgrade a Cluster
 Using a managed topology the operation to upgrade a Kubernetes cluster is a one-touch operation.
@@ -145,7 +145,7 @@ capi-quickstart-second-deployment-XXXX    capi-quickstart   1          1       1
 ```
 Our second deployment uses the same underlying MachineDeployment class `default-worker` as our initial deployment. In this case they will both have exactly the same underlying machine templates. In order to modify the templates MachineDeployments are based on take a look at [Changing a ClusterClass].
 
-A similar process as that described here - removing the MachineDeployment from `cluster.spec.topology.workers.machineDeployments` - can be used to delete a running MachineDeployment from an active Cluster.
+A similar process as that described here - removing the MachineDeployment from `cluster.spec.topology.workers.machineDeployments` - can be used to delete a running MachineDeployment from an active cluster.
 
 ## Scale a ControlPlane
 When using a managed topology scaling of ControlPlane Machines, where the Cluster is using a topology that includes ControlPlane MachineInfrastructure, should be done through the Cluster topology.
@@ -169,10 +169,10 @@ This patch will make the below changes on the Cluster yaml:
 As well as scaling a ControlPlane, Cluster operators can edit the labels and annotations applied to a running ControlPlane using the Cluster topology as a single point of control.
 
 
-## Use variables
+## Use Variables
 A ClusterClass can use variables and patches in order to allow flexible customization of Clusters derived from a ClusterClass. Variable definition allows two or more Cluster topologies derived from the same ClusterClass to have different specs, with the differences controlled by variables in the Cluster topology.
 
-Assume we have created a CAPD cluster with ClusterClass and Kubernetes v1.23.3 (as documented in the [Quick Start guide]). Our Cluster has a variable `etcdImageTag` as defined in the ClusterClass. The variable is not set on our Cluster. Some variables, depending on their definition in a ClusterClass, may need to be specified by the Cluster operator for every Cluster created using a given ClusterClass.
+Assume we have created a CAPD cluster with ClusterClass and Kubernetes v1.23.3 (as documented in the [Quick Start guide]). Our Cluster has a variable `etcdImageTag` as defined in the ClusterClass. The variable is not set on our cluster. Some variables, depending on their definition in a ClusterClass, may need to be specified by the Cluster operator for every Cluster created using a given ClusterClass.
 
 In order to specify the value of a variable all we have to do is set the value in the Cluster topology. 
 
@@ -208,17 +208,17 @@ Retrieving the variable value from the Cluster object, with `kubectl get cluster
 ```bash
 {"name":"etcdImageTag","value":"3.5.0"}
 ```
-Note: Changing the etcd version may have unintended impacts on a running Cluster. For safety the cluster should be reapplied after running the above variable patch.
+Note: Changing the etcd version may have unintended impacts on a running cluster. For safety the cluster should be reapplied after running the above variable patch.
 
 ## Rebase a Cluster
-To perform more significant changes using a Cluster as a single point of control, it may be necessary to change the ClusterClass that the Cluster is based on. This is done by changing the class referenced in `/spec/topology/class`.
+To perform more significant changes using a Cluster as a single point of control, it may be necessary to change the ClusterClass that the Cluster is based on. This is done by changing the class referenced in `/spec/topology/classRef/name`.
 
 To read more about changing an underlying class please refer to [ClusterClass rebase].
 
-## Tips and tricks
+## Tips and Tricks
 
 Users should always aim at ensuring the stability of the Cluster and of the applications hosted on it while
-using `spec.topology` as a single point of control for making changes to the objects that are part of the Cluster.
+using `spec.topology` as a single point of control for making changes to the objects that are part of the cluster.
 
 Following recommendation apply:
 
@@ -232,7 +232,7 @@ Following recommendation apply:
   that you can rely on [version-aware patches](write-clusterclass.md#version-aware-patches) to ensure
   the Cluster adapts to the new Kubernetes version in sync with the upgrade workflow.
 
-For more details about how changes can affect a Cluster, please look at [reference](change-clusterclass.md#reference).
+For more details about how changes can affect a cluster, please look at [reference](change-clusterclass.md#reference).
 
 > [!CAUTION]
 > **Effects of concurrent changes**

@@ -1,4 +1,4 @@
-# Support for external etcd
+# Support for External etcd
 
 Cluster API Bootstrap Provider Kubeadm supports using an external etcd cluster for your workload Kubernetes clusters.
 
@@ -10,11 +10,11 @@ Before getting started you should be aware of the expectations that come with us
 * Depending on how you configure your etcd nodes you may incur additional cloud costs in data transfer.
     * As an example, cross availability zone traffic can cost money on cloud providers. You don't have to deploy etcd across availability zones, but if you do please be aware of the costs.
 
-## Getting started
+## Getting Started
 
 To use this, you will need to create an etcd cluster and generate an apiserver-etcd-client certificate and private key. This behaviour can be tested using [`kubeadm`](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/) and [`etcdadm`](https://github.com/kubernetes-sigs/etcdadm).
 
-### Setting up etcd with kubeadm
+### Setting Up etcd with kubeadm
 
 CA certificates are required to setup etcd cluster. If you already have a CA then the CA's `crt` and `key` must be copied to `/etc/kubernetes/pki/etcd/ca.crt` and `/etc/kubernetes/pki/etcd/ca.key`.
 
@@ -32,7 +32,7 @@ Once the etcd cluster is setup, you will need the following files from the etcd 
 
 You'll use these files to create the necessary Secrets on the management cluster (see the "Creating the required Secrets" section).
 
-### Setting up etcd with etcdadm (Alpha)
+### Setting Up etcd with etcdadm (Alpha)
 
 `etcdadm` creates the CA if one does not exist, uses it to sign its server and peer certificates, and finally to sign the API server etcd client certificate. The CA's `crt` and `key` generated using `etcdadm` are stored in `/etc/etcd/pki/ca.crt` and `/etc/etcd/pki/ca.key`. `etcdadm` also generates a certificate for the API server etcd client; the certificate and private key are found at `/etc/etcd/pki/apiserver-etcd-client.crt` and `/etc/etcd/pki/apiserver-etcd-client.key`, respectively.
 
@@ -43,7 +43,7 @@ Once the etcd cluster has been bootstrapped using `etcdadm`, you will need the f
 
 You'll use these files in the next section to create the necessary Secrets on the management cluster.
 
-## Creating the required Secrets
+## Creating the Required Secrets
 
 Regardless of the method used to bootstrap the etcd cluster, you will need to use the certificates copied from the etcd cluster to create some [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) on the management cluster.
 

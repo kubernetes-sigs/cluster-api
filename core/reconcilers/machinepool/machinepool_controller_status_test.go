@@ -27,6 +27,9 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	contractv1beta1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta1"
+	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -192,8 +195,410 @@ func Test_updateStatus(t *testing.T) {
 				))
 			}
 			if tt.infraPool == nil || tt.expectErr {
-				g.Expect(mp.Status).To(Equal(original.Status))
+				withoutMirrors := mp.DeepCopy()
+				conditions.Delete(withoutMirrors, clusterv1.MachinePoolBootstrapConfigReadyCondition)
+				conditions.Delete(withoutMirrors, clusterv1.MachinePoolInfrastructureReadyCondition)
+				g.Expect(withoutMirrors.Status).To(Equal(original.Status))
 			}
+		})
+	}
+}
+
+func Test_setBootstrapConfigReadyCondition(t *testing.T) {
+	tests := []struct {
+		name             string
+		config           contractapi.BootstrapConfig
+		notFound         bool
+		initialized      bool
+		deleting         bool
+		directSecret     bool
+		initialCondition *metav1.Condition
+		expectCondition  metav1.Condition
+	}{
+		{
+			name:         "direct data secret",
+			directSecret: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachinePoolBootstrapDataSecretProvidedReason,
+			},
+		},
+		{
+			name: "mirror current provider",
+			config: &contractv1.BootstrapConfig{
+				Status: contractv1.BootstrapConfigStatus{
+					Conditions: contractapi.Conditions{
+						{
+							Type:    clusterv1.ReadyCondition,
+							Status:  metav1.ConditionFalse,
+							Reason:  "ProviderNotReady",
+							Message: "waiting for data",
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "ProviderNotReady",
+				Message: "waiting for data",
+			},
+		},
+		{
+			name: "mirror legacy provider v1beta2 condition",
+			config: &contractv1beta1.BootstrapConfig{
+				Status: contractv1beta1.BootstrapConfigStatus{
+					V1Beta2: &contractv1beta1.BootstrapConfigV1Beta2Status{
+						Conditions: contractapi.Conditions{
+							{
+								Type:    clusterv1.ReadyCondition,
+								Status:  metav1.ConditionTrue,
+								Message: "data created",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachinePoolBootstrapConfigReadyReason,
+				Message: "data created",
+			},
+		},
+		{
+			name: "legacy ready fallback",
+			config: &contractv1beta1.BootstrapConfig{
+				Status: contractv1beta1.BootstrapConfigStatus{
+					Ready: true,
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachinePoolBootstrapConfigReadyReason,
+			},
+		},
+		{
+			name: "current fallback uses current provider value",
+			config: &contractv1.BootstrapConfig{
+				Status: contractv1.BootstrapConfigStatus{
+					Initialization: contractv1.BootstrapConfigInitializationStatus{
+						DataSecretCreated: ptr.To(false),
+					},
+				},
+			},
+			initialized: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachinePoolBootstrapConfigNotReadyReason,
+				Message: "GenericBootstrapConfig status.initialization.dataSecretCreated is false",
+			},
+		},
+		{
+			name: "invalid condition",
+			config: &contractv1.BootstrapConfig{
+				Status: contractv1.BootstrapConfigStatus{
+					Conditions: contractapi.Conditions{
+						{
+							Type:   clusterv1.ReadyCondition,
+							Status: "Invalid",
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachinePoolBootstrapConfigInvalidConditionReportedReason,
+				Message: "status for the Ready condition must be one of True, False, Unknown",
+			},
+		},
+		{
+			name:     "missing object",
+			notFound: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachinePoolBootstrapConfigDoesNotExistReason,
+				Message: "GenericBootstrapConfig does not exist",
+			},
+		},
+		{
+			name:        "deleted initialized object",
+			notFound:    true,
+			initialized: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachinePoolBootstrapConfigDeletedReason,
+				Message: "GenericBootstrapConfig has been deleted",
+			},
+		},
+		{
+			name:        "transient error after initialization",
+			initialized: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachinePoolBootstrapConfigInternalErrorReason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:     "deletion preserves last condition",
+			deleting: true,
+			notFound: true,
+			initialCondition: &metav1.Condition{
+				Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "PreviouslyReported",
+				Message: "last observation",
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "PreviouslyReported",
+				Message: "last observation",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mp := &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								ConfigRef: clusterv1.ContractVersionedObjectReference{
+									APIGroup: clusterv1.GroupVersionBootstrap.Group,
+									Kind:     "GenericBootstrapConfig",
+									Name:     "bootstrap",
+								},
+							},
+						},
+					},
+				},
+				Status: clusterv1.MachinePoolStatus{
+					Initialization: clusterv1.MachinePoolInitializationStatus{
+						BootstrapDataSecretCreated: ptr.To(tt.initialized),
+					},
+				},
+			}
+			if tt.directSecret {
+				mp.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{
+					DataSecretName: ptr.To("data"),
+				}
+			}
+			if tt.deleting {
+				mp.DeletionTimestamp = ptr.To(metav1.Now())
+			}
+			if tt.initialCondition != nil {
+				conditions.Set(mp, *tt.initialCondition)
+			}
+
+			setBootstrapConfigReadyCondition(ctx, mp, tt.config, tt.notFound)
+
+			condition := conditions.Get(mp, clusterv1.MachinePoolBootstrapConfigReadyCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func Test_setInfrastructureReadyCondition(t *testing.T) {
+	tests := []struct {
+		name             string
+		providerStatus   map[string]interface{}
+		provisioned      *bool
+		notFound         bool
+		initialized      bool
+		deleting         bool
+		initialCondition *metav1.Condition
+		expectCondition  metav1.Condition
+	}{
+		{
+			name: "mirror current provider",
+			providerStatus: map[string]interface{}{
+				"conditions": []interface{}{
+					map[string]interface{}{
+						"type":    "Ready",
+						"status":  "False",
+						"reason":  "ProviderNotReady",
+						"message": "waiting for instances",
+					},
+				},
+			},
+			provisioned: ptr.To(true),
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "ProviderNotReady",
+				Message: "waiting for instances",
+			},
+		},
+		{
+			name: "mirror legacy Ready without reason",
+			providerStatus: map[string]interface{}{
+				"conditions": []interface{}{
+					map[string]interface{}{
+						"type":    "Ready",
+						"status":  "True",
+						"message": "instances ready",
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachinePoolInfrastructureReadyReason,
+				Message: "instances ready",
+			},
+		},
+		{
+			name:           "provisioned fallback",
+			providerStatus: map[string]interface{}{},
+			provisioned:    ptr.To(true),
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachinePoolInfrastructureReadyReason,
+			},
+		},
+		{
+			name:           "not provisioned fallback ignores latched initialization",
+			providerStatus: map[string]interface{}{},
+			provisioned:    ptr.To(false),
+			initialized:    true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachinePoolInfrastructureNotReadyReason,
+				Message: "GenericInfrastructureMachinePool status.initialization.provisioned is false",
+			},
+		},
+		{
+			name:           "failed provisioning observation ignores latched initialization",
+			providerStatus: map[string]interface{}{},
+			initialized:    true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachinePoolInfrastructureInternalErrorReason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name: "invalid condition status",
+			providerStatus: map[string]interface{}{
+				"conditions": []interface{}{
+					map[string]interface{}{
+						"type":   "Ready",
+						"status": "Invalid",
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachinePoolInfrastructureInvalidConditionReportedReason,
+				Message: "failed to convert status.conditions from GenericInfrastructureMachinePool to []metav1.Condition: status for the Ready condition must be one of True, False, Unknown",
+			},
+		},
+		{
+			name:     "missing object",
+			notFound: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachinePoolInfrastructureDoesNotExistReason,
+				Message: "GenericInfrastructureMachinePool does not exist",
+			},
+		},
+		{
+			name:        "deleted initialized object",
+			notFound:    true,
+			initialized: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachinePoolInfrastructureDeletedReason,
+				Message: "GenericInfrastructureMachinePool has been deleted while the MachinePool still exists",
+			},
+		},
+		{
+			name:        "transient error after initialization",
+			initialized: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachinePoolInfrastructureInternalErrorReason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:     "deletion preserves last condition",
+			deleting: true,
+			notFound: true,
+			initialCondition: &metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "PreviouslyReported",
+				Message: "last observation",
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "PreviouslyReported",
+				Message: "last observation",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mp := &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+								Kind:     "GenericInfrastructureMachinePool",
+								Name:     "infra",
+							},
+						},
+					},
+				},
+				Status: clusterv1.MachinePoolStatus{
+					Initialization: clusterv1.MachinePoolInitializationStatus{
+						InfrastructureProvisioned: ptr.To(tt.initialized),
+					},
+				},
+			}
+			if tt.deleting {
+				mp.DeletionTimestamp = ptr.To(metav1.Now())
+			}
+			if tt.initialCondition != nil {
+				conditions.Set(mp, *tt.initialCondition)
+			}
+			var infraMachinePool *unstructured.Unstructured
+			if tt.providerStatus != nil {
+				infraMachinePool = &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"kind":   "GenericInfrastructureMachinePool",
+						"status": tt.providerStatus,
+					},
+				}
+			}
+
+			setInfrastructureReadyCondition(ctx, mp, infraMachinePool, tt.notFound, tt.provisioned)
+
+			condition := conditions.Get(mp, clusterv1.MachinePoolInfrastructureReadyCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }

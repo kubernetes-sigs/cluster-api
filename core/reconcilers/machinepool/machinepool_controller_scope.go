@@ -25,6 +25,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 )
 
 // scope holds the different objects that are read and used during the reconcile.
@@ -37,9 +38,22 @@ type scope struct {
 	// of the reconcile function.
 	machinePool *clusterv1.MachinePool
 
+	// bootstrapConfig is set during the reconcile bootstrap phase.
+	bootstrapConfig contractapi.BootstrapConfig
+
+	// bootstrapConfigIsNotFound is true if the bootstrap config was not found.
+	bootstrapConfigIsNotFound bool
+
 	// infraMachinePool is the infrastructure machinepool object. It is set during
 	// the reconcile infrastructure phase.
 	infraMachinePool *unstructured.Unstructured
+
+	// infraMachinePoolIsNotFound is true if the infrastructure machinepool was not found.
+	infraMachinePoolIsNotFound bool
+
+	// infrastructureProvisioned is the provider value observed during this reconcile.
+	// Unlike status.initialization.infrastructureProvisioned, it is not latched to true.
+	infrastructureProvisioned *bool
 
 	// nodeRefMapResult is a map of providerIDs to Nodes that are associated with the Cluster.
 	// It is set after reconcileInfrastructure is called.

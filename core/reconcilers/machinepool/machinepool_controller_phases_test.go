@@ -17,6 +17,8 @@ limitations under the License.
 package machinepool
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -36,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -46,6 +49,7 @@ import (
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -1178,6 +1182,14 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 
 			res, err := r.reconcileBootstrap(ctx, scope)
 			g.Expect(res).To(BeComparableTo(tc.expectResult))
+			if tc.machinepool.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
+				configMissing := bootstrapConfig.GetNamespace() != tc.machinepool.Namespace
+				g.Expect(scope.bootstrapConfigIsNotFound).To(Equal(configMissing))
+				if !configMissing {
+					g.Expect(scope.bootstrapConfig).ToNot(BeNil())
+					g.Expect(scope.bootstrapConfig.GetName()).To(Equal(bootstrapConfig.GetName()))
+				}
+			}
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -1189,6 +1201,65 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReconcileMachinePoolBootstrapReadFailure(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+	scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind), &contractv1.BootstrapConfig{})
+	defaultMachinePool := clusterv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machinepool-test",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachinePoolSpec{
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
+						},
+					},
+				},
+			},
+		},
+		Status: clusterv1.MachinePoolStatus{
+			Initialization: clusterv1.MachinePoolInitializationStatus{
+				BootstrapDataSecretCreated: ptr.To(true),
+			},
+		},
+	}
+	machinepool := defaultMachinePool.DeepCopy()
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestBootstrapConfigCRD).WithInterceptorFuncs(interceptor.Funcs{
+		Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if key.Name == "bootstrap-config1" {
+				return errors.New("transient read failure")
+			}
+			return c.Get(ctx, key, obj, opts...)
+		},
+	}).Build()
+	r := &Reconciler{
+		Client:       fakeClient,
+		DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
+	}
+	s := &scope{
+		machinePool: machinepool,
+	}
+
+	_, err := r.reconcileBootstrap(ctx, s)
+	g.Expect(err).To(MatchError(ContainSubstring("transient read failure")))
+	g.Expect(s.bootstrapConfig).To(BeNil())
+	g.Expect(s.bootstrapConfigIsNotFound).To(BeFalse())
+	g.Expect(r.updateStatus(ctx, s)).To(Succeed())
+	condition := conditions.Get(machinepool, clusterv1.MachinePoolBootstrapConfigReadyCondition)
+	g.Expect(condition).ToNot(BeNil())
+	g.Expect(condition.Status).To(Equal(metav1.ConditionUnknown))
+	g.Expect(condition.Reason).To(Equal(clusterv1.MachinePoolBootstrapConfigInternalErrorReason))
 }
 
 func TestReconcileMachinePoolInfrastructure(t *testing.T) {
@@ -1543,6 +1614,166 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			if tc.expected != nil {
 				tc.expected(g, tc.machinepool)
 			}
+		})
+	}
+}
+
+func TestReconcileMachinePoolInfrastructureReadiness(t *testing.T) {
+	defaultCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName,
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	defaultMachinePool := clusterv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machinepool-test",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachinePoolSpec{
+			ClusterName: defaultCluster.Name,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachinePoolKind,
+						Name:     "infra-config1",
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To("data"),
+					},
+				},
+			},
+		},
+		Status: clusterv1.MachinePoolStatus{
+			Initialization: clusterv1.MachinePoolInitializationStatus{
+				InfrastructureProvisioned: ptr.To(true),
+			},
+		},
+	}
+
+	testCases := []struct {
+		name                  string
+		status                map[string]interface{}
+		deleting              bool
+		readError             bool
+		expectProvisioned     *bool
+		expectConditionStatus metav1.ConditionStatus
+		expectConditionReason string
+		expectError           bool
+	}{
+		{
+			name: "current provider not provisioned after initialization",
+			status: map[string]interface{}{
+				"initialization": map[string]interface{}{
+					"provisioned": false,
+				},
+			},
+			expectProvisioned:     ptr.To(false),
+			expectConditionStatus: metav1.ConditionFalse,
+			expectConditionReason: clusterv1.MachinePoolInfrastructureNotReadyReason,
+		},
+		{
+			name: "infrastructure being deleted",
+			status: map[string]interface{}{
+				"initialization": map[string]interface{}{
+					"provisioned": true,
+				},
+			},
+			deleting:              true,
+			expectProvisioned:     ptr.To(true),
+			expectConditionStatus: metav1.ConditionTrue,
+			expectConditionReason: clusterv1.MachinePoolInfrastructureReadyReason,
+		},
+		{
+			name: "malformed provisioning value",
+			status: map[string]interface{}{
+				"initialization": map[string]interface{}{
+					"provisioned": "invalid",
+				},
+			},
+			expectConditionStatus: metav1.ConditionUnknown,
+			expectConditionReason: clusterv1.MachinePoolInfrastructureInternalErrorReason,
+			expectError:           true,
+		},
+		{
+			name:                  "deleted initialized object",
+			expectConditionStatus: metav1.ConditionFalse,
+			expectConditionReason: clusterv1.MachinePoolInfrastructureDeletedReason,
+			expectError:           true,
+		},
+		{
+			name: "transient read failure",
+			status: map[string]interface{}{
+				"ready": true,
+			},
+			readError:             true,
+			expectConditionStatus: metav1.ConditionUnknown,
+			expectConditionReason: clusterv1.MachinePoolInfrastructureInternalErrorReason,
+			expectError:           true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			machinepool := defaultMachinePool.DeepCopy()
+			objects := []client.Object{defaultCluster, machinepool, builder.TestInfrastructureMachinePoolCRD}
+			if tc.status != nil {
+				metadata := map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				}
+				if tc.deleting {
+					metadata["deletionTimestamp"] = "2026-01-01T00:00:00Z"
+					metadata["finalizers"] = []interface{}{"test"}
+				}
+				infraConfig := &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"kind":       builder.TestInfrastructureMachinePoolKind,
+						"apiVersion": builder.InfrastructureGroupVersion.String(),
+						"metadata":   metadata,
+						"status":     tc.status,
+					},
+				}
+				objects = append(objects, infraConfig)
+			}
+			fakeClient := fake.NewClientBuilder().WithObjects(objects...).WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if tc.readError && key.Name == "infra-config1" {
+						return errors.New("transient read failure")
+					}
+					return c.Get(ctx, key, obj, opts...)
+				},
+			}).Build()
+			r := &Reconciler{
+				Client:       fakeClient,
+				ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(defaultCluster)),
+				externalTracker: external.ObjectTracker{
+					Controller:      externalfake.Controller{},
+					Cache:           &informertest.FakeInformers{},
+					Scheme:          fakeClient.Scheme(),
+					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				},
+			}
+			s := &scope{
+				cluster:     defaultCluster,
+				machinePool: machinepool,
+			}
+
+			_, err := r.reconcileInfrastructure(ctx, s)
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(s.infrastructureProvisioned).To(Equal(tc.expectProvisioned))
+			g.Expect(s.infraMachinePoolIsNotFound).To(Equal(tc.status == nil))
+			g.Expect(machinepool.Status.Initialization.InfrastructureProvisioned).To(Equal(ptr.To(true)))
+			g.Expect(r.updateStatus(ctx, s)).To(Succeed())
+			condition := conditions.Get(machinepool, clusterv1.MachinePoolInfrastructureReadyCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(tc.expectConditionStatus))
+			g.Expect(condition.Reason).To(Equal(tc.expectConditionReason))
 		})
 	}
 }

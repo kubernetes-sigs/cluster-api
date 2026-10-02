@@ -1137,6 +1137,45 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				"  * MachineDeployment md5 creation deferred while control plane upgrade is in progress",
 		},
 
+		// Create deferred while waiting for failure domains to be reported (no upgrade in progress).
+		{
+			name:         "should report MachineDeployment/MachinePool creation deferred while waiting for failure domains",
+			reconcileErr: nil,
+			s: &scope.Scope{
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						Spec: clusterv1.ClusterSpec{
+							ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{Name: "controlplane1"},
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "infra1"},
+							Topology: clusterv1.Topology{
+								Version: "v1.22.0",
+							},
+						},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").WithVersion("v1.22.0").Build(),
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.MachineDeployments.MarkWaitingForFailureDomains("md1")
+					ut.MachinePools.MarkWaitingForFailureDomains("mp1")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledWaitingForFailureDomainsV1Beta1Reason,
+			wantV1Beta1ConditionMessage: "Cluster topology is waiting for failure domains to be reported in Cluster.status.failureDomains\n" +
+				"  * MachineDeployment md1 creation deferred until the requested failure domain(s) are reported\n" +
+				"  * MachinePool mp1 creation deferred until the requested failure domain(s) are reported",
+			wantConditionStatus: metav1.ConditionFalse,
+			wantConditionReason: clusterv1.ClusterTopologyReconciledWaitingForFailureDomainsReason,
+			wantConditionMessage: "Cluster topology is waiting for failure domains to be reported in Cluster.status.failureDomains\n" +
+				"  * MachineDeployment md1 creation deferred until the requested failure domain(s) are reported\n" +
+				"  * MachinePool mp1 creation deferred until the requested failure domain(s) are reported",
+		},
+
 		{
 			name:         "should set the condition to true if cluster is not upgrading",
 			reconcileErr: nil,

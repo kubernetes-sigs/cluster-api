@@ -1,10 +1,11 @@
-# Experimental Feature: ClusterClass (alpha)
+# ClusterClass
+
+> [!IMPORTANT]
+> The `ClusterTopology` feature flag must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
 
 The ClusterClass feature introduces a new way to create clusters which reduces boilerplate and enables flexible and powerful customization of clusters.
-ClusterClass is a powerful abstraction implemented on top of existing interfaces and offers a set of tools and operations to streamline cluster lifecycle management while maintaining the same underlying API.
-
-> [!WARNING]
-> In order to use the ClusterClass (alpha) experimental feature the Kubernetes Version for the management cluster must be >= 1.22.0.
+ClusterClass is a powerful abstraction implemented on top of existing abstractions and offers a set of tools and operations to streamline cluster lifecycle management while maintaining the same underlying API.
 
 **Feature gate name**: `ClusterTopology`
 
@@ -22,5 +23,5 @@ Additional documentation:
     * [Operating a managed Cluster](./operate-cluster.md)
 
 <!-- links -->
-[Quick Start guide]: ../../../user/quick-start.md
-[clusterctl Provider contract]: ../../../developer/providers/contracts/clusterctl.md
+[Quick Start guide]: ../../user/quick-start.md
+[clusterctl Provider contract]: ../../developer/providers/contracts/clusterctl.md

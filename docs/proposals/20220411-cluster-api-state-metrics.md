@@ -11,7 +11,7 @@ reviewers:
   - "@fabriziopandini"
 creation-date: 2022-03-03
 last-updated: 2022-09-07
-status: experimental
+status: implemented
 ---
 
 # Cluster API State Metrics

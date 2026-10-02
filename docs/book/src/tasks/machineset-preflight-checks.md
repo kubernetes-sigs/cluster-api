@@ -1,4 +1,8 @@
-# Experimental Feature: MachineSetPreflightChecks (beta)
+# MachineSetPreflightChecks
+
+> [!IMPORTANT]
+> The `MachineSetPreflightChecks` feature gate must be set to true in order to use this feature.
+> See [Feature Gates](../reference/feature-gates.md) for more details.
 
 The `MachineSetPreflightChecks` feature can provide additional safety while creating new Machines and remediating existing unhealthy Machines of a MachineSet.
 
@@ -69,7 +73,7 @@ Examples:
 > [!TIP]
 > **Pro-tip: Set annotation through MachineDeployment**
 >
-> Because of the [metadata propagation](../../reference/api/metadata-propagation.md#machinedeployment) rules in Cluster API you can set the `machineset.cluster.x-k8s.io/skip-preflight-checks` annotation 
+> Because of the [metadata propagation](../reference/api/metadata-propagation.md#machinedeployment) rules in Cluster API you can set the `machineset.cluster.x-k8s.io/skip-preflight-checks` annotation 
 > on a MachineDeployment and it will be automatically set on the MachineSets of that MachineDeployment, including any new MachineSets created when the MachineDeployment performs a rollout.
 >
 > Please note that if the annotation is set both on a MachineDeployment and on MachineSets the MachineDeployment controller 

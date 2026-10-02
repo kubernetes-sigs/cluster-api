@@ -33,7 +33,7 @@
     force = true
 
 [[headers]]
-    for = "/tasks/experimental-features/runtime-sdk/runtime-sdk-openapi.yaml"
+    for = "/developer/runtime-extensions/runtime-sdk-openapi.yaml"
     [headers.values]
         Access-Control-Allow-Origin = "*"
         Access-Control-Allow-Methods = "*"

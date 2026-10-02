@@ -24,8 +24,7 @@ See [Cluster API release vs contract versions](../../../reference/versions.md#cl
 - Addon Providers
   - [Cluster API Add-On Orchestration](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220712-cluster-api-addon-orchestration.md)
 
-- Runtime Extensions Providers
-  - [Experimental Feature: Runtime SDK (alpha)](https://cluster-api.sigs.k8s.io/tasks/experimental-features/runtime-sdk/)
+- [Runtime Extensions Providers](../../runtime-extensions/index.md)
   
 Additional rules must be considered for a provider to work with the [clusterctl CLI](clusterctl.md).
 

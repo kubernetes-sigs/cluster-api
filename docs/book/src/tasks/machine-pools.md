@@ -1,8 +1,8 @@
-# Experimental Feature: MachinePool (beta)
+# MachinePool
 
-**Feature gate name**: `MachinePool`
-
-**Variable name to enable/disable the feature gate**: `EXP_MACHINE_POOL`
+> [!IMPORTANT]
+> The `MachinePool` feature gate must be set to true in order to use this feature.
+> See [Feature Gates](../reference/feature-gates.md) for more details.
 
 ## Introduction
 
@@ -65,7 +65,7 @@ While powerful, MachinePool comes with tradeoffs:
   > **Example**: AWS allows `AWSMachinepool.spec.mixedInstancesPolicy.instancesDistribution` while Azure allows `AzureMachinePool.spec.orchestrationMode`.
 - **Complex reconciliation**: node-to-providerID matching introduces edge cases (delays, inconsistent states).
 - **Draining**: The cloud resources for MachinePool may not necessarily support draining of Kubernetes worker nodes. For example, with an AWSMachinePool, AWS would normally terminate instances as quickly as possible. To solve this, tools like `aws-node-termination-handler` combined with ASG lifecycle hooks (defined in `AWSMachine.spec.lifecycleHooks`) must be installed, and is not a built-in feature of the infrastructure provider (CAPA in this example).
-- **Maturity**: The MachinePool API is still considered experimental/beta.
+- **Maturity**: The MachinePool API is still considered a beta feature.
 
 ## When to use MachinePool vs MachineDeployment
 
@@ -80,7 +80,7 @@ Both MachineDeployment and MachinePool are valid options for managing worker nod
 
 - **The provider does not support scaling groups**: Common in environments such as bare metal, vSphere, or Docker.
 - **You need fine-grained per-machine control**: MachineDeployments allow unique bootstrap configurations, labels, and taints across different MachineSets.
-- **You prefer maturity and portability**: MachineDeployment is stable, GA, and supported across all providers. MachinePool remains experimental in some implementations.
+- **You prefer maturity and portability**: MachineDeployment is stable, GA, and supported across all providers. MachinePool is still a beta feature in core Cluster API and level of maturity across different implementations might be different.
 
 ## Enabling MachinePool
 
@@ -117,4 +117,4 @@ Providers may support the deletion of single machine pool `Machine` objects. Tha
 ## Additional Resources
 
 - **Design Document**: [MachinePool CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20190919-machinepool-api.md)
-- **Developer Documentation**: [MachinePool Controller](./../../developer/core/controllers/machine-pool.md)
+- **Developer Documentation**: [MachinePool Controller](../developer/core/controllers/machine-pool.md)

@@ -1,12 +1,14 @@
-# Experimental Feature: Runtime SDK (alpha)
+# Runtime Extensions
+
+> [!IMPORTANT]
+> The `RuntimeSDK` feature flag must be set to true in order to use this feature;
+> please check documentation of different set of hooks to check if additional feature flags are required. 
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
 
 The Runtime SDK feature provides an extensibility mechanism that allows systems, products, and services built on top of Cluster API to hook into a workload cluster’s lifecycle.
 
 > [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
-
-> [!IMPORTANT]
-> All currently implemented hooks except for [In-Place Update Hooks](./implement-in-place-update-hooks.md) require to also enable the [ClusterClass](../cluster-class/index.md) feature, and are only invoked for Clusters created using ClusterClass.
 
 **Feature gate name**: `RuntimeSDK`
 

@@ -1,5 +1,9 @@
 # Changing a ClusterClass
 
+> [!IMPORTANT]
+> The `ClusterTopology` feature flag must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
+
 ## Selecting a strategy
 
 When planning a change to a ClusterClass, users should always take into consideration
@@ -47,7 +51,7 @@ a template referenced in a ClusterClass users should also always plan for how th
 change should be propagated to the existing Clusters and choose the strategy that best
 suits expectations.
 
-According to the [Cluster API operational practices](../../updating-machine-templates.md),
+According to the [Cluster API operational practices](../updating-machine-templates.md),
 the recommended way for updating templates is by template rotation:
 - Create a new template
 - Update the template reference in the ClusterClass

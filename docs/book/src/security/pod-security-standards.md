@@ -51,7 +51,7 @@ spec:
 
 The following snippet contains the patch to be added to the ClusterClass.
 
-Due to [limitations of ClusterClass with patches](../tasks/experimental-features/cluster-class/write-clusterclass.md#json-patches-tips--tricks) there are two versions for this patch.
+Due to [limitations of ClusterClass with patches](../tasks/cluster-class/write-clusterclass.md#json-patches-tips--tricks) there are two versions for this patch.
 
 {{#tabs name:"tab-configuration-patches" tabs:"Add to existing slice,Create slice"}}
 {{#tab Append}}

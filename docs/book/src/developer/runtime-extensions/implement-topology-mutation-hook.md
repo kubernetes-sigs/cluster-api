@@ -1,4 +1,11 @@
-# Implementing Topology Mutation Hook Runtime Extensions
+# Implementing Topology Mutation Hooks
+
+> [!IMPORTANT]
+> Both the `RuntimeSDK` and the `ClusterTopology` feature gates must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
+
+> [!IMPORTANT]
+> Topology mutation hooks are only invoked for Clusters created using ClusterClass.
 
 > [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
@@ -15,7 +22,7 @@ Three different hooks are called as part of Topology Mutation - two in the Clust
 **ClusterClass reconciliation**
 * **DiscoverVariables**: DiscoverVariables is responsible for providing variable definitions for a specific external patch.
 
-![Cluster topology reconciliation](../../../images/runtime-sdk-topology-mutation.png)
+![Cluster topology reconciliation](../../images/runtime-sdk-topology-mutation.png)
 
 Please see the corresponding [CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220330-topology-mutation-hook.md)
 for additional background information.

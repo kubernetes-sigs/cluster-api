@@ -44,7 +44,7 @@ RUNTIME_OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN))
 
 runtimesdk-yaml:
 	$(MAKE) -C $(ROOT_DIR)/../../ $(RUNTIME_OPENAPI_GEN_BIN)
-	$(RUNTIME_OPENAPI_GEN) --version book --output-file ./src/tasks/experimental-features/runtime-sdk/runtime-sdk-openapi.yaml
+	$(RUNTIME_OPENAPI_GEN) --version book --output-file ./src/developer/runtime-extensions/runtime-sdk-openapi.yaml
 
 BOOK_DEPS := runtimesdk-yaml
 

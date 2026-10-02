@@ -128,7 +128,7 @@ Below is a description for the Runtime Hooks introduced by this proposal.
 
 ![runtime-hooks](images/lifecycle-hooks/lifecycle-hooks.png)
 
-The remainder of this section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md#definitions)
+The remainder of this section has been moved to the Cluster API [book](../../docs/book/src/developer/runtime-extensions/implement-lifecycle-hooks.md#definitions)
 to avoid duplication.
 
 Note: Following change will be applied to the hooks with the ongoing work for [Chained and efficient upgrades](./20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md); the
@@ -371,7 +371,7 @@ retryAfterSeconds: 10
 
 ###  Runtime Extensions developer guide
 
-This section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md#guidelines)
+This section has been moved to the Cluster API [book](../../docs/book/src/developer/runtime-extensions/implement-lifecycle-hooks.md#guidelines)
 to avoid duplication.
 
 ###  Security Model

@@ -1,4 +1,11 @@
-# Implementing Lifecycle Hook Runtime Extensions
+# Implementing Lifecycle Hook Hooks
+
+> [!IMPORTANT]
+> Both the `RuntimeSDK` and the `ClusterTopology` feature gates must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
+
+> [!IMPORTANT]
+> Lifecycle hooks are only invoked for Clusters created using ClusterClass.
 
 > [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
@@ -7,7 +14,7 @@
 
 The lifecycle hooks allow hooking into the Cluster lifecycle. The following diagram provides an overview:
 
-![Lifecycle Hooks overview](../../../images/runtime-sdk-lifecycle-hooks.png)
+![Lifecycle Hooks overview](../../images/runtime-sdk-lifecycle-hooks.png)
 
 Please see the corresponding [CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220414-lifecycle-hooks.md) as well as the proposal for [Chained and efficient upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)
 for additional background information.

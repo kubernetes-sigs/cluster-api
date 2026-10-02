@@ -1,5 +1,11 @@
 # Operating a managed Cluster
 
+> [!IMPORTANT]
+> The `ClusterTopology` feature flag must be set to true in order to use this feature.
+> See [Feature Gates](../../reference/feature-gates.md) for more details.
+
+## Introduction
+
 The `spec.topology` field added to the Cluster object as part of ClusterClass allows changes made on the Cluster to be propagated across all relevant objects. This means the Cluster object can be used as a single point of control for making changes to objects that are part of the Cluster, including the ControlPlane and MachineDeployments. 
 
 ## Upgrade a Cluster
@@ -221,7 +227,7 @@ Following recommendation apply:
   from one machine to the other.
 - Keep machine labels and annotation stable, because changing those values requires machines rollouts;
   also, please note that machine labels and annotation are not propagated to Kubernetes nodes; see
-  [metadata propagation](../../../reference/api/metadata-propagation.md).
+  [metadata propagation](../../reference/api/metadata-propagation.md).
 - While upgrading a Cluster, if possible avoid any other concurrent change to the Cluster; please note
   that you can rely on [version-aware patches](write-clusterclass.md#version-aware-patches) to ensure
   the Cluster adapts to the new Kubernetes version in sync with the upgrade workflow.
@@ -351,6 +357,6 @@ spec:
 > If external patches are used in the ClusterClass, it has to be ensured that all external patches support the new apiVersion 
 > before bumping apiVersions.
 
-[Quick Start guide]: ../../../user/quick-start.md
+[Quick Start guide]: ../../user/quick-start.md
 [ClusterClass rebase]: ./change-clusterclass.md#rebase
 [Changing a ClusterClass]: ./change-clusterclass.md

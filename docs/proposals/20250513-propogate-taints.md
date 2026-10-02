@@ -464,7 +464,7 @@ This should be done similar to how the existing in-place mutable fields like `Re
 
 ##### Changes to the cluster-autoscaler
 
-The cluster-autoscaler implementation for CAPI as of today consumes the `capacity.cluster-autoscaler.kubernetes.io/taints` (see [Pre-defined labels and taints on nodes scaled from zero](https://cluster-api.sigs.k8s.io/tasks/automated-machine-management/autoscaling#pre-defined-labels-and-taints-on-nodes-scaled-from-zero)).
+The cluster-autoscaler implementation for CAPI as of today consumes the `capacity.cluster-autoscaler.kubernetes.io/taints` (see [Pre-defined labels and taints on nodes scaled from zero](https://cluster-api.sigs.k8s.io/user/guide/lifecycle/machine-management/autoscaling#pre-defined-labels-and-taints-on-nodes-scaled-from-zero)).
 
 It should be adjusted to also consider the configured taints.
 

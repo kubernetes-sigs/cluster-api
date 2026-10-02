@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 > The `ClusterTopology` feature flag must be set to true in order to use this feature.
-> See [Feature Gates](../../reference/feature-gates.md) for more details.
+> See [Feature Gates](../../../../reference/feature-gates.md) for more details.
 
 ## Introduction
 

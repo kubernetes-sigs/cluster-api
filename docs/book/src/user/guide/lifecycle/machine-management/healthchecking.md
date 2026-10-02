@@ -224,4 +224,4 @@ Before deploying a MachineHealthCheck, please familiarise yourself with the foll
   are recommended to manually forward leadership to another etcd member and manually delete the corresponding machine.
 
 <!-- links -->
-[management cluster]: ../../reference/glossary.md#management-cluster
+[management cluster]: ../../../../reference/glossary.md#management-cluster

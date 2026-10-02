@@ -52,5 +52,5 @@ Changes to the following fields of KubeadmControlPlane are propagated in-place t
 Note: Changes to these fields will not be propagated to Machines, InfraMachines and KubeadmConfigs that are marked for deletion (example: because of scale down).
 
 <!-- links -->
-[upgrades]: ../upgrading-clusters.md#how-to-upgrade-the-kubernetes-control-plane-version
-[upgrade-coredns]: ../upgrading-clusters.md#how-to-upgrade-coredns
+[upgrades]: ../../../lifecycle/upgrading-clusters.md#how-to-upgrade-the-kubernetes-control-plane-version
+[upgrade-coredns]: ../../../lifecycle/upgrading-clusters.md#how-to-upgrade-coredns

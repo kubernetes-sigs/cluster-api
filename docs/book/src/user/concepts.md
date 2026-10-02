@@ -40,7 +40,7 @@ spec:
 ```
 
 In most recent versions of Cluster API, the Cluster object can be used as a single point of control for the entire cluster.
-See [ClusterClass](../tasks/cluster-class)
+See [ClusterClass](guide/configuration/cluster-class)
 
 ### Machine
 
@@ -138,7 +138,7 @@ A MachineDeployment works similarly to a core Kubernetes [Deployment](https://ku
 
 ### MachinePool
 
-A MachinePool is a declarative spec for a group of Machines. It is similar to a MachineDeployment, but is specific to a particular Infrastructure Provider. For more information, please check out [MachinePool](../tasks/machine-pools.md).
+A MachinePool is a declarative spec for a group of Machines. It is similar to a MachineDeployment, but is specific to a particular Infrastructure Provider. For more information, please check out [MachinePool](guide/lifecycle/machine-management/machine-pools.md).
 
 ### MachineSet
 

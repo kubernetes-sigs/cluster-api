@@ -2,12 +2,12 @@
 
 Pod Security Admission allows applying [Pod Security Standards] during creation of pods at the cluster level.
 
-The flavor `development-topology` for the Docker provider used in [Quick Start](../user/quick-start.md) already includes a basic Pod Security Standard configuration.
+The flavor `development-topology` for the Docker provider used in [Quick Start](../../quick-start.md) already includes a basic Pod Security Standard configuration.
 It is using ClusterClass variables and patches to inject the configuration.
 
 ## Adding a basic Pod Security Standards configuration to a ClusterClass
 
-By adding the following variables and patches Pod Security Standards can be added to every ClusterClass which references a [Kubeadm based control plane](../tasks/control-plane/kubeadm-control-plane.md).
+By adding the following variables and patches Pod Security Standards can be added to every ClusterClass which references a [Kubeadm based control plane](../configuration/control-plane/kubeadm-control-plane/index.md).
 
 ### Adding the variables to a ClusterClass
 
@@ -51,7 +51,7 @@ spec:
 
 The following snippet contains the patch to be added to the ClusterClass.
 
-Due to [limitations of ClusterClass with patches](../tasks/cluster-class/write-clusterclass.md#json-patches-tips--tricks) there are two versions for this patch.
+Due to [limitations of ClusterClass with patches](../configuration/cluster-class/write-clusterclass.md#json-patches-tips--tricks) there are two versions for this patch.
 
 {{#tabs name:"tab-configuration-patches" tabs:"Add to existing slice,Create slice"}}
 {{#tab Append}}

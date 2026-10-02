@@ -839,7 +839,7 @@ Control Plane providers are expected to create and maintain a Kubeconfig secret 
 workload cluster.
 
 Such secret might be used also by operators to gain initial access to the cluster, but this secret MUST not be shared
-with other users or applications build on top of Cluster API. Instead, follow instruction in [Certificate Management](https://cluster-api.sigs.k8s.io/tasks/certs/)
+with other users or applications build on top of Cluster API. Instead, follow instruction in [Certificate Management](https://cluster-api.sigs.k8s.io/user/guide/configuration/control-plane/kubeadm-control-plane/using-custom-certificates)
 to create custom certificates for additional users or other applications.
 
 The kubeconfig secret MUST:
@@ -963,7 +963,7 @@ is implemented in ControlPlane controllers:
 [ControlPlane: terminal failures]: #controlplane-terminal-failures 
 [ControlPlaneTemplate, ControlPlaneTemplateList resource definition]: #controlplanetemplate-controlplanetemplatelist-resource-definition
 [Cluster kubeconfig management]: #cluster-kubeconfig-management
-[Certificate Management]: https://cluster-api.sigs.k8s.io/tasks/certs/
+[Certificate Management]: https://cluster-api.sigs.k8s.io/user/guide/configuration/control-plane/kubeadm-control-plane/using-custom-certificates
 [Cluster certificate management]: #cluster-certificate-management
 [Machine placement]: #machine-placement
 [Metadata propagation]: #metadata-propagation

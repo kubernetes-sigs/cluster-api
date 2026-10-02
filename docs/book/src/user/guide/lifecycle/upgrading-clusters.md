@@ -5,9 +5,9 @@
 ### Supported versions of Kubernetes
 
 If you are upgrading the version of Kubernetes for a cluster managed by Cluster API, check that the [running version of
-Cluster API on the Management Cluster supports the target Kubernetes version](../reference/versions.md).
+Cluster API on the Management Cluster supports the target Kubernetes version](../../../reference/versions.md).
 
-You may need to [upgrade the version of Cluster API](upgrading-cluster-api-versions.md) in order to support the target
+You may need to [upgrade the version of Cluster API](../providers/upgrading-cluster-api-versions.md) in order to support the target
 Kubernetes version.
 
 In addition, you must always upgrade between Kubernetes minor versions in sequence, e.g. if you need to upgrade from
@@ -67,11 +67,11 @@ spec:
         imageTag: v1.14.6
 ```
 
-See [CoreDNS Support](../reference/versions.md#coredns-support) for how to
+See [CoreDNS Support](../../../reference/versions.md#coredns-support) for how to
 determine the maximum CoreDNS version supported by a given Cluster API release.
 If you'd rather manage CoreDNS yourself, or with another tool, you can have KCP
 skip reconciling it entirely by adding the
-[`controlplane.cluster.x-k8s.io/skip-coredns`](../reference/api/labels-and-annotations.md)
+[`controlplane.cluster.x-k8s.io/skip-coredns`](../../../reference/api/labels-and-annotations.md)
 annotation to the `KubeadmControlPlane` resource.
 
 For more context and discussion about this behavior, see
@@ -122,5 +122,5 @@ Only values allowed are of type Int or Strings with an integer and percentage sy
 Changes are rolled out driven by the user or any entity deleting the old `Machines`. Only when a `Machine` is fully deleted a new one will come up.
 
 For a more in-depth look at how `MachineDeployments` manage scaling events, take a look at the [`MachineDeployment`
-controller documentation](../developer/core/controllers/machine-deployment.md) and the [`MachineSet` controller
-documentation](../developer/core/controllers/machine-set.md).
+controller documentation](../../../developer/core/controllers/machine-deployment.md) and the [`MachineSet` controller
+documentation](../../../developer/core/controllers/machine-set.md).

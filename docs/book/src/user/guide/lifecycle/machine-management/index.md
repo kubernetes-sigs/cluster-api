@@ -6,3 +6,5 @@ This section details some tasks related to automated Machine management.
 - [Autoscaling](./autoscaling.md)
 - [Healthchecking](./healthchecking.md)
 - [Machine deletion process](./machine_deletions.md)
+- [MachinePools](./machine-pools.md)
+- [MachineSetPreflightChecks](./machineset-preflight-checks.md)

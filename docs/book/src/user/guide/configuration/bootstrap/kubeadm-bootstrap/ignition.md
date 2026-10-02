@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 > The `KubeadmBootstrapFormatIgnition` feature gate must be set to true in order to use this feature.
-> See [Feature Gates](../reference/feature-gates.md) for more details.
+> See [Feature Gates](../../../../../reference/feature-gates.md) for more details.
 
 The default configuration engine for bootstrapping workload cluster machines is [cloud-init](https://cloudinit.readthedocs.io/). **Ignition** is an alternative engine used by Linux distributions such as [Flatcar Container Linux](https://www.flatcar.org/docs/latest/provisioning/ignition/) and [Fedora CoreOS](https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/) and therefore should be used when choosing an Ignition-based distribution as the underlying OS for workload clusters.
 
@@ -26,9 +26,9 @@ This guide explains how to deploy an AWS workload cluster using Ignition.
 
 ## Configure a management cluster
 
-Follow [this](../user/quick-start.md#install-andor-configure-a-kubernetes-cluster) section of the quick start guide to deploy a Kubernetes cluster or connect to an existing one.
+Follow [this](../../../../quick-start.md#install-andor-configure-a-kubernetes-cluster) section of the quick start guide to deploy a Kubernetes cluster or connect to an existing one.
 
-Follow [this](../user/quick-start.md#install-clusterctl) section of the quick start guide to install `clusterctl`.
+Follow [this](../../../../quick-start.md#install-clusterctl) section of the quick start guide to install `clusterctl`.
 
 ## Initialize the management cluster
 
@@ -169,7 +169,7 @@ kubectl delete cluster ignition-cluster
 
 ### Supported infrastructure providers
 
-Cluster API has multiple [infrastructure providers](../user/concepts.md#infrastructure-provider) which can be used to deploy workload clusters.
+Cluster API has multiple [infrastructure providers](../../../../concepts.md#infrastructure-provider) which can be used to deploy workload clusters.
 
 The following infrastructure providers already have Ignition support:
 

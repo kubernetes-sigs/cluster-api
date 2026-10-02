@@ -356,7 +356,7 @@ To look up the max supported CoreDNS version of a specific Cluster API version:
 Note: unlike `kubeadm upgrade`, the Kubeadm Control Plane provider does not automatically upgrade CoreDNS to a new
 default version as part of a Kubernetes upgrade. CoreDNS is only reconciled when the target version is explicitly
 set in `KubeadmControlPlane.spec.kubeadmConfigSpec.clusterConfiguration.dns.imageTag`. See
-[How to upgrade CoreDNS](../tasks/upgrading-clusters.md#how-to-upgrade-coredns) for more details.
+[How to upgrade CoreDNS](../user/guide/lifecycle/upgrades.md#how-to-upgrade-coredns) for more details.
 
 ### Other providers
 

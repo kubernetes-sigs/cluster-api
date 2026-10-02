@@ -69,7 +69,7 @@ cluster-wide topology version (`Cluster.spec.topology.version`) and upgrades the
 coupled, controller-driven sequence. While an MD/MP is waiting to take its version step, the
 topology controller defers that MD/MP's config changes and topology-driven scaling so they roll
 out together with the version bump, avoiding a double rollout (the `IsPendingUpgrade`
-early-return in [`reconcile_state.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/topology/cluster/reconcile_state.go);
+early-return in [`reconcile_state.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/core/reconcilers/topology/cluster/reconcile_state.go);
 machine remediation via MachineHealthCheck is deliberately exempt from this freeze). For
 multi-minor upgrades the control plane advances one minor at a time and pauses before any step
 that would exceed the version skew policy until workers catch up; workers themselves can skip
@@ -220,7 +220,7 @@ standard guide for adding a new field to an existing API version.
 - **Version-aware patches:** patches keep working for pinned MD/MPs with no change to the patch
   engine. The `builtin.machineDeployment.version` / `builtin.machinePool.version` variables are
   already sourced from the desired MD/MP object's `spec.template.spec.version`
-  ([`variables.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/topology/cluster/patches/variables/variables.go)),
+  ([`variables.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/core/reconcilers/topology/cluster/patches/variables/variables.go)),
   which the topology controller computes in `computeMachineDeploymentVersion` /
   `computeMachinePoolVersion`. Once those functions target the pinned version for a pinned MD/MP,
   patches automatically render with that version. This is why version-aware patches are a goal,
@@ -231,7 +231,7 @@ independently. kubeadm requires the kubeadm binary to match the control plane ve
 groundwork in [#13433](https://github.com/kubernetes-sigs/cluster-api/pull/13433) does not
 itself download a binary; it exposes the control plane version to bootstrap `spec.files` as a
 `{{ .controlPlane.version }}` template variable (rendered by `templateData`/`renderTemplates`
-in [`bootstrap/kubeadm/internal/controllers/template.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/bootstrap/kubeadm/internal/controllers/template.go),
+in [`bootstrap/kubeadm/reconcilers/kubeadmconfig/template.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/bootstrap/kubeadm/reconcilers/kubeadmconfig/template.go),
 sourced from the control plane by `getControlPlaneVersion`; enabled by
 `FileContentFormat: Template` in
 [`kubeadmconfig_types.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/api/bootstrap/kubeadm/v1beta2/kubeadmconfig_types.go)).
@@ -321,7 +321,7 @@ Skew between MD/MPs and the control plane is bounded by the
 [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/), enforced
 at admission by the validating webhooks and backstopped by the existing MachineSet preflight
 checks (`KubeadmVersionSkew`, `ControlPlaneVersionSkew` in
-[`machineset_preflight.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/controllers/machineset/machineset_preflight.go)).
+[`machineset_preflight.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/core/reconcilers/machineset/machineset_preflight.go)).
 The kubeadm-specific constraint (the kubeadm binary must match the control plane version) is
 covered by the Key prerequisite above and is not solved in core Cluster API by this proposal.
 

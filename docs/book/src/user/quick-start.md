@@ -47,11 +47,11 @@ a target [management cluster] on the selected [infrastructure provider].
    >
    > **Minimum [kind] supported version**: v0.32.0
    >
-   > **Help with common issues can be found in the [Troubleshooting Guide](./troubleshooting.md).**
+   > **Help with common issues can be found in the [Troubleshooting Guide](guide/troubleshooting.md).**
    >
    > Note for macOS users: you may need to [increase the memory available](https://docs.docker.com/docker-for-mac/#resources) for containers (recommend 6 GB for CAPD).
    >
-   > Note for Linux users: you may need to [increase `ulimit` and `inotify` when using Docker (CAPD)](./troubleshooting.md#cluster-api-with-docker----too-many-open-files).
+   > Note for Linux users: you may need to [increase `ulimit` and `inotify` when using Docker (CAPD)](guide/troubleshooting.md#cluster-api-with-docker----too-many-open-files).
 
    [kind] can be used for creating a local Kubernetes cluster for development environments or for
    the creation of a temporary [bootstrap cluster] used to provision a target [management cluster] on the selected infrastructure provider.
@@ -1082,7 +1082,7 @@ export POD_CIDR=["192.168.0.0/16"]
 export SERVICE_DOMAIN="k8s.test"
 ```
 
-It is also possible but **not recommended** to disable the per-default enabled [Pod Security Standard](../security/pod-security-standards.md):
+It is also possible but **not recommended** to disable the per-default enabled [Pod Security Standard](guide/security/pod-security-standards.md):
 ```bash
 export POD_SECURITY_STANDARD_ENABLED="false"
 ```

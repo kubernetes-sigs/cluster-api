@@ -42,7 +42,7 @@ In order to create a kubeconfig secret, it is required to have a certificate aut
 If you are using the kubeadm bootstrap provider you do not have to provide any Cluster API secrets. It will generate
 all necessary CAs for you.
 
-As alternative users can provide custom CA as described in [Using Custom Certificates](../../../tasks/certs/using-custom-certificates.md).
+As alternative users can provide custom CA as described in [Using Custom Certificates](../../../user/guide/configuration/control-plane/using-custom-certificates.md).
 
 Last option, is to entirely bypass Cluster API kubeconfig generation by providing a kubeconfig secret
 formatted as described below.

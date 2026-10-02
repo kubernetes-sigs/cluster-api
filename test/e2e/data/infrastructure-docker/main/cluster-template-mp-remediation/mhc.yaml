@@ -1,0 +1,21 @@
+---
+# MachineHealthCheck object with
+# - a selector that targets all the machines with label e2e.remediation.label=""
+# - unhealthyNodeConditions triggering remediation after 10s the condition is set
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineHealthCheck
+metadata:
+  name: "${CLUSTER_NAME}-mhc-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  selector:
+    matchLabels:
+      e2e.remediation.label: ""
+  checks:
+    unhealthyNodeConditions:
+      - type: e2e.remediation.condition
+        status: "False"
+        timeoutSeconds: 10
+  remediation:
+    triggerIf:
+      unhealthyLessThanOrEqualTo: 100%

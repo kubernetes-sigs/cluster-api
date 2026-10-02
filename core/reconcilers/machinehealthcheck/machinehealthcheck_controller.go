@@ -50,8 +50,10 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
@@ -85,8 +87,10 @@ var (
 
 // Reconciler reconciles a MachineHealthCheck object.
 type Reconciler struct {
-	Client       client.Client
-	ClusterCache clustercache.ClusterCache
+	Client                client.Client
+	ClusterCache          clustercache.ClusterCache
+	ProgramCache          cache.Cache[cel.ProgramEntry]
+	expressionResultCache cache.Cache[cel.ExpressionResultEntry]
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -104,7 +108,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.New("Client and ClusterCache must not be nil")
 	}
 
-	rateLimit := 15 * time.Second
+	rateLimit := 30 * time.Second
 	if r.overrideRateLimit != time.Duration(0) {
 		rateLimit = r.overrideRateLimit
 	}
@@ -138,6 +142,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
+	r.expressionResultCache = cache.New[cel.ExpressionResultEntry](ctx, 30*time.Minute)
 	return nil
 }
 
@@ -238,9 +243,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	return r.reconcile(ctx, log, cluster, mhc)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster, mhc *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
 	// Ensure the MachineHealthCheck is owned by the Cluster it belongs to
-	m.SetOwnerReferences(util.EnsureOwnerRef(m.GetOwnerReferences(), metav1.OwnerReference{
+	mhc.SetOwnerReferences(util.EnsureOwnerRef(mhc.GetOwnerReferences(), metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       cluster.Name,
@@ -263,31 +268,34 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 
 	// fetch all targets
 	logger.V(3).Info("Finding targets")
-	targets, err := r.getTargetsFromMHC(ctx, logger, remoteClient, cluster, m)
+	targets, err := r.getTargetsFromMHC(ctx, logger, remoteClient, cluster, mhc)
 	if err != nil {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to fetch targets from MachineHealthCheck")
 	}
 	totalTargets := len(targets)
-	m.Status.ExpectedMachines = ptr.To(int32(totalTargets))
-	m.Status.Targets = make([]string, totalTargets)
+	mhc.Status.ExpectedMachines = ptr.To(int32(totalTargets))
+	mhc.Status.Targets = make([]string, totalTargets)
 	for i, t := range targets {
-		m.Status.Targets[i] = t.Machine.Name
+		mhc.Status.Targets[i] = t.Machine.Name
 	}
-	// do sort to avoid keep changing m.Status as the returned machines are not in order
-	sort.Strings(m.Status.Targets)
+	// do sort to avoid keep changing mhc.Status as the returned machines are not in order
+	sort.Strings(mhc.Status.Targets)
 
-	nodeStartupTimeout := m.Spec.Checks.NodeStartupTimeoutSeconds
+	nodeStartupTimeout := mhc.Spec.Checks.NodeStartupTimeoutSeconds
 	if nodeStartupTimeout == nil {
 		nodeStartupTimeout = &clusterv1.DefaultNodeStartupTimeoutSeconds
 	}
 
 	// health check all targets and reconcile mhc status
 	reconciliationTime := time.Now()
-	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, reconciliationTime, metav1.Duration{Duration: time.Duration(*nodeStartupTimeout) * time.Second})
-	m.Status.CurrentHealthy = ptr.To(int32(len(healthy)))
+	healthy, unhealthy, nextChecks, err := r.healthCheckTargets(targets, logger, reconciliationTime, metav1.Duration{Duration: time.Duration(*nodeStartupTimeout) * time.Second})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	mhc.Status.CurrentHealthy = ptr.To(int32(len(healthy)))
 
 	// check MHC current health against UnhealthyLessThanOrEqualTo
-	remediationAllowed, remediationCount, err := isAllowedRemediation(m)
+	remediationAllowed, remediationCount, err := isAllowedRemediation(mhc)
 	if err != nil {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "error checking if remediation is allowed")
 	}
@@ -295,8 +303,8 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	if !remediationAllowed {
 		var message string
 
-		if m.Spec.Remediation.TriggerIf.UnhealthyInRange == "" {
-			maxUnhealthyValue := ptr.To(ptr.Deref(m.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String()
+		if mhc.Spec.Remediation.TriggerIf.UnhealthyInRange == "" {
+			maxUnhealthyValue := ptr.To(ptr.Deref(mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String()
 			logger.V(3).Info(
 				"Short-circuiting remediation",
 				totalTargetKeyLog, totalTargets,
@@ -311,18 +319,18 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 			logger.V(3).Info(
 				"Short-circuiting remediation",
 				totalTargetKeyLog, totalTargets,
-				unhealthyRangeKeyLog, m.Spec.Remediation.TriggerIf.UnhealthyInRange,
+				unhealthyRangeKeyLog, mhc.Spec.Remediation.TriggerIf.UnhealthyInRange,
 				unhealthyTargetsKeyLog, len(unhealthy),
 			)
 			message = fmt.Sprintf("Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: %v, unhealthy: %v, unhealthyRange: %v)",
 				totalTargets,
 				len(unhealthy),
-				m.Spec.Remediation.TriggerIf.UnhealthyInRange)
+				mhc.Spec.Remediation.TriggerIf.UnhealthyInRange)
 		}
 
 		// Remediation not allowed, the number of not started or unhealthy machines either exceeds maxUnhealthy (or) not within unhealthyRange
-		m.Status.RemediationsAllowed = ptr.To[int32](0)
-		v1beta1conditions.Set(m, &clusterv1.Condition{
+		mhc.Status.RemediationsAllowed = ptr.To[int32](0)
+		v1beta1conditions.Set(mhc, &clusterv1.Condition{
 			Type:     clusterv1.RemediationAllowedV1Beta1Condition,
 			Status:   corev1.ConditionFalse,
 			Severity: clusterv1.ConditionSeverityWarning,
@@ -330,7 +338,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 			Message:  message,
 		})
 
-		conditions.Set(m, metav1.Condition{
+		conditions.Set(mhc, metav1.Condition{
 			Type:    clusterv1.MachineHealthCheckRemediationAllowedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyReason,
@@ -340,7 +348,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		// If there are no unhealthy target, skip publishing the `RemediationRestricted` event to avoid misleading.
 		if len(unhealthy) != 0 {
 			r.recorder.Event(
-				m,
+				mhc,
 				corev1.EventTypeWarning,
 				EventRemediationRestricted,
 				message,
@@ -367,50 +375,47 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		if len(errList) > 0 {
 			return ctrl.Result{}, kerrors.NewAggregate(errList)
 		}
+		// TODO: consider also requeuing based on nextCheck here (i.e. even if remediations are not allowed)
 		return reconcile.Result{}, nil
 	}
 
-	if m.Spec.Remediation.TriggerIf.UnhealthyInRange == "" {
+	if mhc.Spec.Remediation.TriggerIf.UnhealthyInRange == "" {
 		logger.V(3).Info(
 			"Remediations are allowed",
 			totalTargetKeyLog, totalTargets,
-			maxUnhealthyKeyLog, ptr.To(ptr.Deref(m.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String(),
+			maxUnhealthyKeyLog, ptr.To(ptr.Deref(mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String(),
 			unhealthyTargetsKeyLog, len(unhealthy),
 		)
 	} else {
 		logger.V(3).Info(
 			"Remediations are allowed",
 			totalTargetKeyLog, totalTargets,
-			unhealthyRangeKeyLog, m.Spec.Remediation.TriggerIf.UnhealthyInRange,
+			unhealthyRangeKeyLog, mhc.Spec.Remediation.TriggerIf.UnhealthyInRange,
 			unhealthyTargetsKeyLog, len(unhealthy),
 		)
 	}
 
 	// Remediation is allowed so unhealthyMachineCount is within unhealthyRange (or) maxUnhealthy - unhealthyMachineCount >= 0
-	m.Status.RemediationsAllowed = ptr.To(remediationCount)
-	v1beta1conditions.MarkTrue(m, clusterv1.RemediationAllowedV1Beta1Condition)
+	mhc.Status.RemediationsAllowed = ptr.To(remediationCount)
+	v1beta1conditions.MarkTrue(mhc, clusterv1.RemediationAllowedV1Beta1Condition)
 
-	conditions.Set(m, metav1.Condition{
+	conditions.Set(mhc, metav1.Condition{
 		Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.MachineHealthCheckRemediationAllowedReason,
 	})
 
-	errList := r.patchUnhealthyTargets(ctx, logger, unhealthy, cluster, m)
-	errList = append(errList, r.patchHealthyTargets(ctx, logger, healthy, m)...)
+	errList := r.patchUnhealthyTargets(ctx, logger, unhealthy, cluster, mhc)
+	errList = append(errList, r.patchHealthyTargets(ctx, logger, healthy, mhc)...)
 
 	// handle update errors
 	if len(errList) > 0 {
-		logger.V(3).Info("Error(s) marking machine, requeuing")
 		return reconcile.Result{}, kerrors.NewAggregate(errList)
 	}
 
-	if minNextCheck := minDuration(nextCheckTimes); minNextCheck > 0 {
-		logger.V(3).Info("Some targets might go unhealthy. Ensuring a requeue happens", "requeueAfter", minNextCheck.Truncate(time.Second).String())
-		return ctrl.Result{RequeueAfter: minNextCheck}, nil
+	if nextCheck := minDuration(nextChecks); nextCheck > 0 {
+		return ctrl.Result{RequeueAfter: nextCheck}, nil
 	}
-
-	logger.V(3).Info("No more targets meet unhealthy criteria")
 
 	return ctrl.Result{}, nil
 }

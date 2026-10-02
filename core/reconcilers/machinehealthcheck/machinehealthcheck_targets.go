@@ -33,8 +33,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -77,7 +79,7 @@ type healthCheckTarget struct {
 //
 // Returns true if remediation is needed, and a duration indicating when to recheck if remediation
 // is not immediately required. The target should be requeued after this duration.
-func (t *healthCheckTarget) needsRemediation(logger logr.Logger, reconciliationTime time.Time, timeoutForMachineToHaveNode metav1.Duration) (bool, time.Duration) {
+func (t *healthCheckTarget) needsRemediation(programCache cache.Cache[cel.ProgramEntry], expressionResultCache cache.Cache[cel.ExpressionResultEntry], logger logr.Logger, reconciliationTime time.Time, timeoutForMachineToHaveNode metav1.Duration) (bool, time.Duration, error) {
 	if annotations.HasRemediateMachine(t.Machine) {
 		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.HasRemediateMachineAnnotationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Marked for remediation via remediate-machine annotation")
 		logger.V(3).Info("Target is marked for remediation via remediate-machine annotation")
@@ -88,7 +90,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, reconciliationT
 			Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationReason,
 			Message: "Health check failed: marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
 		})
-		return true, time.Duration(0)
+		return true, time.Duration(0), nil
 	}
 
 	// Don't penalize any Machine/Node if the control plane has not been initialized
@@ -96,14 +98,14 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, reconciliationT
 	if !conditions.IsTrue(t.Cluster, clusterv1.ClusterControlPlaneInitializedCondition) && !util.IsControlPlaneMachine(t.Machine) {
 		logger.V(5).Info("Not evaluating target health because the control plane has not yet been initialized")
 		// Return a nextCheck time of 0 because we'll get requeued when the Cluster is updated.
-		return false, 0
+		return false, 0, nil
 	}
 
 	// Don't penalize any Machine/Node if the cluster infrastructure is not ready.
 	if !conditions.IsTrue(t.Cluster, clusterv1.ClusterInfrastructureReadyCondition) {
 		logger.V(5).Info("Not evaluating target health because the cluster infrastructure is not ready")
 		// Return a nextCheck time of 0 because we'll get requeued when the Cluster is updated.
-		return false, 0
+		return false, 0, nil
 	}
 
 	// Check machine conditions
@@ -112,28 +114,39 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, reconciliationT
 	// Check node conditions
 	nodeConditionReason, nodeV1beta1ConditionReason, unhealthyNodeMessages, nextNodeCheck := t.nodeChecks(logger, reconciliationTime, timeoutForMachineToHaveNode)
 
+	// Evaluate expressions, even if the node has not been set yet (t.Node == nil), so that expressions
+	// which don't depend on the node (e.g. ones only checking machine conditions) can still take effect.
+	unhealthyExpressionsMessages, nextExpressionCheck, err := cel.EvaluateExpressions(programCache, expressionResultCache, t.MHC, t.Node, t.Machine, reconciliationTime)
+	if err != nil {
+		return false, 0, err
+	}
+
+	var nextChecks []time.Duration
+	if nextMachineCheck > 0 {
+		nextChecks = append(nextChecks, nextMachineCheck)
+	}
+	if nextNodeCheck > 0 {
+		nextChecks = append(nextChecks, nextNodeCheck)
+	}
+	if nextExpressionCheck > 0 {
+		nextChecks = append(nextChecks, nextExpressionCheck)
+	}
+	nextCheck := minDuration(nextChecks)
+
 	// Combine results
-	if len(unhealthyMachineMessages) == 0 && len(unhealthyNodeMessages) == 0 {
-		var nextCheckTimes []time.Duration
-		if nextMachineCheck > 0 {
-			nextCheckTimes = append(nextCheckTimes, nextMachineCheck)
-		}
-		if nextNodeCheck > 0 {
-			nextCheckTimes = append(nextCheckTimes, nextNodeCheck)
-		}
-		result := minDuration(nextCheckTimes)
-		return false, result
+	if len(unhealthyMachineMessages) == 0 && len(unhealthyNodeMessages) == 0 && len(unhealthyExpressionsMessages) == 0 {
+		return false, nextCheck, nil
 	}
 
 	reason := nodeConditionReason
 	v1beta1Reason := nodeV1beta1ConditionReason
-	if len(unhealthyMachineMessages) > 0 {
+	if len(unhealthyMachineMessages) > 0 || len(unhealthyExpressionsMessages) > 0 {
 		reason = clusterv1.MachineHealthCheckUnhealthyMachineReason
 		v1beta1Reason = clusterv1.UnhealthyMachineConditionV1Beta1Reason
 	}
 
 	// Combine all messages into a single comprehensive message
-	allMessages := append(unhealthyMachineMessages, unhealthyNodeMessages...)
+	allMessages := append(append(unhealthyMachineMessages, unhealthyNodeMessages...), unhealthyExpressionsMessages...)
 
 	conditionMessage := "Health check failed:\n"
 	for i, m := range allMessages {
@@ -160,12 +173,12 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, reconciliationT
 	}
 	v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, v1beta1Reason, clusterv1.ConditionSeverityWarning, "%s", v1beta1Message)
 
-	return true, time.Duration(0)
+	return true, nextCheck, nil
 }
 
 func (t *healthCheckTarget) machineChecks(logger logr.Logger, reconciliationTime time.Time) ([]string, time.Duration) {
 	var unhealthyMachineMessages []string
-	var nextCheckTimes []time.Duration
+	var nextChecks []time.Duration
 
 	// Always check machine conditions first, regardless of node state
 	for _, c := range t.MHC.Spec.Checks.UnhealthyMachineConditions {
@@ -192,18 +205,18 @@ func (t *healthCheckTarget) machineChecks(logger logr.Logger, reconciliationTime
 		durationUnhealthy := reconciliationTime.Sub(machineCondition.LastTransitionTime.Time)
 		nextCheck := timeoutSecondsDuration - durationUnhealthy + time.Second
 		if nextCheck > 0 {
-			nextCheckTimes = append(nextCheckTimes, nextCheck)
+			nextChecks = append(nextChecks, nextCheck)
 		}
 	}
 
 	if len(unhealthyMachineMessages) > 0 {
 		return unhealthyMachineMessages, time.Duration(0)
 	}
-	return nil, minDuration(nextCheckTimes)
+	return nil, minDuration(nextChecks)
 }
 
 func (t *healthCheckTarget) nodeChecks(logger logr.Logger, reconciliationTime time.Time, timeoutForMachineToHaveNode metav1.Duration) (string, string, []string, time.Duration) {
-	var nextCheckTimes []time.Duration
+	var nextChecks []time.Duration
 
 	// Machine has Status.NodeRef set, although we couldn't find the node in the workload cluster.
 	if t.nodeMissing {
@@ -282,14 +295,14 @@ func (t *healthCheckTarget) nodeChecks(logger logr.Logger, reconciliationTime ti
 		durationUnhealthy := reconciliationTime.Sub(nodeCondition.LastTransitionTime.Time)
 		nextCheck := timeoutSecondsDuration - durationUnhealthy + time.Second
 		if nextCheck > 0 {
-			nextCheckTimes = append(nextCheckTimes, nextCheck)
+			nextChecks = append(nextChecks, nextCheck)
 		}
 	}
 
 	if len(unhealthyNodeMessages) > 0 {
 		return clusterv1.MachineHealthCheckUnhealthyNodeReason, clusterv1.UnhealthyNodeConditionV1Beta1Reason, unhealthyNodeMessages, time.Duration(0)
 	}
-	return "", "", nil, minDuration(nextCheckTimes)
+	return "", "", nil, minDuration(nextChecks)
 }
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
@@ -382,39 +395,45 @@ func (r *Reconciler) getNodeFromMachine(ctx context.Context, clusterClient clien
 
 // healthCheckTargets health checks a slice of targets
 // and gives a data to measure the average health.
-func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, reconciliationTime time.Time, timeoutForMachineToHaveNode metav1.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration) {
-	var nextCheckTimes []time.Duration
+func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, reconciliationTime time.Time, timeoutForMachineToHaveNode metav1.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration, error) {
+	var nextChecks []time.Duration
 	var unhealthy []healthCheckTarget
 	var healthy []healthCheckTarget
 
 	for _, t := range targets {
 		logger := logger.WithValues("Machine", klog.KObj(t.Machine), "Node", klog.KObj(t.Node))
 		logger.V(3).Info("Health checking target")
-		needsRemediation, nextCheck := t.needsRemediation(logger, reconciliationTime, timeoutForMachineToHaveNode)
+		needsRemediation, nextCheck, err := t.needsRemediation(r.ProgramCache, r.expressionResultCache, logger, reconciliationTime, timeoutForMachineToHaveNode)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 
 		if needsRemediation {
 			unhealthy = append(unhealthy, t)
-			continue
 		}
 
 		if nextCheck > 0 {
-			logger.V(2).Info("Target is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second).String())
-			nextCheckTimes = append(nextCheckTimes, nextCheck)
-			continue
+			if !needsRemediation {
+				logger.V(2).Info("Target is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second).String())
+			}
+			nextChecks = append(nextChecks, nextCheck)
 		}
 
 		if t.Machine.DeletionTimestamp.IsZero() && t.Node != nil {
-			v1beta1conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+			if !needsRemediation {
+				// TODO: Let's move setting the HealthCheckSucceeded condition into needsRemediation
+				v1beta1conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
 
-			conditions.Set(t.Machine, metav1.Condition{
-				Type:   clusterv1.MachineHealthCheckSucceededCondition,
-				Status: metav1.ConditionTrue,
-				Reason: clusterv1.MachineHealthCheckSucceededReason,
-			})
-			healthy = append(healthy, t)
+				conditions.Set(t.Machine, metav1.Condition{
+					Type:   clusterv1.MachineHealthCheckSucceededCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckSucceededReason,
+				})
+				healthy = append(healthy, t)
+			}
 		}
 	}
-	return healthy, unhealthy, nextCheckTimes
+	return healthy, unhealthy, nextChecks, nil
 }
 
 // getNodeCondition returns node condition by type.

@@ -18,13 +18,10 @@ spec:
       kind: KubeadmControlPlaneTemplate
     healthCheck:
       checks:
-        unhealthyNodeConditions:
-          - type: Ready
-            status: "Unknown"
-            timeoutSeconds: 300
-          - type: Ready
-            status: "False"
-            timeoutSeconds: 300
+        unhealthyExpressions:
+          - expression: >-
+              node.has_condition_since("Ready", "Unknown", "5m") || node.has_condition_since("Ready", "False", "5m")
+            message: "Node is unhealthy"
   infrastructure:
     template:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2

@@ -119,20 +119,13 @@ spec:
       name: in-memory-control-plane
     healthCheck:
       checks:
-        unhealthyNodeConditions:
-          - type: Ready
-            status: Unknown
-            timeoutSeconds: 300
-          - type: Ready
-            status: "False"
-            timeoutSeconds: 300
-        unhealthyMachineConditions:
-          - type: "NodeReady"
-            status: Unknown
-            timeoutSeconds: 300
-          - type: "NodeReady"
-            status: "False"
-            timeoutSeconds: 300
+        unhealthyExpressions:
+          - expression: >-
+              node.has_condition_since("Ready", "Unknown", "5m") || node.has_condition_since("Ready", "False", "5m")
+            message: "Node is unhealthy"
+          - expression: >-
+              machine.has_condition_since("NodeReady", "Unknown", "5m") || machine.has_condition_since("NodeReady", "False", "5m")
+            message: "Machine is unhealthy"
   infrastructure:
     templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2

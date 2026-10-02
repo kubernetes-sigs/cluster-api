@@ -68,6 +68,14 @@ func ConvertMachineV1Beta1ToHub(_ context.Context, src *clusterv1beta1.Machine, 
 		// field should be the Machine controller.
 		dst.Status.Phase = restored.Status.Phase
 		dst.Status.FailureDomain = restored.Status.FailureDomain
+
+		// nodeDeletionStartTime does not exist in v1beta1.
+		if restored.Status.Deletion != nil && !restored.Status.Deletion.NodeDeletionStartTime.IsZero() {
+			if dst.Status.Deletion == nil {
+				dst.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+			}
+			dst.Status.Deletion.NodeDeletionStartTime = restored.Status.Deletion.NodeDeletionStartTime
+		}
 	}
 
 	return nil

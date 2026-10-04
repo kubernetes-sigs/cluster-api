@@ -614,3 +614,45 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestKubeadmConfigValidateImageRepository(t *testing.T) {
+	withImageRepository := func(repository string) *bootstrapv1.KubeadmConfig {
+		return &bootstrapv1.KubeadmConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: bootstrapv1.KubeadmConfigSpec{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+					ImageRepository: repository,
+					DNS:             bootstrapv1.DNS{ImageRepository: repository},
+					Etcd:            bootstrapv1.Etcd{Local: bootstrapv1.LocalEtcd{ImageRepository: repository}},
+				},
+			},
+		}
+	}
+	valid := withImageRepository("registry.contoso.com/kubernetes")
+	invalid := withImageRepository("registry.contoso.com/kubernetes\n")
+
+	g := NewWithT(t)
+	webhook := &KubeadmConfig{}
+
+	_, err := webhook.ValidateCreate(ctx, valid)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	_, err = webhook.ValidateCreate(ctx, invalid)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("spec.clusterConfiguration.imageRepository"))
+	g.Expect(err.Error()).To(ContainSubstring("spec.clusterConfiguration.dns.imageRepository"))
+	g.Expect(err.Error()).To(ContainSubstring("spec.clusterConfiguration.etcd.local.imageRepository"))
+
+	_, err = webhook.ValidateUpdate(ctx, valid, invalid)
+	g.Expect(err).To(HaveOccurred())
+
+	// Objects created before the validation was added can still be updated as long as the value does not change.
+	_, err = webhook.ValidateUpdate(ctx, invalid, invalid.DeepCopy())
+	g.Expect(err).ToNot(HaveOccurred())
+
+	_, err = webhook.ValidateUpdate(ctx, invalid, valid)
+	g.Expect(err).ToNot(HaveOccurred())
+}

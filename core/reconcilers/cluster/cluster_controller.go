@@ -195,6 +195,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	}()
 
 	alwaysReconcile := []clusterReconcileFunc{
+		r.reconcileCluster,
 		r.reconcileInfrastructure,
 		r.reconcileControlPlane,
 		r.getDescendants,
@@ -326,6 +327,17 @@ type scope struct {
 
 	// deletingMessage is the message that should be used when setting the Deleting condition.
 	deletingMessage string
+}
+
+func (r *Reconciler) reconcileCluster(_ context.Context, s *scope) (ctrl.Result, error) {
+	cluster := s.cluster
+
+	if cluster.Labels == nil {
+		cluster.Labels = make(map[string]string)
+	}
+	cluster.Labels[clusterv1.ClusterNameLabel] = cluster.Name
+
+	return ctrl.Result{}, nil
 }
 
 // reconcileDelete handles cluster deletion.

@@ -128,6 +128,7 @@ cloudstack                 InfrastructureProvider     https://github.com/kuberne
 coxedge                    InfrastructureProvider     https://github.com/coxedge/cluster-api-provider-coxedge/releases/latest/                          infrastructure-components.yaml
 digitalocean               InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/releases/latest/             infrastructure-components.yaml
 docker                     InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api/releases/latest/                                   infrastructure-components-development.yaml
+exoscale                   InfrastructureProvider     https://github.com/exoscale/cluster-api-provider-exoscale/releases/latest/                        infrastructure-components.yaml
 gcp                        InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/                      infrastructure-components.yaml
 harvester-harvester        InfrastructureProvider     https://github.com/rancher-sandbox/cluster-api-provider-harvester/releases/latest/                infrastructure-components.yaml
 hetzner                    InfrastructureProvider     https://github.com/syself/cluster-api-provider-hetzner/releases/latest/                           infrastructure-components.yaml
@@ -285,6 +286,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: docker
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
+- File: infrastructure-components.yaml
+  Name: exoscale
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/exoscale/cluster-api-provider-exoscale/releases/latest/
 - File: infrastructure-components.yaml
   Name: gcp
   ProviderType: InfrastructureProvider

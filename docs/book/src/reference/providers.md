@@ -50,6 +50,7 @@ source of inspiration and ideas for others.
 - [CloudStack](https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack)
 - [CoxEdge](https://github.com/coxedge/cluster-api-provider-coxedge)
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
+- [Exoscale](https://github.com/exoscale/cluster-api-provider-exoscale)
 - [Google Cloud Platform (GCP)](https://cluster-api-gcp.sigs.k8s.io/)
 - [Harvester](https://github.com/rancher-sandbox/cluster-api-provider-harvester)
 - [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)

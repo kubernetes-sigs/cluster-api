@@ -311,6 +311,7 @@ providers.
 | CAPCS         | cluster.x-k8s.io/provider=infrastructure-cloudscale-ch-cloudscale |
 | CAPD          | cluster.x-k8s.io/provider=infrastructure-docker                   |
 | CAPDO         | cluster.x-k8s.io/provider=infrastructure-digitalocean             |
+| CAPEX         | cluster.x-k8s.io/provider=infrastructure-exoscale                 |
 | CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp                      |
 | CAPH          | cluster.x-k8s.io/provider=infrastructure-hetzner                  |
 | CAPHW         | cluster.x-k8s.io/provider=infrastructure-huawei                   |

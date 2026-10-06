@@ -3911,8 +3911,18 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			wantErr:                     false,
 		},
 		{
-			name: "Trigger in-place when ms is not accepting anymore moved replicas, machine is still pending acknowledge",
+			name: "No op when ms is not accepting anymore moved replicas, machine is still pending acknowledge",
 			ms:   newMachineSet("ms1", "cluster1", 1),
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
+			},
+			interceptorFuncs:               interceptor.Funcs{},
+			wantMachinesNotInPlaceUpdating: []string{"m1"},
+			wantErr:                        false,
+		},
+		{
+			name: "Trigger in-place when ms is not accepting anymore moved replicas, machine is still pending acknowledge, machine is acknowledged",
+			ms:   newMachineSet("ms1", "cluster1", 1, withMachineSetAnnotations(map[string]string{clusterv1.AcknowledgedMoveAnnotation: "m1"})),
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
 			},
@@ -3922,7 +3932,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 		},
 		{
 			name: "Keeps triggering in-place when one machine fails",
-			ms:   newMachineSet("ms1", "cluster1", 1),
+			ms:   newMachineSet("ms1", "cluster1", 1, withMachineSetAnnotations(map[string]string{clusterv1.AcknowledgedMoveAnnotation: "m1,m2,m3"})),
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
 				fakeMachine("m2", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
@@ -3943,7 +3953,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 		},
 		{
 			name: "Trigger in-place for machines without bootstrap config",
-			ms:   newMachineSet("ms1", "cluster1", 1),
+			ms:   newMachineSet("ms1", "cluster1", 1, withMachineSetAnnotations(map[string]string{clusterv1.AcknowledgedMoveAnnotation: "m1"})),
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
 			},

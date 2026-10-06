@@ -30,9 +30,8 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 )
 
-// CheckOrCleanupAcknowledgeMove checks if a machine move to a new MachineSet has been acknowledged,
-// and if yes, it cleans up machine's PendingAcknowledgeMoveAnnotation.
-// Note. PendingAcknowledgeMoveAnnotation is also cleaned up when target MachineSet is not accepting anymore machines from other MS.
+// CheckOrCleanupAcknowledgeMove checks if machines moved to a MachineSet has been acknowledged by the MachineDeployment controller,
+// and if yes, clean up machine's PendingAcknowledgeMoveAnnotation.
 func CheckOrCleanupAcknowledgeMove(_ context.Context, ms *clusterv1.MachineSet, machine *clusterv1.Machine) bool {
 	// If a machine is not updating in place, or if the in-place update has been already triggered, no-op
 	if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; !ok || hooks.IsPending(runtimehooksv1.UpdateMachine, machine) {
@@ -40,28 +39,19 @@ func CheckOrCleanupAcknowledgeMove(_ context.Context, ms *clusterv1.MachineSet, 
 	}
 
 	if _, ok := machine.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok {
-		// Check if this MachineSet is still accepting machines moved from other MachineSets.
-		if sourceMSs, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok && sourceMSs != "" {
-			// Get the list of machines acknowledged by the MD controller.
-			acknowledgedMoveReplicas := sets.Set[string]{}
-			if replicaNames, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && replicaNames != "" {
-				acknowledgedMoveReplicas.Insert(strings.Split(replicaNames, ",")...)
-			}
-
-			// If the current machine is in not yet in the list, it is not possible to trigger in-place yet.
-			if !acknowledgedMoveReplicas.Has(machine.Name) {
-				return false
-			}
-
-			// If the current machine is in the list, drop the annotation.
-			delete(machine.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
-		} else {
-			// If this MachineSet is not accepting anymore machines from other MS, e.g. because of after a MD spec
-			// change this MS is not anymore the new MS, then drop the PendingAcknowledgeMove annotation.
-			// This machine will be treated like any other machine on an old MS, and either deleted
-			// or moved to another MS after completing the in-place update.
-			delete(machine.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
+		// Get the list of recently moved machines acknowledged by the MD controller for this MachineSet.
+		acknowledgedMoveReplicas := sets.Set[string]{}
+		if replicaNames, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && replicaNames != "" {
+			acknowledgedMoveReplicas.Insert(strings.Split(replicaNames, ",")...)
 		}
+
+		// If the current machine is in not yet in the list, it is not possible to trigger in-place yet.
+		if !acknowledgedMoveReplicas.Has(machine.Name) {
+			return false
+		}
+
+		// If the current machine is in the list, drop the annotation.
+		delete(machine.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
 	}
 
 	return true

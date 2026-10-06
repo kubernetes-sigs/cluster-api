@@ -49,13 +49,17 @@ func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, 
 		return err
 	}
 
+	// Adjust the replica count for the newMS after a move operation has been completed.
+	// Note: this is a best-effort attempt to handle rollout paused when there are machines pending acknowledge move.
+	planner.reconcileReplicasPendingAcknowledgeMove(ctx)
+
 	// Applying above changes to MachineSets, so it will be possible to use legacy code for scale.
 	if err := r.createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(ctx, planner); err != nil {
 		return err
 	}
 
 	// Call the legacy scale logic.
-	// Note: the legacy scale logic do not relies yet on the rollout planner, and it still lead to many
+	// Note: the legacy scale logic do not rely yet on the rollout planner, and it still lead to many
 	// patch calls vs grouping all the MachineSet changes in a single SSA call based on a carefully crafted desired state.
 	// Note: using the legacy scale logic on newMS and oldMSs computed by the rollout planner is not an issue because
 	// the legacy scale logic relies on info that are part of the desired state computed by rollout planner (or of

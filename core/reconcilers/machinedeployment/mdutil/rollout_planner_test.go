@@ -73,10 +73,41 @@ func TestCheckOrCleanupAcknowledgeMove(t *testing.T) {
 			wantAcknowledged:  true,
 			wantAnnotationSet: false,
 		},
+
+		// Machines moved to an old MS (not accepting anymore machines from other MachineSets, but it still has to handle machines already moved)
+
 		{
-			name: "Machine pending acknowledge, MS not accepting machines from other MachineSets: annotation is dropped",
+			name: "Machine pending acknowledge, MS not accepting machines from other MachineSets but machine not yet acknowledged",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{Name: "ms1"},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "ms1",
+					Annotations: map[string]string{
+						// MachineSetReceiveMachinesFromMachineSetsAnnotation missing
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "m1",
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation:       "{}",
+						clusterv1.PendingAcknowledgeMoveAnnotation: "true",
+					},
+				},
+			},
+			wantAcknowledged:  false,
+			wantAnnotationSet: true,
+		},
+		{
+			name: "Machine pending acknowledge, MS not accepting machines from other MachineSets and machine already acknowledged",
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "ms1",
+					Annotations: map[string]string{
+						// MachineSetReceiveMachinesFromMachineSetsAnnotation missing
+						clusterv1.AcknowledgedMoveAnnotation: "m1,m2",
+					},
+				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -90,6 +121,9 @@ func TestCheckOrCleanupAcknowledgeMove(t *testing.T) {
 			wantAcknowledged:  true,
 			wantAnnotationSet: false,
 		},
+
+		// Machines moved to the new MS.
+
 		{
 			name: "Machine pending acknowledge, MS accepting machines from other MachineSets but machine not yet acknowledged",
 			ms: &clusterv1.MachineSet{

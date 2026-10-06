@@ -967,7 +967,7 @@ is implemented in ControlPlane controllers:
 [Cluster certificate management]: #cluster-certificate-management
 [Machine placement]: #machine-placement
 [Metadata propagation]: #metadata-propagation
-[Metadata propagation rules]: https://main.cluster-api.sigs.k8s.io/reference/api/metadata-propagation
+[Metadata propagation rules]: ../../../reference/api/metadata-propagation.md
 [Label and Annotations Sync Between Machines and underlying Kubernetes Nodes]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220927-labels-and-annotations-sync-between-machine-and-nodes.md
 [MinReadySeconds and UpToDate propagation]: #minreadyseconds-and-uptodate-propagation
 [Support for running multiple instances]: #support-for-running-multiple-instances

@@ -43,7 +43,7 @@ kubectl create configmap cloud-provider-openstack --from-file=cloud-provider-ope
 
 Note that it is required that the `Secret` has the type `addons.cluster.x-k8s.io/resource-set` for it to be picked up.
 
-## Update from `ApplyOnce` To `Reconcile`
+## Update from `ApplyOnce` to `Reconcile`
 
 The `strategy` field is immutable so existing CRS can't be updated directly. However, CAPI won't delete the managed resources in the target cluster when the CRS is deleted.
 So if you want to start using the `Reconcile` strategy, delete your existing CRS and create it again with the updated `strategy`.

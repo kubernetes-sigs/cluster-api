@@ -179,7 +179,7 @@ subjects:
 EOT
 ```
 
-Then open a port-forward, create a ServiceAccount token and change the log level to `8`:
+Then open a port-forward, create a ServiceAccount token, and change the log level to `8`:
 ```bash
 # Terminal 1
 kubectl -n capi-system port-forward deployments/capi-controller-manager 8443

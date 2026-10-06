@@ -476,7 +476,7 @@ spec:
 ### Defining a Custom Namespace for ClusterClass Object
 
 As a user, I may need to create a `Cluster` from a `ClusterClass` object that exists only in a different namespace. To uniquely identify the `ClusterClass`, a `NamespacedName` ref is constructed from combination of:
-* `cluster.spec.topology.classNamespace` - namespace of the `ClusterClass` object.
+* `cluster.spec.topology.classRef.namespace` - namespace of the `ClusterClass` object.
 * `cluster.spec.topology.classRef.name` - name of the `ClusterClass` object.
 
 Example of the `Cluster` object with the `name/namespace` reference:

@@ -39,7 +39,7 @@ As an example, Cluster API Provider Azure (CAPZ) has support for MachinePool thr
 
 ## Enabling Feature Gates for e2e Tests
 
-One way to enable fature gates for E2E tests it to set environment variables on the clusterctl config file used
+One way to enable feature gates for E2E tests it to set environment variables on the clusterctl config file used
 to boostrap the management cluster used during the test. For CAPI, these configs are under ./test/e2e/config/... such as `docker.yaml`:
 
 ```yaml

@@ -1,7 +1,7 @@
 # Using Custom Certificates
 
 Cluster API expects certificates and keys used for bootstrapping to follow the below convention.
-If they do not already exist,, the Kubeadm bootstrap provider generates new certificates using this convention.
+If they do not already exist, the Kubeadm bootstrap provider generates new certificates using this convention.
 
 Each certificate must be stored in a single secret named one of:
 

@@ -53,6 +53,8 @@ func (e ProgramEntry) Key() string {
 // Compiled programs are cached, so repeated calls with the same expression are cheap.
 func Compile(programCache cache.Cache[ProgramEntry], expression string) (ProgramEntry, error) {
 	if entry, ok := programCache.Has(expression); ok {
+		// Refresh the cache entry so we cache forever if the expression is still used.
+		programCache.Add(entry)
 		return entry, nil
 	}
 
@@ -95,7 +97,7 @@ func referencesIdent(a *celast.AST, identifier string) bool {
 	return found
 }
 
-// ExpressionResultEntry represents the result of an expression evaluation.
+// ExpressionResultEntry represents the result of evaluating an MHC's UnhealthyExpressions for a specific Machine.
 type ExpressionResultEntry struct {
 	MachineHealthCheckKey        client.ObjectKey
 	MachineHealthCheckGeneration int64

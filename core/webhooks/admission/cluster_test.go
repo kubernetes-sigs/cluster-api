@@ -2455,6 +2455,29 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         false,
 		},
 		{
+			name: "Pass a cluster that has MHC override defined for control plane with a valid CEL expression in UnhealthyExpressions",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
+							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
+								UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+									{Expression: "node.has_condition('Ready','False')"},
+								},
+								NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+							},
+						}).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinframachinetemplate").Build()).
+				Build(),
+			classReconciled: true,
+		},
+		{
 			name: "Reject a cluster that has MHC override defined for control plane with an invalid CEL expression in UnhealthyExpressions",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
@@ -2633,6 +2656,36 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			classReconciled: true,
 			wantErr:         false,
+		},
+		{
+			name: "Pass a cluster that has MHC override defined for machine deployment with a valid CEL expression in UnhealthyExpressions",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("md1").
+								WithClass("worker-class").
+								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
+									Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
+										UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+											{Expression: "node.has_condition('Ready','False')"},
+										},
+										NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+									},
+								}).
+								Build(),
+						).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("worker-class").Build(),
+				).
+				Build(),
+			classReconciled: true,
 		},
 		{
 			name: "Reject a cluster that has MHC override defined for machine deployment with an invalid CEL expression in UnhealthyExpressions",

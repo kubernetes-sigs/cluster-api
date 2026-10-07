@@ -288,7 +288,7 @@ type UnhealthyExpression struct {
 	//
 	// The following variables are available:
 	// - machine: the Machine, giving access to is conditions
-	// - node: the Node of the Machine, giving access to its conditions
+	// - node: the Node hosted on the Machine, giving access to its conditions
 	//   If the Machine has no Node yet, expressions referencing node evaluate to false.
 	//
 	// The following functions are available on both machine and node:

@@ -426,7 +426,7 @@ func TestEvaluateExpressions(t *testing.T) {
 			expectedNextCheck: 60 * time.Minute, // nextCheck is picked from Node, Machine is short-circuited
 		},
 		{
-			name: "returns healthy and next check based on Node because Machine is short-circuited",
+			name: "returns healthy based on Node because Machine is short-circuited",
 			node: nodeWithConditions(
 				corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionTrue, Reason: "SomeReason", LastTransitionTime: metav1.NewTime(now.Add(-2 * time.Hour))},
 			),

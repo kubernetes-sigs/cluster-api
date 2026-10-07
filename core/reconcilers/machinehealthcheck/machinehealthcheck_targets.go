@@ -135,6 +135,9 @@ func (t *healthCheckTarget) needsRemediation(programCache cache.Cache[cel.Progra
 
 	// Combine results
 	if len(unhealthyMachineMessages) == 0 && len(unhealthyNodeMessages) == 0 && len(unhealthyExpressionsMessages) == 0 {
+		// Note: We want to check again at a certain time for cases where we know
+		// that it's likely that the result of the computation will change.
+		// E.g., if a condition just has to stay the same for a while and then the result would change.
 		return false, nextCheck, nil
 	}
 
@@ -173,6 +176,9 @@ func (t *healthCheckTarget) needsRemediation(programCache cache.Cache[cel.Progra
 	}
 	v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, v1beta1Reason, clusterv1.ConditionSeverityWarning, "%s", v1beta1Message)
 
+	// Note: Also if the Machine needs remediation we want to check again at a certain time for cases where we know
+	// that it's likely that the result of the computation will change.
+	// E.g., if a condition just has to stay the same for a while and then the result would change.
 	return true, nextCheck, nil
 }
 
@@ -408,10 +414,6 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 			return nil, nil, nil, err
 		}
 
-		if needsRemediation {
-			unhealthy = append(unhealthy, t)
-		}
-
 		if nextCheck > 0 {
 			if !needsRemediation {
 				logger.V(2).Info("Target is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second).String())
@@ -419,18 +421,18 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 			nextChecks = append(nextChecks, nextCheck)
 		}
 
-		if t.Machine.DeletionTimestamp.IsZero() && t.Node != nil {
-			if !needsRemediation {
-				// TODO: Let's move setting the HealthCheckSucceeded condition into needsRemediation
-				v1beta1conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+		if needsRemediation {
+			unhealthy = append(unhealthy, t)
+		} else if t.Machine.DeletionTimestamp.IsZero() && t.Node != nil {
+			healthy = append(healthy, t)
+			// TODO: Let's move setting the HealthCheckSucceeded condition into needsRemediation
+			v1beta1conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
 
-				conditions.Set(t.Machine, metav1.Condition{
-					Type:   clusterv1.MachineHealthCheckSucceededCondition,
-					Status: metav1.ConditionTrue,
-					Reason: clusterv1.MachineHealthCheckSucceededReason,
-				})
-				healthy = append(healthy, t)
-			}
+			conditions.Set(t.Machine, metav1.Condition{
+				Type:   clusterv1.MachineHealthCheckSucceededCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineHealthCheckSucceededReason,
+			})
 		}
 	}
 	return healthy, unhealthy, nextChecks, nil

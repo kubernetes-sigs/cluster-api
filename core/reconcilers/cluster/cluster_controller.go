@@ -195,7 +195,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	}()
 
 	alwaysReconcile := []clusterReconcileFunc{
-		r.reconcileCluster,
 		r.reconcileInfrastructure,
 		r.reconcileControlPlane,
 		r.getDescendants,
@@ -210,6 +209,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 
 		return doReconcile(ctx, reconcileDelete, s)
 	}
+
+	r.reconcileCluster(ctx, s)
 
 	// Handle normal reconciliation loop.
 	if cluster.Spec.Topology.IsDefined() {
@@ -329,15 +330,13 @@ type scope struct {
 	deletingMessage string
 }
 
-func (r *Reconciler) reconcileCluster(_ context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) reconcileCluster(_ context.Context, s *scope) {
 	cluster := s.cluster
 
 	if cluster.Labels == nil {
 		cluster.Labels = make(map[string]string)
 	}
 	cluster.Labels[clusterv1.ClusterNameLabel] = cluster.Name
-
-	return ctrl.Result{}, nil
 }
 
 // reconcileDelete handles cluster deletion.

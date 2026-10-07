@@ -68,6 +68,25 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 				"9263": false,
 			},
 		},
+		{
+			name: "backport merge uses release PR instead of original PR in cherry-picked subject",
+			commits: []githubCommitNode{
+				{
+					SHA:    "release-commit",
+					Commit: githubCommit{Message: "Restore apiVersionGetter after unit tests (#14189)"},
+				},
+				{
+					SHA: "release-merge-commit",
+					Parents: []githubCommitParent{
+						{SHA: "release-commit"},
+					},
+					Commit: githubCommit{Message: "Merge pull request #14255 from dlanov/fix-14253-conversion-getter\n\n[release-1.14] Restore apiVersionGetter after unit tests"},
+				},
+			},
+			want: map[string]bool{
+				"14255": false,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -46,19 +46,21 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 	testCases := []struct {
 		name                              string
 		md                                *clusterv1.MachineDeployment
-		originalNewMS                     *clusterv1.MachineSet
+		originalMSs                       map[string]*clusterv1.MachineSet
 		newMS                             *clusterv1.MachineSet
+		oldMSs                            []*clusterv1.MachineSet
 		machines                          []*clusterv1.Machine
-		expectedReplicas                  int32
-		expectedAcknowledgeMoveAnnotation *string
-		expectedNotes                     []string
+		expectedReplicas                  map[string]int32
+		expectedAcknowledgeMoveAnnotation map[string]*string
+		expectedNotes                     map[string][]string
 	}{
+		// AcknowledgeMove to the new MS
 		{
-			name:                              "Should not scale up when there are no machines",
+			name:                              "Should not scale up newMS when there are no machines",
 			md:                                createMD("v1", 3),
 			newMS:                             createMS("ms1", "v1", 1),
 			machines:                          nil,
-			expectedReplicas:                  1,
+			expectedReplicas:                  map[string]int32{"ms1": 1},
 			expectedAcknowledgeMoveAnnotation: nil,
 		},
 		{
@@ -69,7 +71,7 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 				createM("m1", "ms1", "v1"),
 				createM("m2", "ms1", "v1"),
 			},
-			expectedReplicas:                  1,
+			expectedReplicas:                  map[string]int32{"ms1": 1},
 			expectedAcknowledgeMoveAnnotation: nil,
 		},
 		{
@@ -80,45 +82,150 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 				createM("m1", "ms1", "v1"),
 				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
 			},
-			expectedReplicas:                  2, // up by one
-			expectedAcknowledgeMoveAnnotation: ptr.To("m2"),
-			expectedNotes:                     []string{"acknowledge Machines m2 moved from an old MachineSet"},
+			expectedReplicas:                  map[string]int32{"ms1": 2},           // up by one
+			expectedAcknowledgeMoveAnnotation: map[string]*string{"ms1": new("m2")}, // One machine acknowledged
+			expectedNotes:                     map[string][]string{"ms1": {"acknowledge Machines m2 moved from an old MachineSet"}},
 		},
 		{
-			name:          "Should scale up when there are machines recently moved to newMS and not yet acknowledged and there are other machines already acknowledged",
-			md:            createMD("v1", 3),
-			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m1")), // another machine already acknowledged
-			newMS:         createMS("ms1", "v1", 1),
+			name:        "Should scale up when there are machines recently moved to newMS and not yet acknowledged and there are other machines already acknowledged",
+			md:          createMD("v1", 3),
+			originalMSs: map[string]*clusterv1.MachineSet{"ms1": createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m1"))}, // another machine already acknowledged
+			newMS:       createMS("ms1", "v1", 1),
 			machines: []*clusterv1.Machine{
 				createM("m1", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
 				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
 			},
-			expectedReplicas:                  2, // up by one
-			expectedAcknowledgeMoveAnnotation: ptr.To("m1,m2"),
-			expectedNotes:                     []string{"acknowledge Machines m1,m2 moved from an old MachineSet"},
+			expectedReplicas:                  map[string]int32{"ms1": 2},              // up by one
+			expectedAcknowledgeMoveAnnotation: map[string]*string{"ms1": new("m1,m2")}, // One machine acknowledged, one already acknowledged (keep this entry until the MS controller removes PendingAcknowledgeMoveAnnotation)
+			expectedNotes:                     map[string][]string{"ms1": {"acknowledge Machines m1,m2 moved from an old MachineSet"}},
 		},
 		{
-			name:          "Should not scale up when there machines with the pendingAcknowledgeMove annotation but they are already acknowledged",
-			md:            createMD("v1", 3),
-			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m2")), // moved machine already acknowledged
-			newMS:         createMS("ms1", "v1", 1),
+			name:        "Should not scale up newMS when there machines with the pendingAcknowledgeMove annotation but they are already acknowledged",
+			md:          createMD("v1", 3),
+			originalMSs: map[string]*clusterv1.MachineSet{"ms1": createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m2"))}, // moved machine already acknowledged
+			newMS:       createMS("ms1", "v1", 1),
 			machines: []*clusterv1.Machine{
 				createM("m1", "ms1", "v1"),
 				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
 			},
-			expectedReplicas:                  1,
-			expectedAcknowledgeMoveAnnotation: ptr.To("m2"),
+			expectedReplicas:                  map[string]int32{"ms1": 1},
+			expectedAcknowledgeMoveAnnotation: map[string]*string{"ms1": new("m2")}, // One machine already acknowledged (keep this entry until the MS controller removes PendingAcknowledgeMoveAnnotation)
 		},
 		{
-			name:          "Should drop machines from acknowledged movr annotation when they not anymore reporting pendingAcknowledge",
-			md:            createMD("v1", 3),
-			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m2")), // moved machine already acknowledged
-			newMS:         createMS("ms1", "v1", 1),
+			name:        "Should drop machines from acknowledged move annotation on newMS when they not anymore reporting pendingAcknowledge",
+			md:          createMD("v1", 3),
+			originalMSs: map[string]*clusterv1.MachineSet{"ms1": createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m2"))}, // moved machine already acknowledged
+			newMS:       createMS("ms1", "v1", 1),
 			machines: []*clusterv1.Machine{
 				createM("m1", "ms1", "v1"),
 				createM("m2", "ms1", "v1"),
 			},
-			expectedReplicas: 1,
+			expectedReplicas: map[string]int32{"ms1": 1},
+		},
+
+		// AcknowledgeMove to the old MS
+		{
+			name:  "Should not scale up oldMS when there are no machines",
+			md:    createMD("v1", 3),
+			newMS: createMS("ms2", "v2", 0),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: nil,
+			expectedReplicas: map[string]int32{
+				"ms2": 0,
+				"ms1": 1,
+			},
+			expectedAcknowledgeMoveAnnotation: nil,
+		},
+		{
+			name:  "Should not scale up when there are no machines recently moved to oldMS",
+			md:    createMD("v1", 3),
+			newMS: createMS("ms2", "v2", 0),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1"),
+			},
+			expectedReplicas: map[string]int32{
+				"ms2": 0,
+				"ms1": 1,
+			},
+			expectedAcknowledgeMoveAnnotation: nil,
+		},
+		{
+			name:  "Should not scale up when there are machines recently moved to oldMS and not yet acknowledged",
+			md:    createMD("v1", 3),
+			newMS: createMS("ms2", "v2", 0),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
+			},
+			expectedReplicas: map[string]int32{
+				"ms2": 0,
+				"ms1": 1,
+			},
+			expectedAcknowledgeMoveAnnotation: map[string]*string{"ms1": new("m2")}, // One machine acknowledged
+			expectedNotes:                     map[string][]string{"ms1": {"acknowledge Machines m2 moved from an old MachineSet"}},
+		},
+		{
+			name:        "Should not scale up when there are machines recently moved to oldMS and not yet acknowledged and there are other machines already acknowledged",
+			md:          createMD("v1", 3),
+			originalMSs: map[string]*clusterv1.MachineSet{"ms1": createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m1"))}, // another machine already acknowledged
+			newMS:       createMS("ms2", "v2", 0),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
+				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
+			},
+			expectedReplicas: map[string]int32{
+				"ms2": 0,
+				"ms1": 1,
+			},
+			expectedAcknowledgeMoveAnnotation: map[string]*string{"ms1": new("m1,m2")}, // One machine acknowledged, one already acknowledged (keep this entry until the MS controller removes PendingAcknowledgeMoveAnnotation)
+			expectedNotes:                     map[string][]string{"ms1": {"acknowledge Machines m1,m2 moved from an old MachineSet"}},
+		},
+		{
+			name:        "Should not scale up oldMS when there machines with the pendingAcknowledgeMove annotation but they are already acknowledged",
+			md:          createMD("v1", 3),
+			originalMSs: map[string]*clusterv1.MachineSet{"ms1": createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m2"))}, // moved machine already acknowledged
+			newMS:       createMS("ms2", "v2", 0),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
+			},
+			expectedReplicas: map[string]int32{
+				"ms2": 0,
+				"ms1": 1,
+			},
+			expectedAcknowledgeMoveAnnotation: map[string]*string{"ms1": new("m2")}, // One machine already acknowledged (keep this entry until the MS controller removes PendingAcknowledgeMoveAnnotation)
+		},
+		{
+			name:        "Should drop machines from acknowledged move annotation on oldMS when they not anymore reporting pendingAcknowledge",
+			md:          createMD("v1", 3),
+			originalMSs: map[string]*clusterv1.MachineSet{"ms1": createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m2"))}, // moved machine already acknowledged
+			newMS:       createMS("ms2", "v2", 0),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1"),
+			},
+			expectedReplicas: map[string]int32{
+				"ms2": 0,
+				"ms1": 1,
+			},
 		},
 	}
 
@@ -129,20 +236,21 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 			planner := newRolloutPlanner(nil, nil, nil)
 			planner.md = tc.md
 			planner.newMS = tc.newMS
-			if tc.originalNewMS != nil {
-				planner.originalMSs = make(map[string]*clusterv1.MachineSet)
-				planner.originalMSs[tc.newMS.Name] = tc.originalNewMS
-			}
+			planner.oldMSs = tc.oldMSs
+			planner.originalMSs = tc.originalMSs
 			planner.machines = tc.machines
 
 			planner.reconcileReplicasPendingAcknowledgeMove(ctx)
-			g.Expect(ptr.Deref(tc.newMS.Spec.Replicas, 0)).To(Equal(tc.expectedReplicas))
-			if tc.expectedAcknowledgeMoveAnnotation != nil {
-				g.Expect(planner.newMS.Annotations).To(HaveKeyWithValue(clusterv1.AcknowledgedMoveAnnotation, *tc.expectedAcknowledgeMoveAnnotation))
-			} else {
-				g.Expect(planner.newMS.Annotations).ToNot(HaveKey(clusterv1.AcknowledgedMoveAnnotation))
+
+			for _, ms := range append(planner.oldMSs, planner.newMS) {
+				g.Expect(ptr.Deref(ms.Spec.Replicas, 0)).To(Equal(tc.expectedReplicas[ms.Name]))
+				if tc.expectedAcknowledgeMoveAnnotation[ms.Name] != nil {
+					g.Expect(ms.Annotations).To(HaveKeyWithValue(clusterv1.AcknowledgedMoveAnnotation, *tc.expectedAcknowledgeMoveAnnotation[ms.Name]))
+				} else {
+					g.Expect(ms.Annotations).ToNot(HaveKey(clusterv1.AcknowledgedMoveAnnotation))
+				}
+				g.Expect(planner.notes[ms.Name]).To(Equal(tc.expectedNotes[ms.Name]), "unexpected notes")
 			}
-			g.Expect(planner.notes[tc.newMS.Name]).To(Equal(tc.expectedNotes), "unexpected notes")
 		})
 	}
 }
@@ -174,7 +282,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 							},
 						},
 					},
-					Replicas: ptr.To[int32](2),
+					Replicas: new(int32(2)),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -183,7 +291,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](0),
+					Replicas: new(int32(0)),
 				},
 			},
 			expectedNewMachineSetReplicas: 2,
@@ -206,7 +314,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 							},
 						},
 					},
-					Replicas: ptr.To[int32](0),
+					Replicas: new(int32(0)),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -215,7 +323,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](2),
+					Replicas: new(int32(2)),
 				},
 			},
 			expectedNewMachineSetReplicas: 0,
@@ -238,7 +346,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 							},
 						},
 					},
-					Replicas: ptr.To[int32](3),
+					Replicas: new(int32(3)),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -247,7 +355,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](1),
+					Replicas: new(int32(1)),
 				},
 			},
 			expectedNewMachineSetReplicas: 2,
@@ -258,10 +366,10 @@ func TestReconcileNewMachineSet(t *testing.T) {
 						Name:      "3replicas",
 					},
 					Spec: clusterv1.MachineSetSpec{
-						Replicas: ptr.To[int32](3),
+						Replicas: new(int32(3)),
 					},
 					Status: clusterv1.MachineSetStatus{
-						Replicas: ptr.To[int32](3),
+						Replicas: new(int32(3)),
 					},
 				},
 			},
@@ -285,7 +393,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 							},
 						},
 					},
-					Replicas: ptr.To[int32](1),
+					Replicas: new(int32(1)),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -294,7 +402,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](0),
+					Replicas: new(int32(0)),
 				},
 			},
 			expectedNewMachineSetReplicas: 0,
@@ -305,10 +413,10 @@ func TestReconcileNewMachineSet(t *testing.T) {
 						Name:      "machine-not-yet-deleted",
 					},
 					Spec: clusterv1.MachineSetSpec{
-						Replicas: ptr.To[int32](0),
+						Replicas: new(int32(0)),
 					},
 					Status: clusterv1.MachineSetStatus{
-						Replicas: ptr.To[int32](1),
+						Replicas: new(int32(1)),
 					},
 				},
 			},
@@ -331,7 +439,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 							},
 						},
 					},
-					Replicas: ptr.To[int32](2),
+					Replicas: new(int32(2)),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -345,7 +453,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](2),
+					Replicas: new(int32(2)),
 				},
 			},
 			expectedNewMachineSetReplicas: 2,
@@ -781,7 +889,7 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 				}
 				machineScaleDown := max(ptr.Deref(oldMS.Status.Replicas, 0)-scaleIntent, 0)
 				if machineScaleDown > 0 {
-					oldMS.Status.AvailableReplicas = ptr.To(max(ptr.Deref(oldMS.Status.AvailableReplicas, 0)-machineScaleDown, 0))
+					oldMS.Status.AvailableReplicas = new(max(ptr.Deref(oldMS.Status.AvailableReplicas, 0)-machineScaleDown, 0))
 				}
 			}
 			minAvailableReplicas := ptr.Deref(tt.md.Spec.Replicas, 0) - mdutil.MaxUnavailable(*tt.md)
@@ -2584,7 +2692,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 				// Apply changes.
 				for _, ms := range current.machineSets {
 					if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
-						ms.Spec.Replicas = ptr.To(scaleIntent)
+						ms.Spec.Replicas = new(scaleIntent)
 					}
 				}
 

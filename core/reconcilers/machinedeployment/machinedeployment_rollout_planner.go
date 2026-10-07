@@ -46,7 +46,7 @@ type rolloutPlanner struct {
 
 	originalMSs              map[string]*clusterv1.MachineSet
 	machines                 []*clusterv1.Machine
-	acknowledgedMachineNames []string
+	acknowledgedMachineNames map[string][]string
 	updatingMachineNames     []string
 
 	newMS        *clusterv1.MachineSet

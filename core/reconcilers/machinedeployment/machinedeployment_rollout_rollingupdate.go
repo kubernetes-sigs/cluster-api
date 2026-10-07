@@ -117,50 +117,68 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 	}
 
 	// Acknowledge replicas after a move operation.
-	// NOTE: PendingAcknowledgeMoveAnnotation from machine (managed by the MS controller) and AcknowledgedMoveAnnotation on the newMS (managed by the rollout planner)
-	// are used in combination to ensure moved replicas are counted only once by the rollout planner.
-	oldAcknowledgeMoveReplicas := sets.Set[string]{}
-	if originalMS, ok := p.originalMSs[p.newMS.Name]; ok {
-		if machineNames, ok := originalMS.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && machineNames != "" {
-			oldAcknowledgeMoveReplicas.Insert(strings.Split(machineNames, ",")...)
-		}
+	// NOTE:
+	// - The code below also acknowledge replicas moved to on oldMS, to handle the case a machine has been already moved
+	//   to the previously newMS, and the previously newMs became an oldMS while the machine is still pending acknowledge move.
+	// - It is required to acknowledge replicas moved to on oldMS because the machine has to reach the target state agreed
+	//   at the moment move was started before being able to be moved again (or deleted).
+	// - Acknowledge move on oldMS does not increase the (desired) replica number for the oldMS.
+	// - PendingAcknowledgeMoveAnnotation from machine (managed by the MS controller) and AcknowledgedMoveAnnotation (managed by the rollout planner)
+	//   are used in combination to ensure moved replicas are counted only once by the rollout planner.
+	var allMSs []*clusterv1.MachineSet
+	if p.newMS != nil {
+		allMSs = append(allMSs, p.newMS)
 	}
-	newAcknowledgeMoveReplicas := sets.Set[string]{}
-	for _, m := range p.machines {
-		if !util.IsControlledBy(m, p.newMS, clusterv1.GroupVersion.WithKind("MachineSet").GroupKind()) {
-			continue
+	allMSs = append(allMSs, p.oldMSs...)
+	for _, ms := range allMSs {
+		oldAcknowledgeMoveReplicas := sets.Set[string]{}
+		if originalMS, ok := p.originalMSs[ms.Name]; ok {
+			if machineNames, ok := originalMS.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && machineNames != "" {
+				oldAcknowledgeMoveReplicas.Insert(strings.Split(machineNames, ",")...)
+			}
 		}
-		if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; !ok {
-			continue
+		newAcknowledgeMoveReplicas := sets.Set[string]{}
+		for _, m := range p.machines {
+			if !util.IsControlledBy(m, ms, clusterv1.GroupVersion.WithKind("MachineSet").GroupKind()) {
+				continue
+			}
+			if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; !ok {
+				continue
+			}
+			if !oldAcknowledgeMoveReplicas.Has(m.Name) {
+				if p.acknowledgedMachineNames == nil {
+					p.acknowledgedMachineNames = make(map[string][]string)
+				}
+				p.acknowledgedMachineNames[ms.Name] = append(p.acknowledgedMachineNames[ms.Name], m.Name)
+			}
+			newAcknowledgeMoveReplicas.Insert(m.Name)
 		}
-		if !oldAcknowledgeMoveReplicas.Has(m.Name) {
-			p.acknowledgedMachineNames = append(p.acknowledgedMachineNames, m.Name)
-		}
-		newAcknowledgeMoveReplicas.Insert(m.Name)
-	}
 
-	totNewAcknowledgeMoveReplicasToScaleUp := int32(len(p.acknowledgedMachineNames))
-	if totNewAcknowledgeMoveReplicasToScaleUp > 0 {
-		// Note: After this change the replica count will include all the newly acknowledged replicas.
-		// Please note that, within the same reconcile, the rollout planner might revisit replicas for the newMS
-		// e.g. to account for the Machine deployment being scaled up or down.
-		replicaCount := ptr.Deref(p.newMS.Spec.Replicas, 0) + totNewAcknowledgeMoveReplicasToScaleUp
-		scaleUpCount := totNewAcknowledgeMoveReplicasToScaleUp
-		p.newMS.Spec.Replicas = ptr.To(replicaCount)
-		p.addNotef(p.newMS, "acknowledge Machines %s moved from an old MachineSet", sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList()))
-		log.V(5).Info(fmt.Sprintf("Acknowledge replicas %s moved from an old MachineSet. Scale up MachineSet %s to %d (+%d)", sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList()), p.newMS.Name, replicaCount, scaleUpCount), "MachineSet", klog.KObj(p.newMS))
-	}
+		if len(p.acknowledgedMachineNames[ms.Name]) > 0 {
+			if ms.Name == p.newMS.Name {
+				// Note: After this change the replica count will include all the newly acknowledged replicas.
+				// Please note that, within the same reconcile, the rollout planner might revisit replicas for the newMS
+				// e.g. to account for the Machine deployment being scaled up or down.
+				scaleUpCount := int32(len(p.acknowledgedMachineNames[ms.Name]))
+				replicaCount := ptr.Deref(ms.Spec.Replicas, 0) + scaleUpCount
+				ms.Spec.Replicas = new(replicaCount)
+				log.V(5).Info(fmt.Sprintf("Acknowledge replicas %s moved from an old MachineSet. Scale up MachineSet %s to %d (+%d)", sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList()), ms.Name, replicaCount, scaleUpCount), "MachineSet", klog.KObj(ms))
+			} else {
+				log.V(5).Info(fmt.Sprintf("Acknowledge replicas %s moved from an old MachineSet.", sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList())), "MachineSet", klog.KObj(ms))
+			}
+			p.addNotef(ms, "acknowledge Machines %s moved from an old MachineSet", sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList()))
+		}
 
-	// Track the list or replicas for which acknowledgeMove is not yet completed;
-	// The MachineSetController will use this info to cleanup the PendingAcknowledgeMoveAnnotation on machines.
-	// NOTE: cleanup of the AcknowledgedMoveAnnotation will happen automatically as soon as the rollout planner stops
-	// to set it, because this annotation is not part of the output of computeDesiredMS
-	// (same applies to oldMS, so annotation will always be removed from oldMS).
-	if p.newMS.Annotations == nil {
-		p.newMS.Annotations = map[string]string{}
-	}
-	if newAcknowledgeMoveReplicas.Len() > 0 {
-		p.newMS.Annotations[clusterv1.AcknowledgedMoveAnnotation] = sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList())
+		// Track the list or replicas for which acknowledgeMove is not yet completed;
+		// The MachineSetController will use this info to clean up the PendingAcknowledgeMoveAnnotation on machines.
+		// NOTE: cleanup of the AcknowledgedMoveAnnotation will happen automatically as soon as the rollout planner (this func) stops
+		// to set it, because this annotation is not part of the output of computeDesiredMS.
+		if ms.Annotations == nil {
+			ms.Annotations = map[string]string{}
+		}
+		if newAcknowledgeMoveReplicas.Len() > 0 {
+			ms.Annotations[clusterv1.AcknowledgedMoveAnnotation] = sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList())
+		}
 	}
 }
 

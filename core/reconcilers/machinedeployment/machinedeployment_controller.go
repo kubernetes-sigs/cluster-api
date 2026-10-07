@@ -417,8 +417,8 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			"reason", diff.Reason,
 			"diff", diff.OtherChanges,
 		}
-		if len(p.acknowledgedMachineNames) > 0 {
-			statusToLogKeyAndValues = append(statusToLogKeyAndValues, "acknowledgedMachines", sortAndJoin(p.acknowledgedMachineNames))
+		if len(p.acknowledgedMachineNames[ms.Name]) > 0 {
+			statusToLogKeyAndValues = append(statusToLogKeyAndValues, "acknowledgedMachines", sortAndJoin(p.acknowledgedMachineNames[ms.Name]))
 		}
 		if len(p.updatingMachineNames) > 0 {
 			statusToLogKeyAndValues = append(statusToLogKeyAndValues, "updatingMachines", sortAndJoin(p.updatingMachineNames))

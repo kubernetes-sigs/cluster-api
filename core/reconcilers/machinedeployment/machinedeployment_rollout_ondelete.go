@@ -37,6 +37,10 @@ func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineD
 		return err
 	}
 
+	// Adjust the replica count for the newMS after a move operation has been completed.
+	// Note: this is a best-effort attempt to handle the change of rollout strategy when there are machines pending acknowledge move.
+	planner.reconcileReplicasPendingAcknowledgeMove(ctx)
+
 	if err := planner.planOnDelete(ctx); err != nil {
 		return err
 	}

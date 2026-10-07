@@ -53,30 +53,18 @@ type scope struct {
 	getMachinesForMachinePoolSucceeded bool
 }
 
-type machinePoolMachinesState int
-
-const (
-	machinePoolMachinesStateUnknown machinePoolMachinesState = iota
-	machinePoolMachinesStateNotSupported
-	machinePoolMachinesStateSupported
-)
-
-func (s *scope) machinePoolMachinesState() (machinePoolMachinesState, error) {
+func (s *scope) hasMachinePoolMachines() (bool, error) {
 	if s.infraMachinePool == nil {
-		return machinePoolMachinesStateUnknown, errors.New("infra machine pool not set on scope")
+		return false, errors.New("infra machine pool not set on scope")
 	}
 
 	machineKind, err := contract.InfrastructureMachinePool().InfrastructureMachineKind().Get(s.infraMachinePool)
 	if err != nil {
 		if errors.Is(err, contract.ErrFieldNotFound) {
-			return machinePoolMachinesStateNotSupported, nil
+			return false, nil
 		}
-		return machinePoolMachinesStateUnknown, fmt.Errorf("failed to lookup infrastructureMachineKind: %w", err)
+		return false, fmt.Errorf("failed to lookup infrastructureMachineKind: %w", err)
 	}
 
-	if *machineKind == "" {
-		return machinePoolMachinesStateNotSupported, nil
-	}
-
-	return machinePoolMachinesStateSupported, nil
+	return *machineKind != "", nil
 }

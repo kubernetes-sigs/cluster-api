@@ -59,9 +59,6 @@ const (
 ).
 */
 
-// MachinePoolMachineSupportUnknownReason surfaces when the controller cannot determine if a MachinePool uses per-instance Machines.
-const MachinePoolMachineSupportUnknownReason = "MachineSupportUnknown"
-
 // MachinePool's MachinesUpToDate condition and corresponding reasons.
 const (
 	// MachinePoolMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.

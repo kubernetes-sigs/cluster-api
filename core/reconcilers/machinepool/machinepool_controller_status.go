@@ -28,38 +28,29 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
-	var retErr error
-	var machinePoolMachinesStateErr error
-	machinePoolMachinesState := machinePoolMachinesStateUnknown
-	if s.infraMachinePool != nil {
-		machinePoolMachinesState, machinePoolMachinesStateErr = s.machinePoolMachinesState()
-		if machinePoolMachinesStateErr != nil {
-			retErr = fmt.Errorf("determining if there are machine pool machines: %w", machinePoolMachinesStateErr)
-		}
+	log := ctrl.LoggerFrom(ctx)
+
+	if s.infraMachinePool == nil {
+		log.V(4).Info("infra machine pool isn't set, skipping setting status")
+		return nil
+	}
+	hasMachinePoolMachines, err := s.hasMachinePoolMachines()
+	if err != nil {
+		return fmt.Errorf("determining if there are machine pool machines: %w", err)
 	}
 
-	// Existing Machines prove this is a machine-backed pool even if the infrastructure object could not be read.
-	if machinePoolMachinesState == machinePoolMachinesStateUnknown &&
-		s.getMachinesForMachinePoolSucceeded && len(s.machines) > 0 {
-		machinePoolMachinesState = machinePoolMachinesStateSupported
+	if !hasMachinePoolMachines || s.getMachinesForMachinePoolSucceeded {
+		setReplicas(s.machinePool, hasMachinePoolMachines, s.machines, s.nodeRefMap)
 	}
 
-	switch machinePoolMachinesState {
-	case machinePoolMachinesStateNotSupported:
-		setReplicas(s.machinePool, false, nil, s.nodeRefMap)
-	case machinePoolMachinesStateSupported:
-		if s.getMachinesForMachinePoolSucceeded {
-			setReplicas(s.machinePool, true, s.machines, s.nodeRefMap)
-		}
-	}
+	setMachinesUpToDateCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines, s.getMachinesForMachinePoolSucceeded)
 
-	setMachinesUpToDateCondition(ctx, s.machinePool, s.machines, machinePoolMachinesState, machinePoolMachinesStateErr, s.getMachinesForMachinePoolSucceeded)
-
-	return retErr
+	return nil
 }
 
 func setReplicas(mp *clusterv1.MachinePool, hasMachinePoolMachines bool, machines []*clusterv1.Machine, nodeRefMap map[string]*corev1.Node) {
@@ -120,66 +111,32 @@ func versionsFromNodeRefs(nodeRefs []corev1.ObjectReference, nodeRefMap map[stri
 	return internalversion.AggregateStatusVersions(versions)
 }
 
-func machinesUpToDateConditionCanBeSet(mp *clusterv1.MachinePool, machinePoolMachinesState machinePoolMachinesState, machinePoolMachinesStateErr error, getMachinesSucceeded bool) bool {
-	switch machinePoolMachinesState {
-	case machinePoolMachinesStateNotSupported:
-		conditions.Delete(mp, clusterv1.MachinePoolMachinesUpToDateCondition)
-		return false
-	case machinePoolMachinesStateUnknown:
-		if machinePoolMachinesStateErr != nil || !getMachinesSucceeded {
-			conditions.Set(mp, metav1.Condition{
-				Type:    clusterv1.MachinePoolMachinesUpToDateCondition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachinePoolMachinesUpToDateInternalErrorReason,
-				Message: "Please check controller logs for errors",
-			})
-			return false
-		}
-		conditions.Set(mp, metav1.Condition{
-			Type:    clusterv1.MachinePoolMachinesUpToDateCondition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachinePoolMachineSupportUnknownReason,
-			Message: "Machine support could not be determined",
-		})
-		return false
-	case machinePoolMachinesStateSupported:
-		if !getMachinesSucceeded {
-			conditions.Set(mp, metav1.Condition{
-				Type:    clusterv1.MachinePoolMachinesUpToDateCondition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachinePoolMachinesUpToDateInternalErrorReason,
-				Message: "Please check controller logs for errors",
-			})
-			return false
-		}
-	}
-
-	return true
-}
-
-func setMachinesUpToDateCondition(ctx context.Context, mp *clusterv1.MachinePool, machines []*clusterv1.Machine, machinePoolMachinesState machinePoolMachinesState, machinePoolMachinesStateErr error, getMachinesSucceeded bool) {
+func setMachinesUpToDateCondition(ctx context.Context, mp *clusterv1.MachinePool, machinesSlice []*clusterv1.Machine, hasMachinePoolMachines, getMachinesSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Machines are not listed during deletion, so leave the last reported condition unchanged.
-	if !mp.DeletionTimestamp.IsZero() && !getMachinesSucceeded {
+	if !hasMachinePoolMachines {
+		conditions.Delete(mp, clusterv1.MachinePoolMachinesUpToDateCondition)
 		return
 	}
 
-	if !machinesUpToDateConditionCanBeSet(mp, machinePoolMachinesState, machinePoolMachinesStateErr, getMachinesSucceeded) {
+	if !getMachinesSucceeded {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolMachinesUpToDateCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolMachinesUpToDateInternalErrorReason,
+			Message: "Please check controller logs for errors",
+		})
 		return
 	}
 
 	// Only consider Machines that have an UpToDate condition or are older than 10s.
 	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
 	// because it can take a bit until the UpToDate condition is set on a new Machine.
-	upToDateMachines := make([]*clusterv1.Machine, 0, len(machines))
-	for _, machine := range machines {
-		if conditions.Has(machine, clusterv1.MachineUpToDateCondition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second {
-			upToDateMachines = append(upToDateMachines, machine)
-		}
-	}
+	machines := collections.FromMachines(machinesSlice...).Filter(func(machine *clusterv1.Machine) bool {
+		return conditions.Has(machine, clusterv1.MachineUpToDateCondition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
+	})
 
-	if len(upToDateMachines) == 0 {
+	if len(machines) == 0 {
 		conditions.Set(mp, metav1.Condition{
 			Type:   clusterv1.MachinePoolMachinesUpToDateCondition,
 			Status: metav1.ConditionTrue,
@@ -189,7 +146,7 @@ func setMachinesUpToDateCondition(ctx context.Context, mp *clusterv1.MachinePool
 	}
 
 	upToDateCondition, err := conditions.NewAggregateCondition(
-		upToDateMachines, clusterv1.MachineUpToDateCondition,
+		machines.UnsortedList(), clusterv1.MachineUpToDateCondition,
 		conditions.TargetConditionType(clusterv1.MachinePoolMachinesUpToDateCondition),
 		conditions.CustomMergeStrategy{
 			MergeStrategy: conditions.DefaultMergeStrategy(

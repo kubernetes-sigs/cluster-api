@@ -239,11 +239,11 @@ func (r *Reconciler) patchNodes(ctx context.Context, c client.Client, references
 
 	hasMachines := false
 	if s.infraMachinePool != nil {
-		machinesState, err := s.machinePoolMachinesState()
+		var err error
+		hasMachines, err = s.hasMachinePoolMachines()
 		if err != nil {
 			return err
 		}
-		hasMachines = machinesState == machinePoolMachinesStateSupported
 	}
 
 	for _, nodeRef := range references {

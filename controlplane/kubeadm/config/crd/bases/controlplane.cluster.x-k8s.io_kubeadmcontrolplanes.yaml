@@ -2481,12 +2481,16 @@ spec:
                       and then be\n\tremediated; such operation is considered a retry,
                       remediation-retry #1.\n\tIf M1-2 (replacement of M1-1) becomes
                       unhealthy, remediation-retry #2 will happen, etc.\n\nA retry
-                      could happen only after RetryPeriod from the previous retry.\nIf
-                      a machine is marked as unhealthy after MinHealthyPeriod from
-                      the previous remediation expired,\nthis is not considered a
-                      retry anymore because the new issue is assumed unrelated from
-                      the previous one.\n\nIf not set, the remedation will be retried
-                      infinitely."
+                      could happen only after RetryPeriod from the previous retry.\n\nIf
+                      a machine becomes unhealthy again before MinHealthyPeriod from
+                      the previous remediation expired,\nthis is considered a retry
+                      of the same sequence.\n\nIf a machine becomes unhealthy again
+                      after MinHealthyPeriod expired, this is not considered\na retry
+                      anymore because the new issue is assumed unrelated from the
+                      previous one.\n\nOnce MaxRetry is exhausted, remediation does
+                      not happen again until the machine becomes unhealthy\nafter
+                      MinHealthyPeriod from the previous remediation expired.\n\nIf
+                      not set, the remedation will be retried infinitely."
                     format: int32
                     type: integer
                   minHealthyPeriod:
@@ -2496,15 +2500,14 @@ spec:
                       a retry anymore, and thus the retry\ncounter restarts from 0.
                       For example, assuming MinHealthyPeriod is set to 1h (default)\n\n\tM1
                       become unhealthy; remediation happens, and M1-1 is created as
-                      a replacement.\n\tIf M1-1 (replacement of M1) has problems within
-                      the 1hr after the creation, also\n\tthis machine will be remediated
-                      and this operation is considered a retry - a problem related\n\tto
-                      the original issue happened to M1 -.\n\n\tIf instead the problem
-                      on M1-1 is happening after MinHealthyPeriod expired, e.g. four
-                      days after\n\tm1-1 has been created as a remediation of M1,
-                      the problem on M1-1 is considered unrelated to\n\tthe original
-                      issue happened to M1.\n\nIf not set, this value is defaulted
-                      to 1h."
+                      a replacement.\n\tIf M1-1 (replacement of M1) becomes unhealthy
+                      within the 1hr after M1 has been remediated, also\n\tthis machine
+                      will be remediated and this operation is considered a retry
+                      - a problem related\n\tto the original issue happened to M1
+                      -.\n\n\tIf instead M1-1 becomes unhealthy after MinHealthyPeriod
+                      expired, e.g. four days after\n\tM1 has been remediated, the
+                      problem on M1-1 is considered unrelated to\n\tthe original issue
+                      happened to M1.\n\nIf not set, this value is defaulted to 1h."
                     type: string
                   retryPeriod:
                     description: |-
@@ -5604,11 +5607,15 @@ spec:
                       remediation-retry #1.\n\tIf M1-2 (replacement of M1-1) becomes
                       unhealthy, remediation-retry #2 will happen, etc.\n\nA retry
                       could happen only after retryPeriodSeconds from the previous
-                      retry.\nIf a machine is marked as unhealthy after minHealthyPeriodSeconds
-                      from the previous remediation expired,\nthis is not considered
-                      a retry anymore because the new issue is assumed unrelated from
-                      the previous one.\n\nIf not set, the remedation will be retried
-                      infinitely."
+                      retry.\n\nIf a machine becomes unhealthy again before minHealthyPeriodSeconds
+                      from the previous remediation expired,\nthis is considered a
+                      retry of the same sequence.\n\nIf a machine becomes unhealthy
+                      again after minHealthyPeriodSeconds expired, this is not considered\na
+                      retry anymore because the new issue is assumed unrelated from
+                      the previous one.\n\nOnce maxRetry is exhausted, remediation
+                      does not happen again until the machine becomes unhealthy\nafter
+                      minHealthyPeriodSeconds from the previous remediation expired.\n\nIf
+                      not set, the remedation will be retried infinitely."
                     format: int32
                     type: integer
                   minHealthyPeriodSeconds:
@@ -5618,15 +5625,14 @@ spec:
                       a retry anymore, and thus the retry\ncounter restarts from 0.
                       For example, assuming minHealthyPeriodSeconds is set to 1h (default)\n\n\tM1
                       become unhealthy; remediation happens, and M1-1 is created as
-                      a replacement.\n\tIf M1-1 (replacement of M1) has problems within
-                      the 1hr after the creation, also\n\tthis machine will be remediated
-                      and this operation is considered a retry - a problem related\n\tto
-                      the original issue happened to M1 -.\n\n\tIf instead the problem
-                      on M1-1 is happening after minHealthyPeriodSeconds expired,
-                      e.g. four days after\n\tm1-1 has been created as a remediation
-                      of M1, the problem on M1-1 is considered unrelated to\n\tthe
-                      original issue happened to M1.\n\nIf not set, this value is
-                      defaulted to 1h."
+                      a replacement.\n\tIf M1-1 (replacement of M1) becomes unhealthy
+                      within the 1hr after M1 has been remediated, also\n\tthis machine
+                      will be remediated and this operation is considered a retry
+                      - a problem related\n\tto the original issue happened to M1
+                      -.\n\n\tIf instead M1-1 becomes unhealthy after minHealthyPeriodSeconds
+                      expired, e.g. four days after\n\tM1 has been remediated, the
+                      problem on M1-1 is considered unrelated to\n\tthe original issue
+                      happened to M1.\n\nIf not set, this value is defaulted to 1h."
                     format: int32
                     minimum: 0
                     type: integer

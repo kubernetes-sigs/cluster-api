@@ -582,23 +582,24 @@ func (r *Reconciler) checkRetryLimits(log logr.Logger, machineToBeRemediated *cl
 		lastRemediationTime = lastRemediationData.Timestamp.Time
 	}
 
-	// Once we get here we already know that there was a last remediation for the Machine.
-	// If the current remediation is happening before minHealthyPeriod is expired, then KCP considers this
-	// as a remediation for the same previously unhealthy machine.
-	// NOTE: If someone/something changes the RemediationForAnnotation on Machines (e.g. changes the lastRemediation time),
-	// this could potentially lead to executing more retries than expected, but this is considered acceptable in such a case.
-	var retryForSameMachineInProgress bool
-	if lastRemediationTime.Add(minHealthyPeriod).After(reconciliationTime) {
-		retryForSameMachineInProgress = true
+	// If the Machine was marked as unhealthy before minHealthyPeriod is expired, then KCP considers this remediation is considered
+	// as a retry of the same sequence (we assume the same underlying issue is happening again).
+	unhealthySince := reconciliationTime
+	if c := conditions.Get(machineToBeRemediated, clusterv1.MachineHealthCheckSucceededCondition); c != nil && c.Status == metav1.ConditionFalse && !c.LastTransitionTime.IsZero() {
+		unhealthySince = c.LastTransitionTime.Time
+	}
+	var sameSequenceInProgress bool
+	if unhealthySince.Before(lastRemediationTime.Add(minHealthyPeriod)) {
+		sameSequenceInProgress = true
 		log = log.WithValues("remediationRetryFor", klog.KRef(machineToBeRemediated.Namespace, lastRemediationData.Machine))
 	}
 
-	// If the retry for the same machine is not in progress, this is the first try of a new retry sequence.
-	if !retryForSameMachineInProgress {
+	// If the remediation is not part of the same sequence, this is the first try of a new retry sequence. Allow remediation to happen.
+	if !sameSequenceInProgress {
 		return remediationInProgressData, true, nil
 	}
 
-	// If the remediation is for the same machine, carry over the retry count.
+	// If the remediation is part of the same sequence, carry over the retry count.
 	remediationInProgressData.RetryCount = lastRemediationData.RetryCount
 
 	// Check if remediation can happen because retryPeriod is passed.
@@ -632,7 +633,7 @@ func (r *Reconciler) checkRetryLimits(log logr.Logger, machineToBeRemediated *cl
 		}
 	}
 
-	// All the check passed, increase the remediation retry count.
+	// All the check passed, increase the remediation retry count. Allow remediation to happen.
 	remediationInProgressData.RetryCount++
 
 	return remediationInProgressData, true, nil

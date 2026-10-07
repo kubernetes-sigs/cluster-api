@@ -74,6 +74,7 @@ import (
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinepool"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machineset"
 	topologycluster "sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster"
@@ -88,6 +89,7 @@ import (
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/version"
@@ -407,8 +409,8 @@ func main() {
 
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
-	clusterCache := setupReconcilers(ctx, mgr, watchNamespace, &syncPeriod)
-	setupWebhooks(ctx, mgr, clusterCache)
+	clusterCache, mhcCELProgramCache := setupReconcilers(ctx, mgr, watchNamespace, &syncPeriod)
+	setupWebhooks(ctx, mgr, clusterCache, mhcCELProgramCache)
 
 	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
@@ -436,7 +438,7 @@ func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace string, syncPeriod *time.Duration) clustercache.ClusterCache {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace string, syncPeriod *time.Duration) (clustercache.ClusterCache, cache.Cache[cel.ProgramEntry]) {
 	secretCachingClient, err := setup.CreateSecretCachingClient(mgr)
 	if err != nil {
 		setupLog.Error(err, "Unable to create secret caching client")
@@ -736,19 +738,21 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		os.Exit(1)
 	}
 
+	mhcCELProgramCache := cache.New[cel.ProgramEntry](ctx, 1*time.Hour)
 	if err := (&machinehealthcheck.Reconciler{
 		Client:           mgr.GetClient(),
 		ClusterCache:     clusterCache,
+		ProgramCache:     mhcCELProgramCache,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineHealthCheckConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "MachineHealthCheck")
 		os.Exit(1)
 	}
 
-	return clusterCache
+	return clusterCache, mhcCELProgramCache
 }
 
-func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader coreadmission.ClusterCacheReader) {
+func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader coreadmission.ClusterCacheReader, mhcCELProgramCache cache.Cache[cel.ProgramEntry]) {
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
 	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		_, gvk, err := contract.GetGVKFromGK(ctx, mgr.GetClient(), gk)
@@ -760,14 +764,21 @@ func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader corea
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled.
-	if err := (&coreadmission.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.ClusterClass{
+		Client:          mgr.GetClient(),
+		MHCProgramCache: mhcCELProgramCache,
+	}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "ClusterClass")
 		os.Exit(1)
 	}
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent usage of Cluster.Topology in case the feature flag is disabled.
-	if err := (&coreadmission.Cluster{Client: mgr.GetClient(), ClusterCacheReader: clusterCacheReader}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.Cluster{
+		Client:             mgr.GetClient(),
+		ClusterCacheReader: clusterCacheReader,
+		MHCProgramCache:    mhcCELProgramCache,
+	}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "Cluster")
 		os.Exit(1)
 	}
@@ -812,7 +823,9 @@ func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader corea
 		os.Exit(1)
 	}
 
-	if err := (&coreadmission.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&coreadmission.MachineHealthCheck{
+		ProgramCache: mhcCELProgramCache,
+	}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "MachineHealthCheck")
 		os.Exit(1)
 	}

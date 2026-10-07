@@ -33,12 +33,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/index"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -56,7 +58,8 @@ func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // ClusterClass implements a validation and defaulting webhook for ClusterClass.
 type ClusterClass struct {
-	Client client.Reader
+	Client          client.Reader
+	MHCProgramCache cache.Cache[cel.ProgramEntry]
 }
 
 var _ admission.Validator[*clusterv1.ClusterClass] = &ClusterClass{}
@@ -118,7 +121,7 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	allErrs = append(allErrs, validateClusterClassRollout(newClusterClass)...)
 
 	// Ensure MachineHealthChecks are valid.
-	allErrs = append(allErrs, validateMachineHealthCheckClasses(newClusterClass)...)
+	allErrs = append(allErrs, validateMachineHealthCheckClasses(webhook.MHCProgramCache, newClusterClass)...)
 
 	// Ensure NamingStrategies are valid.
 	allErrs = append(allErrs, validateNamingStrategies(newClusterClass)...)
@@ -396,7 +399,7 @@ func validateClusterClassRollout(clusterClass *clusterv1.ClusterClass) field.Err
 	return allErrs
 }
 
-func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func validateMachineHealthCheckClasses(mhcProgramCache cache.Cache[cel.ProgramEntry], clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// Validate ControlPlane MachineHealthCheck if defined.
@@ -404,6 +407,7 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		fldPath := field.NewPath("spec", "controlPlane", "healthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(mhcProgramCache, fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.UnhealthyExpressions)...)
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 
 		// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
@@ -423,6 +427,7 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("healthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, md.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(mhcProgramCache, fldPath, md.HealthCheck.Checks.UnhealthyExpressions)...)
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 		allErrs = append(allErrs, validateRemediationMaxInFlight(fldPath.Child("remediation"), md.HealthCheck.Remediation.MaxInFlight)...)
 	}

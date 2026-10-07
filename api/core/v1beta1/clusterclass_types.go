@@ -442,6 +442,16 @@ type MachineHealthCheckClass struct {
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
 
+	// unhealthyExpressions contains a list of CEL expressions that determine whether a
+	// Machine is considered unhealthy. The expressions are combined in a
+	// logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	UnhealthyExpressions []UnhealthyExpression `json:"unhealthyExpressions,omitempty"`
+
 	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
 	// Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
 	// "selector" are not healthy.

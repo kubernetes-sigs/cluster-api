@@ -3773,6 +3773,9 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		},
+		UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+			{Expression: "node.has_condition('Ready','False')"},
+		},
 		NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 	}
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{
@@ -3822,6 +3825,9 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 						Status:         metav1.ConditionFalse,
 						TimeoutSeconds: ptr.To(int32(5 * 60)),
 					},
+				},
+				UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+					{Expression: "node.has_condition('Ready','False')"},
 				},
 				NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 			},

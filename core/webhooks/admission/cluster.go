@@ -39,6 +39,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -46,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -75,6 +77,7 @@ type ClusterCacheReader interface {
 type Cluster struct {
 	Client             client.Reader
 	ClusterCacheReader ClusterCacheReader
+	MHCProgramCache    cache.Cache[cel.ProgramEntry]
 
 	decoder admission.Decoder
 }
@@ -303,6 +306,10 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	if clusterClass != nil {
 		allErrs = append(allErrs, ValidateClusterForClusterClass(newCluster, clusterClass)...)
 	}
+
+	// Validate the MachineHealthChecks defined in the cluster topology.
+	// Note: ClusterClass validation is only run if clusterClass is not nil.
+	allErrs = append(allErrs, validateMachineHealthChecks(webhook.MHCProgramCache, newCluster, clusterClass)...)
 
 	// Validate the Cluster and associated ClusterClass' autoscaler annotations.
 	// Note: ClusterClass validation is only run if clusterClass is not nil.
@@ -701,7 +708,7 @@ func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) fi
 	return allErrs
 }
 
-func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
 	fldPath := field.NewPath("spec", "topology", "controlPlane", "healthCheck")
@@ -709,13 +716,15 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 	// Validate ControlPlane MachineHealthCheck if defined.
 	if cluster.Spec.Topology.ControlPlane.HealthCheck.IsDefined() {
 		// Ensure ControlPlane does not define a MachineHealthCheck if the ClusterClass does not define MachineInfrastructure.
-		if !clusterClass.Spec.ControlPlane.MachineInfrastructure.IsDefined() {
+		if clusterClass != nil && !clusterClass.Spec.ControlPlane.MachineInfrastructure.IsDefined() {
 			allErrs = append(allErrs, field.Forbidden(
 				fldPath,
 				"can be only set if spec.controlPlane.machineInfrastructure is set in ClusterClass",
 			))
 		}
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, cluster.Spec.Topology.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(mhcProgramCache, fldPath,
+			cluster.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyExpressions)...)
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, cluster.Spec.Topology.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 	}
 
@@ -726,7 +735,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 	// Check if the machineHealthCheck is explicitly enabled in the ControlPlaneTopology.
 	if cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled != nil && *cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled {
 		// Ensure the MHC is defined in at least one of the ControlPlaneTopology of the Cluster or the ControlPlaneClass of the ClusterClass.
-		if !cluster.Spec.Topology.ControlPlane.HealthCheck.IsDefined() && !clusterClass.Spec.ControlPlane.HealthCheck.IsDefined() {
+		if !cluster.Spec.Topology.ControlPlane.HealthCheck.IsDefined() && clusterClass != nil && !clusterClass.Spec.ControlPlane.HealthCheck.IsDefined() {
 			allErrs = append(allErrs, field.Forbidden(
 				fldPath.Child("enable"),
 				fmt.Sprintf("cannot be set to %t as healthCheck definition is not available in the Cluster topology or the ClusterClass", *cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled),
@@ -741,6 +750,8 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 		// Validate the MachineDeployment MachineHealthCheck if defined.
 		if md.HealthCheck.IsDefined() {
 			allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, md.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+			allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(mhcProgramCache, fldPath,
+				md.HealthCheck.Checks.UnhealthyExpressions)...)
 			allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 			allErrs = append(allErrs, validateRemediationMaxInFlight(fldPath.Child("remediation"), md.HealthCheck.Remediation.MaxInFlight)...)
 		}
@@ -748,16 +759,18 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 		// If MachineHealthCheck is explicitly enabled then make sure that a MachineHealthCheck definition is
 		// available either in the Cluster topology or in the ClusterClass.
 		// (One of these definitions will be used in the controller to create the MachineHealthCheck)
-		mdClass := machineDeploymentClassOfName(clusterClass, md.Class)
-		if mdClass != nil { // Note: we skip handling the nil case here as it is already handled in previous validations.
-			// Check if the machineHealthCheck is explicitly enabled in the machineDeploymentTopology.
-			if md.HealthCheck.Enabled != nil && *md.HealthCheck.Enabled {
-				// Ensure the MHC is defined in at least one of the MachineDeploymentTopology of the Cluster or the MachineDeploymentClass of the ClusterClass.
-				if !md.HealthCheck.IsDefined() && !mdClass.HealthCheck.IsDefined() {
-					allErrs = append(allErrs, field.Forbidden(
-						fldPath.Child("enable"),
-						fmt.Sprintf("cannot be set to %t as healthCheck definition is not available in the Cluster topology or the ClusterClass", *md.HealthCheck.Enabled),
-					))
+		if clusterClass != nil {
+			mdClass := machineDeploymentClassOfName(clusterClass, md.Class)
+			if mdClass != nil { // Note: we skip handling the nil case here as it is already handled in previous validations.
+				// Check if the machineHealthCheck is explicitly enabled in the machineDeploymentTopology.
+				if md.HealthCheck.Enabled != nil && *md.HealthCheck.Enabled {
+					// Ensure the MHC is defined in at least one of the MachineDeploymentTopology of the Cluster or the MachineDeploymentClass of the ClusterClass.
+					if !md.HealthCheck.IsDefined() && !mdClass.HealthCheck.IsDefined() {
+						allErrs = append(allErrs, field.Forbidden(
+							fldPath.Child("enable"),
+							fmt.Sprintf("cannot be set to %t as healthCheck definition is not available in the Cluster topology or the ClusterClass", *md.HealthCheck.Enabled),
+						))
+					}
 				}
 			}
 		}
@@ -973,8 +986,6 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 
 	allErrs = append(allErrs, check.MachinePoolTopologiesAreValidAndDefinedInClusterClass(cluster, clusterClass)...)
 
-	// Validate the MachineHealthChecks defined in the cluster topology.
-	allErrs = append(allErrs, validateMachineHealthChecks(cluster, clusterClass)...)
 	return allErrs
 }
 

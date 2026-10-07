@@ -404,6 +404,57 @@ spec:
                               type: object
                             maxItems: 100
                             type: array
+                          unhealthyExpressions:
+                            description: |-
+                              unhealthyExpressions contains a list of CEL expressions that determine whether a
+                              Machine is considered unhealthy. The expressions are combined in a
+                              logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+                            items:
+                              description: |-
+                                UnhealthyExpression represents a CEL expression used to determine whether a
+                                Machine is considered unhealthy.
+                              properties:
+                                expression:
+                                  description: |-
+                                    expression is a CEL expression that is evaluated to determine whether a
+                                    Machine is unhealthy. It must evaluate to a bool; true means unhealthy.
+
+                                    The following variables are available:
+                                    - machine: the Machine, giving access to is conditions
+                                    - node: the Node hosted on the Machine, giving access to its conditions
+                                      If the Machine has no Node yet, expressions referencing node evaluate to false.
+
+                                    The following functions are available on both machine and node:
+                                    - has_condition(type, status): true if a condition with the given type and
+                                      status ("True", "False" or "Unknown") exists.
+                                    - has_condition(type, status, reason): like above, additionally requiring the given reason.
+                                    - has_condition_since(type, status, duration): true if the condition has had the given status
+                                      for at least the given duration (Go duration format, e.g. "5m", "1h").
+                                    - has_condition_since(type, status, reason, duration): like above, additionally requiring the given reason.
+
+                                    In addition, the standard CEL functions and operators can be used, e.g. to combine checks with && and ||.
+
+                                    Examples:
+                                    - machine.has_condition_since("Ready", "False", "5m")
+                                    - node.has_condition_since("Ready", "False", "5m") && !node.has_condition("MaintenanceInProgress", "True")
+                                  maxLength: 1024
+                                  minLength: 1
+                                  type: string
+                                message:
+                                  description: |-
+                                    message is the message used in the HealthCheckSucceeded condition if this
+                                    expression determines that the Machine is unhealthy.
+                                  maxLength: 256
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - expression
+                              - message
+                              type: object
+                            maxItems: 10
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-type: atomic
                           unhealthyMachineConditions:
                             description: |-
                               unhealthyMachineConditions contains a list of the machine conditions that determine
@@ -886,6 +937,57 @@ spec:
                                     type: object
                                   maxItems: 100
                                   type: array
+                                unhealthyExpressions:
+                                  description: |-
+                                    unhealthyExpressions contains a list of CEL expressions that determine whether a
+                                    Machine is considered unhealthy. The expressions are combined in a
+                                    logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+                                  items:
+                                    description: |-
+                                      UnhealthyExpression represents a CEL expression used to determine whether a
+                                      Machine is considered unhealthy.
+                                    properties:
+                                      expression:
+                                        description: |-
+                                          expression is a CEL expression that is evaluated to determine whether a
+                                          Machine is unhealthy. It must evaluate to a bool; true means unhealthy.
+
+                                          The following variables are available:
+                                          - machine: the Machine, giving access to is conditions
+                                          - node: the Node hosted on the Machine, giving access to its conditions
+                                            If the Machine has no Node yet, expressions referencing node evaluate to false.
+
+                                          The following functions are available on both machine and node:
+                                          - has_condition(type, status): true if a condition with the given type and
+                                            status ("True", "False" or "Unknown") exists.
+                                          - has_condition(type, status, reason): like above, additionally requiring the given reason.
+                                          - has_condition_since(type, status, duration): true if the condition has had the given status
+                                            for at least the given duration (Go duration format, e.g. "5m", "1h").
+                                          - has_condition_since(type, status, reason, duration): like above, additionally requiring the given reason.
+
+                                          In addition, the standard CEL functions and operators can be used, e.g. to combine checks with && and ||.
+
+                                          Examples:
+                                          - machine.has_condition_since("Ready", "False", "5m")
+                                          - node.has_condition_since("Ready", "False", "5m") && !node.has_condition("MaintenanceInProgress", "True")
+                                        maxLength: 1024
+                                        minLength: 1
+                                        type: string
+                                      message:
+                                        description: |-
+                                          message is the message used in the HealthCheckSucceeded condition if this
+                                          expression determines that the Machine is unhealthy.
+                                        maxLength: 256
+                                        minLength: 1
+                                        type: string
+                                    required:
+                                    - expression
+                                    - message
+                                    type: object
+                                  maxItems: 10
+                                  minItems: 1
+                                  type: array
+                                  x-kubernetes-list-type: atomic
                                 unhealthyMachineConditions:
                                   description: |-
                                     unhealthyMachineConditions contains a list of the machine conditions that determine
@@ -2249,6 +2351,57 @@ spec:
                                 format: int32
                                 minimum: 0
                                 type: integer
+                              unhealthyExpressions:
+                                description: |-
+                                  unhealthyExpressions contains a list of CEL expressions that determine whether a
+                                  Machine is considered unhealthy. The expressions are combined in a
+                                  logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+                                items:
+                                  description: |-
+                                    UnhealthyExpression represents a CEL expression used to determine whether a
+                                    Machine is considered unhealthy.
+                                  properties:
+                                    expression:
+                                      description: |-
+                                        expression is a CEL expression that is evaluated to determine whether a
+                                        Machine is unhealthy. It must evaluate to a bool; true means unhealthy.
+
+                                        The following variables are available:
+                                        - machine: the Machine, giving access to is conditions
+                                        - node: the Node hosted on the Machine, giving access to its conditions
+                                          If the Machine has no Node yet, expressions referencing node evaluate to false.
+
+                                        The following functions are available on both machine and node:
+                                        - has_condition(type, status): true if a condition with the given type and
+                                          status ("True", "False" or "Unknown") exists.
+                                        - has_condition(type, status, reason): like above, additionally requiring the given reason.
+                                        - has_condition_since(type, status, duration): true if the condition has had the given status
+                                          for at least the given duration (Go duration format, e.g. "5m", "1h").
+                                        - has_condition_since(type, status, reason, duration): like above, additionally requiring the given reason.
+
+                                        In addition, the standard CEL functions and operators can be used, e.g. to combine checks with && and ||.
+
+                                        Examples:
+                                        - machine.has_condition_since("Ready", "False", "5m")
+                                        - node.has_condition_since("Ready", "False", "5m") && !node.has_condition("MaintenanceInProgress", "True")
+                                      maxLength: 1024
+                                      minLength: 1
+                                      type: string
+                                    message:
+                                      description: |-
+                                        message is the message used in the HealthCheckSucceeded condition if this
+                                        expression determines that the Machine is unhealthy.
+                                      maxLength: 256
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - expression
+                                  - message
+                                  type: object
+                                maxItems: 10
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-type: atomic
                               unhealthyMachineConditions:
                                 description: |-
                                   unhealthyMachineConditions contains a list of the machine conditions that determine
@@ -2776,6 +2929,57 @@ spec:
                                       format: int32
                                       minimum: 0
                                       type: integer
+                                    unhealthyExpressions:
+                                      description: |-
+                                        unhealthyExpressions contains a list of CEL expressions that determine whether a
+                                        Machine is considered unhealthy. The expressions are combined in a
+                                        logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+                                      items:
+                                        description: |-
+                                          UnhealthyExpression represents a CEL expression used to determine whether a
+                                          Machine is considered unhealthy.
+                                        properties:
+                                          expression:
+                                            description: |-
+                                              expression is a CEL expression that is evaluated to determine whether a
+                                              Machine is unhealthy. It must evaluate to a bool; true means unhealthy.
+
+                                              The following variables are available:
+                                              - machine: the Machine, giving access to is conditions
+                                              - node: the Node hosted on the Machine, giving access to its conditions
+                                                If the Machine has no Node yet, expressions referencing node evaluate to false.
+
+                                              The following functions are available on both machine and node:
+                                              - has_condition(type, status): true if a condition with the given type and
+                                                status ("True", "False" or "Unknown") exists.
+                                              - has_condition(type, status, reason): like above, additionally requiring the given reason.
+                                              - has_condition_since(type, status, duration): true if the condition has had the given status
+                                                for at least the given duration (Go duration format, e.g. "5m", "1h").
+                                              - has_condition_since(type, status, reason, duration): like above, additionally requiring the given reason.
+
+                                              In addition, the standard CEL functions and operators can be used, e.g. to combine checks with && and ||.
+
+                                              Examples:
+                                              - machine.has_condition_since("Ready", "False", "5m")
+                                              - node.has_condition_since("Ready", "False", "5m") && !node.has_condition("MaintenanceInProgress", "True")
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          message:
+                                            description: |-
+                                              message is the message used in the HealthCheckSucceeded condition if this
+                                              expression determines that the Machine is unhealthy.
+                                            maxLength: 256
+                                            minLength: 1
+                                            type: string
+                                        required:
+                                        - expression
+                                        - message
+                                        type: object
+                                      maxItems: 10
+                                      minItems: 1
+                                      type: array
+                                      x-kubernetes-list-type: atomic
                                     unhealthyMachineConditions:
                                       description: |-
                                         unhealthyMachineConditions contains a list of the machine conditions that determine

@@ -32,6 +32,8 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -452,6 +454,125 @@ func TestHealthCheckTargets(t *testing.T) {
 	machineAnnotationRemediationCondition := newFailedHealthCheckV1Beta1Condition(clusterv1.HasRemediateMachineAnnotationV1Beta1Reason, annotationRemediationMsg)
 	machineAnnotationRemediationV1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckHasRemediateAnnotationReason, annotationRemediationV1Beta2Msg)
 
+	// Targets for unhealthyExpressions.
+	machineExpressionMessage := "Machine EtcdPodHealthy is False for more than 5m"
+	nodeExpressionMessage := "Node Ready is Unknown for more than 5m"
+
+	machineExpression := clusterv1.UnhealthyExpression{
+		Expression: `machine.has_condition_since("EtcdPodHealthy", "False", "Failed", "5m")`,
+		Message:    machineExpressionMessage,
+	}
+	nodeExpression := clusterv1.UnhealthyExpression{
+		Expression: `node.has_condition_since("Ready", "Unknown", "NodeStatusUnknown", "5m")`,
+		Message:    nodeExpressionMessage,
+	}
+	newMHCWithExpressions := func(expressions ...clusterv1.UnhealthyExpression) *clusterv1.MachineHealthCheck {
+		mhc := testMHCEmptyConditions.DeepCopy()
+		mhc.Spec.Checks.UnhealthyExpressions = expressions
+		return mhc
+	}
+	testMHCMachineExpression := newMHCWithExpressions(machineExpression)
+	testMHCNodeExpression := newMHCWithExpressions(nodeExpression)
+	testMHCBothExpressions := newMHCWithExpressions(machineExpression, nodeExpression)
+	testMHCCombinedExpression := newMHCWithExpressions(clusterv1.UnhealthyExpression{
+		Expression: `node.has_condition_since("Ready", "Unknown", "5m") && machine.has_condition("EtcdPodHealthy", "False")`,
+		Message:    "Node and Machine are unhealthy",
+	})
+
+	// Machine condition matching the expression for longer than the duration.
+	machineExpressionUnhealthy400 := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCMachineExpression,
+		Machine: testMachineUnhealthy400.DeepCopy(),
+		Node:    testNodeHealthy,
+	}
+	machineExpressionUnhealthy400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyMachineConditionV1Beta1Reason, "%s", machineExpressionMessage)
+	machineExpressionUnhealthy400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyMachineReason, "Health check failed:\n  * %s", machineExpressionMessage)
+
+	// Machine condition matching the expression for shorter than the duration.
+	machineExpressionUnhealthy200 := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCMachineExpression,
+		Machine: testMachineUnhealthy200.DeepCopy(),
+		Node:    testNodeHealthy,
+	}
+
+	// Machine expression doesn't match because the Machine is healthy.
+	machineExpressionHealthy := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCMachineExpression,
+		Machine: testMachine.DeepCopy(),
+		Node:    testNodeHealthy,
+	}
+
+	// Machine expression matches, but the Node does not exist (yet): expressions that don't use node still apply.
+	machineExpressionUnhealthy400NoNode := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCMachineExpression,
+		Machine: testMachineUnhealthy400.DeepCopy(),
+		Node:    nil,
+	}
+
+	// Node expression matching for longer than the duration.
+	nodeExpressionUnhealthy400 := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCNodeExpression,
+		Machine: testMachine.DeepCopy(),
+		Node:    testNodeUnknown400,
+	}
+	nodeExpressionUnhealthy400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyMachineConditionV1Beta1Reason, "%s", nodeExpressionMessage)
+	nodeExpressionUnhealthy400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyMachineReason, "Health check failed:\n  * %s", nodeExpressionMessage)
+
+	// Node expression matching for shorter than the duration.
+	nodeExpressionUnhealthy200 := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCNodeExpression,
+		Machine: testMachine.DeepCopy(),
+		Node:    testNodeUnknown200,
+	}
+
+	// Node expression without a Node: not matched, without error.
+	nodeExpressionNoNode := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCNodeExpression,
+		Machine: testMachineWithInfraReady.DeepCopy(),
+		Node:    nil,
+	}
+
+	// Two expressions, only the Machine one matches.
+	onlyMachineExpressionMatches := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCBothExpressions,
+		Machine: testMachineUnhealthy400.DeepCopy(),
+		Node:    testNodeHealthy,
+	}
+
+	// Two expressions, both match: messages are combined in the order of the expressions.
+	bothExpressionsMatch := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCBothExpressions,
+		Machine: testMachineUnhealthy400.DeepCopy(),
+		Node:    testNodeUnknown400,
+	}
+	bothExpressionsMatchCondition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyMachineConditionV1Beta1Reason, "%s; %s", machineExpressionMessage, nodeExpressionMessage)
+	bothExpressionsMatchV1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyMachineReason, "Health check failed:\n  * %s\n  * %s", machineExpressionMessage, nodeExpressionMessage)
+
+	// Expression using both node and machine.
+	combinedExpressionNotYetMatching := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCCombinedExpression,
+		Machine: testMachineUnhealthy400.DeepCopy(),
+		Node:    testNodeUnknown200,
+	}
+	combinedExpressionMatching := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCCombinedExpression,
+		Machine: testMachineUnhealthy400.DeepCopy(),
+		Node:    testNodeUnknown400,
+	}
+	combinedExpressionMatchingCondition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyMachineConditionV1Beta1Reason, "Node and Machine are unhealthy")
+	combinedExpressionMatchingV1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyMachineReason, "Health check failed:\n  * Node and Machine are unhealthy")
+
 	testCases := []struct {
 		desc                                     string
 		targets                                  []healthCheckTarget
@@ -497,7 +618,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		{
 			desc:                     "when the node has been in an unknown state for shorter than the timeout",
 			targets:                  []healthCheckTarget{nodeUnknown200},
-			expectedHealthy:          []healthCheckTarget{},
+			expectedHealthy:          []healthCheckTarget{nodeUnknown200},
 			expectedNeedsRemediation: []healthCheckTarget{},
 			expectedNextCheckTimes:   []time.Duration{100*time.Second + 1*time.Second},
 		},
@@ -513,7 +634,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		{
 			desc:                     "when the machine condition has been unhealthy for shorter than the timeout",
 			targets:                  []healthCheckTarget{machineUnhealthy200},
-			expectedHealthy:          []healthCheckTarget{},
+			expectedHealthy:          []healthCheckTarget{machineUnhealthy200},
 			expectedNeedsRemediation: []healthCheckTarget{},
 			expectedNextCheckTimes:   []time.Duration{100*time.Second + 1*time.Second}, // 300s timeout - 200s elapsed + 1s = 100s remaining
 		},
@@ -536,7 +657,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		{
 			desc:                                     "with a mix of healthy and unhealthy nodes",
 			targets:                                  []healthCheckTarget{nodeUnknown100, nodeUnknown200, nodeUnknown400, nodeHealthy},
-			expectedHealthy:                          []healthCheckTarget{nodeHealthy},
+			expectedHealthy:                          []healthCheckTarget{nodeUnknown100, nodeUnknown200, nodeHealthy},
 			expectedNeedsRemediation:                 []healthCheckTarget{nodeUnknown400},
 			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeUnknown400Condition},
 			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeUnknown400V1Beta2Condition},
@@ -576,6 +697,97 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediationCondition: []clusterv1.Condition{},
 			expectedNextCheckTimes:            []time.Duration{},
 		},
+		{
+			desc:                                     "unhealthyExpressions: machine expression matching for longer than the duration",
+			targets:                                  []healthCheckTarget{machineExpressionUnhealthy400},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{machineExpressionUnhealthy400},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{machineExpressionUnhealthy400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{machineExpressionUnhealthy400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
+		},
+		{
+			desc:                     "unhealthyExpressions: machine expression matching for shorter than the duration",
+			targets:                  []healthCheckTarget{machineExpressionUnhealthy200},
+			expectedHealthy:          []healthCheckTarget{machineExpressionUnhealthy200},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{100 * time.Second}, // 300s duration - 200s elapsed
+		},
+		{
+			desc:                     "unhealthyExpressions: machine expression not matching",
+			targets:                  []healthCheckTarget{machineExpressionHealthy},
+			expectedHealthy:          []healthCheckTarget{machineExpressionHealthy},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{},
+		},
+		{
+			desc:                                     "unhealthyExpressions: machine expression matching without a Node",
+			targets:                                  []healthCheckTarget{machineExpressionUnhealthy400NoNode},
+			timeoutForMachineToHaveNode:              &disabledTimeoutForMachineToHaveNode,
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{machineExpressionUnhealthy400NoNode},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{machineExpressionUnhealthy400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{machineExpressionUnhealthy400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
+		},
+		{
+			desc:                                     "unhealthyExpressions: node expression matching for longer than the duration",
+			targets:                                  []healthCheckTarget{nodeExpressionUnhealthy400},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{nodeExpressionUnhealthy400},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeExpressionUnhealthy400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeExpressionUnhealthy400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
+		},
+		{
+			desc:                     "unhealthyExpressions: node expression matching for shorter than the duration",
+			targets:                  []healthCheckTarget{nodeExpressionUnhealthy200},
+			expectedHealthy:          []healthCheckTarget{nodeExpressionUnhealthy200},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{100 * time.Second}, // 300s duration - 200s elapsed
+		},
+		{
+			desc:                        "unhealthyExpressions: node expression is not matched if the Node does not exist",
+			targets:                     []healthCheckTarget{nodeExpressionNoNode},
+			timeoutForMachineToHaveNode: &disabledTimeoutForMachineToHaveNode,
+			expectedHealthy:             []healthCheckTarget{},
+			expectedNeedsRemediation:    []healthCheckTarget{},
+			expectedNextCheckTimes:      []time.Duration{},
+		},
+		{
+			desc:                                     "unhealthyExpressions: only the matching expression contributes its message",
+			targets:                                  []healthCheckTarget{onlyMachineExpressionMatches},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{onlyMachineExpressionMatches},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{machineExpressionUnhealthy400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{machineExpressionUnhealthy400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
+		},
+		{
+			desc:                                     "unhealthyExpressions: messages of all matching expressions are combined",
+			targets:                                  []healthCheckTarget{bothExpressionsMatch},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{bothExpressionsMatch},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{bothExpressionsMatchCondition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{bothExpressionsMatchV1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
+		},
+		{
+			desc:                     "unhealthyExpressions: expression using node and machine, not yet matching",
+			targets:                  []healthCheckTarget{combinedExpressionNotYetMatching},
+			expectedHealthy:          []healthCheckTarget{combinedExpressionNotYetMatching},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{100 * time.Second}, // 300s duration - 200s elapsed
+		},
+		{
+			desc:                                     "unhealthyExpressions: expression using node and machine, matching",
+			targets:                                  []healthCheckTarget{combinedExpressionMatching},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{combinedExpressionMatching},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{combinedExpressionMatchingCondition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{combinedExpressionMatchingV1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -584,7 +796,9 @@ func TestHealthCheckTargets(t *testing.T) {
 
 			// Create a test reconciler.
 			reconciler := &Reconciler{
-				recorder: record.NewFakeRecorder(5),
+				recorder:              record.NewFakeRecorder(5),
+				ProgramCache:          cache.New[cel.ProgramEntry](ctx, 1*time.Hour),
+				expressionResultCache: cache.New[cel.ExpressionResultEntry](ctx, 30*time.Minute),
 			}
 
 			// Allow individual test cases to override the timeoutForMachineToHaveNode.
@@ -593,7 +807,8 @@ func TestHealthCheckTargets(t *testing.T) {
 				timeout.Duration = *tc.timeoutForMachineToHaveNode
 			}
 
-			healthy, unhealthy, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), now, timeout)
+			healthy, unhealthy, nextCheckTimes, err := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), now, timeout)
+			gs.Expect(err).ToNot(HaveOccurred())
 
 			// Remove the last transition time of the given conditions. Used for comparison with expected conditions.
 			removeLastTransitionTimes := func(in clusterv1.Conditions) clusterv1.Conditions {

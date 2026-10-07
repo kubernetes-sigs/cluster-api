@@ -2237,6 +2237,7 @@ _Appears in:_
 | `nodeStartupTimeoutSeconds` _integer_ | nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck<br />to consider a Machine unhealthy if a corresponding Node isn't associated<br />through a `Spec.ProviderID` field.<br />The duration set in this field is compared to the greatest of:<br />- Cluster's infrastructure ready condition timestamp (if and when available)<br />- Control Plane's initialized condition timestamp (if and when available)<br />- Machine's infrastructure ready condition timestamp (if and when available)<br />- Machine's metadata creation timestamp<br />Defaults to 10 minutes.<br />If you wish to disable this feature, set the value explicitly to 0. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `unhealthyNodeConditions` _[UnhealthyNodeCondition](#unhealthynodecondition) array_ | unhealthyNodeConditions contains a list of conditions that determine<br />whether a node is considered unhealthy. The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the node is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `unhealthyMachineConditions` _[UnhealthyMachineCondition](#unhealthymachinecondition) array_ | unhealthyMachineConditions contains a list of the machine conditions that determine<br />whether a machine is considered unhealthy.  The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the machine is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `unhealthyExpressions` _[UnhealthyExpression](#unhealthyexpression) array_ | unhealthyExpressions contains a list of CEL expressions that determine whether a<br />Machine is considered unhealthy. The expressions are combined in a<br />logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy. |  | MaxItems: 10 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 #### ControlPlaneClassHealthCheckRemediation
@@ -2388,6 +2389,7 @@ _Appears in:_
 | `nodeStartupTimeoutSeconds` _integer_ | nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck<br />to consider a Machine unhealthy if a corresponding Node isn't associated<br />through a `Spec.ProviderID` field.<br />The duration set in this field is compared to the greatest of:<br />- Cluster's infrastructure ready condition timestamp (if and when available)<br />- Control Plane's initialized condition timestamp (if and when available)<br />- Machine's infrastructure ready condition timestamp (if and when available)<br />- Machine's metadata creation timestamp<br />Defaults to 10 minutes.<br />If you wish to disable this feature, set the value explicitly to 0. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `unhealthyNodeConditions` _[UnhealthyNodeCondition](#unhealthynodecondition) array_ | unhealthyNodeConditions contains a list of conditions that determine<br />whether a node is considered unhealthy. The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the node is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `unhealthyMachineConditions` _[UnhealthyMachineCondition](#unhealthymachinecondition) array_ | unhealthyMachineConditions contains a list of the machine conditions that determine<br />whether a machine is considered unhealthy.  The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the machine is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `unhealthyExpressions` _[UnhealthyExpression](#unhealthyexpression) array_ | unhealthyExpressions contains a list of CEL expressions that determine whether a<br />Machine is considered unhealthy. The expressions are combined in a<br />logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy. |  | MaxItems: 10 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 #### ControlPlaneTopologyHealthCheckRemediation
@@ -2863,6 +2865,7 @@ _Appears in:_
 | `nodeStartupTimeoutSeconds` _integer_ | nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck<br />to consider a Machine unhealthy if a corresponding Node isn't associated<br />through a `Spec.ProviderID` field.<br />The duration set in this field is compared to the greatest of:<br />- Cluster's infrastructure ready condition timestamp (if and when available)<br />- Control Plane's initialized condition timestamp (if and when available)<br />- Machine's infrastructure ready condition timestamp (if and when available)<br />- Machine's metadata creation timestamp<br />Defaults to 10 minutes.<br />If you wish to disable this feature, set the value explicitly to 0. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `unhealthyNodeConditions` _[UnhealthyNodeCondition](#unhealthynodecondition) array_ | unhealthyNodeConditions contains a list of conditions that determine<br />whether a node is considered unhealthy. The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the node is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `unhealthyMachineConditions` _[UnhealthyMachineCondition](#unhealthymachinecondition) array_ | unhealthyMachineConditions contains a list of the machine conditions that determine<br />whether a machine is considered unhealthy.  The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the machine is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `unhealthyExpressions` _[UnhealthyExpression](#unhealthyexpression) array_ | unhealthyExpressions contains a list of CEL expressions that determine whether a<br />Machine is considered unhealthy. The expressions are combined in a<br />logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy. |  | MaxItems: 10 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentClassHealthCheckRemediation
@@ -3269,6 +3272,7 @@ _Appears in:_
 | `nodeStartupTimeoutSeconds` _integer_ | nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck<br />to consider a Machine unhealthy if a corresponding Node isn't associated<br />through a `Spec.ProviderID` field.<br />The duration set in this field is compared to the greatest of:<br />- Cluster's infrastructure ready condition timestamp (if and when available)<br />- Control Plane's initialized condition timestamp (if and when available)<br />- Machine's infrastructure ready condition timestamp (if and when available)<br />- Machine's metadata creation timestamp<br />Defaults to 10 minutes.<br />If you wish to disable this feature, set the value explicitly to 0. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `unhealthyNodeConditions` _[UnhealthyNodeCondition](#unhealthynodecondition) array_ | unhealthyNodeConditions contains a list of conditions that determine<br />whether a node is considered unhealthy. The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the node is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `unhealthyMachineConditions` _[UnhealthyMachineCondition](#unhealthymachinecondition) array_ | unhealthyMachineConditions contains a list of the machine conditions that determine<br />whether a machine is considered unhealthy.  The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the machine is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `unhealthyExpressions` _[UnhealthyExpression](#unhealthyexpression) array_ | unhealthyExpressions contains a list of CEL expressions that determine whether a<br />Machine is considered unhealthy. The expressions are combined in a<br />logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy. |  | MaxItems: 10 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentTopologyHealthCheckRemediation
@@ -3601,6 +3605,7 @@ _Appears in:_
 | `nodeStartupTimeoutSeconds` _integer_ | nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck<br />to consider a Machine unhealthy if a corresponding Node isn't associated<br />through a `Spec.ProviderID` field.<br />The duration set in this field is compared to the greatest of:<br />- Cluster's infrastructure ready condition timestamp (if and when available)<br />- Control Plane's initialized condition timestamp (if and when available)<br />- Machine's infrastructure ready condition timestamp (if and when available)<br />- Machine's metadata creation timestamp<br />Defaults to 10 minutes.<br />If you wish to disable this feature, set the value explicitly to 0. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `unhealthyNodeConditions` _[UnhealthyNodeCondition](#unhealthynodecondition) array_ | unhealthyNodeConditions contains a list of conditions that determine<br />whether a node is considered unhealthy. The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the node is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `unhealthyMachineConditions` _[UnhealthyMachineCondition](#unhealthymachinecondition) array_ | unhealthyMachineConditions contains a list of the machine conditions that determine<br />whether a machine is considered unhealthy.  The conditions are combined in a<br />logical OR, i.e. if any of the conditions is met, the machine is unhealthy. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `unhealthyExpressions` _[UnhealthyExpression](#unhealthyexpression) array_ | unhealthyExpressions contains a list of CEL expressions that determine whether a<br />Machine is considered unhealthy. The expressions are combined in a<br />logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy. |  | MaxItems: 10 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachineHealthCheckDeprecatedStatus
@@ -4672,6 +4677,28 @@ _Appears in:_
 | `controlPlane` _[ControlPlaneTopology](#controlplanetopology)_ | controlPlane describes the cluster control plane. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `workers` _[WorkersTopology](#workerstopology)_ | workers encapsulates the different constructs that form the worker nodes<br />for the cluster. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `variables` _[ClusterVariable](#clustervariable) array_ | variables can be used to customize the Cluster through<br />patches. They must comply to the corresponding<br />VariableClasses defined in the ClusterClass. |  | MaxItems: 1000 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+
+
+#### UnhealthyExpression
+
+
+
+UnhealthyExpression represents a CEL expression used to determine whether a
+Machine is considered unhealthy.
+
+
+
+_Appears in:_
+- [ControlPlaneClassHealthCheckChecks](#controlplaneclasshealthcheckchecks)
+- [ControlPlaneTopologyHealthCheckChecks](#controlplanetopologyhealthcheckchecks)
+- [MachineDeploymentClassHealthCheckChecks](#machinedeploymentclasshealthcheckchecks)
+- [MachineDeploymentTopologyHealthCheckChecks](#machinedeploymenttopologyhealthcheckchecks)
+- [MachineHealthCheckChecks](#machinehealthcheckchecks)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `expression` _string_ | expression is a CEL expression that is evaluated to determine whether a<br />Machine is unhealthy. It must evaluate to a bool; true means unhealthy.<br />The following variables are available:<br />- machine: the Machine, giving access to is conditions<br />- node: the Node hosted on the Machine, giving access to its conditions<br />  If the Machine has no Node yet, expressions referencing node evaluate to false.<br />The following functions are available on both machine and node:<br />- has_condition(type, status): true if a condition with the given type and<br />  status ("True", "False" or "Unknown") exists.<br />- has_condition(type, status, reason): like above, additionally requiring the given reason.<br />- has_condition_since(type, status, duration): true if the condition has had the given status<br />  for at least the given duration (Go duration format, e.g. "5m", "1h").<br />- has_condition_since(type, status, reason, duration): like above, additionally requiring the given reason.<br />In addition, the standard CEL functions and operators can be used, e.g. to combine checks with && and \|\|.<br />Examples:<br />- machine.has_condition_since("Ready", "False", "5m")<br />- node.has_condition_since("Ready", "False", "5m") && !node.has_condition("MaintenanceInProgress", "True") |  | MaxLength: 1024 <br />MinLength: 1 <br />Required: \{\} <br /> |
+| `message` _string_ | message is the message used in the HealthCheckSucceeded condition if this<br />expression determines that the Machine is unhealthy. |  | MaxLength: 256 <br />MinLength: 1 <br />Required: \{\} <br /> |
 
 
 #### UnhealthyMachineCondition

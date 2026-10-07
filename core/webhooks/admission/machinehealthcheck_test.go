@@ -18,6 +18,7 @@ package admission
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -27,7 +28,9 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/admission/testutil"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 func TestMachineHealthCheckDefault(t *testing.T) {
@@ -323,6 +326,100 @@ func TestMachineHealthCheckUnhealthyMachineConditions(t *testing.T) {
 				},
 			}
 			webhook := &MachineHealthCheck{}
+
+			if tt.expectErr {
+				warnings, err := webhook.ValidateCreate(ctx, mhc)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			} else {
+				warnings, err := webhook.ValidateCreate(ctx, mhc)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
+	tests := []struct {
+		name                string
+		unhealthyConditions []clusterv1.UnhealthyExpression
+		expectErr           bool
+	}{
+		{
+			name: "pass with a correctly defined CEL expression (has_condition)",
+			unhealthyConditions: []clusterv1.UnhealthyExpression{
+				{
+					Expression: "node.has_condition('Ready','False')",
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "pass with a correctly defined CEL expression (has_condition_since)",
+			unhealthyConditions: []clusterv1.UnhealthyExpression{
+				{
+					Expression: "node.has_condition_since('Ready','False','5m')",
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "fail if the expression does not compile",
+			unhealthyConditions: []clusterv1.UnhealthyExpression{
+				{
+					Expression: "node.has_condition(",
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "fail if the expression does not evaluate to a bool",
+			unhealthyConditions: []clusterv1.UnhealthyExpression{
+				{
+					Expression: "node",
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "fail if the expression references a field that is not exposed to CEL",
+			unhealthyConditions: []clusterv1.UnhealthyExpression{
+				{
+					Expression: "node.metadata.name == 'foo'",
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:                "do not fail if the UnhealthyExpressions array is nil",
+			unhealthyConditions: nil,
+			expectErr:           false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mhc := &clusterv1.MachineHealthCheck{
+				Spec: clusterv1.MachineHealthCheckSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"test": "test",
+						},
+					},
+					Checks: clusterv1.MachineHealthCheckChecks{
+						UnhealthyExpressions: tt.unhealthyConditions,
+					},
+				},
+			}
+			webhook := &MachineHealthCheck{ProgramCache: cache.New[cel.ProgramEntry](ctx, 1*time.Hour)}
 
 			if tt.expectErr {
 				warnings, err := webhook.ValidateCreate(ctx, mhc)

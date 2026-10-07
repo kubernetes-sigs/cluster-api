@@ -121,6 +121,16 @@ type MachineHealthCheckChecks struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
+
+	// unhealthyExpressions contains a list of CEL expressions that determine whether a
+	// Machine is considered unhealthy. The expressions are combined in a
+	// logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	UnhealthyExpressions []UnhealthyExpression `json:"unhealthyExpressions,omitempty"`
 }
 
 // MachineHealthCheckRemediation configures if and how remediations are triggered if a Machine is unhealthy.
@@ -268,6 +278,45 @@ type UnhealthyMachineCondition struct {
 	// +required
 	// +kubebuilder:validation:Minimum=0
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
+}
+
+// UnhealthyExpression represents a CEL expression used to determine whether a
+// Machine is considered unhealthy.
+type UnhealthyExpression struct {
+	// expression is a CEL expression that is evaluated to determine whether a
+	// Machine is unhealthy. It must evaluate to a bool; true means unhealthy.
+	//
+	// The following variables are available:
+	// - machine: the Machine, giving access to is conditions
+	// - node: the Node hosted on the Machine, giving access to its conditions
+	//   If the Machine has no Node yet, expressions referencing node evaluate to false.
+	//
+	// The following functions are available on both machine and node:
+	// - has_condition(type, status): true if a condition with the given type and
+	//   status ("True", "False" or "Unknown") exists.
+	// - has_condition(type, status, reason): like above, additionally requiring the given reason.
+	// - has_condition_since(type, status, duration): true if the condition has had the given status
+	//   for at least the given duration (Go duration format, e.g. "5m", "1h").
+	// - has_condition_since(type, status, reason, duration): like above, additionally requiring the given reason.
+	//
+	// In addition, the standard CEL functions and operators can be used, e.g. to combine checks with && and ||.
+	//
+	// Examples:
+	// - machine.has_condition_since("Ready", "False", "5m")
+	// - node.has_condition_since("Ready", "False", "5m") && !node.has_condition("MaintenanceInProgress", "True")
+	//
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	Expression string `json:"expression,omitempty"`
+
+	// message is the message used in the HealthCheckSucceeded condition if this
+	// expression determines that the Machine is unhealthy.
+	//
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Message string `json:"message,omitempty"`
 }
 
 // MachineHealthCheckStatus defines the observed state of MachineHealthCheck.

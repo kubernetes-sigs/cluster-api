@@ -2,10 +2,10 @@
 title: In place propagation of changes affecting Kubernetes objects only
 authors:
 - "@fabriziopandini"
-- @sbueringer
+- "@sbueringer"
 reviewers:
-- @oscar
-- @vincepri
+- "@oscar"
+- "@vincepri"
 creation-date: 2022-02-10
 last-updated: 2022-02-26
 status: implementable

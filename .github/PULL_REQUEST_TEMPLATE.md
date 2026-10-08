@@ -16,3 +16,9 @@ Please label this pull request according to what area(s) you are addressing. For
 Area example:
 /area runtime-sdk
 -->
+
+#### AI usage disclosure:
+
+<!--
+Mention "YES" or "NO". If yes, briefly describe how AI was used.
+-->

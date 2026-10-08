@@ -29,18 +29,18 @@ GOPATH_BIN="$(go env GOPATH)/bin"
 goarch="$(go env GOARCH)"
 goos="$(go env GOOS)"
 
-# Note: When updating the MINIMUM_KIND_VERSION new shas MUST be added in `preBuiltMappings` at `test/infrastructure/kind/mapper.go`
-MINIMUM_KIND_VERSION=v0.31.0
+# Note: When updating the KIND_VERSION new shas MUST be added in `preBuiltMappings` at `test/infrastructure/kind/mapper.go`
+KIND_VERSION=v0.31.0
 
 
 # install_kind downloads and installs the required kind version into GOPATH_BIN.
 install_kind() {
   if [ "$goos" == "linux" ] || [ "$goos" == "darwin" ]; then
-    echo "Installing kind ${MINIMUM_KIND_VERSION}"
+    echo "Installing kind ${KIND_VERSION}"
     if ! [ -d "${GOPATH_BIN}" ]; then
       mkdir -p "${GOPATH_BIN}"
     fi
-    curl --retry 5 --retry-all-errors -sLo "${GOPATH_BIN}/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-${goos}-${goarch}"
+    curl --retry 5 --retry-all-errors -sLo "${GOPATH_BIN}/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-${goos}-${goarch}"
     chmod +x "${GOPATH_BIN}/kind"
     verify_gopath_bin
   else
@@ -49,17 +49,17 @@ install_kind() {
   fi
 }
 
-# verify_kind_installed checks that the kind binary resolved via PATH meets MINIMUM_KIND_VERSION.
+# verify_kind_installed checks that the kind binary resolved via PATH is exactly KIND_VERSION.
 verify_kind_installed() {
   local kind_version
   kind_version="v$(kind version -q)"
-  if [[ "${MINIMUM_KIND_VERSION}" != $(echo -e "${MINIMUM_KIND_VERSION}\n${kind_version}" | sort -s -t. -k 1,1n -k 2,2n -k 3,3n | head -n1) ]]; then
-    echo "error: 'kind' in PATH resolved to ${kind_version} after install; expected >= ${MINIMUM_KIND_VERSION}"
+  if [[ "${kind_version}" != "${KIND_VERSION}" ]]; then
+    echo "error: 'kind' in PATH resolved to ${kind_version} after install; expected ${KIND_VERSION}"
     return 2
   fi
 }
 
-# Ensure the kind tool exists and is a viable version, or installs it
+# Ensure the kind tool exists and is exactly KIND_VERSION, or installs it
 verify_kind_version() {
 
   # If kind is not available on the path, get it
@@ -72,11 +72,11 @@ verify_kind_version() {
 
   local kind_version
   kind_version="v$(kind version -q)"
-  if [[ "${MINIMUM_KIND_VERSION}" != $(echo -e "${MINIMUM_KIND_VERSION}\n${kind_version}" | sort -s -t. -k 1,1n -k 2,2n -k 3,3n | head -n1) ]]; then
+  if [[ "${kind_version}" != "${KIND_VERSION}" ]]; then
     cat <<EOF
 Detected kind version: ${kind_version}.
-Requires ${MINIMUM_KIND_VERSION} or greater.
-Installing ${MINIMUM_KIND_VERSION}.
+Requires exactly ${KIND_VERSION}.
+Installing ${KIND_VERSION}.
 EOF
     install_kind
     verify_kind_installed

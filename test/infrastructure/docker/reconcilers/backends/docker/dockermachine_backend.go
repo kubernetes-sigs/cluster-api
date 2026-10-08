@@ -224,6 +224,12 @@ func (r *MachineBackendReconciler) reconcileContainer(ctx context.Context, clust
 		// each container, so we can check placement.
 		log.Info("Creating container")
 		if err := externalMachine.Create(ctx, dockerMachine.Spec.Backend.Docker.CustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.Backend.Docker.ExtraMounts); err != nil {
+			conditions.Set(dockerMachine, metav1.Condition{
+				Type:    infrav1.DevMachineDockerContainerProvisionedCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  infrav1.DevMachineDockerContainerProvisioningFailedReason,
+				Message: fmt.Sprintf("Failed to create container %s. Please check controller logs for errors", externalMachine.ContainerName()),
+			})
 			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to create worker DockerMachine")
 		}
 

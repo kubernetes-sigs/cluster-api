@@ -159,6 +159,10 @@ const (
 	// backend is not provisioned.
 	DevMachineDockerContainerNotProvisionedReason = clusterv1.NotProvisionedReason
 
+	// DevMachineDockerContainerProvisioningFailedReason surfaces when the creation of the container for a DevMachine's
+	// docker backend failed.
+	DevMachineDockerContainerProvisioningFailedReason = "ProvisioningFailed"
+
 	// DevMachineDockerContainerDeletingReason surfaces when the container for a DevMachine's docker
 	// backend is deleting.
 	DevMachineDockerContainerDeletingReason = clusterv1.DeletingReason

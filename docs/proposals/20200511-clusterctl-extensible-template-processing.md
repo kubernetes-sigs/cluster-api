@@ -48,7 +48,7 @@ superseded-by:
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 SimpleYamlProcessor - This is the processor that will handle the existing
 variable substitution method of templating. This will be the default mode of

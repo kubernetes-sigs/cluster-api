@@ -55,12 +55,12 @@ see-also:
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 ## Summary
 
-This proposal is for the support of Windows [OS](https://cluster-api.sigs.k8s.io/reference/glossary.html#operating-system) worker nodes in Cluster API and [infrastructure providers](https://cluster-api.sigs.k8s.io/reference/glossary.html#infrastructure-provider) that wish to support 
-Windows. Cluster API will support Windows by using kubeadm to add Windows nodes to a [workload cluster](https://cluster-api.sigs.k8s.io/reference/glossary.html#workload-cluster). 
+This proposal is for the support of Windows [OS](../book/src/reference/glossary.md#operating-system) worker nodes in Cluster API and [infrastructure providers](../book/src/reference/glossary.md#infrastructure-provider) that wish to support 
+Windows. Cluster API will support Windows by using kubeadm to add Windows nodes to a [workload cluster](../book/src/reference/glossary.md#workload-cluster). 
 
 Windows support has been stable in Kubernetes since 1.14 and is supported in clusters that run Linux for the
 Control Plane.  The Worker nodes can be any combination of Windows or Linux. 
@@ -90,9 +90,9 @@ Windows machines in the same consistent and repeatable fashion.
 
 ### Non-Goals/Future Work
 
-- Provide a way to run [control plane](https://cluster-api.sigs.k8s.io/reference/glossary.html#control-plane) nodes as Windows
+- Provide a way to run [control plane](../book/src/reference/glossary.md#control-plane) nodes as Windows
 - Support for Windows versions outside of the Kubernetes support versions
-- Support for Windows nodes on the [management](https://cluster-api.sigs.k8s.io/reference/glossary.html#management-cluster) or [bootstrap clusters](https://cluster-api.sigs.k8s.io/reference/glossary.html#bootstrap-cluster)
+- Support for Windows nodes on the [management](../book/src/reference/glossary.md#management-cluster) or [bootstrap clusters](../book/src/reference/glossary.md#bootstrap-cluster)
 - Provide a way to configure Windows nodes with non-Kubeadm based bootstrap providers
 
 ## Proposal
@@ -121,7 +121,7 @@ There is prior art for building Windows base images. For example, AKS-Engine has
 Another example is the [sig-windows-tools](https://github.com/kubernetes-sigs/sig-windows-tools) which provide scripts for image configuration when using Kubeadm.
 
 Although the Linux implementation in image-builder uses Ansible for configuration, Windows isn't going to share
-the same configuration because [Ansible](https://docs.ansible.com/ansible/latest/user_guide/windows.html) requires [Windows specific modules](https://docs.ansible.com/ansible/2.9/modules/list_of_windows_modules.html) to do the configuration. 
+the same configuration because [Ansible](https://docs.ansible.com/projects/ansible/latest/os_guide/index.html) requires [Windows specific modules](https://docs.ansible.com/projects/ansible/2.9/modules/list_of_windows_modules.html) to do the configuration. 
 
 #### Kubelet and other component configuration
 

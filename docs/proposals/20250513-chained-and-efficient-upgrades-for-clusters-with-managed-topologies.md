@@ -394,7 +394,7 @@ otherwise the system will keep supporting only upgrade to the next minor for the
 
 ### Test Plan
 
-Considering the entire range of [Kubernetes versions currently supported by Cluster API](https://cluster-api.sigs.k8s.io/reference/versions#kubernetes-versions-support) 
+Considering the entire range of [Kubernetes versions currently supported by Cluster API](../book/src/reference/versions.md#kubernetes-versions-support) 
 plus the Kubernetes version currently under development (from N-6 to N+1), more than twenty additional E2E tests are 
 required to get full coverage of the possible chained upgrade sequences. 
 
@@ -416,8 +416,8 @@ This feature should be considered part of ClusterClass and managed topologies, a
 
 ### Version Skew Strategy
 
-This proposal does not change the [Cluster API version skew policy](https://cluster-api.sigs.k8s.io/reference/versions#skip-upgrades)
-nor the [Cluster API - Cluster API provider version Skew policy](https://cluster-api.sigs.k8s.io/reference/versions#supported-cluster-api---cluster-api-provider-version-skew).
+This proposal does not change the [Cluster API version skew policy](../book/src/reference/versions.md#skip-upgrades)
+nor the [Cluster API - Cluster API provider version Skew policy](../book/src/reference/versions.md#supported-cluster-api---cluster-api-provider-version-skew).
 
 Also worth to notice that this proposal implements safeguards to enforce [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/) when using clusters 
 with managed topologies.

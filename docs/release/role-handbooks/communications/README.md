@@ -111,7 +111,7 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
     - [ ] Look for any `MULTIPLE_AREAS` entries. If the PR does indeed guarantee multiple areas, just remove the `MULTIPLE_AREAS` prefix and just leave the areas. Otherwise, fix the labels in the PR and regenerate the notes.
     - [ ] Review that all areas are correctly assigned to each PR. If not, correct the labels and regenerate the notes.
     - [ ] Update the `Kubernetes version support section`. If this is a patch release you can most probably copy the same values from the previous patch release notes. Except if this is the release where a new Kubernetes version support is added.
-       <br>**Note**: Check our [Kubernetes support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions) in the CAPI book. In case of doubt, reach out to the current release lead.
+       <br>**Note**: Check our [Kubernetes support policy](../../../book/src/reference/versions.md#kubernetes-versions-support) in the CAPI book. In case of doubt, reach out to the current release lead.
     - [ ] If this is a `vX.X.0` release, fill in the content for the `Highlights` section. Otherwise, remove the section altogether.
     - [ ] If there a deprecations in this release (for example, a CAPI API version drop), add them, to the `Deprecation Warning` section. Otherwise, remove the section altogether.
     - [ ] Look for area duplications in PR title. Sometimes authors add a prefix in their PR title that matches the area label. When the notes are generated, the area is as a prefix to the PR title, which can create redundant information. Remove the one from the PR title and just leave the area. Make sure you capitalize the title after this.

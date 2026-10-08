@@ -47,7 +47,7 @@ superseded-by:
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 ## Summary
 
@@ -179,7 +179,7 @@ Kubelet supports self-labeling of nodes via the `--node-labels` flag. CAPI users
 
 ### Apply labels using kubectl
 
-The documented approach for specifying restricted labels in Cluster API as of today is to utilize [kubectl](https://cluster-api.sigs.k8s.io/user/troubleshooting.html#labeling-nodes-with-reserved-labels-such-as-node-rolekubernetesio-fails-with-kubeadm-error-during-bootstrap). This introduces the potential for human error and also goes against the general declarative model adopted by the project.
+The documented approach for specifying restricted labels in Cluster API as of today is to utilize [kubectl](../book/src/user/guide/troubleshooting.md#labeling-nodes-with-reserved-labels-such-as-node-rolekubernetesio-fails-with-kubeadm-error-during-bootstrap). This introduces the potential for human error and also goes against the general declarative model adopted by the project.
 
 ### Apply label using external label synchronizer tools
 

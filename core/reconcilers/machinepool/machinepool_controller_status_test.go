@@ -194,6 +194,15 @@ func Test_updateStatus(t *testing.T) {
 					conditions.IgnoreLastTransitionTime(true),
 				))
 			}
+			g.Expect(conditions.IsTrue(mp, clusterv1.MachinePoolBootstrapConfigReadyCondition)).To(BeTrue())
+			infrastructureCondition := conditions.Get(mp, clusterv1.MachinePoolInfrastructureReadyCondition)
+			if tt.deleting {
+				g.Expect(infrastructureCondition).To(BeNil())
+			} else {
+				g.Expect(infrastructureCondition).ToNot(BeNil())
+				g.Expect(infrastructureCondition.Status).To(Equal(metav1.ConditionUnknown))
+				g.Expect(infrastructureCondition.Reason).To(Equal(clusterv1.MachinePoolInfrastructureInternalErrorReason))
+			}
 			if tt.infraPool == nil || tt.expectErr {
 				withoutMirrors := mp.DeepCopy()
 				conditions.Delete(withoutMirrors, clusterv1.MachinePoolBootstrapConfigReadyCondition)

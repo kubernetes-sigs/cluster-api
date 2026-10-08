@@ -169,7 +169,8 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).ToNot(HaveOccurred())
 
-	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, r *http.Request) {
+		g.Expect(r.URL.Query().Get("ref")).To(Equal("main"))
 		fmt.Fprint(w, `{
 		  "type": "file",
 		  "encoding": "base64",
@@ -178,6 +179,32 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 		  "size": 12,
 		  "name": "cluster-template.yaml",
 		  "path": "config/default/cluster-template.yaml"
+		}`)
+	})
+	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/templates/config/default/cluster-template.yaml", func(w http.ResponseWriter, r *http.Request) {
+		g.Expect(r.URL.Query().Get("ref")).To(Equal("feature"))
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"message":"No commit found for the ref feature"}`)
+	})
+	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/git/matching-refs/heads/feature/templates", func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `[
+		  {"ref":"refs/heads/feature/templates"},
+		  {"ref":"refs/heads/feature/templates/config"}
+		]`)
+	})
+	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/git/matching-refs/heads/main/config", func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `[]`)
+	})
+	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/default/cluster-template.yaml", func(w http.ResponseWriter, r *http.Request) {
+		g.Expect(r.URL.Query().Get("ref")).To(Equal("feature/templates/config"))
+		fmt.Fprint(w, `{
+		  "type": "file",
+		  "encoding": "base64",
+		  "content": "`+base64.StdEncoding.EncodeToString([]byte(template))+`",
+		  "sha": "f5f369044773ff9c6383c087466d12adb6fa0828",
+		  "size": 12,
+		  "name": "cluster-template.yaml",
+		  "path": "default/cluster-template.yaml"
 		}`)
 	})
 
@@ -194,6 +221,14 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 			name: "Return custom template",
 			args: args{
 				rURL: mustParseURL("https://github.com/kubernetes-sigs/cluster-api/blob/main/config/default/cluster-template.yaml"),
+			},
+			want:    []byte(template),
+			wantErr: false,
+		},
+		{
+			name: "Return custom template from branch with slashes",
+			args: args{
+				rURL: mustParseURL("https://github.com/kubernetes-sigs/cluster-api/blob/feature/templates/config/default/cluster-template.yaml"),
 			},
 			want:    []byte(template),
 			wantErr: false,

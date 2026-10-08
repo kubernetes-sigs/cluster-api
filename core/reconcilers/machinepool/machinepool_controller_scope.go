@@ -47,6 +47,10 @@ type scope struct {
 
 	// machines holds a list of the machines associated with this machine pool.
 	machines []*clusterv1.Machine
+
+	// getMachinesForMachinePoolSucceeded is true if the machines associated with this machine pool
+	// were successfully listed.
+	getMachinesForMachinePoolSucceeded bool
 }
 
 func (s *scope) hasMachinePoolMachines() (bool, error) {

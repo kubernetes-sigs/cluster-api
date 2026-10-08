@@ -230,6 +230,82 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 	}
 }
 
+func TestClusterToControlPlaneMapFunc(t *testing.T) {
+	gk := schema.GroupKind{Group: "controlplane.cluster.x-k8s.io", Kind: "TestControlPlane"}
+
+	testcases := []struct {
+		name   string
+		object client.Object
+		output []reconcile.Request
+	}{
+		{
+			name: "should reconcile the control plane",
+			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "controlplane.cluster.x-k8s.io",
+						Kind:     "TestControlPlane",
+						Name:     "cp-1",
+					},
+				},
+			},
+			output: []reconcile.Request{
+				{NamespacedName: client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "cp-1"}},
+			},
+		},
+		{
+			name: "should return nil if controlPlaneRef is not defined",
+			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+			},
+			output: nil,
+		},
+		{
+			name: "should return nil if controlPlaneRef has a different kind",
+			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "controlplane.cluster.x-k8s.io",
+						Kind:     "OtherControlPlane",
+						Name:     "cp-1",
+					},
+				},
+			},
+			output: nil,
+		},
+		{
+			name: "should return nil if controlPlaneRef has a different group",
+			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "other.cluster.x-k8s.io",
+						Kind:     "TestControlPlane",
+						Name:     "cp-1",
+					},
+				},
+			},
+			output: nil,
+		},
+		{
+			name:   "should return nil if the object is not a Cluster",
+			object: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"}},
+			output: nil,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fn := ClusterToControlPlaneMapFunc(gk)
+			g.Expect(fn(context.Background(), tc.object)).To(BeComparableTo(tc.output))
+		})
+	}
+}
+
 func TestHasOwner(t *testing.T) {
 	g := NewWithT(t)
 

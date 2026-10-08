@@ -149,6 +149,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "kubeadmcontrolplane")
+	clusterToKubeadmControlPlane := util.ClusterToControlPlaneMapFunc(controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind).GroupKind())
 	c, err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
@@ -156,14 +157,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmControlPlane),
+			handler.EnqueueRequestsFromMapFunc(clusterToKubeadmControlPlane),
 			predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 			predicates.Any(mgr.GetScheme(), predicateLog,
 				predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 				predicates.ClusterTopologyVersionChanged(mgr.GetScheme(), predicateLog),
 			),
 		).
-		WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmcontrolplane", r.ClusterToKubeadmControlPlane,
+		WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmcontrolplane", clusterToKubeadmControlPlane,
 			clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod))).
 		Build(ctx, r)
 	if err != nil {
@@ -860,21 +861,6 @@ func (r *Reconciler) removePreTerminateHookAnnotationFromMachine(ctx context.Con
 	if err := r.Client.Patch(ctx, machine, client.MergeFrom(machineOriginal)); err != nil {
 		return pkgerrors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(machine))
 	}
-	return nil
-}
-
-// ClusterToKubeadmControlPlane is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
-// for KubeadmControlPlane based on updates to a Cluster.
-func (r *Reconciler) ClusterToKubeadmControlPlane(_ context.Context, o client.Object) []ctrl.Request {
-	c, ok := o.(*clusterv1.Cluster)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
-	}
-
-	if c.Spec.ControlPlaneRef.Kind == kubeadmControlPlaneKind {
-		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: c.Spec.ControlPlaneRef.Name}}}
-	}
-
 	return nil
 }
 

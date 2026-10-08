@@ -419,7 +419,7 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 }
 
 // alignRefAPIVersion returns a full reference to the object referenced in currentRef.
-// If Group and Kind of currentRef is matching the corresponding ref in the ClusterClass, apiVersion from the ClusterClass is used.
+// If Group and Kind of currentRef match the corresponding ref in the ClusterClass, apiVersion from the ClusterClass is used.
 // This is required so the topology controller can diff current and desired state objects of the same version during reconcile.
 // If Group or Kind was changed in the ClusterClass, apiVersion is looked up from the corresponding CRD. This will end up with a diff and a rollout anyway.
 // Only bootstrap template refs in a ClusterClass can change their group and kind.

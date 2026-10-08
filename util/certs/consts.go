@@ -26,6 +26,6 @@ const (
 	DefaultCertDuration = time.Hour * 24 * 365
 
 	// ClientCertificateRenewalDuration determines when a certificate should
-	// be regerenated.
+	// be regenerated.
 	ClientCertificateRenewalDuration = DefaultCertDuration / 2
 )

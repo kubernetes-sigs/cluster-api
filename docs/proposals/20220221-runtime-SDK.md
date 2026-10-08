@@ -103,9 +103,9 @@ plug-in/swap).
 
 A common approach for this problem has been to watch for Cluster API resources; another approach has been to implement
 API Server admission webhooks to alter CAPI resources, but both approaches are limited by the fact that the system
-built on top of Cluster API is forced to treat it as a opaque system and thus with limited visibility and almost
+built on top of Cluster API is forced to treat it as an opaque system and thus with limited visibility and almost
 total lack of control, e.g. you can watch a Machine being provisioned, but not block the provisioning to start if
-a quota management systems signals you have exhausted all the resources assigned to you.
+a quota management system signals you have exhausted all the resources assigned to you.
 
 A stop-gap solution to this problem has been introduced in Cluster API with the implementation of machine deletion
 hooks, but this approach is tightly linked to the specific use case and it can not be re-used in other contexts/in
@@ -130,7 +130,7 @@ To define the Runtime SDK and more specifically
   - When/how to create a new version;
   - When/how to modify the current version;
   - When/how to deprecate an old version, as well as mechanisms to inform users about versions being deprecated;
-  - When/how to drop an old version, as well as providing a mechanism to prevent users to upgrade Cluster API when
+  - When/how to drop an old version, as well as providing a mechanism to prevent users from upgrading Cluster API when
     this will break installed Runtime Extensions;
 - To define the fundamental capabilities/tooling to be implemented in CAPI in order to allow the implementation of
   Runtime Hooks.
@@ -198,7 +198,7 @@ This proposal considers also a set of additional user stories from the PoV of th
 The proposed solution is designed with the intent to make developing Runtime Extensions as simple as possible, because
 the success of this feature depends on its speed/rate of adoption in the ecosystem.
 
-Accordingly, the proposed solution relies on a well-known, battle tested integration pattern, RESTful APIs.
+Accordingly, the proposed solution relies on a well-known, battle-tested integration pattern, RESTful APIs.
 A nice side effect of this choice is the possibility to leverage on a set api-machinery tooling and practices the
 Cluster API maintainers are well-used to.
 
@@ -232,7 +232,7 @@ to document Runtime Hooks supported by Cluster API.
 
 Most specifically, a single OpenAPI document providing specification for all the Runtime Hooks supported by a
 Cluster API release will be added to the release artifacts; users can rely on https://editor.swagger.io/ or similar
-tools to view the specification, and during implementation we will consider adding similar view to the Cluster API
+tools to view the specification, and during implementation we will consider adding a similar view to the Cluster API
 book as well e.g.
 
 ![overview](images/runtime-sdk/swagger-ui.png)
@@ -243,7 +243,7 @@ is going to receive a request parameter as a request body, and return a response
 the Runtime Hook definition.
 
 It is also worth noting that more than one version of the same Runtime Hook might be supported at the same time;
-e.g. in the example above the `BeforeClusterUpgrade` Hook exist in version `v1alpha1` (old version)
+e.g. in the example above the `BeforeClusterUpgrade` Hook exists in version `v1alpha1` (old version)
 and `v1alpha2` (current).
 
 Supporting more versions at the same time is a requirement in order to:
@@ -263,10 +263,10 @@ The formal definition of the Runtime SDK rules derived from https://kubernetes.i
 can be found in the annex at the end of the document. Please note that during implementation we will consider a
 mechanism allowing to:
 
-- Inform admins about Runtime Extension using a deprecated version of a Runtime Hook (e.g. return a well known
+- Inform admins about Runtime Extension using a deprecated version of a Runtime Hook (e.g. return a well-known
   HTTP header, set a condition on the ExtensionConfig object defined in the following paragraphs,
   webhook warnings on ExtensionConfig create/update).
-- Prevent upgrades to new Cluster API versions that makes configured Runtime Extension not functional due to
+- Prevent upgrades to new Cluster API versions that make configured Runtime Extension not functional due to
   the expiration of the deprecation period (e.g. implement a preflight check in the `clusterctl upgrade` command
   or a validation webhook, if possible).
 
@@ -293,7 +293,7 @@ workload cluster’s lifecycle.
 This process has many similarities with registering dynamic webhooks in Kubernetes, but some specific
 behavior is introduced by this proposal:
 
-The Cluster administrator is required to register available Runtime Extension server using the following CR:
+The Cluster administrator is required to register an available Runtime Extension server using the following CR:
 
 ```yaml
 apiVersion: runtime.cluster.x-k8s.io/v1beta2
@@ -366,7 +366,7 @@ Instead, unless there's a strong and evident need for it, we are not considering
 dependencies among Runtime Extensions, being it modeled with something similar to
 [systemd unit options](https://www.freedesktop.org/software/systemd/man/systemd.unit.html) or alternative approaches.
 
-The main reason behind that is that such type of feature introduces complexity and creates "pet" like relations across
+The main reason behind that is that such a type of feature introduces complexity and creates "pet" like relations across
 components making the overall system more fragile. This is also consistent with the avoid dependencies recommendation.
 
 ## Runtime Hooks developer guide (CAPI internals)
@@ -520,7 +520,7 @@ at a given time.
 
 Please note that the Runtime Extensions registry also provides a single point to centralize a set of common behaviors
 supporting interaction with those external components, thus making the adoption of this feature scalable -
-in the sense of being used for an increasing numbers of use cases in Cluster API - while operating consistently
+in the sense of being used for an increasing number of use cases in Cluster API - while operating consistently
 across the board.
 
 A first behavior that falls into this category is the implementation of exponential backoff mechanisms
@@ -529,7 +529,7 @@ ongoing operational issues.
 
 Another cross-cutting concern is about ensuring that Runtime Extensions, which are external components triggered
 in the middle of Cluster API controllers logic, do not block the reconciliation process indefinitely
-(e.g by enforcing a maximum timeout for all the Runtime Extensions calls).
+(e.g. by enforcing a maximum timeout for all the Runtime Extensions calls).
 
 ### Calling Runtime Extensions
 
@@ -606,7 +606,7 @@ A couple of elements are worth noting:
 
 ## Security Model
 
-Following threats were considered:
+The following threats were considered:
 
 - Malicious Runtime Extensions being registered
 
@@ -633,7 +633,7 @@ extensively on this feature.
 
 - Using in-process plugins vs calling external components
 
-Plugins has been considered (golang native plugins, grpc plugins with https://github.com/hashicorp/go-plugin
+Plugins have been considered (golang native plugins, grpc plugins with https://github.com/hashicorp/go-plugin
 and also webassembly) but the option has been discarded given that this approach could introduce instability –
 due to external components running alongside Cluster API components – and also has a more complex threat model,
 given that those components could potentially inherit and exploit the permission given to Cluster API components.
@@ -653,7 +653,7 @@ However, rules for evolving Runtime Hook across Cluster API versions are introdu
 
 ### Test Plan
 
-While in alpha phase it is expected that the Runtime SDK will have unit tests covering all the main components:
+While in the alpha phase it is expected that the Runtime SDK will have unit tests covering all the main components:
 catalog, discovery controller, tooling.
 
 With the increasing adoption of this feature, we expect more unit tests, integration tests and E2E tests
@@ -661,12 +661,12 @@ to be added covering specific Runtime Hooks.
 
 ### Graduation Criteria
 
-Main criteria for graduating this feature is adoption; further detail about graduation criteria will be added
+The main criterion for graduating this feature is adoption; further detail about graduation criteria will be added
 in future iterations of this document.
 
 ### Version Skew Strategy
 
-See upgrade strategy.
+See the upgrade strategy.
 
 ## Annex
 
@@ -730,7 +730,7 @@ handlers: # Info about implemented runtime extensions
 ```
 
 Please note that the above struct supports defining more than one Runtime Extension for the same hook, e.g.
-defining more than one "generatePatches" extensions.
+defining more than one "generatePatches" extension.
 
 ## Implementation History
 

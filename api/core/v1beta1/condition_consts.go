@@ -39,7 +39,7 @@ const (
 )
 
 const (
-	// InfrastructureReadyCondition reports a summary of current status of the infrastructure object defined for this cluster/machine/machinepool.
+	// InfrastructureReadyCondition reports a summary of the current status of the infrastructure object defined for this cluster/machine/machinepool.
 	// This condition is mirrored from the Ready condition in the infrastructure ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
 	// the infrastructure provider does not implement the Ready condition yet.
@@ -103,7 +103,7 @@ const (
 // Conditions and condition Reasons for the Machine object.
 
 const (
-	// BootstrapReadyCondition reports a summary of current status of the bootstrap object defined for this machine.
+	// BootstrapReadyCondition reports a summary of the current status of the bootstrap object defined for this machine.
 	// This condition is mirrored from the Ready condition in the bootstrap ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
 	// the bootstrap provider does not implement the Ready condition yet.
@@ -124,10 +124,10 @@ const (
 	// DrainingFailedReason (Severity=Warning) documents a machine node drain operation failed.
 	DrainingFailedReason = "DrainingFailed"
 
-	// PreDrainDeleteHookSucceededCondition reports a machine waiting for a PreDrainDeleteHook before being delete.
+	// PreDrainDeleteHookSucceededCondition reports a machine waiting for a PreDrainDeleteHook before being deleted.
 	PreDrainDeleteHookSucceededCondition ConditionType = "PreDrainDeleteHookSucceeded"
 
-	// PreTerminateDeleteHookSucceededCondition reports a machine waiting for a PreDrainDeleteHook before being delete.
+	// PreTerminateDeleteHookSucceededCondition reports a machine waiting for a PreDrainDeleteHook before being deleted.
 	PreTerminateDeleteHookSucceededCondition ConditionType = "PreTerminateDeleteHookSucceeded"
 
 	// WaitingExternalHookReason (Severity=Info) provide evidence that we are waiting for an external hook to complete.
@@ -148,7 +148,7 @@ const (
 	// MachineHasFailureReason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
 	MachineHasFailureReason = "MachineHasFailure"
 
-	// HasRemediateMachineAnnotationReason is the reason that get's set at the MachineHealthCheckSucceededCondition when a machine
+	// HasRemediateMachineAnnotationReason is the reason that gets set at the MachineHealthCheckSucceededCondition when a machine
 	// has the RemediateMachineAnnotation set.
 	HasRemediateMachineAnnotationReason = "HasRemediateMachineAnnotation"
 
@@ -173,18 +173,18 @@ const (
 	// RemediationInProgressReason is the reason used when an unhealthy machine is being remediated by the remediation owner.
 	RemediationInProgressReason = "RemediationInProgress"
 
-	// ExternalRemediationTemplateAvailableCondition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
-	// ExternalRemediationTemplateAvailableCondition is set to false if external remediation template is not found.
+	// ExternalRemediationTemplateAvailableCondition is set on machinehealthchecks when the MachineHealthCheck controller uses external remediation.
+	// ExternalRemediationTemplateAvailableCondition is set to false if the external remediation template is not found.
 	ExternalRemediationTemplateAvailableCondition ConditionType = "ExternalRemediationTemplateAvailable"
 
-	// ExternalRemediationTemplateNotFoundReason is the reason used when a machine health check fails to find external remediation template.
+	// ExternalRemediationTemplateNotFoundReason is the reason used when a machine health check fails to find an external remediation template.
 	ExternalRemediationTemplateNotFoundReason = "ExternalRemediationTemplateNotFound"
 
-	// ExternalRemediationRequestAvailableCondition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
-	// ExternalRemediationRequestAvailableCondition is set to false if creating external remediation request fails.
+	// ExternalRemediationRequestAvailableCondition is set on machinehealthchecks when the MachineHealthCheck controller uses external remediation.
+	// ExternalRemediationRequestAvailableCondition is set to false if creating an external remediation request fails.
 	ExternalRemediationRequestAvailableCondition ConditionType = "ExternalRemediationRequestAvailable"
 
-	// ExternalRemediationRequestCreationFailedReason is the reason used when a machine health check fails to create external remediation request.
+	// ExternalRemediationRequestCreationFailedReason is the reason used when a machine health check fails to create an external remediation request.
 	ExternalRemediationRequestCreationFailedReason = "ExternalRemediationRequestCreationFailed"
 )
 
@@ -197,7 +197,7 @@ const (
 	// WaitingForNodeRefReason (Severity=Info) documents a machine.spec.providerId is not assigned yet.
 	WaitingForNodeRefReason = "WaitingForNodeRef"
 
-	// NodeProvisioningReason (Severity=Info) documents machine in the process of provisioning a node.
+	// NodeProvisioningReason (Severity=Info) documents a machine in the process of provisioning a node.
 	// NB. provisioning --> NodeRef == "".
 	NodeProvisioningReason = "NodeProvisioning"
 
@@ -233,7 +233,7 @@ const (
 	// machines required (i.e. Spec.Replicas-MaxUnavailable when MachineDeploymentStrategyType = RollingUpdate) are up and running for at least minReadySeconds.
 	MachineDeploymentAvailableCondition ConditionType = "Available"
 
-	// MachineSetReadyCondition reports a summary of current status of the MachineSet owned by the MachineDeployment.
+	// MachineSetReadyCondition reports a summary of the current status of the MachineSet owned by the MachineDeployment.
 	MachineSetReadyCondition ConditionType = "MachineSetReady"
 
 	// WaitingForMachineSetFallbackReason (Severity=Info) documents a MachineDeployment waiting for the underlying MachineSet
@@ -253,7 +253,7 @@ const (
 	// when generating the machine object.
 	MachinesCreatedCondition ConditionType = "MachinesCreated"
 
-	// MachinesReadyCondition reports an aggregate of current status of the machines controlled by the MachineSet.
+	// MachinesReadyCondition reports an aggregate of the current status of the machines controlled by the MachineSet.
 	MachinesReadyCondition ConditionType = "MachinesReady"
 
 	// PreflightCheckFailedReason (Severity=Error) documents a MachineSet failing preflight checks
@@ -287,7 +287,7 @@ const (
 	// TopologyReconciledCondition provides evidence about the reconciliation of a Cluster topology into
 	// the managed objects of the Cluster.
 	// Status false means that for any reason, the values defined in Cluster.spec.topology are not yet applied to
-	// managed objects on the Cluster; status true means that Cluster.spec.topology have been applied to
+	// managed objects on the Cluster; status true means that Cluster.spec.topology has been applied to
 	// the objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).
 	TopologyReconciledCondition ConditionType = "TopologyReconciled"
 
@@ -358,7 +358,7 @@ const (
 // Conditions and condition Reasons for the MachinePool object.
 
 const (
-	// ReplicasReadyCondition reports an aggregate of current status of the replicas controlled by the MachinePool.
+	// ReplicasReadyCondition reports an aggregate of the current status of the replicas controlled by the MachinePool.
 	ReplicasReadyCondition ConditionType = "ReplicasReady"
 
 	// WaitingForReplicasReadyReason (Severity=Info) documents a machinepool waiting for the required replicas

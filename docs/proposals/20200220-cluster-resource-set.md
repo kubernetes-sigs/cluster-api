@@ -62,7 +62,7 @@ Users today must manually add these components to every cluster they create.
 
 Having a mechanism to apply an initial set of default resources after clusters are created makes clusters created with Cluster API functional and ready for workloads from the beginning, without requiring additional user intervention.
 
-To achieve this, ClusterResourceSet CRD is introduced that will be responsible for applying a set resources defined by users to the matching clusters (`label selectors` will be used to select clusters that the ClusterResourceSet resources will applied to.)
+To achieve this, ClusterResourceSet CRD is introduced that will be responsible for applying a set resources defined by users to the matching clusters (`label selectors` will be used to select clusters that the ClusterResourceSet resources will be applied to.)
 
 
 ### Goals

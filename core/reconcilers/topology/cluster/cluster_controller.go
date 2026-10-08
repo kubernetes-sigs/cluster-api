@@ -597,7 +597,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 				return ctrl.Result{RequeueAfter: time.Duration(hookResponse.RetryAfterSeconds) * time.Second}, nil
 			}
 			// The BeforeClusterDelete hook returned a non-blocking response. Now the cluster is ready to be deleted.
-			// Lets mark the cluster as `ok-to-delete`
+			// Let's mark the cluster as `ok-to-delete`
 			if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster, false); err != nil {
 				return ctrl.Result{}, err
 			}

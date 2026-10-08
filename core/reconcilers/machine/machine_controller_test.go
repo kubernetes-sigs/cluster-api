@@ -1460,7 +1460,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 			expected:     false,
 		},
 		{
-			name: "Machine without exclude draining annotaion should drain",
+			name: "Machine without exclude draining annotation should drain",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "test-machine",
@@ -2073,7 +2073,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 			expected:     false,
 		},
 		{
-			name: "Machine without volume detaching annotaion should detach",
+			name: "Machine without volume detaching annotation should detach",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "test-machine",

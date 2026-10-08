@@ -32,7 +32,7 @@ import (
 )
 
 // ControlPlaneContract encodes information about the Cluster API contract for ControlPlane objects
-// like e.g the KubeadmControlPlane etc.
+// like e.g. the KubeadmControlPlane etc.
 type ControlPlaneContract struct{}
 
 // StatusVersions represents an accessor to a []StatusVersion path value.
@@ -121,13 +121,13 @@ func ControlPlane() *ControlPlaneContract {
 
 // MachineTemplate provides access to MachineTemplate in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
-// do support a field in the type definition from the fact that a field is not set in a given instance.
-// This is why in we are deriving if MachineTemplate is required from the ClusterClass in the topology reconciler code.
+// does support a field in the type definition from the fact that a field is not set in a given instance.
+// This is why we are deriving if MachineTemplate is required from the ClusterClass in the topology reconciler code.
 func (c *ControlPlaneContract) MachineTemplate() *ControlPlaneMachineTemplate {
 	return &ControlPlaneMachineTemplate{}
 }
 
-// IgnorePaths returns a list of paths to be ignored when reconciling an ControlPlane.
+// IgnorePaths returns a list of paths to be ignored when reconciling a ControlPlane.
 // NOTE: The controlPlaneEndpoint struct currently contains two mandatory fields (host and port).
 // As the host and port fields are not using omitempty, they are automatically set to their zero values
 // if they are not set by the user. We don't want to reconcile the zero values as we would then overwrite
@@ -154,10 +154,10 @@ func (c *ControlPlaneContract) IgnorePaths(controlPlane *unstructured.Unstructur
 	return ignorePaths, nil
 }
 
-// Version provide access to version field in a ControlPlane object, if any.
+// Version provides access to the version field in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
-// do support a field in the type definition from the fact that a field is not set in a given instance.
-// This is why in we are deriving if version is required from the ClusterClass in the topology reconciler code.
+// does support a field in the type definition from the fact that a field is not set in a given instance.
+// This is why we are deriving if version is required from the ClusterClass in the topology reconciler code.
 func (c *ControlPlaneContract) Version() *String {
 	return &String{
 		path: []string{"spec", "version"},
@@ -191,7 +191,7 @@ func (c *ControlPlaneContract) Initialized(contractVersion string) *Bool {
 	}
 }
 
-// ControlPlaneEndpoint provides access to ControlPlaneEndpoint in an ControlPlane object.
+// ControlPlaneEndpoint provides access to ControlPlaneEndpoint in a ControlPlane object.
 func (c *ControlPlaneContract) ControlPlaneEndpoint() *ControlPlaneEndpoint {
 	return &ControlPlaneEndpoint{
 		path: []string{"spec", "controlPlaneEndpoint"},
@@ -207,8 +207,8 @@ func (c *ControlPlaneContract) RolloutAfter() *Time {
 
 // Replicas provide access to replicas field in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
-// do support a field in the type definition from the fact that a field is not set in a given instance.
-// This is why in we are deriving if replicas is required from the ClusterClass in the topology reconciler code.
+// does support a field in the type definition from the fact that a field is not set in a given instance.
+// This is why we are deriving if replicas is required from the ClusterClass in the topology reconciler code.
 func (c *ControlPlaneContract) Replicas() *Int32 {
 	return &Int32{
 		path: []string{"spec", "replicas"},
@@ -273,7 +273,7 @@ func (c *ControlPlaneContract) Selector() *String {
 }
 
 // IsProvisioning returns true if the control plane is being created for the first time.
-// Returns false, if the control plane was already previously provisioned.
+// Returns false if the control plane was already previously provisioned.
 func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (bool, error) {
 	// We can know if the control plane was previously created or is being created for the first
 	// time by looking at controlplane.status.versions (or status.version as fallback). If the version in status is set to a valid
@@ -627,7 +627,7 @@ func (m *ReadinessGates) Get(obj *unstructured.Unstructured) ([]clusterv1.Machin
 }
 
 // Set sets the ReadinessGates value.
-// Note: in case the value is nil, the system assumes that the control plane do not implement the optional list of readiness gates.
+// Note: in case the value is nil, the system assumes that the control plane does not implement the optional list of readiness gates.
 func (m *ReadinessGates) Set(obj *unstructured.Unstructured, readinessGates []clusterv1.MachineReadinessGate) error {
 	unstructured.RemoveNestedField(obj.UnstructuredContent(), m.Path()...)
 	if readinessGates == nil {
@@ -694,7 +694,7 @@ func (m *Taints) Get(obj *unstructured.Unstructured) ([]clusterv1.MachineTaint, 
 }
 
 // Set sets the Taints value.
-// Note: in case the value is nil, the system assumes that the control plane do not implement the optional list of taints.
+// Note: in case the value is nil, the system assumes that the control plane does not implement the optional list of taints.
 func (m *Taints) Set(obj *unstructured.Unstructured, taints []clusterv1.MachineTaint) error {
 	unstructured.RemoveNestedField(obj.UnstructuredContent(), m.Path()...)
 	if taints == nil {

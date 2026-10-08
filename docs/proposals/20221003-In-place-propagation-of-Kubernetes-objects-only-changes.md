@@ -59,13 +59,13 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 
 **In-place mutable fields**: fields which changes would only impact Kubernetes objects or/and controller behaviour
 but they won't mutate in any way provider infrastructure nor the software running on it. In-place mutable fields
-are propagated in place by CAPI controllers to avoid the more elaborated mechanics of a replace rollout.
+are propagated in place by CAPI controllers to avoid the more elaborated mechanics of a replacement rollout.
 They include metadata, MinReadySeconds, NodeDrainTimeout, NodeVolumeDetachTimeout and NodeDeletionTimeout but are
 not limited to be expanded in the future.
 
 ## Summary
 
-This document discusses how labels, annotation and other fields impacting only Kubernetes objects or controller behaviour (e.g NodeDrainTimeout)
+This document discusses how labels, annotation and other fields impacting only Kubernetes objects or controller behaviour (e.g. NodeDrainTimeout)
 propagate from ClusterClass to KubeadmControlPlane/MachineDeployments and ultimately to Machines.
 
 ## Motivation
@@ -161,7 +161,7 @@ in order to avoid unnecessary template rotation with the consequent Machine roll
 
 #### 3. and 4. Set top level labels/annotations for ControlPlane and MachineDeployment created from a ClusterClass
 
-Labels and annotations from ClusterClass and Cluster.topology are going to be propagated to top-level level labels  and annotations in
+Labels and annotations from ClusterClass and Cluster.topology are going to be propagated to top-level labels  and annotations in
 ControlPlane and MachineDeployment.
 
 This addresses [Labels and annotations for MachineDeployments and KubeadmControlPlane created by topology controller](https://github.com/kubernetes-sigs/cluster-api/issues/7006).

@@ -107,7 +107,7 @@ type ClusterProxy interface {
 	// CollectWorkloadClusterLogs collects machines and infrastructure logs from the workload cluster.
 	CollectWorkloadClusterLogs(ctx context.Context, namespace, name, outputPath string)
 
-	// Dispose proxy's internal resources (the operation does not affects the Kubernetes cluster).
+	// Dispose proxy's internal resources (the operation does not affect the Kubernetes cluster).
 	// This should be implemented as a synchronous function.
 	Dispose(context.Context)
 }
@@ -257,7 +257,7 @@ func NewClusterProxy(name string, kubeconfigPath string, scheme *runtime.Scheme,
 	return proxy
 }
 
-// newFromAPIConfig returns a clusterProxy given a api.Config and the scheme defining the types hosted in the cluster.
+// newFromAPIConfig returns a clusterProxy given an api.Config and the scheme defining the types hosted in the cluster.
 func newFromAPIConfig(name string, config *api.Config, scheme *runtime.Scheme, options ...Option) ClusterProxy {
 	// NB. the ClusterProvider is responsible for the cleanup of this file
 	f, err := os.CreateTemp("", "e2e-kubeconfig")
@@ -825,7 +825,7 @@ func (d *inMemoryDialer) DialContext(ctx context.Context, addr string) (net.Conn
 	return conn, nil
 }
 
-// Dispose clusterProxy internal resources (the operation does not affects the Kubernetes cluster).
+// Dispose clusterProxy internal resources (the operation does not affect the Kubernetes cluster).
 func (p *clusterProxy) Dispose(ctx context.Context) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for Dispose")
 

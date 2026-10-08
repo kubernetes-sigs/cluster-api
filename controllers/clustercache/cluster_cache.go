@@ -97,7 +97,7 @@ type CacheOptions struct {
 	Indexes []CacheOptionsIndex
 }
 
-// CacheOptionsIndex is a index that is added to the cache.
+// CacheOptionsIndex is an index that is added to the cache.
 type CacheOptionsIndex struct {
 	// Object is the object for which the index is created.
 	Object client.Object
@@ -276,7 +276,7 @@ type GetClusterSourceOption interface {
 	ApplyToGetClusterSourceOptions(option *GetClusterSourceOptions)
 }
 
-// GetClusterSourceOptions allows to set options for the GetClusterSource method.
+// GetClusterSourceOptions allows setting options for the GetClusterSource method.
 type GetClusterSourceOptions struct {
 	watchForProbeFailures []time.Duration
 }

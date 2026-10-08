@@ -246,7 +246,7 @@ consistent with `controlPlaneUpgrades` and also compliant with the [Kubernetes v
 Note: in this case the system will take into consideration the provided `workersUpgrades`, and validated it is
 consistent with `controlPlaneUpgrades` and also compliant with the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/).
 
-Plase also consider that:
+Please also consider that:
 - In case both the list of Kubernetes versions and the runtime extension definition will be left empty in a cluster class, 
   Cluster API will behave as of today: only upgrades to the next minor are allowed for the corresponding clusters.
 - If the list of Kubernetes versions is defined in a ClusterClass, the system is going to use this info also in 
@@ -419,7 +419,7 @@ This feature should be considered part of ClusterClass and managed topologies, a
 This proposal does not change the [Cluster API version skew policy](https://cluster-api.sigs.k8s.io/reference/versions#skip-upgrades)
 nor the [Cluster API - Cluster API provider version Skew policy](https://cluster-api.sigs.k8s.io/reference/versions#supported-cluster-api---cluster-api-provider-version-skew).
 
-Also worth to notice that this proposal implements safeguards to enforce [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/) when using clusters 
+Also worth noting that this proposal implements safeguards to enforce [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/) when using clusters 
 with managed topologies.
 
 ## Implementation History

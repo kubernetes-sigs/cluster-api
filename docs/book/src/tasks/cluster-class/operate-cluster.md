@@ -247,7 +247,7 @@ For more details about how changes can affect a Cluster, please look at [referen
 > Additionally, in case of change of the Kubernetes version and other concurrent changes for Machines deployments
 > this could lead to double rollout of the worker nodes:
 > - The first rollout triggered by the changes to the machine deployments immediately applied to the underlying objects
->   (e.g change of labels). 
+>   (e.g. change of labels). 
 > - The second rollout triggered by the upgrade workflow changing the MachineDeployment version only after the control 
 >   upgrade is completed (see [upgrade a cluster](#upgrade-a-cluster) above).
 >

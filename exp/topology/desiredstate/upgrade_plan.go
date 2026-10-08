@@ -158,7 +158,7 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 		minWorkersSemVer = &v
 	}
 
-	// Setup for tracking known version for each minors; this info will be used to build intermediate steps for workers when required
+	// Setup for tracking known versions for each minor; this info will be used to build intermediate steps for workers when required
 	// Note: The control plane might be already one version ahead of workers, we always add current control plane version
 	// (it should be used as a target version for workers lagging behind).
 	minors := map[uint64]string{}
@@ -323,7 +323,7 @@ func isLowerThanMinVersion(v, minVersion, controlPlaneSemVer semver.Version) boo
 //   - in case of versions with the same major/minor/patch version but different build number, also the order
 //     of those versions must be the same for control plane and worker upgrade plan.
 //   - the last version in the plan must be equal to the desired version
-//   - the upgrade plane must have all the intermediate version which workers must go through to avoid breaking rules
+//   - the upgrade plan must have all the intermediate versions which workers must go through to avoid breaking rules
 //     defining the max version skew between control plane and workers.
 type GetUpgradePlanFunc func(_ context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error)
 

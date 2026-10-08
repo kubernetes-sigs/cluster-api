@@ -76,7 +76,7 @@ because types are already different (see background info in the implementation d
 
 - Define a stop-gap for using the most recent version of the kubeadm API in Cluster API
   v1alpha3 - introducing any breaking changes.
-- Define how to stop to exposing the kubeadm v1betax types in the KubeadmConfig/KubeadmControlPlane
+- Define how to stop exposing the kubeadm v1betax types in the KubeadmConfig/KubeadmControlPlane
   specs for v1alpha4.
 - Define how to use the right version of the kubeadm types generating our kubeadm yaml
   file and when interacting with the kubeadm-config ConfigMap.
@@ -163,7 +163,7 @@ __Alternative 1:__
 
 Keep kubeadm v1beta1 types as a Hub type (1); implement conversion to kubeadm API
 version f(Kubernetes Version) when generating the kubeadm config for init/join (
-e.g convert to kubeadm API v1beta2 for Kubernetes version >= v1.15, convert to
+e.g. convert to kubeadm API v1beta2 for Kubernetes version >= v1.15, convert to
 kubeadm API v1beta1 for Kubernetes version < v1.15).
 
 This alternative is the more clean, robust and forward looking, but it requires

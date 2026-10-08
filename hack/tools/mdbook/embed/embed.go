@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/kubebuilder/docs/book/utils/plugin"
 )
 
-// Embed adds support to embed github release artifact links.
+// Embed adds support to embed GitHub release artifact links.
 type Embed struct{}
 
 // SupportsOutput checks if the given plugin supports the given output format.

@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-// AggregateOption is some configuration that modifies options for a aggregate call.
+// AggregateOption is some configuration that modifies options for an aggregate call.
 type AggregateOption interface {
 	// ApplyToAggregate applies this configuration to the given aggregate options.
 	ApplyToAggregate(option *AggregateOptions)

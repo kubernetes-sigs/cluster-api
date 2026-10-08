@@ -103,7 +103,7 @@ func GetMetaName(obj client.Object) string {
 }
 
 // IsGroupingObject returns true in case the object is responsible to trigger the grouping action
-// when adding the object's children. e.g. A control-plane object, could be responsible of grouping
+// when adding the object's children. e.g. A control-plane object, could be responsible for grouping
 // the control-plane machines while added as a children objects.
 func IsGroupingObject(obj client.Object) bool {
 	if val, ok := getBoolAnnotation(obj, GroupingObjectAnnotation); ok {

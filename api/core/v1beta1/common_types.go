@@ -188,7 +188,7 @@ const (
 	AutoscalerMinSizeAnnotation = "cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size"
 
 	// AutoscalerMaxSizeAnnotation defines the maximum node group size.
-	// The annotations is used by the autoscaler.
+	// The annotation is used by the autoscaler.
 	// The annotation definition is copied from kubernetes/autoscaler.
 	// Ref:https://github.com/kubernetes/autoscaler/blob/d8336cca37dbfa5d1cb7b7e453bd511172d6e5e7/cluster-autoscaler/cloudprovider/clusterapi/clusterapi_utils.go#L264-L267
 	// Note: With the Kubernetes autoscaler it is possible to use different annotations by configuring a different
@@ -346,7 +346,7 @@ type MachineAddresses []MachineAddress
 // The investigation showed that `controller-tools@v2` behaves differently than its previous version
 // when handling types from [metav1](k8s.io/apimachinery/pkg/apis/meta/v1) package.
 //
-// In more details, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta`
+// In more detail, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta`
 // had validation properties, including for `creationTimestamp` (metav1.Time).
 // The `metav1.Time` type specifies a custom json marshaller that, when IsZero() is true, returns `null`
 // which breaks validation because the field isn't marked as nullable.

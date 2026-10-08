@@ -208,7 +208,7 @@ spec:
                 description: |-
                   providerID is the identification ID of the machine provided by the provider.
                   This field must match the provider ID as seen on the node object corresponding to this machine.
-                  This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
+                  This field is required by higher level consumers of cluster-api. An example use case is cluster autoscaler
                   with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
                   machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a
                   generic out-of-tree provider for autoscaler, this field is required by autoscaler to be
@@ -232,17 +232,17 @@ spec:
 
                   NOTE: This field is considered only for computing v1beta2 conditions.
                   NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those
-                  readiness gates condition are reporting the same message, when computing the Machine's Ready condition those
+                  readiness gate conditions are reporting the same message, when computing the Machine's Ready condition those
                   readinessGates will be replaced by a single entry reporting "Control plane components: " + message.
-                  This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster).
+                  This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster.
                 items:
                   description: MachineReadinessGate contains the type of a Machine
                     condition to be used as a readiness gate.
                   properties:
                     conditionType:
                       description: |-
-                        conditionType refers to a condition with matching type in the Machine's condition list.
-                        If the conditions doesn't exist, it will be treated as unknown.
+                        conditionType refers to a condition with a matching type in the Machine's condition list.
+                        If the condition doesn't exist, it will be treated as unknown.
                         Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                       maxLength: 316
                       minLength: 1
@@ -489,7 +489,7 @@ spec:
                   can be added as events to the Machine object and/or logged in the
                   controller's output.
 
-                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 maxLength: 10240
                 minLength: 1
                 type: string
@@ -512,7 +512,7 @@ spec:
                   can be added as events to the Machine object and/or logged in the
                   controller's output.
 
-                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 type: string
               infrastructureReady:
                 description: infrastructureReady is the state of the infrastructure
@@ -832,7 +832,7 @@ spec:
                       apiGroup:
                         description: |-
                           apiGroup is the group of the resource being referenced.
-                          apiGroup must be fully qualified domain name.
+                          apiGroup must be a fully qualified domain name.
                           The corresponding version for this reference will be looked up from the contract
                           labels of the corresponding CRD of the resource being referenced.
                         maxLength: 253
@@ -917,7 +917,7 @@ spec:
                   apiGroup:
                     description: |-
                       apiGroup is the group of the resource being referenced.
-                      apiGroup must be fully qualified domain name.
+                      apiGroup must be a fully qualified domain name.
                       The corresponding version for this reference will be looked up from the contract
                       labels of the corresponding CRD of the resource being referenced.
                     maxLength: 253
@@ -956,7 +956,7 @@ spec:
                 description: |-
                   providerID is the identification ID of the machine provided by the provider.
                   This field must match the provider ID as seen on the node object corresponding to this machine.
-                  This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
+                  This field is required by higher level consumers of cluster-api. An example use case is cluster autoscaler
                   with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
                   machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a
                   generic out-of-tree provider for autoscaler, this field is required by autoscaler to be
@@ -979,17 +979,17 @@ spec:
                   they can include the status of those components with a new condition and add this condition to ReadinessGates.
 
                   NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those
-                  readiness gates condition are reporting the same message, when computing the Machine's Ready condition those
+                  readiness gate conditions are reporting the same message, when computing the Machine's Ready condition those
                   readinessGates will be replaced by a single entry reporting "Control plane components: " + message.
-                  This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster).
+                  This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster.
                 items:
                   description: MachineReadinessGate contains the type of a Machine
                     condition to be used as a readiness gate.
                   properties:
                     conditionType:
                       description: |-
-                        conditionType refers to a condition with matching type in the Machine's condition list.
-                        If the conditions doesn't exist, it will be treated as unknown.
+                        conditionType refers to a condition with a matching type in the Machine's condition list.
+                        If the condition doesn't exist, it will be treated as unknown.
                         Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                       maxLength: 316
                       minLength: 1
@@ -1235,24 +1235,24 @@ spec:
                 type: object
               deprecated:
                 description: deprecated groups all the status fields that are deprecated
-                  and will be removed when all the nested field are removed.
+                  and will be removed when all the nested fields are removed.
                 properties:
                   v1beta1:
                     description: |-
-                      v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+                      v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 
-                      Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                      Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                     properties:
                       conditions:
                         description: |-
                           conditions defines current service state of the Machine.
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         items:
                           description: |-
                             Condition defines an observation of a Cluster API resource operational state.
 
-                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                           properties:
                             lastTransitionTime:
                               description: |-
@@ -1320,7 +1320,7 @@ spec:
                           can be added as events to the Machine object and/or logged in the
                           controller's output.
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         maxLength: 10240
                         minLength: 1
                         type: string
@@ -1343,7 +1343,7 @@ spec:
                           can be added as events to the Machine object and/or logged in the
                           controller's output.
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         type: string
                     type: object
                 type: object

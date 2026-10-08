@@ -191,7 +191,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 	// Count machines rolling out and collect reasons why a rollout is happening.
 	// Note: The code below collects all the reasons for which at least a machine is rolling out; under normal circumstances
 	// all the machines are rolling out for the same reasons, however, in case of changes to
-	// the MD before a previous changes is not fully rolled out, there could be machines rolling out for
+	// the MD before a previous change is not fully rolled out, there could be machines rolling out for
 	// different reasons.
 	rollingOutReplicas := 0
 	rolloutReasons := sets.Set[string]{}

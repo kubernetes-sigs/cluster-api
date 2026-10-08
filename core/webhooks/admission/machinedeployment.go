@@ -154,7 +154,7 @@ func (webhook *MachineDeployment) ValidateDelete(_ context.Context, _ *clusterv1
 
 func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeployment) error {
 	var allErrs field.ErrorList
-	// The MachineDeployment name is used as a label value. This check ensures names which are not be valid label values are rejected.
+	// The MachineDeployment name is used as a label value. This check ensures names which are not valid label values are rejected.
 	if errs := validation.IsValidLabelValue(newMD.Name); len(errs) != 0 {
 		for _, err := range errs {
 			allErrs = append(

@@ -51,7 +51,7 @@ type InitManagementClusterAndWatchControllerLogsInput struct {
 	ClusterctlBinaryPath      string
 }
 
-// InitManagementClusterAndWatchControllerLogs initializes a management using clusterctl and setup watches for controller logs.
+// InitManagementClusterAndWatchControllerLogs initializes a management cluster using clusterctl and sets up watches for controller logs.
 // Important: Considering we want to support test suites using existing clusters, clusterctl init is executed only in case
 // there are no provider controllers in the cluster; but controller logs watchers are created regardless of the pre-existing providers.
 func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input InitManagementClusterAndWatchControllerLogsInput, intervals ...interface{}) {
@@ -81,7 +81,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			KubeconfigPath: input.ClusterProxy.GetKubeconfigPath(),
 			// pass the clusterctl config file that points to the local provider repository created for this test
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
-			// setup the desired list of providers for a single-tenant management cluster
+			// set up the desired list of providers for a single-tenant management cluster
 			CoreProvider:              input.CoreProvider,
 			BootstrapProviders:        input.BootstrapProviders,
 			ControlPlaneProviders:     input.ControlPlaneProviders,
@@ -89,7 +89,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			IPAMProviders:             input.IPAMProviders,
 			RuntimeExtensionProviders: input.RuntimeExtensionProviders,
 			AddonProviders:            input.AddonProviders,
-			// setup clusterctl logs folder
+			// set up clusterctl logs folder
 			LogFolder: input.LogFolder,
 		}
 
@@ -160,7 +160,7 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeManagementClusterAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeManagementClusterAndWait")
 	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling UpgradeManagementClusterAndWait")
-	// Check if the user want a custom upgrade
+	// Check if the user wants a custom upgrade
 	isCustomUpgrade := input.CoreProvider != "" ||
 		len(input.BootstrapProviders) > 0 ||
 		len(input.ControlPlaneProviders) > 0 ||
@@ -327,7 +327,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		ControlPlaneMachineCount: input.ConfigCluster.ControlPlaneMachineCount,
 		WorkerMachineCount:       input.ConfigCluster.WorkerMachineCount,
 		InfrastructureProvider:   input.ConfigCluster.InfrastructureProvider,
-		// setup clusterctl logs folder
+		// set up clusterctl logs folder
 		LogFolder:           input.ConfigCluster.LogFolder,
 		ClusterctlVariables: input.ConfigCluster.ClusterctlVariables,
 	})

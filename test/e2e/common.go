@@ -78,13 +78,13 @@ func (m *validVersionMatcher) NegatedFailureMessage(_ interface{}) (message stri
 	return fmt.Sprintf("Expected\n%s\n%s", m.version, " not to be a valid version ")
 }
 
-// GetStableReleaseOfMinor returns latest stable version of minorRelease.
+// GetStableReleaseOfMinor returns the latest stable version of minorRelease.
 func GetStableReleaseOfMinor(ctx context.Context, minorRelease string) (string, error) {
 	releaseMarker := fmt.Sprintf(stableReleaseMarkerPrefix, minorRelease)
 	return clusterctl.ResolveRelease(ctx, releaseMarker)
 }
 
-// GetLatestReleaseOfMinor returns latest version of minorRelease.
+// GetLatestReleaseOfMinor returns the latest version of minorRelease.
 func GetLatestReleaseOfMinor(ctx context.Context, minorRelease string) (string, error) {
 	releaseMarker := fmt.Sprintf(latestReleaseMarkerPrefix, minorRelease)
 	return clusterctl.ResolveRelease(ctx, releaseMarker)

@@ -79,7 +79,7 @@ type IPPoolReference struct {
 	Kind string `json:"kind,omitempty"`
 
 	// apiGroup of the IPPool.
-	// apiGroup must be fully qualified domain name.
+	// apiGroup must be a fully qualified domain name.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253

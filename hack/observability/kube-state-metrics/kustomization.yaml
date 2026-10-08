@@ -4,7 +4,7 @@ resources:
   - rbac-crd-aggregation.yaml
   # Adds the configmap which contains the script to build the final crd configuration.
   - crd-sidecar-cm.yaml
-  # Adds the core CAPI crd metrics configmap and CusterRole.
+  # Adds the core CAPI crd metrics configmap and ClusterRole.
   - ../../../core/config/metrics
 
 namespace: observability
@@ -18,8 +18,8 @@ helmCharts:
     version: 6.4.1
 
 helmGlobals:
-    # Store chart in ".charts" folder instead of "charts".
-    # Otherwise "go mod tidy" picks up dependencies of go files contained in the Helm Chart.
+    # Store chart in the ".charts" folder instead of "charts".
+    # Otherwise, "go mod tidy" picks up dependencies of Go files contained in the Helm Chart.
     # "go mod tidy" ignores folders that begin with ".": https://pkg.go.dev/cmd/go#hdr-Package_lists_and_patterns.
     chartHome: .charts
 

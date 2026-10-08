@@ -79,7 +79,7 @@ type SelfHostedSpecInput struct {
 	// Default is 1.
 	WorkerMachineCount *int64
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
@@ -131,7 +131,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			coreDNSVersionUpgradeTo = input.E2EConfig.GetVariableOrEmpty(CoreDNSVersionUpgradeTo)
 		}
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 
@@ -218,7 +218,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		}
 
 		By("Initializing the workload cluster")
-		// watchesCtx is used in log streaming to be able to get canceld via cancelWatches after ending the test suite.
+		// watchesCtx is used in log streaming to be able to get canceled via cancelWatches after ending the test suite.
 		watchesCtx, cancelWatches := context.WithCancel(ctx)
 		defer cancelWatches()
 		clusterctl.InitManagementClusterAndWatchControllerLogs(watchesCtx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
@@ -275,7 +275,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 
 		// Note: clusterctl should restore the managedFields to the same as before the move,
 		// and thus removing any managedField entries with clusterctl as a manager. This should happen
-		// for all the objects processed by move, but for sake of simplicity we test only the Cluster
+		// for all the objects processed by move, but for the sake of simplicity we test only the Cluster
 		// object. The Cluster object has special processing for the paused field during the move to
 		// avoid having clusterctl as the manager of the field.
 		log.Logf("Ensure clusterctl does not take ownership on any fields on the self-hosted cluster")
@@ -515,7 +515,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			selfHostedCancelWatches()
 		}
 
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		// Dumps all the resources in the spec namespace, then cleans up the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }

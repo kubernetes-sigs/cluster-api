@@ -69,7 +69,7 @@ type ClusterctlUpgradeSpecInput struct {
 	// So we are creating a new management cluster where to install older version of providers
 	UseKindForManagementCluster bool
 	// KindManagementClusterNewClusterProxyFunc is used to create the ClusterProxy used in the test after creating the kind based management cluster.
-	// This allows to use a custom ClusterProxy implementation or create a ClusterProxy with a custom scheme and options.
+	// This allows using a custom ClusterProxy implementation or creating a ClusterProxy with a custom scheme and options.
 	KindManagementClusterNewClusterProxyFunc func(name string, kubeconfigPath string) framework.ClusterProxy
 
 	// InitWithBinary must be used to specify the URL of the clusterctl binary of the old version of Cluster API. The spec will interpolate the
@@ -110,7 +110,7 @@ type ClusterctlUpgradeSpecInput struct {
 	// multiple infrastructure providers are installed on the cluster as clusterctl will not be
 	// able to identify the default.
 	InfrastructureProvider *string
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 	// PreWaitForCluster is a function that can be used as a hook to apply extra resources (that cannot be part of the template) in the generated namespace hosting the cluster
@@ -129,7 +129,7 @@ type ClusterctlUpgradeSpecInput struct {
 	MgmtFlavor                           string
 	CNIManifestPath                      string
 	WorkloadFlavor                       string
-	// WorkloadKubernetesVersion is Kubernetes version used to create the workload cluster, e.g. `v1.25.0`
+	// WorkloadKubernetesVersion is the Kubernetes version used to create the workload cluster, e.g. `v1.25.0`
 	WorkloadKubernetesVersion string
 
 	// Upgrades allows to define upgrade sequences.
@@ -174,7 +174,7 @@ type ClusterctlUpgradeSpecInputUpgrade struct {
 //
 // NOTE: this test is designed to test older versions of Cluster API --> latest contract version upgrades.
 // This spec will create a workload cluster, which will be converted into a new management cluster (henceforth called secondary
-// managemnet cluster)
+// management cluster)
 // with the older version of Cluster API and infrastructure provider. It will then create an additional
 // workload cluster (henceforth called secondary workload cluster) from the new management cluster using the default cluster template of the old release
 // then run clusterctl upgrade to the latest version of Cluster API and ensure correct operation by
@@ -253,7 +253,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		}
 
 		if len(input.Upgrades) == 0 {
-			// Upgrade once to latest contract version if no upgrades are specified.
+			// Upgrade once to the latest contract version if no upgrades are specified.
 			input.Upgrades = []ClusterctlUpgradeSpecInputUpgrade{
 				{
 					Contract: clusterv1.GroupVersion.Version,
@@ -264,7 +264,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
-		// If the test is not being run in a separated kind cluster, setup a Namespace in the current bootstrap cluster where to host objects for this spec and create a watcher for the namespace events.
+		// If the test is not being run in a separated kind cluster, set up a Namespace in the current bootstrap cluster where to host objects for this spec and create a watcher for the namespace events.
 		if !input.UseKindForManagementCluster {
 			managementClusterNamespace, managementClusterCancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		}
@@ -287,7 +287,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				Name:               managementClusterName,
 				KubernetesVersion:  initKubernetesVersion,
 				RequiresDockerSock: input.E2EConfig.HasDockerProvider(),
-				// Note: most of this images won't be used while starting the controllers, because it is used to spin up older versions of CAPI. Those images will be eventually used when upgrading to current.
+				// Note: most of these images won't be used while starting the controllers, because it is used to spin up older versions of CAPI. Those images will be eventually used when upgrading to current.
 				Images:    input.E2EConfig.Images,
 				IPFamily:  input.E2EConfig.MustGetVariable(IPFamily),
 				LogFolder: filepath.Join(managementClusterLogFolder, "logs-kind"),
@@ -340,8 +340,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 			// If the cluster is a DevCluster with Docker backend, we should load controller images into the nodes.
 			// Nb. this can be achieved also by changing the DevMachine spec, but for the time being we are using
-			// this approach because this allows to have a single source of truth for images, the e2e config
-			// Nb. the images for official version of the providers will be pulled from internet, but the latest images must be
+			// this approach because this allows having a single source of truth for images, the e2e config
+			// Nb. the images for official versions of the providers will be pulled from the internet, but the latest images must be
 			// built locally and loaded into kind
 			cluster := managementClusterResources.Cluster
 			if cluster.Spec.InfrastructureRef.Kind == "DevCluster" {
@@ -433,7 +433,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		// NOTE: This workload cluster is used to check the old management cluster works fine.
 		// In this case ApplyClusterTemplateAndWait can't be used because this helper is linked to the last version of the API;
-		// so we are getting a template using the downloaded version of clusterctl, applying it, and wait for machines to be provisioned.
+		// so we are getting a template using the downloaded version of clusterctl, applying it, and waiting for machines to be provisioned.
 
 		workloadClusterName = fmt.Sprintf("%s-workload-%s", specName, util.RandomString(6))
 		workloadClusterNamespace := testNamespace.Name
@@ -676,7 +676,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 			// After the upgrade: check that there were no unexpected rollouts.
 			postUpgradeMachineList := &unstructured.UnstructuredList{}
-			Byf("[%d] Verifing there are no unexpected rollouts", i)
+			Byf("[%d] Verifying there are no unexpected rollouts", i)
 			Eventually(func() error {
 				postUpgradeMachineList.SetGroupVersionKind(schema.GroupVersionKind{
 					Group:   clusterv1.GroupVersion.Group,
@@ -739,7 +739,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				upgrade.PostUpgrade(managementClusterProxy, workloadCluster.Namespace, workloadCluster.Name)
 			}
 
-			// If this is the last step of the upgrade sequence check hat the resourceVersions are stable, i.e. it verifies there are no
+			// If this is the last step of the upgrade sequence, check that the resourceVersions are stable, i.e. it verifies there are no
 			// continuous reconciles when everything should be stable.
 			if i == len(input.Upgrades)-1 {
 				Byf("[%d] Checking that resourceVersions are stable", i)
@@ -752,7 +752,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				}
 				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 
-				// NOTE: Checks on conditions works on v1beta2 only, so running this checks only in the last step which is
+				// NOTE: Checks on conditions work on v1beta2 only, so we run these checks only in the last step which is
 				// always current version.
 				Byf("[%d] Verify Cluster Available condition is true", i)
 				framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
@@ -830,7 +830,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.PreCleanupManagementCluster(managementClusterProxy)
 		}
 
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		// Dumps all the resources in the spec namespace, then cleans up the cluster object and the spec namespace itself.
 		if input.UseKindForManagementCluster {
 			dumpKindClusterLogsAndPods(ctx, input.ArtifactFolder, managementClusterProxy)
 

@@ -170,7 +170,7 @@ func (d *dockerRuntime) GetHostPort(ctx context.Context, containerName, portAndP
 // ExecContainer executes a command in a running container and writes any output to the provided writer.
 func (d *dockerRuntime) ExecContainer(ctx context.Context, containerName string, config *ExecContainerInput, command string, args ...string) error {
 	execConfig := client.ExecCreateOptions{
-		// Run with privileges so we can remount etc..
+		// Run with privileges so we can remount etc.
 		// This might not make sense in the most general sense, but it is
 		// important to many kind commands.
 		Privileged:   true,

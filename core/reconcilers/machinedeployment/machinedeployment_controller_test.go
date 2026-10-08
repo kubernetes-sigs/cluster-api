@@ -380,7 +380,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			g.Expect(machineSets.Items[1].Spec.Template.Labels).To(HaveKeyWithValue("updated", "true"))
 		}, timeout).Should(Succeed())
 
-		// Update the NodeDrainTimout, NodeDeletionTimeoutSeconds, NodeVolumeDetachTimeoutSeconds of the MachineDeployment,
+		// Update the NodeDrainTimeout, NodeDeletionTimeoutSeconds, NodeVolumeDetachTimeoutSeconds of the MachineDeployment,
 		// expect the Reconcile to be called and the MachineSet to be updated in-place.
 		t.Log("Setting NodeDrainTimout, NodeDeletionTimeoutSeconds, NodeVolumeDetachTimeoutSeconds on the MachineDeployment")
 		duration10s := int32(10)

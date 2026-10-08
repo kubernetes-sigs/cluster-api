@@ -282,7 +282,7 @@ func defaultBranchForNewTag(newTag semver.Version) string {
 			return releaseBranchForVersion(newTag)
 		}
 
-		// for any other pre release, we always cut from main
+		// for any other pre-release, we always cut from main
 		// this includes all beta releases and the first RC
 		return "main"
 	}

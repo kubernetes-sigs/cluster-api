@@ -70,11 +70,11 @@ func (r *Reconciler) scaleUpControlPlane(ctx context.Context, controlPlane *pkg.
 	if runPreflightChecks {
 		// Run preflight checks to ensure that the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
 		//
-		// Important! preflight checks play an important role in ensuring that KCP performs "one operation at time", by forcing
+		// Important! preflight checks play an important role in ensuring that KCP performs "one operation at a time", by forcing
 		// the system to wait for the previous operation to complete and the control plane to become stable before starting the next one.
 		//
 		// Note: before considering scale up/scale up in the context of a rollout/scale up after a remediation, KCP first takes care of completing
-		// ongoing delete operations, completing in-place transitions, remediating unhealthy machines and completing on going in-place updates.
+		// ongoing delete operations, completing in-place transitions, remediating unhealthy machines and completing ongoing in-place updates.
 		_, isRemediationScaleUp := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]
 		if result := r.handlePreflightCheckResults(ctx, controlPlane, r.preflightChecks(ctx, controlPlane, isRemediationScaleUp)); !result.IsZero() {
 			return result, nil
@@ -127,11 +127,11 @@ func (r *Reconciler) scaleDownControlPlane(
 	if runPreflightChecks {
 		// Run preflight checks ensuring the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
 		//
-		// Important! preflight checks play an important role in ensuring that KCP performs "one operation at time", by forcing
+		// Important! preflight checks play an important role in ensuring that KCP performs "one operation at a time", by forcing
 		// the system to wait for the previous operation to complete and the control plane to become stable before starting the next one.
 		//
 		// Note: before considering scale down/scale down in the context of a rollout, KCP first takes care of completing
-		// ongoing delete operations, completing in-place transitions, remediating unhealthy machines and completing on going in-place updates.
+		// ongoing delete operations, completing in-place transitions, remediating unhealthy machines and completing ongoing in-place updates.
 		//
 		// Given that we're scaling down, we can exclude the machineToDelete from the preflight checks.
 		if result := r.handlePreflightCheckResults(ctx, controlPlane, r.preflightChecks(ctx, controlPlane, false, machineToDelete)); !result.IsZero() {
@@ -184,7 +184,7 @@ func (r *Reconciler) scaleDownControlPlane(
 }
 
 // selectMachineForInPlaceUpdateOrScaleDown select a machine candidate for scaling down or for in-place update.
-// The selection is a two phase process:
+// The selection is a two-phase process:
 //
 // In the first phase it selects a subset of machines eligible for deletion:
 // - if there are outdated machines with the delete machine annotation, use them as eligible subset (priority to user requests, part 1)

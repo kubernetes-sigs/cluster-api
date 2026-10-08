@@ -25,7 +25,7 @@ import (
 	utilkubeconfig "sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
-// WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
+// WorkloadCluster has methods for fetching the kubeconfig of a workload cluster from a management cluster.
 type WorkloadCluster interface {
 	// GetKubeconfig returns the kubeconfig of the workload cluster.
 	GetKubeconfig(ctx context.Context, workloadClusterName string, namespace string) (string, error)

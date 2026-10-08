@@ -83,7 +83,7 @@ type Client interface {
 	AlphaClient
 }
 
-// AlphaClient exposes the alpha features in clusterctl high-level client library.
+// AlphaClient exposes the alpha features in the clusterctl high-level client library.
 type AlphaClient interface {
 	// RolloutRestart provides rollout restart of cluster-api resources
 	RolloutRestart(ctx context.Context, options RolloutRestartOptions) error
@@ -161,7 +161,7 @@ func InjectClusterClientFactory(factory ClusterClientFactory) Option {
 }
 
 // InjectCurrentContractVersion allows you to override the currentContractVersion that
-// cluster client uses. This option is intended for internal tests only.
+// the cluster client uses. This option is intended for internal tests only.
 func InjectCurrentContractVersion(currentContractVersion string) Option {
 	return func(c *clusterctlClient) {
 		c.currentContractVersion = currentContractVersion
@@ -211,7 +211,7 @@ func newClusterctlClient(ctx context.Context, path string, options ...Option) (*
 	return client, nil
 }
 
-// defaultRepositoryFactory is a RepositoryClientFactory func the uses the default client provided by the repository low level library.
+// defaultRepositoryFactory is a RepositoryClientFactory func that uses the default client provided by the repository low level library.
 func defaultRepositoryFactory(configClient config.Client) RepositoryClientFactory {
 	return func(ctx context.Context, input RepositoryClientFactoryInput) (repository.Client, error) {
 		return repository.New(
@@ -223,7 +223,7 @@ func defaultRepositoryFactory(configClient config.Client) RepositoryClientFactor
 	}
 }
 
-// defaultClusterFactory is a ClusterClientFactory func the uses the default client provided by the cluster low level library.
+// defaultClusterFactory is a ClusterClientFactory func that uses the default client provided by the cluster low level library.
 func defaultClusterFactory(configClient config.Client, currentContractVersion string, getCompatibleContractVersions func(string) sets.Set[string]) ClusterClientFactory {
 	return func(input ClusterClientFactoryInput) (cluster.Client, error) {
 		return cluster.New(

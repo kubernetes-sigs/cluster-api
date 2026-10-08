@@ -533,7 +533,7 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 
 	if len(machinePool.Spec.FailureDomains) > 0 {
 		// For MachinePools placement is expected to be managed by the underlying infrastructure primitive, but
-		// given that there is no such an thing in CAPD, we are picking a random failure domain.
+		// given that there is no such thing in CAPD, we are picking a random failure domain.
 		randomIndex := rand.Intn(len(machinePool.Spec.FailureDomains)) //nolint:gosec
 		for k, v := range docker.FailureDomainLabel(machinePool.Spec.FailureDomains[randomIndex]) {
 			labels[k] = v

@@ -429,7 +429,7 @@ func TestPickFewestNew(t *testing.T) {
 			fds:              fds3,
 			allMachines:      collections.FromMachines(machineA1New, machineA2New, machineB1New, machineC1Old, machineC1New),
 			upToDateMachines: collections.FromMachines(machineA1New, machineA2New, machineB1New, machineC1New),
-			expected:         []string{b}, // select fd b because it has 1 up-to-date machines (less than a, like c) 1 machine overall (less than c)
+			expected:         []string{b}, // select fd b because it has 1 up-to-date machine (less than a, like c) 1 machine overall (less than c)
 		},
 
 		// Use case D: no failure domains, 3 control plane machines
@@ -551,7 +551,7 @@ func TestPickMostNew(t *testing.T) {
 			fds:              fds3,
 			allMachines:      collections.FromMachines(machineA1New, machineB1Old, machineB1New, machineC1Old),
 			eligibleMachines: collections.FromMachines(machineB1Old, machineC1Old),
-			expected:         []string{b}, // select fd b because it has 1 old machine (like c) but 2 machines overall (more c); fd a is discarded because it doesn't have any eligible machine
+			expected:         []string{b}, // select fd b because it has 1 old machine (like c) but 2 machines overall (more than c); fd a is discarded because it doesn't have any eligible machine
 		},
 		{
 			name:             "3 failure domains, 1 outdated machine, 3 new machines, scale down from 4 to 3",
@@ -584,7 +584,7 @@ func TestPickMostNew(t *testing.T) {
 			expected:         []string{c}, // select fd c because it has 1 eligible machine
 		},
 
-		// scenario A.3: scale down or rollout when a machine with delete annotation or an un-healthy machine is prioritized for deletion
+		// scenario A.3: scale down or rollout when a machine with delete annotation or an unhealthy machine is prioritized for deletion
 		{
 			name:             "3 failure domains, 3 machines, 1 eligible machine",
 			fds:              fds3,
@@ -648,7 +648,7 @@ func TestPickMostNew(t *testing.T) {
 			expected:         []string{b}, // select fd b because it has 1 eligible machine
 		},
 
-		// scenario B.3: scale down or rollout when a machine with delete annotation or an un-healthy machine is prioritized for deletion
+		// scenario B.3: scale down or rollout when a machine with delete annotation or an unhealthy machine is prioritized for deletion
 		{
 			name:             "2 failure domains, 3 machines, 1 eligible machine",
 			fds:              fds2,
@@ -740,7 +740,7 @@ func TestPickMostNew(t *testing.T) {
 			expected:         []string{c}, // select fd c because it has 1 eligible machine
 		},
 
-		// scenario C.3: scale down or rollout when a machine with delete annotation or an un-healthy machine is prioritized for deletion
+		// scenario C.3: scale down or rollout when a machine with delete annotation or an unhealthy machine is prioritized for deletion
 		{
 			name:             "3 failure domains, 5 machines, 1 eligible machine",
 			fds:              fds3,

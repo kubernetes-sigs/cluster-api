@@ -336,7 +336,7 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 		WebhookInstallOptions: initWebhookInstallOptions(),
 	}
 
-	// if ARTIFACTS is setup, configure apiserver audit logs to log to ARTIFACTS dir
+	// if ARTIFACTS is set up, configure apiserver audit logs to log to ARTIFACTS dir
 	if os.Getenv("ARTIFACTS") != "" {
 		_, packageFileName, _, _ := goruntime.Caller(2)
 		relativePathPackageCallerFile, err := filepath.Rel(root, packageFileName)
@@ -372,12 +372,12 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 		panic(err)
 	}
 
-	// Localhost is used on MacOS to avoid Firewall warning popups.
+	// Localhost is used on macOS to avoid Firewall warning popups.
 	host := "localhost"
 	if strings.EqualFold(os.Getenv("USE_EXISTING_CLUSTER"), "true") {
 		// 0.0.0.0 is required on Linux when using kind because otherwise the kube-apiserver running in kind
 		// is unable to reach the webhook, because the webhook would be only listening on 127.0.0.1.
-		// Somehow that's not an issue on MacOS.
+		// Somehow that's not an issue on macOS.
 		if goruntime.GOOS == "linux" {
 			host = "0.0.0.0"
 		}
@@ -413,7 +413,7 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
 	coreadmission.SetMinNodeStartupTimeoutSeconds(0)
 
-	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
+	// Set up the func to retrieve apiVersion for a GroupKind for conversion webhooks.
 	controlplaneconversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		_, gvk, err := contract.GetGVKFromGK(ctx, mgr.GetClient(), gk)
 		if err != nil {

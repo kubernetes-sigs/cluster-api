@@ -71,18 +71,18 @@ type ClusterClassRolloutSpecInput struct {
 	// testing ClusterClass and KCP rollout behavior.
 	Flavor string
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 
 	// FilterMetadataBeforeValidation allows filtering out labels and annotations of Machines, InfraMachines,
 	// BootstrapConfigs and Nodes before we validate them.
-	// This can be e.g. used to filter out additional infrastructure provider specific labels that would
+	// This can be e.g. used to filter out additional infrastructure provider-specific labels that would
 	// otherwise lead to a failed test.
 	FilterMetadataBeforeValidation func(object client.Object) clusterv1.ObjectMeta
 
 	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "clusterclass-rollout".
-	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
+	// This value is provided to clusterctl as the "EXTENSION_CONFIG_NAME" variable and can be used to template the
 	// name of the ExtensionConfig into the ClusterClass.
 	ExtensionConfigName string
 
@@ -99,7 +99,7 @@ type ClusterClassRolloutSpecInput struct {
 // objects of the Cluster topology (e.g. KCP, MD) and even tests label propagation to the Nodes of the
 // workload cluster.
 // Thus, the test consists of the following steps:
-//   - Deploy Cluster using a ClusterClass and wait until it is fully provisioned.
+//   - Deploy a Cluster using a ClusterClass and wait until it is fully provisioned.
 //   - Assert cluster objects
 //   - Modify in-place mutable fields of KCP and the MachineDeployments
 //   - Verify that fields were mutated in-place and assert cluster objects
@@ -567,7 +567,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 	})
 
 	AfterEach(func() {
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		// Dumps all the resources in the spec namespace, then cleans up the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }

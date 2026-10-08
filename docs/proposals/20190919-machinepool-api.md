@@ -73,7 +73,7 @@ The lexicon used in this document is described in more detail
 Any discrepancies should be rectified in the main Cluster API glossary.
 
 - **ASG** - AWS Auto Scale Group
-- **MIG**  - GCP Managed Instance Group
+- **MIG** - GCP Managed Instance Group
 - **VMSS** - Azure Virtual Machine Scale Set
 
 ## Summary
@@ -99,7 +99,7 @@ overall health of the machines in the set.
 MachinePool diverges from MachineDeployment in that the MachineDeployment controller uses
 MachineSets to achieve the aforementioned desired number of machines and to orchestrate updates to
 the Machines in the managed set, while MachinePool delegates the responsibility of these concerns to
-an infrastructure provider specific resource such as AWS Auto Scale Groups, GCP Managed Instance
+an infrastructure provider-specific resource such as AWS Auto Scale Groups, GCP Managed Instance
 Groups, and Azure Virtual Machine Scale Sets.
 
 MachinePool is optional and doesn't replace the need for MachineSet/Machine since not every
@@ -126,13 +126,13 @@ optimizations exposed by each infrastructure provider could prove beneficial.
 ### Goals
 
 - To expose the MachinePool API for infrastructure providers to leverage their optimizations around managing large sets of machines.
-- Support for user initiated scale up/down.
+- Support for user-initiated scale up/down.
 - Support for declarative rolling update.
 
 ### Non-goals/Future Work
 
-- To support enabling infrastructure provider specific autoscalers. (at least in v1alpha3)
-- To support cordon/drain during infrastructure provider specific rolling update.
+- To support enabling infrastructure provider-specific autoscalers. (at least in v1alpha3)
+- To support cordon/drain during infrastructure provider-specific rolling update.
 - To manage control plane nodes with the MachinePool API.
 - To integrate MachinePool with the kubernetes cluster autoscaler.
 
@@ -144,7 +144,7 @@ of machines to infrastructure provider supplied controllers.
 ### User Stories
 
 - As an infrastructure provider author, I would like to build a controller to manage multiple
-  machines with a common configuration using my provider specific resource for doing so.
+  machines with a common configuration using my provider-specific resource for doing so.
 - As a cluster operator, I would like to use MachinePool, similar to how I'm using MachineDeployment
   today, to manage a set of machines with a common configuration.
 
@@ -152,7 +152,7 @@ of machines to infrastructure provider supplied controllers.
 
 #### Data Model Changes
 
-MachinePool Spec and Status introduces the integration point for delegating the management of a set
+MachinePool Spec and Status introduce the integration point for delegating the management of a set
 of machines to the infrastructure provider. Many of the fields are shared with MachineDeployment due
 to infrastructure provider's desire to enable the management of a set of machines with a single
 configuration.
@@ -382,8 +382,8 @@ the type before beta and GA milestones where API changes become more difficult.
 
 ## Alternatives
 
-Infrastructure Machine Controllers allocate from infrastructure provider specific scale group/set
-resources. Some benefits of using provider specific scale group/set could be derived by this
+Infrastructure Machine Controllers allocate from infrastructure provider-specific scale group/set
+resources. Some benefits of using provider-specific scale group/set could be derived by this
 approach, but it would be complex to manage.
 
 ## Upgrade Strategy

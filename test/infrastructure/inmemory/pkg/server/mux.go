@@ -90,9 +90,9 @@ func (c CustomPorts) Apply(options *WorkloadClustersMuxOptions) {
 }
 
 // WorkloadClustersMux implements a server that handles requests for multiple workload clusters.
-// Each workload clusters will get its own listener, serving on a dedicated port, eg.
+// Each workload cluster will get its own listener, serving on a dedicated port, e.g.
 // wkl-cluster-1 >> :20000, wkl-cluster-2 >> :20001 etc.
-// Each workload cluster will act both as API server and as etcd for the cluster; the
+// Each workload cluster will act both as an API server and as etcd for the cluster; the
 // WorkloadClustersMux is also responsible for handling certificates for each of the above use cases.
 type WorkloadClustersMux struct {
 	host      string
@@ -134,7 +134,7 @@ func NewWorkloadClustersMux(manager inmemoryruntime.Manager, host string, opts .
 
 	//nolint:gosec // Ignoring the following for now: "G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server (gosec)"
 	m.muxServer = http.Server{
-		// Use an handler that can serve either API server calls or etcd calls.
+		// Use a handler that can serve either API server calls or etcd calls.
 		Handler: m.mixedHandler(),
 		// Use a TLS config that selects certificates for a specific cluster depending on
 		// the request being processed (API server and etcd have different certificates).
@@ -171,7 +171,7 @@ func (m *WorkloadClustersMux) Host() string {
 	return m.host
 }
 
-// mixedHandler returns an handler that can serve either API server calls or etcd calls.
+// mixedHandler returns a handler that can serve either API server calls or etcd calls.
 func (m *WorkloadClustersMux) mixedHandler() http.Handler {
 	// Prepare a function that can identify which workloadCluster/resourceGroup a
 	// request targets to.

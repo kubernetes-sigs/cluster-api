@@ -54,7 +54,7 @@ func Name(cluster string, suffix Purpose) string {
 }
 
 // ParseSecretName return the cluster name and the suffix Purpose in name is a valid cluster secret,
-// otherwise it return error.
+// otherwise it returns an error.
 func ParseSecretName(name string) (string, Purpose, error) {
 	if !strings.Contains(name, "-") {
 		return "", "", pkgerrors.Errorf("%q is not a valid cluster secret name. The purpose suffix is missing", name)

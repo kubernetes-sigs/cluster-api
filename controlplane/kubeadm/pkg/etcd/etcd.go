@@ -109,7 +109,7 @@ type Member struct {
 	// ClientURLs is the list of URLs the member exposes to clients for communication. If the member is not started, clientURLs will be empty.
 	ClientURLs []string
 
-	// IsLearner indicates if the member is raft learner.
+	// IsLearner indicates if the member is a raft learner.
 	IsLearner bool
 }
 

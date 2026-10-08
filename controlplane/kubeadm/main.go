@@ -281,7 +281,7 @@ func main() {
 		Controller: config.Controller{
 			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
 			// Give the manager more time to sync the caches during startup. This is required
-			// in high scale environments when they are more objects in the system (default is 3m).
+			// in high scale environments when there are more objects in the system (default is 3m).
 			CacheSyncTimeout: 5 * time.Minute,
 		},
 		Scheme:                     scheme,
@@ -313,7 +313,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup the context that's going to be used in controllers and for the manager.
+	// Set up the context that's going to be used in controllers and for the manager.
 	ctx := ctrl.SetupSignalHandler()
 
 	setupChecks(mgr)
@@ -452,7 +452,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(_ context.Context, mgr ctrl.Manager) {
-	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
+	// Set up the func to retrieve apiVersion for a GroupKind for conversion webhooks.
 	conversion.SetAPIVersionGetter(func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		_, gvk, err := contract.GetGVKFromGK(ctx, mgr.GetClient(), gk)
 		if err != nil {

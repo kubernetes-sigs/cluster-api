@@ -35,7 +35,7 @@ var ctx = ctrl.SetupSignalHandler()
 func TestDevClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
-	t.Run("create decclustertemplate should pass if gate enabled and valid dockerclustertemplate", func(t *testing.T) {
+	t.Run("create devclustertemplate should pass if gate enabled and valid dockerclustertemplate", func(t *testing.T) {
 		g := NewWithT(t)
 		dct := &infrav1.DevClusterTemplate{
 			ObjectMeta: metav1.ObjectMeta{

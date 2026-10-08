@@ -26,7 +26,7 @@ The following table shows the preliminary dates for the `v1.9` release cycle.
 | Organize release retrospective                       | Release Lead | TBC                         | week 17  |
 | *v1.9.1 released (tentative)*                         | Release Lead | Tuesday 17th December 2024  | week 18  |
 
-After the .0 the .1 release will be created to ensure faster Kubernetes support after K8s 1.32.0 will be available. After the .1 we expect to release monthly patch release (more details will be provided in the 1.10 release schedule).
+After the .0 the .1 release will be created to ensure faster Kubernetes support after K8s 1.32.0 will be available. After the .1 we expect to release monthly patch releases (more details will be provided in the 1.10 release schedule).
 
 ## Release team
 

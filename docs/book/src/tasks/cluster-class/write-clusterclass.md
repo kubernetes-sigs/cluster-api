@@ -926,7 +926,7 @@ spec:
 
 **Tips & Tricks**:
 
-Hard-coded values can be used to test the impact of a patch during development, gradually roll out patches, etc. .
+Hard-coded values can be used to test the impact of a patch during development, gradually roll out patches, etc.
 ```yaml
     enabledIf: false
 ```

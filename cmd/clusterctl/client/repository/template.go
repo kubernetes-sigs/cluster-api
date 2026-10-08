@@ -146,7 +146,7 @@ func NewTemplate(input TemplateInput) (Template, error) {
 //   - The Variables of the resulting template is a union of all Variables in the templates.
 //   - The default value is picked from the first template that defines it.
 //     The defaults of the same variable in the subsequent templates will be ignored.
-//     (e.g when merging a cluster template and its ClusterClass, the default value from the template takes precedence)
+//     (e.g. when merging a cluster template and its ClusterClass, the default value from the template takes precedence)
 //   - The Objs of the final template will be a union of all the Objs in the templates.
 func MergeTemplates(templates ...Template) (Template, error) {
 	templates = filterNilTemplates(templates...)

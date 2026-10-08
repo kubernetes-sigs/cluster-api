@@ -134,7 +134,7 @@ func (i *Int32) Set(obj *unstructured.Unstructured, value int32) error {
 	return nil
 }
 
-// Bool represents an accessor to an bool path value.
+// Bool represents an accessor to a bool path value.
 type Bool struct {
 	path Path
 }

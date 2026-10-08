@@ -94,7 +94,7 @@ The main idea behind Topology Mutation Hook is to move the complexity that is cu
 
 * Define the OpenAPI specification of the Topology Mutation Hook
 * Document when the corresponding External Patch Extensions are called
-* Provide guidelines for developer implementing an External Patch Extension
+* Provide guidelines for developers implementing an External Patch Extension
 * Define how to configure which External Patch Extensions apply to a ClusterClass
 * Explore how External Patch Extensions can be validated using `clusterctl alpha topology plan`
 
@@ -151,7 +151,7 @@ A ClusterClass author can use an External Patch Extension by referencing it in a
 
 A ClusterClass can have external patches, inline patches or both. The patches will then be applied in the order in which 
 they are defined. The extension fields of the external patch must match the unique name of RuntimeExtensions assigned during discovery.
-External patches can provide settings in map with key and string values. Settings and their usage are defined by GeneratePatch hook authors.
+External patches can provide settings in a map with key and string values. Settings and their usage are defined by GeneratePatch hook authors.
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -208,7 +208,7 @@ to avoid duplication.
 We want to be able to use `clusterctl alpha topology plan` to validate External Patch Extensions. To make this possible we will extend the command so users can point to locally running External Patch Extensions without having to deploy a full management cluster.
 
 NOTE: `clusterctl alpha topology plan` was dropped due to limitations / lack of interest from the community (see. [#10138](https://github.com/kubernetes-sigs/cluster-api/issues/10138)). 
-Local testing with Kind or unit tests can be used as a more effective and developer friendly alternatives.
+Local testing with Kind or unit tests can be used as more effective and developer-friendly alternatives.
 
 ### Security Model
 
@@ -226,11 +226,11 @@ Mitigations:
 
 #### Infinite reconciles
 
-An infinite reconcile state occurs when the Cluster topology controller is unable to reconcile to the desired state, e.g. because the desired state changes on each reconciliation. This can occur when an External Patch Extension is non-deterministic, e.g. if it sets a field to a random generated value.
+An infinite reconcile state occurs when the Cluster topology controller is unable to reconcile to the desired state, e.g. because the desired state changes on each reconciliation. This can occur when an External Patch Extension is non-deterministic, e.g. if it sets a field to a randomly generated value.
 
 Mitigations:
 * An External Patch Extension should be extensively unit and e2e tested to ensure it behaves as expected.
-* Infinite reconciles can be triggered independent of external patching, thus we will explore a generic mechanism to detect infinite reconciles as future work.
+* Infinite reconciles can be triggered independent of external patching; thus we will explore a generic mechanism to detect infinite reconciles as future work.
 
 #### External Patch extension slows down Cluster topology reconciliation
 
@@ -272,13 +272,13 @@ This proposal does not affect the Cluster API cluster upgrade strategy. However 
 
 ### Test Plan
 
-While in alpha phase it is expected that the Topology Mutation Hook will have unit and integration tests covering the topology reconciliation with external patches.
+While in the alpha phase it is expected that the Topology Mutation Hook will have unit and integration tests covering the topology reconciliation with external patches.
 
 With the increasing adoption of this feature we expect E2E test coverage for topology reconciliation with a Runtime Extension generating external patches.
 
 ### Graduation Criteria
 
-Main criteria for graduating this feature is adoption; further detail about graduation criteria will be added in future iterations of this document.
+The main criterion for graduating this feature is adoption; further detail about graduation criteria will be added in future iterations of this document.
 
 ### Version Skew Strategy
 

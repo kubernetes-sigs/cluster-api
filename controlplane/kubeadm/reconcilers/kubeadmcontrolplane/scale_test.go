@@ -187,7 +187,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(env.GetAPIReader().List(ctx, &controlPlaneMachines, client.InNamespace(namespace.Name))).To(Succeed())
 		// A new machine should have been created.
-		// Note: expected length is 1 because only the newly created machine is on API server. Other machines are
+		// Note: expected length is 1 because only the newly created machine is on the API server. Other machines are
 		// in-memory only during the test.
 		g.Expect(controlPlaneMachines.Items).To(HaveLen(1))
 
@@ -343,7 +343,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(env.GetAPIReader().List(ctx, &controlPlaneMachines, client.InNamespace(namespace.Name))).To(Succeed())
 		// A new machine should have been created.
-		// Note: expected length is 1 because only the newly created machine is on API server. Other machines are
+		// Note: expected length is 1 because only the newly created machine is on the API server. Other machines are
 		// in-memory only during the test.
 		g.Expect(controlPlaneMachines.Items).To(HaveLen(1))
 

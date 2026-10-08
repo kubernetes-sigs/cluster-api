@@ -18,7 +18,7 @@ see-also:
 ---
 # This Feature Group is Retired!
 
-The Managed Kuberentes Feature Group produced this CAEP, which defines practical design and implementation work for evolving Managed Kubernetes stories in the Cluster API project, and negates the need for a dedicated feature group going forward:
+The Managed Kubernetes Feature Group produced this CAEP, which defines practical design and implementation work for evolving Managed Kubernetes stories in the Cluster API project, and negates the need for a dedicated feature group going forward:
 
 - https://github.com/kubernetes-sigs/cluster-api/pull/8500
 

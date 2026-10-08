@@ -222,7 +222,7 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 		return nil, err
 	}
 	if len(nodeList.Items) == 0 {
-		// If for whatever reason the index isn't registered or available, we fallback to loop over the whole list.
+		// If for whatever reason the index isn't registered or available, we fall back to loop over the whole list.
 		nl := corev1.NodeList{}
 		// Note: We don't use pagination as this is a cached client and a cached client doesn't support pagination.
 		if err := c.List(ctx, &nl); err != nil {
@@ -245,7 +245,7 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 	return &nodeList.Items[0], nil
 }
 
-// PatchNode is required to workaround an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
+// PatchNode is required to work around an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
 // and this causes SSA patch to fail in case there are two addresses with the same key https://github.com/kubernetes-sigs/cluster-api/issues/8417
 func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, m *clusterv1.Machine, ms *clusterv1.MachineSet, md *clusterv1.MachineDeployment) error {
 	newNode := node.DeepCopy()
@@ -422,7 +422,7 @@ func propagateMachineTaintsToNode(node *corev1.Node, machineTaints []clusterv1.M
 		}
 	}
 
-	// Update the tracking annotation with newOwnedTaints..
+	// Update the tracking annotation with newOwnedTaints.
 	if newTaintsAnnotation := marshalMachineTaintsAnnotation(newOwnedTaints); !nodeTaintsInitialized || newTaintsAnnotation != oldTaintsAnnotation {
 		if node.Annotations == nil {
 			node.Annotations = map[string]string{}

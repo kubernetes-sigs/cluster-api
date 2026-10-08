@@ -45,7 +45,7 @@ type AutoscalerSpecInput struct {
 	SkipCleanup           bool
 	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
 
-	// Flavor, if specified must refer to a managed topology cluster template
+	// Flavor, if specified, must refer to a managed topology cluster template
 	// which has exactly one MachineDeployment. The replicas should be nil on the MachineDeployment.
 	// The MachineDeployment should have the autoscaler annotations set on it.
 	// If not specified, it defaults to "topology-autoscaler".
@@ -73,7 +73,7 @@ type AutoscalerSpecInput struct {
 	// Note: This is only implemented for MachineDeployments.
 	ScaleToAndFromZero bool
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
@@ -106,7 +106,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
@@ -383,7 +383,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 	})
 
 	AfterEach(func() {
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		// Dumps all the resources in the spec namespace, then cleans up the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }

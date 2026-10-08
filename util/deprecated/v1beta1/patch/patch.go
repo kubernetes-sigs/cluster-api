@@ -58,8 +58,8 @@ type Helper struct {
 // Please note that patch helper implements a custom handling for objects implementing
 // the condition.Setter interface or the v1beta2conditions.Setter interface.
 //
-// It is also possible to implement wrappers for object not implementing those interfaces;
-// in case those objects have custom conditions types the wrapper should take care of conversions.
+// It is also possible to implement wrappers for objects not implementing those interfaces;
+// in case those objects have custom condition types the wrapper should take care of conversions.
 // Additionally, if the conditions are not in the canonical place defined by the proposal for
 // improving status in Cluster API conditions, locations of the condition field must be
 // provided explicitly by using Metav1ConditionsFieldPath and Clusterv1ConditionsFieldPath options
@@ -218,7 +218,7 @@ func (h *Helper) patchStatus(ctx context.Context, obj client.Object) error {
 // we allow different controllers to act on conditions of the same object.
 //
 // This method has an internal backoff loop. When a conflict is detected, the method
-// asks the Client for the a new version of the object we're trying to patch.
+// asks the Client for a new version of the object we're trying to patch.
 //
 // Condition changes are then applied to the latest version of the object, and if there are
 // no unresolvable conflicts, the patch is sent again.

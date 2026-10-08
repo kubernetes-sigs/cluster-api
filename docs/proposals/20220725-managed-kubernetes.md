@@ -83,11 +83,11 @@ superseded-by:
 - **Cluster Infrastructure Provider (Infrastructure)** - an Infrastructure provider supplies whatever prerequisites are necessary for creating & running clusters such as networking, load balancers, firewall rules, and so on. ([docs](../book/src/developer/providers/contracts/infra-cluster.md))
 - **ControlPlane Provider (ControlPlane)** - a control plane provider instantiates a Kubernetes control plane consisting of k8s control plane components such as kube-apiserver, etcd, kube-scheduler and kube-controller-manager. ([docs](../book/src/developer/providers/contracts/control-plane.md))
 - **MachineDeployment** - a MachineDeployment orchestrates deployments over a fleet of MachineSets, which is an immutable abstraction over Machines. ([docs](../book/src/developer/core/controllers/machine-deployment.md))
-- **MachinePool** - a MachinePool is similar to a MachineDeployment in that they both define configuration and policy for how a set of machines are managed. While the MachineDeployment uses MachineSets to orchestrate updates to the Machines, MachinePool delegates the responsibility to a cloud provider specific resource such as AWS Auto Scale Groups, GCP Managed Instance Groups, and Azure Virtual Machine Scale Sets. ([docs](./20190919-machinepool-api.md))
+- **MachinePool** - a MachinePool is similar to a MachineDeployment in that they both define configuration and policy for how a set of machines are managed. While the MachineDeployment uses MachineSets to orchestrate updates to the Machines, MachinePool delegates the responsibility to a cloud provider-specific resource such as AWS Auto Scale Groups, GCP Managed Instance Groups, and Azure Virtual Machine Scale Sets. ([docs](./20190919-machinepool-api.md))
 
 ## Summary
 
-This proposal discusses various options on how a managed Kubernetes services could be represented in Cluster API by providers. Recommendations will be made on which approach(s) to adopt for new implementations by providers with a view of eventually having consistency across provider implementations.
+This proposal discusses various options on how managed Kubernetes services could be represented in Cluster API by providers. Recommendations will be made on which approach(s) to adopt for new implementations by providers with a view to eventually having consistency across provider implementations.
 
 ## Motivation
 
@@ -99,7 +99,7 @@ While working on supporting ClusterClass for EKS in Cluster API Provider AWS (CA
 
 Separation of ControlPlane and Infrastructure is expected for the ClusterClass implementation to work correctly. However, after the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./archived/20230407-flexible-managed-k8s-endpoints.md) have been implemented there is the option to supply only the control plane, but you still cannot supply the same resource for both.
 
-The responsibilities between the CAPI control plane and infrastructure are blurred with a managed Kubernetes service like AKS or EKS. For example, when you create a EKS control plane in AWS it also creates infrastructure that CAPI would traditionally view as the responsibility of the cluster “infrastructure provider”.
+The responsibilities between the CAPI control plane and infrastructure are blurred with a managed Kubernetes service like AKS or EKS. For example, when you create an EKS control plane in AWS it also creates infrastructure that CAPI would traditionally view as the responsibility of the cluster “infrastructure provider”.
 
 A good example here is the API server load balancer:
 
@@ -136,7 +136,7 @@ A user empowered to request control planes, request workers to a service provide
 
 #### Cluster Admin
 
-A user with cluster-admin role in the provisioned cluster, but may or may not have power over when/how cluster is upgraded or configured.
+A user with the cluster-admin role in the provisioned cluster, but may or may not have power over when/how the cluster is upgraded or configured.
 
 #### Cluster User
 
@@ -153,7 +153,7 @@ So that I don’t have to worry about the management/provisioning of control pla
 #### Story 2
 
 As a cluster service consumer,
-I want to use Cluster API to provision and manage the lifecycle of worker nodes that utilizes my cloud providers’ managed instances (if they support them),
+I want to use Cluster API to provision and manage the lifecycle of worker nodes that utilize my cloud providers’ managed instances (if they support them),
 So that I don't have to worry about the management of these instances.
 
 #### Story 3
@@ -337,7 +337,7 @@ type GCPManagedControlPlaneSpec struct {
 **Pros**
 
 - Simpler implementation
-  - No need for a pass-through infra cluster as control plane endpoint can be reported back via the control plane
+  - No need for a pass-through infra cluster as the control plane endpoint can be reported back via the control plane
 - Works with ClusterClass
 
 **Cons**
@@ -349,7 +349,7 @@ type GCPManagedControlPlaneSpec struct {
 This option more closely follows the original separation of concerns with the different CAPI provider types. With this option, 2 new resource kinds will be introduced:
 
 - **GCPManagedControlPlane**: this presents the actual GKE control plane in GCP. Its spec would only contain properties that are specific to the provisioning & management of a GKE cluster in GCP (excluding worker nodes). It would not contain any properties related to the general GCP operating infrastructure, like the networking or project.
-- **GCPManagedCluster**: this presents the properties needed to provision and manage the general GCP operating infrastructure for the cluster (i.e project, networking, iam). It would contain similar properties to **GCPCluster** and its reconciliation would be very similar.
+- **GCPManagedCluster**: this presents the properties needed to provision and manage the general GCP operating infrastructure for the cluster (i.e. project, networking, iam). It would contain similar properties to **GCPCluster** and its reconciliation would be very similar.
 
 ```go
 type GCPManagedControlPlaneSpec struct {
@@ -427,13 +427,13 @@ The reasons for this recommendation are as follows:
 
 ### Vanilla Managed Kubernetes (i.e. without any additional infrastructure)
 
-If the managed Kubernetes services does not require any base infrastructure to be setup before creating the instance of the service then option 2 (Just a ControlPlane kind (and no InfraCluster) is the recommendation.
+If the managed Kubernetes services do not require any base infrastructure to be set up before creating the instance of the service then option 2 (Just a ControlPlane kind (and no InfraCluster)) is the recommendation.
 
 This recommendation assumes that the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./archived/20230407-flexible-managed-k8s-endpoints.md) have been implemented. Until that point option 1 (Two kinds with a ControlPlane and a pass-through InfraCluster) will have to be used.
 
 ### Existing Managed Kubernetes Implementations
 
-Providers like CAPZ and CAPA have already implemented managed Kubernetes support and there should be no requirement on them to move to Option 3 (if there is additional infrastructure) or option 2 (if there isn't any have additional infrastructure).
+Providers like CAPZ and CAPA have already implemented managed Kubernetes support and there should be no requirement on them to move to Option 3 (if there is additional infrastructure) or option 2 (if there isn't any additional infrastructure).
 
 There is a desire to have consistency across all managed Kubernetes implementations and across all cluster types (i.e. managed and unmanaged) but the choice remains with the providers of existing implementations.
 
@@ -449,8 +449,8 @@ Some cloud providers also offer Managed Node Groups as part of their Managed Kub
 
 There are 2 different ways to represent a group of machines in CAPI:
 
-- **MachineDeployments** - you specify the number of replicas of a machine template and CAPI will manage the creation of immutable Machine-Infrastructure Machine pairs via MachineSets. The user is responsible for explicitly declaring how many machines (a.k.a replicas) they want and these are provisioned and joined to the cluster.
-- **MachinePools** - are similar to MachineDeployments in that they specify a number of machine replicas to be created and joined to the cluster. However, instead of using MachineSets to manage the lifecycle of individual machines a provider implementer utilizes a cloud provided solution to manage the lifecycle of the individual machines instead. Generally with a pool you don’t have to define an exact amount of replicas and instead you have the option to supply a minimum and maximum number of nodes and let the cloud service manage the scaling up and down the number of replicas/nodes. Examples of cloud provided solutions are Auto Scale Groups (ASG) in AWS and Virtual Machine Scale Sets (VMSS) in Azure.
+- **MachineDeployments** - you specify the number of replicas of a machine template and CAPI will manage the creation of immutable Machine-Infrastructure Machine pairs via MachineSets. The user is responsible for explicitly declaring how many machines (a.k.a. replicas) they want and these are provisioned and joined to the cluster.
+- **MachinePools** - are similar to MachineDeployments in that they specify a number of machine replicas to be created and joined to the cluster. However, instead of using MachineSets to manage the lifecycle of individual machines a provider implementer utilizes a cloud provided solution to manage the lifecycle of the individual machines instead. Generally with a pool you don’t have to define an exact number of replicas and instead you have the option to supply a minimum and maximum number of nodes and let the cloud service manage the scaling up and down the number of replicas/nodes. Examples of cloud provided solutions are Auto Scale Groups (ASG) in AWS and Virtual Machine Scale Sets (VMSS) in Azure.
 
 With the implementation of a managed node group the cloud provider is responsible for managing the lifecycle of the individual machines that are used as nodes. This implies that a machine pool representation is needed which utilises a cloud provided solution to manage the lifecycle of machines.
 
@@ -476,7 +476,7 @@ type GCPManagedMachinePoolSpec struct {
 
 ### Provider Implementers Documentation
 
-Its recommended that changes are made to the [Provider Implementers documentation](../book/src/developer/providers/contracts/infra-cluster.md) based on the recommending approach for representing managed Kubernetes in Cluster API.
+It's recommended that changes are made to the [Provider Implementers documentation](../book/src/developer/providers/contracts/infra-cluster.md) based on the recommended approach for representing managed Kubernetes in Cluster API.
 
 Some of the areas of change (this is not an exhaustive list):
 
@@ -495,7 +495,7 @@ Some of the areas of change (this is not an exhaustive list):
 
 ### clusterctl integration
 
-- `clusterctl` assumes a minimal set of providers (core, bootstrap, control plane, infra) is required to form a valid management cluster. Currently, it does not expect a single provider being many things at the same time.
+- `clusterctl` assumes a minimal set of providers (core, bootstrap, control plane, infra) is required to form a valid management cluster. Currently, it does not expect a single provider to be many things at the same time.
 - EKS in CAPA has its own control plane provider and a bootstrap provider packaged in a single manager. Moving forward, it would be great to separate them out.
 
 ### Add-ons management
@@ -506,11 +506,11 @@ Some of the areas of change (this is not an exhaustive list):
 - CAPA and CAPZ enabled support for cloud provider managed addons via API
   - [CAPA](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/controlplane/eks/api/v1beta1/awsmanagedcontrolplane_types.go#L155)
   - [CAPZ](https://github.com/kubernetes-sigs/cluster-api-provider-azure/pull/2095)
-- Managed Kubernetes implementations should be able to opt-in/opt-out of what will be provided by [CAPI’s add-ons orchestration solution](https://github.com/kubernetes-sigs/cluster-api/issues/5491)
+- Managed Kubernetes implementations should be able to opt in/opt out of what will be provided by [CAPI’s add-ons orchestration solution](https://github.com/kubernetes-sigs/cluster-api/issues/5491)
 
 ## Alternatives
 
-A number of different representations where also considered but discounted.
+A number of different representations were also considered but discounted.
 
 ### Alternative 1: Single kind for Control Plane and Infrastructure
 
@@ -550,7 +550,7 @@ type GCPManagedControlPlaneSpec struct {
 
 #### Background: Why did EKS in CAPA choose this option?
 
-CAPA decided to represent an EKS cluster as a CAPI control-plane. This meant that control-plane is responsible for creating the API server load balancer.
+CAPA decided to represent an EKS cluster as a CAPI control-plane. This meant that the control-plane is responsible for creating the API server load balancer.
 
 Initially CAPA had an infrastructure cluster kind that reported back the control plane endpoint. This required less than ideal code in its controller to watch the control plane and use its value of the control plane endpoint.
 
@@ -580,7 +580,7 @@ The general cluster infrastructure will be declared via the existing **GCPCluste
 
 However, this approach will require changes to the controller for **GCPCluster**. The steps to create the required infrastructure may be different between an unmanaged cluster and a GKE based cluster. For example, for an unmanaged cluster a load balancer will need to be created but with a GKE based cluster this won’t be needed and instead we’d need to use the endpoint created as part of **GCPManagedControlPlane** reconciliation.
 
-So the **GCPCluster** controller will need to know if its creating infrastructure for an unmanaged or managed cluster (probably by looking at the parent's (i.e. `Cluster`) **controlPlaneRef**) and do different steps.
+So the **GCPCluster** controller will need to know if it's creating infrastructure for an unmanaged or managed cluster (probably by looking at the parent's (i.e. `Cluster`) **controlPlaneRef**) and do different steps.
 
 **Pros**
 

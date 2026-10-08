@@ -216,7 +216,7 @@ func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, clus
 }
 
 // LookupCached looks up each certificate from secrets and populates the certificate with the secret data.
-// First we try to lookup the certificate secret via the secretCachingClient. If we get a NotFound error
+// First we try to look up the certificate secret via the secretCachingClient. If we get a NotFound error
 // we fall back to the regular uncached client.
 func (c Certificates) LookupCached(ctx context.Context, secretCachingClient, ctrlclient client.Client, clusterName client.ObjectKey) error {
 	// Look up each certificate as a secret and populate the certificate/key
@@ -320,7 +320,7 @@ func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Cl
 }
 
 // LookupOrGenerateCached is a convenience function that wraps cluster bootstrap certificate behavior.
-// During lookup we first try to lookup the certificate secret via the secretCachingClient. If we get a NotFound error
+// During lookup we first try to look up the certificate secret via the secretCachingClient. If we get a NotFound error
 // we fall back to the regular uncached client.
 func (c Certificates) LookupOrGenerateCached(ctx context.Context, secretCachingClient, ctrlclient client.Client, clusterName client.ObjectKey, owner metav1.OwnerReference) error {
 	// Find the certificates that exist

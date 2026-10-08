@@ -133,7 +133,7 @@ That may not always be what you want - what if the object's been deleted? So let
 ```
 
 Now that we have our own cluster object (`MailGunCluster`) that represents all the
-infrastructure provider specific details for our cluster, we also need to retrieve
+infrastructure provider-specific details for our cluster, we also need to retrieve
 the upstream [`Cluster` object that is defined by Cluster API itself][cluster].
 Luckily, cluster API [provides a helper for us][getowner].
 

@@ -1285,7 +1285,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 						continue
 					}
 				} else if !apierrors.IsNotFound(err) {
-					t.Errorf("error = %v when checking for %s %v should not created ojects in target cluster", err, oFrom.GetKind(), key)
+					t.Errorf("error = %v when checking for %s %v should not have created objects in target cluster", err, oFrom.GetKind(), key)
 					continue
 				}
 			}

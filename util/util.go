@@ -77,7 +77,7 @@ func RandomString(n int) string {
 }
 
 // Ordinalize takes an int and returns the ordinalized version of it.
-// Eg. 1 --> 1st, 103 --> 103rd.
+// E.g. 1 --> 1st, 103 --> 103rd.
 func Ordinalize(n int) string {
 	m := map[int]string{
 		0: "th",
@@ -112,7 +112,7 @@ func IsExternalManagedControlPlane(controlPlane *unstructured.Unstructured) bool
 // GetMachineIfExists gets a machine from the API server if it exists.
 func GetMachineIfExists(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.Machine, error) {
 	if c == nil {
-		// Being called before k8s is setup as part of control plane VM creation
+		// Being called before k8s is set up as part of control plane VM creation
 		return nil, nil
 	}
 
@@ -511,7 +511,7 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 
 		results := []ctrl.Request{}
 		for _, obj := range objects {
-			// Note: We don't check if the type cast succeeds as all items in an client.ObjectList
+			// Note: We don't check if the type cast succeeds as all items in a client.ObjectList
 			// are client.Objects.
 			o := obj.(client.Object)
 			results = append(results, ctrl.Request{
@@ -575,7 +575,7 @@ func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, sch
 
 		results := []ctrl.Request{}
 		for _, obj := range objects {
-			// Note: We don't check if the type cast succeeds as all items in an client.ObjectList
+			// Note: We don't check if the type cast succeeds as all items in a client.ObjectList
 			// are client.Objects.
 			o := obj.(client.Object)
 			results = append(results, ctrl.Request{
@@ -639,7 +639,7 @@ func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *ru
 
 		results := []ctrl.Request{}
 		for _, obj := range objects {
-			// Note: We don't check if the type cast succeeds as all items in an client.ObjectList
+			// Note: We don't check if the type cast succeeds as all items in a client.ObjectList
 			// are client.Objects.
 			o := obj.(client.Object)
 			results = append(results, ctrl.Request{

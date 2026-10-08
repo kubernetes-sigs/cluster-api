@@ -81,7 +81,7 @@ func TestGetFirstReasonAndMessage(t *testing.T) {
 
 	groups := getConditionGroups(conditionsWithSource(getter, foo, bar))
 
-	// getFirst should report first condition in lexicografical order if no order is specified
+	// getFirst should report first condition in lexicographical order if no order is specified
 	gotReason := getFirstReason(groups, nil, false)
 	g.Expect(gotReason).To(Equal("falseBar"))
 	gotMessage := getFirstMessage(groups, nil)
@@ -99,7 +99,7 @@ func TestGetFirstReasonAndMessage(t *testing.T) {
 	gotMessage = getFirstMessage(groups, []clusterv1.ConditionType{"missingBaz", "foo", "bar"})
 	g.Expect(gotMessage).To(Equal("message falseFoo"))
 
-	// getFirst should fallback to first condition if none of the conditions in the list exists
+	// getFirst should fall back to the first condition if none of the conditions in the list exists
 	gotReason = getFirstReason(groups, []clusterv1.ConditionType{"missingBaz"}, false)
 	g.Expect(gotReason).To(Equal("falseBar"))
 	gotMessage = getFirstMessage(groups, []clusterv1.ConditionType{"missingBaz"})

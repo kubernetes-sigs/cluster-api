@@ -30,7 +30,7 @@ type UpgradeTracker struct {
 	MinWorkersVersion  string
 
 	// ComputeUpgradePlanSucceeded reports when an upgrade plan has been successfully computed
-	// Note: when there are no upgrade in progress, ComputeUpgradePlan succeeds and it returns an empty upgrade plan.
+	// Note: when there are no upgrades in progress, ComputeUpgradePlan succeeds and it returns an empty upgrade plan.
 	ComputeUpgradePlanSucceeded bool
 
 	// HooksToMarkPending is the list of lifecycle hooks that must be market as pending
@@ -110,7 +110,7 @@ type WorkerUpgradeTracker struct {
 	//   - in case of versions with the same major/minor/patch version but different build number, also the order
 	//     of those versions must be the same for control plane and worker upgrade plan.
 	// - the last version in the plan must be equal to the desired version
-	// - the upgrade plane must have all the intermediate version which workers must go through to avoid breaking rules
+	// - the upgrade plan must have all the intermediate versions which workers must go through to avoid breaking rules
 	//   defining the max version skew between control plane and workers.
 	UpgradePlan []string
 

@@ -311,7 +311,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 // initControlPlaneScope initializes the control plane scope; this includes also checking for orphan machines and
 // adopt them if necessary.
 // The func also returns a boolean indicating if adoptableMachine have been found and processed, but this doesn't imply those machines
-// have been actually adopted).
+// have been actually adopted.
 func (r *Reconciler) initControlPlaneScope(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (*pkg.ControlPlane, bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -1002,7 +1002,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, controlPlane *pkg.Control
 	return anyManagedFieldIssueMitigated, nil
 }
 
-// reconcileControlPlaneAndMachinesConditions is responsible of reconciling conditions reporting the status of static pods and
+// reconcileControlPlaneAndMachinesConditions is responsible for reconciling conditions reporting the status of static pods and
 // the status of the etcd cluster both on the KubeadmControlPlane and on machines.
 // It also reconciles the UpToDate condition on Machines, so we can update them with a single patch operation.
 func (r *Reconciler) reconcileControlPlaneAndMachinesConditions(ctx context.Context, controlPlane *pkg.ControlPlane) (reterr error) {
@@ -1276,7 +1276,7 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 		return ctrl.Result{}, nil
 	}
 
-	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet.
+	// If there are no KCP-owned control-plane machines, then control-plane has not been initialized yet.
 	if controlPlane.Machines.Len() == 0 {
 		return ctrl.Result{}, nil
 	}
@@ -1371,7 +1371,7 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// and the etcd cluster in operational state or not.
 	//
 	// In this case, the Target cluster will have the same list of machines as the current clusters
-	// but we are going to remove the etcd members without a corresponding Node/Machine (no etcd member are going to be added).
+	// but we are going to remove the etcd members without a corresponding Node/Machine (no etcd members are going to be added).
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
@@ -1503,7 +1503,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 	// If etcd is managed by KCP, check target etcd cluster.
 	// Target list of machines will have current machines -1 machine (the deletingMachine).
 	// As a consequence:
-	// - etcd member on the deletingMachine is going to be deleted, no etcd member are going to be added.
+	// - etcd member on the deletingMachine is going to be deleted, no etcd members are going to be added.
 	etcdMemberNameToBeDeleted := r.tryGetEtcdMemberName(ctx, controlPlane, deletingMachine)
 	addEtcdMember := false
 
@@ -1595,12 +1595,12 @@ func (r *Reconciler) tryInferMemberToBeDeleted(controlPlane *pkg.ControlPlane, d
 	// losing quorum in case we have only two etcd members, one of them hosted on the Machine being deleted.
 	// Note: unexpectedProvisioningMachine is a safeguard preventing KCP from making a wrong assumption
 	// if there is more than one machine without a node ref, but this should never happen because KCP
-	// does only one operation at time.
+	// does only one operation at a time.
 	// Note: at this point the unexpectedMembers could also be a member without a name, which is usually also a learner.
 	// In this case it is ok to remove PreTerminateHookAnnotation hook without removing the etcd member, reconcileEtcdMembers
 	// will clean it up at the next reconcile.
 	// TODO: it might happen that the member name is assigned after machine deletion; current implementation does
-	//  not hadle this edge case; in order to do so (GAP).
+	//  not handle this edge case; in order to do so (GAP).
 	if len(unexpectedMembers) == 1 && !unexpectedProvisioningMachine {
 		return unexpectedMembers.UnsortedList()[0].Name
 	}
@@ -1611,7 +1611,7 @@ func (r *Reconciler) tryInferMemberToBeDeleted(controlPlane *pkg.ControlPlane, d
 	// If it was not possible to infer the match and there are still unexpected etcd members, this code
 	// should not make unsafe assumptions and defer to reconcileEtcdMembers to clean up in a next reconcile.
 	// Note: this approach is considered acceptable because this case should never happen given that
-	// KCP does only one operation at time; in the future we might revisit this and call reconcileEtcdMembers
+	// KCP does only one operation at a time; in the future we might revisit this and call reconcileEtcdMembers
 	// directly here to try to clean up all the exceeding members before deleting the machine.
 	return ""
 }

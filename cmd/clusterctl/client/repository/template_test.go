@@ -28,7 +28,7 @@ import (
 )
 
 // Nb.We are using core objects vs Machines/Cluster etc. because it is easier to test (you don't have to deal with CRDs
-// or schema issues), but this is ok because a template can be any yaml that complies the clusterctl contract.
+// or schema issues), but this is ok because a template can be any yaml that complies with the clusterctl contract.
 var templateMapYaml = []byte("apiVersion: v1\n" +
 	"data:\n" +
 	fmt.Sprintf("  variable: ${%s}\n", variableName) +

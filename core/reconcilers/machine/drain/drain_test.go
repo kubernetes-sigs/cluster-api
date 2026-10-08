@@ -336,7 +336,7 @@ func TestGetPodsForEviction(t *testing.T) {
 							Namespace: metav1.NamespaceDefault,
 						},
 					},
-					// Delete this DaemonSet Pod because it is succeeded.
+					// Delete this DaemonSet Pod because it has succeeded.
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
 						DrainOrder:    ptr.To[int32](0),

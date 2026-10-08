@@ -176,9 +176,9 @@ func runningOnWorkloadCluster(ctx context.Context, controllerPodMetadata *metav1
 	return controllerPodMetadata.UID == pod.UID, nil
 }
 
-// createHTTPClientAndMapper creates a http client and a dynamic REST mapper for the given cluster, based on the rest.Config.
+// createHTTPClientAndMapper creates an http client and a dynamic REST mapper for the given cluster, based on the rest.Config.
 func createHTTPClientAndMapper(ctx context.Context, healthProbeConfig *clusterAccessorHealthProbeConfig, config *rest.Config) (*http.Client, meta.RESTMapper, *rest.RESTClient, error) {
-	// Create a http client for the cluster.
+	// Create an http client for the cluster.
 	httpClient, err := rest.HTTPClientFor(config)
 	if err != nil {
 		return nil, nil, nil, pkgerrors.WithMessage(err, "error creating HTTP client")
@@ -302,7 +302,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 
 	// Wrap the cached client with a client that sets timeouts on all Get and List calls
 	// If we don't set timeouts here Get and List calls can get stuck if they lazily create a new informer
-	// and the informer than doesn't sync because the workload cluster apiserver is not reachable.
+	// and the informer then doesn't sync because the workload cluster apiserver is not reachable.
 	// An alternative would be to set timeouts in the contexts we pass into all Get and List calls.
 	// It should be reasonable to have Get and List calls timeout within the duration configured in the restConfig.
 	cachedClient = newClientWithTimeout(cachedClient, config.Timeout)
@@ -312,7 +312,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 
 // newClientWithTimeout returns a new client which sets the specified timeout on all Get and List calls.
 // If we don't set timeouts here Get and List calls can get stuck if they lazily create a new informer
-// and the informer than doesn't sync because the workload cluster apiserver is not reachable.
+// and the informer then doesn't sync because the workload cluster apiserver is not reachable.
 // An alternative would be to set timeouts in the contexts we pass into all Get and List calls.
 func newClientWithTimeout(client client.Client, timeout time.Duration) client.Client {
 	return clientWithTimeout{

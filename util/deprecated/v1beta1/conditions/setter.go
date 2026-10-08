@@ -43,7 +43,7 @@ func Set(to Setter, condition *clusterv1.Condition) {
 		return
 	}
 
-	// Check if the new conditions already exists, and change it only if there is a status
+	// Check if the new condition already exists, and change it only if there is a status
 	// transition (otherwise we should preserve the current last transition time)-
 	conditions := to.GetConditions()
 	exists := false
@@ -87,7 +87,7 @@ func SetWithCustomLastTransitionTime(to Setter, condition *clusterv1.Condition) 
 		return
 	}
 
-	// Check if the new conditions already exists, and change it only if there is a status
+	// Check if the new condition already exists, and change it only if there is a status
 	// transition (otherwise we should preserve the current last transition time)-
 	conditions := to.GetConditions()
 	exists := false
@@ -249,7 +249,7 @@ func lexicographicLess(i, j *clusterv1.Condition) bool {
 }
 
 // HasSameState returns true if a condition has the same state of another; state is defined
-// by the union of following fields: Type, Status, Reason, Severity and Message (it excludes LastTransitionTime).
+// by the union of the following fields: Type, Status, Reason, Severity and Message (it excludes LastTransitionTime).
 func HasSameState(i, j *clusterv1.Condition) bool {
 	if i == nil || j == nil {
 		return i == j

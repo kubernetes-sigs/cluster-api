@@ -117,13 +117,13 @@ func (g *gitHubRepository) GetVersions(ctx context.Context) ([]string, error) {
 
 	var versions []string
 	if goProxyClient != nil {
-		// A goproxy is also able to handle the github repository path instead of the actual go module name.
+		// A goproxy is also able to handle the GitHub repository path instead of the actual go module name.
 		gomodulePath := path.Join(githubDomain, g.owner, g.repository)
 
 		var parsedVersions semver.Versions
 		parsedVersions, err = goProxyClient.GetVersions(ctx, gomodulePath)
 
-		// Log the error before fallback to github repository client happens.
+		// Log the error before fallback to GitHub repository client happens.
 		if err != nil {
 			log.V(5).Info("error using Goproxy client to list versions for repository, falling back to github client", "owner", g.owner, "repository", g.repository, "error", err)
 		}
@@ -133,7 +133,7 @@ func (g *gitHubRepository) GetVersions(ctx context.Context) ([]string, error) {
 		}
 	}
 
-	// Fallback to github repository client if goProxyClient is nil or an error occurred.
+	// Fall back to GitHub repository client if goProxyClient is nil or an error occurred.
 	if goProxyClient == nil || err != nil {
 		versions, err = g.getVersions(ctx)
 		if err != nil {
@@ -165,7 +165,7 @@ func (g *gitHubRepository) GetFile(ctx context.Context, version, path string) ([
 	}
 
 	// Try to get the file using http get.
-	// NOTE: this can be disabled by setting GORPOXY to `direct` or `off` (same knobs used for skipping goproxy requests).
+	// NOTE: this can be disabled by setting GOPROXY to `direct` or `off` (same knobs used for skipping goproxy requests).
 	if goProxyClient, _ := g.getGoproxyClient(ctx); goProxyClient != nil {
 		files, err := g.httpGetFilesFromRelease(ctx, version, path)
 		if err != nil {
@@ -209,7 +209,7 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 		return nil, pkgerrors.Wrap(err, "invalid url")
 	}
 
-	// Check if the url is a github repository
+	// Check if the url is a GitHub repository
 	if rURL.Scheme != httpsScheme || rURL.Host != githubDomain {
 		return nil, pkgerrors.New("invalid url: a GitHub repository url should start with https://github.com")
 	}
@@ -271,7 +271,7 @@ func getComponentsPath(path string, rootPath string) string {
 	return componentsPath
 }
 
-// getClient returns a github API client.
+// getClient returns a GitHub API client.
 func (g *gitHubRepository) getClient() (*github.Client, error) {
 	if g.injectClient != nil {
 		return g.injectClient, nil
@@ -294,7 +294,7 @@ func (g *gitHubRepository) getGoproxyClient(_ context.Context) (*goproxy.Client,
 	if err != nil {
 		return nil, err
 	}
-	// Don't return a client if scheme and host is set to empty string.
+	// Don't return a client if scheme and host are set to empty strings.
 	if scheme == "" && host == "" {
 		return nil, nil
 	}
@@ -309,7 +309,7 @@ func (g *gitHubRepository) setClientToken(ctx context.Context, token string) {
 	g.authenticatingHTTPClient = oauth2.NewClient(ctx, ts)
 }
 
-// getVersions returns all the release versions for a github repository.
+// getVersions returns all the release versions for a GitHub repository.
 func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 	client, err := g.getClient()
 	if err != nil {
@@ -317,7 +317,7 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 	}
 
 	// Get all the releases.
-	// NB. currently Github API does not support result ordering, so it not possible to limit results
+	// NB. currently GitHub API does not support result ordering, so it is not possible to limit results
 	var allReleases []*github.RepositoryRelease
 	var retryError error
 	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
@@ -371,7 +371,7 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 	return versions, nil
 }
 
-// getReleaseByTag returns the github repository release with a specific tag name.
+// getReleaseByTag returns the GitHub repository release with a specific tag name.
 func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*github.RepositoryRelease, error) {
 	cacheID := fmt.Sprintf("%s/%s:%s", g.owner, g.repository, tag)
 	if release, ok := cacheReleases[cacheID]; ok {
@@ -411,7 +411,7 @@ func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*gi
 	return release, nil
 }
 
-// httpGetFilesFromRelease gets a file from github using http get.
+// httpGetFilesFromRelease gets a file from GitHub using http get.
 func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version, fileName string) ([]byte, error) {
 	downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", g.owner, g.repository, version, fileName)
 	var retryError error

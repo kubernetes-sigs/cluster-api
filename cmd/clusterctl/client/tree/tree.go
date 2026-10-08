@@ -59,7 +59,7 @@ type ObjectTreeOptions struct {
 
 	// V1Beta1 instructs tree to use V1Beta1 conditions.
 	//
-	// Deprecated: This field will be removed when v1beta1 will be dropped.
+	// Deprecated: This field will be removed when v1beta1 is dropped.
 	V1Beta1 bool
 }
 
@@ -87,7 +87,7 @@ func NewObjectTree(root client.Object, options ObjectTreeOptions) *ObjectTree {
 	}
 }
 
-// Add a object to the object tree.
+// Add an object to the object tree.
 func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (added bool, visible bool) {
 	if parent == nil || obj == nil {
 		return false, false

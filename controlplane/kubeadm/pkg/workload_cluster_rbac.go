@@ -61,7 +61,7 @@ func (w *Workload) EnsureResource(ctx context.Context, obj client.Object) error 
 // EnsureKubeadmPermissions creates ClusterRoleBinding and ClusterRoles introduced by new versions of kubeadm.
 func (w *Workload) EnsureKubeadmPermissions(ctx context.Context, targetVersion semver.Version) error {
 	// Note: this code mimics the changes that kubeadm upgrade is doing.
-	// Cluster API must run the corresponding code when the user are upgrading to the minor where kubeadm introduced the change,
+	// Cluster API must run the corresponding code when the user is upgrading to the minor where kubeadm introduced the change,
 	// including also patch releases. This is why the upper bound is the minor where a change was introduced plus one.
 	// Also, Cluster API applies new cluster roles when upgrading to releases older than when the changes
 	// have been introduced to kubeadm, so upgrade will keep working also in case the changes are backported to older versions.

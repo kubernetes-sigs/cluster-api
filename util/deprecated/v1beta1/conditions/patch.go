@@ -43,7 +43,7 @@ const (
 	// AddConditionPatch defines an add condition patch operation.
 	AddConditionPatch PatchOperationType = "Add"
 
-	// ChangeConditionPatch defines an change condition patch operation.
+	// ChangeConditionPatch defines a change condition patch operation.
 	ChangeConditionPatch PatchOperationType = "Change"
 
 	// RemoveConditionPatch defines a remove condition patch operation.
@@ -106,7 +106,7 @@ func (o *applyOptions) isOwnedCondition(t clusterv1.ConditionType) bool {
 // ApplyOption defines an option for applying a condition patch.
 type ApplyOption func(*applyOptions)
 
-// WithOwnedConditions allows to define condition types owned by the controller.
+// WithOwnedConditions allows defining condition types owned by the controller.
 // In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
 func WithOwnedConditions(t ...clusterv1.ConditionType) ApplyOption {
 	return func(c *applyOptions) {
@@ -159,7 +159,7 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 				// NOTE: We are preserving LastTransitionTime from the latest in order to avoid altering the existing value.
 				continue
 			}
-			// If the condition does not exists on the latest, add the new after condition.
+			// If the condition does not exist on the latest, add the new after condition.
 			Set(latest, conditionPatch.After)
 
 		case ChangeConditionPatch:

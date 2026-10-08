@@ -71,7 +71,7 @@ type requestsTotalObserver struct {
 	metric *prometheus.CounterVec
 }
 
-// Observe observes a http request result and increments the metric for the given
+// Observe observes an HTTP request result and increments the metric for the given
 // http status code, host, gvh and response.
 func (m *requestsTotalObserver) Observe(req *http.Request, resp *http.Response, gvh runtimecatalog.GroupVersionHook, err error, response runtime.Object) {
 	host := req.URL.Host

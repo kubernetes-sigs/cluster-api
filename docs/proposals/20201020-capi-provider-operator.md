@@ -85,14 +85,14 @@ The operator is developed in a separate repository [TBD] and will have its own r
 In its current form clusterctl is designed to provide a simple user experience
 for day 1 operations of a Cluster API management cluster.
 
-However such design is not optimized for supporting declarative approaches
+However such a design is not optimized for supporting declarative approaches
 when operating Cluster API management clusters.
 
 These declarative approaches are important to enable GitOps workflows in case
 users don't want to rely solely on the `clusterctl` CLI.
 
 Providing a declarative API also enables us to leverage controller-runtime's
-new component config and allow us to configure the controller manager and even
+new component config and allows us to configure the controller manager and even
 the resource limits of the provider's deployment.
 
 Another example is improving cluster upgrades. In order to upgrade a cluster
@@ -122,7 +122,7 @@ management cluster based on a declarative API.
 - `clusterctl` related changes will be implemented after core operator functionality
   is complete. For example, deprecating `Provider` type and migrating to new ones.
 - `clusterctl` will not be deprecated or replaced with another CLI.
-- Implement an operator driven version of `clusterctl move`.
+- Implement an operator-driven version of `clusterctl move`.
 - Manage cert-manager using the operator.
 - Support multiple installations of the same provider within a management
   cluster in light of [issue 3042] and [issue 3354].
@@ -171,7 +171,7 @@ These are the new API types being defined.
 
 There are separate types for each provider type - Core, Bootstrap,
 ControlPlane, and Infrastructure. However, since each type is similar, their
-Spec and Status uses the shared types - `ProviderSpec`,  `ProviderStatus`
+Spec and Status use the shared types - `ProviderSpec`,  `ProviderStatus`
 respectively.
 
 We will scope the CRDs to be namespaced. This will allow us to enforce
@@ -291,7 +291,7 @@ type ManagerSpec struct {
    // +optional
    Debug bool `json:"debug,omitempty"`
 
-   // FeatureGates define provider specific feature flags that will be passed
+   // FeatureGates define provider-specific feature flags that will be passed
    // in as container args to the provider's controller manager.
    // Controller Manager flag is --feature-gates.
    FeatureGates map[string]bool `json:"featureGates,omitempty"`
@@ -333,7 +333,7 @@ type ContainerSpec struct {
    // +optional
    Image *ImageMeta `json:"image,omitempty"`
 
-   // Args represents extra provider specific flags that are not encoded as fields in this API.
+   // Args represents extra provider-specific flags that are not encoded as fields in this API.
    // Explicit controller manager properties defined in the `Provider.ManagerSpec`
    // will have higher precedence than those defined in `ContainerSpec.Args`.
    // For example, `ManagerSpec.SyncPeriod` will be used instead of the
@@ -437,7 +437,7 @@ type ProviderStatus struct {
 
 **Validation Rules for ProviderSpec.ManagerSpec**
 - The ControllerManagerConfigurationSpec is a type from
-  `controller-runtime/pkg/config` and is an embedded into the `ManagerSpec`.
+  `controller-runtime/pkg/config` and is embedded into the `ManagerSpec`.
   This type will expose LeaderElection, SyncPeriod, Webhook, Health and
   Metrics configurations.
 - If `ManagerSpec.Debug` is set to true, the operator will not allow changes
@@ -574,7 +574,7 @@ spec:
    'vsphere', 'azure', 'kubeadm', 'talos', or 'cluster-api' instead of having
    to explicitly specify the fetch configuration.
    In the example below, since we are using 'vsphere' as the name of the
-   InfrastructureProvider the operator will fetch it's configuration from
+   InfrastructureProvider the operator will fetch its configuration from
    `url: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases`
    by default.
 
@@ -605,7 +605,7 @@ When processing a Provider object the operator will apply the following rules.
 
 - Providers with  `spec.Type == CoreProvider` will be installed first; the
   other providers will be requeued until the core provider exists.
-- Before installing any provider following preflight checks will be executed :
+- Before installing any provider, the following preflight checks will be executed :
     - There should not be another instance of the same provider (same Kind, same
       name) in any namespace.
     - The Cluster API contract the provider is abiding by, e.g. v1alpha4, must
@@ -629,7 +629,7 @@ following steps:
 - Applying the resulting yaml to the cluster.
 
 As a final consideration, please note that
-- The operator executes installation for 1 provider at time, while `clusterctl
+- The operator executes installation for 1 provider at a time, while `clusterctl
   init` manages installation of a group of providers with a single operation.
 - `clusterctl init` uses environment variables and a local configuration file,
   while the operator uses a Secret; given that we want the users to preserve
@@ -675,7 +675,7 @@ Cluster API contract, the operator will execute the upgrade by performing:
 - Install the new version of the provider components
 
 Please note that:
-- The operator executes upgrades 1 provider at time, while `clusterctl upgrade
+- The operator executes upgrades 1 provider at a time, while `clusterctl upgrade
   apply` manages upgrading a group of providers with a single operation.
 - `clusterctl upgrade apply --contract` automatically determines the latest
   versions available for each provider, while with the Declarative approach
@@ -783,7 +783,7 @@ will look like.
 - In future the admin will be able to use `clusterctl upgrade operator` to 
   upgrade the operator components. Please note that this command will consider 
   image overrides defined in the local clusterctl config file. Other commands 
-  such as `clusterctl upgrade apply` will also allow to upgrade the operator.
+  such as `clusterctl upgrade apply` will also allow users to upgrade the operator.
 - `clusterctl upgrade plan` will identify when the operator can be upgraded by
   checking the cluster-api release artifacts.
 - clusterctl will require a matching operator version. In the future, when
@@ -803,16 +803,16 @@ will look like.
 In order to install Cluster API providers in an air-gapped environment using
 the operator, it is required to address the following issues.
 
-1. Make the operator work in air-gapped environment
+1. Make the operator work in an air-gapped environment
    - To provide image overrides for the operator itself in order to pull the
      images from an accessible image repository. Please note that the
      overrides will be considered from the image overrides defined in the
      local clusterctl config file.
    - TBD if operator yaml will be embedded in clusterctl or if it should be a
      special artifact within the core provider repository.
-1. Make the providers work in air-gapped environment
+1. Make the providers work in an air-gapped environment
    - To provide fetch configuration for each provider reading from an
-     accessible location (e.g. an internal github repository) or from
+     accessible location (e.g. an internal GitHub repository) or from
      ConfigMaps pre-created inside the cluster.
    - To provide image overrides for each provider in order to pull the images
      from an accessible image repository.
@@ -901,7 +901,7 @@ this implementation of the proposal and we will rely on using the default
 
 #### Upgrade from v1alpha3 management cluster to v1alpha4/operator cluster
 
-As of today, this is hard to define as have yet to understand the definition
+As of today, this is hard to define as we have yet to understand the definition
 of what a v1alpha4 cluster will be. Once we better understand what a v1alpha4
 cluster will look like, we will then be able to determine the upgrade sequence
 from v1alpha3.
@@ -942,7 +942,7 @@ be added.
 
 - [x] 09/09/2020: Proposed idea in an issue or [community meeting]
 - [x] 09/14/2020: Compile a [Google Doc following the CAEP template][management cluster operator caep]
-- [x] 09/14/2020: First round of feedback from community
+- [x] 09/14/2020: First round of feedback from the community
 - [x] 10/07/2020: Present proposal at a [community meeting]
 - [ ] 10/20/2020: Open proposal PR
 
@@ -950,7 +950,7 @@ be added.
 
 These types are pulled from [controller-runtime][controller-runtime-code-ref]
 and [component-base][components-base-code-ref]. They are used as part of the
-`ManagerSpec`. They are duplicated here for convenience sake.
+`ManagerSpec`. They are duplicated here for convenience's sake.
 
 ```golang
 // ControllerManagerConfigurationSpec defines the desired state of GenericControllerManagerConfiguration

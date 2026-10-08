@@ -329,12 +329,12 @@ clusterctl init --infrastructure aws
 {{#/tab }}
 {{#tab macOS}}
 
-Download the latest release; on macOs, type:
+Download the latest release; on macOS, type:
 ```
 curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api-provider-aws" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:">=2.0.0"}} -o clusterawsadm
 ```
 
-Or if your Mac has an M1 CPU (”Apple Silicon”):
+Or if your Mac has an M1 CPU (“Apple Silicon”):
 ```
 curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api-provider-aws" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:">=2.0.0"}} -o clusterawsadm
 ```

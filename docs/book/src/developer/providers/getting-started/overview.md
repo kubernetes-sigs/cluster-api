@@ -5,13 +5,13 @@ This is a getting started guide to demonstrate how to develop a new Cluster API 
 The guide focus on setting up a new project for implementing the provider and creating:
 - API types and corresponding CustomResourceDefinition (CRD).
 - Webhooks, responsible to default and validate above resources.
-- Controllers, responsible of reconciling above resources.
+- Controllers, responsible for reconciling above resources.
 
 We will use `kubebuilder` to create an example _infrastructure_ provider; for more information on `kubebuilder` 
 and CRDs in general we highly recommend reading the [Kubebuilder Book][kubebuilder-book].
 Much of the information here was adapted directly from it.
 
-Also worth to notice that suggestion in this guide are only intended to help first time provider implementers to get started,
+Also worth noting that suggestions in this guide are only intended to help first time provider implementers to get started,
 but this is not an exhaustive guide of all the intricacies of developing Kubernetes controllers. 
 Please refer to  the [Kubebuilder Book][kubebuilder-book] and to [Cluster API videos and tutorials](../../getting-started.md#videos-explaining-capi-architecture-and-code-walkthroughs)
 for more information.

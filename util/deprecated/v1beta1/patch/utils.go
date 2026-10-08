@@ -94,7 +94,7 @@ func unsafeUnstructuredCopy(obj *unstructured.Unstructured, focus patchType, clu
 		}
 	}
 
-	// If we've determined that new or old condition must be set,
+	// If we've determined that a new or old condition must be set,
 	// when dealing with the status patch, remove corresponding sub-fields from the object.
 	// NOTE: Removing conditions sub-fields changes the incoming object! This is safe because the condition patch
 	// doesn't use the unstructured fields, and it runs before any other patch.
@@ -140,7 +140,7 @@ func identifyConditionsFieldsPath(obj runtime.Object) ([]string, []string, error
 	}
 
 	// NOTE: Given that we allow providers to migrate at different speed, it is required to support objects at the different stage of the transition from clusterv1.conditions to metav1.conditions.
-	// In order to handle this, it is required to identify where conditions are supported (metav1 or clusterv1 and where they are located.
+	// In order to handle this, it is required to identify where conditions are supported (metav1 or clusterv1) and where they are located.
 
 	var metav1ConditionsFields []string
 	var clusterv1ConditionsFields []string

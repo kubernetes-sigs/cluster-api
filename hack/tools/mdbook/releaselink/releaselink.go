@@ -39,7 +39,7 @@ import (
 // and resolves it back to the GitHub repository link using the `asset` specified.
 // It's possible to add a `version` parameter, which accepts ranges (e.g. >=1.0.0) or wildcards (e.g. >=1.x, v0.1.x)
 // to filter the retrieved versions.
-// By default pre-releases won't be included unless a `prereleases` parameter is set to `true`.
+// By default, pre-releases won't be included unless a `prereleases` parameter is set to `true`.
 type ReleaseLink struct{}
 
 // SupportsOutput checks if the given plugin supports the given output format.

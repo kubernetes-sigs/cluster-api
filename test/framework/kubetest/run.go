@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package kubetest implmements kubetest functionality.
+// Package kubetest implements kubetest functionality.
 package kubetest
 
 import (

@@ -46,7 +46,7 @@ func MemberForID(members []*etcd.Member, id uint64) *etcd.Member {
 }
 
 // MemberNames returns a list of all the etcd member names.
-// Note: this function is specificially designed for MemberEqual and setting condition messages.
+// Note: this function is specifically designed for MemberEqual and setting condition messages.
 func MemberNames(members []*etcd.Member) []string {
 	names := make([]string, 0, len(members))
 	for _, m := range members {

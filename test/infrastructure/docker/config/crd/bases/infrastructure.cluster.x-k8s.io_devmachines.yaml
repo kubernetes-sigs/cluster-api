@@ -105,7 +105,7 @@ spec:
                         type: array
                       preLoadImages:
                         description: |-
-                          preLoadImages allows to pre-load images in a newly created machine. This can be used to
+                          preLoadImages allows preloading images in a newly created machine. This can be used to
                           speed up tests by avoiding e.g. to download CNI images on all the containers.
                         items:
                           type: string
@@ -474,7 +474,7 @@ spec:
                         type: array
                       preLoadImages:
                         description: |-
-                          preLoadImages allows to pre-load images in a newly created machine. This can be used to
+                          preLoadImages allows preloading images in a newly created machine. This can be used to
                           speed up tests by avoiding e.g. to download CNI images on all the containers.
                         items:
                           type: string
@@ -699,7 +699,7 @@ spec:
                           description: |-
                             Condition defines an observation of a Cluster API resource operational state.
 
-                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                           properties:
                             lastTransitionTime:
                               description: |-

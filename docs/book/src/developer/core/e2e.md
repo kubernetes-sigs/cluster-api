@@ -7,7 +7,7 @@ The following guidelines should be followed when developing E2E tests:
 
 - Use the [Cluster API test framework].
 - Define test spec reflecting real user workflow, e.g. [Cluster API quick start].
-- Unless you are testing provider specific features, ensure your test can run with
+- Unless you are testing provider-specific features, ensure your test can run with
   different infrastructure providers (see [Writing Portable Tests](#writing-portable-e2e-tests)).
 
 The [Cluster API test framework] provides you a set of helper methods for getting your test in place
@@ -103,7 +103,7 @@ some drawbacks as well, because this method does not directly reflect real user 
 the resulting tests are not as reusable with other infrastructure providers. (See [writing portable tests](#writing-portable-e2e-tests)).
 
 We recommend using the [ClusterTemplate method] and the [Apply method] for creating objects in the cluster.
-This methods mimics the recommended user workflows, and it is based on `cluster-templates.yaml` files that can be
+This method mimics the recommended user workflows, and it is based on `cluster-templates.yaml` files that can be
 provided via the [E2E config file], and thus easily swappable when changing the target infrastructure provider.
 
 > [!TIP]
@@ -122,7 +122,7 @@ You can use [Cluster API test framework] methods to modify Cluster API objects, 
 the [controller-runtime Client].
 
 The [Cluster API test framework] also includes methods for executing clusterctl operations, like e.g.
-the [ClusterTemplate method], the [ClusterctlMove method] etc.. In order to improve observability,
+the [ClusterTemplate method], the [ClusterctlMove method] etc. In order to improve observability,
 each clusterctl operation creates a detailed log.
 
 After using clusterctl operations, you can rely on the `Get` and on the `Wait` methods

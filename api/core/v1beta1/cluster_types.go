@@ -33,7 +33,7 @@ import (
 
 const (
 	// ClusterFinalizer is the finalizer used by the cluster controller to
-	// cleanup the cluster resources when a Cluster is being deleted.
+	// clean up the cluster resources when a Cluster is being deleted.
 	ClusterFinalizer = "cluster.cluster.x-k8s.io"
 
 	// ClusterKind represents the Kind of Cluster.
@@ -63,7 +63,7 @@ const (
 	// and no availability criteria is not met.
 	ClusterAvailableUnknownV1Beta2Reason = AvailableUnknownV1Beta2Reason
 
-	// ClusterAvailableInternalErrorV1Beta2Reason surfaces unexpected error when computing the Available condition.
+	// ClusterAvailableInternalErrorV1Beta2Reason surfaces an unexpected error when computing the Available condition.
 	ClusterAvailableInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
@@ -138,7 +138,7 @@ const (
 	// ClusterInfrastructureNotReadyV1Beta2Reason surfaces when the cluster infrastructure is not ready.
 	ClusterInfrastructureNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
 
-	// ClusterInfrastructureInvalidConditionReportedV1Beta2Reason surfaces a infrastructure Ready condition (read from an infra cluster object) which is invalid
+	// ClusterInfrastructureInvalidConditionReportedV1Beta2Reason surfaces an infrastructure Ready condition (read from an infra cluster object) which is invalid
 	// (e.g. its status is missing).
 	ClusterInfrastructureInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
 
@@ -151,7 +151,7 @@ const (
 
 	// ClusterInfrastructureDeletedV1Beta2Reason surfaces when a referenced infrastructure object has been deleted.
 	// Note: controllers can't identify if the infrastructure object was deleted by the controller itself, e.g.
-	// during the deletion workflow, or by a users.
+	// during the deletion workflow, or by a user.
 	ClusterInfrastructureDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
 )
 
@@ -159,7 +159,7 @@ const (
 const (
 	// ClusterControlPlaneInitializedV1Beta2Condition is true when the Cluster's control plane is functional enough
 	// to accept requests. This information is usually used as a signal for starting all the provisioning operations
-	// that depends on a functional API server, but do not require a full HA control plane to exists.
+	// that depends on a functional API server, but do not require a full HA control plane to exist.
 	// Note: Once set to true, this condition will never change.
 	ClusterControlPlaneInitializedV1Beta2Condition = "ControlPlaneInitialized"
 
@@ -198,7 +198,7 @@ const (
 
 	// ClusterControlPlaneDeletedV1Beta2Reason surfaces when a referenced control plane object has been deleted.
 	// Note: controllers can't identify if the control plane object was deleted by the controller itself, e.g.
-	// during the deletion workflow, or by a users.
+	// during the deletion workflow, or by a user.
 	ClusterControlPlaneDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
 )
 
@@ -513,10 +513,10 @@ const (
 	NegativePolarityCondition ConditionPolarity = "Negative"
 )
 
-// ClusterAvailabilityGate contains the type of a Cluster condition to be used as availability gate.
+// ClusterAvailabilityGate contains the type of a Cluster condition to be used as an availability gate.
 type ClusterAvailabilityGate struct {
-	// conditionType refers to a condition with matching type in the Cluster's condition list.
-	// If the conditions doesn't exist, it will be treated as unknown.
+	// conditionType refers to a condition with a matching type in the Cluster's condition list.
+	// If the condition doesn't exist, it will be treated as unknown.
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
 	// +required
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
@@ -1035,7 +1035,7 @@ type ClusterStatus struct {
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
@@ -1043,7 +1043,7 @@ type ClusterStatus struct {
 	// failureMessage indicates that there is a fatal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1

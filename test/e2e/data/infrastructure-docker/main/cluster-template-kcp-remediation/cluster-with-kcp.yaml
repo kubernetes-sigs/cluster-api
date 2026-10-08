@@ -58,7 +58,7 @@ spec:
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
-        # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
+        # host.docker.internal is required by kubetest when running on macOS because of the way ports are proxied.
         certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
     files:
     - path: /wait-signal.sh

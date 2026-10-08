@@ -304,12 +304,12 @@ func schema_cluster_api_api_core_v1beta2_ClusterAvailabilityGate(ref common.Refe
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterAvailabilityGate contains the type of a Cluster condition to be used as availability gate.",
+				Description: "ClusterAvailabilityGate contains the type of a Cluster condition to be used as an availability gate.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditionType": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditionType refers to a condition with matching type in the Cluster's condition list. If the conditions doesn't exist, it will be treated as unknown. Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.",
+							Description: "conditionType refers to a condition with a matching type in the Cluster's condition list. If the condition doesn't exist, it will be treated as unknown. Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -388,7 +388,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassDeprecatedStatus(ref common
 				Properties: map[string]spec.Schema{
 					"v1beta1": {
 						SchemaProps: spec.SchemaProps{
-							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassV1Beta1DeprecatedStatus"),
 						},
 					},
@@ -722,7 +722,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassStatus(ref common.Reference
 					},
 					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassDeprecatedStatus"),
 						},
 					},
@@ -806,7 +806,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariableDefinition(re
 					},
 					"deprecatedV1Beta1Metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "deprecatedV1Beta1Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.",
+							Description: "deprecatedV1Beta1Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and will be removed when support for v1beta1 is dropped. Please use XMetadata in JSONSchemaProps instead.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassVariableMetadata"),
 						},
@@ -836,7 +836,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassTemplate(ref common.Referen
 				Properties: map[string]spec.Schema{
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "apiVersion of the template. apiVersion must be fully qualified domain name followed by / and a version.",
+							Description: "apiVersion of the template. apiVersion must be a fully qualified domain name followed by / and a version.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -878,7 +878,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassTemplateReference(ref commo
 					},
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "apiVersion of the template. apiVersion must be fully qualified domain name followed by / and a version.",
+							Description: "apiVersion of the template. apiVersion must be a fully qualified domain name followed by / and a version.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -936,12 +936,12 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassV1Beta1DeprecatedStatus(ref
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterClassV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "ClusterClassV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current observed state of the ClusterClass.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "conditions defines current observed state of the ClusterClass.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -984,7 +984,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassVariable(ref common.Referen
 					},
 					"deprecatedV1Beta1Metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "deprecatedV1Beta1Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.",
+							Description: "deprecatedV1Beta1Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and will be removed when support for v1beta1 is dropped. Please use XMetadata in JSONSchemaProps instead.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassVariableMetadata"),
 						},
@@ -1147,7 +1147,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterDeprecatedStatus(ref common.Refe
 				Properties: map[string]spec.Schema{
 					"v1beta1": {
 						SchemaProps: spec.SchemaProps{
-							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterV1Beta1DeprecatedStatus"),
 						},
 					},
@@ -1175,7 +1175,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterInitializationStatus(ref common.
 					},
 					"controlPlaneInitialized": {
 						SchemaProps: spec.SchemaProps{
-							Description: "controlPlaneInitialized denotes when the control plane is functional enough to accept requests. This information is usually used as a signal for starting all the provisioning operations that depends on a functional API server, but do not require a full HA control plane to exists, like e.g. join worker Machines, install core addons like CNI, CPI, CSI etc. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after initialization is completed.",
+							Description: "controlPlaneInitialized denotes when the control plane is functional enough to accept requests. This information is usually used as a signal for starting all the provisioning operations that depends on a functional API server, but do not require a full HA control plane to exist, like e.g. join worker Machines, install core addons like CNI, CPI, CSI etc. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after initialization is completed.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -1445,7 +1445,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterStatus(ref common.ReferenceCallb
 					},
 					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterDeprecatedStatus"),
 						},
 					},
@@ -1461,12 +1461,12 @@ func schema_cluster_api_api_core_v1beta2_ClusterV1Beta1DeprecatedStatus(ref comm
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "ClusterV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the cluster.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "conditions defines current service state of the cluster.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1480,14 +1480,14 @@ func schema_cluster_api_api_core_v1beta2_ClusterV1Beta1DeprecatedStatus(ref comm
 					},
 					"failureReason": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureReason indicates that there is a fatal problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureReason indicates that there is a fatal problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"failureMessage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureMessage indicates that there is a fatal problem reconciling the state, and will be set to a descriptive error message.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureMessage indicates that there is a fatal problem reconciling the state, and will be set to a descriptive error message.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1533,7 +1533,7 @@ func schema_cluster_api_api_core_v1beta2_Condition(ref common.ReferenceCallback)
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Condition defines an observation of a Cluster API resource operational state.\n\nDeprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+				Description: "Condition defines an observation of a Cluster API resource operational state.\n\nDeprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"type": {
@@ -1611,7 +1611,7 @@ func schema_cluster_api_api_core_v1beta2_ContractVersionedObjectReference(ref co
 					},
 					"apiGroup": {
 						SchemaProps: spec.SchemaProps{
-							Description: "apiGroup is the group of the resource being referenced. apiGroup must be fully qualified domain name. The corresponding version for this reference will be looked up from the contract labels of the corresponding CRD of the resource being referenced.",
+							Description: "apiGroup is the group of the resource being referenced. apiGroup must be a fully qualified domain name. The corresponding version for this reference will be looked up from the contract labels of the corresponding CRD of the resource being referenced.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1884,7 +1884,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassHealthCheckRemediation
 					},
 					"unhealthyInRange": {
 						SchemaProps: spec.SchemaProps{
-							Description: "unhealthyInRange specifies that remediations are only triggered if the number of unhealthy Machines is in the configured range. Takes precedence over unhealthyLessThanOrEqualTo. Eg. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy Machines (and) (b) there are at most 5 unhealthy Machines",
+							Description: "unhealthyInRange specifies that remediations are only triggered if the number of unhealthy Machines is in the configured range. Takes precedence over unhealthyLessThanOrEqualTo. E.g. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy Machines (and) (b) there are at most 5 unhealthy Machines",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1969,7 +1969,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingSpec(ref common.
 				Properties: map[string]spec.Schema{
 					"template": {
 						SchemaProps: spec.SchemaProps{
-							Description: "template defines the template to use for generating the name of the ControlPlane object. If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5.",
+							Description: "template defines the template to use for generating the name of the ControlPlane object. If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -2105,7 +2105,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheck(ref com
 					},
 					"remediation": {
 						SchemaProps: spec.SchemaProps{
-							Description: "remediation configures if and how remediations are triggered if a Machine is unhealthy.\n\nIf one of checks and remediation fields are set, the system assumes that an healthCheck override is defined, and as a consequence the checks and remediation fields from cluster will be used instead of the corresponding fields in ClusterClass.\n\nIf an health check override is defined and remediation or remediation.triggerIf is not set, remediation will always be triggered for unhealthy Machines.\n\nIf an health check override is defined and remediation or remediation.templateRef is not set, the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.",
+							Description: "remediation configures if and how remediations are triggered if a Machine is unhealthy.\n\nIf one of checks and remediation fields are set, the system assumes that an healthCheck override is defined, and as a consequence the checks and remediation fields from cluster will be used instead of the corresponding fields in ClusterClass.\n\nIf a health check override is defined and remediation or remediation.triggerIf is not set, remediation will always be triggered for unhealthy Machines.\n\nIf a health check override is defined and remediation or remediation.templateRef is not set, the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheckRemediation"),
 						},
@@ -2485,7 +2485,7 @@ func schema_cluster_api_api_core_v1beta2_InfrastructureClassNamingSpec(ref commo
 				Properties: map[string]spec.Schema{
 					"template": {
 						SchemaProps: spec.SchemaProps{
-							Description: "template defines the template to use for generating the name of the Infrastructure object. If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5.",
+							Description: "template defines the template to use for generating the name of the Infrastructure object. If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3374,7 +3374,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassHealthCheckRemedi
 					},
 					"unhealthyInRange": {
 						SchemaProps: spec.SchemaProps{
-							Description: "unhealthyInRange specifies that remediations are only triggered if the number of unhealthy Machines is in the configured range. Takes precedence over unhealthyLessThanOrEqualTo. Eg. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy Machines (and) (b) there are at most 5 unhealthy Machines",
+							Description: "unhealthyInRange specifies that remediations are only triggered if the number of unhealthy Machines is in the configured range. Takes precedence over unhealthyLessThanOrEqualTo. E.g. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy Machines (and) (b) there are at most 5 unhealthy Machines",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3466,7 +3466,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingSpec(ref co
 				Properties: map[string]spec.Schema{
 					"template": {
 						SchemaProps: spec.SchemaProps{
-							Description: "template defines the template to use for generating the name of the MachineDeployment object. If not defined, it will fallback to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5. * `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name).",
+							Description: "template defines the template to use for generating the name of the MachineDeployment object. If not defined, it will fall back to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5. * `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3585,7 +3585,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentDeprecatedStatus(ref c
 				Properties: map[string]spec.Schema{
 					"v1beta1": {
 						SchemaProps: spec.SchemaProps{
-							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentV1Beta1DeprecatedStatus"),
 						},
 					},
@@ -3935,7 +3935,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentStatus(ref common.Refe
 					},
 					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeprecatedStatus"),
 						},
 					},
@@ -4101,7 +4101,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheck(re
 					},
 					"remediation": {
 						SchemaProps: spec.SchemaProps{
-							Description: "remediation configures if and how remediations are triggered if a Machine is unhealthy.\n\nIf one of checks and remediation fields are set, the system assumes that an healthCheck override is defined, and as a consequence the checks and remediation fields from cluster will be used instead of the corresponding fields in ClusterClass.\n\nIf an health check override is defined and remediation or remediation.triggerIf is not set, remediation will always be triggered for unhealthy Machines.\n\nIf an health check override is defined and remediation or remediation.templateRef is not set, the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.",
+							Description: "remediation configures if and how remediations are triggered if a Machine is unhealthy.\n\nIf one of checks and remediation fields are set, the system assumes that an healthCheck override is defined, and as a consequence the checks and remediation fields from cluster will be used instead of the corresponding fields in ClusterClass.\n\nIf a health check override is defined and remediation or remediation.triggerIf is not set, remediation will always be triggered for unhealthy Machines.\n\nIf a health check override is defined and remediation or remediation.templateRef is not set, the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheckRemediation"),
 						},
@@ -4386,12 +4386,12 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentV1Beta1DeprecatedStatu
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "MachineDeploymentV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the MachineDeployment.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "conditions defines current service state of the MachineDeployment.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -4405,7 +4405,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentV1Beta1DeprecatedStatu
 					},
 					"updatedReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "updatedReplicas is the total number of non-terminated machines targeted by this deployment that have the desired template spec.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "updatedReplicas is the total number of non-terminated machines targeted by this deployment that have the desired template spec.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -4413,7 +4413,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentV1Beta1DeprecatedStatu
 					},
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "readyReplicas is the total number of ready machines targeted by this deployment.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "readyReplicas is the total number of ready machines targeted by this deployment.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -4421,7 +4421,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentV1Beta1DeprecatedStatu
 					},
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "availableReplicas is the total number of available machines (ready for at least minReadySeconds) targeted by this deployment.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "availableReplicas is the total number of available machines (ready for at least minReadySeconds) targeted by this deployment.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -4429,7 +4429,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentV1Beta1DeprecatedStatu
 					},
 					"unavailableReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "unavailableReplicas is the total number of unavailable machines targeted by this deployment. This is the total number of machines that are still required for the deployment to have 100% available capacity. They may either be machines that are running but not yet available or machines that still have not been created.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "unavailableReplicas is the total number of unavailable machines targeted by this deployment. This is the total number of machines that are still required for the deployment to have 100% available capacity. They may either be machines that are running but not yet available or machines that still have not been created.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -4489,7 +4489,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeprecatedStatus(ref common.Refe
 				Properties: map[string]spec.Schema{
 					"v1beta1": {
 						SchemaProps: spec.SchemaProps{
-							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineV1Beta1DeprecatedStatus"),
 						},
 					},
@@ -4878,7 +4878,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckDeprecatedStatus(ref 
 				Properties: map[string]spec.Schema{
 					"v1beta1": {
 						SchemaProps: spec.SchemaProps{
-							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckV1Beta1DeprecatedStatus"),
 						},
 					},
@@ -4993,7 +4993,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckRemediationTemplateRe
 					},
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "apiVersion of the remediation template. apiVersion must be fully qualified domain name followed by / and a version. NOTE: This field must be kept in sync with the APIVersion of the remediation template.",
+							Description: "apiVersion of the remediation template. apiVersion must be a fully qualified domain name followed by / and a version. NOTE: This field must be kept in sync with the APIVersion of the remediation template.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -5156,7 +5156,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckStatus(ref common.Ref
 					},
 					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckDeprecatedStatus"),
 						},
 					},
@@ -5172,12 +5172,12 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckV1Beta1DeprecatedStat
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineHealthCheckV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "MachineHealthCheckV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the MachineHealthCheck.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "conditions defines current service state of the MachineHealthCheck.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -5284,7 +5284,7 @@ func schema_cluster_api_api_core_v1beta2_MachineNamingSpec(ref common.ReferenceC
 				Properties: map[string]spec.Schema{
 					"template": {
 						SchemaProps: spec.SchemaProps{
-							Description: "template defines the template to use for generating the names of the Machine objects. If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`. If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. Length of the template string must not exceed 256 characters. The template allows the following variables `.cluster.name`, `.machineSet.name` and `.random`. The variable `.cluster.name` retrieves the name of the cluster object that owns the Machines being created. The variable `.machineSet.name` retrieves the name of the MachineSet object that owns the Machines being created. The variable `.random` is substituted with random alphanumeric string, without vowels, of length 5. This variable is required part of the template. If not provided, validation will fail.",
+							Description: "template defines the template to use for generating the names of the Machine objects. If not defined, it will fall back to `{{ .machineSet.name }}-{{ .random }}`. If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. Length of the template string must not exceed 256 characters. The template allows the following variables `.cluster.name`, `.machineSet.name` and `.random`. The variable `.cluster.name` retrieves the name of the cluster object that owns the Machines being created. The variable `.machineSet.name` retrieves the name of the MachineSet object that owns the Machines being created. The variable `.random` is substituted with random alphanumeric string, without vowels, of length 5. This variable is required part of the template. If not provided, validation will fail.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -5576,7 +5576,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingSpec(ref common.R
 				Properties: map[string]spec.Schema{
 					"template": {
 						SchemaProps: spec.SchemaProps{
-							Description: "template defines the template to use for generating the name of the MachinePool object. If not defined, it will fallback to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5. * `.machinePool.topologyName`: The name of the MachinePool topology (Cluster.spec.topology.workers.machinePools[].name).",
+							Description: "template defines the template to use for generating the name of the MachinePool object. If not defined, it will fall back to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5. * `.machinePool.topologyName`: The name of the MachinePool topology (Cluster.spec.topology.workers.machinePools[].name).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -5596,7 +5596,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolDeprecatedStatus(ref common.
 				Properties: map[string]spec.Schema{
 					"v1beta1": {
 						SchemaProps: spec.SchemaProps{
-							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolV1Beta1DeprecatedStatus"),
 						},
 					},
@@ -5884,7 +5884,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceC
 					},
 					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus"),
 						},
 					},
@@ -6042,12 +6042,12 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolV1Beta1DeprecatedStatus(ref 
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachinePoolV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "MachinePoolV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions define the current service state of the MachinePool.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "conditions define the current service state of the MachinePool.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -6061,35 +6061,35 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolV1Beta1DeprecatedStatus(ref 
 					},
 					"failureReason": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureReason indicates that there is a problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureReason indicates that there is a problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"failureMessage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureMessage indicates that there is a problem reconciling the state, and will be set to a descriptive error message.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureMessage indicates that there is a problem reconciling the state, and will be set to a descriptive error message.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is \"Ready\".\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is \"Ready\".\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"unavailableReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool. This is the total number of machine instances that are still required for the machine pool to have 100% available capacity. They may either be machine instances that are running but not yet available or machine instances that still have not been created.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool. This is the total number of machine instances that are still required for the machine pool to have 100% available capacity. They may either be machine instances that are running but not yet available or machine instances that still have not been created.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -6148,7 +6148,7 @@ func schema_cluster_api_api_core_v1beta2_MachineReadinessGate(ref common.Referen
 				Properties: map[string]spec.Schema{
 					"conditionType": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditionType refers to a condition with matching type in the Machine's condition list. If the conditions doesn't exist, it will be treated as unknown. Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.",
+							Description: "conditionType refers to a condition with a matching type in the Machine's condition list. If the condition doesn't exist, it will be treated as unknown. Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -6247,7 +6247,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSetDeprecatedStatus(ref common.R
 				Properties: map[string]spec.Schema{
 					"v1beta1": {
 						SchemaProps: spec.SchemaProps{
-							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetV1Beta1DeprecatedStatus"),
 						},
 					},
@@ -6491,7 +6491,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSetStatus(ref common.ReferenceCa
 					},
 					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeprecatedStatus"),
 						},
 					},
@@ -6507,12 +6507,12 @@ func schema_cluster_api_api_core_v1beta2_MachineSetV1Beta1DeprecatedStatus(ref c
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "MachineSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "conditions defines current service state of the MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -6526,21 +6526,21 @@ func schema_cluster_api_api_core_v1beta2_MachineSetV1Beta1DeprecatedStatus(ref c
 					},
 					"failureReason": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureReason will be set in the event that there is a terminal problem reconciling the Machine and will contain a succinct value suitable for machine interpretation.\n\nIn the event that there is a terminal problem reconciling the replicas, both FailureReason and FailureMessage will be set. FailureReason will be populated with a succinct value suitable for machine interpretation, while FailureMessage will contain a more verbose string suitable for logging and human consumption.\n\nThese fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the MachineTemplate's spec or the configuration of the machine controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the machine controller, or the responsible machine controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the MachineSet object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureReason will be set in the event that there is a terminal problem reconciling the Machine and will contain a succinct value suitable for machine interpretation.\n\nIn the event that there is a terminal problem reconciling the replicas, both FailureReason and FailureMessage will be set. FailureReason will be populated with a succinct value suitable for machine interpretation, while FailureMessage will contain a more verbose string suitable for logging and human consumption.\n\nThese fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the MachineTemplate's spec or the configuration of the machine controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the machine controller, or the responsible machine controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the MachineSet object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"failureMessage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureMessage will be set in the event that there is a terminal problem reconciling the Machine and will contain a more verbose string suitable for logging and human consumption.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureMessage will be set in the event that there is a terminal problem reconciling the Machine and will contain a more verbose string suitable for logging and human consumption.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"fullyLabeledReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -6548,7 +6548,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSetV1Beta1DeprecatedStatus(ref c
 					},
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is \"Ready\".\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is \"Ready\".\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -6556,7 +6556,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSetV1Beta1DeprecatedStatus(ref c
 					},
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -6607,7 +6607,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 					},
 					"providerID": {
 						SchemaProps: spec.SchemaProps{
-							Description: "providerID is the identification ID of the machine provided by the provider. This field must match the provider ID as seen on the node object corresponding to this machine. This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a generic out-of-tree provider for autoscaler, this field is required by autoscaler to be able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver and then a comparison is done to find out unregistered machines and are marked for delete. This field will be set by the actuators and consumed by higher level entities like autoscaler that will be interfacing with cluster-api as generic provider.",
+							Description: "providerID is the identification ID of the machine provided by the provider. This field must match the provider ID as seen on the node object corresponding to this machine. This field is required by higher level consumers of cluster-api. An example use case is cluster autoscaler with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a generic out-of-tree provider for autoscaler, this field is required by autoscaler to be able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver and then a comparison is done to find out unregistered machines and are marked for delete. This field will be set by the actuators and consumed by higher level entities like autoscaler that will be interfacing with cluster-api as generic provider.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -6636,7 +6636,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "readinessGates specifies additional conditions to include when evaluating Machine Ready condition.\n\nThis field can be used e.g. by Cluster API control plane providers to extend the semantic of the Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.\n\nAnother example are external controllers, e.g. responsible to install special software/hardware on the Machines; they can include the status of those components with a new condition and add this condition to ReadinessGates.\n\nNOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those readiness gates condition are reporting the same message, when computing the Machine's Ready condition those readinessGates will be replaced by a single entry reporting \"Control plane components: \" + message. This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster).",
+							Description: "readinessGates specifies additional conditions to include when evaluating Machine Ready condition.\n\nThis field can be used e.g. by Cluster API control plane providers to extend the semantic of the Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.\n\nAnother example are external controllers, e.g. responsible to install special software/hardware on the Machines; they can include the status of those components with a new condition and add this condition to ReadinessGates.\n\nNOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those readiness gate conditions are reporting the same message, when computing the Machine's Ready condition those readinessGates will be replaced by a single entry reporting \"Control plane components: \" + message. This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -6791,7 +6791,7 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 					},
 					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeprecatedStatus"),
 						},
 					},
@@ -6879,12 +6879,12 @@ func schema_cluster_api_api_core_v1beta2_MachineV1Beta1DeprecatedStatus(ref comm
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "MachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the Machine.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "conditions defines current service state of the Machine.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -6898,14 +6898,14 @@ func schema_cluster_api_api_core_v1beta2_MachineV1Beta1DeprecatedStatus(ref comm
 					},
 					"failureReason": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureReason will be set in the event that there is a terminal problem reconciling the Machine and will contain a succinct value suitable for machine interpretation.\n\nThis field should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the Machine's spec or the configuration of the controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the controller, or the responsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the Machine object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureReason will be set in the event that there is a terminal problem reconciling the Machine and will contain a succinct value suitable for machine interpretation.\n\nThis field should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the Machine's spec or the configuration of the controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the controller, or the responsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the Machine object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"failureMessage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureMessage will be set in the event that there is a terminal problem reconciling the Machine and will contain a more verbose string suitable for logging and human consumption.\n\nThis field should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the Machine's spec or the configuration of the controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the controller, or the responsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the Machine object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureMessage will be set in the event that there is a terminal problem reconciling the Machine and will contain a more verbose string suitable for logging and human consumption.\n\nThis field should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the Machine's spec or the configuration of the controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the controller, or the responsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the Machine object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -6956,7 +6956,7 @@ func schema_cluster_api_api_core_v1beta2_ObjectMeta(ref common.ReferenceCallback
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. This is a copy of customizable fields from metav1.ObjectMeta.\n\nObjectMeta is embedded in `Machine.Spec`, `MachineDeployment.Template` and `MachineSet.Template`, which are not top-level Kubernetes objects. Given that metav1.ObjectMeta has lots of special cases and read-only fields which end up in the generated CRD validation, having it as a subset simplifies the API and some issues that can impact user experience.\n\nDuring the [upgrade to controller-tools@v2](https://github.com/kubernetes-sigs/cluster-api/pull/1054) for v1alpha2, we noticed a failure would occur running Cluster API test suite against the new CRDs, specifically `spec.metadata.creationTimestamp in body must be of type string: \"null\"`. The investigation showed that `controller-tools@v2` behaves differently than its previous version when handling types from [metav1](k8s.io/apimachinery/pkg/apis/meta/v1) package.\n\nIn more details, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta` had validation properties, including for `creationTimestamp` (metav1.Time). The `metav1.Time` type specifies a custom json marshaller that, when IsZero() is true, returns `null` which breaks validation because the field isn't marked as nullable.\n\nIn future versions, controller-tools@v2 might allow overriding the type and validation for embedded types. When that happens, this hack should be revisited.",
+				Description: "ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. This is a copy of customizable fields from metav1.ObjectMeta.\n\nObjectMeta is embedded in `Machine.Spec`, `MachineDeployment.Template` and `MachineSet.Template`, which are not top-level Kubernetes objects. Given that metav1.ObjectMeta has lots of special cases and read-only fields which end up in the generated CRD validation, having it as a subset simplifies the API and some issues that can impact user experience.\n\nDuring the [upgrade to controller-tools@v2](https://github.com/kubernetes-sigs/cluster-api/pull/1054) for v1alpha2, we noticed a failure would occur running Cluster API test suite against the new CRDs, specifically `spec.metadata.creationTimestamp in body must be of type string: \"null\"`. The investigation showed that `controller-tools@v2` behaves differently than its previous version when handling types from [metav1](k8s.io/apimachinery/pkg/apis/meta/v1) package.\n\nIn more detail, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta` had validation properties, including for `creationTimestamp` (metav1.Time). The `metav1.Time` type specifies a custom json marshaller that, when IsZero() is true, returns `null` which breaks validation because the field isn't marked as nullable.\n\nIn future versions, controller-tools@v2 might allow overriding the type and validation for embedded types. When that happens, this hack should be revisited.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"labels": {
@@ -7048,7 +7048,7 @@ func schema_cluster_api_api_core_v1beta2_PatchSelector(ref common.ReferenceCallb
 				Properties: map[string]spec.Schema{
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "apiVersion filters templates by apiVersion. apiVersion must be fully qualified domain name followed by / and a version.",
+							Description: "apiVersion filters templates by apiVersion. apiVersion must be a fully qualified domain name followed by / and a version.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

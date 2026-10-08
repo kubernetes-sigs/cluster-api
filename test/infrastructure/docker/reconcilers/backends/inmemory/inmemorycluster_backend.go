@@ -68,8 +68,8 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 	// Create a resource group for all the in memory resources belonging the workload cluster;
 	// if the resource group already exists, the operation is a no-op.
-	// NOTE: We are storing in this resource group both the in memory resources (e.g. VM) as
-	// well as Kubernetes resources that are expected to exist on the workload cluster (e.g Nodes).
+	// NOTE: We are storing in this resource group both the in memory resources (e.g. VM) and
+	// Kubernetes resources that are expected to exist on the workload cluster (e.g. Nodes).
 	r.InMemoryManager.AddResourceGroup(resourceGroup)
 
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()

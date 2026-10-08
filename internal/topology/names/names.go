@@ -106,7 +106,7 @@ func MachineSetMachineNameGenerator(templateString, clusterName, machineSetName 
 		})
 }
 
-// InfraClusterNameGenerator returns a generator for creating a infrastructure cluster name.
+// InfraClusterNameGenerator returns a generator for creating an infrastructure cluster name.
 func InfraClusterNameGenerator(templateString, clusterName string) NameGenerator {
 	return newTemplateGenerator(templateString, clusterName,
 		map[string]interface{}{})

@@ -358,7 +358,7 @@ func (h *ExtensionHandlers) computeCanUpdateMachineSetResponse(req *runtimehooks
 	return nil
 }
 
-// createJSONPatch creates a RFC 6902 JSON patch from the original and the modified object.
+// createJSONPatch creates an RFC 6902 JSON patch from the original and the modified object.
 func createJSONPatch(marshalledOriginal []byte, modified runtime.Object) ([]byte, error) {
 	// TODO: avoid producing patches for status (although they will be ignored by the KCP / MD controllers anyway)
 	marshalledModified, err := json.Marshal(modified)

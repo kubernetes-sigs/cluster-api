@@ -39,13 +39,13 @@ var (
 
 var (
 	// oldContractVersionNotSupported define the previous Cluster API contract, not supported by this release of clusterctl.
-	// (it has been removed by version of CAPI older that the version in use).
+	// (it has been removed by a version of CAPI older than the version in use).
 	oldContractVersionNotSupported = "v1alpha4"
 
 	// oldContractVersionStillSupported define an old Cluster API contract still supported.
 	oldContractVersionStillSupported = "v1beta1"
 
-	// currentContractVersion define the current Cluster API contract.
+	// currentContractVersion defines the current Cluster API contract.
 	currentContractVersion = "v1beta2"
 
 	getCompatibleContractVersions = func(contract string) sets.Set[string] {
@@ -477,7 +477,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		{
 			name: "Init (with a NOT empty cluster) adds a provider/current contract",
 			field: field{
-				client: fakeInitializedCluster(), // clusterctl client for an management cluster with capi installed (with repository setup for capi, bootstrap, control plane and infra provider)
+				client: fakeInitializedCluster(), // clusterctl client for a management cluster with capi installed (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: true,
 			},
 			args: args{
@@ -593,7 +593,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		{
 			name: "Init (with a NOT empty cluster) adds a provider/previous contract, not supported",
 			field: field{
-				client: fakeInitializedCluster(), // clusterctl client for an management cluster with capi installed (with repository setup for capi, bootstrap, control plane and infra provider)
+				client: fakeInitializedCluster(), // clusterctl client for a management cluster with capi installed (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: true,
 			},
 			args: args{
@@ -607,7 +607,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		{
 			name: "Init (with an NOT empty cluster) adds the infrastructure provider/current contract",
 			field: field{
-				client: fakeClusterWithCoreProvider(), // clusterctl client for an management cluster with CoreProvider cluster-api already installed.
+				client: fakeClusterWithCoreProvider(), // clusterctl client for a management cluster with CoreProvider cluster-api already installed.
 				hasCRD: true,
 			},
 			args: args{
@@ -629,7 +629,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		{
 			name: "Init (with an NOT empty cluster) adds the infrastructure provider/compatible contract",
 			field: field{
-				client: fakeClusterWithCoreProvider(), // clusterctl client for an management cluster with CoreProvider cluster-api already installed.
+				client: fakeClusterWithCoreProvider(), // clusterctl client for a management cluster with CoreProvider cluster-api already installed.
 				hasCRD: true,
 			},
 			args: args{
@@ -692,7 +692,7 @@ var (
 	infraCompatibleProviderConfig = config.NewProvider("infra-compatible", "url", clusterctlv1.InfrastructureProviderType)
 )
 
-// setup a cluster client and the fake configuration for testing.
+// set up a cluster client and the fake configuration for testing.
 func setupCluster(providers []Provider, certManagerClient cluster.CertManagerClient) (*fakeConfigClient, *fakeClient) {
 	// create a config variables client which does not have the value for
 	// SOME_VARIABLE as expected in the infra components YAML

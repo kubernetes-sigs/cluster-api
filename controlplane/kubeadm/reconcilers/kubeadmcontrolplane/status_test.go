@@ -1811,7 +1811,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionTrue,
 				Reason:  controlplanev1.KubeadmControlPlaneAvailableReason,
-				Message: "* 2 of 3 Machines have healthy control plane components, at least 1 required", // two are not healthy, but one just flipped recently and 10s safeguard against flake did not expired yet
+				Message: "* 2 of 3 Machines have healthy control plane components, at least 1 required", // two are not healthy, but one just flipped recently and 10s safeguard against flake did not expire yet
 			},
 		},
 		{
@@ -1899,7 +1899,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionTrue,
 				Reason:  controlplanev1.KubeadmControlPlaneAvailableReason,
-				Message: "* 2 of 3 Machines have healthy control plane components, at least 1 required", // two are not healthy, but one just flipped recently and 10s safeguard against flake did not expired yet
+				Message: "* 2 of 3 Machines have healthy control plane components, at least 1 required", // two are not healthy, but one just flipped recently and 10s safeguard against flake did not expire yet
 			},
 		},
 		{

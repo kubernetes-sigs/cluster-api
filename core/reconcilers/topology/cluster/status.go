@@ -80,7 +80,7 @@ func (r *Reconciler) reconcileUpgradePlan(s *scope.Scope, cluster *clusterv1.Clu
 // - The ClusterClass has not been successfully reconciled with its current spec.
 // - The cluster upgrade has not yet propagated to all the components of the cluster.
 //   - For a managed topology cluster the version upgrade is propagated one component at a time.
-//     In such a case, since some of the component's spec would be adrift from the topology the
+//     In such a case, since some of the component's spec would be adrift from the topology, the
 //     topology cannot be considered fully reconciled.
 func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluster *clusterv1.Cluster, reconcileErr error) error {
 	// Mark TopologyReconciled as false if the Cluster is paused.

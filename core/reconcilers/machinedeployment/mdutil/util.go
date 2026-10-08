@@ -44,7 +44,7 @@ import (
 )
 
 // MachineSetsByDecreasingReplicas sorts the list of MachineSets in decreasing order of replicas,
-// using creation time (ascending order) and name (alphabetical) as tie breakers.
+// using creation time (ascending order) and name (alphabetical) as tiebreakers.
 type MachineSetsByDecreasingReplicas []*clusterv1.MachineSet
 
 func (o MachineSetsByDecreasingReplicas) Len() int      { return len(o) }
@@ -65,7 +65,7 @@ func (o MachineSetsByDecreasingReplicas) Less(i, j int) bool {
 	return *o[i].Spec.Replicas > *o[j].Spec.Replicas
 }
 
-// MachineSetsByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tie breaker.
+// MachineSetsByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tiebreaker.
 type MachineSetsByCreationTimestamp []*clusterv1.MachineSet
 
 func (o MachineSetsByCreationTimestamp) Len() int      { return len(o) }
@@ -77,7 +77,7 @@ func (o MachineSetsByCreationTimestamp) Less(i, j int) bool {
 	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
 }
 
-// MachineSetsBySizeOlder sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
+// MachineSetsBySizeOlder sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tiebreaker.
 // By using the creation timestamp, this sorts from old to new machine sets.
 type MachineSetsBySizeOlder []*clusterv1.MachineSet
 
@@ -90,7 +90,7 @@ func (o MachineSetsBySizeOlder) Less(i, j int) bool {
 	return *(o[i].Spec.Replicas) > *(o[j].Spec.Replicas)
 }
 
-// MachineSetsBySizeNewer sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
+// MachineSetsBySizeNewer sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tiebreaker.
 // By using the creation timestamp, this sorts from new to old machine sets.
 type MachineSetsBySizeNewer []*clusterv1.MachineSet
 
@@ -448,7 +448,7 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 
 // FindNewAndOldMachineSets returns the newMS for a MachineDeployment (the one with the same machine template, ignoring
 // in-place mutable fields) as well as return oldMSs.
-// Note: If the reconciliation time is after the deployment's `rolloutAfter` time, a MS has to be newer than
+// Note: If the reconciliation time is after the deployment's `rolloutAfter` time, an MS has to be newer than
 // `rolloutAfter` to be considered as matching the deployment's intent.
 // NOTE: If we find a matching MachineSet which only differs in in-place mutable fields we can use it to
 // fulfill the intent of the MachineDeployment by just updating the MachineSet to propagate in-place mutable fields.
@@ -629,7 +629,7 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet)
 	return totalAvailableReplicas
 }
 
-// GetUptoDateReplicaCountForMachineSets returns the number of up to date machines corresponding to the given machine sets.
+// GetUptoDateReplicaCountForMachineSets returns the number of up-to-date machines corresponding to the given machine sets.
 // Note: When none of the ms.Status.V1Beta2.UpToDateReplicas are set, the func returns nil.
 func GetUptoDateReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
 	var totalUpToDateReplicas *int32

@@ -100,7 +100,7 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 		return err
 	}
 	// With an unbuffered event channel RemoveEventHandler could be blocked because it requires a lock on the informer.
-	// When Run stops reading from the channel the informer could be blocked with an unbuffered chanel and then RemoveEventHandler never goes through.
+	// When Run stops reading from the channel the informer could be blocked with an unbuffered channel and then RemoveEventHandler never goes through.
 	// 1000 is used to avoid deadlocks in clusters with a higher number of Machines/Nodes.
 	events := make(chan *Event, 1000)
 	watcher := &WatchEventDispatcher{

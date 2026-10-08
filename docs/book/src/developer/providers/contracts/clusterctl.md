@@ -96,7 +96,7 @@ about how to create a release.
 Per default `clusterctl` will use a go proxy to detect the available versions to prevent additional
 API calls to the GitHub API. It is possible to configure the go proxy url using the `GOPROXY` variable as
 for go itself (defaults to `https://proxy.golang.org`).
-To immediately fallback to the GitHub client and not use a go proxy, the environment variable could get set to
+To immediately fall back to the GitHub client and not use a go proxy, the environment variable could get set to
 `GOPROXY=off` or `GOPROXY=direct`.
 If a provider does not follow Go's semantic versioning, `clusterctl` may fail when detecting the correct version.
 In such cases, disabling the go proxy functionality via `GOPROXY=off` should be considered.
@@ -433,14 +433,14 @@ ClusterClass definitions files should not use variable substitution, given that 
 #### Note
 
 A ClusterClass definition is automatically included in the output of  `clusterctl generate cluster` if the cluster template uses a managed topology
-and a ClusterClass with the same name does not already exists in the Cluster.
+and a ClusterClass with the same name does not already exist in the Cluster.
 
 ## OwnerReferences chain
 
 Each provider is responsible to ensure that all the providers resources (like e.g. `VSphereCluster`, `VSphereMachine`, `VSphereVM` etc.
 for the `vsphere` provider) MUST have a `Metadata.OwnerReferences` entry that links directly or indirectly to a `Cluster` object.
 
-Please note that all the provider specific resources that are referenced by the Cluster API core objects will get the `OwnerReference`
+Please note that all the provider-specific resources that are referenced by the Cluster API core objects will get the `OwnerReference`
 set by the Cluster API core controllers, e.g.:
 
 * The Cluster controller ensures that all the objects referenced in `Cluster.Spec.InfrastructureRef` get an `OwnerReference`
@@ -463,7 +463,7 @@ Provider authors should be aware of the following transformations that `clusterc
 * Variable substitution;
 * Enforcement of target namespace:
   * The name of the namespace object is set;
-  * The namespace field of all the objects is set (with exception of cluster wide objects like e.g. ClusterRoles);
+  * The namespace field of all the objects is set (with the exception of cluster wide objects like e.g. ClusterRoles);
 * All components are labeled;
 
 ### Cluster template transformations

@@ -177,7 +177,7 @@ var (
 	ObjectTypeDynamicCacheStructured ObjectType = "DynamicCacheStructured"
 )
 
-// GroupVersionKindType described the GVK and type of an object.
+// GroupVersionKindType describes the GVK and type of an object.
 type GroupVersionKindType struct {
 	schema.GroupVersionKind
 	Type ObjectType

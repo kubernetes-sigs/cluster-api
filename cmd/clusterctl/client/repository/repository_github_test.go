@@ -42,7 +42,7 @@ func Test_gitHubRepository_GetVersions(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	// Setup an handler for returning 5 fake releases.
+	// Set up a handler for returning 5 fake releases.
 	mux.HandleFunc("/repos/o/r1/releases", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, `[`)
@@ -57,7 +57,7 @@ func Test_gitHubRepository_GetVersions(t *testing.T) {
 	clientGoproxy := goproxy.NewClient(scheme, host)
 	defer teardownGoproxy()
 
-	// Setup a handler for returning 4 fake releases.
+	// Set up a handler for returning 4 fake releases.
 	muxGoproxy.HandleFunc("/github.com/o/r2/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v0.5.0\n")
@@ -66,7 +66,7 @@ func Test_gitHubRepository_GetVersions(t *testing.T) {
 		fmt.Fprint(w, "v0.3.1\n")
 	})
 
-	// Setup a handler for returning 3 different major fake releases.
+	// Set up a handler for returning 3 different major fake releases.
 	muxGoproxy.HandleFunc("/github.com/o/r3/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v1.0.0\n")
@@ -270,13 +270,13 @@ func Test_githubRepository_getFile(t *testing.T) {
 
 	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType)
 
-	// Setup a handler for returning a fake release.
+	// Set up a handler for returning a fake release.
 	mux.HandleFunc("/repos/o/r/releases/tags/v0.4.1", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, `{"id":13, "tag_name": "v0.4.1", "assets": [{"id": 1, "name": "file.yaml"}] }`)
 	})
 
-	// Setup a handler for returning a fake release asset.
+	// Set up a handler for returning a fake release asset.
 	mux.HandleFunc("/repos/o/r/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -342,7 +342,7 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	// Setup a handler for returning fake releases in a paginated manner
+	// Set up a handler for returning fake releases in a paginated manner
 	// Each response contains a link to the next page (if available) which
 	// is parsed by the handler to navigate through all pages
 	mux.HandleFunc("/repos/o/r1/releases", func(w http.ResponseWriter, r *http.Request) {
@@ -423,7 +423,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	// Setup a handler for returning a fake release.
+	// Set up a handler for returning a fake release.
 	mux.HandleFunc("/repos/o/r1/releases/tags/v0.5.0", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, `{"id":13, "tag_name": "v0.5.0", "assets": [{"id": 1, "name": "metadata.yaml"}] }`)
@@ -434,7 +434,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 		fmt.Fprint(w, `{"id":14, "tag_name": "v0.3.2", "assets": [{"id": 2, "name": "metadata.yaml"}] }`)
 	})
 
-	// Setup a handler for returning a fake release metadata file.
+	// Set up a handler for returning a fake release metadata file.
 	mux.HandleFunc("/repos/o/r1/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -454,7 +454,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 
 	defer teardownGoproxy()
 
-	// Setup a handler for returning 4 fake releases.
+	// Set up a handler for returning 4 fake releases.
 	muxGoproxy.HandleFunc("/github.com/o/r1/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v0.5.0\n")
@@ -463,7 +463,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 		fmt.Fprint(w, "v0.3.1\n")
 	})
 
-	// setup an handler for returning 4 fake releases but no actual tagged release
+	// set up a handler for returning 4 fake releases but no actual tagged release
 	muxGoproxy.HandleFunc("/github.com/o/r2/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v0.5.0\n")
@@ -550,7 +550,7 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	// Setup a handler for returning 4 fake releases.
+	// Set up a handler for returning 4 fake releases.
 	muxGoproxy.HandleFunc("/github.com/o/r1/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v0.4.1\n")
@@ -568,13 +568,13 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 		fmt.Fprint(w, `{"id":14, "tag_name": "v0.1.0-alpha.2", "assets": [{"id": 2, "name": "metadata.yaml"}] }`)
 	})
 
-	// Setup a handler for returning no releases.
+	// Set up a handler for returning no releases.
 	muxGoproxy.HandleFunc("/github.com/o/r2/@v/list", func(_ http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		// no releases
 	})
 
-	// Setup a handler for returning fake prereleases only.
+	// Set up a handler for returning fake prereleases only.
 	muxGoproxy.HandleFunc("/github.com/o/r3/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v0.1.0-alpha.0\n")
@@ -582,7 +582,7 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 		fmt.Fprint(w, "v0.1.0-alpha.2\n")
 	})
 
-	// Setup a handler for returning a fake release metadata file.
+	// Set up a handler for returning a fake release metadata file.
 	mux.HandleFunc("/repos/o/r1/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -666,7 +666,7 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	// Setup a handler for returning 4 fake releases.
+	// Set up a handler for returning 4 fake releases.
 	muxGoproxy.HandleFunc("/github.com/o/r1/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v0.4.0\n")
@@ -674,7 +674,7 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 		fmt.Fprint(w, "v1.3.2\n")
 	})
 
-	// Setup a handler for returning a fake release.
+	// Set up a handler for returning a fake release.
 	mux.HandleFunc("/repos/o/r1/releases/tags/v0.4.0", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, `{"id":13, "tag_name": "v0.4.0", "assets": [{"id": 1, "name": "metadata.yaml"}] }`)
@@ -690,7 +690,7 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 		fmt.Fprint(w, `{"id":15, "tag_name": "v1.3.2", "assets": [{"id": 1, "name": "metadata.yaml"}] }`)
 	})
 
-	// Setup a handler for returning a fake release metadata file.
+	// Set up a handler for returning a fake release metadata file.
 	mux.HandleFunc("/repos/o/r1/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -776,7 +776,7 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 
 	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/path", clusterctlv1.CoreProviderType)
 
-	// Setup a handler for returning a fake release.
+	// Set up a handler for returning a fake release.
 	mux.HandleFunc("/repos/o/r/releases/tags/foo", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, `{"id":13, "tag_name": "v0.4.1"}`)
@@ -842,14 +842,14 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType)                           // tree/main/path not relevant for the test
 	providerConfigWithRedirect := config.NewProvider("test", "https://github.com/o/r-with-redirect/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType) // tree/main/path not relevant for the test
 
-	// Setup a handler for returning a fake release asset.
+	// Set up a handler for returning a fake release asset.
 	mux.HandleFunc("/repos/o/r/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Disposition", "attachment; filename=file.yaml")
 		fmt.Fprint(w, "content")
 	})
-	// Setup a handler which redirects to a different location.
+	// Set up a handler which redirects to a different location.
 	mux.HandleFunc("/repos/o/r-with-redirect/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		http.Redirect(w, r, "/api-v3/repos/o/r/releases/assets/1", http.StatusFound)
@@ -1082,7 +1082,7 @@ func Test_gitHubRepository_releaseNotFound(t *testing.T) {
 				})
 			}
 
-			// Third, setup a handler for returning a fake release metadata file.
+			// Third, set up a handler for returning a fake release metadata file.
 			mux.HandleFunc("/repos/o/r1/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 				goproxytest.HTTPTestMethod(t, r, "GET")
 				w.Header().Set("Content-Type", "application/octet-stream")

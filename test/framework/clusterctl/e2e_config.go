@@ -81,7 +81,7 @@ type E2EConfig struct {
 	Images []ContainerImage `json:"images,omitempty"`
 
 	// Providers is a list of providers to be configured in the local repository that will be created for the e2e test.
-	// It is required to provide following providers
+	// It is required to provide the following providers
 	// - cluster-api
 	// - bootstrap kubeadm
 	// - control-plane kubeadm
@@ -90,7 +90,7 @@ type E2EConfig struct {
 	Providers []ProviderConfig `json:"providers,omitempty"`
 
 	// Variables to be added to the clusterctl config file
-	// Please note that clusterctl read variables from OS environment variables as well, so you can avoid to hard code
+	// Please note that clusterctl reads variables from OS environment variables as well, so you can avoid hard coding
 	// sensitive data in the config file.
 	Variables map[string]string `json:"variables,omitempty"`
 
@@ -107,7 +107,7 @@ type ProviderConfig struct {
 	Type string `json:"type"`
 
 	// Versions is a list of component YAML to be added to the local repository, one for each release.
-	// Please note that the first source will be used a default release for this provider.
+	// Please note that the first source will be used as the default release for this provider.
 	Versions []ProviderVersionSource `json:"versions,omitempty"`
 
 	// Files is a list of files to be copied into the local repository for all the releases.
@@ -272,7 +272,7 @@ func (c *E2EConfig) DeepCopy() *E2EConfig {
 	return out
 }
 
-// ResolveReleases converts release markers to release version.
+// ResolveReleases converts release markers to release versions.
 func (c *E2EConfig) ResolveReleases(ctx context.Context) error {
 	for i := range c.Providers {
 		provider := &c.Providers[i]
@@ -310,12 +310,12 @@ func ResolveRelease(ctx context.Context, releaseMarker string) (string, error) {
 	return resolveReleaseMarker(ctx, releaseMarker, goproxyClient, githubReleaseMetadataURL)
 }
 
-// resolveReleaseMarker resolves releaseMarker string to verion string e.g.
+// resolveReleaseMarker resolves releaseMarker string to version string e.g.
 // - Resolves "go://sigs.k8s.io/cluster-api@v1.0" to the latest stable patch release of v1.0.
 // - Resolves "go://sigs.k8s.io/cluster-api@latest-v1.0" to the latest patch release of v1.0 including rc and pre releases.
 // It also checks if a release actually exists by trying to query for the `metadata.yaml` file.
 // To do that the url gets calculated by the toMetadataURL function. The toMetadataURL func
-// is passed as variable to be able to write a proper unit test.
+// is passed as a variable to be able to write a proper unit test.
 func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClient *goproxy.Client, toMetadataURL func(gomodule, version string) string) (string, error) {
 	if !strings.HasPrefix(releaseMarker, "go://") {
 		return "", pkgerrors.Errorf("unknown release marker scheme")
@@ -423,7 +423,7 @@ func githubReleaseMetadataURL(gomodule, version string) string {
 }
 
 // httpGetURL does a GET request to the given url and returns its content.
-// If the responses StatusCode is 404 (StatusNotFound) it does not do a retry because
+// If the response's StatusCode is 404 (StatusNotFound), it does not do a retry because
 // the result is not expected to change.
 func httpGetURL(ctx context.Context, url string) ([]byte, error) {
 	var retryError error
@@ -466,7 +466,7 @@ func httpGetURL(ctx context.Context, url string) ([]byte, error) {
 // - ManagementClusterName gets a default name if empty.
 // - Providers version gets type KustomizeSource if not otherwise specified.
 // - Providers file gets targetName = sourceName if not otherwise specified.
-// - Images gets LoadBehavior = MustLoadImage if not otherwise specified.
+// - Images get LoadBehavior = MustLoadImage if not otherwise specified.
 func (c *E2EConfig) Defaults() {
 	if c.ManagementClusterName == "" {
 		c.ManagementClusterName = fmt.Sprintf("test-%s", util.RandomString(6))
@@ -625,7 +625,7 @@ func (c *E2EConfig) validateProviders() error {
 		if providerConfig.Name == "" {
 			return errEmptyArg(fmt.Sprintf("Providers[%d].Name", i))
 		}
-		// Providers type should be one of the know types.
+		// Providers type should be one of the known types.
 		providerType := clusterctlv1.ProviderType(providerConfig.Type)
 		switch providerType {
 		case clusterctlv1.CoreProviderType, clusterctlv1.BootstrapProviderType, clusterctlv1.ControlPlaneProviderType, clusterctlv1.InfrastructureProviderType, clusterctlv1.IPAMProviderType, clusterctlv1.RuntimeExtensionProviderType, clusterctlv1.AddonProviderType:
@@ -761,7 +761,7 @@ func (c *E2EConfig) HasDockerProvider() bool {
 	return false
 }
 
-// GetIntervals returns the intervals to be applied to a Eventually operation.
+// GetIntervals returns the intervals to be applied to an Eventually operation.
 // It searches for [spec]/[key] intervals first, and if it is not found, it searches
 // for default/[key]. If also the default/[key] intervals are not found,
 // ginkgo DefaultEventuallyTimeout and DefaultEventuallyPollingInterval are used.

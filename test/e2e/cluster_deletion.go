@@ -59,7 +59,7 @@ type ClusterDeletionSpecInput struct {
 	// If not set, a random one will be generated.
 	ClusterName *string
 
-	// InfrastructureProvider allows to specify the infrastructure provider to be used when looking for
+	// InfrastructureProvider allows specifying the infrastructure provider to be used when looking for
 	// cluster templates.
 	// If not set, clusterctl will look at the infrastructure provider installed in the management cluster;
 	// if only one infrastructure provider exists, it will be used, otherwise the operation will fail if more than one exists.
@@ -81,7 +81,7 @@ type ClusterDeletionSpecInput struct {
 	// which unblocks CNI installation, and for the control plane machines to be ready (after CNI installation).
 	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 
@@ -143,7 +143,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
@@ -310,7 +310,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 // with all objects which should block during the cluster deletion.
 func getDeletionPhaseObjects(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster, phases []ClusterDeletionPhase) (objectsPerPhase [][]client.Object, blockingObjects []client.Object) {
 	// Add Cluster object to blockingObjects to control when it gets actually removed during the test
-	// and to be able to cleanup the Cluster during Teardown on failures.
+	// and to be able to clean up the Cluster during Teardown on failures.
 	blockingObjects = append(blockingObjects, cluster)
 
 	// Get all objects relevant to the test by filtering for the kinds of the phases.

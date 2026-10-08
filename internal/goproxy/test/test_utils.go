@@ -42,7 +42,7 @@ func NewFakeGoproxy() (scheme string, host string, mux *http.ServeMux, teardown 
 	return url.Scheme, url.Host, mux, server.Close
 }
 
-// HTTPTestMethod reports error http.Request does not return want string.
+// HTTPTestMethod reports an error if http.Request does not return the wanted string.
 func HTTPTestMethod(t *testing.T, r *http.Request, want string) {
 	t.Helper()
 

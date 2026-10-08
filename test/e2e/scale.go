@@ -153,7 +153,7 @@ type ScaleSpecInput struct {
 	// Note: This should only be set if a Runtime Extension is used.
 	ExtensionServiceName string
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 
@@ -176,7 +176,7 @@ type ScaleSpecInput struct {
 	// if the test suit should fail as soon as c6 fails or if it should fail after all cluster creations are done.
 	FailFast bool
 
-	// DumpResources instruct the test to dumo resources from the test namespace as well as from the
+	// DumpResources instructs the test to dump resources from the test namespace as well as from the
 	// cluster namespaces.
 	DumpResources bool
 
@@ -220,7 +220,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			}
 		}
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		// We are pinning the namespace for the test to help with debugging and testing.
 		// Example: Queries to look up state of the clusters can be re-used.
 		// Since we don't run multiple instances of this test concurrently on a management cluster it is okay to pin the namespace.

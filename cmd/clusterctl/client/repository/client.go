@@ -28,8 +28,8 @@ import (
 )
 
 // Client is used to interact with provider repositories.
-// Provider repository are expected to contain two types of YAML files:
-// - YAML files defining the provider components (CRD, Controller, RBAC etc.)
+// Provider repositories are expected to contain two types of YAML files:
+// - YAML files defining the provider components (CRD, Controller, RBAC, etc.)
 // - YAML files defining the cluster templates (Cluster, Machines).
 type Client interface {
 	config.Provider
@@ -53,7 +53,7 @@ type Client interface {
 	// for the provider.
 	ClusterClasses(version string) ClusterClassClient
 
-	// Metadata provide access to YAML with the provider's metadata.
+	// Metadata provides access to YAML with the provider's metadata.
 	Metadata(version string) MetadataClient
 }
 
@@ -95,7 +95,7 @@ func (c *repositoryClient) Metadata(version string) MetadataClient {
 // Option is a configuration option supplied to New.
 type Option func(*repositoryClient)
 
-// InjectRepository allows to override the repository implementation to use;
+// InjectRepository allows overriding the repository implementation to use;
 // by default, the repository implementation to use is created according to the
 // repository URL.
 func InjectRepository(repository Repository) Option {

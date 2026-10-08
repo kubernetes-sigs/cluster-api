@@ -18,7 +18,7 @@ superseded-by:
 ---
 
 # Title
-- Machine health checking a.k.a node auto repair
+- Machine health checking a.k.a. node auto repair
 
 ## Table of Contents
 
@@ -205,7 +205,7 @@ No further action (deletion or applying conditions) will be taken by the Machine
 
 When a Machine enters an unhealthy state, the MHC will:
 * Look up the referenced template
-* Instantiate the template (for simplicity, we will refer to this as a External Machine Remediation CR, or EMR)
+* Instantiate the template (for simplicity, we will refer to this as an External Machine Remediation CR, or EMR)
 * Force the name and namespace to match the unhealthy Machine
 * Save the new object in etcd
 
@@ -219,7 +219,7 @@ Any actions or changes that admins should be informed about should be emitted as
 They are informational only and do not result in or expect any behaviour from the MHC, Node, or Machine as a result.
 
 When the external remediation controller detects the new EMR it starts remediation and performs whatever actions it deems appropriate until the EMR is deleted by the MHC.
-It is a detail of the ERC when and how to retry remediation in the event that a EMR is not deleted after the ERC considers remediation complete. 
+It is a detail of the ERC when and how to retry remediation in the event that an EMR is not deleted after the ERC considers remediation complete. 
 
 The ERC may wish to register a finalizer on its CR to ensure it has an opportunity to perform any additional cleanup in the case that the unhealthy state was transient and the Node returned to a healthy state prior to the completion of the full custom ERC flow.
 
@@ -285,7 +285,7 @@ Metal3Remediation:
 #### MachineHealthCheck controller:
 Watch:
 - Watch machineHealthCheck resources
-- Watch machines and nodes with an event handler e.g controller runtime `EnqueueRequestsFromMapFunc` which returns machineHealthCheck resources.
+- Watch machines and nodes with an event handler e.g. controller runtime `EnqueueRequestsFromMapFunc` which returns machineHealthCheck resources.
 
 Reconcile:
 - Fetch all the machines targeted by the MachineHealthCheck and operate over machine/node targets. E.g:
@@ -345,20 +345,20 @@ For those cases as a user you still want to benefit from automated node remediat
 
 Considered allowing to target machineSets instead of using a label selector.
 This was discarded because of the reason above.
-Also there might be upper level controllers doing things that the MHC does not need to account for, e.g machineDeployment flipping machineSets for a rolling update.
+Also there might be upper level controllers doing things that the MHC does not need to account for, e.g. machineDeployment flipping machineSets for a rolling update.
 Therefore considering machines and label selectors as the fundamental operational entity results in a good and convenient level of flexibility and decoupling from other controllers.
 
-Considered a more strict short-circuiting mechanism decoupled from the machine health checker i.e machine disruption budget analogous to pod disruption budget.
+Considered a more strict short-circuiting mechanism decoupled from the machine health checker i.e. machine disruption budget analogous to pod disruption budget.
 This was discarded because it added an unjustified level of complexity and additional API resources.
 Instead we opt for a simpler approach and will consider RFE that requires additional complexity based on real use feedback.
 
 Considered using conditions instead of external remediation.
-The existing design doesn't solve all the problems required to have full external remediation that doesn't necessarily deletes the Machine at the end of remediation, but this can be modified and expanded.
+The existing design doesn't solve all the problems required to have full external remediation that doesn't necessarily delete the Machine at the end of remediation, but this can be modified and expanded.
 
 We could give up on the idea of a shared MHC and instead focus on providing a common library for deciding if a Node is healthy. This creates a situation where we could end up with baremetal, Master, and Ceph MHC variants that somehow need to duplicate or coordinate their activities.
 
 ## Upgrade Strategy
-This is an opt in feature supported by a new CRD and controller so there is no need to handle upgrades for existing clusters. 
+This is an opt-in feature supported by a new CRD and controller so there is no need to handle upgrades for existing clusters. 
 
 External remediation feature adds A new optional field will be added to MachineHealthCheck CRD, so existing CRs will be still valid and will function as they previously did.
 The templates are all new, and opt-in feature so upgrade has no impact in this case.
@@ -375,7 +375,7 @@ For failing early testing we could consider a test suite leveraging kubemark as 
 [testing-guidelines]: https://git.k8s.io/community/contributors/devel/sig-testing/testing.md
 
 ### Graduation Criteria [optional]
-This propose the new CRD to belong to the same API group than other cluster-api resources, e.g. machine, machineSet and to follow the same release cadence.
+This proposes the new CRD to belong to the same API group than other cluster-api resources, e.g. machine, machineSet and to follow the same release cadence.
 
 ### Version Skew Strategy [optional]
 

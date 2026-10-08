@@ -20,7 +20,7 @@ import (
 	"sort"
 )
 
-// ConvertToArgs takes a argument map and converts it to a slice of arguments.
+// ConvertToArgs takes an argument map and converts it to a slice of arguments.
 // The resulting argument slice is sorted alpha-numerically.
 // NOTE: this is a util function intended only for usage in API conversions.
 func ConvertToArgs(in map[string]string) []Arg {

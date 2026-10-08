@@ -107,7 +107,7 @@ type Reader interface {
 	Init(ctx context.Context, path string) error
 
 	// Get returns a configuration value of type string.
-	// In case the configuration value does not exists, it returns an error.
+	// In case the configuration value does not exist, it returns an error.
 	Get(key string) (string, error)
 
 	// Set allows to set an explicit override for a config value.

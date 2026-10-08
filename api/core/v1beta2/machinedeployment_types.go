@@ -68,7 +68,7 @@ const (
 	// As a result, we use the hash of the machine template while ignoring all in-place mutable fields, i.e. the
 	// machine template with only fields that could trigger a rollout for the machine-template-hash, making it
 	// independent of the changes to any in-place mutable fields.
-	// A random string is appended at the end of the label value (label value format is "<hash>-<random string>"))
+	// A random string is appended at the end of the label value (label value format is "<hash>-<random string>")
 	// to distinguish duplicate MachineSets that have the exact same spec but were created as a result of rolloutAfter.
 	MachineDeploymentUniqueLabel = "machine-template-hash"
 )
@@ -390,7 +390,7 @@ type MachineDeploymentRemediationSpec struct {
 type MachineNamingSpec struct {
 	// template defines the template to use for generating the names of the
 	// Machine objects.
-	// If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .machineSet.name }}-{{ .random }}`.
 	// If the generated name string exceeds 63 characters, it will be trimmed to
 	// 58 characters and will
 	// get concatenated with a random suffix of length 5.
@@ -473,7 +473,7 @@ type MachineDeploymentStatus struct {
 	// +kubebuilder:validation:Enum=ScalingUp;ScalingDown;Running;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *MachineDeploymentDeprecatedStatus `json:"deprecated,omitempty"`
 }
@@ -481,17 +481,17 @@ type MachineDeploymentStatus struct {
 // MachineDeploymentDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachineDeploymentDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	// +optional
 	V1Beta1 *MachineDeploymentV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// MachineDeploymentV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// MachineDeploymentV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachineDeploymentV1Beta1DeprecatedStatus struct {
 	// conditions defines current service state of the MachineDeployment.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
@@ -499,14 +499,14 @@ type MachineDeploymentV1Beta1DeprecatedStatus struct {
 	// updatedReplicas is the total number of non-terminated machines targeted by this deployment
 	// that have the desired template spec.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	UpdatedReplicas int32 `json:"updatedReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
 	// readyReplicas is the total number of ready machines targeted by this deployment.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
@@ -514,7 +514,7 @@ type MachineDeploymentV1Beta1DeprecatedStatus struct {
 	// availableReplicas is the total number of available machines (ready for at least minReadySeconds)
 	// targeted by this deployment.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	AvailableReplicas int32 `json:"availableReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
@@ -525,7 +525,7 @@ type MachineDeploymentV1Beta1DeprecatedStatus struct {
 	// be machines that are running but not yet available or machines
 	// that still have not been created.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
@@ -547,7 +547,7 @@ const (
 	// MachineDeploymentPhaseFailed indicates there was a problem scaling and user intervention might be required.
 	//
 	// Deprecated: This enum value is deprecated; the Failed phase won't be set anymore by controllers, and it is preserved only
-	// for conversion from v1beta1 objects; the Failed phase is going to be removed when support for v1beta1 will be dropped.
+	// for conversion from v1beta1 objects; the Failed phase is going to be removed when support for v1beta1 is dropped.
 	// Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	MachineDeploymentPhaseFailed = MachineDeploymentPhase("Failed")

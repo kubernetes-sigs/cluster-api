@@ -11,7 +11,7 @@ linters:
   enable:
     - asasalint # warns about passing []any to func(...any) without expanding it
     - asciicheck # non ascii symbols
-    - bidichk # dangerous unicode sequences
+    - bidichk # dangerous Unicode sequences
     - bodyclose # unclosed http bodies
     - containedctx # context.Context nested in a struct
     - copyloopvar # copying loop variables
@@ -19,7 +19,7 @@ linters:
     - dupword # duplicate words
     - durationcheck # multiplying two durations
     - errcheck # unchecked errors
-    - errchkjson # invalid types passed to json encoder
+    - errchkjson # invalid types passed to JSON encoder
     - forbidigo # allows to block usage of funcs
     - ginkgolinter # ginkgo and gomega
     - gocritic # bugs, performance, style (we could add custom ones to this one)
@@ -48,7 +48,7 @@ linters:
     - unparam # unused function parameters
     - unused # unused constants, variables,functions, types
     - usestdlibvars # using variables/constants from the standard library
-    - usetesting # report function to be replace by testing
+    - usetesting # report function to be replaced by testing
     - whitespace # unnecessary newlines
   disable:
     # TODO: It will be dropped when the Go version migration is done.
@@ -162,8 +162,8 @@ linters:
         - experimental
         - performance
     godot:
-      #   declarations - for top level declaration comments (default);
-      #   toplevel     - for top level comments;
+      #   declarations - for top-level declaration comments (default);
+      #   toplevel     - for top-level comments;
       #   all          - for all comments.
       scope: toplevel
       exclude:
@@ -335,7 +335,7 @@ linters:
         text: 'SA1019: (clusterv1.ClusterClassVariableMetadata|currentDefinition.DeprecatedV1Beta1Metadata|newVariableDefinition.DeprecatedV1Beta1Metadata|specVar.DeprecatedV1Beta1Metadata|statusVarDefinition.DeprecatedV1Beta1Metadata|out.DeprecatedV1Beta1Metadata|variable.DeprecatedV1Beta1Metadata) is deprecated'
       - linters:
           - staticcheck
-        text: 'SA1019: .* is deprecated: This (package|method) is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+        text: 'SA1019: .* is deprecated: This (package|method) is deprecated and is going to be removed when support for v1beta1 (will be|is) dropped.'
       - linters:
           - staticcheck
         text: 'SA1019: .* is deprecated: This (condition|reason) is deprecated and is going to be removed when support for v1beta1 is dropped\.'
@@ -366,7 +366,7 @@ linters:
       - linters:
           - errcheck
         text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
-      ## Exclude some packages or code to require comments, for example test code, or fake clients.
+      ## Exclude some packages or code to require comments, for example, test code, or fake clients.
       - linters:
           - revive
         text: exported (method|function|type|const) (.+) should have comment or be unexported

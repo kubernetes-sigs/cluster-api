@@ -32,7 +32,7 @@ import (
 const metadataFile = "metadata.yaml"
 
 // MetadataClient has methods to work with metadata hosted on a provider repository.
-// Metadata are yaml files providing additional information about provider's assets like e.g the version compatibility Matrix.
+// Metadata are yaml files providing additional information about provider's assets like e.g. the version compatibility Matrix.
 type MetadataClient interface {
 	// Get returns the provider's metadata.
 	Get(ctx context.Context) (*clusterctlv1.Metadata, error)

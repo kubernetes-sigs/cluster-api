@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	// GroupVersion is group version used to register these objects.
+	// GroupVersion is the group version used to register these objects.
 	GroupVersion = clusterv1.GroupVersionInfrastructure
 
 	// schemeBuilder is used to add go types to the GroupVersionKind scheme.

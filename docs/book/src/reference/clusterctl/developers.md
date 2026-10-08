@@ -67,7 +67,7 @@ cmd/clusterctl/hack/create-local-repository.py
 
 The script reads from the source folders for the providers you want to install, builds the providers' assets,
 and places them in a local repository folder located under `$XDG_CONFIG_HOME/cluster-api/dev-repository/`.
-Additionally, the command output provides you the `clusterctl init` command with all the necessary flags.
+Additionally, the command output provides you with the `clusterctl init` command with all the necessary flags.
 The output should be similar to:
 
 ```bash
@@ -84,14 +84,14 @@ clusterctl init \
 ```
 
 As you might notice, the command is using the `$XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml` config file,
-containing all the required setting to make clusterctl use the local repository (it fallbacks to `$HOME` if `$XDG_CONFIG_HOME` 
+containing all the required settings to make clusterctl use the local repository (it falls back to `$HOME` if `$XDG_CONFIG_HOME` 
 is not set on your machine).
 
 > [!IMPORTANT]
 > You must pass `--config ...` to all the clusterctl commands you are running during your dev session.
 >
 > The above config file changes the location of the [overrides layer] folder thus ensuring
-> you dev session isn't hijacked by other local artifacts.
+> your dev session isn't hijacked by other local artifacts.
 >
 > With the exceptions of the Docker provider, the local repository folder does not contain cluster templates,
 > so the `clusterctl generate cluster` command will fail if you don't copy a template into the local repository.

@@ -307,7 +307,7 @@ func prepareLogsForLoki(ld LogData, logJSONAdditionalLabels []string) ([]LokiStr
 
 	allStreams := []LokiStream{}
 	for _, logLine := range strings.Split(string(ld.logs), "\n") {
-		// SKip if the log line is empty.
+		// Skip if the log line is empty.
 		if logLine == "" {
 			continue
 		}

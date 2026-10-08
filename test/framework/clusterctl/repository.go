@@ -45,7 +45,7 @@ const (
 	httpsURIScheme = "https"
 )
 
-// RepositoryFileTransformation is a helpers for managing a clusterctl
+// RepositoryFileTransformation is a helper for managing a clusterctl
 // local repository to be used for running e2e tests in isolation.
 type RepositoryFileTransformation func([]byte) ([]byte, error)
 
@@ -56,7 +56,7 @@ type CreateRepositoryInput struct {
 	FileTransformations []RepositoryFileTransformation
 }
 
-// RegisterClusterResourceSetConfigMapTransformation registers a FileTransformations that injects a manifests file into
+// RegisterClusterResourceSetConfigMapTransformation registers a FileTransformations that injects a manifest file into
 // a ConfigMap that defines a ClusterResourceSet resource.
 //
 // NOTE: this transformation is specifically designed for replacing "data: ${envSubstVar}".
@@ -79,8 +79,8 @@ func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformatio
 
 const clusterctlConfigFileName = "clusterctl-config.yaml"
 
-// CreateRepository creates a clusterctl local repository based on the e2e test config, and the returns the path
-// to a clusterctl config file to be used for working with such repository.
+// CreateRepository creates a clusterctl local repository based on the e2e test config, and then returns the path
+// to a clusterctl config file to be used for working with such a repository.
 func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling CreateRepository")
 	Expect(os.MkdirAll(input.RepositoryFolder, 0750)).To(Succeed(), "Failed to create the clusterctl local repository folder %s", input.RepositoryFolder)
@@ -214,7 +214,7 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 	return data, nil
 }
 
-// getComponentSourceFromURL fetches contents of component source YAML file from provided URL source.
+// getComponentSourceFromURL fetches the contents of a component source YAML file from the provided URL source.
 func getComponentSourceFromURL(ctx context.Context, source ProviderVersionSource) ([]byte, error) {
 	var buf []byte
 

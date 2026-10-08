@@ -57,7 +57,7 @@ func TestMachineDeploymentTopologyFinalizer(t *testing.T) {
 		md              *clusterv1.MachineDeployment
 		expectFinalizer bool
 	}{
-		// Note: We are not testing the case of a MD with deletionTimestamp and no finalizer.
+		// Note: We are not testing the case of an MD with deletionTimestamp and no finalizer.
 		// This case is impossible to reproduce in fake client without deleting the object.
 		{
 			name:            "should add ClusterTopology finalizer to a MachineDeployment with no finalizer",

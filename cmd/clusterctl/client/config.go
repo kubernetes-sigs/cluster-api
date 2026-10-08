@@ -75,7 +75,7 @@ type ProcessYAMLOptions struct {
 func (c *clusterctlClient) ProcessYAML(ctx context.Context, options ProcessYAMLOptions) (YamlPrinter, error) {
 	if options.ReaderSource != nil {
 		// NOTE: Beware of potentially reading in large files all at once
-		// since this is inefficient and increases memory utilziation.
+		// since this is inefficient and increases memory utilization.
 		content, err := io.ReadAll(options.ReaderSource.Reader)
 		if err != nil {
 			return nil, err
@@ -117,14 +117,14 @@ type GetClusterTemplateOptions struct {
 	Kubeconfig Kubeconfig
 
 	// ProviderRepositorySource to be used for reading the workload cluster template from a provider repository;
-	// only one template source can be used at time; if not other source will be set, a ProviderRepositorySource
+	// only one template source can be used at a time; if no other source is set, a ProviderRepositorySource
 	// will be generated inferring values from the cluster.
 	ProviderRepositorySource *ProviderRepositorySourceOptions
 
-	// URLSource to be used for reading the workload cluster template; only one template source can be used at time.
+	// URLSource to be used for reading the workload cluster template; only one template source can be used at a time.
 	URLSource *URLSourceOptions
 
-	// ConfigMapSource to be used for reading the workload cluster template; only one template source can be used at time.
+	// ConfigMapSource to be used for reading the workload cluster template; only one template source can be used at a time.
 	ConfigMapSource *ConfigMapSourceOptions
 
 	// TargetNamespace where the objects describing the workload cluster should be deployed. If unspecified,
@@ -142,7 +142,7 @@ type GetClusterTemplateOptions struct {
 	// It can be set through the cli flag, CONTROL_PLANE_MACHINE_COUNT environment variable or will default to 1
 	ControlPlaneMachineCount *int64
 
-	// WorkerMachineCount defines number of worker machines to be added to the workload cluster.
+	// WorkerMachineCount defines the number of worker machines to be added to the workload cluster.
 	// It can be set through the cli flag, WORKER_MACHINE_COUNT environment variable or will default to 0
 	WorkerMachineCount *int64
 
@@ -238,7 +238,7 @@ func (c *clusterctlClient) GetClusterTemplate(ctx context.Context, options GetCl
 		options.TargetNamespace = currentNamespace
 	}
 
-	// Inject some of the templateOptions into the configClient so they can be consumed as a variables from the template.
+	// Inject some of the templateOptions into the configClient so they can be consumed as variables from the template.
 	if err := c.templateOptionsToVariables(options); err != nil {
 		return nil, err
 	}
@@ -376,7 +376,7 @@ func (c *clusterctlClient) getTemplateFromURL(ctx context.Context, cluster clust
 	return cluster.Template().GetFromURL(ctx, source.URL, targetNamespace, listVariablesOnly)
 }
 
-// templateOptionsToVariables injects some of the templateOptions to the configClient so they can be consumed as a variables from the template.
+// templateOptionsToVariables injects some of the templateOptions to the configClient so they can be consumed as variables from the template.
 func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplateOptions) error {
 	// the TargetNamespace, if valid, can be used in templates using the ${ NAMESPACE } variable.
 	if err := validateDNS1123Label(options.TargetNamespace); err != nil {
@@ -392,7 +392,7 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 
 	// the KubernetesVersion, if valid, can be used in templates using the ${ KUBERNETES_VERSION } variable.
 	// NB. in case the KubernetesVersion from the templateOptions is empty, we are not setting any values so the
-	// configClient is going to search into os env variables/the clusterctl config file as a fallback options.
+	// configClient is going to search into os env variables/the clusterctl config file as a fallback option.
 	if options.KubernetesVersion != "" {
 		if _, err := version.ParseSemantic(options.KubernetesVersion); err != nil {
 			return pkgerrors.Errorf("invalid KubernetesVersion. Please use a semantic version number")

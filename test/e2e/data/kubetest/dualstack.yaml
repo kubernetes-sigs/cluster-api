@@ -1,7 +1,7 @@
 ginkgo.focus: \[Feature\:IPv6DualStack\]
 ginkgo.skip: \[Feature\:SCTPConnectivity\]
 disable-log-dump: true
-# ginkgo.progress flag is deprecated but its still used when
+# ginkgo.progress flag is deprecated but it's still used when
 # we run kubetest on K8s versions <= v1.26, we have to keep it
 # as long as we support these versions.
 ginkgo.progress: true

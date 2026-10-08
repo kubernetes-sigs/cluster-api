@@ -56,7 +56,7 @@ As noted above, making changes to  the CAPI release cadence is out of scope for 
 - Create beta and release candidate (rc) tags for upcoming minor releases
 - Ensure only eligible PRs are cherry-picked to the active release branches
 - Monitor CI signal, so a release can be cut at any time, and add CI signal for each new release branch
-- Maintain and improve user facing documentation about releases, release policy and calendar
+- Maintain and improve user-facing documentation about releases, release policy and calendar
 - Update the CAPI Netlify book certificates and DNS
 - Update the clusterctl Homebrew formula
 - Create and maintain the GitHub release milestone
@@ -81,7 +81,7 @@ As noted above, making changes to  the CAPI release cadence is out of scope for 
   - The Release Lead has approval permissions, which allows them to merge PRs that add new release notes. This will start an automated release process through GitHub Actions: creating tags, create GitHub Release draft, etc.
   - All members of the release team have `lgtm` permissions for PRs that add release notes in this folder.
 - Release notes tool (`hack/tools/release` folder)
-  - The Release Lead has approval permissions, which allows them to merge code changes to this tool. It's not their responsibility to always review the code changes (although they can), but to make sure the right folks have `lgtm`ed the PR.
+  - The Release Lead has approval permissions, which allow them to merge code changes to this tool. It's not their responsibility to always review the code changes (although they can), but to make sure the right folks have `lgtm`ed the PR.
   - All members of the release team have `lgtm` permissions for the release notes tool code.
 
 ## Team Selection
@@ -95,18 +95,18 @@ When assembling a release team, the release team lead should look for volunteers
 - Can commit to the amount of time required across the release cycle
 - Are enthusiastic about being on the release team
 - Preferably are [members of the kubernetes or the kubernetes-SIG org](https://github.com/kubernetes/community/blob/master/community-membership.md) (see [notes](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)).
-- Have some prior experience with contributing to CAPI releases (such having been in the release team for a prior release)
+- Have some prior experience with contributing to CAPI releases (such as having been in the release team for a prior release)
 - Have diverse company affiliations (i.e. not all from the same company)
 - Are members of the Kubernetes slack community (register if you are not!)
 - Are members of the Cluster Lifecycle SIG mailing list (subscribe to the [SIG Cluster Lifecycle Google Group](https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle) if you are not!)
 
 ## Time Commitment
 
-As a member of the release team, you should expect to spend approximately 4-8 hours a week on release related activities for the duration of the term.
+As a member of the release team, you should expect to spend approximately 4-8 hours a week on release-related activities for the duration of the term.
 
 Specific time commitments include:
    * Release Team meetings once a week throughout the entire release cycle.
-   * Release Day meetings ideally occurring once during the actual release weeks. Refer to release cycle timeline for more specific details.
+   * Release Day meetings ideally occurring once during the actual release weeks. Refer to the release cycle timeline for more specific details.
    * Any other release-related critical meetings with prior notice.
 
 While we don't anticipate individuals to be available every week during the release cycle, please feel free to inform the team of any unavailability so we can plan accordingly.
@@ -119,21 +119,21 @@ Release Team Members meet and share team specific updates, news and all release 
 
 - Release Team Meetings happen once a week every Tuesday at 8:30 AM PT ([convert to your local time](https://dateful.com/convert/pacific-time-pt?t=830am)), using the CAPI meeting zoom [link](https://zoom.us/j/861487554?pwd=dTVGVVFCblFJc0VBbkFqQlU0dHpiUT09). 
 - Release Team Meeting notes can be found [here](https://docs.google.com/document/d/1AUiuvapS3ldYVJfKucDhIoH6IJIPS009jqwnSTwS0EI).
-- Reach out to maintainers to get the zoom meeting host key to be able to share the screen when office hours zoom link is used.
+- Reach out to maintainers to get the Zoom meeting host key to be able to share the screen when office hours Zoom link is used.
 
-*Note:* For now, we don't have a calendar invite for Release Team Meetings to be sent out to all Release Team Members. Create a recurring calendar invite for the period of whole release cycle and send it to all Release Team Members.
+*Note:* For now, we don't have a calendar invite for Release Team Meetings to be sent out to all Release Team Members. Create a recurring calendar invite for the period of the whole release cycle and send it to all Release Team Members.
 
-Release Day meetings is used to cut the releases as a group following the release cycle timeline.
+Release Day meetings are used to cut the releases as a group following the release cycle timeline.
 
 - Release Day Meetings happen on the release date specified in the release timeline document, using the CAPI meeting zoom [link](https://zoom.us/j/861487554?pwd=dTVGVVFCblFJc0VBbkFqQlU0dHpiUT09) at the time depending on the Release Team Members timezone and availability.
 
 ## Suggestions for Team Leads
 
-  * In the first week of the release cycle, organize an onboarding session with members of your team (i.e CI Lead with CI team members) to go over the general responsibilities and expectations.
-  * Public communication should be default: all the Release Team specific topics, issues, discussion have to be public and discussed openly in the communication channels the Release Team uses. It gives visibility on the work being done, it is inclusive and track of record. All other communication
-  within the Release Team Members can de carried out using a private group/chat.
+  * In the first week of the release cycle, organize an onboarding session with members of your team (i.e. CI Lead with CI team members) to go over the general responsibilities and expectations.
+  * Public communication should be default: all the Release Team specific topics, issues, discussions have to be public and discussed openly in the communication channels the Release Team uses. It gives visibility on the work being done, it is inclusive and track of record. All other communication
+  within the Release Team Members can be carried out using a private group/chat.
   * For Release Lead: Inform Release Team Members about the upcoming release, a day prior to the actual release cutting date over a common communication
-  channel (usually Cluster API Slack) and ask for team specific updates from Team Leads (i.e status of CI signal from CI Team Lead or preparing a PR for release notes with new desired tag in advance) to ensure smoother release cutting process and avoid unexpected surprises. 
+  channel (usually Cluster API Slack) and ask for team specific updates from Team Leads (i.e. status of CI signal from CI Team Lead or preparing a PR for release notes with new desired tag in advance) to ensure smoother release cutting process and avoid unexpected surprises. 
   * Clearly communicate with the team members you are responsible for, that the majority of the work during the release cycle will be a collaborative effort.
   * Establish an ownership rotation policy in consultation with respective team members.
   * Provide opportunities for team members to take the lead in cutting a release within the cycle, based on feasibility.
@@ -158,5 +158,5 @@ Candidates for the Cluster API release team should preferably be [members of the
 
 Non-org members can perform all the tasks of the release team, but they can't be added to the [cluster-api-release-team](https://github.com/kubernetes/org/blob/99343225f3ce39c2d3da594b7aca40ca8043bd54/config/kubernetes-sigs/sig-cluster-lifecycle/teams.yaml#L341) GitHub group.
 
-Being part of the Cluster API release team could be a great start for people willing to become a members of the kubernetes-SIG org, see
+Being part of the Cluster API release team could be a great start for people willing to become members of the kubernetes-SIG org, see
 the official list of [requirements](https://github.com/kubernetes/community/blob/master/community-membership.md#requirements).

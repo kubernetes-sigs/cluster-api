@@ -60,7 +60,7 @@ func (m *InfrastructureMachinePoolContract) Provisioned(contractVersion string) 
 // optional fallback path that is read when the field at the primary path is not set. This is needed as the
 // MachinePool contracts are lagging behind core CAPI. So a provider will declare they are compliant with
 // CAPI v1beta2 but may not have fully adopted the v1beta2 contract for MachinePools. So this allows us to
-// fallback to the previous contract value if the new fields doesn't exist.
+// fall back to the previous contract value if the new fields don't exist.
 // Note: The fallback is deprecated and will be removed in a future version of the contract.
 type ProvisionedBool struct {
 	path         Path

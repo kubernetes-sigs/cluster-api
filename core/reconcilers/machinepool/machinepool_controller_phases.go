@@ -571,7 +571,7 @@ func (r *Reconciler) createOrUpdateMachines(ctx context.Context, s *scope, machi
 }
 
 // computeDesiredMachine constructs the desired Machine for an infraMachine.
-// If the Machine exists, it ensures the Machine always owned by the MachinePool.
+// If the Machine exists, it ensures the Machine is always owned by the MachinePool.
 func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachineGVK schema.GroupVersionKind, infraMachineName string, existingMachine *clusterv1.Machine, existingNode *corev1.Node) *clusterv1.Machine {
 	infraRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: infraMachineGVK.Group,
@@ -629,7 +629,7 @@ func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachi
 }
 
 // infraMachineToMachinePoolMapper is a mapper function that maps an InfraMachine to the MachinePool that owns it.
-// This is used to trigger an update of the MachinePool when a InfraMachine is changed.
+// This is used to trigger an update of the MachinePool when an InfraMachine is changed.
 func (r *Reconciler) infraMachineToMachinePoolMapper(ctx context.Context, o client.Object) []ctrl.Request {
 	log := ctrl.LoggerFrom(ctx)
 

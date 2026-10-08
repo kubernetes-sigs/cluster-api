@@ -110,7 +110,7 @@ This field is in addition to the optional status fields of `InfrastructureMachin
 
 ### InfraMachinePoolMachine creation
 
-Like before, the InfraMachinePool controller is still responsible for creating the provider specific resources behind each MachinePool instance. The difference now, is that the InfraMachinePool controller must ensure that a InfraMachinePoolMachine is created for each instance. The instances should be created such that each contains the `clusterv1.ClusterNameLabel` set to `cluster.Name` and the `clusterv1.MachinePoolNameLabel` set to `format.MustFormatValue(machinePool.Name)` to indicate to CAPI that these InfraMachinePoolMachines are associated with the given MachinePool. The InfraMachinePoolMachines should also contain an owner reference to the InfraMachinePool and look as follows:
+Like before, the InfraMachinePool controller is still responsible for creating the provider-specific resources behind each MachinePool instance. The difference now, is that the InfraMachinePool controller must ensure that a InfraMachinePoolMachine is created for each instance. The instances should be created such that each contains the `clusterv1.ClusterNameLabel` set to `cluster.Name` and the `clusterv1.MachinePoolNameLabel` set to `format.MustFormatValue(machinePool.Name)` to indicate to CAPI that these InfraMachinePoolMachines are associated with the given MachinePool. The InfraMachinePoolMachines should also contain an owner reference to the InfraMachinePool and look as follows:
 
 ```golang
 infraMachinePoolMachine := &infrav1.InfraMachinePoolMachine{
@@ -138,13 +138,13 @@ infraMachinePoolMachine := &infrav1.InfraMachinePoolMachine{
 }
 ```
 
-**Note:** Depending on the provider specific implementation of MachinePools, it might make sense to reuse the existing InfraMachine type for both normal Machines and MachinePool Machines rather than creating a new InfraMachinePoolMachine type. This is the case for Docker as there is no difference in implementation of the instances, but most providers will still want to use a new InfraMachinePoolMachine.
+**Note:** Depending on the provider-specific implementation of MachinePools, it might make sense to reuse the existing InfraMachine type for both normal Machines and MachinePool Machines rather than creating a new InfraMachinePoolMachine type. This is the case for Docker as there is no difference in implementation of the instances, but most providers will still want to use a new InfraMachinePoolMachine.
 
 ![InfraMachinePool scale up](images/machinepool-machines/inframachinepool-scale-up.png)
 
 ### MachinePool Machine creation
 
-The CAPI MachinePool controller is responsible for watching for the creation of InfraMachinePoolMachines and reacting by creating owner Machines for each InfraMachine. Each owner Machine will have its infrastructure reference pointing to the InfraMachinePoolMachine but will not have a bootstrap reference as the bootstrap object is shared among all instances. The MachinePool controller will also ensure each Machine has an owner reference to the MachinePool and replace it if the owner reference is removed. Similarly, Machine controller (not MachinePool) is also responsible for ensuring the the InfraMachinePoolMachine indicated by the infrastructure reference has a controller/owner reference to the Machine as well. The Machines will be created as similar to the following specification.
+The CAPI MachinePool controller is responsible for watching for the creation of InfraMachinePoolMachines and reacting by creating owner Machines for each InfraMachine. Each owner Machine will have its infrastructure reference pointing to the InfraMachinePoolMachine but will not have a bootstrap reference as the bootstrap object is shared among all instances. The MachinePool controller will also ensure each Machine has an owner reference to the MachinePool and replace it if the owner reference is removed. Similarly, Machine controller (not MachinePool) is also responsible for ensuring the InfraMachinePoolMachine indicated by the infrastructure reference has a controller/owner reference to the Machine as well. The Machines will be created as similar to the following specification.
 
 ```golang
 machine := &clusterv1.Machine{
@@ -176,11 +176,11 @@ To reiterate, this behavior is already implemented by the MachinePool controller
 
 Unlike the creation flow, the InfraMachinePool is responsible for deleting both the InfraMachinePoolMachine and MachinePool Machines instead of the MachinePool controller.
 
-The InfraMachinePool will scale down when it is overprovisioned, meaning the total number of ready replicas is greater than the desired replica count and then select a replica to delete. If any replica has an associated Machine containing the `clusterv1.DeleteMachineAnnotation`, the InfraMachinePool should prioritize that replica for deletion first. When deleting a replica, the InfraMachinePool controller should delete the owner Machine instead of deleting the InfraMachinePoolMachine or replica directly. This is so that the Machine deletion flow will cordon and drain the node and trigger deletion of the InfraMachinePoolMachine via its infrastructure reference. The InfraMachinePoolMachine should then delete the provider specific instance associated with the replica.
+The InfraMachinePool will scale down when it is overprovisioned, meaning the total number of ready replicas is greater than the desired replica count and then select a replica to delete. If any replica has an associated Machine containing the `clusterv1.DeleteMachineAnnotation`, the InfraMachinePool should prioritize that replica for deletion first. When deleting a replica, the InfraMachinePool controller should delete the owner Machine instead of deleting the InfraMachinePoolMachine or replica directly. This is so that the Machine deletion flow will cordon and drain the node and trigger deletion of the InfraMachinePoolMachine via its infrastructure reference. The InfraMachinePoolMachine should then delete the provider-specific instance associated with the replica.
 
-It is worth noting that when a MachinePool Machine is deleted manually, the Machine controller will delete the corresponding InfraMachinePoolMachine, and the InfraMachinePoolMachine will delete the provider-specific resource. On the other hand, if the provider specific instance backing a Machine and InfraMachinePoolMachine is deleted, the InfraMachinePool controller is responsible for deleting the "dangling" Machine and InfraMachinePoolMachine, and creating a new replica and InfraMachinePoolMachine to replace it.
+It is worth noting that when a MachinePool Machine is deleted manually, the Machine controller will delete the corresponding InfraMachinePoolMachine, and the InfraMachinePoolMachine will delete the provider-specific resource. On the other hand, if the provider-specific instance backing a Machine and InfraMachinePoolMachine is deleted, the InfraMachinePool controller is responsible for deleting the "dangling" Machine and InfraMachinePoolMachine, and creating a new replica and InfraMachinePoolMachine to replace it.
 
-Additionally, the InfraMachinePool must support surging to ensure it does maintains the desired number of ready replicas during a rolling update similar to a MachineDeployment. However, a `MaxSurge` field is not required and the decision of whether or not to implement it is left up to the provider. For example, a simple implementation could be to simply always delete outdated InfraMachines when overprovisioned.
+Additionally, the InfraMachinePool must support surging to ensure it does maintain the desired number of ready replicas during a rolling update similar to a MachineDeployment. However, a `MaxSurge` field is not required and the decision of whether or not to implement it is left up to the provider. For example, a simple implementation could be to simply always delete outdated InfraMachines when overprovisioned.
 
 ![InfraMachinePool scale down](images/machinepool-machines/inframachinepool-scale-down.png)
 
@@ -188,7 +188,7 @@ Additionally, the InfraMachinePool must support surging to ensure it does mainta
 
 Once a MachinePool Machine is created, it is reconciled by the Machine controller. The Machine controller will fetch the InfraMachinePoolMachine in the Machine's infrastructure reference, and ensure the InfraMachinePoolMachine has an owner reference to the Machine. This is part of the existing behavior of the Machine controller.
 
-When a MachinePool Machine is being deleted, the Machine controller will cordon and drain the node, delete the InfraMachinePoolMachine, and delete the node. The InfraMachinePoolMachine will then delete the provider specific instance.
+When a MachinePool Machine is being deleted, the Machine controller will cordon and drain the node, delete the InfraMachinePoolMachine, and delete the node. The InfraMachinePoolMachine will then delete the provider-specific instance.
 
 ![Machine reconcile](images/machinepool-machines/machinepool-machine-reconcile.png)
 

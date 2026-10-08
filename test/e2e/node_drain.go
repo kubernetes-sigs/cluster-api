@@ -61,7 +61,7 @@ type NodeDrainTimeoutSpecInput struct {
 	// If not specified, "topology" is used.
 	Flavor *string
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 
@@ -122,7 +122,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			input.UnblockNodeVolumeDetachment = unblockNodeVolumeDetachmentFunc(input.E2EConfig.GetIntervals(specName, "wait-control-plane"), input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"))
 		}
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
@@ -632,7 +632,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 	})
 
 	AfterEach(func() {
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		// Dumps all the resources in the spec namespace, then cleans up the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }

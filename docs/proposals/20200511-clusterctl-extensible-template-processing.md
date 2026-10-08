@@ -79,7 +79,7 @@ Clusterctl handles the lifecycle of Cluster API management and workload
 clusters. It automates fetching the YAML files defining provider components
 and the cluster templates used to define workload clusters. However, as more
 providers contribute to CAPI and the variety of workload cluster templates
-increase, it becomes harder for operators to manage all the cluster template
+increases, it becomes harder for operators to manage all the cluster template
 flavor permutations. Operators and providers are now leaning towards yaml
 templating tools to properly manage the variety of cluster templates, and to
 simplify the end user experience by limiting the amount of boilerplate YAML
@@ -129,7 +129,7 @@ configuration.
 
 ## Proposal
 
-This section outlines the high level work that needs to be done in order to
+This section outlines the high-level work that needs to be done in order to
 accomplish the task of supporting other templating tools.
 
 ### User Stories
@@ -151,7 +151,7 @@ templates.
 
 #### UX for using Extensible Templating Tools
 
-For the first iteration, we won't be making any user facing changes to the
+For the first iteration, we won't be making any user-facing changes to the
 clusterctl CLI. Therefore all the clusterctl commands will hold true with the
 current expected behavior. The changes will be exposed via the clusterctl library.
 
@@ -219,9 +219,9 @@ libraries so the issue of support should be solved with this contract.
 
 - Define a format or convention for retrieving multiple template files.
   Currently, clusterctl supports template retrieval from a ConfigMap in a
-  cluster, URL, Github release artifacts and local file system. We default to
-  retrieving provider cluster templates from github release assets. In order to
-  avoid running into github quota limits on retrieving asset files we can pull a
+  cluster, URL, GitHub release artifacts and local file system. We default to
+  retrieving provider cluster templates from GitHub release assets. In order to
+  avoid running into GitHub quota limits on retrieving asset files we can pull a
   compressed file with all the template contents.
 
   As mentioned above in the *Constraints* and *Implementation* section a suggestion
@@ -241,7 +241,7 @@ libraries so the issue of support should be solved with this contract.
   a single yaml file. These artifacts will need to be "grouped" together to
   support current retrieval mechanisms. Currently, `clusterctl config cluster`
   retrieves templates from multiple sources such as ConfigMaps within a
-  cluster, URL, Github Repository, Local Repository and even the overrides
+  cluster, URL, GitHub Repository, Local Repository and even the overrides
   directory. To ensure compatibility, we’ll need to establish a compression
   format like tar.gz
 
@@ -271,9 +271,9 @@ manage their template variations.
 
 - 04/22/2020: Proposed idea in an issue or [community meeting]
 - 04/27/2020: Compile a CAEP Google Doc following the CAEP template
-- 05/06/2020: First round of feedback from community
+- 05/06/2020: First round of feedback from the community
 - 05/11/2020: Open proposal PR
-- 05/13/2020: Present proposal at a [community meeting]
+- 05/13/2020: Present the proposal at a [community meeting]
 
 
 

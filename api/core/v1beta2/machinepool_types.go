@@ -156,7 +156,7 @@ type MachinePoolStatus struct {
 	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *MachinePoolDeprecatedStatus `json:"deprecated,omitempty"`
 }
@@ -181,17 +181,17 @@ type MachinePoolInitializationStatus struct {
 // MachinePoolDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachinePoolDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	// +optional
 	V1Beta1 *MachinePoolV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// MachinePoolV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// MachinePoolV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachinePoolV1Beta1DeprecatedStatus struct {
 	// conditions define the current service state of the MachinePool.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
@@ -199,7 +199,7 @@ type MachinePoolV1Beta1DeprecatedStatus struct {
 	// failureReason indicates that there is a problem reconciling the state, and
 	// will be set to a token value suitable for programmatic interpretation.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	FailureReason *capierrors.MachinePoolStatusFailure `json:"failureReason,omitempty"`
@@ -207,7 +207,7 @@ type MachinePoolV1Beta1DeprecatedStatus struct {
 	// failureMessage indicates that there is a problem reconciling the state,
 	// and will be set to a descriptive error message.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -216,14 +216,14 @@ type MachinePoolV1Beta1DeprecatedStatus struct {
 
 	// readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready".
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
 	// availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	AvailableReplicas int32 `json:"availableReplicas,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
@@ -234,7 +234,7 @@ type MachinePoolV1Beta1DeprecatedStatus struct {
 	// be machine instances that are running but not yet available or machine instances
 	// that still have not been created.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
@@ -291,7 +291,7 @@ const (
 	// might require user intervention.
 	//
 	// Deprecated: This enum value is deprecated; the Failed phase won't be set anymore by controllers, and it is preserved only
-	// for conversion from v1beta1 objects; the Failed phase is going to be removed when support for v1beta1 will be dropped.
+	// for conversion from v1beta1 objects; the Failed phase is going to be removed when support for v1beta1 is dropped.
 	// Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	MachinePoolPhaseFailed = MachinePoolPhase("Failed")

@@ -47,7 +47,7 @@ type InitConfiguration struct {
 
 	// LocalAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
 	// In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
-	// is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
+	// is the global endpoint for the cluster, which then load balances the requests to each individual API server. This
 	// configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
 	// on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
 	// fails you may set the desired value here.
@@ -95,7 +95,7 @@ type ClusterConfiguration struct {
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 
 	// ControlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-	// can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+	// can be a valid IP address or an RFC-1123 DNS subdomain, both with optional TCP port.
 	// In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
 	// are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
 	// the BindPort is used.
@@ -223,7 +223,7 @@ type ImageMeta struct {
 	// TODO: evaluate if we need also a ImageName based on user feedbacks
 }
 
-// APIEndpoint struct contains elements of API server instance deployed on a node.
+// APIEndpoint struct contains elements of an API server instance deployed on a node.
 type APIEndpoint struct {
 	// AdvertiseAddress sets the IP address for the API server to advertise.
 	// +optional
@@ -278,7 +278,7 @@ type NodeRegistrationOptions struct {
 	ImagePullSerial *bool `json:"imagePullSerial,omitempty"`
 }
 
-// Networking contains elements describing cluster's networking configuration.
+// Networking contains elements describing the cluster's networking configuration.
 type Networking struct {
 	// ServiceSubnet is the subnet used by k8s services. Defaults to "10.96.0.0/12".
 	// +optional

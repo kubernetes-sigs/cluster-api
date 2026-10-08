@@ -80,7 +80,7 @@ func (v *viperReader) Init(ctx context.Context, path string) error {
 
 	// Configure viper for reading environment variables as well, and more specifically:
 	// AutomaticEnv force viper to check for an environment variable any time a viper.Get request is made.
-	// It will check for a environment variable with a name matching the key uppercased; in case name use the - delimiter,
+	// It will check for an environment variable with a name matching the key uppercased; in case the name uses the - delimiter,
 	// the SetEnvKeyReplacer forces matching to name use the _ delimiter instead (- is not allowed in linux env variable names).
 	replacer := strings.NewReplacer("-", "_")
 	viper.SetEnvKeyReplacer(replacer)

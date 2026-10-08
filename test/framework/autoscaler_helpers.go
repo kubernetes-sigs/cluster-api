@@ -175,7 +175,7 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 	Expect(memory).ToNot(BeNil(), "failed to get memory for the worker node")
 
 	// creates a deployment requesting more memory than the worker has, thus triggering autoscaling
-	// Each pod should requests memory resource of about 60% of the node capacity so that at most one pod
+	// Each pod should request memory resource of about 60% of the node capacity so that at most one pod
 	// fits on each node. Setting a replicas of workers + 1 would ensure we have pods that cannot be scheduled.
 	// This will force exactly one extra node to be spun up.
 	replicas := workers + 1
@@ -609,7 +609,7 @@ func getServerAddrAndCA(ctx context.Context, clusterProxy ClusterProxy) (string,
 	// With CAPD, we can't just access the bootstrap cluster via 127.0.0.1:<port> from the
 	// workload cluster. Instead we retrieve the server name from the cluster-info ConfigMap in the bootstrap
 	// cluster (e.g. "https://test-z45p9k-control-plane:6443")
-	// Note: This has been tested with MacOS,Linux and Prow.
+	// Note: This has been tested with macOS, Linux and Prow.
 	clusterInfoCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster-info",

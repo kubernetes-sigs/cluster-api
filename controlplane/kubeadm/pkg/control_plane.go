@@ -79,7 +79,7 @@ type ControlPlane struct {
 	// InfraMachineTemplateIsNotFound is true if getting the infra machine template object failed with an NotFound err
 	InfraMachineTemplateIsNotFound bool
 
-	// PreflightChecks contains description about pre flight check results blocking machines creation or deletion.
+	// PreflightChecks contains description about preflight check results blocking machines creation or deletion.
 	PreflightCheckResults PreflightCheckResults
 
 	// TODO: we should see if we can combine these with the Machine objects so we don't have all these separate lookups
@@ -105,17 +105,17 @@ type ControlPlane struct {
 	DeletingMessage string
 }
 
-// PreflightCheckResults contains description about pre flight check results blocking machines creation or deletion.
+// PreflightCheckResults contains description about preflight check results blocking machines creation or deletion.
 type PreflightCheckResults struct {
-	// HasDeletingMachine reports true if preflight check detected a deleting machine.
+	// HasDeletingMachine reports true if the preflight check detected a deleting machine.
 	HasDeletingMachine bool
-	// CertificateMissing reports true if preflight check detected a certificate missing.
+	// CertificateMissing reports true if the preflight check detected a certificate missing.
 	CertificateMissing bool
-	// ControlPlaneComponentsNotHealthy reports true if preflight check detected that the control plane components are not fully healthy.
+	// ControlPlaneComponentsNotHealthy reports true if the preflight check detected that the control plane components are not fully healthy.
 	ControlPlaneComponentsNotHealthy bool
-	// EtcdClusterNotHealthy reports true if preflight check detected that the etcd cluster is not fully healthy.
+	// EtcdClusterNotHealthy reports true if the preflight check detected that the etcd cluster is not fully healthy.
 	EtcdClusterNotHealthy bool
-	// TopologyVersionMismatch reports true if preflight check detected that the Cluster's topology version does not match the control plane's version
+	// TopologyVersionMismatch reports true if the preflight check detected that the Cluster's topology version does not match the control plane's version
 	TopologyVersionMismatch bool
 }
 
@@ -185,7 +185,7 @@ func (c *ControlPlane) FailureDomains() []clusterv1.FailureDomain {
 }
 
 // MachineInFailureDomainWithMostMachines returns the first matching failure domain with machines that has the most control-plane machines on it.
-// Note: if there are eligibleMachines machines in failure domain that do not exists anymore, getting rid of those machines take precedence.
+// Note: if there are eligibleMachines machines in failure domain that do not exist anymore, getting rid of those machines takes precedence.
 func (c *ControlPlane) MachineInFailureDomainWithMostMachines(ctx context.Context, eligibleMachines collections.Machines) (*clusterv1.Machine, error) {
 	fd := c.FailureDomainWithMostMachines(ctx, eligibleMachines)
 	machinesInFailureDomain := eligibleMachines.Filter(collections.InFailureDomains(fd))
@@ -240,8 +240,8 @@ func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligib
 // NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date, not deleted machines
 // (the ultimate goal is to achieve ideal spreading of machines at stable state/when only up-to-date machines will exist).
 //
-// In case of tie (more failure domain with the same number of up-to-date, not deleted machines) the failure domain with the fewest number of
-// machine overall is picked to ensure a better spreading of machines while the rollout is performed.
+// In case of a tie (more failure domains with the same number of up-to-date, not deleted machines) the failure domain with the fewest number of
+// machines overall is picked to ensure a better spreading of machines while the rollout is performed.
 func (c *ControlPlane) NextFailureDomainForScaleUp(ctx context.Context) (string, error) {
 	if len(c.FailureDomains()) == 0 {
 		return "", nil
@@ -417,7 +417,7 @@ func (c *ControlPlane) GetWorkloadCluster(ctx context.Context) (WorkloadCluster,
 }
 
 // InjectTestManagementCluster allows to inject a test ManagementCluster during tests.
-// NOTE: This approach allows to keep the managementCluster field private, which will
+// NOTE: This approach allows keeping the managementCluster field private, which will
 // prevent people from using managementCluster.GetWorkloadCluster because it creates a new
 // instance of WorkloadCluster at every call. People instead should use ControlPlane.GetWorkloadCluster
 // that creates only a single instance of WorkloadCluster for each reconcile.
@@ -431,7 +431,7 @@ func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementC
 //   - if the machine has been created in the current reconcile
 //   - if machines node ref is not yet set
 //   - if the machine has been marked for remediation
-//   - if there are unhealthy control plane component on the machine
+//   - if there are unhealthy control plane components on the machine
 //   - if the machine has a deletion timestamp/has been deleted in the current reconcile
 //   - if the machine is not up to date with the KCP spec
 //
@@ -506,7 +506,7 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 }
 
 // GetKeyEncryptionAlgorithm returns the control plane EncryptionAlgorithm.
-// If its unset the default encryption algorithm is returned.
+// If it is unset the default encryption algorithm is returned.
 func (c *ControlPlane) GetKeyEncryptionAlgorithm() bootstrapv1.EncryptionAlgorithmType {
 	if c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.EncryptionAlgorithm == "" {
 		return bootstrapv1.EncryptionAlgorithmRSA2048
@@ -518,7 +518,7 @@ func (c *ControlPlane) GetKeyEncryptionAlgorithm() bootstrapv1.EncryptionAlgorit
 func (c *ControlPlane) DefaultTaintIsMissing(machine *clusterv1.Machine, node *Node) bool {
 	shouldHaveTaint := func() bool {
 		// If the default taint is in the list of taints at machine level, the node should have the default kubeadm taint.
-		// Note: If the taint is defined with propagation OnInitialization only, KCP cannot determine if the user intent
+		// Note: If the taint is defined with propagation OnInitialization only, KCP cannot determine if the user's intent
 		// is to leave the taint there indefinitely or to remove it at some point.
 		// However, this func assumes that once the default taint is added it should remain because this is what makes most sense in KCP.
 		for _, t := range machine.Spec.Taints {
@@ -528,7 +528,7 @@ func (c *ControlPlane) DefaultTaintIsMissing(machine *clusterv1.Machine, node *N
 		}
 
 		// Otherwise look at machine's KubeadmConfigs.
-		// Note: kubeadm adds the default taint on node creation; KCP cannot determine if the user intent is to leave
+		// Note: kubeadm adds the default taint on node creation; KCP cannot determine if the user's intent is to leave
 		// the taint there indefinitely or to remove it at some point.
 		// However, this func assumes that once the default taint is added it should remain because this is what makes most sense in KCP.
 		if kubeadmConfig, ok := c.KubeadmConfigs[machine.Name]; ok {

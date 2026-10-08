@@ -104,7 +104,7 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			// Cannot pickup the new version right now. Need to try again later.
+			// Cannot pick up the new version right now. Need to try again later.
 			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.BeforeClusterUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
 			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade), hookResponse.RetryAfterSeconds),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
@@ -161,7 +161,7 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 	s.HookResponseTracker.Add(runtimehooksv1.BeforeControlPlaneUpgrade, hookResponse)
 
 	if hookResponse.RetryAfterSeconds != 0 {
-		// Cannot pickup the new version right now. Need to try again later.
+		// Cannot pick up the new version right now. Need to try again later.
 		g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.BeforeControlPlaneUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
 		log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade), hookResponse.RetryAfterSeconds),
 			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
@@ -286,7 +286,7 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeWorkersUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			// Cannot pickup the new version right now. Need to try again later.
+			// Cannot pick up the new version right now. Need to try again later.
 			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.BeforeWorkersUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
 			log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade), hookResponse.RetryAfterSeconds),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,

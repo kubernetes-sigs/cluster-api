@@ -1211,7 +1211,7 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 
 	if err != nil {
 		// Note, this could only happen if we hit edge cases in computing the summary, which should not happen due to the fact
-		// that we are passing a non empty list of ForConditionTypes.
+		// that we are passing a non-empty list of ForConditionTypes.
 		log.Error(err, "Failed to set Available condition")
 		availableCondition = &metav1.Condition{
 			Type:    clusterv1.ClusterAvailableCondition,

@@ -40,7 +40,7 @@ func (c *InfrastructureClusterTemplateContract) Template() *InfrastructureCluste
 	return &InfrastructureClusterTemplateTemplate{}
 }
 
-// InfrastructureClusterTemplateTemplate provides a helper struct for working with the template in an InfrastructureClusterTemplate..
+// InfrastructureClusterTemplateTemplate provides a helper struct for working with the template in an InfrastructureClusterTemplate.
 type InfrastructureClusterTemplateTemplate struct{}
 
 // Metadata provides access to the metadata of a template.

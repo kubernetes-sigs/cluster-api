@@ -20,7 +20,7 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 > * [release-1-13.cluster-api.sigs.k8s.io](https://release-1-13.cluster-api.sigs.k8s.io)
 > * [release-1-12.cluster-api.sigs.k8s.io](https://release-1-12.cluster-api.sigs.k8s.io)
 > * [release-1-11.cluster-api.sigs.k8s.io](https://release-1-11.cluster-api.sigs.k8s.io)
-> * older version are available at similar urls by replacing minor-version numbers
+> * older versions are available at similar urls by replacing minor-version numbers
 
 ## Why build Cluster API?
 

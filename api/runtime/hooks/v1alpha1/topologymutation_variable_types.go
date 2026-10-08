@@ -49,7 +49,7 @@ type ClusterBuiltins struct {
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
 
-	// uid is the unqiue identifier of the cluster.
+	// uid is the unique identifier of the cluster.
 	// +optional
 	UID types.UID `json:"uid,omitempty"`
 

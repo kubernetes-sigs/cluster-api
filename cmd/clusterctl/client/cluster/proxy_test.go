@@ -148,7 +148,7 @@ func TestKUBECONFIGEnvVar(t *testing.T) {
 		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
 
 		proxy := NewProxy(
-			// dont't give an explicit path but rather define the file in the
+			// don't give an explicit path but rather define the file in the
 			// configLoadingRules precedence chain.
 			Kubeconfig{Path: "", Context: context},
 			InjectKubeconfigPaths([]string{configFile}),
@@ -174,7 +174,7 @@ func TestKUBECONFIGEnvVar(t *testing.T) {
 		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
 
 		proxy := NewProxy(
-			// dont't give an explicit path but rather define the file in the
+			// don't give an explicit path but rather define the file in the
 			// configLoadingRules precedence chain.
 			Kubeconfig{Path: "", Context: context},
 			InjectKubeconfigPaths([]string{configFile}),

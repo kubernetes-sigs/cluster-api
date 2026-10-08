@@ -777,7 +777,7 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 	cluster.Spec.InfrastructureRef = contract.ObjToContractVersionedObjectReference(infrastructureCluster)
 	cluster.Spec.ControlPlaneRef = contract.ObjToContractVersionedObjectReference(controlPlane)
 
-	// Track the current upgrade step in the cluster object (otherwise make sure we cleanup tracking of previous upgrades).
+	// Track the current upgrade step in the cluster object (otherwise make sure we clean up tracking of previous upgrades).
 	// NOTE: to detect if we are upgrading, we check if the intent to call the AfterClusterUpgrade is already tracked;
 	//	as a temporary fallback to handle cases when RuntimeSDK feature gate is not enabled yet, we also check the upgrade plan not being empty.
 	// NOTE, it is required to surface intermediate steps of the upgrade plan to allow creation of machines in KCP/MS.

@@ -40,8 +40,8 @@ type logEntry struct {
 // Option is a configuration option supplied to NewLogger.
 type Option func(*logger)
 
-// WithThreshold implements a New Option that allows to set the threshold level for a new logger.
-// The logger will write only log messages with a level/V(x) equal or higher to the threshold.
+// WithThreshold implements a New Option that allows setting the threshold level for a new logger.
+// The logger will write only log messages with a level/V(x) equal to or higher than the threshold.
 func WithThreshold(threshold *int) Option {
 	return func(c *logger) {
 		c.threshold = threshold
@@ -149,10 +149,10 @@ func copySlice(in []interface{}) []interface{} {
 }
 
 // flatten returns a human readable/machine parsable text representing the LogEntry.
-// Most notable difference with the klog implementation are:
+// The most notable differences with the klog implementation are:
 //   - The message is printed at the beginning of the line, without the Msg= variable name e.g.
 //     "Msg"="This is a message" --> This is a message
-//   - Variables name are not quoted, eg.
+//   - Variable names are not quoted, e.g.
 //     This is a message "Var1"="value" --> This is a message Var1="value"
 //   - Variables are not sorted, thus allowing full control to the developer on the output.
 func flatten(entry logEntry) (string, error) {

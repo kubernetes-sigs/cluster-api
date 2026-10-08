@@ -110,7 +110,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[ClusterResourceSetV1Beta1DeprecatedStatus](#clusterresourcesetv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[ClusterResourceSetV1Beta1DeprecatedStatus](#clusterresourcesetv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### ClusterResourceSetList
@@ -167,7 +167,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a ClusterResourceSet's current state.<br />Known condition types are ResourcesApplied. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration reflects the generation of the most recently observed ClusterResourceSet. |  | Minimum: 1 <br />Optional: \{\} <br /> |
-| `deprecated` _[ClusterResourceSetDeprecatedStatus](#clusterresourcesetdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[ClusterResourceSetDeprecatedStatus](#clusterresourcesetdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 
@@ -176,7 +176,7 @@ _Appears in:_
 
 
 
-ClusterResourceSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+ClusterResourceSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -186,7 +186,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current state of the ClusterResourceSet.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current state of the ClusterResourceSet.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### ResourceBinding
@@ -260,7 +260,7 @@ Package v1beta2 contains API Schema definitions for the kubeadm v1beta2 API grou
 
 
 
-APIEndpoint struct contains elements of API server instance deployed on a node.
+APIEndpoint struct contains elements of an API server instance deployed on a node.
 
 _Validation:_
 - MinProperties: 1
@@ -390,7 +390,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `etcd` _[Etcd](#etcd)_ | etcd holds configuration for etcd.<br />NB: This value defaults to a Local (stacked) etcd |  | MinProperties: 1 <br />Optional: \{\} <br /> |
-| `controlPlaneEndpoint` _string_ | controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it<br />can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.<br />In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort<br />are used; in case the ControlPlaneEndpoint is specified but without a TCP port,<br />the BindPort is used.<br />Possible usages are:<br />e.g. In a cluster with more than one control plane instances, this field should be<br />assigned the address of the external load balancer in front of the<br />control plane instances.<br />e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint<br />could be used for assigning a stable DNS to the control plane.<br />NB: This value defaults to the first value in the Cluster object status.apiEndpoints array. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `controlPlaneEndpoint` _string_ | controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it<br />can be a valid IP address or an RFC-1123 DNS subdomain, both with optional TCP port.<br />In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort<br />are used; in case the ControlPlaneEndpoint is specified but without a TCP port,<br />the BindPort is used.<br />Possible usages are:<br />e.g. In a cluster with more than one control plane instances, this field should be<br />assigned the address of the external load balancer in front of the<br />control plane instances.<br />e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint<br />could be used for assigning a stable DNS to the control plane.<br />NB: This value defaults to the first value in the Cluster object status.apiEndpoints array. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `apiServer` _[APIServer](#apiserver)_ | apiServer contains extra settings for the API server control plane component |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `controllerManager` _[ControllerManager](#controllermanager)_ | controllerManager contains extra settings for the controller manager control plane component |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `scheduler` _[Scheduler](#scheduler)_ | scheduler contains extra settings for the scheduler control plane component |  | MinProperties: 1 <br />Optional: \{\} <br /> |
@@ -493,8 +493,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `partitions` _[Partition](#partition) array_ | partitions specifies the list of the partitions to setup. |  | ExactlyOneOf: [layout diskLayout] <br />MaxItems: 100 <br />Optional: \{\} <br /> |
-| `filesystems` _[Filesystem](#filesystem) array_ | filesystems specifies the list of file systems to setup. |  | MaxItems: 100 <br />Optional: \{\} <br /> |
+| `partitions` _[Partition](#partition) array_ | partitions specifies the list of the partitions to set up. |  | ExactlyOneOf: [layout diskLayout] <br />MaxItems: 100 <br />Optional: \{\} <br /> |
+| `filesystems` _[Filesystem](#filesystem) array_ | filesystems specifies the list of file systems to set up. |  | MaxItems: 100 <br />Optional: \{\} <br /> |
 
 
 #### Encoding
@@ -613,7 +613,7 @@ _Appears in:_
 | `owner` _string_ | owner specifies the ownership of the file, e.g. "root:root". |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `permissions` _string_ | permissions specifies the permissions to assign to the file, e.g. "0640". |  | MaxLength: 16 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `encoding` _[Encoding](#encoding)_ | encoding specifies the encoding of the file contents. |  | Enum: [base64 gzip gzip+base64] <br />Optional: \{\} <br /> |
-| `append` _boolean_ | append specifies whether to append Content to existing file if Path exists. |  | Optional: \{\} <br /> |
+| `append` _boolean_ | append specifies whether to append Content to an existing file if Path exists. |  | Optional: \{\} <br /> |
 | `defer` _boolean_ | defer determines whether writing the file is deferred until the cloud-init final stage,<br />after users are created and packages are installed. |  | Optional: \{\} <br /> |
 | `content` _string_ | content is the actual content of the file. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `contentFrom` _[FileSource](#filesource)_ | contentFrom is a referenced source of content to populate the file. |  | Optional: \{\} <br /> |
@@ -727,7 +727,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `cloud-config` | CloudConfig make the bootstrap data to be of cloud-config format.<br /> |
-| `ignition` | Ignition make the bootstrap data to be of Ignition format.<br /> |
+| `ignition` | Ignition makes the bootstrap data use the Ignition format.<br /> |
 
 
 #### HostPathMount
@@ -787,7 +787,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `bootstrapTokens` _[BootstrapToken](#bootstraptoken) array_ | bootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.<br />This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `nodeRegistration` _[NodeRegistrationOptions](#noderegistrationoptions)_ | nodeRegistration holds fields that relate to registering the new control-plane node to the cluster.<br />When used in the context of control plane nodes, NodeRegistration should remain consistent<br />across both InitConfiguration and JoinConfiguration |  | MinProperties: 1 <br />Optional: \{\} <br /> |
-| `localAPIEndpoint` _[APIEndpoint](#apiendpoint)_ | localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node<br />In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint<br />is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This<br />configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible<br />on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process<br />fails you may set the desired value here. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `localAPIEndpoint` _[APIEndpoint](#apiendpoint)_ | localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node<br />In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint<br />is the global endpoint for the cluster, which then load balances the requests to each individual API server. This<br />configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible<br />on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process<br />fails you may set the desired value here. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `skipPhases` _string array_ | skipPhases is a list of phases to skip during command execution.<br />The list of phases can be obtained with the "kubeadm init --help" command.<br />This option takes effect only on Kubernetes >=1.22.0. |  | MaxItems: 50 <br />MinItems: 1 <br />items:MaxLength: 256 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 | `patches` _[Patches](#patches)_ | patches contains options related to applying patches to components deployed by kubeadm during<br />"kubeadm init". The minimum kubernetes version needed to support Patches is v1.22 |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `timeouts` _[Timeouts](#timeouts)_ | timeouts holds various timeouts that apply to kubeadm commands. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
@@ -852,7 +852,7 @@ _Appears in:_
 | `command` _string_ | command to execute. |  | MaxLength: 1024 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `args` _string array_ | args is the arguments to pass to the command when executing it. |  | MaxItems: 100 <br />MinItems: 1 <br />items:MaxLength: 512 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 | `env` _[KubeConfigAuthExecEnv](#kubeconfigauthexecenv) array_ | env defines additional environment variables to expose to the process. These<br />are unioned with the host's environment, as well as variables client-go uses<br />to pass argument to the plugin. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
-| `apiVersion` _string_ | apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use<br />the same encoding version as the input.<br />Defaults to client.authentication.k8s.io/v1 if not set. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `apiVersion` _string_ | apiVersion is the preferred input version of the ExecInfo. The returned ExecCredentials MUST use<br />the same encoding version as the input.<br />Defaults to client.authentication.k8s.io/v1 if not set. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `provideClusterInfo` _boolean_ | provideClusterInfo determines whether or not to provide cluster information,<br />which could potentially contain very large CA data, to this exec plugin as a<br />part of the KUBERNETES_EXEC_INFO environment variable. By default, it is set<br />to false. Package k8s.io/client-go/tools/auth/exec provides helper methods for<br />reading this environment variable. |  | Optional: \{\} <br /> |
 
 
@@ -971,7 +971,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[KubeadmConfigV1Beta1DeprecatedStatus](#kubeadmconfigv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[KubeadmConfigV1Beta1DeprecatedStatus](#kubeadmconfigv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### KubeadmConfigInitializationStatus
@@ -1032,7 +1032,7 @@ _Appears in:_
 | `joinConfiguration` _[JoinConfiguration](#joinconfiguration)_ | joinConfiguration is the kubeadm configuration for the join command |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `files` _[File](#file) array_ | files specifies extra files to be passed to user_data upon creation. |  | MaxItems: 200 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `diskSetup` _[DiskSetup](#disksetup)_ | diskSetup specifies options for the creation of partition tables and file systems on devices. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
-| `mounts` _[MountPoints](#mountpoints) array_ | mounts specifies a list of mount points to be setup. |  | MaxItems: 100 <br />MinItems: 1 <br />items:MaxLength: 512 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
+| `mounts` _[MountPoints](#mountpoints) array_ | mounts specifies a list of mount points to be set up. |  | MaxItems: 100 <br />MinItems: 1 <br />items:MaxLength: 512 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 | `bootCommands` _string array_ | bootCommands specifies extra commands to run very early in the boot process via the cloud-init bootcmd<br />module. bootcmd will run on every boot, 'cloud-init-per' command can be used to make bootcmd run exactly<br />once. This is typically run in the cloud-init.service systemd unit. This has no effect in Ignition. |  | MaxItems: 1000 <br />MinItems: 1 <br />items:MaxLength: 10240 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 | `preKubeadmCommands` _string array_ | preKubeadmCommands specifies extra commands to run before kubeadm runs.<br />With cloud-init, this is prepended to the runcmd module configuration, and is typically executed in<br />the cloud-final.service systemd unit. In Ignition, this is prepended to /etc/kubeadm.sh. |  | MaxItems: 1000 <br />MinItems: 1 <br />items:MaxLength: 10240 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 | `postKubeadmCommands` _string array_ | postKubeadmCommands specifies extra commands to run after kubeadm runs.<br />With cloud-init, this is appended to the runcmd module configuration, and is typically executed in<br />the cloud-final.service systemd unit. In Ignition, this is appended to /etc/kubeadm.sh. |  | MaxItems: 1000 <br />MinItems: 1 <br />items:MaxLength: 10240 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
@@ -1061,7 +1061,7 @@ _Appears in:_
 | `initialization` _[KubeadmConfigInitializationStatus](#kubeadmconfiginitializationstatus)_ | initialization provides observations of the KubeadmConfig initialization process.<br />NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `dataSecretName` _string_ | dataSecretName is the name of the secret that stores the bootstrap data script. |  | MaxLength: 253 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
-| `deprecated` _[KubeadmConfigDeprecatedStatus](#kubeadmconfigdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[KubeadmConfigDeprecatedStatus](#kubeadmconfigdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### KubeadmConfigTemplate
@@ -1139,7 +1139,7 @@ _Appears in:_
 
 
 
-KubeadmConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+KubeadmConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -1149,9 +1149,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the KubeadmConfig.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureReason` _string_ | failureReason will be set on non-retryable errors<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
-| `failureMessage` _string_ | failureMessage will be set on non-retryable errors<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the KubeadmConfig.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureReason` _string_ | failureReason will be set on non-retryable errors<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `failureMessage` _string_ | failureMessage will be set on non-retryable errors<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### LocalEtcd
@@ -1254,7 +1254,7 @@ _Appears in:_
 | `device` _string_ | device is the name of the device. |  | MaxLength: 256 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `layout` _boolean_ | layout specifies the device layout.<br />If it is true, a single partition will be created for the entire device.<br />When layout is false, it means don't partition or ignore existing partitioning.<br />Mutually exclusive with diskLayout. |  | Optional: \{\} <br /> |
 | `overwrite` _boolean_ | overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.<br />Use with caution. Default is 'false'. |  | Optional: \{\} <br /> |
-| `tableType` _string_ | tableType specifies the tupe of partition table. The following are supported:<br />'mbr': default and setups a MS-DOS partition table<br />'gpt': setups a GPT partition table |  | Enum: [mbr gpt] <br />Optional: \{\} <br /> |
+| `tableType` _string_ | tableType specifies the type of partition table. The following are supported:<br />'mbr': default and sets up an MS-DOS partition table<br />'gpt': setups a GPT partition table |  | Enum: [mbr gpt] <br />Optional: \{\} <br /> |
 | `diskLayout` _[PartitionSpec](#partitionspec) array_ | diskLayout specifies an ordered list of partitions, where each item defines the<br />percentage of disk space and optional partition type for that partition.<br />The sum of all partition percentages must not be greater than 100.<br />Mutually exclusive with layout. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
@@ -1504,7 +1504,7 @@ _Appears in:_
 
 
 
-ClusterAvailabilityGate contains the type of a Cluster condition to be used as availability gate.
+ClusterAvailabilityGate contains the type of a Cluster condition to be used as an availability gate.
 
 
 
@@ -1514,7 +1514,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditionType` _string_ | conditionType refers to a condition with matching type in the Cluster's condition list.<br />If the conditions doesn't exist, it will be treated as unknown.<br />Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates. |  | MaxLength: 316 <br />MinLength: 1 <br />Pattern: `^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$` <br />Required: \{\} <br /> |
+| `conditionType` _string_ | conditionType refers to a condition with a matching type in the Cluster's condition list.<br />If the condition doesn't exist, it will be treated as unknown.<br />Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates. |  | MaxLength: 316 <br />MinLength: 1 <br />Pattern: `^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$` <br />Required: \{\} <br /> |
 | `polarity` _[ConditionPolarity](#conditionpolarity)_ | polarity of the conditionType specified in this availabilityGate.<br />Valid values are Positive, Negative and omitted.<br />When omitted, the default behaviour will be Positive.<br />A positive polarity means that the condition should report a true status under normal conditions.<br />A negative polarity means that the condition should report a false status under normal conditions. |  | Enum: [Positive Negative] <br />Optional: \{\} <br /> |
 
 
@@ -1553,7 +1553,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[ClusterClassV1Beta1DeprecatedStatus](#clusterclassv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[ClusterClassV1Beta1DeprecatedStatus](#clusterclassv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### ClusterClassList
@@ -1651,7 +1651,7 @@ _Appears in:_
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a ClusterClass's current state.<br />Known condition types are VariablesReady, RefVersionsUpToDate, Paused. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `variables` _[ClusterClassStatusVariable](#clusterclassstatusvariable) array_ | variables is a list of ClusterClassStatusVariable that are defined for the ClusterClass. |  | MaxItems: 1000 <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
-| `deprecated` _[ClusterClassDeprecatedStatus](#clusterclassdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[ClusterClassDeprecatedStatus](#clusterclassdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### ClusterClassStatusVariable
@@ -1687,7 +1687,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `from` _string_ | from specifies the origin of the variable definition.<br />This will be `inline` for variables defined in the ClusterClass or the name of a patch defined in the ClusterClass<br />for variables discovered from a DiscoverVariables runtime extensions. |  | MaxLength: 256 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `required` _boolean_ | required specifies if the variable is required.<br />Note: this applies to the variable as a whole and thus the<br />top-level object defined in the schema. If nested fields are<br />required, this will be specified inside the schema. |  | Required: \{\} <br /> |
-| `deprecatedV1Beta1Metadata` _[ClusterClassVariableMetadata](#clusterclassvariablemetadata)_ | deprecatedV1Beta1Metadata is the metadata of a variable.<br />It can be used to add additional data for higher level tools to<br />a ClusterClassVariable.<br />Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `deprecatedV1Beta1Metadata` _[ClusterClassVariableMetadata](#clusterclassvariablemetadata)_ | deprecatedV1Beta1Metadata is the metadata of a variable.<br />It can be used to add additional data for higher level tools to<br />a ClusterClassVariable.<br />Deprecated: This field is deprecated and will be removed when support for v1beta1 is dropped. Please use XMetadata in JSONSchemaProps instead. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `schema` _[VariableSchema](#variableschema)_ | schema defines the schema of the variable. |  | Required: \{\} <br /> |
 
 
@@ -1710,7 +1710,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | apiVersion of the template.<br />apiVersion must be fully qualified domain name followed by / and a version. |  | MaxLength: 317 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
+| `apiVersion` _string_ | apiVersion of the template.<br />apiVersion must be a fully qualified domain name followed by / and a version. |  | MaxLength: 317 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
 | `kind` _string_ | kind of the template.<br />kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character. |  | MaxLength: 63 <br />MinLength: 1 <br />Pattern: `^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$` <br />Required: \{\} <br /> |
 
 
@@ -1735,7 +1735,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `kind` _string_ | kind of the template.<br />kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character. |  | MaxLength: 63 <br />MinLength: 1 <br />Pattern: `^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$` <br />Required: \{\} <br /> |
 | `name` _string_ | name of the template.<br />name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character. |  | MaxLength: 253 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
-| `apiVersion` _string_ | apiVersion of the template.<br />apiVersion must be fully qualified domain name followed by / and a version. |  | MaxLength: 317 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
+| `apiVersion` _string_ | apiVersion of the template.<br />apiVersion must be a fully qualified domain name followed by / and a version. |  | MaxLength: 317 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
 
 
 #### ClusterClassUpgrade
@@ -1776,7 +1776,7 @@ _Appears in:_
 
 
 
-ClusterClassV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+ClusterClassV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -1786,7 +1786,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current observed state of the ClusterClass.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current observed state of the ClusterClass.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### ClusterClassVariable
@@ -1805,7 +1805,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `name` _string_ | name of the variable. |  | MaxLength: 256 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `required` _boolean_ | required specifies if the variable is required.<br />Note: this applies to the variable as a whole and thus the<br />top-level object defined in the schema. If nested fields are<br />required, this will be specified inside the schema. |  | Required: \{\} <br /> |
-| `deprecatedV1Beta1Metadata` _[ClusterClassVariableMetadata](#clusterclassvariablemetadata)_ | deprecatedV1Beta1Metadata is the metadata of a variable.<br />It can be used to add additional data for higher level tools to<br />a ClusterClassVariable.<br />Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `deprecatedV1Beta1Metadata` _[ClusterClassVariableMetadata](#clusterclassvariablemetadata)_ | deprecatedV1Beta1Metadata is the metadata of a variable.<br />It can be used to add additional data for higher level tools to<br />a ClusterClassVariable.<br />Deprecated: This field is deprecated and will be removed when support for v1beta1 is dropped. Please use XMetadata in JSONSchemaProps instead. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `schema` _[VariableSchema](#variableschema)_ | schema defines the schema of the variable. |  | Required: \{\} <br /> |
 
 
@@ -1868,7 +1868,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[ClusterV1Beta1DeprecatedStatus](#clusterv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[ClusterV1Beta1DeprecatedStatus](#clusterv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### ClusterInitializationStatus
@@ -1887,7 +1887,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `infrastructureProvisioned` _boolean_ | infrastructureProvisioned is true when the infrastructure provider reports that Cluster's infrastructure is fully provisioned.<br />NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.<br />The value of this field is never updated after provisioning is completed. |  | Optional: \{\} <br /> |
-| `controlPlaneInitialized` _boolean_ | controlPlaneInitialized denotes when the control plane is functional enough to accept requests.<br />This information is usually used as a signal for starting all the provisioning operations that depends on<br />a functional API server, but do not require a full HA control plane to exists, like e.g. join worker Machines,<br />install core addons like CNI, CPI, CSI etc.<br />NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.<br />The value of this field is never updated after initialization is completed. |  | Optional: \{\} <br /> |
+| `controlPlaneInitialized` _boolean_ | controlPlaneInitialized denotes when the control plane is functional enough to accept requests.<br />This information is usually used as a signal for starting all the provisioning operations that depends on<br />a functional API server, but do not require a full HA control plane to exist, like e.g. join worker Machines,<br />install core addons like CNI, CPI, CSI etc.<br />NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.<br />The value of this field is never updated after initialization is completed. |  | Optional: \{\} <br /> |
 
 
 #### ClusterList
@@ -1975,14 +1975,14 @@ _Appears in:_
 | `failureDomains` _[FailureDomain](#failuredomain) array_ | failureDomains is a slice of failure domain objects synced from the infrastructure provider. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `phase` _string_ | phase represents the current phase of cluster actuation. |  | Enum: [Pending Provisioning Provisioned Deleting Failed Unknown] <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
-| `deprecated` _[ClusterDeprecatedStatus](#clusterdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[ClusterDeprecatedStatus](#clusterdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### ClusterV1Beta1DeprecatedStatus
 
 
 
-ClusterV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+ClusterV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -1992,9 +1992,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the cluster.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureReason` _[ClusterStatusError](#clusterstatuserror)_ | failureReason indicates that there is a fatal problem reconciling the<br />state, and will be set to a token value suitable for<br />programmatic interpretation.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureMessage` _string_ | failureMessage indicates that there is a fatal problem reconciling the<br />state, and will be set to a descriptive error message.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the cluster.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureReason` _[ClusterStatusError](#clusterstatuserror)_ | failureReason indicates that there is a fatal problem reconciling the<br />state, and will be set to a token value suitable for<br />programmatic interpretation.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureMessage` _string_ | failureMessage indicates that there is a fatal problem reconciling the<br />state, and will be set to a descriptive error message.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### ClusterVariable
@@ -2024,7 +2024,7 @@ _Appears in:_
 
 Condition defines an observation of a Cluster API resource operational state.
 
-Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 
 
 
@@ -2065,7 +2065,7 @@ _Underlying type:_ _string_
 
 ConditionSeverity expresses the severity of a Condition Type failing.
 
-Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 
 _Validation:_
 - MaxLength: 32
@@ -2087,7 +2087,7 @@ _Underlying type:_ _string_
 
 ConditionType is a valid value for Condition.Type.
 
-Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 
 _Validation:_
 - MaxLength: 256
@@ -2099,29 +2099,29 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `Ready` | ReadyV1Beta1Condition defines the Ready condition type that summarizes the operational state of a Cluster API object.<br /> |
-| `InfrastructureReady` | InfrastructureReadyV1Beta1Condition reports a summary of current status of the infrastructure object defined for this cluster/machine/machinepool.<br />This condition is mirrored from the Ready condition in the infrastructure ref object, and<br />the absence of this condition might signal problems in the reconcile external loops or the fact that<br />the infrastructure provider does not implement the Ready condition yet.<br /> |
+| `InfrastructureReady` | InfrastructureReadyV1Beta1Condition reports a summary of the current status of the infrastructure object defined for this cluster/machine/machinepool.<br />This condition is mirrored from the Ready condition in the infrastructure ref object, and<br />the absence of this condition might signal problems in the reconcile external loops or the fact that<br />the infrastructure provider does not implement the Ready condition yet.<br /> |
 | `VariablesReconciled` | ClusterClassVariablesReconciledV1Beta1Condition reports if the ClusterClass variables, including both inline and external<br />variables, have been successfully reconciled.<br />This signals that the ClusterClass is ready to be used to default and validate variables on Clusters using<br />this ClusterClass.<br /> |
 | `ControlPlaneInitialized` | ControlPlaneInitializedV1Beta1Condition reports if the cluster's control plane has been initialized such that the<br />cluster's apiserver is reachable. If no Control Plane provider is in use this condition reports that at least one<br />control plane Machine has a node reference. Once this Condition is marked true, its value is never changed. See<br />the ControlPlaneReady condition for an indication of the current readiness of the cluster's control plane.<br /> |
 | `ControlPlaneReady` | ControlPlaneReadyV1Beta1Condition reports the ready condition from the control plane object defined for this cluster.<br />This condition is mirrored from the Ready condition in the control plane ref object, and<br />the absence of this condition might signal problems in the reconcile external loops or the fact that<br />the control plane provider does not implement the Ready condition yet.<br /> |
-| `BootstrapReady` | BootstrapReadyV1Beta1Condition reports a summary of current status of the bootstrap object defined for this machine.<br />This condition is mirrored from the Ready condition in the bootstrap ref object, and<br />the absence of this condition might signal problems in the reconcile external loops or the fact that<br />the bootstrap provider does not implement the Ready condition yet.<br /> |
+| `BootstrapReady` | BootstrapReadyV1Beta1Condition reports a summary of the current status of the bootstrap object defined for this machine.<br />This condition is mirrored from the Ready condition in the bootstrap ref object, and<br />the absence of this condition might signal problems in the reconcile external loops or the fact that<br />the bootstrap provider does not implement the Ready condition yet.<br /> |
 | `DrainingSucceeded` | DrainingSucceededV1Beta1Condition provide evidence of the status of the node drain operation which happens during the machine<br />deletion process.<br /> |
-| `PreDrainDeleteHookSucceeded` | PreDrainDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being delete.<br /> |
-| `PreTerminateDeleteHookSucceeded` | PreTerminateDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being delete.<br /> |
+| `PreDrainDeleteHookSucceeded` | PreDrainDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being deleted.<br /> |
+| `PreTerminateDeleteHookSucceeded` | PreTerminateDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being deleted.<br /> |
 | `VolumeDetachSucceeded` | VolumeDetachSucceededV1Beta1Condition reports a machine waiting for volumes to be detached.<br /> |
 | `HealthCheckSucceeded` | MachineHealthCheckSucceededV1Beta1Condition is set on machines that have passed a healthcheck by the MachineHealthCheck controller.<br />In the event that the health check fails it will be set to False.<br /> |
 | `OwnerRemediated` | MachineOwnerRemediatedV1Beta1Condition is set on machines that have failed a healthcheck by the MachineHealthCheck controller.<br />MachineOwnerRemediatedV1Beta1Condition is set to False after a health check fails, but should be changed to True by the owning controller after remediation succeeds.<br /> |
-| `ExternalRemediationTemplateAvailable` | ExternalRemediationTemplateAvailableV1Beta1Condition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.<br />ExternalRemediationTemplateAvailableV1Beta1Condition is set to false if external remediation template is not found.<br /> |
-| `ExternalRemediationRequestAvailable` | ExternalRemediationRequestAvailableV1Beta1Condition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.<br />ExternalRemediationRequestAvailableV1Beta1Condition is set to false if creating external remediation request fails.<br /> |
+| `ExternalRemediationTemplateAvailable` | ExternalRemediationTemplateAvailableV1Beta1Condition is set on machinehealthchecks when the MachineHealthCheck controller uses external remediation.<br />ExternalRemediationTemplateAvailableV1Beta1Condition is set to false if the external remediation template is not found.<br /> |
+| `ExternalRemediationRequestAvailable` | ExternalRemediationRequestAvailableV1Beta1Condition is set on machinehealthchecks when the MachineHealthCheck controller uses external remediation.<br />ExternalRemediationRequestAvailableV1Beta1Condition is set to false if creating an external remediation request fails.<br /> |
 | `NodeHealthy` | MachineNodeHealthyV1Beta1Condition provides info about the operational state of the Kubernetes node hosted on the machine by summarizing  node conditions.<br />If the conditions defined in a Kubernetes node (i.e., NodeReady, NodeMemoryPressure, NodeDiskPressure and NodePIDPressure) are in a healthy state, it will be set to True.<br /> |
 | `RemediationAllowed` | RemediationAllowedV1Beta1Condition is set on MachineHealthChecks to show the status of whether the MachineHealthCheck is<br />allowed to remediate any Machines or whether it is blocked from remediating any further.<br /> |
 | `Available` | MachineDeploymentAvailableV1Beta1Condition means the MachineDeployment is available, that is, at least the minimum available<br />machines required (i.e. Spec.Replicas-MaxUnavailable when spec.rollout.strategy.type = RollingUpdate) are up and running for at least minReadySeconds.<br /> |
-| `MachineSetReady` | MachineSetReadyV1Beta1Condition reports a summary of current status of the MachineSet owned by the MachineDeployment.<br /> |
+| `MachineSetReady` | MachineSetReadyV1Beta1Condition reports a summary of the current status of the MachineSet owned by the MachineDeployment.<br /> |
 | `MachinesCreated` | MachinesCreatedV1Beta1Condition documents that the machines controlled by the MachineSet are created.<br />When this condition is false, it indicates that there was an error when cloning the infrastructure/bootstrap template or<br />when generating the machine object.<br /> |
-| `MachinesReady` | MachinesReadyV1Beta1Condition reports an aggregate of current status of the machines controlled by the MachineSet.<br /> |
+| `MachinesReady` | MachinesReadyV1Beta1Condition reports an aggregate of the current status of the machines controlled by the MachineSet.<br /> |
 | `Resized` | ResizedV1Beta1Condition documents a MachineSet is resizing the set of controlled machines.<br /> |
-| `TopologyReconciled` | TopologyReconciledV1Beta1Condition provides evidence about the reconciliation of a Cluster topology into<br />the managed objects of the Cluster.<br />Status false means that for any reason, the values defined in Cluster.spec.topology are not yet applied to<br />managed objects on the Cluster; status true means that Cluster.spec.topology have been applied to<br />the objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).<br /> |
+| `TopologyReconciled` | TopologyReconciledV1Beta1Condition provides evidence about the reconciliation of a Cluster topology into<br />the managed objects of the Cluster.<br />Status false means that for any reason, the values defined in Cluster.spec.topology are not yet applied to<br />managed objects on the Cluster; status true means that Cluster.spec.topology has been applied to<br />the objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).<br /> |
 | `RefVersionsUpToDate` | ClusterClassRefVersionsUpToDateV1Beta1Condition documents if the references in the ClusterClass are<br />up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from<br />the corresponding CRD).<br /> |
-| `ReplicasReady` | ReplicasReadyV1Beta1Condition reports an aggregate of current status of the replicas controlled by the MachinePool.<br /> |
+| `ReplicasReady` | ReplicasReadyV1Beta1Condition reports an aggregate of the current status of the replicas controlled by the MachinePool.<br /> |
 
 
 #### Conditions
@@ -2130,7 +2130,7 @@ _Underlying type:_ _[Condition](#condition)_
 
 Conditions provide observations of the operational state of a Cluster API resource.
 
-Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 
 
 
@@ -2175,7 +2175,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `kind` _string_ | kind of the resource being referenced.<br />kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character. |  | MaxLength: 63 <br />MinLength: 1 <br />Pattern: `^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$` <br />Required: \{\} <br /> |
 | `name` _string_ | name of the resource being referenced.<br />name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character. |  | MaxLength: 253 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
-| `apiGroup` _string_ | apiGroup is the group of the resource being referenced.<br />apiGroup must be fully qualified domain name.<br />The corresponding version for this reference will be looked up from the contract<br />labels of the corresponding CRD of the resource being referenced. |  | MaxLength: 253 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
+| `apiGroup` _string_ | apiGroup is the group of the resource being referenced.<br />apiGroup must be a fully qualified domain name.<br />The corresponding version for this reference will be looked up from the contract<br />labels of the corresponding CRD of the resource being referenced. |  | MaxLength: 253 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
 
 
 #### ControlPlaneClass
@@ -2273,7 +2273,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `unhealthyLessThanOrEqualTo` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#intorstring-intstr-util)_ | unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of<br />unhealthy Machines is less than or equal to the configured value.<br />unhealthyInRange takes precedence if set. |  | Optional: \{\} <br /> |
-| `unhealthyInRange` _string_ | unhealthyInRange specifies that remediations are only triggered if the number of<br />unhealthy Machines is in the configured range.<br />Takes precedence over unhealthyLessThanOrEqualTo.<br />Eg. "[3-5]" - This means that remediation will be allowed only when:<br />(a) there are at least 3 unhealthy Machines (and)<br />(b) there are at most 5 unhealthy Machines |  | MaxLength: 32 <br />MinLength: 1 <br />Pattern: `^\[[0-9]+-[0-9]+\]$` <br />Optional: \{\} <br /> |
+| `unhealthyInRange` _string_ | unhealthyInRange specifies that remediations are only triggered if the number of<br />unhealthy Machines is in the configured range.<br />Takes precedence over unhealthyLessThanOrEqualTo.<br />E.g. "[3-5]" - This means that remediation will be allowed only when:<br />(a) there are at least 3 unhealthy Machines (and)<br />(b) there are at most 5 unhealthy Machines |  | MaxLength: 32 <br />MinLength: 1 <br />Pattern: `^\[[0-9]+-[0-9]+\]$` <br />Optional: \{\} <br /> |
 
 
 #### ControlPlaneClassMachineDeletionSpec
@@ -2326,7 +2326,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `template` _string_ | template defines the template to use for generating the name of the ControlPlane object.<br />If not defined, it will fallback to `\{\{ .cluster.name \}\}-\{\{ .random \}\}`.<br />If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />The templating mechanism provides the following arguments:<br />* `.cluster.name`: The name of the cluster object.<br />* `.random`: A random alphanumeric string, without vowels, of length 5. |  | MaxLength: 1024 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `template` _string_ | template defines the template to use for generating the name of the ControlPlane object.<br />If not defined, it will fall back to `\{\{ .cluster.name \}\}-\{\{ .random \}\}`.<br />If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />The templating mechanism provides the following arguments:<br />* `.cluster.name`: The name of the cluster object.<br />* `.random`: A random alphanumeric string, without vowels, of length 5. |  | MaxLength: 1024 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### ControlPlaneTopology
@@ -2369,7 +2369,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `enabled` _boolean_ | enabled controls if a MachineHealthCheck should be created for the target machines.<br />If false: No MachineHealthCheck will be created.<br />If not set(default): A MachineHealthCheck will be created if it is defined here or<br /> in the associated ClusterClass. If no MachineHealthCheck is defined then none will be created.<br />If true: A MachineHealthCheck is guaranteed to be created. Cluster validation will<br />block if `enable` is true and no MachineHealthCheck definition is available. |  | Optional: \{\} <br /> |
 | `checks` _[ControlPlaneTopologyHealthCheckChecks](#controlplanetopologyhealthcheckchecks)_ | checks are the checks that are used to evaluate if a Machine is healthy.<br />If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,<br />and as a consequence the checks and remediation fields from Cluster will be used instead of the<br />corresponding fields in ClusterClass.<br />Independent of this configuration the MachineHealthCheck controller will always<br />flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and<br />Machines with deleted Nodes as unhealthy.<br />Furthermore, if checks.nodeStartupTimeoutSeconds is not set it<br />is defaulted to 10 minutes and evaluated accordingly. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
-| `remediation` _[ControlPlaneTopologyHealthCheckRemediation](#controlplanetopologyhealthcheckremediation)_ | remediation configures if and how remediations are triggered if a Machine is unhealthy.<br />If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,<br />and as a consequence the checks and remediation fields from cluster will be used instead of the<br />corresponding fields in ClusterClass.<br />If an health check override is defined and remediation or remediation.triggerIf is not set,<br />remediation will always be triggered for unhealthy Machines.<br />If an health check override is defined and remediation or remediation.templateRef is not set,<br />the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via<br />the owner of the Machines, for example a MachineSet or a KubeadmControlPlane. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `remediation` _[ControlPlaneTopologyHealthCheckRemediation](#controlplanetopologyhealthcheckremediation)_ | remediation configures if and how remediations are triggered if a Machine is unhealthy.<br />If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,<br />and as a consequence the checks and remediation fields from cluster will be used instead of the<br />corresponding fields in ClusterClass.<br />If a health check override is defined and remediation or remediation.triggerIf is not set,<br />remediation will always be triggered for unhealthy Machines.<br />If a health check override is defined and remediation or remediation.templateRef is not set,<br />the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via<br />the owner of the Machines, for example a MachineSet or a KubeadmControlPlane. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 
 
 #### ControlPlaneTopologyHealthCheckChecks
@@ -2568,7 +2568,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `template` _string_ | template defines the template to use for generating the name of the Infrastructure object.<br />If not defined, it will fallback to `\{\{ .cluster.name \}\}-\{\{ .random \}\}`.<br />If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />The templating mechanism provides the following arguments:<br />* `.cluster.name`: The name of the cluster object.<br />* `.random`: A random alphanumeric string, without vowels, of length 5. |  | MaxLength: 1024 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `template` _string_ | template defines the template to use for generating the name of the Infrastructure object.<br />If not defined, it will fall back to `\{\{ .cluster.name \}\}-\{\{ .random \}\}`.<br />If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />The templating mechanism provides the following arguments:<br />* `.cluster.name`: The name of the cluster object.<br />* `.random`: A random alphanumeric string, without vowels, of length 5. |  | MaxLength: 1024 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### JSONPatch
@@ -2902,7 +2902,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `unhealthyLessThanOrEqualTo` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#intorstring-intstr-util)_ | unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of<br />unhealthy Machines is less than or equal to the configured value.<br />unhealthyInRange takes precedence if set. |  | Optional: \{\} <br /> |
-| `unhealthyInRange` _string_ | unhealthyInRange specifies that remediations are only triggered if the number of<br />unhealthy Machines is in the configured range.<br />Takes precedence over unhealthyLessThanOrEqualTo.<br />Eg. "[3-5]" - This means that remediation will be allowed only when:<br />(a) there are at least 3 unhealthy Machines (and)<br />(b) there are at most 5 unhealthy Machines |  | MaxLength: 32 <br />MinLength: 1 <br />Pattern: `^\[[0-9]+-[0-9]+\]$` <br />Optional: \{\} <br /> |
+| `unhealthyInRange` _string_ | unhealthyInRange specifies that remediations are only triggered if the number of<br />unhealthy Machines is in the configured range.<br />Takes precedence over unhealthyLessThanOrEqualTo.<br />E.g. "[3-5]" - This means that remediation will be allowed only when:<br />(a) there are at least 3 unhealthy Machines (and)<br />(b) there are at most 5 unhealthy Machines |  | MaxLength: 32 <br />MinLength: 1 <br />Pattern: `^\[[0-9]+-[0-9]+\]$` <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentClassInfrastructureTemplate
@@ -2956,7 +2956,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `template` _string_ | template defines the template to use for generating the name of the MachineDeployment object.<br />If not defined, it will fallback to `\{\{ .cluster.name \}\}-\{\{ .machineDeployment.topologyName \}\}-\{\{ .random \}\}`.<br />If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />The templating mechanism provides the following arguments:<br />* `.cluster.name`: The name of the cluster object.<br />* `.random`: A random alphanumeric string, without vowels, of length 5.<br />* `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name). |  | MaxLength: 1024 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `template` _string_ | template defines the template to use for generating the name of the MachineDeployment object.<br />If not defined, it will fall back to `\{\{ .cluster.name \}\}-\{\{ .machineDeployment.topologyName \}\}-\{\{ .random \}\}`.<br />If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />The templating mechanism provides the following arguments:<br />* `.cluster.name`: The name of the cluster object.<br />* `.random`: A random alphanumeric string, without vowels, of length 5.<br />* `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name). |  | MaxLength: 1024 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentClassRolloutSpec
@@ -3044,7 +3044,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[MachineDeploymentV1Beta1DeprecatedStatus](#machinedeploymentv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[MachineDeploymentV1Beta1DeprecatedStatus](#machinedeploymentv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### MachineDeploymentList
@@ -3205,7 +3205,7 @@ _Appears in:_
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
 | `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this MachineDeployment. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `phase` _string_ | phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown). |  | Enum: [ScalingUp ScalingDown Running Failed Unknown] <br />Optional: \{\} <br /> |
-| `deprecated` _[MachineDeploymentDeprecatedStatus](#machinedeploymentdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[MachineDeploymentDeprecatedStatus](#machinedeploymentdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### MachineDeploymentTopology
@@ -3252,7 +3252,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `enabled` _boolean_ | enabled controls if a MachineHealthCheck should be created for the target machines.<br />If false: No MachineHealthCheck will be created.<br />If not set(default): A MachineHealthCheck will be created if it is defined here or<br /> in the associated ClusterClass. If no MachineHealthCheck is defined then none will be created.<br />If true: A MachineHealthCheck is guaranteed to be created. Cluster validation will<br />block if `enable` is true and no MachineHealthCheck definition is available. |  | Optional: \{\} <br /> |
 | `checks` _[MachineDeploymentTopologyHealthCheckChecks](#machinedeploymenttopologyhealthcheckchecks)_ | checks are the checks that are used to evaluate if a Machine is healthy.<br />If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,<br />and as a consequence the checks and remediation fields from Cluster will be used instead of the<br />corresponding fields in ClusterClass.<br />Independent of this configuration the MachineHealthCheck controller will always<br />flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and<br />Machines with deleted Nodes as unhealthy.<br />Furthermore, if checks.nodeStartupTimeoutSeconds is not set it<br />is defaulted to 10 minutes and evaluated accordingly. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
-| `remediation` _[MachineDeploymentTopologyHealthCheckRemediation](#machinedeploymenttopologyhealthcheckremediation)_ | remediation configures if and how remediations are triggered if a Machine is unhealthy.<br />If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,<br />and as a consequence the checks and remediation fields from cluster will be used instead of the<br />corresponding fields in ClusterClass.<br />If an health check override is defined and remediation or remediation.triggerIf is not set,<br />remediation will always be triggered for unhealthy Machines.<br />If an health check override is defined and remediation or remediation.templateRef is not set,<br />the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via<br />the owner of the Machines, for example a MachineSet or a KubeadmControlPlane. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `remediation` _[MachineDeploymentTopologyHealthCheckRemediation](#machinedeploymenttopologyhealthcheckremediation)_ | remediation configures if and how remediations are triggered if a Machine is unhealthy.<br />If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,<br />and as a consequence the checks and remediation fields from cluster will be used instead of the<br />corresponding fields in ClusterClass.<br />If a health check override is defined and remediation or remediation.triggerIf is not set,<br />remediation will always be triggered for unhealthy Machines.<br />If a health check override is defined and remediation or remediation.templateRef is not set,<br />the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via<br />the owner of the Machines, for example a MachineSet or a KubeadmControlPlane. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentTopologyHealthCheckChecks
@@ -3390,7 +3390,7 @@ _Appears in:_
 
 
 
-MachineDeploymentV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+MachineDeploymentV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -3400,11 +3400,11 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the MachineDeployment.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `updatedReplicas` _integer_ | updatedReplicas is the total number of non-terminated machines targeted by this deployment<br />that have the desired template spec.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `readyReplicas` _integer_ | readyReplicas is the total number of ready machines targeted by this deployment.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `availableReplicas` _integer_ | availableReplicas is the total number of available machines (ready for at least minReadySeconds)<br />targeted by this deployment.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `unavailableReplicas` _integer_ | unavailableReplicas is the total number of unavailable machines targeted by this deployment.<br />This is the total number of machines that are still required for<br />the deployment to have 100% available capacity. They may either<br />be machines that are running but not yet available or machines<br />that still have not been created.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the MachineDeployment.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `updatedReplicas` _integer_ | updatedReplicas is the total number of non-terminated machines targeted by this deployment<br />that have the desired template spec.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `readyReplicas` _integer_ | readyReplicas is the total number of ready machines targeted by this deployment.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `availableReplicas` _integer_ | availableReplicas is the total number of available machines (ready for at least minReadySeconds)<br />targeted by this deployment.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `unavailableReplicas` _integer_ | unavailableReplicas is the total number of unavailable machines targeted by this deployment.<br />This is the total number of machines that are still required for<br />the deployment to have 100% available capacity. They may either<br />be machines that are running but not yet available or machines<br />that still have not been created.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### MachineDeploymentVariables
@@ -3438,7 +3438,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[MachineV1Beta1DeprecatedStatus](#machinev1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `v1beta1` _[MachineV1Beta1DeprecatedStatus](#machinev1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### MachineDrainRule
@@ -3622,7 +3622,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[MachineHealthCheckV1Beta1DeprecatedStatus](#machinehealthcheckv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[MachineHealthCheckV1Beta1DeprecatedStatus](#machinehealthcheckv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### MachineHealthCheckList
@@ -3680,7 +3680,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `kind` _string_ | kind of the remediation template.<br />kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character. |  | MaxLength: 63 <br />MinLength: 1 <br />Pattern: `^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$` <br />Required: \{\} <br /> |
 | `name` _string_ | name of the remediation template.<br />name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character. |  | MaxLength: 253 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
-| `apiVersion` _string_ | apiVersion of the remediation template.<br />apiVersion must be fully qualified domain name followed by / and a version.<br />NOTE: This field must be kept in sync with the APIVersion of the remediation template. |  | MaxLength: 317 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
+| `apiVersion` _string_ | apiVersion of the remediation template.<br />apiVersion must be a fully qualified domain name followed by / and a version.<br />NOTE: This field must be kept in sync with the APIVersion of the remediation template. |  | MaxLength: 317 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
 
 
 #### MachineHealthCheckRemediationTriggerIf
@@ -3740,14 +3740,14 @@ _Appears in:_
 | `remediationsAllowed` _integer_ | remediationsAllowed is the number of further remediations allowed by this machine health check before<br />maxUnhealthy short circuiting will be applied |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
 | `targets` _string array_ | targets shows the current list of machines the machine health check is watching |  | MaxItems: 10000 <br />items:MaxLength: 253 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
-| `deprecated` _[MachineHealthCheckDeprecatedStatus](#machinehealthcheckdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[MachineHealthCheckDeprecatedStatus](#machinehealthcheckdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### MachineHealthCheckV1Beta1DeprecatedStatus
 
 
 
-MachineHealthCheckV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+MachineHealthCheckV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -3757,7 +3757,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the MachineHealthCheck.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the MachineHealthCheck.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### MachineInitializationStatus
@@ -3814,7 +3814,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `template` _string_ | template defines the template to use for generating the names of the<br />Machine objects.<br />If not defined, it will fallback to `\{\{ .machineSet.name \}\}-\{\{ .random \}\}`.<br />If the generated name string exceeds 63 characters, it will be trimmed to<br />58 characters and will<br />get concatenated with a random suffix of length 5.<br />Length of the template string must not exceed 256 characters.<br />The template allows the following variables `.cluster.name`,<br />`.machineSet.name` and `.random`.<br />The variable `.cluster.name` retrieves the name of the cluster object<br />that owns the Machines being created.<br />The variable `.machineSet.name` retrieves the name of the MachineSet<br />object that owns the Machines being created.<br />The variable `.random` is substituted with random alphanumeric string,<br />without vowels, of length 5. This variable is required part of the<br />template. If not provided, validation will fail. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `template` _string_ | template defines the template to use for generating the names of the<br />Machine objects.<br />If not defined, it will fall back to `\{\{ .machineSet.name \}\}-\{\{ .random \}\}`.<br />If the generated name string exceeds 63 characters, it will be trimmed to<br />58 characters and will<br />get concatenated with a random suffix of length 5.<br />Length of the template string must not exceed 256 characters.<br />The template allows the following variables `.cluster.name`,<br />`.machineSet.name` and `.random`.<br />The variable `.cluster.name` retrieves the name of the cluster object<br />that owns the Machines being created.<br />The variable `.machineSet.name` retrieves the name of the MachineSet<br />object that owns the Machines being created.<br />The variable `.random` is substituted with random alphanumeric string,<br />without vowels, of length 5. This variable is required part of the<br />template. If not provided, validation will fail. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachineNodeReference
@@ -3948,7 +3948,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `template` _string_ | template defines the template to use for generating the name of the MachinePool object.<br />If not defined, it will fallback to `\{\{ .cluster.name \}\}-\{\{ .machinePool.topologyName \}\}-\{\{ .random \}\}`.<br />If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />The templating mechanism provides the following arguments:<br />* `.cluster.name`: The name of the cluster object.<br />* `.random`: A random alphanumeric string, without vowels, of length 5.<br />* `.machinePool.topologyName`: The name of the MachinePool topology (Cluster.spec.topology.workers.machinePools[].name). |  | MaxLength: 1024 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `template` _string_ | template defines the template to use for generating the name of the MachinePool object.<br />If not defined, it will fall back to `\{\{ .cluster.name \}\}-\{\{ .machinePool.topologyName \}\}-\{\{ .random \}\}`.<br />If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />The templating mechanism provides the following arguments:<br />* `.cluster.name`: The name of the cluster object.<br />* `.random`: A random alphanumeric string, without vowels, of length 5.<br />* `.machinePool.topologyName`: The name of the MachinePool topology (Cluster.spec.topology.workers.machinePools[].name). |  | MaxLength: 1024 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachinePoolDeprecatedStatus
@@ -3965,7 +3965,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[MachinePoolV1Beta1DeprecatedStatus](#machinepoolv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[MachinePoolV1Beta1DeprecatedStatus](#machinepoolv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### MachinePoolInitializationStatus
@@ -4051,7 +4051,7 @@ _Appears in:_
 | `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this MachinePool. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `phase` _string_ | phase represents the current phase of cluster actuation. |  | Enum: [Pending Provisioning Provisioned Running ScalingUp ScalingDown Scaling Deleting Failed Unknown] <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
-| `deprecated` _[MachinePoolDeprecatedStatus](#machinepooldeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[MachinePoolDeprecatedStatus](#machinepooldeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### MachinePoolTopology
@@ -4102,7 +4102,7 @@ _Appears in:_
 
 
 
-MachinePoolV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+MachinePoolV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -4112,12 +4112,12 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions define the current service state of the MachinePool.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureReason` _[MachinePoolStatusFailure](#machinepoolstatusfailure)_ | failureReason indicates that there is a problem reconciling the state, and<br />will be set to a token value suitable for programmatic interpretation.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureMessage` _string_ | failureMessage indicates that there is a problem reconciling the state,<br />and will be set to a descriptive error message.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
-| `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready".<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `availableReplicas` _integer_ | availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `unavailableReplicas` _integer_ | unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool.<br />This is the total number of machine instances that are still required for<br />the machine pool to have 100% available capacity. They may either<br />be machine instances that are running but not yet available or machine instances<br />that still have not been created.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions define the current service state of the MachinePool.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureReason` _[MachinePoolStatusFailure](#machinepoolstatusfailure)_ | failureReason indicates that there is a problem reconciling the state, and<br />will be set to a token value suitable for programmatic interpretation.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureMessage` _string_ | failureMessage indicates that there is a problem reconciling the state,<br />and will be set to a descriptive error message.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready".<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `availableReplicas` _integer_ | availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `unavailableReplicas` _integer_ | unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool.<br />This is the total number of machine instances that are still required for<br />the machine pool to have 100% available capacity. They may either<br />be machine instances that are running but not yet available or machine instances<br />that still have not been created.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### MachinePoolVariables
@@ -4155,7 +4155,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditionType` _string_ | conditionType refers to a condition with matching type in the Machine's condition list.<br />If the conditions doesn't exist, it will be treated as unknown.<br />Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates. |  | MaxLength: 316 <br />MinLength: 1 <br />Pattern: `^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$` <br />Required: \{\} <br /> |
+| `conditionType` _string_ | conditionType refers to a condition with a matching type in the Machine's condition list.<br />If the condition doesn't exist, it will be treated as unknown.<br />Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates. |  | MaxLength: 316 <br />MinLength: 1 <br />Pattern: `^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$` <br />Required: \{\} <br /> |
 | `polarity` _[ConditionPolarity](#conditionpolarity)_ | polarity of the conditionType specified in this readinessGate.<br />Valid values are Positive, Negative and omitted.<br />When omitted, the default behaviour will be Positive.<br />A positive polarity means that the condition should report a true status under normal conditions.<br />A negative polarity means that the condition should report a false status under normal conditions. |  | Enum: [Positive Negative] <br />Optional: \{\} <br /> |
 
 
@@ -4233,7 +4233,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[MachineSetV1Beta1DeprecatedStatus](#machinesetv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[MachineSetV1Beta1DeprecatedStatus](#machinesetv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### MachineSetList
@@ -4301,14 +4301,14 @@ _Appears in:_
 | `upToDateReplicas` _integer_ | upToDateReplicas is the number of up-to-date replicas for this MachineSet. A machine is considered up-to-date when Machine's UpToDate condition is true. |  | Optional: \{\} <br /> |
 | `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this MachineSet. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration reflects the generation of the most recently observed MachineSet. |  | Minimum: 1 <br />Optional: \{\} <br /> |
-| `deprecated` _[MachineSetDeprecatedStatus](#machinesetdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[MachineSetDeprecatedStatus](#machinesetdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### MachineSetV1Beta1DeprecatedStatus
 
 
 
-MachineSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+MachineSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -4318,12 +4318,12 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the MachineSet.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureReason` _[MachineSetStatusError](#machinesetstatuserror)_ | failureReason will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a succinct value suitable<br />for machine interpretation.<br />In the event that there is a terminal problem reconciling the<br />replicas, both FailureReason and FailureMessage will be set. FailureReason<br />will be populated with a succinct value suitable for machine<br />interpretation, while FailureMessage will contain a more verbose<br />string suitable for logging and human consumption.<br />These fields should not be set for transitive errors that a<br />controller faces that are expected to be fixed automatically over<br />time (like service outages), but instead indicate that something is<br />fundamentally wrong with the MachineTemplate's spec or the configuration of<br />the machine controller, and that manual intervention is required. Examples<br />of terminal errors would be invalid combinations of settings in the<br />spec, values that are unsupported by the machine controller, or the<br />responsible machine controller itself being critically misconfigured.<br />Any transient errors that occur during the reconciliation of Machines<br />can be added as events to the MachineSet object and/or logged in the<br />controller's output.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureMessage` _string_ | failureMessage will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a more verbose string suitable<br />for logging and human consumption.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
-| `fullyLabeledReplicas` _integer_ | fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `availableReplicas` _integer_ | availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the MachineSet.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureReason` _[MachineSetStatusError](#machinesetstatuserror)_ | failureReason will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a succinct value suitable<br />for machine interpretation.<br />In the event that there is a terminal problem reconciling the<br />replicas, both FailureReason and FailureMessage will be set. FailureReason<br />will be populated with a succinct value suitable for machine<br />interpretation, while FailureMessage will contain a more verbose<br />string suitable for logging and human consumption.<br />These fields should not be set for transitive errors that a<br />controller faces that are expected to be fixed automatically over<br />time (like service outages), but instead indicate that something is<br />fundamentally wrong with the MachineTemplate's spec or the configuration of<br />the machine controller, and that manual intervention is required. Examples<br />of terminal errors would be invalid combinations of settings in the<br />spec, values that are unsupported by the machine controller, or the<br />responsible machine controller itself being critically misconfigured.<br />Any transient errors that occur during the reconciliation of Machines<br />can be added as events to the MachineSet object and/or logged in the<br />controller's output.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureMessage` _string_ | failureMessage will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a more verbose string suitable<br />for logging and human consumption.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `fullyLabeledReplicas` _integer_ | fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `availableReplicas` _integer_ | availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### MachineSpec
@@ -4344,10 +4344,10 @@ _Appears in:_
 | `bootstrap` _[Bootstrap](#bootstrap)_ | bootstrap is a reference to a local struct which encapsulates<br />fields to configure the Machine’s bootstrapping mechanism. |  | Required: \{\} <br /> |
 | `infrastructureRef` _[ContractVersionedObjectReference](#contractversionedobjectreference)_ | infrastructureRef is a required reference to a custom resource<br />offered by an infrastructure provider. |  | Required: \{\} <br /> |
 | `version` _string_ | version defines the desired Kubernetes version.<br />This field is meant to be optionally used by bootstrap providers. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
-| `providerID` _string_ | providerID is the identification ID of the machine provided by the provider.<br />This field must match the provider ID as seen on the node object corresponding to this machine.<br />This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler<br />with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out<br />machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a<br />generic out-of-tree provider for autoscaler, this field is required by autoscaler to be<br />able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver<br />and then a comparison is done to find out unregistered machines and are marked for delete.<br />This field will be set by the actuators and consumed by higher level entities like autoscaler that will<br />be interfacing with cluster-api as generic provider. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `providerID` _string_ | providerID is the identification ID of the machine provided by the provider.<br />This field must match the provider ID as seen on the node object corresponding to this machine.<br />This field is required by higher level consumers of cluster-api. An example use case is cluster autoscaler<br />with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out<br />machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a<br />generic out-of-tree provider for autoscaler, this field is required by autoscaler to be<br />able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver<br />and then a comparison is done to find out unregistered machines and are marked for delete.<br />This field will be set by the actuators and consumed by higher level entities like autoscaler that will<br />be interfacing with cluster-api as generic provider. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `failureDomain` _string_ | failureDomain is the failure domain the machine will be created in.<br />Must match the name of a FailureDomain from the Cluster status. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `minReadySeconds` _integer_ | minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available.<br />Defaults to 0 (Machine will be considered available as soon as the Machine is ready) |  | Minimum: 0 <br />Optional: \{\} <br /> |
-| `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition.<br />This field can be used e.g. by Cluster API control plane providers to extend the semantic of the<br />Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates<br />for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.<br />Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;<br />they can include the status of those components with a new condition and add this condition to ReadinessGates.<br />NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those<br />readiness gates condition are reporting the same message, when computing the Machine's Ready condition those<br />readinessGates will be replaced by a single entry reporting "Control plane components: " + message.<br />This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster). |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition.<br />This field can be used e.g. by Cluster API control plane providers to extend the semantic of the<br />Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates<br />for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.<br />Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;<br />they can include the status of those components with a new condition and add this condition to ReadinessGates.<br />NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those<br />readiness gate conditions are reporting the same message, when computing the Machine's Ready condition those<br />readinessGates will be replaced by a single entry reporting "Control plane components: " + message.<br />This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[MachineDeletionSpec](#machinedeletionspec)_ | deletion contains configuration options for Machine deletion. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `taints` _[MachineTaint](#machinetaint) array_ | taints are the node taints that Cluster API will manage.<br />This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,<br />e.g. the node controller might add the node.kubernetes.io/not-ready taint.<br />Only those taints defined in this list will be added or removed by core Cluster API controllers.<br />There can be at most 64 taints.<br />A pod would have to tolerate all existing taints to run on the corresponding node.<br />NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners. |  | MaxItems: 64 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
@@ -4375,7 +4375,7 @@ _Appears in:_
 | `phase` _string_ | phase represents the current phase of machine actuation. |  | Enum: [Pending Provisioning Provisioned Running Updating Deleting Deleted Failed Unknown] <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[MachineDeletionStatus](#machinedeletionstatus)_ | deletion contains information relating to removal of the Machine.<br />Only present when the Machine has a deletionTimestamp and drain or wait for volume detach started. |  | Optional: \{\} <br /> |
-| `deprecated` _[MachineDeprecatedStatus](#machinedeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[MachineDeprecatedStatus](#machinedeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### MachineTaint
@@ -4446,7 +4446,7 @@ _Appears in:_
 
 
 
-MachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+MachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -4456,9 +4456,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the Machine.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureReason` _[MachineStatusError](#machinestatuserror)_ | failureReason will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a succinct value suitable<br />for machine interpretation.<br />This field should not be set for transitive errors that a controller<br />faces that are expected to be fixed automatically over<br />time (like service outages), but instead indicate that something is<br />fundamentally wrong with the Machine's spec or the configuration of<br />the controller, and that manual intervention is required. Examples<br />of terminal errors would be invalid combinations of settings in the<br />spec, values that are unsupported by the controller, or the<br />responsible controller itself being critically misconfigured.<br />Any transient errors that occur during the reconciliation of Machines<br />can be added as events to the Machine object and/or logged in the<br />controller's output.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureMessage` _string_ | failureMessage will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a more verbose string suitable<br />for logging and human consumption.<br />This field should not be set for transitive errors that a controller<br />faces that are expected to be fixed automatically over<br />time (like service outages), but instead indicate that something is<br />fundamentally wrong with the Machine's spec or the configuration of<br />the controller, and that manual intervention is required. Examples<br />of terminal errors would be invalid combinations of settings in the<br />spec, values that are unsupported by the controller, or the<br />responsible controller itself being critically misconfigured.<br />Any transient errors that occur during the reconciliation of Machines<br />can be added as events to the Machine object and/or logged in the<br />controller's output.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the Machine.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureReason` _[MachineStatusError](#machinestatuserror)_ | failureReason will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a succinct value suitable<br />for machine interpretation.<br />This field should not be set for transitive errors that a controller<br />faces that are expected to be fixed automatically over<br />time (like service outages), but instead indicate that something is<br />fundamentally wrong with the Machine's spec or the configuration of<br />the controller, and that manual intervention is required. Examples<br />of terminal errors would be invalid combinations of settings in the<br />spec, values that are unsupported by the controller, or the<br />responsible controller itself being critically misconfigured.<br />Any transient errors that occur during the reconciliation of Machines<br />can be added as events to the Machine object and/or logged in the<br />controller's output.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureMessage` _string_ | failureMessage will be set in the event that there is a terminal problem<br />reconciling the Machine and will contain a more verbose string suitable<br />for logging and human consumption.<br />This field should not be set for transitive errors that a controller<br />faces that are expected to be fixed automatically over<br />time (like service outages), but instead indicate that something is<br />fundamentally wrong with the Machine's spec or the configuration of<br />the controller, and that manual intervention is required. Examples<br />of terminal errors would be invalid combinations of settings in the<br />spec, values that are unsupported by the controller, or the<br />responsible controller itself being critically misconfigured.<br />Any transient errors that occur during the reconciliation of Machines<br />can be added as events to the Machine object and/or logged in the<br />controller's output.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### NetworkRanges
@@ -4495,7 +4495,7 @@ specifically `spec.metadata.creationTimestamp in body must be of type string: "n
 The investigation showed that `controller-tools@v2` behaves differently than its previous version
 when handling types from [metav1](k8s.io/apimachinery/pkg/apis/meta/v1) package.
 
-In more details, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta`
+In more detail, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta`
 had validation properties, including for `creationTimestamp` (metav1.Time).
 The `metav1.Time` type specifies a custom json marshaller that, when IsZero() is true, returns `null`
 which breaks validation because the field isn't marked as nullable.
@@ -4559,7 +4559,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | apiVersion filters templates by apiVersion.<br />apiVersion must be fully qualified domain name followed by / and a version. |  | MaxLength: 317 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
+| `apiVersion` _string_ | apiVersion filters templates by apiVersion.<br />apiVersion must be a fully qualified domain name followed by / and a version. |  | MaxLength: 317 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$` <br />Required: \{\} <br /> |
 | `kind` _string_ | kind filters templates by kind.<br />kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character. |  | MaxLength: 63 <br />MinLength: 1 <br />Pattern: `^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$` <br />Required: \{\} <br /> |
 | `matchResources` _[PatchSelectorMatch](#patchselectormatch)_ | matchResources selects templates based on where they are referenced. |  | MinProperties: 1 <br />Required: \{\} <br /> |
 
@@ -4890,7 +4890,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[KubeadmControlPlaneV1Beta1DeprecatedStatus](#kubeadmcontrolplanev1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[KubeadmControlPlaneV1Beta1DeprecatedStatus](#kubeadmcontrolplanev1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### KubeadmControlPlaneInitializationStatus
@@ -5000,7 +5000,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `maxRetry` _integer_ | maxRetry is the Max number of retries while attempting to remediate an unhealthy machine.<br />A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.<br />For example, given a control plane with three machines M1, M2, M3:<br />	M1 become unhealthy; remediation happens, and M1-1 is created as a replacement.<br />	If M1-1 (replacement of M1) has problems while bootstrapping it will become unhealthy, and then be<br />	remediated; such operation is considered a retry, remediation-retry #1.<br />	If M1-2 (replacement of M1-1) becomes unhealthy, remediation-retry #2 will happen, etc.<br />A retry could happen only after retryPeriodSeconds from the previous retry.<br />If a machine is marked as unhealthy after minHealthyPeriodSeconds from the previous remediation expired,<br />this is not considered a retry anymore because the new issue is assumed unrelated from the previous one.<br />If not set, the remedation will be retried infinitely. |  | Optional: \{\} <br /> |
+| `maxRetry` _integer_ | maxRetry is the Max number of retries while attempting to remediate an unhealthy machine.<br />A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.<br />For example, given a control plane with three machines M1, M2, M3:<br />	M1 become unhealthy; remediation happens, and M1-1 is created as a replacement.<br />	If M1-1 (replacement of M1) has problems while bootstrapping it will become unhealthy, and then be<br />	remediated; such operation is considered a retry, remediation-retry #1.<br />	If M1-2 (replacement of M1-1) becomes unhealthy, remediation-retry #2 will happen, etc.<br />A retry could happen only after retryPeriodSeconds from the previous retry.<br />If a machine is marked as unhealthy after minHealthyPeriodSeconds from the previous remediation expired,<br />this is not considered a retry anymore because the new issue is assumed unrelated from the previous one.<br />If not set, the remediation will be retried infinitely. |  | Optional: \{\} <br /> |
 | `retryPeriodSeconds` _integer_ | retryPeriodSeconds is the duration that KCP should wait before remediating a machine being created as a replacement<br />for an unhealthy machine (a retry).<br />If not set, a retry will happen immediately. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `minHealthyPeriodSeconds` _integer_ | minHealthyPeriodSeconds defines the duration after which KCP will consider any failure to a machine unrelated<br />from the previous one. In this case the remediation is not considered a retry anymore, and thus the retry<br />counter restarts from 0. For example, assuming minHealthyPeriodSeconds is set to 1h (default)<br />	M1 become unhealthy; remediation happens, and M1-1 is created as a replacement.<br />	If M1-1 (replacement of M1) has problems within the 1hr after the creation, also<br />	this machine will be remediated and this operation is considered a retry - a problem related<br />	to the original issue happened to M1 -.<br />	If instead the problem on M1-1 is happening after minHealthyPeriodSeconds expired, e.g. four days after<br />	m1-1 has been created as a remediation of M1, the problem on M1-1 is considered unrelated to<br />	the original issue happened to M1.<br />If not set, this value is defaulted to 1h. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 
@@ -5134,7 +5134,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a KubeadmControlPlane's current state.<br />Known condition types are Available, CertificatesAvailable, EtcdClusterAvailable, MachinesReady, MachinesUpToDate,<br />ScalingUp, ScalingDown, Remediating, Deleting, Paused. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `initialization` _[KubeadmControlPlaneInitializationStatus](#kubeadmcontrolplaneinitializationstatus)_ | initialization provides observations of the KubeadmControlPlane initialization process.<br />NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
-| `selector` _string_ | selector is the label selector in string format to avoid introspection<br />by clients, and is used to provide the CRD-based integration for the<br />scale subresource and additional integrations for things like kubectl<br />describe.. The string will be in the same format as the query-param syntax.<br />More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors |  | MaxLength: 4096 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `selector` _string_ | selector is the label selector in string format to avoid introspection<br />by clients, and is used to provide the CRD-based integration for the<br />scale subresource and additional integrations for things like kubectl<br />describe. The string will be in the same format as the query-param syntax.<br />More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors |  | MaxLength: 4096 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `replicas` _integer_ | replicas is the total number of non-terminated machines targeted by this control plane<br />(their labels match the selector). |  | Optional: \{\} <br /> |
 | `readyReplicas` _integer_ | readyReplicas is the number of ready replicas for this KubeadmControlPlane. A machine is considered ready when Machine's Ready condition is true. |  | Optional: \{\} <br /> |
 | `availableReplicas` _integer_ | availableReplicas is the number of available replicas targeted by this KubeadmControlPlane. A machine is considered available when Machine's Available condition is true. |  | Optional: \{\} <br /> |
@@ -5142,8 +5142,8 @@ _Appears in:_
 | `versions` _[StatusVersion](#statusversion) array_ | versions is the aggregated Kubernetes versions in this KubeadmControlPlane. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `version` _string_ | version represents the minimum Kubernetes version for the control plane machines<br />in the cluster.<br />Deprecated: This field is deprecated and is going to be removed in a future API version. Please use status.versions instead. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
-| `lastRemediation` _[LastRemediationStatus](#lastremediationstatus)_ | lastRemediation stores info about last remediation performed. |  | Optional: \{\} <br /> |
-| `deprecated` _[KubeadmControlPlaneDeprecatedStatus](#kubeadmcontrolplanedeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `lastRemediation` _[LastRemediationStatus](#lastremediationstatus)_ | lastRemediation stores info about the last remediation performed. |  | Optional: \{\} <br /> |
+| `deprecated` _[KubeadmControlPlaneDeprecatedStatus](#kubeadmcontrolplanedeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### KubeadmControlPlaneTemplate
@@ -5308,7 +5308,7 @@ _Appears in:_
 
 
 
-KubeadmControlPlaneV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+KubeadmControlPlaneV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -5318,20 +5318,20 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the KubeadmControlPlane.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureReason` _[KubeadmControlPlaneStatusError](#kubeadmcontrolplanestatuserror)_ | failureReason indicates that there is a terminal problem reconciling the<br />state, and will be set to a token value suitable for<br />programmatic interpretation.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `failureMessage` _string_ | failureMessage indicates that there is a terminal problem reconciling the<br />state, and will be set to a descriptive error message.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
-| `updatedReplicas` _integer_ | updatedReplicas is the total number of non-terminated machines targeted by this control plane<br />that have the desired template spec.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `readyReplicas` _integer_ | readyReplicas is the total number of fully running and ready control plane machines.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
-| `unavailableReplicas` _integer_ | unavailableReplicas is the total number of unavailable machines targeted by this control plane.<br />This is the total number of machines that are still required for<br />the deployment to have 100% available capacity. They may either<br />be machines that are running but not yet ready or machines<br />that still have not been created.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the KubeadmControlPlane.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureReason` _[KubeadmControlPlaneStatusError](#kubeadmcontrolplanestatuserror)_ | failureReason indicates that there is a terminal problem reconciling the<br />state, and will be set to a token value suitable for<br />programmatic interpretation.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `failureMessage` _string_ | failureMessage indicates that there is a terminal problem reconciling the<br />state, and will be set to a descriptive error message.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | MaxLength: 10240 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `updatedReplicas` _integer_ | updatedReplicas is the total number of non-terminated machines targeted by this control plane<br />that have the desired template spec.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `readyReplicas` _integer_ | readyReplicas is the total number of fully running and ready control plane machines.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `unavailableReplicas` _integer_ | unavailableReplicas is the total number of unavailable machines targeted by this control plane.<br />This is the total number of machines that are still required for<br />the deployment to have 100% available capacity. They may either<br />be machines that are running but not yet ready or machines<br />that still have not been created.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### LastRemediationStatus
 
 
 
-LastRemediationStatus  stores info about last remediation performed.
-NOTE: if for any reason information about last remediation are lost, RetryCount is going to restart from 0 and thus
+LastRemediationStatus  stores info about the last remediation performed.
+NOTE: if for any reason information about the last remediation is lost, RetryCount is going to restart from 0 and thus
 more remediations than expected might happen.
 
 
@@ -5361,7 +5361,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `template` _string_ | template defines the template to use for generating the names of the Machine objects.<br />If not defined, it will fallback to `\{\{ .kubeadmControlPlane.name \}\}-\{\{ .random \}\}`.<br />If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />Length of the template string must not exceed 256 characters.<br />The template allows the following variables `.cluster.name`, `.kubeadmControlPlane.name` and `.random`.<br />The variable `.cluster.name` retrieves the name of the cluster object that owns the Machines being created.<br />The variable `.kubeadmControlPlane.name` retrieves the name of the KubeadmControlPlane object that owns the Machines being created.<br />The variable `.random` is substituted with random alphanumeric string, without vowels, of length 5. This variable is required<br />part of the template. If not provided, validation will fail. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `template` _string_ | template defines the template to use for generating the names of the Machine objects.<br />If not defined, it will fall back to `\{\{ .kubeadmControlPlane.name \}\}-\{\{ .random \}\}`.<br />If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will<br />get concatenated with a random suffix of length 5.<br />Length of the template string must not exceed 256 characters.<br />The template allows the following variables `.cluster.name`, `.kubeadmControlPlane.name` and `.random`.<br />The variable `.cluster.name` retrieves the name of the cluster object that owns the Machines being created.<br />The variable `.kubeadmControlPlane.name` retrieves the name of the KubeadmControlPlane object that owns the Machines being created.<br />The variable `.random` is substituted with random alphanumeric string, without vowels, of length 5. This variable is required<br />part of the template. If not provided, validation will fail. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 
@@ -5430,7 +5430,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[IPAddressClaimV1Beta1DeprecatedStatus](#ipaddressclaimv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. |  | Optional: \{\} <br /> |
+| `v1beta1` _[IPAddressClaimV1Beta1DeprecatedStatus](#ipaddressclaimv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped. |  | Optional: \{\} <br /> |
 
 
 #### IPAddressClaimList
@@ -5488,7 +5488,7 @@ _Appears in:_
 
 
 
-IPAddressClaimStatus is the observed status of a IPAddressClaim.
+IPAddressClaimStatus is the observed status of an IPAddressClaim.
 
 _Validation:_
 - MinProperties: 1
@@ -5500,14 +5500,14 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a IPAddressClaim's current state.<br />Known condition types are Ready. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `addressRef` _[IPAddressReference](#ipaddressreference)_ | addressRef is a reference to the address that was created for this claim. |  | Optional: \{\} <br /> |
-| `deprecated` _[IPAddressClaimDeprecatedStatus](#ipaddressclaimdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[IPAddressClaimDeprecatedStatus](#ipaddressclaimdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### IPAddressClaimV1Beta1DeprecatedStatus
 
 
 
-IPAddressClaimV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+IPAddressClaimV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -5517,7 +5517,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions summarises the current state of the IPAddressClaim<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions summarises the current state of the IPAddressClaim<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### IPAddressList
@@ -5590,7 +5590,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `name` _string_ | name of the IPPool.<br />name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character. |  | MaxLength: 253 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
 | `kind` _string_ | kind of the IPPool.<br />kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character. |  | MaxLength: 63 <br />MinLength: 1 <br />Pattern: `^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$` <br />Required: \{\} <br /> |
-| `apiGroup` _string_ | apiGroup of the IPPool.<br />apiGroup must be fully qualified domain name. |  | MaxLength: 253 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
+| `apiGroup` _string_ | apiGroup of the IPPool.<br />apiGroup must be a fully qualified domain name. |  | MaxLength: 253 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
 
 
 
@@ -5658,7 +5658,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `v1beta1` _[ExtensionConfigV1Beta1DeprecatedStatus](#extensionconfigv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `v1beta1` _[ExtensionConfigV1Beta1DeprecatedStatus](#extensionconfigv1beta1deprecatedstatus)_ | v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### ExtensionConfigList
@@ -5711,16 +5711,16 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a ExtensionConfig's current state.<br />Known condition types are Discovered, Paused. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of an ExtensionConfig's current state.<br />Known condition types are Discovered, Paused. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `handlers` _[ExtensionHandler](#extensionhandler) array_ | handlers defines the current ExtensionHandlers supported by an Extension. |  | MaxItems: 512 <br />Optional: \{\} <br /> |
-| `deprecated` _[ExtensionConfigDeprecatedStatus](#extensionconfigdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed. |  | Optional: \{\} <br /> |
+| `deprecated` _[ExtensionConfigDeprecatedStatus](#extensionconfigdeprecatedstatus)_ | deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed. |  | Optional: \{\} <br /> |
 
 
 #### ExtensionConfigV1Beta1DeprecatedStatus
 
 
 
-ExtensionConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+ExtensionConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 
 
@@ -5730,7 +5730,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the ExtensionConfig.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
+| `conditions` _[Conditions](#conditions)_ | conditions defines current service state of the ExtensionConfig.<br />Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details. |  | Optional: \{\} <br /> |
 
 
 #### ExtensionHandler
@@ -5758,7 +5758,7 @@ _Underlying type:_ _string_
 
 FailurePolicy specifies how unrecognized errors when calling the ExtensionHandler are handled.
 FailurePolicy helps with extensions not working consistently, e.g. due to an intermittent network issue.
-The following type of errors are never ignored by FailurePolicy Ignore:
+The following types of errors are never ignored by FailurePolicy Ignore:
 - Misconfigurations (e.g. incompatible types)
 - Extension explicitly returns a Status Failure.
 

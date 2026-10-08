@@ -111,7 +111,7 @@ func (a *writeFilesAction) Unmarshal(userData []byte, kindMapping kind.Mapping) 
 }
 
 // fixNodeRegistration sets node registration for running Kubernetes/kubelet in docker.
-// NOTE: we add those values if they do not exists; user can set those flags to different values to disable automatic fixing.
+// NOTE: we add those values if they do not exist; user can set those flags to different values to disable automatic fixing.
 // NOTE: if there will be use case for it, we might investigate better ways to disable automatic fixing.
 func fixNodeRegistration(nodeRegistration *bootstrapv1.NodeRegistrationOptions, kindMapping kind.Mapping) {
 	if nodeRegistration.CRISocket == "" {
@@ -142,7 +142,7 @@ func fixNodeRegistration(nodeRegistration *bootstrapv1.NodeRegistrationOptions, 
 	}
 }
 
-// defautExtraArg sets a default value for an extra arg if it is not already set.
+// defaultExtraArg sets a default value for an extra arg if it is not already set.
 func defaultExtraArg(nodeRegistration *bootstrapv1.NodeRegistrationOptions, arg, value string) {
 	found := false
 	for i := range nodeRegistration.KubeletExtraArgs {
@@ -191,7 +191,7 @@ func (a *writeFilesAction) Commands() ([]provisioning.Cmd, error) {
 			commands = append(commands, provisioning.Cmd{Cmd: "chmod", Args: []string{permissions, path}, Retry: 5})
 		}
 
-		// if ownership is different than default ownership, add a command to modify file ownerhsip.
+		// if ownership is different than default ownership, add a command to modify file ownership.
 		if owner != "root:root" {
 			commands = append(commands, provisioning.Cmd{Cmd: "chown", Args: []string{owner, path}, Retry: 5})
 		}

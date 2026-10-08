@@ -66,7 +66,7 @@ See [Developing Cluster API with Tilt](https://cluster-api.sigs.k8s.io/developer
 Even if the workload cluster running in memory machines is fake, it could be interesting to use kubectl to
 query the fake API server.
 
-It is required to setup connectivity to the pod where the fake API server in running first;
+It is required to set up connectivity to the pod where the fake API server is running first;
 this connection must be used when using kubectl.
 
 From terminal window #1:

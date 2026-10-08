@@ -87,14 +87,14 @@ See the provider documentation for more details.
 
 ## Provider repositories
 
-To access provider specific information, such as the components YAML to be used for installing a provider,
+To access provider-specific information, such as the components YAML to be used for installing a provider,
 `clusterctl init` accesses the **provider repositories**, that are well-known places where the release assets for
 a provider are published.
 
 Per default `clusterctl` will use a go proxy to detect the available versions to prevent additional
 API calls to the GitHub API. It is possible to configure the go proxy url using the `GOPROXY` variable as
 for go itself (defaults to `https://proxy.golang.org`).
-To immediately fallback to the GitHub client and not use a go proxy, the environment variable could get set to
+To immediately fall back to the GitHub client and not use a go proxy, the environment variable could get set to
 `GOPROXY=off` or `GOPROXY=direct`.
 If a provider does not follow Go's semantic versioning, `clusterctl` may fail when detecting the correct version.
 In such cases, disabling the go proxy functionality via `GOPROXY=off` should be considered.

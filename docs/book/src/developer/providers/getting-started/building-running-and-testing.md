@@ -14,7 +14,7 @@ make docker-push IMG=ghcr.io/your-org/your-repo:dev
 
 Before you can deploy the infrastructure controller, you'll need to deploy Cluster API itself to the management cluster.
 
-Follow the [quick start guide](https://cluster-api.sigs.k8s.io/user/quick-start) up to and including the step of [creating the management cluster](https://cluster-api.sigs.k8s.io/user/quick-start#initialize-the-management-cluster). We will proceed presuming you created a cluster with kind and initalized cluster-api with `clusterctl init`.
+Follow the [quick start guide](https://cluster-api.sigs.k8s.io/user/quick-start) up to and including the step of [creating the management cluster](https://cluster-api.sigs.k8s.io/user/quick-start#initialize-the-management-cluster). We will proceed presuming you created a cluster with kind and initialized cluster-api with `clusterctl init`.
 
 
 Check the status of the manager to make sure it's running properly:

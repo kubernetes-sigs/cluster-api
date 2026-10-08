@@ -113,7 +113,7 @@ func (m *Manager) CreateWorkerNode(ctx context.Context, name, clusterName string
 
 // CreateExternalLoadBalancerNode will create a new container to act as the load balancer for external access.
 // NOTE: If port is 0 picking a host port for the load balancer is delegated to the container runtime and is not stable across container restarts.
-// This can break the Kubeconfig in kind, i.e. the file resulting from `kind get kubeconfig -n $CLUSTER_NAME' if the load balancer container is restarted.
+// This can break the Kubeconfig in kind, i.e. the file resulting from `kind get kubeconfig -n $CLUSTER_NAME` if the load balancer container is restarted.
 func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, _ container.ClusterIPFamily) (*types.Node, error) {
 	// load balancer port mapping
 	portMappings := []v1alpha4.PortMapping{

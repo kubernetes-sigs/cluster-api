@@ -51,7 +51,7 @@ func (f *MemoryReader) Init(_ context.Context, _ string) error {
 	}
 	f.variables["providers"] = string(data)
 
-	// images is not used by the operator, but it is read by the clusterctrl
+	// images is not used by the operator, but it is read by the clusterctl
 	// code, so we need a correct empty "images".
 	data, err = yaml.Marshal(map[string]imageMeta{})
 	if err != nil {

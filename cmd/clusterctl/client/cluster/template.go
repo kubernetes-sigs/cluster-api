@@ -200,13 +200,13 @@ func (t *templateClient) getGitHubFileContent(ctx context.Context, rURL *url.URL
 
 	// gets the file from GiHub
 	switch linkType {
-	case "blob": // get file from a code in a github repo
+	case "blob": // get file from a code in a GitHub repo
 		branch := urlSplit[3]
 		path := strings.Join(urlSplit[4:], "/")
 
 		return getGithubFileContentFromCode(ctx, ghClient, rURL.Path, owner, repo, path, branch)
 
-	case "releases": // get a github release asset
+	case "releases": // get a GitHub release asset
 		if len(urlSplit) < 6 || urlSplit[3] != "download" {
 			break
 		}

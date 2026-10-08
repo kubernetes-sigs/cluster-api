@@ -4,7 +4,7 @@
 
 ## Pre-requisites
 
-- Create a github token with the below access and export it in your environment as `GITHUB_ISSUE_OPENER_TOKEN`. Set the validity to the least number of days since this utility is a one time use tool per release cycle.
+- Create a GitHub token with the below access and export it in your environment as `GITHUB_ISSUE_OPENER_TOKEN`. Set the validity to the least number of days since this utility is a one time use tool per release cycle.
   - `repo:status` - Grants access to commit status on public and private repositories.
   - `repo_deployment` - Grants access to deployment statuses on public and private repositories.
   - `public_repo` - Grants access to public repositories

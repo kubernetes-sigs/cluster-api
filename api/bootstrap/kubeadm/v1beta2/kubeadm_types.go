@@ -51,7 +51,7 @@ const (
 	// for generating the bootstrap data secret are available.
 	KubeadmConfigCertificatesAvailableCondition = "CertificatesAvailable"
 
-	// KubeadmConfigCertificatesAvailableReason surfaces when certificates required for machine bootstrap are is available.
+	// KubeadmConfigCertificatesAvailableReason surfaces when certificates required for machine bootstrap are available.
 	KubeadmConfigCertificatesAvailableReason = clusterv1.AvailableReason
 
 	// KubeadmConfigCertificatesAvailableInternalErrorReason surfaces unexpected failures when reading or
@@ -108,7 +108,7 @@ type InitConfiguration struct {
 
 	// localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
 	// In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
-	// is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
+	// is the global endpoint for the cluster, which then load balances the requests to each individual API server. This
 	// configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
 	// on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
 	// fails you may set the desired value here.
@@ -150,7 +150,7 @@ type ClusterConfiguration struct {
 	Etcd Etcd `json:"etcd,omitempty,omitzero"`
 
 	// controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-	// can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+	// can be a valid IP address or an RFC-1123 DNS subdomain, both with optional TCP port.
 	// In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
 	// are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
 	// the BindPort is used.
@@ -357,7 +357,7 @@ type DNS struct {
 	// TODO: evaluate if we need also a ImageName based on user feedbacks
 }
 
-// APIEndpoint struct contains elements of API server instance deployed on a node.
+// APIEndpoint struct contains elements of an API server instance deployed on a node.
 // +kubebuilder:validation:MinProperties=1
 type APIEndpoint struct {
 	// advertiseAddress sets the IP address for the API server to advertise.
@@ -901,7 +901,7 @@ type KubeConfigAuthExec struct {
 	// +kubebuilder:validation:MaxItems=100
 	Env []KubeConfigAuthExecEnv `json:"env,omitempty"`
 
-	// apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+	// apiVersion is the preferred input version of the ExecInfo. The returned ExecCredentials MUST use
 	// the same encoding version as the input.
 	// Defaults to client.authentication.k8s.io/v1 if not set.
 	// +optional

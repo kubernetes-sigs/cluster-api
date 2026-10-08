@@ -92,7 +92,7 @@ const (
 	machineSetMetadataManagerName = "capi-machineset-metadata"
 )
 
-// Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
+// Update permissions on /finalizers subresource is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
 // See: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
 //
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -1910,7 +1910,7 @@ func (r *Reconciler) createBootstrapConfig(ctx context.Context, ms *clusterv1.Ma
 	// Create the full object with capi-machineset.
 	// Below ssa.RemoveManagedFieldsForLabelsAndAnnotations will drop ownership for labels and annotations
 	// so that in a subsequent syncMachines call capi-machineset-metadata can take ownership for them.
-	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
+	// Note: This is done in a way that it does not rely on managedFields being stored in the cache, so we can optimize
 	// memory usage by dropping managedFields before storing objects in the cache.
 	if err := ssa.Patch(ctx, r.Client, machineSetManagerName, bootstrapConfig); err != nil {
 		return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create BootstrapConfig")
@@ -1988,7 +1988,7 @@ func (r *Reconciler) createInfraMachine(ctx context.Context, ms *clusterv1.Machi
 	// Create the full object with capi-machineset.
 	// Below ssa.RemoveManagedFieldsForLabelsAndAnnotations will drop ownership for labels and annotations
 	// so that in a subsequent syncMachines call capi-machineset-metadata can take ownership for them.
-	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
+	// Note: This is done in a way that it does not rely on managedFields being stored in the cache, so we can optimize
 	// memory usage by dropping managedFields before storing objects in the cache.
 	if err := ssa.Patch(ctx, r.Client, machineSetManagerName, infraMachine); err != nil {
 		return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create InfraMachine")

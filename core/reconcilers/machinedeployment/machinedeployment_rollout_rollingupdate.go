@@ -94,13 +94,13 @@ func (p *rolloutPlanner) planRollingUpdate(ctx context.Context) error {
 	// Note: This func only addresses deadlocks due to unavailable replicas not getting deleted on oldMSs, which can happen
 	// because reconcileOldMachineSetsRollingUpdate called above always assumes the worst case when deleting replicas e.g.
 	//  - MD with spec.replicas 3, MaxSurge 1, MaxUnavailable 0
-	//  - OldMS with 3 replicas, 2 available replica (and thus 1 unavailable replica)
+	//  - OldMS with 3 replicas, 2 available replicas (and thus 1 unavailable replica)
 	//  - NewMS with 1 replica, 1 available replica
 	//  - In theory it is possible to scale down oldMS from 3->2 replicas by deleting the unavailable replica.
 	//  - However, reconcileOldMachineSetsRollingUpdate cannot assume that the MachineSet controller is going to delete
 	//    the unavailable replica when scaling down from 3->2, because it might happen that one of the available replicas
 	//    is deleted instead.
-	//  - As a consequence reconcileOldMachineSetsRollingUpdate, which assumes the worst case when deleting replicas, did not scaled down oldMS.
+	//  - As a consequence reconcileOldMachineSetsRollingUpdate, which assumes the worst case when deleting replicas, did not scale down oldMS.
 	// This situation, rollout not proceeding due to unavailable replicas, is considered a deadlock to be addressed by reconcileDeadlockBreaker.
 	// Note: Unblocking deadlocks when unavailable replicas exist only on oldMSs, is required also because replicas on oldMSs are not remediated by MHC.
 	p.reconcileDeadlockBreaker(ctx)
@@ -118,10 +118,10 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 
 	// Acknowledge replicas after a move operation.
 	// NOTE:
-	// - The code below also acknowledge replicas moved to on oldMS, to handle the case a machine has been already moved
+	// - The code below also acknowledges replicas moved to on oldMS, to handle the case a machine has been already moved
 	//   to the previously newMS, and the previously newMs became an oldMS while the machine is still pending acknowledge move.
 	// - It is required to acknowledge replicas moved to on oldMS because the machine has to reach the target state agreed
-	//   at the moment move was started before being able to be moved again (or deleted).
+	//   at the moment the move was started before being able to be moved again (or deleted).
 	// - Acknowledge move on oldMS does not increase the (desired) replica number for the oldMS.
 	// - PendingAcknowledgeMoveAnnotation from machine (managed by the MS controller) and AcknowledgedMoveAnnotation (managed by the rollout planner)
 	//   are used in combination to ensure moved replicas are counted only once by the rollout planner.
@@ -270,10 +270,10 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 	//
 	// Even if this is not impacting availability, it is required to consider those machines to slow down rollout/
 	// ensure that changes are rolled out in an incremental way.
-	// Note: this is consistent with the idea that maxSurge and maxUnavailable defines the speed of a rollout (with the
+	// Note: this is consistent with the idea that maxSurge and maxUnavailable define the speed of a rollout (with the
 	// caveat that maxSurge/creating additional machines is capped because rollout planner must give priority to in-place when possible).
 	// Note: Machines InPlaceUpdatingNotAffectingAvailability exists on oldMSs only if another change is applied
-	// while in place update is still in progress.
+	// while an in-place update is still in progress.
 	totalInPlaceUpdatingNotAffectingAvailability := int32(0)
 	for _, m := range p.machines {
 		if inplace.IsUpdateInProgressNotAffectingAvailability(m) {
@@ -307,7 +307,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 	//
 	// As a consequence, the rollout planner cannot assume a scale down operation deletes an unavailable replica. e.g.
 	//  - MD with spec.replicas 3, MaxSurge 1, MaxUnavailable 0
-	//  - OldMS with 3 replicas, 2 available replica (and thus 1 unavailable replica)
+	//  - OldMS with 3 replicas, 2 available replicas (and thus 1 unavailable replica)
 	//  - NewMS with 1 replica, 1 available replica
 	//  - In theory it is possible to scale down oldMS from 3->2 replicas by deleting the unavailable replica.
 	//  - However,  rollout planner cannot assume that the MachineSet controller is going to delete
@@ -320,7 +320,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 	totalScaleDownCount, totalAvailableReplicas = p.scaleDownOldMSs(ctx, totalScaleDownCount, totalAvailableReplicas, minAvailable, true)
 
 	// Then scale down old MS down to zero replicas / down to residual totalScaleDownCount.
-	// NOTE: Also in this case, we should continuously assess if reducing the number of replicase could further impact availability,
+	// NOTE: Also in this case, we should continuously assess if reducing the number of replicas could further impact availability,
 	// and if necessary, limit scale down extent to ensure the operation respects MaxUnavailable limits.
 	_, _ = p.scaleDownOldMSs(ctx, totalScaleDownCount, totalAvailableReplicas, minAvailable, false)
 
@@ -464,7 +464,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		return nil
 	}
 
-	// Find if there are oldMSs for which it possible to perform an in-place update.
+	// Find if there are oldMSs for which it is possible to perform an in-place update.
 	inPlaceUpdateCandidates := sets.Set[string]{}
 	inPlaceUpdateCandidatesNotAffectingAvailability := []*clusterv1.MachineSet{}
 	for _, oldMS := range p.oldMSs {
@@ -532,7 +532,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 	}
 	p.newMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] = sortAndJoin(inPlaceUpdateCandidates.UnsortedList())
 
-	// At this point, rollout planner know that scale down of at least one machine set is going to happen using move, and this in-place updates.
+	// At this point, rollout planner knows that scale down of at least one machine set is going to happen using move, and this in-place updates.
 	//
 	// Everything below this point is about checking if rollout planner is using maxSurge,
 	// and if possible, drop the usage of maxSurge / minimize unnecessary Machine creations because rollout planner
@@ -609,13 +609,13 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 	//
 	// Make a final try to check if we can avoid using maxSurge / scale up newMS by one.
 	//
-	// If at least one of the oldMS candidate for in-place update can perform an update without affecting availability,
+	// If at least one of the oldMS candidates for in-place update can perform an update without affecting availability,
 	// then we have a way forward that will not impact availability and that abides to the principle of prioritizing in-place updates over creation of new Machines.
 	if len(inPlaceUpdateCandidatesNotAffectingAvailability) > 0 {
 		// Drop scale up newMS / usage of MaxSurge
 		newScaleUpCount = 0
 
-		// Scale down one of the oldMS candidate for in-place update and that can perform an update without affecting availability.
+		// Scale down one of the oldMS candidates for in-place update and that can perform an update without affecting availability.
 		// Sort oldMSs so the system will start moving machines from the oldest MS first.
 		sort.Sort(mdutil.MachineSetsByCreationTimestamp(inPlaceUpdateCandidatesNotAffectingAvailability))
 		oldMS := inPlaceUpdateCandidatesNotAffectingAvailability[0]
@@ -686,7 +686,7 @@ func (p *rolloutPlanner) scalingOrInPlaceUpdateInProgress(_ context.Context) boo
 
 // This funcs tries to detect and address the case when a rollout is not making progress because both scaling down and scaling up are blocked.
 // Note: This func must be called after computing scale up/down intent for all the MachineSets.
-// Note: This func only address deadlock due to unavailable machines not getting deleted on oldMSs, e.g. due to a wrong configuration.
+// Note: This func only addresses deadlock due to unavailable machines not getting deleted on oldMSs, e.g. due to a wrong configuration.
 // Note: Unblocking deadlocks when unavailable replicas exist only on oldMSs, is required also because replicas on oldMSs are not remediated by MHC.
 func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 	log := ctrl.LoggerFrom(ctx)
@@ -703,7 +703,7 @@ func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 	}
 
 	// If there are scale operation in progress, no deadlock.
-	// Note: we are considering both scale operation from previous and current reconcile.
+	// Note: we are considering both scale operations from previous and current reconcile.
 	for _, ms := range allMSs {
 		if ptr.Deref(ms.Spec.Replicas, 0) != ptr.Deref(ms.Status.Replicas, 0) {
 			return

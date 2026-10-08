@@ -72,7 +72,7 @@ const (
 	// As a result, we use the hash of the machine template while ignoring all in-place mutable fields, i.e. the
 	// machine template with only fields that could trigger a rollout for the machine-template-hash, making it
 	// independent of the changes to any in-place mutable fields.
-	// A random string is appended at the end of the label value (label value format is "<hash>-<random string>"))
+	// A random string is appended at the end of the label value (label value format is "<hash>-<random string>")
 	// to distinguish duplicate MachineSets that have the exact same spec but were created as a result of rolloutAfter.
 	MachineDeploymentUniqueLabel = "machine-template-hash"
 )
@@ -411,7 +411,7 @@ type RemediationStrategy struct {
 type MachineNamingStrategy struct {
 	// template defines the template to use for generating the names of the
 	// Machine objects.
-	// If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .machineSet.name }}-{{ .random }}`.
 	// If the generated name string exceeds 63 characters, it will be trimmed to
 	// 58 characters and will
 	// get concatenated with a random suffix of length 5.
@@ -470,7 +470,7 @@ type MachineDeploymentStatus struct {
 	// be machines that are running but not yet available or machines
 	// that still have not been created.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas"`

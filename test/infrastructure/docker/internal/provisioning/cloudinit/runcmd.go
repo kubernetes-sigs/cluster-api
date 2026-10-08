@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
-// runCmd defines parameters of a shell command that is equivalent to an action found in the cloud init rundcmd module.
+// runCmd defines parameters of a shell command that is equivalent to an action found in the cloud init runcmd module.
 type runCmd struct {
 	Cmds []provisioning.Cmd `json:"runcmd"`
 }

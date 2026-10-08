@@ -347,7 +347,7 @@ func (f *fakeClusterClient) WithCertManagerClient(client cluster.CertManagerClie
 	return f
 }
 
-// newFakeConfig return a fake implementation of the client for low-level config library.
+// newFakeConfig returns a fake implementation of the client for the low-level config library.
 // The implementation uses a FakeReader that stores configuration settings in a map; you can use
 // the WithVar or WithProvider methods to set the map values.
 func newFakeConfig(ctx context.Context) *fakeConfigClient {
@@ -394,7 +394,7 @@ func (f *fakeConfigClient) WithProvider(provider config.Provider) *fakeConfigCli
 	return f
 }
 
-// newFakeRepository return a fake implementation of the client for low-level repository library.
+// newFakeRepository returns a fake implementation of the client for the low-level repository library.
 // The implementation stores configuration settings in a map; you can use
 // the WithPaths or WithDefaultVersion methods to configure the repository and WithFile to set the map values.
 func newFakeRepository(ctx context.Context, provider config.Provider, configClient config.Client) *fakeRepositoryClient {
@@ -430,7 +430,7 @@ func (f fakeRepositoryClient) GetVersions(ctx context.Context) ([]string, error)
 }
 
 func (f fakeRepositoryClient) Components() repository.ComponentsClient {
-	// use a fakeComponentClient (instead of the internal client used in other fake objects) we can de deterministic on what is returned (e.g. avoid interferences from overrides)
+	// use a fakeComponentClient (instead of the internal client used in other fake objects) we can be deterministic on what is returned (e.g. avoid interferences from overrides)
 	return &fakeComponentClient{
 		provider:       f.Provider,
 		fakeRepository: f.fakeRepository,

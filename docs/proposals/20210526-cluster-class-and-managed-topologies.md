@@ -148,7 +148,7 @@ for all fields of all templates referenced in a ClusterClass.
 As a ClusterClass author (e.g. an infrastructure provider author), I want to be able to write a ClusterClass which covers a wide range of use cases. To make this possible, 
 I want to make the ClusterClass customizable, i.e. depending on configuration provided during Cluster creation, the managed topology should have a different shape.
 
-**Note**: Without this feature all Clusters of the same ClusterClass would be the same apart from the properties that are already configure via the topology,
+**Note**: Without this feature all Clusters of the same ClusterClass would be the same apart from the properties that are already configured via the topology,
 like Kubernetes version, labels and annotations. This would limit the number of variants a single ClusterClass could address, i.e. separate ClusterClasses would be 
 required for deviations which cannot be achieved via the `Cluster.spec.topology` fields. 
 
@@ -186,7 +186,7 @@ If instead you are eager to see an example of ClusterClass and how the Cluster o
 
 ##### ClusterClass
 
-The ClusterClass CRD allows to define a collection of templates that describe the topology for one or more clusters.
+The ClusterClass CRD allows users to define a collection of templates that describe the topology for one or more clusters.
 
 The detailed definition of this type can be found at [ClusterClass CRD reference](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta2);
 at high level the new CRD contains:
@@ -227,7 +227,7 @@ To keep the implementation as easy and user-friendly as possible variable defini
     - Defaulting will be implemented based on the CRD structural schema library and thus will have the same feature set 
       as CRD defaulting. I.e., it will only be possible to use constant values as defaults.
   
-Note: if you are using clusterctl templating for creating ClusterClass, it will be possible to to inject default values
+Note: if you are using clusterctl templating for creating ClusterClass, it will be possible to inject default values
 from environment variables at creation time.
 
 **ClusterClass Patches**
@@ -236,7 +236,7 @@ There are two ways to define patches, by providing inline JSON patches in the Cl
  [Topology Mutation Hook proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220330-topology-mutation-hook.md).
 
 However, it's important to notice that  while defining patches, the author can reference both variable values
-provided in the Cluster spec (see next paragraph for more details) as well as a set of [built in variables](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html#builtin-variables)
+provided in the Cluster spec (see next paragraph for more details) and a set of [built-in variables](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html#builtin-variables)
 providing generic information about the cluster or the template being patched. 
 
 #### Modification to existing API Types
@@ -258,7 +258,7 @@ At high level the cluster topology is defined by:
   - The number of replicas for this MachineDeployment as well as overrides/additional values for metadata, nodeDrainTimeout etc.
     Additionally it is also possible to override the control plane's MachineHealthCheck.
 - The above also applies for machine pools.
-- A set of variables allowing to customize the cluster topology through patches. Please note that it is also possible
+- A set of variables allowing users to customize the cluster topology through patches. Please note that it is also possible
   to define variable overrides for each MachineDeployment or MachinePool.
 
 More info in [writing a ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html).
@@ -284,7 +284,7 @@ is not yet implemented as of today.
 **Cluster**
 
 - Variables are defaulted according to the corresponding variable definitions in the ClusterClass. After defaulting is applied, values
-  can be changed by the user only (they are not affected by change of the default value in the ClusterClass).
+  can be changed by the user only (they are not affected by a change of the default value in the ClusterClass).
 - All required variables must exist and match the schema defined in the corresponding variable definition in the ClusterClass.
 - When changing the cluster class in use by a cluster, the validation ensures that the  new ClusterClass is compatible, i.e. the operation cannot change apiGroup or Kind
   for the referenced templates (with the only exception of the bootstrap templates).
@@ -451,7 +451,7 @@ for more considerations about Kubernetes version upgrade of clusters using manag
 #### Behavior with patches
 
 This section highlights how the basic behavior discussed above changes when patches are used. This is an important use case because without 
-patches all the Cluster derived from a ClusterClass would be almost the same, thus limiting the use cases a single ClusterClass can target. 
+patches all the Clusters derived from a ClusterClass would be almost the same, thus limiting the use cases a single ClusterClass can target. 
 Patches are used to customize individual Clusters, to avoid creating separate ClusterClasses for every small variation, 
 like e.g. a different HTTP proxy configuration, a different image to be used for the machines etc.
 
@@ -542,7 +542,7 @@ templates are used as input for creating or updating the Cluster as described in
       API server version in the cluster as required by the control plane contract.
     - ClusterClass and managed topologies can work both with control plane providers implementing support for
       machine infrastructures and with control plane providers not supporting this feature.
-      Please refer to the control plane for the list of well known fields where the machine template
+      Please refer to the control plane for the list of well-known fields where the machine template
       should be defined (in case this feature is supported).
     - ClusterClass and managed topologies can work both with control plane providers implementing support for
       `spec.replicas` and with control plane provider not supporting this feature.
@@ -553,7 +553,7 @@ templates are used as input for creating or updating the Cluster as described in
 
 #### Conventions for template types implementation
 
-Given that it is required to implement new templates, let's remind the conventions used for
+Given that it is required to implement new templates, let's recall the conventions used for
 defining templates and the corresponding objects:
 
 Templates:
@@ -574,7 +574,7 @@ Objects generated from the template:
       otherwise creating an object derived from a template will fail.
 
 **Note:** The existing InfrastructureMachineTemplate and BootstrapMachineTemplate objects already
-comply those conventions via explicit rules implemented in the code or via operational practices
+comply with those conventions via explicit rules implemented in the code or via operational practices
 (otherwise creating machines would not be working already today).
 
 **Note:** As per this proposal, the definition of ClusterClass is immutable. The CC definition consists 
@@ -592,10 +592,10 @@ topology when necessary.
 More specifically, the topology controller uses [Server Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) to write/patch topology owned objects;
 using SSA allows other controllers to co-author the generated objects.
 
-However, this requires providers to pay attention on lists that are co-owned by multiple controller, for example lists that are expected to contain values from  ClusterClass/Variables, 
+However, this requires providers to pay attention to lists that are co-owned by multiple controllers, for example lists that are expected to contain values from  ClusterClass/Variables, 
 and thus managed by the CAPI topology controller, and values from the infrastructure provider itself, like e.g. subnets in CAPA.
 
-In this cases for ServerSideApply to work properly it is required to ensure the proper annotation exists on the CRD
+In these cases for ServerSideApply to work properly it is required to ensure the proper annotation exists on the CRD
 type definitions, like +MapType or +MapTypeKey, see [merge strategy](https://kubernetes.io/docs/reference/using-api/server-side-apply/#merge-strategy) for more details.
 
 Note: in order to allow the topology controller to execute templates rotation only when strictly necessary, it is necessary
@@ -604,7 +604,7 @@ e.g. [InfraMachineTemplate: support for SSA dry run](https://cluster-api.sigs.k8
 
 ### Risks and Mitigations
 
-This proposal tries to model the API design for ClusterClass with a narrow set of use cases. This initial implementation provides a baseline on which incremental changes can be introduced in the future. Instead of encompassing of all use cases under a single proposal, this proposal mitigates the risk of waiting too long to consider all required use cases under this topic.
+This proposal tries to model the API design for ClusterClass with a narrow set of use cases. This initial implementation provides a baseline on which incremental changes can be introduced in the future. Instead of encompassing all use cases under a single proposal, this proposal mitigates the risk of waiting too long to consider all required use cases under this topic.
 
 ## Alternatives
 
@@ -620,7 +620,7 @@ TBD
 
 ### Graduation Criteria [optional]
 
-The initial plan is to rollout Cluster Class and support for managed topologies under a feature flag which would be unset by default.
+The initial plan is to roll out Cluster Class and support for managed topologies under a feature flag which would be unset by default.
 
 ## Implementation History
 

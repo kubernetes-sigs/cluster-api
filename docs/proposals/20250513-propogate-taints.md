@@ -290,11 +290,11 @@ Proper validation on the new field has to:
 * block taints with a key of `node.cluster.x-k8s.io/uninitialized` or `node.cluster.x-k8s.io/outdated-revision`.
   * These taints are managed by Cluster API and providers.
 * block taints with the key prefix `node.kubernetes.io/`, except `node.kubernetes.io/out-of-service`.
-  * With the exception of `node.kubernetes.io/out-of-service`, this taints are managed by the node controller or the kubelet.
+  * With the exception of `node.kubernetes.io/out-of-service`, these taints are managed by the node controller or the kubelet.
 * block taints with the key prefix `node.cloudprovider.kubernetes.io/`
-  * This taints are either managed by the kubelet or by a cloud-controller-manager's node-lifecycle-controller
+  * These taints are either managed by the kubelet or by a cloud-controller-manager's node-lifecycle-controller
 * block the taint `node-role.kubernetes.io/control-plane` for worker nodes (identified by absence of the label `cluster.x-k8s.io/control-plane`) and for MachineDeployments, MachineSets and MachinePools.
-  * This taints are dedicated to be set on control-plane machines, not for workers.
+  * These taints are dedicated to be set on control-plane machines, not for workers.
 * block the taint `node-role.kubernetes.io/master` which is deprecated since 1.24
 
 If in the future we are introducing new taints that users should not be able to set, ratcheting may be used.

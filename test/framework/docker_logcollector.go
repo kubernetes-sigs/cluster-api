@@ -46,7 +46,7 @@ type AdditionalLogs struct {
 }
 
 // machineContainerName return a container name using the same rule used in CAPD.
-// NOTE: if the cluster name is already included in the machine name, the cluster name is not add thus
+// NOTE: if the cluster name is already included in the machine name, the cluster name is not added, thus
 // avoiding \"sethostname: invalid argument\"  errors due to container name too long.
 func machineContainerName(cluster, machine string) string {
 	if strings.HasPrefix(machine, cluster) {

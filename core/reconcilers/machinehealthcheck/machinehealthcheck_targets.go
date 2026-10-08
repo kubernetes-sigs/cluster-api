@@ -94,7 +94,7 @@ func (t *healthCheckTarget) needsRemediation(programCache cache.Cache[cel.Progra
 	}
 
 	// Don't penalize any Machine/Node if the control plane has not been initialized
-	// Exception of this rule are control plane machine itself, so the first control plane machine can be remediated.
+	// Exceptions to this rule are the control plane machines themselves, so the first control plane machine can be remediated.
 	if !conditions.IsTrue(t.Cluster, clusterv1.ClusterControlPlaneInitializedCondition) && !util.IsControlPlaneMachine(t.Machine) {
 		logger.V(5).Info("Not evaluating target health because the control plane has not yet been initialized")
 		// Return a nextCheck time of 0 because we'll get requeued when the Cluster is updated.

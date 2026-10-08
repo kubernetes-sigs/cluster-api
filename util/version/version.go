@@ -59,7 +59,7 @@ func newBuildIdentifiers(ids []string) buildIdentifiers {
 	return bis
 }
 
-// compare compares 2 builidentifiers v and 0.
+// compare compares 2 build identifiers v and o.
 // -1 == v is less than o.
 // 0 == v is equal to o.
 // 1 == v is greater than o.

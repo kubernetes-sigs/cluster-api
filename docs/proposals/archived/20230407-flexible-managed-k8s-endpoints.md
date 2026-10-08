@@ -150,8 +150,8 @@ This proposal does not introduce any breaking changes for the existing "core" AP
 
 The existing Cluster API types are already able to omit the `<Infra>Cluster`:
 
-- The `infrastructureRef` field on the Cluster object is already a pointer and thus it could be set to nil, and in fact we are already creating Clusters without `infrastructureRef` when we use a cluster class).
-- The `infrastructure.Ref` field on the ClusterClass objects already a pointer and thus it could be set to nil, but in this case it is required to change the validation webhook to allow the user to not specify it; on top of that, when validating inline patches, we should reject patches targeting the infrastructure template objects if not specified.
+- The `infrastructureRef` field on the Cluster object is already a pointer and thus it could be set to nil, and in fact we are already creating Clusters without `infrastructureRef` when we use a cluster class.
+- The `infrastructure.Ref` field on the ClusterClass objects is already a pointer and thus it could be set to nil, but in this case it is required to change the validation webhook to allow the user to not specify it; on top of that, when validating inline patches, we should reject patches targeting the infrastructure template objects if not specified.
 
 In order to allow the `ControlPlane Provider` component to take ownership of the responsibility of creating the control plane endpoint we are going to introduce a new `ClusterEndpoint` CRD, below some example:
 
@@ -244,7 +244,7 @@ However, Infra providers will be made aware that `spec.controlPlaneEndpoint` wil
 #### Provider controller changes
 
 - All the `<Infra>Cluster` controllers who are responsible for creating a control plane endpoint
-  - As soon as the `spec.controlPlaneEndpoint` field in the `<Infra>Cluster` object will removed, the `<Infra>Cluster` controller must instead create a `ClusterEndpoint` CR to communicate the control plane endpoint to the Cluster API core controllers
+  - As soon as the `spec.controlPlaneEndpoint` field in the `<Infra>Cluster` object is removed, the `<Infra>Cluster` controller must instead create a `ClusterEndpoint` CR to communicate the control plane endpoint to the Cluster API core controllers
     - NOTE: technically it is possible to start creating the `ClusterEndpoint` CR *before* the removal of the `spec.controlPlaneEndpoint` field, because the new CR will take precedence on the value read from the field, but this is up to the infra provider maintainers.
   - The `ClusterEndpoint` CR must have an owner reference to the `<Infra>Cluster` object from which it is originated.
 
@@ -255,7 +255,7 @@ However, Infra providers will be made aware that `spec.controlPlaneEndpoint` wil
 
 ### Guidelines for infra providers implementation
 
-Let's consider following scenarios for an hypothetical `cluster-api-provider-foo` infra provider:
+Let's consider following scenarios for a hypothetical `cluster-api-provider-foo` infra provider:
 
 _Scenario 1._
 
@@ -269,10 +269,10 @@ If the `Foo` cloud provider has a `FKS` managed Kubernetes offering that is taki
 
 _Scenario 2._
 
-If the `Foo` cloud provider has a `FKS` managed Kubernetes offering that is taking care of _only of a subset of the Kubernetes Cluster infrastructure_, or it is required to provision some additional pieces of infrastructure on top of what provisioned out of the box, e.g. a SSH bastion host, the maintainers of the `cluster-api-provider-foo` provider:
+If the `Foo` cloud provider has a `FKS` managed Kubernetes offering that is taking care of _only of a subset of the Kubernetes Cluster infrastructure_, or it is required to provision some additional pieces of infrastructure on top of what provisioned out of the box, e.g. an SSH bastion host, the maintainers of the `cluster-api-provider-foo` provider:
 - Must implement a `FKSCluster` CRD and the corresponding `FKSClusterTemplate` CRD and the related controllers
   - The `FKSCluster` controller
-    - Must create only the additional piece of the _Kubernetes Cluster infrastructure_ not provisioned by the `FKS` managed Kubernetes instance (in this example a SSH bastion host)
+    - Must create only the additional piece of the _Kubernetes Cluster infrastructure_ not provisioned by the `FKS` managed Kubernetes instance (in this example an SSH bastion host)
     - Must not create a `ClusterEndpoint` CR (nor set the `spec.controlPlaneEndpoint` field in the `FKSCluster` object), because provisioning the control plane endpoint is not responsibility of this controller.
     - Must set the `status.Ready` field on the `FKSCluster` object when the provisioning is complete
 - Must implement a `FKRControlControlplane provider`, a `FKRControlControlplane` CRD, the corresponding `FKRControlControlplane` and related controllers

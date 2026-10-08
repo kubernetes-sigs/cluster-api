@@ -55,7 +55,7 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		p := rolloutPlanner{
 			md: deployment,
 			// Add a dummy computeDesiredMS, that simply return an empty MS object.
-			// Note: there is dedicate test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
+			// Note: there is a dedicated test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
 			overrideComputeDesiredMS: func(_ context.Context, _ *clusterv1.MachineDeployment, _ *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 				return &clusterv1.MachineSet{}, nil
 			},
@@ -91,7 +91,7 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		p := rolloutPlanner{
 			md: deployment,
 			// Add a dummy computeDesiredMS, that simply pass through the currentNewMS.
-			// Note: there is dedicate test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
+			// Note: there is a dedicated test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
 			overrideComputeDesiredMS: func(_ context.Context, _ *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 				return currentNewMS, nil
 			},
@@ -131,7 +131,7 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		p := rolloutPlanner{
 			md: deployment,
 			// Add a dummy computeDesiredMS, that simply pass through the currentNewMS.
-			// Note: there is dedicate test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
+			// Note: there is a dedicated test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
 			overrideComputeDesiredMS: func(_ context.Context, _ *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 				return currentNewMS, nil
 			},
@@ -169,7 +169,7 @@ func TestComputeDesiredOldMS(t *testing.T) {
 		p := rolloutPlanner{
 			md: deployment,
 			// Add a dummy computeDesiredMS, that simply pass through the currentNewMS.
-			// Note: there is dedicate test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
+			// Note: there is a dedicated test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
 			overrideComputeDesiredMS: func(_ context.Context, _ *clusterv1.MachineDeployment, currentOldMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 				return currentOldMS, nil
 			},
@@ -206,7 +206,7 @@ func TestComputeDesiredOldMS(t *testing.T) {
 		p := rolloutPlanner{
 			md: deployment,
 			// Add a dummy computeDesiredMS, that simply pass through the currentNewMS.
-			// Note: there is dedicate test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
+			// Note: there is a dedicated test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
 			overrideComputeDesiredMS: func(_ context.Context, _ *clusterv1.MachineDeployment, currentOldMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 				return currentOldMS, nil
 			},
@@ -636,7 +636,7 @@ func machineSetControllerMutatorCreateMachines(_ context.Context, ms *clusterv1.
 
 func machineSetControllerMutatorMoveMachines(_ context.Context, ms *clusterv1.MachineSet, scope *rolloutScope, targetMSName string, machinesToMove int, affectsAvailability *bool, logLines *strings.Builder) error {
 	// Note: this is a simplified version of the code in the startMoveMachines/completeMoveMachine func from the MachineSet controller, e.g. no pluggable move order,
-	// no update of machine labels, no/lighter logging. Also please note that from the sake of this test, there is no split between start move an
+	// no update of machine labels, no/lighter logging. Also please note that for the sake of this test, there is no split between start move an
 	// completeMove (what is implemented below is enough to fake the entire move operation).
 	// Note: in the test code exceeding machines are moved in predictable order, so it is easier to write test case and validate rollout sequences.
 	// e.g. if a ms has m1,m2,m3 created in this order, m1 will be deleted first, then m2 and finally m3.
@@ -793,7 +793,7 @@ type rolloutScope struct {
 }
 
 func initCurrentRolloutScope(currentMachineNames []string, mdOptions ...machineDeploymentOption) (current *rolloutScope) {
-	// create current state, with a MD with
+	// create current state, with an MD with
 	// - given MaxSurge, MaxUnavailable
 	// - replica counters assuming all the machines are at stable state
 	// - spec different from the MachineSets and Machines we are going to create down below (to simulate a change that triggers a rollout, but it is not yet started)
@@ -830,9 +830,9 @@ func computeDesiredRolloutScope(current *rolloutScope, desiredMachineNames []str
 		totMachines += int32(len(msMachines))
 	}
 
-	// Create current state, with a MD equal to the one we started from because:
+	// Create current state, with an MD equal to the one we started from because:
 	// - spec was already changed in current to simulate a change that triggers a rollout
-	// - desired replica counters are the same than current replica counters (we start with all the machines at stable state v1, we should end with all the machines at stable state v2)
+	// - desired replica counters are the same as current replica counters (we start with all the machines at stable state v1, we should end with all the machines at stable state v2)
 	desired = &rolloutScope{
 		machineDeployment: current.machineDeployment.DeepCopy(),
 	}
@@ -1141,7 +1141,7 @@ func (l *fileLogger) Logf(format string, args ...interface{}) {
 	l.t.Logf(format, args...)
 
 	// this codes takes a log line that has been formatted for t.Logf and change it
-	// so it will look nice in the files. e.g. adds indentation to all lines except the fist one, which by convention starts with [.
+	// so it will look nice in the files. e.g. adds indentation to all lines except the first one, which by convention starts with [.
 	s := strings.TrimSuffix(fmt.Sprintf(format, args...), "\n")
 	sb := &strings.Builder{}
 	if strings.Contains(s, "\n") {

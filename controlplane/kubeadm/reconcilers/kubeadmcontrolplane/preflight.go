@@ -46,18 +46,18 @@ type preflightChecksResult struct {
 	eventStr           string
 }
 
-// preflightChecks checks if the control plane is stable before proceeding with a in-place update, scale up or scale down operation.
+// preflightChecks checks if the control plane is stable before proceeding with an in-place update, scale up or scale down operation.
 // Under normal circumstances, a control stable is considered stable when:
-// - There are no machine deletion in progress
+// - There is no machine deletion in progress
 // - All the health conditions on KCP are true.
 // - All the health conditions on the control plane machines are true.
-// In a few specific case, preflight checks are less demanding e.g. when scaling up after a remediation, KCP is required
+// In a few specific cases, preflight checks are less demanding e.g. when scaling up after a remediation, KCP is required
 // to allow the operation even if the control plane is not fully stable, thus allowing the system to recover when there are multiple failures.
 //
 // If the control plane is not passing preflight checks, it requeue.
 //
-// Note: This check leverage the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
-// the info are also used to compute status.Conditions.
+// Note: This check leverages the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
+// the info is also used to compute status.Conditions.
 func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.ControlPlane, isRemediationScaleUp bool, excludeFor ...*clusterv1.Machine) preflightChecksResult {
 	if r.overridePreflightChecksFunc != nil {
 		return r.overridePreflightChecksFunc(ctx, controlPlane, excludeFor...)
@@ -65,7 +65,7 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 
 	log := ctrl.LoggerFrom(ctx)
 
-	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet,
+	// If there are no KCP-owned control-plane machines, then control-plane has not been initialized yet,
 	// so it is considered ok to proceed.
 	if controlPlane.Machines.Len() == 0 {
 		return preflightChecksResult{succeeded: true}
@@ -113,7 +113,7 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 	// - No control plane Machines are being deleted
 	// - There are no blockers for joining a machine in case of scale up (e.g. missing certificates, or kubeadm version skew)
 	//
-	// Next steps is to assess the potential effects of the scale up/scale down operation we are running preflight checks for.
+	// The next step is to assess the potential effects of the scale up/scale down operation we are running preflight checks for.
 	//
 	// Most specifically, KCP should determine if this operation is going to leave the Kubernetes control plane components
 	// and the etcd cluster in operational state or not.
@@ -218,10 +218,10 @@ func (r *Reconciler) checkHealthinessWhileRemediationInProgress(ctx context.Cont
 	// we can assume that the target cluster will have current Machines +1 new Machine (the replacement machine).
 	//
 	// As a consequence:
-	// - one Kubernetes control plane components is going to be added, no Kubernetes control plane components are going to be deleted.
+	// - one Kubernetes control plane component is going to be added, no Kubernetes control plane components are going to be deleted.
 	addKubernetesControlPlane := true
 	kubernetesControlPlaneToBeDeleted := ""
-	// - one etcd member is going to be added, no etcd member are going to be deleted.
+	// - one etcd member is going to be added, no etcd members are going to be deleted.
 	addEtcdMember := true
 	etcdMemberToBeDeleted := ""
 

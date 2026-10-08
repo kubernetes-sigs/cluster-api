@@ -335,7 +335,7 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 	_, err = versionChecker.getLatestRelease(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	// override the github client with response to a new version v0.3.99
+	// override the GitHub client with response to a new version v0.3.99
 	var githubCalled bool
 	fakeGithubClient2, mux2, cleanup2 := test.NewFakeGitHub()
 	mux2.HandleFunc(
@@ -348,8 +348,8 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 	defer cleanup2()
 	versionChecker.githubClient = fakeGithubClient2
 
-	// now instead of making another call to github, we want to read from the
-	// file. This will avoid unnecessary calls to github.
+	// now instead of making another call to GitHub, we want to read from the
+	// file. This will avoid unnecessary calls to GitHub.
 	release, err := versionChecker.getLatestRelease(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(release.Version).To(Equal("v0.3.8"))
@@ -393,8 +393,8 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 	_, err = versionChecker.getLatestRelease(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	// Since the state file is more that 24 hours old we want to retrieve the
-	// latest release from github.
+	// Since the state file is more than 24 hours old we want to retrieve the
+	// latest release from GitHub.
 	release, err := versionChecker.getLatestRelease(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(release.Version).To(Equal("v0.3.10"))

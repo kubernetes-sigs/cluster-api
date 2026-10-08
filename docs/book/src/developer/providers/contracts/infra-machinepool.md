@@ -2,7 +2,7 @@
 
 Infrastructure providers CAN OPTIONALLY implement an InfraMachinePool resource using Kubernetes' CustomResourceDefinition (CRD).
 
-The goal of an InfraMachinePool is to manage the lifecycle of a provider-specific pool of machines using a provider specific service (like Auto Scaling groups in AWS & Virtual Machine Scale Sets in Azure).
+The goal of an InfraMachinePool is to manage the lifecycle of a provider-specific pool of machines using a provider-specific service (like Auto Scaling groups in AWS & Virtual Machine Scale Sets in Azure).
 
 The machines in the pool may be physical or virtual instances (although most likely virtual), and they represent the infrastructure for Kubernetes nodes.
 
@@ -238,7 +238,7 @@ type FooMachinePoolInstanceStatus struct {
 
 ### MachinePoolMachines support
 
-A provider can opt-in to MachinePool Machines (MPM). With MPM machines all the replicas in a MachinePool are represented by a Machine & InfraMachine. This enables core CAPI to perform common operations on single machines (and their Nodes), such as draining a node before scale down, integration with Cluster Autoscaler and also [MachineHealthChecks].
+A provider can opt in to MachinePool Machines (MPM). With MPM machines all the replicas in a MachinePool are represented by a Machine & InfraMachine. This enables core CAPI to perform common operations on single machines (and their Nodes), such as draining a node before scale down, integration with Cluster Autoscaler and also [MachineHealthChecks].
 
 If you want to adopt MPM then you MUST have an `status.infrastructureMachineKind` field and the fields value must be set to the resource kind that represents the replicas in the pool. This is usually the resource kind name for the providers InfraMachine. For example, for the AWS provider the value would be set to `AWSMachine`.
 
@@ -393,7 +393,7 @@ See [Improving status in CAPI resources] for more context.
 
 ### InfraMachinePool: replicas
 
-Provider implementers MUST implement `status.replicas` to report the most recently observed number of machine instances in the pool. For example, in AWS this would be the number of replicas in a Auto Scaling group (ASG).
+Provider implementers MUST implement `status.replicas` to report the most recently observed number of machine instances in the pool. For example, in AWS this would be the number of replicas in an Auto Scaling group (ASG).
 
 ```go
 type FooMachinePoolStatus struct {
@@ -458,7 +458,7 @@ type FooMachinePoolTemplateResource struct {
 ```
 
 NOTE: in this example `spec.template.spec` embeds `FooMachinePoolSpec` from MachinePool. This might not always be
-the best choice depending of if/how InfraMachinePools spec fields applies to many machine pools vs only one.
+the best choice depending on if/how InfraMachinePools spec fields apply to many machine pools vs only one.
 
 For each InfraMachinePoolTemplate resource, you MUST also add the corresponding list resource.
 The list resource MUST be named as `<InfraMachinePoolTemplate>List`.

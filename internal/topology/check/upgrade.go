@@ -47,7 +47,7 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 	}
 	mdVersion := md.Spec.Template.Spec.Version
 	// Check if the versions of the all the Machines match the MachineDeployment version.
-	// Note: We directly check the "raw" information from the Machine to figure out if a MD is upgrading
+	// Note: We directly check the "raw" information from the Machine to figure out if an MD is upgrading
 	//       instead of MD.status.versions so we don't depend on the MD status being up-to-date.
 	// Note: We also check kubeletVersion so that we can correctly detect in-place Kubernetes upgrades.
 	for i := range machines.Items {

@@ -125,8 +125,8 @@ Non-Goals listed in this document are intended to scope bound the current v1alph
 - To manage non-machine based topologies, e.g.
   - Pod based control planes.
   - Non-node control planes (i.e. EKS, GKE, AKS).
-- To define a mechanism for providing a stable API endpoint for providers that do not currently have one, follow up work for this will be tracked on [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/1687)
-- To predefine the exact contract/interoperability mechanism for alternative control plane providers, follow up work for this will be tracked on [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/1727)
+- To define a mechanism for providing a stable API endpoint for providers that do not currently have one, follow-up work for this will be tracked on [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/1687)
+- To predefine the exact contract/interoperability mechanism for alternative control plane providers, follow-up work for this will be tracked on [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/1727)
 - To manage CA certificates outside of what is provided by Kubeadm bootstrapping
 - To manage etcd clusters in any topology other than stacked etcd (externally managed etcd clusters can still be leveraged).
 - To address disaster recovery constraints, e.g. restoring a control plane from 0 replicas using a filesystem or volume snapshot copy of data persisted in etcd.
@@ -455,7 +455,7 @@ When `MaxSurge` is set to 0 the rollout algorithm is as follows:
   - Find Machines that have an outdated spec and scale down the control plane by removing the oldest out-of-date machine.
   - Scale up control plane by creating a new machine with the updated spec
 
-> NOTE: Setting `MaxSurge` to 0 could be use in resource constrained environment like bare-metal, OpenStack or vSphere resource pools, etc when there is no capacity to Scale up the control plane.
+> NOTE: Setting `MaxSurge` to 0 could be used in resource constrained environment like bare-metal, OpenStack or vSphere resource pools, etc when there is no capacity to Scale up the control plane.
 
 ###### Constraints and Assumptions
 
@@ -601,7 +601,7 @@ The KubeadmControlPlane controller uses port-forwarding to get to a specific etc
 - Existing control plane Machines will need to be updated with labels matching the expected label selector.
 - The KubeadmConfigSpec can be re-created from the referenced KubeadmConfigs for the Machines matching the label selector.
   - If there is not an existing initConfiguration/clusterConfiguration only the joinConfiguration will be populated.
-- In v1alpha2, the Cluster API Bootstrap Provider is responsible for generating certificates based upon the first machine to join a cluster. The OwnerRef for these certificates are set to that of the initial machine, which causes an issue if that machine is later deleted. For v1alpha3, control plane certificate generation will be replicated in the KubeadmControlPlane provider. Given that for v1alpha2 these certificates are generated with deterministic names, i.e. prefixed with the cluster name, the migration mechanism should replace the owner reference of these certificates during migration. The bootstrap provider will need to be updated to only fallback to the v1alpha2 secret generation behavior if Cluster.Spec.ControlPlaneRef is nil.
+- In v1alpha2, the Cluster API Bootstrap Provider is responsible for generating certificates based upon the first machine to join a cluster. The OwnerRef for these certificates are set to that of the initial machine, which causes an issue if that machine is later deleted. For v1alpha3, control plane certificate generation will be replicated in the KubeadmControlPlane provider. Given that for v1alpha2 these certificates are generated with deterministic names, i.e. prefixed with the cluster name, the migration mechanism should replace the owner reference of these certificates during migration. The bootstrap provider will need to be updated to only fall back to the v1alpha2 secret generation behavior if Cluster.Spec.ControlPlaneRef is nil.
 - In v1alpha2, the Cluster API Bootstrap Provider is responsible for generating the kubeconfig secret; during adoption the adoption of this secret is set to the KubeadmConfig object.
 - To ease the adoption of v1alpha3, the migration mechanism should be built into Cluster API controllers.
 

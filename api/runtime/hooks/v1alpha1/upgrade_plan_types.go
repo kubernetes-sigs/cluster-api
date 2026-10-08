@@ -64,9 +64,9 @@ type GenerateUpgradePlanResponse struct {
 	// controlPlaneUpgrades is the list of version upgrade steps for the control plane.
 	// Each entry represents an intermediate version that must be applied in sequence.
 	// The following rules apply:
-	// - there should be at least one version for every minor between 		fromControlPlaneKubernetesVersion (excluded) and ToKubernetesVersion (included).
+	// - there should be at least one version for every minor between fromControlPlaneKubernetesVersion (excluded) and ToKubernetesVersion (included).
 	// - each version must be:
-	//   - greater than fromControlPlaneKubernetesVersion (or with a different build 	number)
+	//   - greater than fromControlPlaneKubernetesVersion (or with a different build number)
 	//   - greater than the previous version in the list (or with a different build number)
 	//   - less or equal to ToKubernetesVersion (or with a different build number)
 	//   - the last version in the plan must be equal to ToKubernetesVersion
@@ -89,7 +89,7 @@ type GenerateUpgradePlanResponse struct {
 	//   - in case of versions with the same major/minor/patch version but different build number, also the order
 	//     of those versions must be the same for control plane and worker upgrade plan.
 	//   - the last version in the plan must be equal to ToKubernetesVersion
-	//   - the upgrade plane must have all the intermediate version which workers must go through to avoid breaking rules
+	//   - the upgrade plan must have all the intermediate versions which workers must go through to avoid breaking rules
 	//     defining the max version skew between control plane and workers.
 	// +optional
 	WorkersUpgrades []UpgradeStep `json:"workersUpgrades,omitempty"`

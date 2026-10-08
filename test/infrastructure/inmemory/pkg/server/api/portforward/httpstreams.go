@@ -143,7 +143,7 @@ func (h *httpStreamHandler) requestID(stream httpstream.Stream) string {
 		// using id = stream.Identifier() when the stream type is error,
 		// and id = stream.Identifier() - 2 when it's data.
 		//
-		// NOTE: this only works when there are not concurrent new streams from
+		// NOTE: this only works when there are no concurrent new streams from
 		// multiple forwarded connections; it's a best-effort attempt at supporting
 		// old clients that don't generate request ids.  If there are concurrent
 		// new connections, it's possible that 1 connection gets streams whose IDs

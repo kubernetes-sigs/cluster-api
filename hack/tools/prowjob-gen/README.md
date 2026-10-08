@@ -1,6 +1,6 @@
 # prowjob-gen
 
-Prowjob-gen is a tool which helps generating prowjob configuration.
+Prowjob-gen is a tool which helps generate prowjob configuration.
 
 ## Usage
 

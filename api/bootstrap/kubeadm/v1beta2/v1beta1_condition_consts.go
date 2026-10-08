@@ -32,11 +32,11 @@ const (
 	// waiting for the cluster infrastructure to be ready.
 	//
 	// NOTE: Having the cluster infrastructure ready is a pre-condition for starting to create machines;
-	// the KubeadmConfig controller ensure this pre-condition is satisfied.
+	// the KubeadmConfig controller ensures this pre-condition is satisfied.
 	WaitingForClusterInfrastructureV1Beta1Reason = "WaitingForClusterInfrastructure"
 
 	// DataSecretGenerationFailedV1Beta1Reason (Severity=Warning) documents a KubeadmConfig controller detecting
-	// an error while generating a data secret; those kind of errors are usually due to misconfigurations
+	// an error while generating a data secret; those kinds of errors are usually due to misconfigurations
 	// and user intervention is required to get them fixed.
 	DataSecretGenerationFailedV1Beta1Reason = "DataSecretGenerationFailed"
 )
@@ -51,8 +51,8 @@ const (
 	CertificatesAvailableV1Beta1Condition clusterv1.ConditionType = "CertificatesAvailable"
 
 	// CertificatesGenerationFailedV1Beta1Reason (Severity=Warning) documents a KubeadmConfig controller detecting
-	// an error while generating certificates; those kind of errors are usually temporary and the controller
-	// automatically recover from them.
+	// an error while generating certificates; those kinds of errors are usually temporary and the controller
+	// automatically recovers from them.
 	CertificatesGenerationFailedV1Beta1Reason = "CertificatesGenerationFailed"
 
 	// CertificatesCorruptedV1Beta1Reason (Severity=Error) documents a KubeadmConfig controller detecting

@@ -49,7 +49,7 @@ activate boot
 note right of boot
     BootstrapConfig Controller
 endnote
-boot -> boot: Requeue unitl there\nis an associated Machine
+boot -> boot: Requeue until there\nis an associated Machine
 
 C -> A: Add a BootstrapRef to Machine
 boot -> boot: Generate bootstrap data for Machine

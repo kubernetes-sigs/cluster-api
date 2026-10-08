@@ -86,7 +86,7 @@ type GroupVersionHook struct {
 
 // FailurePolicy specifies how unrecognized errors when calling the ExtensionHandler are handled.
 // FailurePolicy helps with extensions not working consistently, e.g. due to an intermittent network issue.
-// The following type of errors are never ignored by FailurePolicy Ignore:
+// The following types of errors are never ignored by FailurePolicy Ignore:
 // - Misconfigurations (e.g. incompatible types)
 // - Extension explicitly returns a Status Failure.
 type FailurePolicy string

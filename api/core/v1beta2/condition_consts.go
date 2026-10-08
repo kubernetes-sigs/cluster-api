@@ -79,7 +79,7 @@ const (
 	// the same condition type exists.
 	RemediatingCondition = "Remediating"
 
-	// DeletingCondition surfaces details about progress of the object deletion workflow.
+	// DeletingCondition surfaces details about the progress of the object deletion workflow.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
@@ -166,7 +166,7 @@ const (
 
 	// ObjectDeletedReason surfaces when a referenced object has been deleted.
 	// Note: controllers can't identify if the object was deleted by the controller itself, e.g.
-	// during the deletion workflow, or by a users.
+	// during the deletion workflow, or by a user.
 	ObjectDeletedReason = "ObjectDeleted"
 
 	// NotPausedReason surfaces when an object is not paused.

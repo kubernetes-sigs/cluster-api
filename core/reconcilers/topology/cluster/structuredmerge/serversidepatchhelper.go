@@ -139,7 +139,7 @@ func (h *serverSidePatchHelper) HasChanges() bool {
 	return h.hasChanges
 }
 
-// Patch will server side apply the current intent (the modified object.
+// Patch will server side apply the current intent (the modified object).
 func (h *serverSidePatchHelper) Patch(ctx context.Context) (string, error) {
 	if !h.HasChanges() {
 		return "", nil

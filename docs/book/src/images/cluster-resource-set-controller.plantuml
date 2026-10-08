@@ -15,7 +15,7 @@ repeat
       else (no)
         :Create ResourceSetBinding;
       endif
-    :Get Resoures in ClusterResourceSet;
+    :Get Resources in ClusterResourceSet;
     if (Check applied condition of resource in ResourceSetBinding) then (false)
      :Apply resource to cluster;
      :Set applied condition to true in ResourceSetBinding;

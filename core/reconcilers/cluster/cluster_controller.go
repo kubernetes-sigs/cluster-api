@@ -64,7 +64,7 @@ const (
 	deleteRequeueAfter = 5 * time.Second
 )
 
-// Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
+// Update permissions on /finalizers subresource is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
 // See: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
 //
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -666,10 +666,10 @@ func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) 
 	// Make sure that control plane machines are included only if there is no control plane object
 	// responsible to manage them.
 	// Note: Excluding machines controlled by a control plane object is an additional safeguard to ensure
-	// that the control plane is deleted only after all the workers machine are done.
+	// that the control plane is deleted only after all the worker machines are done.
 	// Note: Using stand-alone control plane machines is not yet officially deprecated, however this approach
-	// has well known limitations that have been address by the introduction of control plane objects. One of those
-	// limitation is about the deletion workflow, which is governed by this function.
+	// has well-known limitations that have been addressed by the introduction of control plane objects. One of those
+	// limitations is about the deletion workflow, which is governed by this function.
 	// More specifically, when deleting a Cluster with stand-alone control plane machines, stand-alone control plane machines
 	// will be decommissioned in parallel with other machines, no matter of them being added as last in this list.
 	if !cluster.Spec.ControlPlaneRef.IsDefined() {

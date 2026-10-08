@@ -47,10 +47,10 @@ func Diff(x any, y any) (equal bool, diff string, matchErr error) {
 	diff = cmp.Diff(x, y)
 
 	if diff != "" {
-		// Replace non-breaking space (NBSP) through a regular space.
+		// Replace a non-breaking space (NBSP) with a regular space.
 		// This prevents output like this: "\u00a0\u00a0int(\n-\u00a0\t1,\n+\u00a0\t2,\n\u00a0\u00a0)\n"
 		diff = strings.ReplaceAll(diff, "\u00a0", " ")
-		// Replace \t through "  " because it's easier to read in log output
+		// Replace \t with "  " because it's easier to read in log output
 		diff = strings.ReplaceAll(diff, "\t", "  ")
 		diff = strings.TrimSpace(diff)
 	}

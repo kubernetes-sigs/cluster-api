@@ -235,8 +235,8 @@ func (u *providerUpgrader) getUpgradePlan(ctx context.Context, providers []clust
 // in a management cluster are consistent with the contract version of the core provider (or compatible ones).
 func (u *providerUpgrader) createCustomPlan(ctx context.Context, upgradeItems []UpgradeItem) (*UpgradePlan, error) {
 	// Gets the contract version of the core provider.
-	// The this is required to ensure all the providers in a management cluster are consistent with the contract supported by the core provider.
-	// e.g if the core provider is v1beta1, all the provider should be v1beta1 as well.
+	// This is required to ensure all the providers in a management cluster are consistent with the contract supported by the core provider.
+	// e.g. if the core provider is v1beta1, all the providers should be v1beta1 as well.
 
 	// The target contract is derived from the current version of the core provider, or, if the core provider is included in the upgrade list,
 	// from its target version.

@@ -62,7 +62,7 @@ func NewExtensionHandlers(client client.Client) *ExtensionHandlers {
 }
 
 // DoBeforeClusterCreate implements the HandlerFunc for the BeforeClusterCreate hook.
-// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// The hook answers with the response stored in a well-known config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoBeforeClusterCreate(ctx context.Context, request *runtimehooksv1.BeforeClusterCreateRequest, response *runtimehooksv1.BeforeClusterCreateResponse) {
@@ -84,7 +84,7 @@ func (m *ExtensionHandlers) DoBeforeClusterCreate(ctx context.Context, request *
 }
 
 // DoAfterControlPlaneInitialized implements the HandlerFunc for the AfterControlPlaneInitialized hook.
-// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// The hook answers with the response stored in a well-known config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoAfterControlPlaneInitialized(ctx context.Context, request *runtimehooksv1.AfterControlPlaneInitializedRequest, response *runtimehooksv1.AfterControlPlaneInitializedResponse) {
@@ -107,7 +107,7 @@ func (m *ExtensionHandlers) DoAfterControlPlaneInitialized(ctx context.Context, 
 }
 
 // DoBeforeClusterUpgrade implements the HandlerFunc for the BeforeClusterUpgrade hook.
-// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// The hook answers with the response stored in a well-known config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoBeforeClusterUpgrade(ctx context.Context, request *runtimehooksv1.BeforeClusterUpgradeRequest, response *runtimehooksv1.BeforeClusterUpgradeResponse) {
@@ -131,7 +131,7 @@ func (m *ExtensionHandlers) DoBeforeClusterUpgrade(ctx context.Context, request 
 }
 
 // DoBeforeControlPlaneUpgrade implements the HandlerFunc for the ControlPlaneUpgrade hook.
-// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// The hook answers with the response stored in a well-known config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoBeforeControlPlaneUpgrade(ctx context.Context, request *runtimehooksv1.BeforeControlPlaneUpgradeRequest, response *runtimehooksv1.BeforeControlPlaneUpgradeResponse) {
@@ -155,7 +155,7 @@ func (m *ExtensionHandlers) DoBeforeControlPlaneUpgrade(ctx context.Context, req
 }
 
 // DoAfterControlPlaneUpgrade implements the HandlerFunc for the AfterControlPlaneUpgrade hook.
-// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// The hook answers with the response stored in a well-known config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoAfterControlPlaneUpgrade(ctx context.Context, request *runtimehooksv1.AfterControlPlaneUpgradeRequest, response *runtimehooksv1.AfterControlPlaneUpgradeResponse) {
@@ -179,7 +179,7 @@ func (m *ExtensionHandlers) DoAfterControlPlaneUpgrade(ctx context.Context, requ
 }
 
 // DoBeforeWorkersUpgrade implements the HandlerFunc for the WorkersUpgrade hook.
-// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// The hook answers with the response stored in a well-known config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoBeforeWorkersUpgrade(ctx context.Context, request *runtimehooksv1.BeforeWorkersUpgradeRequest, response *runtimehooksv1.BeforeWorkersUpgradeResponse) {
@@ -203,7 +203,7 @@ func (m *ExtensionHandlers) DoBeforeWorkersUpgrade(ctx context.Context, request 
 }
 
 // DoAfterWorkersUpgrade implements the HandlerFunc for the AfterWorkersUpgrade hook.
-// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// The hook answers with the response stored in a well-known config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoAfterWorkersUpgrade(ctx context.Context, request *runtimehooksv1.AfterWorkersUpgradeRequest, response *runtimehooksv1.AfterWorkersUpgradeResponse) {
@@ -227,7 +227,7 @@ func (m *ExtensionHandlers) DoAfterWorkersUpgrade(ctx context.Context, request *
 }
 
 // DoAfterClusterUpgrade implements the HandlerFunc for the AfterClusterUpgrade hook.
-// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// The hook answers with the response stored in a well-known config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoAfterClusterUpgrade(ctx context.Context, request *runtimehooksv1.AfterClusterUpgradeRequest, response *runtimehooksv1.AfterClusterUpgradeResponse) {
@@ -251,7 +251,7 @@ func (m *ExtensionHandlers) DoAfterClusterUpgrade(ctx context.Context, request *
 }
 
 // DoBeforeClusterDelete implements the HandlerFunc for the BeforeClusterDelete hook.
-// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// The hook answers with the response stored in a well-known config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoBeforeClusterDelete(ctx context.Context, request *runtimehooksv1.BeforeClusterDeleteRequest, response *runtimehooksv1.BeforeClusterDeleteResponse) {
@@ -278,7 +278,7 @@ func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, clust
 	hookName := computeHookName(hook, attributes)
 	configMap := &corev1.ConfigMap{}
 	if _, ok := settings[extensionConfigNameKey]; !ok {
-		return pkgerrors.New(extensionConfigNameKey + " mest be set in settings")
+		return pkgerrors.New(extensionConfigNameKey + " must be set in settings")
 	}
 	configMapName := configMapName(cluster.Name, settings[extensionConfigNameKey])
 	log := ctrl.LoggerFrom(ctx)

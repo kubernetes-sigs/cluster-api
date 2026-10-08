@@ -75,7 +75,7 @@ func TestSortForCreateAllShuffle(t *testing.T) {
 		resources = append(resources, resource)
 	}
 	for j := range 100 {
-		// determinically shuffle resources
+		// deterministically shuffle resources
 		rnd := rand.New(rand.NewSource(int64(j))) //nolint:gosec
 		rnd.Shuffle(len(resources), func(i, j int) {
 			resources[i], resources[j] = resources[j], resources[i]

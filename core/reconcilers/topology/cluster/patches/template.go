@@ -106,7 +106,7 @@ func cleanupUnstructured(template *unstructured.Unstructured) {
 		if len(annotations) > 0 {
 			template.SetAnnotations(annotations)
 		} else {
-			// If there are no more annotations we should cleanup the empty annotations map.
+			// If there are no more annotations we should clean up the empty annotations map.
 			// Otherwise we send an empty annotation map via GeneratePatches which can lead to
 			// a remove /metadata/annotations patch from a Runtime Extension (because of the
 			// way json.Marshal/Unmarshal handles maps).

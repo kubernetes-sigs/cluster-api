@@ -151,7 +151,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, cluster *clusterv1.
 	// TODO: consider if we can detect if we are using external etcd in a more explicit way (e.g. looking at the config instead of deriving from the existing certificates)
 	var clientCert tls.Certificate
 	if keyData != nil {
-		// Get client cert from cache if possible, otherwise generate it and add it to the cache.
+		// Get client cert from the cache if possible, otherwise generate it and add it to the cache.
 		// Note: The caching assumes that the etcd CA is not rotated during the lifetime of a Cluster.
 		if entry, ok := m.ClientCertCache.Has(ClientCertEntry{Cluster: clusterKey, ClusterUID: cluster.UID, EncryptionAlgorithm: keyEncryptionAlgorithm}.Key()); ok {
 			clientCert = *entry.ClientCert
@@ -222,7 +222,7 @@ func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.Obj
 	err := m.SecretCachingClient.Get(ctx, etcdCAObjectKey, etcdCASecret)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			// Return error if we got an errors which is not a NotFound error.
+			// Return error if we got an error which is not a NotFound error.
 			return nil, nil, pkgerrors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
 		}
 

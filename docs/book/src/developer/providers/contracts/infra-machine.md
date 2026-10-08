@@ -76,7 +76,7 @@ All resources MUST have the standard Kubernetes `TypeMeta` and `ObjectMeta` fiel
 ### All resources: `APIVersion` field value
 
 In Kubernetes `APIVersion` is a combination of API group and version.
-Special consideration MUST applies to both API group and version for all the resources Cluster API interacts with.
+Special consideration MUST apply to both API group and version for all the resources Cluster API interacts with.
 
 #### All resources: API group
 
@@ -470,7 +470,7 @@ type FooMachineTemplateResource struct {
 ```
 
 NOTE: in this example InfraMachineTemplate's `spec.template.spec` embeds `FooMachineSpec` from InfraMachine. This might not always be
-the best choice depending of if/how InfraMachine's spec fields applies to many machines vs only one.
+the best choice depending on if/how InfraMachine's spec fields apply to many machines vs only one.
 
 For each InfraMachineTemplate resource, you MUST also add the corresponding list resource.
 The list resource MUST be named as `<InfraMachineTemplate>List`.

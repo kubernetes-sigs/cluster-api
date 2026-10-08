@@ -145,7 +145,7 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 		})
 		// Wait for all the machines to exist.
 		// NOTE: this is required given that this helper is called after a remediation
-		// and we want to make sure all the machine are back in place before testing for unhealthyNodeConditions being fixed.
+		// and we want to make sure all the machines are back in place before testing for unhealthyNodeConditions being fixed.
 		if len(machines) < input.MachinesCount {
 			return false
 		}

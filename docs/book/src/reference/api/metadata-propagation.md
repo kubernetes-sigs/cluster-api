@@ -59,12 +59,12 @@ Template labels and annotations continuously propagate to new and existing Machi
 - `.spec.template.metadata.annotations` => `Machine.annotations`, `InfraMachine.annotations`, `BootstrapConfig.annotations`
 
 ## Machine
-Top-level labels and annotations that meet a specific criteria are propagated to the Node labels and annotations.
+Top-level labels and annotations that meet specific criteria are propagated to the Node labels and annotations.
 - `.labels.[label-meets-criteria]` => `Node.labels`
 - `.annotations.[annotation-meets-criteria]` => `Node.annotations`
 
 Labels that meet at least one of the following criteria are always propagated to the Node:
-- Has `node-role.kubernetes.io` as prefix.
+- Has `node-role.kubernetes.io` as a prefix.
 - Belongs to `node-restriction.kubernetes.io` domain.
 - Belongs to `node.cluster.x-k8s.io` domain.
 
@@ -77,7 +77,7 @@ In addition, any annotations that match at least one of the regexes provided by 
 
 ## Patches
 
-While this is not technically metadata propagation, it is worth to notice that when using Cluster API managed topologies,
+While this is not technically metadata propagation, it is worth noting that when using Cluster API managed topologies,
 by using patches it is also possible to manage labels and annotations in resources that are originated from templates linked to the ClusterClass. More specifically:
 
 Patches for ControlPlaneTemplates, InfraClusterTemplates, MachinePoolTemplates and BootstrapConfigTemplates (only if referenced from a MachinePool class):

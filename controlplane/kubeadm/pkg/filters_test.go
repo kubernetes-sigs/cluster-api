@@ -1624,7 +1624,7 @@ func TestUpToDate(t *testing.T) {
 			},
 			Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
 				Before: controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{
-					CertificatesExpiryDays: 60, // rollout if certificates will expire in less then 60 days.
+					CertificatesExpiryDays: 60, // rollout if certificates will expire in less than 60 days.
 				},
 				After: metav1.Time{Time: reconciliationTime.Add(10 * 24 * time.Hour)}, // rollout 10 days from now.
 			},
@@ -1733,7 +1733,7 @@ func TestUpToDate(t *testing.T) {
 			name: "certificate are expiring soon",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.Rollout.Before.CertificatesExpiryDays = 150 // rollout if certificates will expire in less then 150 days.
+				kcp.Spec.Rollout.Before.CertificatesExpiryDays = 150 // rollout if certificates will expire in less than 150 days.
 				return kcp
 			}(),
 			machine:                        defaultMachine, // certificates will expire in 100 days from now.

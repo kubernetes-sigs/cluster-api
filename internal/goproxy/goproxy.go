@@ -56,7 +56,7 @@ func NewClient(scheme, host string) *Client {
 	}
 }
 
-// GetVersions returns the a sorted list of semantical versions which exist for a go module.
+// GetVersions returns a sorted list of semantical versions which exist for a go module.
 func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.Versions, error) {
 	parsedVersions := semver.Versions{}
 
@@ -126,7 +126,7 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 			}
 			parsedVersion, err := semver.ParseTolerant(s)
 			if err != nil {
-				// Discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases).
+				// Discard releases with tags that are not valid semantic versions (the user can point explicitly to such releases).
 				continue
 			}
 			parsedVersions = append(parsedVersions, parsedVersion)
@@ -167,7 +167,7 @@ func GetSchemeAndHost(goproxy string) (string, string, error) {
 			continue
 		}
 		if rawURL == "off" || rawURL == "direct" {
-			// Return nothing to fallback to github repository client without an error.
+			// Return nothing to fall back to GitHub repository client without an error.
 			return "", "", nil
 		}
 

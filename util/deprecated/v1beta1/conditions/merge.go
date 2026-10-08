@@ -45,7 +45,7 @@ type localizedCondition struct {
 // merge a list of condition into a single one.
 // This operation is designed to ensure visibility of the most relevant conditions for defining the
 // operational state of a component. E.g. If there is one error in the condition list, this one takes
-// priority over the other conditions and it is should be reflected in the target condition.
+// priority over the other conditions and it should be reflected in the target condition.
 //
 // More specifically:
 // 1. Conditions are grouped by status, severity
@@ -56,7 +56,7 @@ type localizedCondition struct {
 //   - P3 - Status=True  - PositivePolarity |  Status=False - NegativePolarity
 //   - P4 - Status=Unknown
 //
-// 3. The group with highest priority is used to determine status, severity and other info of the target condition.
+// 3. The group with the highest priority is used to determine status, severity and other info of the target condition.
 //
 // Please note that the last operation includes also the task of computing the Reason and the Message for the target
 // condition; in order to complete such task some trade-off should be made, because there is no a golden rule

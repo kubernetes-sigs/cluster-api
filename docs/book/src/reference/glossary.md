@@ -284,7 +284,7 @@ A [patch](#patch) defined inline in a [ClusterClass](#clusterclass). An alternat
 
 Fields which changes would only impact Kubernetes objects or/and controller behaviour
 but they won't mutate in any way provider infrastructure nor the software running on it. In-place mutable fields
-are propagated in place by CAPI controllers to avoid the more elaborated mechanics of a replace rollout.
+are propagated in place by CAPI controllers to avoid the more elaborated mechanics of a replacement rollout.
 They include metadata, MinReadySeconds, NodeDrainTimeout, NodeVolumeDetachTimeout and NodeDeletionTimeout but are
 not limited to be expanded in the future.
 
@@ -404,7 +404,7 @@ The pivot process is also used for deleting a management cluster and could also 
 
 Or __Cluster API provider__
 
-This term was originally used as abbreviation for [Infrastructure provider](#infrastructure-provider), but currently it is used
+This term was originally used as an abbreviation for [Infrastructure provider](#infrastructure-provider), but currently it is used
 to refer to any project that can be deployed and provides functionality to the Cluster API management Cluster.
 
 See [Bootstrap provider](#bootstrap-provider), [Control plane provider](#control-plane-provider), [Core provider](#core-provider),
@@ -432,7 +432,7 @@ See [Provider repository](#provider-repository)
 ### Provider repository
 
 Refers to the location where the YAML for [provider components](#provider-components) are hosted; usually a provider repository hosts
-many version of provider components, one for each released version.
+many versions of provider components, one for each released version.
 
 ## R
 ---
@@ -446,7 +446,7 @@ See [Runtime SDK](#runtime-sdk)
 ### Runtime Extension provider
 
 Refers to a [provider](#provider) that implements one or more [runtime extensions](#runtime-extension).
-Runtime Extension provider's interaction with Cluster API are based on the Open API spec for [runtime hooks](#runtime-hook).
+Runtime Extension provider's interaction with Cluster API is based on the Open API spec for [runtime hooks](#runtime-hook).
 
 ### Runtime Hook
 
@@ -482,7 +482,7 @@ The infrastructure that backs a [Machine Resource](#machine), typically either a
 ### Topology
 
 A field in the Cluster object spec that allows defining and managing the shape of the Cluster's control plane and worker machines from a single point of control. The Cluster's topology is based on a [ClusterClass](#clusterclass).
-Sometimes it is also referred as a managed topology.
+Sometimes it is also referred to as a managed topology.
 
 See [ClusterClass](#clusterclass)
 

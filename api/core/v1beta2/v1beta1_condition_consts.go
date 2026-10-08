@@ -39,7 +39,7 @@ const (
 )
 
 const (
-	// InfrastructureReadyV1Beta1Condition reports a summary of current status of the infrastructure object defined for this cluster/machine/machinepool.
+	// InfrastructureReadyV1Beta1Condition reports a summary of the current status of the infrastructure object defined for this cluster/machine/machinepool.
 	// This condition is mirrored from the Ready condition in the infrastructure ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
 	// the infrastructure provider does not implement the Ready condition yet.
@@ -103,7 +103,7 @@ const (
 // Conditions and condition Reasons for the Machine object.
 
 const (
-	// BootstrapReadyV1Beta1Condition reports a summary of current status of the bootstrap object defined for this machine.
+	// BootstrapReadyV1Beta1Condition reports a summary of the current status of the bootstrap object defined for this machine.
 	// This condition is mirrored from the Ready condition in the bootstrap ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
 	// the bootstrap provider does not implement the Ready condition yet.
@@ -124,10 +124,10 @@ const (
 	// DrainingFailedV1Beta1Reason (Severity=Warning) documents a machine node drain operation failed.
 	DrainingFailedV1Beta1Reason = "DrainingFailed"
 
-	// PreDrainDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being delete.
+	// PreDrainDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being deleted.
 	PreDrainDeleteHookSucceededV1Beta1Condition ConditionType = "PreDrainDeleteHookSucceeded"
 
-	// PreTerminateDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being delete.
+	// PreTerminateDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being deleted.
 	PreTerminateDeleteHookSucceededV1Beta1Condition ConditionType = "PreTerminateDeleteHookSucceeded"
 
 	// WaitingExternalHookV1Beta1Reason (Severity=Info) provide evidence that we are waiting for an external hook to complete.
@@ -148,7 +148,7 @@ const (
 	// MachineHasFailureV1Beta1Reason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
 	MachineHasFailureV1Beta1Reason = "MachineHasFailure"
 
-	// HasRemediateMachineAnnotationV1Beta1Reason is the reason that get's set at the MachineHealthCheckSucceededCondition when a machine
+	// HasRemediateMachineAnnotationV1Beta1Reason is the reason that gets set at the MachineHealthCheckSucceededCondition when a machine
 	// has the RemediateMachineAnnotation set.
 	HasRemediateMachineAnnotationV1Beta1Reason = "HasRemediateMachineAnnotation"
 
@@ -178,18 +178,18 @@ const (
 	// RemediationInProgressV1Beta1Reason is the reason used when an unhealthy machine is being remediated by the remediation owner.
 	RemediationInProgressV1Beta1Reason = "RemediationInProgress"
 
-	// ExternalRemediationTemplateAvailableV1Beta1Condition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
-	// ExternalRemediationTemplateAvailableV1Beta1Condition is set to false if external remediation template is not found.
+	// ExternalRemediationTemplateAvailableV1Beta1Condition is set on machinehealthchecks when the MachineHealthCheck controller uses external remediation.
+	// ExternalRemediationTemplateAvailableV1Beta1Condition is set to false if the external remediation template is not found.
 	ExternalRemediationTemplateAvailableV1Beta1Condition ConditionType = "ExternalRemediationTemplateAvailable"
 
-	// ExternalRemediationTemplateNotFoundV1Beta1Reason is the reason used when a machine health check fails to find external remediation template.
+	// ExternalRemediationTemplateNotFoundV1Beta1Reason is the reason used when a machine health check fails to find an external remediation template.
 	ExternalRemediationTemplateNotFoundV1Beta1Reason = "ExternalRemediationTemplateNotFound"
 
-	// ExternalRemediationRequestAvailableV1Beta1Condition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
-	// ExternalRemediationRequestAvailableV1Beta1Condition is set to false if creating external remediation request fails.
+	// ExternalRemediationRequestAvailableV1Beta1Condition is set on machinehealthchecks when the MachineHealthCheck controller uses external remediation.
+	// ExternalRemediationRequestAvailableV1Beta1Condition is set to false if creating an external remediation request fails.
 	ExternalRemediationRequestAvailableV1Beta1Condition ConditionType = "ExternalRemediationRequestAvailable"
 
-	// ExternalRemediationRequestCreationFailedV1Beta1Reason is the reason used when a machine health check fails to create external remediation request.
+	// ExternalRemediationRequestCreationFailedV1Beta1Reason is the reason used when a machine health check fails to create an external remediation request.
 	ExternalRemediationRequestCreationFailedV1Beta1Reason = "ExternalRemediationRequestCreationFailed"
 )
 
@@ -202,7 +202,7 @@ const (
 	// WaitingForNodeRefV1Beta1Reason (Severity=Info) documents a machine.spec.providerId is not assigned yet.
 	WaitingForNodeRefV1Beta1Reason = "WaitingForNodeRef"
 
-	// NodeProvisioningV1Beta1Reason (Severity=Info) documents machine in the process of provisioning a node.
+	// NodeProvisioningV1Beta1Reason (Severity=Info) documents a machine in the process of provisioning a node.
 	// NB. provisioning --> NodeRef == "".
 	NodeProvisioningV1Beta1Reason = "NodeProvisioning"
 
@@ -238,7 +238,7 @@ const (
 	// machines required (i.e. Spec.Replicas-MaxUnavailable when spec.rollout.strategy.type = RollingUpdate) are up and running for at least minReadySeconds.
 	MachineDeploymentAvailableV1Beta1Condition ConditionType = "Available"
 
-	// MachineSetReadyV1Beta1Condition reports a summary of current status of the MachineSet owned by the MachineDeployment.
+	// MachineSetReadyV1Beta1Condition reports a summary of the current status of the MachineSet owned by the MachineDeployment.
 	MachineSetReadyV1Beta1Condition ConditionType = "MachineSetReady"
 
 	// WaitingForMachineSetFallbackV1Beta1Reason (Severity=Info) documents a MachineDeployment waiting for the underlying MachineSet
@@ -258,7 +258,7 @@ const (
 	// when generating the machine object.
 	MachinesCreatedV1Beta1Condition ConditionType = "MachinesCreated"
 
-	// MachinesReadyV1Beta1Condition reports an aggregate of current status of the machines controlled by the MachineSet.
+	// MachinesReadyV1Beta1Condition reports an aggregate of the current status of the machines controlled by the MachineSet.
 	MachinesReadyV1Beta1Condition ConditionType = "MachinesReady"
 
 	// PreflightCheckFailedV1Beta1Reason (Severity=Error) documents a MachineSet failing preflight checks
@@ -292,7 +292,7 @@ const (
 	// TopologyReconciledV1Beta1Condition provides evidence about the reconciliation of a Cluster topology into
 	// the managed objects of the Cluster.
 	// Status false means that for any reason, the values defined in Cluster.spec.topology are not yet applied to
-	// managed objects on the Cluster; status true means that Cluster.spec.topology have been applied to
+	// managed objects on the Cluster; status true means that Cluster.spec.topology has been applied to
 	// the objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).
 	TopologyReconciledV1Beta1Condition ConditionType = "TopologyReconciled"
 
@@ -383,7 +383,7 @@ const (
 // Conditions and condition Reasons for the MachinePool object.
 
 const (
-	// ReplicasReadyV1Beta1Condition reports an aggregate of current status of the replicas controlled by the MachinePool.
+	// ReplicasReadyV1Beta1Condition reports an aggregate of the current status of the replicas controlled by the MachinePool.
 	ReplicasReadyV1Beta1Condition ConditionType = "ReplicasReady"
 
 	// WaitingForReplicasReadyV1Beta1Reason (Severity=Info) documents a machinepool waiting for the required replicas

@@ -126,7 +126,7 @@ func Test_inspectImages(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "controller with deamonSet",
+			name: "controller with DaemonSet",
 			args: args{
 				objs: []unstructured.Unstructured{
 					{

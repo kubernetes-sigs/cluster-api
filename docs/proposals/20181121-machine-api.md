@@ -112,7 +112,7 @@ In this proposal, only certain attributes of Machines are provider-agnostic and
 can be operated on in a generic way. In other iterations of similar proposals,
 much care had been taken to allow the creation of truly provider-agnostic
 Machines that could be mapped to provider-specific attributes in order to better
-support usecases around automated Machine scaling. This introduced a lot of
+support use cases around automated Machine scaling. This introduced a lot of
 upfront complexity in the API proposals.
 
 This proposal starts much more minimalistic, but doesn't preclude the option of

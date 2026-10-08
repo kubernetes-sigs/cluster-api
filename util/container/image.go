@@ -131,7 +131,7 @@ func ImageTagIsValid(tagName string) bool {
 // non-allowed symbols in tag strings with underscores.
 // Image tag can only contain lowercase and uppercase letters, digits,
 // underscores, periods and dashes.
-// Current usage is for CI images where all of symbols except '+' are valid,
+// Current usage is for CI images where all symbols except '+' are valid,
 // but function is for generic usage where input can't be always pre-validated.
 // Taken from k8s.io/cmd/kubeadm/app/util.
 func SemverToOCIImageTag(version string) string {

@@ -20,7 +20,7 @@ opt #FFFFFFCC Required only if Cluster.Spec.Managed.Class is set
 "Cluster Controller" --> "API Server": Creates the infrastructure cluster
 "Cluster Controller" -> "Cluster Controller": Checks for\nCluster.Spec.ControlPlaneRef
 opt Required only if Cluster.Spec.ControlPlaneRef is not set
-  "Cluster Controller" -> "Cluster Controller": Initializes the control plane \noject using the template
+  "Cluster Controller" -> "Cluster Controller": Initializes the control plane \nobject using the template
   "Cluster Controller" -> "Cluster Controller": Sets the name of the object to <cluster.Name>
   "Cluster Controller" -> "Cluster Controller": Sets the replicas & k8s version
   "Cluster Controller" -> "API Server": Saves the control plane object

@@ -211,7 +211,7 @@ The exact mechanism for how this will work is undecided, though the following id
 
 We could have an adhoc CRD https://github.com/kubernetes-sigs/cluster-api/issues/4095
 
-This would introduce complexity for the CAPI ecosystem with yet an additional CRD and it wouldn't scale well across providers as it would need to contain provider specific information.
+This would introduce complexity for the CAPI ecosystem with yet an additional CRD and it wouldn't scale well across providers as it would need to contain provider-specific information.
 
 ### ManagementPolicy field
 

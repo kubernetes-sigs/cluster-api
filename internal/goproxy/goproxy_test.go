@@ -37,20 +37,20 @@ func TestClient_GetVersions(t *testing.T) {
 	clientGoproxy := NewClient(scheme, host)
 	defer teardownGoproxy()
 
-	// setup an handler for returning 2 fake releases
+	// set up a handler for returning 2 fake releases
 	muxGoproxy.HandleFunc("/github.com/o/r1/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v1.1.0\n")
 		fmt.Fprint(w, "v0.2.0\n")
 	})
 
-	// setup an handler for returning 2 fake releases for v1
+	// set up a handler for returning 2 fake releases for v1
 	muxGoproxy.HandleFunc("/github.com/o/r2/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v1.1.0\n")
 		fmt.Fprint(w, "v0.2.0\n")
 	})
-	// setup an handler for returning 2 fake releases for v2
+	// set up a handler for returning 2 fake releases for v2
 	muxGoproxy.HandleFunc("/github.com/o/r2/v2/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v2.0.1\n")
@@ -79,7 +79,7 @@ func TestClient_GetVersions(t *testing.T) {
 			false,
 		},
 		{
-			"Multiple versiosn including > v1",
+			"Multiple versions including > v1",
 			"github.com/o/r2",
 			semver.Versions{
 				semver.MustParse("0.2.0"),

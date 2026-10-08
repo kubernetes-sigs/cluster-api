@@ -137,7 +137,7 @@ func Test_inventoryClient_Create(t *testing.T) {
 		m clusterctlv1.Provider
 	}
 	providerV2 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.2.0", "")
-	// since this test object is used in a Create request, wherein setting ResourceVersion should no be set
+	// since this test object is used in a Create request, wherein ResourceVersion should not be set
 	providerV2.ResourceVersion = ""
 	providerV3 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.3.0", "")
 

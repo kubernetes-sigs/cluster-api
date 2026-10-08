@@ -230,7 +230,7 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 
 		// Note: In previous Cluster API versions (< v1.4.0), the label value was the hash of the full machine
 		// template. Since the introduction of in-place mutation we are ignoring all in-place mutable fields,
-		// and using it as a info to be used for building a unique label selector. Instead, the rollout decision
+		// and using it as information to be used for building a unique label selector. Instead, the rollout decision
 		// is not using the hash anymore.
 		templateHash, err := hash.Compute(mdutil.MachineTemplateDeepCopyRolloutFields(&deployment.Spec.Template))
 		if err != nil {

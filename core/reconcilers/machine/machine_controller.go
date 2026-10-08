@@ -83,7 +83,7 @@ var (
 	errControlPlaneIsBeingDeleted = pkgerrors.New("control plane is being deleted")
 )
 
-// Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
+// Update permissions on /finalizers subresource is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
 // See: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
 //
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -326,7 +326,7 @@ func (r *Reconciler) getOwnerMachineDeployment(ctx context.Context, ms *clusterv
 func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clusterv1.Machine, options ...patch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding it
-	// after provisioning - e.g. when a MHC condition exists - or during the deletion process).
+	// after provisioning - e.g. when an MHC condition exists - or during the deletion process).
 	v1beta1conditions.SetSummary(machine,
 		v1beta1conditions.WithConditions(
 			// Infrastructure problems should take precedence over all the other conditions
@@ -1165,7 +1165,7 @@ func (r *Reconciler) nodeToMachine(ctx context.Context, o client.Object) []recon
 		return []reconcile.Request{{NamespacedName: util.ObjectKey(&machineList.Items[0])}}
 	}
 
-	// Otherwise let's match by providerID. This is useful when e.g the NodeRef has not been set yet.
+	// Otherwise let's match by providerID. This is useful when e.g. the NodeRef has not been set yet.
 	// Match by providerID
 	if node.Spec.ProviderID == "" {
 		return nil

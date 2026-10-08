@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	// GroupVersion is group version used to register these objects.
+	// GroupVersion is the group version used to register these objects.
 	GroupVersion = schema.GroupVersion{Group: "bootstrap.cluster.x-k8s.io", Version: "v1beta2"}
 
 	// schemeBuilder is used to add go types to the GroupVersionKind scheme.

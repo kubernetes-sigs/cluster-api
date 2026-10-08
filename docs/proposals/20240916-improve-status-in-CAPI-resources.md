@@ -1461,7 +1461,7 @@ As a cluster admin with MachineDeployment ownership I'd like to understand why m
 
 As a cluster admin with MachineDeployment ownership I'd like to understand why Machines are failing to be available by looking at the MD status/conditions
 
-> `MD.Status.Conditions[MachinesReady]` condition will aggregate errors from all the Machines controlled by a MD.
+> `MD.Status.Conditions[MachinesReady]` condition will aggregate errors from all the Machines controlled by an MD.
 
 As a cluster admin with MachineDeployment ownership I'd like to understand why Machines are stuck on deletion looking at the MD status/conditions
 

@@ -65,7 +65,7 @@ type InitConfiguration struct {
 
 	// localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
 	// In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
-	// is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
+	// is the global endpoint for the cluster, which then load balances the requests to each individual API server. This
 	// configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
 	// on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
 	// fails you may set the desired value here.
@@ -111,7 +111,7 @@ type ClusterConfiguration struct {
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 
 	// controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-	// can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+	// can be a valid IP address or an RFC-1123 DNS subdomain, both with optional TCP port.
 	// In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
 	// are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
 	// the BindPort is used.
@@ -234,7 +234,7 @@ type APIServer struct {
 	// +kubebuilder:validation:items:MaxLength=253
 	CertSANs []string `json:"certSANs,omitempty"`
 
-	// timeoutForControlPlane controls the timeout that we use for API server to appear
+	// timeoutForControlPlane controls the timeout that we use for the API server to appear
 	// +optional
 	TimeoutForControlPlane *metav1.Duration `json:"timeoutForControlPlane,omitempty"`
 }
@@ -268,7 +268,7 @@ type ImageMeta struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterStatus contains the cluster status. The ClusterStatus will be stored in the kubeadm-config
-// ConfigMap in the cluster, and then updated by kubeadm when additional control plane instance joins or leaves the cluster.
+// ConfigMap in the cluster, and then updated by kubeadm when an additional control plane instance joins or leaves the cluster.
 //
 // Deprecated: ClusterStatus has been removed from kubeadm v1beta3 API; This type is preserved only to support
 // conversion to older versions of the kubeadm API.
@@ -281,7 +281,7 @@ type ClusterStatus struct {
 	APIEndpoints map[string]APIEndpoint `json:"apiEndpoints"`
 }
 
-// APIEndpoint struct contains elements of API server instance deployed on a node.
+// APIEndpoint struct contains elements of an API server instance deployed on a node.
 type APIEndpoint struct {
 	// advertiseAddress sets the IP address for the API server to advertise.
 	// +optional
@@ -352,7 +352,7 @@ type NodeRegistrationOptions struct {
 // MarshalJSON marshals NodeRegistrationOptions in a way that an empty slice in Taints is preserved.
 // Taints are then rendered as:
 // * nil => omitted from the marshalled JSON
-// * [] => rendered as empty array (`[]`)
+// * [] => rendered as an empty array (`[]`)
 // * [regular-array] => rendered as usual
 // We have to do this as the regular Golang JSON marshalling would just omit
 // the empty slice (xref: https://github.com/golang/go/issues/22480).
@@ -400,7 +400,7 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// Networking contains elements describing cluster's networking configuration.
+// Networking contains elements describing the cluster's networking configuration.
 type Networking struct {
 	// serviceSubnet is the subnet used by k8s services.
 	// Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.pods.cidrBlocks, or
@@ -557,7 +557,7 @@ type JoinConfiguration struct {
 	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
 
 	// caCertPath is the path to the SSL certificate authority used to
-	// secure comunications between node and control-plane.
+	// secure communications between node and control-plane.
 	// Defaults to "/etc/kubernetes/pki/ca.crt".
 	// +optional
 	// TODO: revisit when there is defaulting from k/k
@@ -795,7 +795,7 @@ type KubeConfigAuthExec struct {
 	// +kubebuilder:validation:MaxItems=100
 	Env []KubeConfigAuthExecEnv `json:"env,omitempty"`
 
-	// apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+	// apiVersion is the preferred input version of the ExecInfo. The returned ExecCredentials MUST use
 	// the same encoding version as the input.
 	// Defaults to client.authentication.k8s.io/v1 if not set.
 	// +optional

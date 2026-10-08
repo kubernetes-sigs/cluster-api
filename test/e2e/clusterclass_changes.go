@@ -110,12 +110,12 @@ type ClusterClassChangesSpecInput struct {
 	// }
 	ModifyMachinePoolInfrastructureMachinePoolTemplateFields map[string]interface{}
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 
 	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "clusterclass-changes".
-	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
+	// This value is provided to clusterctl as the "EXTENSION_CONFIG_NAME" variable and can be used to template the
 	// name of the ExtensionConfig into the ClusterClass.
 	ExtensionConfigName string
 
@@ -129,7 +129,7 @@ type ClusterClassChangesSpecInput struct {
 
 // ClusterClassChangesSpec implements a test that verifies that ClusterClass changes are rolled out successfully.
 // Thus, the test consists of the following steps:
-//   - Deploy Cluster using a ClusterClass and wait until it is fully provisioned.
+//   - Deploy a Cluster using a ClusterClass and wait until it is fully provisioned.
 //   - Modify the ControlPlaneTemplate of the ClusterClass by setting ModifyControlPlaneFields
 //     and wait until the change has been rolled out to the ControlPlane of the Cluster.
 //   - Modify the BootstrapTemplate of all MachineDeploymentClasses of the ClusterClass by setting
@@ -332,7 +332,7 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 	})
 
 	AfterEach(func() {
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		// Dumps all the resources in the spec namespace, then cleans up the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		if !input.SkipCleanup {
@@ -939,7 +939,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 	return newClusterClass
 }
 
-// cloneTemplateAndUpdateRef performs required modifications to avoid conflict, and create a copy of the referenced object, updating the ref in-place.
+// cloneTemplateAndUpdateRef performs required modifications to avoid conflicts and create a copy of the referenced object, updating the ref in-place.
 func cloneTemplateAndUpdateRef(ctx context.Context, cl client.Client, templateRef *clusterv1.ClusterClassTemplateReference, currentNamespace, targetNamespace string) {
 	templateObject, err := external.Get(ctx, cl, templateRef.ToObjectReference(currentNamespace))
 	Expect(err).ToNot(HaveOccurred())

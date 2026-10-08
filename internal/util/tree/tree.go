@@ -51,7 +51,7 @@ const (
 	pipe            = `│ `
 
 	// lastObjectAnnotation defines the last object in the ObjectTree.
-	// This is necessary to built the prefix for multiline condition messages.
+	// This is necessary to build the prefix for multiline condition messages.
 	lastObjectAnnotation = "tree.cluster.x-k8s.io.io/last-object"
 )
 
@@ -165,10 +165,10 @@ func printObjectTreeV1Beta1ToWriter(tree *tree.ObjectTree, w io.Writer) error {
 // NOTE: each row name gets a prefix, that generates a tree view like representation.
 func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Get a row descriptor for a given object.
-	// With v1beta2, the return value of this func adapt to the object represented in the line.
+	// With v1beta2, the return value of this func adapts to the object represented in the line.
 	rowDescriptor := newRowDescriptor(obj)
 
-	// If the object is a group object, override the condition message with the list of objects in the group. e.g machine-1, machine-2, ...
+	// If the object is a group object, override the condition message with the list of objects in the group. e.g. machine-1, machine-2, ...
 	if tree.IsGroupObject(obj) {
 		items := strings.Split(tree.GetGroupItems(obj), tree.GroupItemsSeparator)
 		if len(items) <= 2 {
@@ -272,7 +272,7 @@ func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree
 		readyDescriptor = newV1Beta1ConditionDescriptor(ready)
 	}
 
-	// If the object is a group object, override the condition message with the list of objects in the group. e.g machine-1, machine-2, ...
+	// If the object is a group object, override the condition message with the list of objects in the group. e.g. machine-1, machine-2, ...
 	if tree.IsGroupObject(obj) {
 		items := strings.Split(tree.GetGroupItems(obj), tree.GroupItemsSeparator)
 		if len(items) <= 2 {
@@ -338,7 +338,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 	}
 
 	// Add a row for each other condition, taking care of updating the tree view prefix.
-	// In this case the tree prefix get a filler, to indent conditions from objects, and eventually a
+	// In this case the tree prefix gets a filler, to indent conditions from objects, and eventually a
 	// and additional pipe if the object has children that should be presented after the conditions.
 	filler := strings.Repeat(" ", 10)
 	childrenPipe := indent
@@ -429,7 +429,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 // which is already represented on the object's main row.
 func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Add a row for each other condition, taking care of updating the tree view prefix.
-	// In this case the tree prefix get a filler, to indent conditions from objects, and eventually a
+	// In this case the tree prefix gets a filler, to indent conditions from objects, and eventually a
 	// and additional pipe if the object has children that should be presented after the conditions.
 	filler := strings.Repeat(" ", 10)
 	childrenPipe := indent
@@ -563,7 +563,7 @@ func getLastObjectInTree(objectTree *tree.ObjectTree) ctrlclient.Object {
 	return objs[len(objs)-1]
 }
 
-// getRowName returns the object name in the tree view according to following rules:
+// getRowName returns the object name in the tree view according to the following rules:
 // - group objects are represented as #of objects kind, e.g. 3 Machines...
 // - other virtual objects are represented using the object name, e.g. Workers, or meta name if provided.
 // - objects with a meta name are represented as meta name - (kind/name), e.g. ClusterInfrastructure - DockerCluster/test1
@@ -628,7 +628,7 @@ type rowDescriptor struct {
 }
 
 // newRowDescriptor returns a v1beta2ConditionDescriptor for the given condition.
-// Note: the return value of this func adapt to the object represented in the line.
+// Note: the return value of this func adapts to the object represented in the line.
 func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 	v := rowDescriptor{}
 	switch obj := obj.(type) {
@@ -735,7 +735,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		}
 
 	case *unstructured.Unstructured:
-		// If the object is a Unstructured, pick the Ready condition as the condition to show for this object
+		// If the object is an Unstructured, pick the Ready condition as the condition to show for this object
 		// in case not all the conditions are visualized.
 		// Also, if the Unstructured object implements the Cluster API control plane contract, surface
 		// corresponding replica counters.
@@ -844,7 +844,7 @@ func conditionInfo(c metav1.Condition, positivePolarity bool) (color *color.Colo
 
 var re = regexp.MustCompile(`[\s]+`)
 
-// formatParagraph takes a strings and splits it into n lines of maxWidth length.
+// formatParagraph takes a string and splits it into n lines of maxWidth length.
 // If the string contains line breaks, those are preserved.
 func formatParagraph(text string, maxWidth int) string {
 	lines := []string{}

@@ -127,7 +127,7 @@ func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, updateR
 	return nil
 }
 
-// IsOkToDelete returns true if object has the OkToDeleteAnnotation in the annotations of the object, false otherwise.
+// IsOkToDelete returns true if the object has the OkToDeleteAnnotation in the annotations of the object, false otherwise.
 func IsOkToDelete(obj client.Object) bool {
 	annotations := obj.GetAnnotations()
 	if annotations == nil {

@@ -90,7 +90,7 @@ All resources MUST have the standard Kubernetes `TypeMeta` and `ObjectMeta` fiel
 ### All resources: `APIVersion` field value
 
 In Kubernetes `APIVersion` is a combination of API group and version.
-Special consideration MUST applies to both API group and version for all the resources Cluster API interacts with.
+Special consideration MUST apply to both API group and version for all the resources Cluster API interacts with.
 
 #### All resources: API group
 
@@ -368,7 +368,7 @@ documentation][scale].
 > In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
 > preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in April 2027.
 >
-> With regards to v1beta1 replica counters, the Cluster controller with temporarily continue to read
+> With regards to v1beta1 replica counters, the Cluster controller will temporarily continue to read
 > `status.readyReplicas`,  `status.updatedReplicas` and `status.unavailableReplicas`, even if the semantic of the 
 > field might be different from what expected.
 
@@ -817,7 +817,7 @@ type FooControlPlaneTemplateResource struct {
 ```
 
 NOTE: in this example ControlPlaneTemplate's `spec.template.spec` embeds `FooControlPlaneSpec` from ControlPlane. This might not always be
-the best choice depending of if/how ControlPlane's spec fields applies to many clusters vs only one.
+the best choice depending on if/how ControlPlane's spec fields apply to many clusters vs only one.
 
 For each ControlPlaneTemplate resource, you MUST also add the corresponding list resource.
 The list resource MUST be named as `<ControlPlaneTemplate>List`.

@@ -221,7 +221,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								// provide an newer image to update to
+								// provide a newer image to update to
 								ImageRepository: "k8s.gcr.io/some-folder/coredns",
 								ImageTag:        "1.7.2",
 							},
@@ -241,7 +241,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								// provide an newer image to update to
+								// provide a newer image to update to
 								ImageRepository: "k8s.gcr.io/some-folder/coredns",
 								ImageTag:        "1.7.2",
 							},
@@ -263,7 +263,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								// provide an newer image to update to
+								// provide a newer image to update to
 								ImageRepository: "k8s.gcr.io/some-repo",
 								ImageTag:        "1.7.2",
 							},
@@ -287,7 +287,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								// provide an newer image to update to
+								// provide a newer image to update to
 								ImageRepository: "k8s.gcr.io/some-repo",
 								ImageTag:        "1.8.0",
 							},
@@ -444,7 +444,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			g := NewWithT(t)
 
 			for _, o := range tt.objs {
-				// NB. deep copy test object so changes applied during a test does not affect other tests.
+				// NB. deep copy test object so changes applied during a test do not affect other tests.
 				o := o.DeepCopyObject().(client.Object)
 				g.Expect(env.CreateAndWait(ctx, o)).To(Succeed())
 			}

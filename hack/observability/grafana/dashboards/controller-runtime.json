@@ -1962,7 +1962,7 @@
               "refId": "C"
             }
           ],
-          "title": "Reconcile Duration Quantils",
+          "title": "Reconcile Duration Quantiles",
           "type": "timeseries"
         },
         {
@@ -2172,7 +2172,7 @@
               "refId": "C"
             }
           ],
-          "title": "Reconcile Duration Quantils by Controller",
+          "title": "Reconcile Duration Quantiles by Controller",
           "type": "timeseries"
         },
         {
@@ -3043,7 +3043,7 @@
               "refId": "C"
             }
           ],
-          "title": "Workqueue Work Duration Quantils",
+          "title": "Workqueue Work Duration Quantiles",
           "type": "timeseries"
         },
         {
@@ -3161,7 +3161,7 @@
               "refId": "C"
             }
           ],
-          "title": "Workqueue Queue Duration Quantils",
+          "title": "Workqueue Queue Duration Quantiles",
           "type": "timeseries"
         },
         {

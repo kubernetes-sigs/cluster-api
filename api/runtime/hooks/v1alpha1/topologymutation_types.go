@@ -31,7 +31,7 @@ import (
 type GeneratePatchesRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonRequest contains Settings field common to all request types.
+	// CommonRequest contains the Settings field common to all request types.
 	CommonRequest `json:",inline"`
 
 	// variables are global variables for all templates.
@@ -109,7 +109,7 @@ func GeneratePatches(*GeneratePatchesRequest, *GeneratePatchesResponse) {}
 type ValidateTopologyRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonRequest contains Settings field common to all request types.
+	// CommonRequest contains the Settings field common to all request types.
 	CommonRequest `json:",inline"`
 
 	// variables are global variables for all templates.
@@ -195,7 +195,7 @@ func ValidateTopology(*ValidateTopologyRequest, *ValidateTopologyResponse) {}
 type DiscoverVariablesRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonRequest contains Settings field common to all request types.
+	// CommonRequest contains the Settings field common to all request types.
 	CommonRequest `json:",inline"`
 }
 

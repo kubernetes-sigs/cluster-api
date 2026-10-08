@@ -89,7 +89,7 @@ const (
 	ManagedNodeAnnotationDomain = "node.cluster.x-k8s.io"
 
 	// PendingAcknowledgeMoveAnnotation is an internal annotation added by the MS controller to a machine when being
-	// moved from the oldMS to the newMS. The annotation is removed as soon as the MS controller get the acknowledgment about the
+	// moved from the oldMS to the newMS. The annotation is removed as soon as the MS controller gets the acknowledgment about the
 	// replica being accounted from the corresponding MD.
 	// Note: The annotation is added when reconciling the oldMS, and it is removed when reconciling the newMS.
 	// Note: This annotation is used in pair with AcknowledgedMoveAnnotation on MachineSets.
@@ -122,7 +122,7 @@ const (
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
 	MachineAvailableReason = AvailableReason
 
-	// MachineAvailableInternalErrorReason surfaces unexpected error when computing the Available condition.
+	// MachineAvailableInternalErrorReason surfaces an unexpected error when computing the Available condition.
 	MachineAvailableInternalErrorReason = InternalErrorReason
 )
 
@@ -137,7 +137,7 @@ const (
 	//     of the condition that bubbles up to the owning resources/ to the Cluster (it also makes it more likely this condition might be aggregated with
 	//     conditions reported by other machines).
 	//   - If deletion is in progress for more than 15m, this surfaces on the summary condition (hint about a possible stale deletion).
-	//     - if drain is in progress for more than 5 minutes, a summery of what is blocking drain also surfaces in the message.
+	//     - if drain is in progress for more than 5 minutes, a summary of what is blocking drain also surfaces in the message.
 	// - When summarizing BootstrapConfigReady, InfrastructureReady, NodeHealthy, in case the Machine is deleting, the absence of the
 	//   referenced object won't be considered as an issue.
 	MachineReadyCondition = ReadyCondition
@@ -153,7 +153,7 @@ const (
 	// and no machine readiness criteria is not met.
 	MachineReadyUnknownReason = ReadyUnknownReason
 
-	// MachineReadyInternalErrorReason surfaces unexpected error when computing the Ready condition.
+	// MachineReadyInternalErrorReason surfaces an unexpected error when computing the Ready condition.
 	MachineReadyInternalErrorReason = InternalErrorReason
 )
 
@@ -224,7 +224,7 @@ const (
 
 	// MachineBootstrapConfigDeletedReason surfaces when a referenced bootstrap config object has been deleted.
 	// Note: controllers can't identify if the bootstrap config object was deleted the controller itself, e.g.
-	// during the deletion workflow, or by a users.
+	// during the deletion workflow, or by a user.
 	MachineBootstrapConfigDeletedReason = ObjectDeletedReason
 )
 
@@ -240,7 +240,7 @@ const (
 	// MachineInfrastructureNotReadyReason surfaces when the machine infrastructure is not ready.
 	MachineInfrastructureNotReadyReason = NotReadyReason
 
-	// MachineInfrastructureInvalidConditionReportedReason surfaces a infrastructure Ready condition (read from an infra machine object) which is invalid.
+	// MachineInfrastructureInvalidConditionReportedReason surfaces an infrastructure Ready condition (read from an infra machine object) which is invalid.
 	// (e.g. its status is missing).
 	MachineInfrastructureInvalidConditionReportedReason = InvalidConditionReportedReason
 
@@ -253,7 +253,7 @@ const (
 
 	// MachineInfrastructureDeletedReason surfaces when a referenced infrastructure object has been deleted.
 	// Note: controllers can't identify if the infrastructure object was deleted by the controller itself, e.g.
-	// during the deletion workflow, or by a users.
+	// during the deletion workflow, or by a user.
 	MachineInfrastructureDeletedReason = ObjectDeletedReason
 )
 
@@ -275,13 +275,13 @@ const (
 	// MachineNodeReadyUnknownReason surfaces when Machine's Node Ready condition is unknown.
 	MachineNodeReadyUnknownReason = "NodeReadyUnknown"
 
-	// MachineNodeHealthyReason surfaces when all the node conditions report healthy state.
+	// MachineNodeHealthyReason surfaces when all the node conditions report a healthy state.
 	MachineNodeHealthyReason = "NodeHealthy"
 
-	// MachineNodeNotHealthyReason surfaces when at least one node conditions report not healthy state.
+	// MachineNodeNotHealthyReason surfaces when at least one node condition reports not healthy state.
 	MachineNodeNotHealthyReason = "NodeNotHealthy"
 
-	// MachineNodeHealthUnknownReason surfaces when at least one node conditions report healthy state unknown
+	// MachineNodeHealthUnknownReason surfaces when at least one node condition reports healthy state unknown
 	// and no node conditions report not healthy state.
 	MachineNodeHealthUnknownReason = "NodeHealthyUnknown"
 
@@ -294,7 +294,7 @@ const (
 
 	// MachineNodeDeletedReason surfaces when the node hosted on the machine has been deleted.
 	// Note: controllers can't identify if the Node was deleted by the controller itself, e.g.
-	// during the deletion workflow, or by a users.
+	// during the deletion workflow, or by a user.
 	MachineNodeDeletedReason = "NodeDeleted"
 
 	// MachineNodeInspectionFailedReason documents a failure when inspecting the status of a Node.
@@ -448,7 +448,7 @@ type MachineSpec struct {
 
 	// providerID is the identification ID of the machine provided by the provider.
 	// This field must match the provider ID as seen on the node object corresponding to this machine.
-	// This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
+	// This field is required by higher level consumers of cluster-api. An example use case is cluster autoscaler
 	// with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
 	// machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a
 	// generic out-of-tree provider for autoscaler, this field is required by autoscaler to be
@@ -484,9 +484,9 @@ type MachineSpec struct {
 	// they can include the status of those components with a new condition and add this condition to ReadinessGates.
 	//
 	// NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those
-	// readiness gates condition are reporting the same message, when computing the Machine's Ready condition those
+	// readiness gate conditions are reporting the same message, when computing the Machine's Ready condition those
 	// readinessGates will be replaced by a single entry reporting "Control plane components: " + message.
-	// This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster).
+	// This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster.
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
@@ -542,8 +542,8 @@ type MachineDeletionSpec struct {
 
 // MachineReadinessGate contains the type of a Machine condition to be used as a readiness gate.
 type MachineReadinessGate struct {
-	// conditionType refers to a condition with matching type in the Machine's condition list.
-	// If the conditions doesn't exist, it will be treated as unknown.
+	// conditionType refers to a condition with a matching type in the Machine's condition list.
+	// If the condition doesn't exist, it will be treated as unknown.
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
 	// +required
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
@@ -624,7 +624,7 @@ type MachineStatus struct {
 	// +optional
 	Deletion *MachineDeletionStatus `json:"deletion,omitempty"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *MachineDeprecatedStatus `json:"deprecated,omitempty"`
 }
@@ -668,20 +668,20 @@ type MachineInitializationStatus struct {
 // MachineDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachineDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	V1Beta1 *MachineV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// MachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// MachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachineV1Beta1DeprecatedStatus struct {
 	// conditions defines current service state of the Machine.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
@@ -703,7 +703,7 @@ type MachineV1Beta1DeprecatedStatus struct {
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	FailureReason *capierrors.MachineStatusError `json:"failureReason,omitempty"`
@@ -725,7 +725,7 @@ type MachineV1Beta1DeprecatedStatus struct {
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1

@@ -38,7 +38,7 @@ func NewHookResponseTracker() *HookResponseTracker {
 	}
 }
 
-// Add add the response of a hook to the tracker.
+// Add adds the response of a hook to the tracker.
 func (h *HookResponseTracker) Add(hook runtimecatalog.Hook, response runtimehooksv1.ResponseObject) {
 	hookName := runtimecatalog.HookName(hook)
 	h.responses[hookName] = response

@@ -60,7 +60,7 @@ type DiscoverOptions struct {
 
 	// V1Beta1 instructs tree to use V1Beta1 conditions.
 	//
-	// Deprecated: This field will be removed when v1beta1 will be dropped.
+	// Deprecated: This field will be removed when v1beta1 is dropped.
 	V1Beta1 bool
 }
 

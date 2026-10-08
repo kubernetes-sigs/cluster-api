@@ -82,11 +82,11 @@ superseded-by:
 
 **Helm**: A CNCF graduated project that serves as a package manager widely used in the community. Note that Helm packages are Helm charts.
 
-[^1]: Package management tools usually have broader scope that goes over and behind the act of installing a Kuberentes application, like e.g. defining formats for packaging Kubernetes applications, defining repository/marketplaces where users can find libraries of existing applications, templating systems for customizing applications etc.
+[^1]: Package management tools usually have broader scope that goes over and behind the act of installing a Kubernetes application, like e.g. defining formats for packaging Kubernetes applications, defining repository/marketplaces where users can find libraries of existing applications, templating systems for customizing applications etc.
 
 ## Summary
 
-Cluster API is designed to manage the lifecycle of Kubernetes Clusters through declarative specs, and currently users rely on their own package management tool of choice for Kubernetes application management (e.g Helm, kapp etc.).
+Cluster API is designed to manage the lifecycle of Kubernetes Clusters through declarative specs, and currently users rely on their own package management tool of choice for Kubernetes application management (e.g. Helm, kapp etc.).
 
 This proposal aims to provide a solution for orchestrating Cluster add-ons around the Cluster lifecycle that is consistent with the Cluster API design philosophy by using a declarative spec.
 
@@ -112,7 +112,7 @@ This proposal does not intend to solve the issue of add-ons in all of Kubernetes
 
 ### Non goals
 
-- To implement a full fledged package management tool in Cluster API; there are already several awesome package management tools in the ecosystem, and CAPI should not reinvent the wheel. 
+- To implement a full-fledged package management tool in Cluster API; there are already several awesome package management tools in the ecosystem, and CAPI should not reinvent the wheel. 
 - To provide a mechanism for altering, customizing, or dealing with single Kubernetes resources defining a Cluster add-on, i.e. Deployments, Services, ServiceAccounts. Cluster API should treat add-ons as opaque components and delegate all the operations impacting add-on internals to the package management tool.
 - To expect users to use a specific package management tool.
 - To implement a solution for installing add-ons on the management cluster itself.
@@ -149,7 +149,7 @@ As a developer or Cluster operator, I would like Cluster add-on providers to use
 
 #### Story 5
 
-As a developer or Cluster operator, I would like Cluster add-on providers to update add-ons configurations when information available in the Management Cluster (e.g add-on configuration) changes.
+As a developer or Cluster operator, I would like Cluster add-on providers to update add-ons configurations when information available in the Management Cluster (e.g. add-on configuration) changes.
 
 ### ClusterAddonProvider Functionality
 
@@ -332,7 +332,7 @@ We can rely upon existing functionality and capabilities in Helm to enforce Kube
 
 Each package manager has its own specific configuration format. Helm charts, for example, can be configured using the `values.yaml` file where each chart can define its own configurable fields in YAML format.
 
-For ClusterAddonProvider for Helm, a solution is relatively simple. HelmChartProxy contains a `valuesTemplate` field which allows the contents of a `values.yaml` file to be passed in as a inline YAML string.
+For ClusterAddonProvider for Helm, a solution is relatively simple. HelmChartProxy contains a `valuesTemplate` field which allows the contents of a `values.yaml` file to be passed in as an inline YAML string.
 
 Additionally, the `valuesTemplate` field functions as a Go template. This allows `valuesTemplate` to reference fields from the Cluster definition, i.e. cluster name, namespace, control plane ref, pod CIDRs. These template fields will be resolved dynamically based on the actual values for each workload cluster selected by HelmChartProxy’s cluster selector.
 

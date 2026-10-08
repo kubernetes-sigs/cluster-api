@@ -106,7 +106,7 @@ a direct reflection of Cluster API's expectations and thus is versioned along wi
 ## Proposal
 
 The crux of this proposal is to implement a test suite/framework/library that providers can use as e2e tests. It will
-not cover provider specific edge cases. Providers are still left to implement their own provider specific e2es.
+not cover provider-specific edge cases. Providers are still left to implement their own provider-specific e2es.
 
 This framework will capture behaviors of Cluster API that span all providers.
 

@@ -331,7 +331,7 @@ spec:
                                     type: array
                                   timeoutForControlPlane:
                                     description: timeoutForControlPlane controls the
-                                      timeout that we use for API server to appear
+                                      timeout that we use for the API server to appear
                                     type: string
                                 type: object
                               apiVersion:
@@ -374,7 +374,7 @@ spec:
                               controlPlaneEndpoint:
                                 description: |-
                                   controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-                                  can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+                                  can be a valid IP address or an RFC-1123 DNS subdomain, both with optional TCP port.
                                   In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
                                   are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
                                   the BindPort is used.
@@ -1216,7 +1216,7 @@ spec:
                             properties:
                               filesystems:
                                 description: filesystems specifies the list of file
-                                  systems to setup.
+                                  systems to set up.
                                 items:
                                   description: Filesystem defines the file systems
                                     to be created.
@@ -1277,7 +1277,7 @@ spec:
                                 type: array
                               partitions:
                                 description: partitions specifies the list of the
-                                  partitions to setup.
+                                  partitions to set up.
                                 items:
                                   description: Partition defines how to create and
                                     layout a partition.
@@ -1337,8 +1337,8 @@ spec:
                                       type: boolean
                                     tableType:
                                       description: |-
-                                        tableType specifies the tupe of partition table. The following are supported:
-                                        'mbr': default and setups a MS-DOS partition table
+                                        tableType specifies the type of partition table. The following are supported:
+                                        'mbr': default and sets up an MS-DOS partition table
                                         'gpt': setups a GPT partition table
                                       enum:
                                       - mbr
@@ -1360,7 +1360,7 @@ spec:
                               properties:
                                 append:
                                   description: append specifies whether to append
-                                    Content to existing file if Path exists.
+                                    Content to an existing file if Path exists.
                                   type: boolean
                                 content:
                                   description: content is the actual content of the
@@ -1552,7 +1552,7 @@ spec:
                                 description: |-
                                   localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
                                   In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
-                                  is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
+                                  is the global endpoint for the cluster, which then load balances the requests to each individual API server. This
                                   configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
                                   on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
                                   fails you may set the desired value here.
@@ -1710,7 +1710,7 @@ spec:
                               caCertPath:
                                 description: |-
                                   caCertPath is the path to the SSL certificate authority used to
-                                  secure comunications between node and control-plane.
+                                  secure communications between node and control-plane.
                                   Defaults to "/etc/kubernetes/pki/ca.crt".
                                 maxLength: 512
                                 minLength: 1
@@ -1885,7 +1885,7 @@ spec:
                                                 properties:
                                                   apiVersion:
                                                     description: |-
-                                                      apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+                                                      apiVersion is the preferred input version of the ExecInfo. The returned ExecCredentials MUST use
                                                       the same encoding version as the input.
                                                       Defaults to client.authentication.k8s.io/v1 if not set.
                                                     maxLength: 512
@@ -2107,7 +2107,7 @@ spec:
                             type: object
                           mounts:
                             description: mounts specifies a list of mount points to
-                              be setup.
+                              be set up.
                             items:
                               description: MountPoints defines input for generated
                                 mounts in cloud-init.
@@ -2289,7 +2289,7 @@ spec:
                           template:
                             description: |-
                               template defines the template to use for generating the names of the Machine objects.
-                              If not defined, it will fallback to `{{ .kubeadmControlPlane.name }}-{{ .random }}`.
+                              If not defined, it will fall back to `{{ .kubeadmControlPlane.name }}-{{ .random }}`.
                               If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will
                               get concatenated with a random suffix of length 5.
                               Length of the template string must not exceed 256 characters.
@@ -2435,7 +2435,8 @@ spec:
                               unhealthy after MinHealthyPeriod from the previous remediation
                               expired,\nthis is not considered a retry anymore because
                               the new issue is assumed unrelated from the previous
-                              one.\n\nIf not set, the remedation will be retried infinitely."
+                              one.\n\nIf not set, the remediation will be retried
+                              infinitely."
                             format: int32
                             type: integer
                           minHealthyPeriod:
@@ -2920,7 +2921,7 @@ spec:
                               controlPlaneEndpoint:
                                 description: |-
                                   controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-                                  can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+                                  can be a valid IP address or an RFC-1123 DNS subdomain, both with optional TCP port.
                                   In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
                                   are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
                                   the BindPort is used.
@@ -3817,7 +3818,7 @@ spec:
                             properties:
                               filesystems:
                                 description: filesystems specifies the list of file
-                                  systems to setup.
+                                  systems to set up.
                                 items:
                                   description: Filesystem defines the file systems
                                     to be created.
@@ -3880,7 +3881,7 @@ spec:
                                 x-kubernetes-list-type: atomic
                               partitions:
                                 description: partitions specifies the list of the
-                                  partitions to setup.
+                                  partitions to set up.
                                 items:
                                   description: Partition defines how to create and
                                     layout a partition.
@@ -3943,8 +3944,8 @@ spec:
                                       type: boolean
                                     tableType:
                                       description: |-
-                                        tableType specifies the tupe of partition table. The following are supported:
-                                        'mbr': default and setups a MS-DOS partition table
+                                        tableType specifies the type of partition table. The following are supported:
+                                        'mbr': default and sets up an MS-DOS partition table
                                         'gpt': setups a GPT partition table
                                       enum:
                                       - mbr
@@ -3971,7 +3972,7 @@ spec:
                               properties:
                                 append:
                                   description: append specifies whether to append
-                                    Content to existing file if Path exists.
+                                    Content to an existing file if Path exists.
                                   type: boolean
                                 content:
                                   description: content is the actual content of the
@@ -4164,7 +4165,7 @@ spec:
                                 description: |-
                                   localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
                                   In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
-                                  is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
+                                  is the global endpoint for the cluster, which then load balances the requests to each individual API server. This
                                   configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
                                   on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
                                   fails you may set the desired value here.
@@ -4587,7 +4588,7 @@ spec:
                                                 properties:
                                                   apiVersion:
                                                     description: |-
-                                                      apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+                                                      apiVersion is the preferred input version of the ExecInfo. The returned ExecCredentials MUST use
                                                       the same encoding version as the input.
                                                       Defaults to client.authentication.k8s.io/v1 if not set.
                                                     maxLength: 512
@@ -4888,7 +4889,7 @@ spec:
                             type: object
                           mounts:
                             description: mounts specifies a list of mount points to
-                              be setup.
+                              be set up.
                             items:
                               description: MountPoints defines input for generated
                                 mounts in cloud-init.
@@ -5068,7 +5069,7 @@ spec:
                           template:
                             description: |-
                               template defines the template to use for generating the names of the Machine objects.
-                              If not defined, it will fallback to `{{ .kubeadmControlPlane.name }}-{{ .random }}`.
+                              If not defined, it will fall back to `{{ .kubeadmControlPlane.name }}-{{ .random }}`.
                               If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will
                               get concatenated with a random suffix of length 5.
                               Length of the template string must not exceed 256 characters.
@@ -5236,7 +5237,7 @@ spec:
                               unhealthy after minHealthyPeriodSeconds from the previous
                               remediation expired,\nthis is not considered a retry
                               anymore because the new issue is assumed unrelated from
-                              the previous one.\n\nIf not set, the remedation will
+                              the previous one.\n\nIf not set, the remediation will
                               be retried infinitely."
                             format: int32
                             type: integer

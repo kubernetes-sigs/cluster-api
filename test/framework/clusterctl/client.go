@@ -223,7 +223,7 @@ func UpgradeWithBinary(ctx context.Context, binary string, input UpgradeInput) e
 func calculateClusterCtlUpgradeArgs(input UpgradeInput) []string {
 	args := []string{"upgrade", "apply", "--config", input.ClusterctlConfigPath, "--kubeconfig", input.KubeconfigPath, "--wait-providers"}
 
-	// Check if the user want a custom upgrade
+	// Check if the user wants a custom upgrade
 	isCustomUpgrade := input.CoreProvider != "" ||
 		len(input.BootstrapProviders) > 0 ||
 		len(input.ControlPlaneProviders) > 0 ||

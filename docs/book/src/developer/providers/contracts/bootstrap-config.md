@@ -74,7 +74,7 @@ All resources MUST have the standard Kubernetes `TypeMeta` and `ObjectMeta` fiel
 ### All resources: `APIVersion` field value
 
 In Kubernetes `APIVersion` is a combination of API group and version.
-Special consideration MUST applies to both API group and version for all the resources Cluster API interacts with.
+Special consideration MUST apply to both API group and version for all the resources Cluster API interacts with.
 
 #### All resources: API group
 
@@ -341,7 +341,7 @@ See [Improving status in CAPI resources] for more context.
 
 ### BootstrapConfig: support for in-place changes
 
-In case you are developing an bootstrap config provider with support for in-place updates of the Machine configuration,
+In case you are developing a bootstrap config provider with support for in-place updates of the Machine configuration,
 you should consider following recommendations during implementation.
 
 - The `Update Extension` is the component responsible for orchestrating in-place changes on Machines.
@@ -389,7 +389,7 @@ type FooConfigTemplateResource struct {
 ```
 
 NOTE: in this example BootstrapConfigTemplate's `spec.template.spec` embeds `FooConfigSpec` from BootstrapConfig. This might not always be
-the best choice depending of if/how BootstrapConfig's spec fields applies to many machines vs only one.
+the best choice depending on if/how BootstrapConfig's spec fields apply to many machines vs only one.
 
 For each BootstrapConfigTemplate resource, you MUST also add the corresponding list resource.
 The list resource MUST be named as `<BootstrapConfigTemplate>List`.

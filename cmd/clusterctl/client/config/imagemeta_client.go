@@ -87,7 +87,7 @@ func (p *imageMetaClient) getImageMeta(component, imageName string) (*imageMeta,
 		return nil, pkgerrors.Wrap(err, "failed to unmarshal image override configurations")
 	}
 
-	// If there are not image override configurations, return.
+	// If there are no image override configurations, return.
 	if meta == nil {
 		p.imageMetaCache[imageMetaCacheKey(component, imageName)] = nil
 		return nil, nil

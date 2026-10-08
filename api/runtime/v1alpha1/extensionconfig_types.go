@@ -129,7 +129,7 @@ type ExtensionConfigStatus struct {
 // ExtensionConfigV1Beta2Status groups all the fields that will be added or modified in ExtensionConfig with the V1Beta2 version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ExtensionConfigV1Beta2Status struct {
-	// conditions represents the observations of a ExtensionConfig's current state.
+	// conditions represents the observations of an ExtensionConfig's current state.
 	// Known condition types are Discovered, Paused.
 	// +optional
 	// +listType=map
@@ -179,7 +179,7 @@ type GroupVersionHook struct {
 
 // FailurePolicy specifies how unrecognized errors when calling the ExtensionHandler are handled.
 // FailurePolicy helps with extensions not working consistently, e.g. due to an intermittent network issue.
-// The following type of errors are never ignored by FailurePolicy Ignore:
+// The following types of errors are never ignored by FailurePolicy Ignore:
 // - Misconfigurations (e.g. incompatible types)
 // - Extension explicitly returns a Status Failure.
 type FailurePolicy string

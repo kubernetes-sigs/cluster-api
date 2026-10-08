@@ -65,7 +65,7 @@ func (p *Provider) ManifestLabel() string {
 	return ManifestLabel(p.ProviderName, p.GetProviderType())
 }
 
-// InstanceName return the a name that uniquely identifies an entry in the provider inventory.
+// InstanceName returns a name that uniquely identifies an entry in the provider inventory.
 // The instanceName is composed by the ManifestLabel and by the namespace where the provider is installed;
 // the resulting value uniquely identify a provider instance because clusterctl does not support multiple
 // instances of the same provider to be installed in the same namespace.

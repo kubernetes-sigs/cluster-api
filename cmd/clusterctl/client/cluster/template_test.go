@@ -388,7 +388,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 
 	// redirect asset
 	mux.HandleFunc("/repos/some-owner/some-repo/releases/assets/22222222", func(w http.ResponseWriter, _ *http.Request) {
-		// add the "/api-v3" prefix to match the prefix of the fake github server
+		// add the "/api-v3" prefix to match the prefix of the fake GitHub server
 		w.Header().Add("Location", "/api-v3/redirected/22222222")
 		w.WriteHeader(http.StatusFound)
 	})
@@ -500,7 +500,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 			}
 			processor := yaml.NewSimpleProcessor()
 			c := newTemplateClient(TemplateClientInput{nil, configClient, processor})
-			// override the github client factory
+			// override the GitHub client factory
 			c.gitHubClientFactory = gitHubClientFactory
 
 			got, err := c.GetFromURL(ctx, tt.args.templateURL, tt.args.targetNamespace, tt.args.skipTemplateProcess)

@@ -278,7 +278,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	for i, t := range targets {
 		mhc.Status.Targets[i] = t.Machine.Name
 	}
-	// do sort to avoid keep changing mhc.Status as the returned machines are not in order
+	// do sort to avoid continually changing mhc.Status as the returned machines are not in order
 	sort.Strings(mhc.Status.Targets)
 
 	nodeStartupTimeout := mhc.Spec.Checks.NodeStartupTimeoutSeconds
@@ -345,7 +345,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 			Message: message,
 		})
 
-		// If there are no unhealthy target, skip publishing the `RemediationRestricted` event to avoid misleading.
+		// If there are no unhealthy targets, skip publishing the `RemediationRestricted` event to avoid misleading.
 		if len(unhealthy) != 0 {
 			r.recorder.Event(
 				mhc,
@@ -546,7 +546,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 			} else if t.Machine.DeletionTimestamp.IsZero() { // Only setting the OwnerRemediated conditions when machine is not already in deletion.
 				logger.Info("Machine has failed health check, marking for remediation", "reason", condition.Reason, "message", condition.Message)
 				// NOTE: MHC is responsible for creating MachineOwnerRemediatedCondition if missing or to trigger another remediation if the previous one is completed;
-				// instead, if a remediation is in already progress, the remediation owner is responsible for completing the process and MHC should not overwrite the condition.
+				// instead, if a remediation is already in progress, the remediation owner is responsible for completing the process and MHC should not overwrite the condition.
 				if !v1beta1conditions.Has(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) || v1beta1conditions.IsTrue(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
 					v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 				}
@@ -762,7 +762,7 @@ func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) (bool, int32, error
 }
 
 // getUnhealthyRange parses an integer range and returns the min and max values
-// Eg. [2-5] will return (2,5,nil).
+// E.g. [2-5] will return (2,5,nil).
 func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
 	// remove '[' and ']'
 	unhealthyRange := (mhc.Spec.Remediation.TriggerIf.UnhealthyInRange)[1 : len(mhc.Spec.Remediation.TriggerIf.UnhealthyInRange)-1]

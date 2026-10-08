@@ -23,13 +23,13 @@ As a consequence CAPD must stay in sync with Kind with regards to how kindest/no
 run when creating a new DockerMachine.
 
 kindest/node images are created using a specific Kind version, and thus it is required
-to keep into account the mapping between the Kubernetes version for a kindest/node and
+to take into account the mapping between the Kubernetes version for a kindest/node and
 the Kind version that created that image, so we can run it properly.
 
 NOTE: This is the same reason why in the Kind release documentation there is a specific list
 of kindest/node images - uniquely identified by a sha - to be used with a Kind release.
 
-For sake of simplification, we are grouping a set of Kind versions that runs kindest/node images
+For the sake of simplification, we are grouping a set of Kind versions that runs kindest/node images
 in the same way into Kind mode.
 */
 package kind
@@ -75,7 +75,7 @@ type Mapping struct {
 }
 
 // preBuiltMappings contains the list of kind images pre-built for a given Kind version.
-// IMPORTANT: new version should be added at the beginning of the list, so in case an image for
+// IMPORTANT: a new version should be added at the beginning of the list, so in case an image for
 // a given Kubernetes version is rebuilt with a newer kind version, we are using the latest image.
 var preBuiltMappings = []Mapping{
 
@@ -635,10 +635,10 @@ var preBuiltMappings = []Mapping{
 // If a custom image is provided, return the corresponding Mapping if defined, otherwise return the mapping
 // for target K8sVersion if defined; if there is no exact match for a given Kubernetes version/custom image,
 // a best effort mapping is returned.
-// NOTE: returning a best guess mapping is a way to try to make things to work when new images are published and
+// NOTE: returning a best guess mapping is a way to try to make things work when new images are published and
 // either CAPD code in this file is not yet updated or users/CI are using older versions of CAPD.
 // Even if this can lead to CAPD failing in not obvious ways, we consider this an acceptable trade off given that this
-// is a provider to be used for development only and this approach allow us bit more of flexibility in using Kindest/node
+// is a provider to be used for development only and this approach allows us a bit more flexibility in using Kindest/node
 // images published after CAPD version is cut (without doing code changes in the list above and/or cherry-picks).
 func GetMapping(k8sVersion semver.Version, customImage string) Mapping {
 	bestGuess := Mapping{
@@ -667,8 +667,8 @@ func GetMapping(k8sVersion semver.Version, customImage string) Mapping {
 			}
 		}
 
-		// If the mapping is for an older patch version, then the K8s version is newer that any published image we are aware of,
-		// so we return out best guess.
+		// If the mapping is for an older patch version, then the K8s version is newer than any published image we are aware of,
+		// so we return our best guess.
 		if k8sVersion.Patch > m.KubernetesVersion.Patch {
 			return bestGuess
 		}

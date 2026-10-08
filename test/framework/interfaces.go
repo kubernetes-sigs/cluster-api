@@ -29,12 +29,12 @@ type Getter interface {
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
 }
 
-// Creator can creates resources.
+// Creator can create resources.
 type Creator interface {
 	Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
 }
 
-// Lister can lists resources.
+// Lister can list resources.
 type Lister interface {
 	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error
 }

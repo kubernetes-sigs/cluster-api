@@ -69,7 +69,7 @@ var (
 // in the MachineDeployment controller.
 const machineDeploymentManagerName = "capi-machinedeployment"
 
-// Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
+// Update permissions on /finalizers subresource is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
 // See: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
 //
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -364,7 +364,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	allMSs = append(allMSs, p.oldMSs...)
 
 	// Get all the diff introduced by the rollout planner.
-	// Note: collect all the diff first, so for each change we can add an overview of all the MachineSets
+	// Note: collect all the diffs first, so for each change we can add an overview of all the MachineSets
 	// in the MachineDeployment, because those info are required to understand why a change happened.
 	machineSetsDiff := map[string]machineSetDiff{}
 	machineSetsSummary := map[string]string{}
@@ -385,7 +385,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		ctx := ctrl.LoggerInto(ctx, log)
 
 		// Retrieve the diff for the MachineSet.
-		// Note: no need to check for diff doesn't exist, all the diff have been computed right above.
+		// Note: no need to check whether a diff exists, all the diffs have been computed right above.
 		diff := machineSetsDiff[ms.Name]
 
 		// Add to the log kv pairs providing the overview of all the MachineSets computed above.

@@ -47,7 +47,7 @@ surface problems, if any; in practice:
 
 The ObjectTree object defined implements all the above behaviors of the "at glance" visualization, by generating
 a tree of Kubernetes objects; each object gets a set of annotation, reflecting its own visualization specific attributes,
-e.g is virtual node, is group node, meta name etc.
+e.g. is virtual node, is group node, meta name etc.
 
 The Discovery object uses the ObjectTree to build the "at glance" view of a Cluster API.
 */

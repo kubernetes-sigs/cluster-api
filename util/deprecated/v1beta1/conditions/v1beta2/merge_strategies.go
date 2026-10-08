@@ -560,7 +560,7 @@ var re = regexp.MustCompile(`\s*\*\s+`)
 
 func indentIfMultiline(m string) string {
 	msg := ""
-	// If it is a multiline string or if it start with a bullet, indent the message.
+	// If it is a multiline string or if it starts with a bullet, indent the message.
 	if strings.Contains(m, "\n") || re.MatchString(m) {
 		msg += "\n"
 

@@ -58,7 +58,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
+// Update permissions on /finalizers subresource is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
 // See: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
 //
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -405,7 +405,7 @@ func (r *Reconciler) nodeToMachinePool(ctx context.Context, o client.Object) []r
 		return []reconcile.Request{{NamespacedName: util.ObjectKey(&machinePoolList.Items[0])}}
 	}
 
-	// Otherwise let's match by providerID. This is useful when e.g the NodeRef has not been set yet.
+	// Otherwise let's match by providerID. This is useful when e.g. the NodeRef has not been set yet.
 	// Match by providerID
 	if node.Spec.ProviderID == "" {
 		return nil

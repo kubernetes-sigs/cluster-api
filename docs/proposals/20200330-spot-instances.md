@@ -108,7 +108,7 @@ Allow users to cut costs of running Kubernetes clusters on cloud providers by mo
 
 ## Proposal
 
-To provide a consistent behaviour using non-guaranteed instances (Spot on AWS and Azure, Preepmtible on GCP)
+To provide a consistent behaviour using non-guaranteed instances (Spot on AWS and Azure, Preemptible on GCP)
 across cloud providers, we must define a common behaviour based on the common features across each provider.
 
 Based on the research on [non-guaranteed instances](#non-guaranteed-instances),
@@ -301,7 +301,7 @@ While MachinePools are being implemented across the three cloud providers that t
 we will not be focusing on support non-guaranteed instances within MachinePools.
 
 Once initial support for non-guaranteed instances has been tested and implemented within the providers,
-we will investigate supporting non-guaranteed instances within MachinePools in a follow up proposal.
+we will investigate supporting non-guaranteed instances within MachinePools in a follow-up proposal.
 
 ### Risks and Mitigations
 
@@ -323,7 +323,7 @@ specifying that they should run on spot-instances.
 
 Currently, if there is an issue creating the Infrastructure instance for any reason,
 the request to create the instance will be requeued.
-When the issue is persistent (eg. Spot Bid too low on AWS),
+When the issue is persistent (e.g. Spot Bid too low on AWS),
 this could lead to the Infrastructure controller attempting to create machines and failing in a loop.
 
 To prevent this, Machine's could enter a failed state if persistent errors such as this occur.
@@ -331,7 +331,7 @@ This also has the added benefit of being more visible to a user, as currently, n
 
 Failing the Machine would allow a MachineHealthCheck to be used to clean up the Failed machines.
 The MachineHealthCheck controller could handle the looping by using backoff on deletion of failed Machine's for a particular MachineHealthCheck,
-which would be useful for MachineHealthCheck and keep this logic centralling in a non-cloud provider specific component of Cluster API.
+which would be useful for MachineHealthCheck and keep this logic centralized in a non-cloud provider-specific component of Cluster API.
 
 ## Alternatives
 
@@ -398,7 +398,7 @@ This option should not be made available to users to avoid conflicts within the 
 
 ###### Termination Notices
 
-Amazon provides a 2 minute notice of termination for Spot instances via it’s instance metadata service.
+Amazon provides a 2-minute notice of termination for Spot instances via its instance metadata service.
 Each instance can poll the metadata service to see if it has been marked for termination.
 There are [existing solutions](https://github.com/kube-aws/kube-spot-termination-notice-handler)
 that run Daemonsets on Spot instances to gracefully drain workloads when the termination notice is given.
@@ -406,7 +406,7 @@ This is something that should be provided as part of the spot instance availabil
 
 ###### Persistent Requests
 
-Persistent requests allow users to ask that a Spot instance, once terminated, be replace by another instance when new capacity is available.
+Persistent requests allow users to ask that a Spot instance, once terminated, be replaced by another instance when new capacity is available.
 
 Using this feature would break assumptions in Cluster API since the instance ID for the Machine would change during its lifecycle.
 The usage of this feature should be explicitly forbidden so that we do not break existing assumptions.
@@ -438,11 +438,11 @@ This means that the instances will be cycled regularly and as such, good handlin
 
 ###### Shutdown warning
 
-GCP gives a 30 second warning for termination of Preemptible instances.
+GCP gives a 30-second warning for termination of Preemptible instances.
 This signal comes via an ACPI G2 soft-off signal to the machine, which, could be intercepted to start a graceful termination of pods on the machine.
 There are [existing projects](https://github.com/GoogleCloudPlatform/k8s-node-termination-handler) that already do this.
 
-In the case that the node is reaching its 24 hour termination mark,
+In the case that the node is reaching its 24-hour termination mark,
 it may be safer to preempt this warning and shut down the node before the 30s shut down signal to provide adequate time for workloads to be moved gracefully/
 
 #### Azure Spot VMs

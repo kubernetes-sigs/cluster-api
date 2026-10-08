@@ -78,7 +78,7 @@ func (r *Reconciler) updateV1Beta1Status(ctx context.Context, controlPlane *pkg.
 		// This means that there was no error in generating the desired number of machine objects
 		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedV1Beta1Condition)
 	default:
-		// make sure last resize operation is marked as completed.
+		// make sure the last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created).
 		readyMachines := controlPlane.Machines.Filter(collections.IsReady())
@@ -174,7 +174,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, controlPlane *pkg.Control
 }
 
 // setControlPlaneInitialized surface control plane initialized when it is possible to check that the Kubeadm config exists in the workload cluster;
-// this is considered a proxy information about the API Server being up and running and kubeadm init successfully completed.
+// this is considered proxy information about the API Server being up and running and kubeadm init successfully completed.
 // Note: This only gets initialized once and does not change if the kubeadm config map goes away.
 func setControlPlaneInitialized(ctx context.Context, controlPlane *pkg.ControlPlane) error {
 	if !ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false) {
@@ -250,7 +250,7 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 	// Count machines rolling out and collect reasons why a rollout is happening.
 	// Note: The code below collects all the reasons for which at least a machine is rolling out; under normal circumstances
 	// all the machines are rolling out for the same reasons, however, in case of changes to KCP
-	// before a previous changes is not fully rolled out, there could be machines rolling out for
+	// before a previous change is not fully rolled out, there could be machines rolling out for
 	// different reasons.
 	rollingOutReplicas := 0
 	rolloutReasons := sets.Set[string]{}
@@ -630,7 +630,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		// Otherwise, etcd is managed.
 		// In this case, when looking at the k8s control plane we should consider how kubeadm layouts control plane components,
 		// and more specifically:
-		// - API server on one machine only connect to the local etcd member
+		// - API server on one machine only connects to the local etcd member
 		// - ControllerManager and scheduler on a machine connect to the local API server (not to the control plane endpoint)
 		// As a consequence, we consider the K8s control plane on this machine healthy only if everything is healthy.
 		if conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition) &&
@@ -678,7 +678,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		}
 
 		for _, etcdMember := range etcdMembers {
-			// Note. We consider etcd without a name yet as learners, because this prevents them to impact quorum (this is
+			// Note. We consider etcd without a name yet as learners, because this prevents them from impacting quorum (this is
 			// a temporary state that usually goes away very quickly).
 			if etcdMember.IsLearner || etcdMember.Name == "" {
 				learnerEtcdMembers++
@@ -709,7 +709,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 				}
 			}
 
-			// Otherwise read the status of the etcd member from he EtcdMemberHealthy condition.
+			// Otherwise read the status of the etcd member from the EtcdMemberHealthy condition.
 			if conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition) {
 				etcdMembersHealthy++
 			} else if shouldSurfaceWhenAvailableTrue(machine,
@@ -837,7 +837,7 @@ func setLastRemediation(_ context.Context, controlPlane *pkg.ControlPlane) error
 
 // shouldSurfaceWhenAvailableTrue defines when a control plane components/etcd issue should surface when
 // Available condition is true.
-// The main goal of this check is to avoid to surface false negatives/flakes, and thus it requires that
+// The main goal of this check is to avoid surfacing false negatives/flakes, and thus it requires that
 // an issue exists for at least more than 10 seconds before surfacing it.
 func shouldSurfaceWhenAvailableTrue(machine *clusterv1.Machine, conditionTypes ...string) bool {
 	// Get the min time when one of the conditions in input transitioned to false or unknown.

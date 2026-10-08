@@ -25,7 +25,7 @@ You'll need the [docker daemon][docker] v19.03 or newer available.
 
 [docker]: https://docs.docker.com/install/
 
-On MacOS systems using [Lima](https://github.com/lima-vm/lima) is a viable alternative to Docker Desktop.
+On macOS systems using [Lima](https://github.com/lima-vm/lima) is a viable alternative to Docker Desktop.
 
 ### A Cluster
 

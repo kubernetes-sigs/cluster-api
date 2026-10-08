@@ -642,7 +642,7 @@ type KubeadmControlPlaneRemediationSpec struct {
 	// If a machine is marked as unhealthy after minHealthyPeriodSeconds from the previous remediation expired,
 	// this is not considered a retry anymore because the new issue is assumed unrelated from the previous one.
 	//
-	// If not set, the remedation will be retried infinitely.
+	// If not set, the remediation will be retried infinitely.
 	// +optional
 	MaxRetry *int32 `json:"maxRetry,omitempty"`
 
@@ -678,7 +678,7 @@ type KubeadmControlPlaneRemediationSpec struct {
 // +kubebuilder:validation:MinProperties=1
 type MachineNamingSpec struct {
 	// template defines the template to use for generating the names of the Machine objects.
-	// If not defined, it will fallback to `{{ .kubeadmControlPlane.name }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .kubeadmControlPlane.name }}-{{ .random }}`.
 	// If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
 	// Length of the template string must not exceed 256 characters.
@@ -713,7 +713,7 @@ type KubeadmControlPlaneStatus struct {
 	// selector is the label selector in string format to avoid introspection
 	// by clients, and is used to provide the CRD-based integration for the
 	// scale subresource and additional integrations for things like kubectl
-	// describe.. The string will be in the same format as the query-param syntax.
+	// describe. The string will be in the same format as the query-param syntax.
 	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -760,11 +760,11 @@ type KubeadmControlPlaneStatus struct {
 	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// lastRemediation stores info about last remediation performed.
+	// lastRemediation stores info about the last remediation performed.
 	// +optional
 	LastRemediation LastRemediationStatus `json:"lastRemediation,omitempty,omitzero"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *KubeadmControlPlaneDeprecatedStatus `json:"deprecated,omitempty"`
 }
@@ -783,17 +783,17 @@ type KubeadmControlPlaneInitializationStatus struct {
 // KubeadmControlPlaneDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type KubeadmControlPlaneDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	// +optional
 	V1Beta1 *KubeadmControlPlaneV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// KubeadmControlPlaneV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// KubeadmControlPlaneV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type KubeadmControlPlaneV1Beta1DeprecatedStatus struct {
 	// conditions defines current service state of the KubeadmControlPlane.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
@@ -802,7 +802,7 @@ type KubeadmControlPlaneV1Beta1DeprecatedStatus struct {
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	FailureReason errors.KubeadmControlPlaneStatusError `json:"failureReason,omitempty"`
@@ -810,7 +810,7 @@ type KubeadmControlPlaneV1Beta1DeprecatedStatus struct {
 	// failureMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -820,14 +820,14 @@ type KubeadmControlPlaneV1Beta1DeprecatedStatus struct {
 	// updatedReplicas is the total number of non-terminated machines targeted by this control plane
 	// that have the desired template spec.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	UpdatedReplicas int32 `json:"updatedReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
 	// readyReplicas is the total number of fully running and ready control plane machines.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
@@ -838,14 +838,14 @@ type KubeadmControlPlaneV1Beta1DeprecatedStatus struct {
 	// be machines that are running but not yet ready or machines
 	// that still have not been created.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 }
 
-// LastRemediationStatus  stores info about last remediation performed.
-// NOTE: if for any reason information about last remediation are lost, RetryCount is going to restart from 0 and thus
+// LastRemediationStatus  stores info about the last remediation performed.
+// NOTE: if for any reason information about the last remediation is lost, RetryCount is going to restart from 0 and thus
 // more remediations than expected might happen.
 type LastRemediationStatus struct {
 	// machine is the machine name of the latest machine being remediated.
@@ -854,7 +854,7 @@ type LastRemediationStatus struct {
 	// +kubebuilder:validation:MaxLength=253
 	Machine string `json:"machine,omitempty"`
 
-	// time is when last remediation happened. It is represented in RFC3339 form and is in UTC.
+	// time is when the last remediation happened. It is represented in RFC3339 form and is in UTC.
 	// +required
 	Time metav1.Time `json:"time,omitempty,omitzero"`
 

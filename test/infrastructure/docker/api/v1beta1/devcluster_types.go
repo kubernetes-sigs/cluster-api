@@ -96,7 +96,7 @@ const (
 // LoadBalancerAvailable condition and corresponding reasons that will be used in v1Beta2 API version for a DevCluster's docker backend.
 const (
 	// DevClusterDockerLoadBalancerAvailableV1Beta2Condition documents the availability of the container that implements
-	// the load balancer for a DevCluster's docker backend..
+	// the load balancer for a DevCluster's docker backend.
 	DevClusterDockerLoadBalancerAvailableV1Beta2Condition string = "LoadBalancerAvailable"
 
 	// DevClusterDockerLoadBalancerNotAvailableV1Beta2Reason surfaces when the container that implements

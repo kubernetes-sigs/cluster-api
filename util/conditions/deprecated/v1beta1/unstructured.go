@@ -54,7 +54,7 @@ type unstructuredWrapper struct {
 //
 // NOTE: Due to the constraints of JSON-unmarshal, this operation is to be considered best effort.
 // In more details:
-//   - Errors during JSON-unmarshal are ignored and a empty collection list is returned.
+//   - Errors during JSON-unmarshal are ignored and an empty collection list is returned.
 //   - It's not possible to detect if the object has an empty condition list or if it does not implement conditions;
 //     in both cases the operation returns an empty slice is returned.
 //   - If the object doesn't implement conditions on under status as defined in Cluster API,
@@ -70,7 +70,7 @@ func (c *unstructuredWrapper) GetV1Beta1Conditions() clusterv1.Conditions {
 	}
 
 	// With unstructured, it is not possible to detect if conditions are not set if the type is wrongly defined.
-	// This methods assume condition are not set.
+	// This method assumes conditions are not set.
 	return nil
 }
 
@@ -78,7 +78,7 @@ func (c *unstructuredWrapper) GetV1Beta1Conditions() clusterv1.Conditions {
 //
 // NOTE: Due to the constraints of JSON-unmarshal, this operation is to be considered best effort.
 // In more details:
-//   - Errors during JSON-unmarshal are ignored and a empty collection list is returned.
+//   - Errors during JSON-unmarshal are ignored and an empty collection list is returned.
 //   - It's not possible to detect if the object has an empty condition list or if it does not implement conditions;
 //     in both cases the operation returns an empty slice is returned.
 func (c *unstructuredWrapper) SetV1Beta1Conditions(conditions clusterv1.Conditions) {

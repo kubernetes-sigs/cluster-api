@@ -49,7 +49,7 @@ type ScaleValidator struct {
 	decoder admission.Decoder
 }
 
-// Handle will validate for number of replicas.
+// Handle will validate the number of replicas.
 func (v *ScaleValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	scale := &autoscalingv1.Scale{}
 

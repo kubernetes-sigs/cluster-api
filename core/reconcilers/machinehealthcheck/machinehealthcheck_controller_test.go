@@ -1828,7 +1828,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 
 		obj := util.ObjectReferenceToUnstructured(ref)
-		// Make sure the Remeditaion Request is created.
+		// Make sure the Remediation Request is created.
 		g.Eventually(func() *unstructured.Unstructured {
 			key := client.ObjectKey{
 				Namespace: machines[0].Namespace,

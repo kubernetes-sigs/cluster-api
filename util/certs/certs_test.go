@@ -103,7 +103,7 @@ I8eun6k9HNyEieJTVaB9AVnykoZ78UbCQaipm9W7i4Q=
 			expectError: true,
 		},
 		{
-			name:        "return error for un-decodeable key",
+			name:        "return error for undecodable key",
 			key:         []byte("un-decodeable"),
 			expectError: true,
 		},
@@ -125,7 +125,7 @@ I8eun6k9HNyEieJTVaB9AVnykoZ78UbCQaipm9W7i4Q=
 func TestDecodeCertPEM(t *testing.T) {
 	cases := []decodeTest{
 		{
-			name:        "return error for un-decodeable cert",
+			name:        "return error for undecodable cert",
 			key:         []byte("un-decodeable"),
 			expectError: true,
 		},

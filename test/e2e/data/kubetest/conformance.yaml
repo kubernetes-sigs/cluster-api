@@ -1,7 +1,7 @@
 ginkgo.focus: \[Conformance\]
 ginkgo.skip: \[Serial\]
 disable-log-dump: true
-# ginkgo.progress flag is deprecated but its still used in
+# ginkgo.progress flag is deprecated but it's still used in
 # k8s versions <= v1.26, we have to keep it as long as we
 # support these versions.
 ginkgo.progress: true

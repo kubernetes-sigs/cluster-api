@@ -30,7 +30,7 @@ const (
 	// CloudConfig make the bootstrap data to be of cloud-config format.
 	CloudConfig Format = "cloud-config"
 
-	// Ignition make the bootstrap data to be of Ignition format.
+	// Ignition makes the bootstrap data use the Ignition format.
 	Ignition Format = "ignition"
 )
 
@@ -58,7 +58,7 @@ type KubeadmConfigSpec struct {
 	// +optional
 	DiskSetup *DiskSetup `json:"diskSetup,omitempty"`
 
-	// mounts specifies a list of mount points to be setup.
+	// mounts specifies a list of mount points to be set up.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
 	Mounts []MountPoints `json:"mounts,omitempty"`
@@ -168,7 +168,7 @@ type KubeadmConfigStatus struct {
 
 	// failureReason will be set on non-retryable errors
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -177,7 +177,7 @@ type KubeadmConfigStatus struct {
 
 	// failureMessage will be set on non-retryable errors
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -323,7 +323,7 @@ type File struct {
 	// +optional
 	Encoding Encoding `json:"encoding,omitempty"`
 
-	// append specifies whether to append Content to existing file if Path exists.
+	// append specifies whether to append Content to an existing file if Path exists.
 	// +optional
 	Append bool `json:"append,omitempty"`
 
@@ -492,12 +492,12 @@ type NTP struct {
 
 // DiskSetup defines input for generated disk_setup and fs_setup in cloud-init.
 type DiskSetup struct {
-	// partitions specifies the list of the partitions to setup.
+	// partitions specifies the list of the partitions to set up.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
 	Partitions []Partition `json:"partitions,omitempty"`
 
-	// filesystems specifies the list of file systems to setup.
+	// filesystems specifies the list of file systems to set up.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
 	Filesystems []Filesystem `json:"filesystems,omitempty"`
@@ -519,8 +519,8 @@ type Partition struct {
 	// Use with caution. Default is 'false'.
 	// +optional
 	Overwrite *bool `json:"overwrite,omitempty"`
-	// tableType specifies the tupe of partition table. The following are supported:
-	// 'mbr': default and setups a MS-DOS partition table
+	// tableType specifies the type of partition table. The following are supported:
+	// 'mbr': default and sets up an MS-DOS partition table
 	// 'gpt': setups a GPT partition table
 	// +optional
 	// +kubebuilder:validation:Enum=mbr;gpt

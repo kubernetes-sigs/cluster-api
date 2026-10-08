@@ -112,7 +112,7 @@ func (p *providerComponents) createObj(ctx context.Context, obj unstructured.Uns
 			return pkgerrors.Wrapf(err, "failed to get current provider object")
 		}
 
-		// if it does not exists, create the component
+		// if it does not exist, create the component
 		log.V(5).Info("Creating", logf.UnstructuredToValues(obj)...)
 		if err := c.Create(ctx, &obj); err != nil {
 			return pkgerrors.Wrapf(err, "failed to create provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
@@ -135,7 +135,7 @@ func (p *providerComponents) Delete(ctx context.Context, options DeleteOptions) 
 	log.Info("Deleting", "Provider", klog.KObj(&options.Provider), "providerVersion", options.Provider.Version)
 
 	// Fetch all the components belonging to a provider.
-	// We want that the delete operation is able to clean-up everything.
+	// We want that the delete operation is able to clean up everything.
 	labels := map[string]string{
 		clusterctlv1.ClusterctlLabel: "",
 		clusterv1.ProviderNameLabel:  options.Provider.ManifestLabel(),
@@ -269,7 +269,7 @@ func (p *providerComponents) ValidateNoObjectsExist(ctx context.Context, provide
 	}
 
 	// Fetch all the components belonging to a provider.
-	// We want that the delete operation is able to clean-up everything.
+	// We want that the delete operation is able to clean up everything.
 	labels := map[string]string{
 		clusterctlv1.ClusterctlLabel: "",
 		clusterv1.ProviderNameLabel:  provider.ManifestLabel(),

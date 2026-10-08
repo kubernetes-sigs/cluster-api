@@ -76,7 +76,7 @@ func TestGenerate(t *testing.T) {
 									Template: `template {{ .variableB | lower | repeat 5 }}`,
 								},
 							},
-							// template-specific variable takes precedent, if the same variable exists
+							// template-specific variable takes precedence if the same variable exists
 							// in the global and template-specific variables.
 							{
 								Op:   "replace",
@@ -2092,7 +2092,7 @@ owner: root:root
 			variables: map[string]apiextensionsv1.JSON{
 				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
 			},
-			want: &apiextensionsv1.JSON{Raw: []byte(`"map[firstLevel:map[secondLevel:map[leaf:value]]]"`)}, // Not ideal but that's go templating.
+			want: &apiextensionsv1.JSON{Raw: []byte(`"map[firstLevel:map[secondLevel:map[leaf:value]]]"`)}, // Not ideal but that's Go templating.
 		},
 		{
 			name:     "Should render a object property firstLevel",
@@ -2100,7 +2100,7 @@ owner: root:root
 			variables: map[string]apiextensionsv1.JSON{
 				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
 			},
-			want: &apiextensionsv1.JSON{Raw: []byte(`"map[secondLevel:map[leaf:value]]"`)}, // Not ideal but that's go templating.
+			want: &apiextensionsv1.JSON{Raw: []byte(`"map[secondLevel:map[leaf:value]]"`)}, // Not ideal but that's Go templating.
 		},
 		{
 			name:     "Should render a object property secondLevel",
@@ -2108,7 +2108,7 @@ owner: root:root
 			variables: map[string]apiextensionsv1.JSON{
 				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
 			},
-			want: &apiextensionsv1.JSON{Raw: []byte(`"map[leaf:value]"`)}, // Not ideal but that's go templating.
+			want: &apiextensionsv1.JSON{Raw: []byte(`"map[leaf:value]"`)}, // Not ideal but that's Go templating.
 		},
 		{
 			name:     "Should render a object property leaf",
@@ -2147,7 +2147,7 @@ owner: root:root
 			variables: map[string]apiextensionsv1.JSON{
 				"variableArray": {Raw: []byte(`["string1","string2","string3"]`)},
 			},
-			want: &apiextensionsv1.JSON{Raw: []byte(`["string1 string2 string3"]`)}, // // Not ideal but that's go templating.
+			want: &apiextensionsv1.JSON{Raw: []byte(`["string1 string2 string3"]`)}, // // Not ideal but that's Go templating.
 		},
 		{
 			name: "Should render an array property with range",

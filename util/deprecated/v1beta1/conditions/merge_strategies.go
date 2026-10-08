@@ -59,7 +59,7 @@ func WithNegativePolarityConditions(t ...clusterv1.ConditionType) MergeOption {
 	}
 }
 
-// WithStepCounter instructs merge to add a "x of y completed" string to the message,
+// WithStepCounter instructs merge to add an "x of y completed" string to the message,
 // where x is the number of conditions with Status=true and y is the number of conditions in scope.
 func WithStepCounter() MergeOption {
 	return func(c *mergeOptions) {
@@ -124,8 +124,8 @@ func localizeReason(reason string, from Getter) string {
 	return fmt.Sprintf("%s @ %s/%s", reason, from.GetObjectKind().GroupVersionKind().Kind, from.GetName())
 }
 
-// getMessage returns the message to be applied to the condition resulting by merging a set of condition groups.
-// The message is computed according to the given mergeOptions, but in case of errors or warning a
+// getMessage returns the message to be applied to the condition resulting from merging a set of condition groups.
+// The message is computed according to the given mergeOptions, but in case of errors or warnings a
 // summary of existing errors is automatically added.
 func getMessage(groups conditionGroups, options *mergeOptions) string {
 	if options.addStepCounter {

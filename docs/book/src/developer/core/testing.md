@@ -22,8 +22,8 @@ This problem is usually well scoped in core Cluster API, and in most cases it is
 implementations of the target API to be injected during tests.
 
 Instead, mocking is much more relevant for infrastructure providers; in order to address the issue
-some providers can use simulators reproducing the behaviour of a real infrastructure providers (e.g CAPV);
-if this is not possible, a viable solution is to use mocks (e.g CAPA).
+some providers can use simulators reproducing the behaviour of real infrastructure providers (e.g. CAPV);
+if this is not possible, a viable solution is to use mocks (e.g. CAPA).
 
 ### Generic providers
 When writing tests core Cluster API contributors should ensure that the code works with any providers, and thus it is required
@@ -188,7 +188,7 @@ The following guidelines should be followed when developing E2E tests:
 
 - Use the [Cluster API test framework].
 - Define test spec reflecting real user workflow, e.g. [Cluster API quick start].
-- Unless you are testing provider specific features, ensure your test can run with
+- Unless you are testing provider-specific features, ensure your test can run with
   different infrastructure providers (see [Writing Portable Tests](e2e.md#writing-portable-e2e-tests)).
 
 See [e2e development] for more information on developing e2e tests for CAPI and external providers.
@@ -367,7 +367,7 @@ analyzing them via Grafana.
 > * The logs are currently uploaded by using now as the timestamp, because otherwise it would
 >   take a few minutes until the logs show up in Loki. The original timestamp is preserved as `original_ts`.
 
-As alternative to loki, JSON logs can be visualized with a human readable timestamp using `jq`:
+As an alternative to loki, JSON logs can be visualized with a human-readable timestamp using `jq`:
 
 1. Browse the ProwJob artifacts and download the wanted logfile.
 2. Use `jq` to query the logs:
@@ -403,7 +403,7 @@ local instance of etcd and the kube-apiserver. This allows tests to be executed 
 real environment.
 
 Additionally, in Cluster API there is a set of utilities under [internal/envtest] that helps developers in setting up
-a [envtest] ready for Cluster API testing, and more specifically:
+an [envtest] ready for Cluster API testing, and more specifically:
 
 - With the required CRDs already pre-configured.
 - With all the Cluster API webhook pre-configured, so there are enforced guarantees about the semantic accuracy

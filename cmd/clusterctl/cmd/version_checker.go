@@ -101,7 +101,7 @@ type VersionState struct {
 // Check returns a message if the current clusterctl version is less than the
 // latest available release for CAPI
 // (https://github.com/kubernetes-sigs/cluster-api). It gets the latest
-// release from github at most once during a 24 hour period and caches the
+// release from GitHub at most once during a 24 hour period and caches the
 // state by default in $XDG_CONFIG_HOME/cluster-api/state.yaml. If the clusterctl
 // version is the same or greater it returns nothing.
 func (v *versionChecker) Check(ctx context.Context) (string, error) {

@@ -1,7 +1,7 @@
 <a href="https://cluster-api.sigs.k8s.io"><img alt="capi" src="./docs/logos/kubernetes-cluster-logos_final-02.svg" width="160x" /></a>
 <p>
 <a href="https://godoc.org/sigs.k8s.io/cluster-api"><img src="https://godoc.org/sigs.k8s.io/cluster-api?status.svg"></a>
-<!-- join kubernetes slack channel for cluster-api -->
+<!-- join kubernetes Slack channel for cluster-api -->
 <a href="http://slack.k8s.io/">
 <img src="https://img.shields.io/badge/join%20slack-%23cluster--api-brightgreen"></a>
 <!-- latest stable release badge -->

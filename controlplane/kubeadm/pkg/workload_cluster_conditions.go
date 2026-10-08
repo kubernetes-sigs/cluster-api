@@ -240,7 +240,7 @@ func unwrapAll(err error) error {
 }
 
 // getCurrentEtcdMembersAndAlarms returns the current list of etcd member and alarms.
-// Considering that the underlying etcd SDK calls (MemberList and AlarmList) requires quorum across all etcd members, it is possible
+// Considering that the underlying etcd SDK calls (MemberList and AlarmList) require quorum across all etcd members, it is possible
 // to run those calls towards any etcd Pod hosting an etcd member.
 func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines collections.Machines, nodes []*Node) ([]*etcd.Member, *etcd.Member, []etcd.MemberAlarm, error) {
 	// Get the list of nodes hosting an etcd member sorted by the last known etcd health,
@@ -314,7 +314,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 }
 
 // getNodeNamesSortedByLastKnownEtcdHealth return the list of nodes hosting an etcd member sorted by the last known etcd health.
-// Note: sorting by last known etcd health is a best effort operations; only nodes with a corresponding machine are considered.
+// Note: sorting by last known etcd health is a best effort operation; only nodes with a corresponding machine are considered.
 func getNodeNamesSortedByLastKnownEtcdHealth(nodes []*Node, machines collections.Machines) []string {
 	// Get the list of nodes and the corresponding MachineEtcdMemberHealthyCondition
 	eligibleNodes := sets.Set[string]{}
@@ -351,7 +351,7 @@ func getNodeNamesSortedByLastKnownEtcdHealth(nodes []*Node, machines collections
 		jCondition := nodeEtcdHealthyCondition[nodeNames[j]]
 
 		// Nodes with last known etcd healthy members goes first, because most likely we can connect to them again.
-		// NOTE: This isn't always true, it is a best effort assumption (e.g. kubelet might have issues preventing connection to an healthy member to be established).
+		// NOTE: This isn't always true, it is a best effort assumption (e.g. kubelet might have issues preventing connection to a healthy member to be established).
 		if iCondition.Status == metav1.ConditionTrue && jCondition.Status != metav1.ConditionTrue {
 			return true
 		}
@@ -362,7 +362,7 @@ func getNodeNamesSortedByLastKnownEtcdHealth(nodes []*Node, machines collections
 		// Note: we are not making assumption on the chances to connect when last known etcd health is FALSE and UNKNOWN.
 
 		// Otherwise pick randomly one of the nodes to avoid trying to connect always to the same nodes first.
-		// Note: the list originate from set.UnsortedList which internally uses a Map, and we consider this enough as a randomizer.
+		// Note: the list originates from set.UnsortedList which internally uses a Map, and we consider this enough as a randomizer.
 		return i < j
 	})
 	return nodeNames
@@ -438,8 +438,8 @@ func compareMachinesAndMembers(controlPlane *ControlPlane) (bool, []string) {
 		}
 		if !found {
 			// Surface there is an etcd member without a machine into the EtcdClusterHealthy condition on kcp.
-			// Note: this surface an error, because there is no way to determine if this is happening in the brief time
-			// in between when kubeadm adds a member - when the member actually start, or if this is due to the member not starting.
+			// Note: this surfaces an error, because there is no way to determine if this is happening in the brief time
+			// in between when kubeadm adds a member - when the member actually starts, or if this is due to the member not starting.
 			name := member.Name
 			if name == "" {
 				name = fmt.Sprintf("%d (Name not yet assigned)", member.ID)
@@ -850,7 +850,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		// PodRunning means the pod has been bound to a node and all of the containers have been started.
 		// At least one container is still running or is in the process of being restarted.
 		// This logic is trying to determine if we are actually running or if we are in an intermediate state
-		// like e.g. a container is retarted.
+		// like e.g. a container is restarted.
 
 		// PodReady condition means the pod is able to service requests
 		if podCondition(pod, corev1.PodReady) == corev1.ConditionTrue {
@@ -1081,7 +1081,7 @@ type aggregateConditionsFromMachinesToKCPInput struct {
 }
 
 // aggregateConditionsFromMachinesToKCP aggregates a group of conditions from machines to KCP.
-// Note: the aggregation is computed in way that is similar to how conditions.NewAggregateCondition works, but in this case the
+// Note: the aggregation is computed in a way that is similar to how conditions.NewAggregateCondition works, but in this case the
 // implementation is simpler/less flexible and it surfaces only issues & unknown conditions.
 func aggregateConditionsFromMachinesToKCP(input aggregateConditionsFromMachinesToKCPInput) {
 	// Aggregates machines for condition status.

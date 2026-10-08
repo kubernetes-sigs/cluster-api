@@ -33,7 +33,7 @@ const (
 	// Cluster API Cluster controller after being created.
 	ClusterPhasePending = ClusterPhase("Pending")
 
-	// ClusterPhaseProvisioning is the state when the Cluster has a infrastructure
+	// ClusterPhaseProvisioning is the state when the Cluster has an infrastructure
 	// object or a control plane object that can start provisioning the control plane endpoint.
 	ClusterPhaseProvisioning = ClusterPhase("Provisioning")
 
@@ -51,7 +51,7 @@ const (
 	// might require user intervention.
 	//
 	// Deprecated: This enum value is deprecated; the Failed phase won't be set anymore by controllers, and it is preserved only
-	// for conversion from v1beta1 objects; the Failed phase is going to be removed when support for v1beta1 will be dropped.
+	// for conversion from v1beta1 objects; the Failed phase is going to be removed when support for v1beta1 is dropped.
 	// Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	ClusterPhaseFailed = ClusterPhase("Failed")

@@ -104,7 +104,7 @@ func MigrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, c client.C
 	managedFields = slices.DeleteFunc(managedFields, isManager(beforeFirstApplyManager, oldClusterSSAManager))
 
 	// Add manager:Update entry managedFields are empty.
-	// Add a seeding managedField entry to prevent SSA to create/infer a default managedField entry when the
+	// Add a seeding managedField entry to prevent SSA from creating/inferring a default managedField entry when the
 	// first SSA is applied.
 	// If an existing object doesn't have managedFields when applying the first SSA the API server
 	// creates an entry with operation=Update (guessing where the object comes from), but this entry ends up
@@ -175,7 +175,7 @@ type WriterWithScheme interface {
 //
 // Because we know that this issue is especially problematic with KCP extraArgs
 // we added special handling for KCP to add extraArgs managedField entries based on
-// the current KCP object. This allows to unset extraArgs on the next SSA call even
+// the current KCP object. This allows unsetting extraArgs on the next SSA call even
 // directly after we just mitigated the issue.
 //
 // The following cases have to be handled:

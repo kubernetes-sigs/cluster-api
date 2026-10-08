@@ -76,7 +76,7 @@ spec:
                               The investigation showed that `controller-tools@v2` behaves differently than its previous version
                               when handling types from [metav1](k8s.io/apimachinery/pkg/apis/meta/v1) package.
 
-                              In more details, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta`
+                              In more detail, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta`
                               had validation properties, including for `creationTimestamp` (metav1.Time).
                               The `metav1.Time` type specifies a custom json marshaller that, when IsZero() is true, returns `null`
                               which breaks validation because the field isn't marked as nullable.
@@ -222,7 +222,7 @@ spec:
                               The investigation showed that `controller-tools@v2` behaves differently than its previous version
                               when handling types from [metav1](k8s.io/apimachinery/pkg/apis/meta/v1) package.
 
-                              In more details, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta`
+                              In more detail, we found that embedded (non-top level) types that embedded `metav1.ObjectMeta`
                               had validation properties, including for `creationTimestamp` (metav1.Time).
                               The `metav1.Time` type specifies a custom json marshaller that, when IsZero() is true, returns `null`
                               which breaks validation because the field isn't marked as nullable.

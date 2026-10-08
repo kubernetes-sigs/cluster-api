@@ -109,7 +109,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 	// and `MachineOwnerRemediated` is false, indicating that this controller is responsible for performing remediation.
 	machinesToBeRemediated := controlPlane.MachinesToBeRemediatedByKCP()
 
-	// If there are no machines to remediated, return so KCP can proceed with other operations (ctrl.Result nil).
+	// If there are no machines to remediate, return so KCP can proceed with other operations (ctrl.Result nil).
 	if len(machinesToBeRemediated) == 0 {
 		return ctrl.Result{}, nil
 	}
@@ -480,7 +480,7 @@ func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool
 		return false
 	}
 
-	// if one machine does not have a node ref, we assume that provisioning failed and there is no CP components at all,
+	// if one machine does not have a node ref, we assume that provisioning failed and there are no CP components at all,
 	// so remediate first; also without a node, it is not possible to get further info about status.
 	if !i.Status.NodeRef.IsDefined() && j.Status.NodeRef.IsDefined() {
 		return true
@@ -499,7 +499,7 @@ func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool
 		}
 
 		// Note: in the future we might consider etcd leadership and kubelet status to prevent being stuck when it is not possible
-		// to forward leadership, but this requires further investigation and most probably also to surface a few additional info in the controlPlane object.
+		// to forward leadership, but this requires further investigation and most probably also to surface some additional info in the controlPlane object.
 	}
 
 	// if one machine has unhealthy control plane component, remediate first.
@@ -524,7 +524,7 @@ func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool
 }
 
 // pickMachineToBeRemediatedByConditionState returns true if condition t report issue on machine i and not on machine j,
-// false if the vice-versa apply, or nil if condition t doesn't provide a discriminating criteria for picking one machine or another for remediation.
+// false if the reverse applies, or nil if condition t doesn't provide a discriminating criterion for picking one machine or another for remediation.
 func pickMachineToBeRemediatedByConditionState(i, j *clusterv1.Machine, conditionType string) *bool {
 	iCondition := conditions.IsTrue(i, conditionType)
 	jCondition := conditions.IsTrue(j, conditionType)
@@ -647,7 +647,7 @@ func (r *Reconciler) canSafelyRemediateMachine(ctx context.Context, controlPlane
 	//
 	// Target list of Machines will have current Machines -1 Machine (the machineToBeRemediated).
 	// As a consequence:
-	// - Kubernetes control plane components on the Machine being remediated is going to be deleted, no Kubernetes control plane components are going to be added.
+	// - Kubernetes control plane components on the Machine being remediated are going to be deleted, no Kubernetes control plane components are going to be added.
 	kubernetesControlPlaneToBeDeleted := machineToBeRemediated.Name
 	addKubernetesControlPlane := false
 
@@ -661,13 +661,13 @@ func (r *Reconciler) canSafelyRemediateMachine(ctx context.Context, controlPlane
 		return true
 	}
 
-	// etcd member on the Machine being remediated is going to be deleted, no etcd member are going to be added.
+	// etcd member on the Machine being remediated is going to be deleted, no etcd members are going to be added.
 	etcdMemberToBeDeleted := r.tryGetEtcdMemberName(ctx, controlPlane, machineToBeRemediated)
 	addEtcdMember := false
 
 	// If it was not possible to get the name of the etcd member hosted on this machine, no other checks can be performed.
 	// NOTE: it is not possible to determine if an etcd member for this machine will never show up due to the issue on the machine being remediated,
-	// or if it will show up later. In this case KCP continue with remediation, which is considered as user intent
+	// or if it will show up later. In this case KCP continues with remediation, which is considered as user intent
 	// (no matter if expressed as MHC configuration or via the manual remediation annotation).
 	// Note: reconcile reconcilePreTerminateHook will try to perform this check again.
 	if etcdMemberToBeDeleted == "" {
@@ -715,14 +715,14 @@ func (r *Reconciler) tryGetEtcdMemberName(ctx context.Context, controlPlane *pkg
 }
 
 // targetEtcdClusterHealthy assess if it is possible to transition to the target state of the etcd cluster
-// without loosing etcd quorum.
+// without losing etcd quorum.
 //
-// The result of the assessment mostly depend on the existence of failing members in the target cluster.
+// The result of the assessment mostly depends on the existence of failing members in the target cluster.
 // E.g. according to the etcd fault tolerance specification (see https://etcd.io/docs/v3.3/faq/#what-is-failure-tolerance)
 //
 //   - 3 CP etcd cluster does not tolerate additional failing members on top of the one being deleted (the target
 //     cluster size after deletion is 2, fault tolerance 0)
-//   - 5 CP etcd cluster tolerates 1 additional failing members on top of the one being deleted (the target
+//   - 5 CP etcd cluster tolerates 1 additional failing member on top of the one being deleted (the target
 //     cluster size after deletion is 4, fault tolerance 1)
 //   - 7 CP etcd cluster tolerates 2 additional failing members on top of the one being deleted (the target
 //     cluster size after deletion is 6, fault tolerance 2)
@@ -731,11 +731,11 @@ func (r *Reconciler) tryGetEtcdMemberName(ctx context.Context, controlPlane *pkg
 // Similar considerations must be taken into account when adding new etcd members, because this operation
 // might also increase the number of failing members in the etcd clusters.
 //
-// Note: This check leverage the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
-// the info are also used to compute status.Conditions.
+// Note: This check leverages the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
+// the info is also used to compute status.Conditions.
 //
-// Note: This check is performed on the actual list of members, so it account also for cases where
-// there is a mis-alignment between number of Machines, corresponding Nodes and etcd members.
+// Note: This check is performed on the actual list of members, so it accounts also for cases where
+// there is a misalignment between number of Machines, corresponding Nodes and etcd members.
 func (r *Reconciler) targetEtcdClusterHealthy(ctx context.Context, controlPlane *pkg.ControlPlane, addEtcdMember bool, etcdMemberToBeDeleted string) bool {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -756,7 +756,7 @@ func (r *Reconciler) targetEtcdClusterHealthy(ctx context.Context, controlPlane 
 	// When assessing the impact of adding new members, KCP always assume the worst case, that is the new etcd members won't be healthy.
 	// This is why the additional etcd member is added to unhealthyMembers; the only exception is when there is zero or one etcd member
 	// in the cluster, because otherwise it won't be possible to scale up from 0 to 1 and from 1 to 2 (with tot members 2, tolerance to failure is still 0).
-	// Note: the new member is always considered in total members amd total voting members, no matter we assuming it will be healthy or not.
+	// Note: the new member is always considered in total members and total voting members, no matter whether we assume it will be healthy or not.
 	if addEtcdMember {
 		targetTotalMembers = 1
 		targetVotingMembers = 1
@@ -800,7 +800,7 @@ func (r *Reconciler) targetEtcdClusterHealthy(ctx context.Context, controlPlane 
 
 		// If an etcd member does not have a corresponding Machine, it is not possible to retrieve etcd member health,
 		// computed in reconcileControlPlaneAndMachinesConditions. Fallback on checking etcd alarms only.
-		// Note: members alarms are only a subset of the checks included in the EtcdMemberHealthyCondition.
+		// Note: member alarms are only a subset of the checks included in the EtcdMemberHealthyCondition.
 		if machine == nil {
 			hasAlarms := false
 			for _, alarm := range controlPlane.EtcdMembersAlarms {
@@ -869,14 +869,14 @@ func (r *Reconciler) targetEtcdClusterHealthy(ctx context.Context, controlPlane 
 // while preserving at least one fully operational set of Kubernetes control plane components, which is also required to allow Machine join.
 //
 // This operation takes into account how kubeadm is wiring up control plane components and more specifically:
-// - API server on one machine only connect to the local etcd member
+// - API server on one machine only connects to the local etcd member
 // - ControllerManager and scheduler on a machine connect to the local API server (not to the control plane endpoint)
 // - KCP enables KubeletLocalMode.
 //
 // As a consequence, we consider the Kubernetes control plane on this machine healthy only if everything is healthy.
 //
-// Note: This check leverage the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
-// the info are also used to compute status.conditions.
+// Note: This check leverages the information collected in reconcileControlPlaneAndMachinesConditions at the beginning of reconcile;
+// the info is also used to compute status.conditions.
 //
 // Note: When etcd is managed also the etcd pod is included in the check.
 func (r *Reconciler) targetKubernetesControlPlaneComponentsHealthy(ctx context.Context, controlPlane *pkg.ControlPlane, addKubernetesControlPlane bool, kubernetesControlPlaneToBeDeleted string) bool {
@@ -951,7 +951,7 @@ type RemediationData struct {
 	// machine is the machine name of the latest machine being remediated.
 	Machine string `json:"machine"`
 
-	// timestamp is when last remediation happened. It is represented in RFC3339 form and is in UTC.
+	// timestamp is when the last remediation happened. It is represented in RFC3339 form and is in UTC.
 	Timestamp metav1.Time `json:"timestamp"`
 
 	// retryCount used to keep track of remediation retry for the last remediated machine.
@@ -968,7 +968,7 @@ func RemediationDataFromAnnotation(value string) (*RemediationData, error) {
 	return ret, nil
 }
 
-// Marshal an RemediationData into an annotation value.
+// Marshal a RemediationData into an annotation value.
 func (r *RemediationData) Marshal() (string, error) {
 	b, err := json.Marshal(r)
 	if err != nil {

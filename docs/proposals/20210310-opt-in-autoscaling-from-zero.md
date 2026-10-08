@@ -94,7 +94,7 @@ users and infrastructure providers.
 
 - Create an API contract that infrastructure providers must follow.
 - Create an API that replicates Taint and Label information from Machines to MachineSets and MachineDeployments.
-- Support for MachinePools, either with the cluster autoscaler or using infrastructure provider native implementations (eg AWS AutoScalingGroups).
+- Support for MachinePools, either with the cluster autoscaler or using infrastructure provider native implementations (e.g. AWS AutoScalingGroups).
 - Create an autoscaling custom resource for Cluster API.
 
 ## Proposal
@@ -127,7 +127,7 @@ a MachineSet or MachineDeployment will allow me to automate the scale down actio
 
 #### Story 2
 
-As an application developer, I would like to have special resource nodes (eg GPU enabled) provided when needed by workloads
+As an application developer, I would like to have special resource nodes (e.g. GPU enabled) provided when needed by workloads
 without the need for human intervention. As these nodes might be more expensive, I would also like to return them when
 not in use. By using the cluster autoscaler with a zero-sized MachineSet or MachineDeployment, I can automate the
 creation of nodes that will not consume resources until they are required by applications on my cluster.
@@ -142,13 +142,13 @@ I can utilize this feature until my infrastructure provider has completed updati
 
 There are 2 methods described for informing the cluster autoscaler about the properties of the
 nodes in each node group: through a status field on Infrastructure Machine Templates, and through
-annotations on MachineSets or MachineDeployments. The first method requires updates to a infrastructure provider's
+annotations on MachineSets or MachineDeployments. The first method requires updates to an infrastructure provider's
 controllers and will require more coordination between developers and users. The second method
-requires less direct intervention from infrastructure providers and puts more resposibility on users, for
+requires less direct intervention from infrastructure providers and puts more responsibility on users, for
 this additional responsibility the users gain immediate access to the feature. These methods are
 mutually exclusive, and the annotations will take preference when specified.
 
-It is worth noting that the implmentation definitions for the annotations will be owned and maintained
+It is worth noting that the implementation definitions for the annotations will be owned and maintained
 by the cluster autoscaler. They will not be defined within the cluster-api project. The reasoning for
 this is to establish the API contract with the cluster autoscaler and not the cluster-api.
 
@@ -374,7 +374,7 @@ examples in the Docker provider and the cluster autoscaler will help to clarify 
 
 An alternative approach would be to reconcile the information from the machine templates into the
 MachineSet and MachineDeployment statuses. This would make the permissions and implementation on
-the cluster autoscaler lighter. The trade off for making things easier on the cluster autoscaler is
+the cluster autoscaler lighter. The trade-off for making things easier on the cluster autoscaler is
 that the process of exposing this information becomes more convoluted and the Cluster API controllers
 will need to synchronize this data.
 

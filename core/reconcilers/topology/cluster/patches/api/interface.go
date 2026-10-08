@@ -39,7 +39,7 @@ type Generator interface {
 
 // Validator defines a component that can validate ClusterClass templates.
 type Validator interface {
-	// Validate validates templates..
+	// Validate validates templates.
 	// ValidateTopologyRequest contains templates and the corresponding variables.
 	// ValidateTopologyResponse contains the validation response.
 	Validate(context.Context, client.Object, *runtimehooksv1.ValidateTopologyRequest) (*runtimehooksv1.ValidateTopologyResponse, error)

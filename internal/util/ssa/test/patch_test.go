@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
-// clientWithWatch wraps a client.Client and adds a Watch method to satisfy client.WithWatch interface.
+// clientWithWatch wraps a client.Client and adds a Watch method to satisfy the client.WithWatch interface.
 type clientWithWatch struct {
 	client.Client
 }

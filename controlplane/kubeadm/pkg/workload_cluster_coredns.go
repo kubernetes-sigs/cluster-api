@@ -312,7 +312,7 @@ func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 	}
 }
 
-// validateCoreDNSImageTag returns error if the versions don't meet requirements.
+// validateCoreDNSImageTag returns an error if the versions don't meet requirements.
 // Some of the checks come from
 // https://github.com/coredns/corefile-migration/blob/v1.0.6/migration/migrate.go#L414
 func validateCoreDNSImageTag(fromTag, toTag string) error {

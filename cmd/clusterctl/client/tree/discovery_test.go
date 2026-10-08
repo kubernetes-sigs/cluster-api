@@ -101,19 +101,19 @@ func Test_Discovery(t *testing.T) {
 					Objs(),
 			},
 			wantTree: map[string][]string{
-				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
+				// Cluster should be a parent of InfrastructureCluster, ControlPlane, and WorkerNodes
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
 					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
-				// InfrastructureCluster should be leaf
+				// InfrastructureCluster should be a leaf
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
 				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
 					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
 				},
-				// Machine should be leaf (no echo)
+				// Machine should be a leaf (no echo)
 				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have a machine deployment
 				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
@@ -170,13 +170,13 @@ func Test_Discovery(t *testing.T) {
 					Objs(),
 			},
 			wantTree: map[string][]string{
-				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
+				// Cluster should be a parent of InfrastructureCluster, ControlPlane, and WorkerNodes
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
 					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
-				// InfrastructureCluster should be leaf
+				// InfrastructureCluster should be a leaf
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
 				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
@@ -191,7 +191,7 @@ func Test_Discovery(t *testing.T) {
 					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m2",
 				},
-				// Machine should be leaf (no echo)
+				// Machine should be a leaf (no echo)
 				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1":  {},
 				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m2":  {},
@@ -240,13 +240,13 @@ func Test_Discovery(t *testing.T) {
 					Objs(),
 			},
 			wantTree: map[string][]string{
-				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
+				// Cluster should be a parent of InfrastructureCluster, ControlPlane, and WorkerNodes
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
 					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
-				// InfrastructureCluster should be leaf
+				// InfrastructureCluster should be a leaf
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
 				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
@@ -322,13 +322,13 @@ func Test_Discovery(t *testing.T) {
 					Objs(),
 			},
 			wantTree: map[string][]string{
-				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
+				// Cluster should be a parent of InfrastructureCluster, ControlPlane, and WorkerNodes
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
 					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
-				// InfrastructureCluster should be leaf
+				// InfrastructureCluster should be a leaf
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
 				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
@@ -396,20 +396,20 @@ func Test_Discovery(t *testing.T) {
 				objs: clusterObjectsWithResourceSet(),
 			},
 			wantTree: map[string][]string{
-				// Cluster should be parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
+				// Cluster should be a parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
 					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 					GroupVersionVirtualObject.String() + ", Kind=ClusterResourceSetGroup, ns1/ClusterResourceSets",
 				},
-				// InfrastructureCluster should be leaf
+				// InfrastructureCluster should be a leaf
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
 				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
 					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
 				},
-				// Machine should be leaf (no echo)
+				// Machine should be a leaf (no echo)
 				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have a machine deployment
 				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
@@ -492,20 +492,20 @@ func Test_Discovery(t *testing.T) {
 					Objs(),
 			},
 			wantTree: map[string][]string{
-				// Cluster should be parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
+				// Cluster should be a parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
 					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
-				// InfrastructureCluster should be leaf
+				// InfrastructureCluster should be a leaf
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine and template group
 				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
 					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
 					GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/cp",
 				},
-				// Machine should be leaf (no echo)
+				// Machine should be a leaf (no echo)
 				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have a machine deployment
 				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
@@ -615,20 +615,20 @@ func Test_Discovery(t *testing.T) {
 					Objs(),
 			},
 			wantTree: map[string][]string{
-				// Cluster should be parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
+				// Cluster should be a parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
 					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
-				// InfrastructureCluster should be leaf
+				// InfrastructureCluster should be a leaf
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine and template
 				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
 					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp",
 				},
-				// Machine should be leaf (no echo)
+				// Machine should be a leaf (no echo)
 				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have a machine deployment
 				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
@@ -730,13 +730,13 @@ func Test_Discovery(t *testing.T) {
 					Objs(),
 			},
 			wantTree: map[string][]string{
-				// Cluster should be parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
+				// Cluster should be a parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
 					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
-				// InfrastructureCluster should be leaf
+				// InfrastructureCluster should be a leaf
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine and template group
 				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
@@ -749,7 +749,7 @@ func Test_Discovery(t *testing.T) {
 				},
 				// ControlPlane InfrastructureRef should be a leaf
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp": {},
-				// Machine should be leaf (no echo)
+				// Machine should be a leaf (no echo)
 				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have 2 machine deployments
 				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {

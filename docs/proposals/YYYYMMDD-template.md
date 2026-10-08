@@ -26,7 +26,7 @@ To get started with this template:
   Copy this template into `docs/enhancements` and name it `YYYYMMDD-my-title.md`, where `YYYYMMDD` is the date the proposal was first drafted.
 1. **Fill out the required sections.**
 1. **Create a PR.**
-  Aim for single topic PRs to keep discussions focused.
+  Aim for single-topic PRs to keep discussions focused.
   If you disagree with what is already in a document, open a new PR with suggested changes.
 
 The canonical place for the latest set of instructions (and the likely source of this file) is [here](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/YYYYMMDD-template.md).
@@ -79,7 +79,7 @@ If this proposal adds new terms, or defines some, make the changes to the book's
 
 ## Summary
 
-The `Summary` section is incredibly important for producing high quality user-focused documentation such as release notes or a development roadmap.
+The `Summary` section is incredibly important for producing high-quality user-focused documentation such as release notes or a development roadmap.
 It should be possible to collect this information before implementation begins in order to avoid requiring implementors to split their attention between writing release notes and implementing the feature itself.
 
 A good summary is probably at least a paragraph in length.
@@ -104,7 +104,7 @@ to demonstrate the interest in a proposal within the wider Kubernetes community.
 
 ## Proposal
 
-This is where we get down to the nitty gritty of what the proposal actually is.
+This is where we get down to the nitty-gritty of what the proposal actually is.
 
 - What is the plan for implementing this feature?
 - What data model changes, additions, or removals are required?
@@ -127,7 +127,7 @@ place your `.plantuml` files under `images/` and run `make diagrams` from the do
 ### Requirements (Optional)
 
 Some authors may wish to use requirements in addition to user stories.
-Technical requirements should derived from user stories, and provide a trace from
+Technical requirements should be derived from user stories, and provide a trace from
 use case to design, implementation and test case. Requirements can be prioritised
 using the MoSCoW (MUST, SHOULD, COULD, WON'T) criteria.
 
@@ -156,7 +156,7 @@ considerations for performance, reliability and security.
 
 ### Implementation Details/Notes/Constraints
 
-- What are some important details that didn't come across above.
+- What are some important details that didn't come across above?
 - What are the caveats to the implementation?
 - Go in to as much detail as necessary here.
 - Talk about core concepts and how they relate.
@@ -168,8 +168,8 @@ on the Kubernetes RBAC model. Questions you may want to answer include:
 
 * Does this proposal implement security controls or require the need to do so?
   * If so, consider describing the different roles and permissions with tables.
-* Are their adequate security warnings where appropriate (see https://shostack.org/files/papers/ReederEtAl_NEATatMicrosoft.pdf for guidance).
-* Are regex expressions going to be used, and are their appropriate defenses against DOS.
+* Are there adequate security warnings where appropriate (see https://shostack.org/files/papers/ReederEtAl_NEATatMicrosoft.pdf for guidance).
+* Are regex expressions going to be used, and are there appropriate defenses against DOS?
 * Is any sensitive data being stored in a secret, and only exists for as long as necessary?
 
 ### Risks and Mitigations
@@ -215,7 +215,7 @@ Please adhere to the [Kubernetes testing guidelines][testing-guidelines] when dr
 
 Define graduation milestones.
 
-These may be defined in terms of API maturity, or as something else. Initial proposal should keep
+These may be defined in terms of API maturity, or as something else. The initial proposal should keep
 this high-level with a focus on what signals will be looked at to determine graduation.
 
 Consider the following in developing the graduation criteria for this enhancement:
@@ -225,7 +225,7 @@ Consider the following in developing the graduation criteria for this enhancemen
 Clearly define what graduation means by either linking to the [API doc definition](https://kubernetes.io/docs/concepts/overview/kubernetes-api/#api-versioning),
 or by redefining what graduation means.
 
-In general, we try to use the same stages (alpha, beta, GA), regardless how the functionality is accessed.
+In general, we try to use the same stages (alpha, beta, GA), regardless of how the functionality is accessed.
 
 [maturity-levels]: https://git.k8s.io/community/contributors/devel/sig-architecture/api_changes.md#alpha-beta-and-stable-versions
 [deprecation-policy]: https://kubernetes.io/docs/reference/using-api/deprecation-policy/
@@ -243,7 +243,7 @@ Consider the following in developing a version skew strategy for this enhancemen
 
 - [ ] MM/DD/YYYY: Proposed idea in an issue or [community meeting]
 - [ ] MM/DD/YYYY: Compile a Google Doc following the CAEP template (link here)
-- [ ] MM/DD/YYYY: First round of feedback from community
+- [ ] MM/DD/YYYY: First round of feedback from the community
 - [ ] MM/DD/YYYY: Present proposal at a [community meeting]
 - [ ] MM/DD/YYYY: Open proposal PR
 

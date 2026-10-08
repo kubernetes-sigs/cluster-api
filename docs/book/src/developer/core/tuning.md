@@ -25,9 +25,9 @@ Additionally, Cluster API includes CAPD with support for both Docker and in-memo
 >
 > - Controller runtime currently has a limited set of metrics for client-go, making it more complex to observe phenomenon like client-go rate limiting; we should start a discussion with the controller runtime-team about how to get those metrics, even if only temporarily during bottleneck investigation.
 >
-> - Cluster API metrics still exists only as a dev tool, and work is required to automate metrics config generation and/or to improve consumption from kube-state-metrics; when this work will be completed it will be much more easier for other providers/other controllers to implement metrics and for user to get access to them. See [#7158](https://github.com/kubernetes-sigs/cluster-api/issues/7158).
+> - Cluster API metrics still exist only as a dev tool, and work is required to automate metrics config generation and/or to improve consumption from kube-state-metrics; when this work is completed it will be much easier for other providers/other controllers to implement metrics and for users to get access to them. See [#7158](https://github.com/kubernetes-sigs/cluster-api/issues/7158).
 >
-> - Tracing in Cluster API is not yet implemented; this will make much more easier to investigate slowness in reconcile loops as well as provide a visual and intuitive representation of Cluster API reconcile loops. See [#3760](https://github.com/kubernetes-sigs/cluster-api/issues/3760).
+> - Tracing in Cluster API is not yet implemented; this will make it much easier to investigate slowness in reconcile loops as well as provide a visual and intuitive representation of Cluster API reconcile loops. See [#3760](https://github.com/kubernetes-sigs/cluster-api/issues/3760).
 >
 > Please reach out to maintainers if you are interested in helping us to make progress in this area.
 
@@ -47,7 +47,7 @@ Before looking at data, it usually helps to have a clear understanding of:
   - All controllers should reconcile in less than Y ms
   - All controllers should allocate less than Z Gb memory
 
-Once you know the scenario you are looking at and what you are tuning for, you can finally look at data, but given that the amount of data available could be overwhelming, you probably need a strategy to navigate all the available metrics, traces, etc. .
+Once you know the scenario you are looking at and what you are tuning for, you can finally look at data, but given that the amount of data available could be overwhelming, you probably need a strategy to navigate all the available metrics, traces, etc.
 
 Among the many possible strategies, one usually very effective is to look at the KPIs you are aiming for, and then, if the current system performance is not good enough, start looking at other metrics trying to identify the biggest factor that is impacting the results. Usually by removing a single, performance bottleneck the behaviour of the system changes in a significant way; after that you can decide if the performance is now good enough or you need another round of tuning.
 
@@ -58,7 +58,7 @@ However this mechanism can also limit the performance of a controller when it ac
 
 So one of the first data point to look at is the rate limiting metrics; given that upstream CR doesn't have metric for that we can only look for logs containing "client-side throttling" via [Loki](http://localhost:3000/explore) (Note: this link should be open while tilt is running).
 
-If rate limiting is not your issue, then you can look at the controller's work queue. In an healthy system reconcile events are continuously queued, processed and removed from the queue. If the system is slowing down at scale, it could be that some controllers are struggling to keep up with the events being added in the queue, thus leading to slowness in reconciling the desired state.
+If rate limiting is not your issue, then you can look at the controller's work queue. In a healthy system reconcile events are continuously queued, processed and removed from the queue. If the system is slowing down at scale, it could be that some controllers are struggling to keep up with the events being added in the queue, thus leading to slowness in reconciling the desired state.
 
 So then the next step after looking at rate limiting metrics, is to look at the "work queue depth" panel in the [Controller-Runtime dashboard](http://localhost:3000/d/abe29aa7-e44a-4eef-9474-970f95f08ee6/controller-runtime?orgId=1).
 
@@ -88,9 +88,9 @@ Performance is usually a moving target, because things can change due the evolut
 
 That means that no matter of the huge effort that has been put into making CAPI performant, more work will be required to preserve the current state or to improve performance.
 
-Also in this case, most of the considerations really depend on the issue your are dealing with, but some suggestions are worth to be considered for the majority of the use cases.
+Also in this case, most of the considerations really depend on the issue you are dealing with, but some suggestions are worth to be considered for the majority of the use cases.
 
-The best optimization that can be done is to avoid any work at all for controllers. E.g instead of re-queuing every few seconds when a controller is waiting for something to happen, which leads to the controller to do some work to check if something changed in the system, it is always better to watch for events, so the controller is going to do the work only once when it is actually required. When implementing watches, non-relevant changes should be filtered out whenever possible.
+The best optimization that can be done is to avoid any work at all for controllers. E.g. instead of re-queuing every few seconds when a controller is waiting for something to happen, which leads to the controller to do some work to check if something changed in the system, it is always better to watch for events, so the controller is going to do the work only once when it is actually required. When implementing watches, non-relevant changes should be filtered out whenever possible.
 
 Same considerations apply also for the actual reconcile implementation, if you can avoid API server calls or expensive computations under certain conditions, it is always better and faster than any optimization you can do to that code.
 
@@ -100,13 +100,13 @@ A common example for an expensive operation is the generation of private keys fo
 
 Luckily controller runtime does a great job in helping to address this by providing a delegating client per default that reads from a cache that is maintained by client-go shared informers. This is a huge boost of performance (microseconds vs. seconds) that everyone gets at the cost of some memory allocation and the need of considering stale reads when writing code.
 
-As a rule of thumbs it is always better to deal with stale reads/memory consumption than disabling caching. Even if stale reads could be a concern under certain circumstances, e.g when reading an object right after it has been created.
+As a rule of thumb it is always better to deal with stale reads/memory consumption than disabling caching. Even if stale reads could be a concern under certain circumstances, e.g. when reading an object right after it has been created.
 
 Also, please be aware that some API server read operations are not cached by default, e.g. reads for unstructured objects, but you can enable caching for those operations when creating the controller runtime client.
 
 But at some point some API server calls must be done, either uncached reads or write operations.
 
-When looking at unchached reads, some operation are more expensive than others, e.g. a list call with a label selector degrades according to the number of object in the same namespace and the number of the items in the result set.
+When looking at uncached reads, some operations are more expensive than others, e.g. a list call with a label selector degrades according to the number of objects in the same namespace and the number of the items in the result set.
 
 Whenever possible, you should avoid uncached list calls, or make sure they happen only once in a reconcile loop and possibly only under specific circumstances.
 
@@ -114,4 +114,4 @@ When looking at write operations, you can rely on some best practices developed 
 
 In order to complete this overview, there is another category of operations that can slow down CAPI controllers, which are network calls to other services like e.g. the infrastructure provider.
 
-Some general recommendations apply also in those cases, like e.g re-using long lived clients instead of continuously re-creating new ones, leverage on async callback and watches whenever possible vs. continuously checking for status, etc. .
+Some general recommendations apply also in those cases, like e.g. re-using long lived clients instead of continuously re-creating new ones, leverage on async callback and watches whenever possible vs. continuously checking for status, etc.

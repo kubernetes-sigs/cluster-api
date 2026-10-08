@@ -79,7 +79,7 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 	return ns
 }
 
-// EnsureNamespace verifies if a namespaces exists. If it doesn't it will
+// EnsureNamespace verifies if a namespace exists. If it doesn't it will
 // create the namespace.
 func EnsureNamespace(ctx context.Context, mgmt client.Client, namespace string) {
 	ns := &corev1.Namespace{}
@@ -102,7 +102,7 @@ type DeleteNamespaceInput struct {
 	Name    string
 }
 
-// DeleteNamespace is used to delete namespace object.
+// DeleteNamespace is used to delete a namespace object.
 func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals ...interface{}) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteNamespace")
 	Expect(input.Deleter).NotTo(BeNil(), "input.Deleter is required for DeleteNamespace")
@@ -192,7 +192,7 @@ type CreateNamespaceAndWatchEventsInput struct {
 	IgnoreAlreadyExists bool
 }
 
-// CreateNamespaceAndWatchEvents creates a namespace and setups a watch for the namespace events.
+// CreateNamespaceAndWatchEvents creates a namespace and sets up a watch for the namespace events.
 func CreateNamespaceAndWatchEvents(ctx context.Context, input CreateNamespaceAndWatchEventsInput) (*corev1.Namespace, context.CancelFunc) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateNamespaceAndWatchEvents")
 	Expect(input.Creator).ToNot(BeNil(), "Invalid argument. input.Creator can't be nil when calling CreateNamespaceAndWatchEvents")

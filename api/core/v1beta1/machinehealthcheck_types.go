@@ -41,7 +41,7 @@ const (
 
 var (
 	// DefaultNodeStartupTimeout is the time allowed for a node to start up.
-	// Can be made longer as part of spec if required for particular provider.
+	// Can be made longer as part of spec if required for a particular provider.
 	// 10 minutes should allow the instance to start and the node to join the
 	// cluster on most providers.
 	DefaultNodeStartupTimeout = metav1.Duration{Duration: 10 * time.Minute}

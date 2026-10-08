@@ -419,7 +419,7 @@ func maxTime(t1, t2 time.Time) time.Time {
 }
 
 // summarizeNodeConditions summarizes a Node's conditions (NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure).
-// the summary is computed in way that is similar to how conditions.NewSummaryCondition works, but in this case the
+// the summary is computed in a way that is similar to how conditions.NewSummaryCondition works, but in this case the
 // implementation is simpler/less flexible and it surfaces only issues & unknown conditions.
 func summarizeNodeConditions(_ context.Context, node *corev1.Node) (metav1.ConditionStatus, string, string) {
 	semanticallyFalseStatus := 0
@@ -541,7 +541,7 @@ func transformControlPlaneAndEtcdConditions(messages []string) []string {
 		// Note. Etcd pod healthy is considered as part of control plane components in KCP
 		// because it is not part of the etcd cluster.
 		// Might be in future we want to make this check more strictly tight to KCP machines e.g. by checking the machine's owner;
-		// for now, we consider checking for the exact condition name as an acceptable trade off (same below).
+		// for now, we consider checking for the exact condition name as an acceptable trade-off (same below).
 		if c == "* EtcdPodHealthy" {
 			return true
 		}
@@ -793,7 +793,7 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 
 	if err != nil {
 		// Note, this could only happen if we hit edge cases in computing the summary, which should not happen due to the fact
-		// that we are passing a non empty list of ForConditionTypes.
+		// that we are passing a non-empty list of ForConditionTypes.
 		log.Error(err, "Failed to set Ready condition")
 		readyCondition = &metav1.Condition{
 			Type:    clusterv1.MachineReadyCondition,
@@ -865,7 +865,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) ctrl
 
 	if readyCondition == nil {
 		// NOTE: this should never happen given that setReadyCondition is called before this method and
-		// it always add a ready condition.
+		// it always adds a ready condition.
 		log.Error(pkgerrors.New("Ready condition must be set before setting the available condition"), "Failed to set Available condition")
 		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineAvailableCondition,

@@ -68,7 +68,7 @@ func TestMachineSetTopologyFinalizer(t *testing.T) {
 		ms              *clusterv1.MachineSet
 		expectFinalizer bool
 	}{
-		// Note: We are not testing the case of a MS with deletionTimestamp and no finalizer.
+		// Note: We are not testing the case of an MS with deletionTimestamp and no finalizer.
 		// This case is impossible to reproduce in fake client without deleting the object.
 		{
 			name:            "should add ClusterTopology finalizer to a MachineSet with no finalizer",

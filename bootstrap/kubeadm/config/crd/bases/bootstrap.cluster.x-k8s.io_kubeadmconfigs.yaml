@@ -290,7 +290,7 @@ spec:
                         type: array
                       timeoutForControlPlane:
                         description: timeoutForControlPlane controls the timeout that
-                          we use for API server to appear
+                          we use for the API server to appear
                         type: string
                     type: object
                   apiVersion:
@@ -333,7 +333,7 @@ spec:
                   controlPlaneEndpoint:
                     description: |-
                       controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-                      can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+                      can be a valid IP address or an RFC-1123 DNS subdomain, both with optional TCP port.
                       In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
                       are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
                       the BindPort is used.
@@ -1144,7 +1144,7 @@ spec:
                 properties:
                   filesystems:
                     description: filesystems specifies the list of file systems to
-                      setup.
+                      set up.
                     items:
                       description: Filesystem defines the file systems to be created.
                       properties:
@@ -1200,7 +1200,7 @@ spec:
                     type: array
                   partitions:
                     description: partitions specifies the list of the partitions to
-                      setup.
+                      set up.
                     items:
                       description: Partition defines how to create and layout a partition.
                       properties:
@@ -1258,8 +1258,8 @@ spec:
                           type: boolean
                         tableType:
                           description: |-
-                            tableType specifies the tupe of partition table. The following are supported:
-                            'mbr': default and setups a MS-DOS partition table
+                            tableType specifies the type of partition table. The following are supported:
+                            'mbr': default and sets up an MS-DOS partition table
                             'gpt': setups a GPT partition table
                           enum:
                           - mbr
@@ -1280,8 +1280,8 @@ spec:
                     cloud-init.
                   properties:
                     append:
-                      description: append specifies whether to append Content to existing
-                        file if Path exists.
+                      description: append specifies whether to append Content to an
+                        existing file if Path exists.
                       type: boolean
                     content:
                       description: content is the actual content of the file.
@@ -1468,7 +1468,7 @@ spec:
                     description: |-
                       localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
                       In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
-                      is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
+                      is the global endpoint for the cluster, which then load balances the requests to each individual API server. This
                       configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
                       on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
                       fails you may set the desired value here.
@@ -1625,7 +1625,7 @@ spec:
                   caCertPath:
                     description: |-
                       caCertPath is the path to the SSL certificate authority used to
-                      secure comunications between node and control-plane.
+                      secure communications between node and control-plane.
                       Defaults to "/etc/kubernetes/pki/ca.crt".
                     maxLength: 512
                     minLength: 1
@@ -1793,7 +1793,7 @@ spec:
                                     properties:
                                       apiVersion:
                                         description: |-
-                                          apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+                                          apiVersion is the preferred input version of the ExecInfo. The returned ExecCredentials MUST use
                                           the same encoding version as the input.
                                           Defaults to client.authentication.k8s.io/v1 if not set.
                                         maxLength: 512
@@ -2012,7 +2012,7 @@ spec:
                     type: array
                 type: object
               mounts:
-                description: mounts specifies a list of mount points to be setup.
+                description: mounts specifies a list of mount points to be set up.
                 items:
                   description: MountPoints defines input for generated mounts in cloud-init.
                   items:
@@ -2244,7 +2244,7 @@ spec:
                 description: |-
                   failureMessage will be set on non-retryable errors
 
-                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 maxLength: 10240
                 minLength: 1
                 type: string
@@ -2252,7 +2252,7 @@ spec:
                 description: |-
                   failureReason will be set on non-retryable errors
 
-                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 maxLength: 256
                 minLength: 1
                 type: string
@@ -2687,7 +2687,7 @@ spec:
                   controlPlaneEndpoint:
                     description: |-
                       controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-                      can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+                      can be a valid IP address or an RFC-1123 DNS subdomain, both with optional TCP port.
                       In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
                       are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
                       the BindPort is used.
@@ -3548,7 +3548,7 @@ spec:
                 properties:
                   filesystems:
                     description: filesystems specifies the list of file systems to
-                      setup.
+                      set up.
                     items:
                       description: Filesystem defines the file systems to be created.
                       properties:
@@ -3606,7 +3606,7 @@ spec:
                     x-kubernetes-list-type: atomic
                   partitions:
                     description: partitions specifies the list of the partitions to
-                      setup.
+                      set up.
                     items:
                       description: Partition defines how to create and layout a partition.
                       properties:
@@ -3667,8 +3667,8 @@ spec:
                           type: boolean
                         tableType:
                           description: |-
-                            tableType specifies the tupe of partition table. The following are supported:
-                            'mbr': default and setups a MS-DOS partition table
+                            tableType specifies the type of partition table. The following are supported:
+                            'mbr': default and sets up an MS-DOS partition table
                             'gpt': setups a GPT partition table
                           enum:
                           - mbr
@@ -3694,8 +3694,8 @@ spec:
                     cloud-init.
                   properties:
                     append:
-                      description: append specifies whether to append Content to existing
-                        file if Path exists.
+                      description: append specifies whether to append Content to an
+                        existing file if Path exists.
                       type: boolean
                     content:
                       description: content is the actual content of the file.
@@ -3884,7 +3884,7 @@ spec:
                     description: |-
                       localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
                       In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
-                      is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
+                      is the global endpoint for the cluster, which then load balances the requests to each individual API server. This
                       configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
                       on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
                       fails you may set the desired value here.
@@ -4299,7 +4299,7 @@ spec:
                                     properties:
                                       apiVersion:
                                         description: |-
-                                          apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+                                          apiVersion is the preferred input version of the ExecInfo. The returned ExecCredentials MUST use
                                           the same encoding version as the input.
                                           Defaults to client.authentication.k8s.io/v1 if not set.
                                         maxLength: 512
@@ -4597,7 +4597,7 @@ spec:
                     type: object
                 type: object
               mounts:
-                description: mounts specifies a list of mount points to be setup.
+                description: mounts specifies a list of mount points to be set up.
                 items:
                   description: MountPoints defines input for generated mounts in cloud-init.
                   items:
@@ -4836,22 +4836,22 @@ spec:
                 type: string
               deprecated:
                 description: deprecated groups all the status fields that are deprecated
-                  and will be removed when all the nested field are removed.
+                  and will be removed when all the nested fields are removed.
                 properties:
                   v1beta1:
                     description: v1beta1 groups all the status fields that are deprecated
-                      and will be removed when support for v1beta1 will be dropped.
+                      and will be removed when support for v1beta1 is dropped.
                     properties:
                       conditions:
                         description: |-
                           conditions defines current service state of the KubeadmConfig.
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         items:
                           description: |-
                             Condition defines an observation of a Cluster API resource operational state.
 
-                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                           properties:
                             lastTransitionTime:
                               description: |-
@@ -4904,7 +4904,7 @@ spec:
                         description: |-
                           failureMessage will be set on non-retryable errors
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         maxLength: 10240
                         minLength: 1
                         type: string
@@ -4912,7 +4912,7 @@ spec:
                         description: |-
                           failureReason will be set on non-retryable errors
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         maxLength: 256
                         minLength: 1
                         type: string

@@ -769,7 +769,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "grandchild3"}), "Object grandchild3 must not exist in object tracker for foo")
 		})
 
-		// TODO: test finalizers and ownner references together
+		// TODO: test finalizers and owner references together
 	})
 }
 

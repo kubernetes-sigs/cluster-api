@@ -60,7 +60,7 @@ type KubeadmJoinOldNodesSpecInput struct {
 	// operations (Example: get cluster templates).
 	InfrastructureProvider *string
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 

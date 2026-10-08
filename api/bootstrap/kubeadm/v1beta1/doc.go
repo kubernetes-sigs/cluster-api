@@ -19,5 +19,5 @@ limitations under the License.
 // +kubebuilder:object:generate=true
 // +groupName=bootstrap.cluster.x-k8s.io
 //
-// Deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.
+// Deprecated: This package is deprecated and is going to be removed when support for v1beta1 is dropped.
 package v1beta1

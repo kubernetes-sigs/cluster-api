@@ -285,7 +285,7 @@ func MatchesKubernetesVersion(kubernetesVersion string) Func {
 	}
 }
 
-// WithVersion returns a filter to find machine that have a non empty and valid version.
+// WithVersion returns a filter to find machines that have a non empty and valid version.
 func WithVersion() Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {

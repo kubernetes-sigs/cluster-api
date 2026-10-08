@@ -361,7 +361,7 @@ type onDeleteSequenceTestCase struct {
 	currentMachineNames []string
 
 	// currentScope defines the current state at the beginning of the test case.
-	// When the test case start from a stable state (there are no previous rollout in progress), use  currentMachineNames instead.
+	// When the test case starts from a stable state (there are no previous rollouts in progress), use  currentMachineNames instead.
 	// Please name machines as "mX" where X is a progressive number starting from 1 (do not skip numbers),
 	// e.g. "m1","m2","m3"
 	// machineUID must be set to the last used number.
@@ -369,10 +369,10 @@ type onDeleteSequenceTestCase struct {
 
 	// desiredMachineNames is the list of machines at the end of the rollout.
 	// all the machines in this list are expected to be upToDate and owned by the new MS after the rollout (which is different from the new MS before the rollout).
-	// if this list contains old machines names (machine names already in currentMachineNames), it implies those machine have been upgraded in places.
+	// if this list contains old machine names (machine names already in currentMachineNames), it implies those machines have been upgraded in place.
 	// if this list contains new machines names (machine names not in currentMachineNames), it implies those machines have been created during a rollout;
 	// please name new machines names as "mX" where X is a progressive number starting after the max number in currentMachineNames (do not skip numbers),
-	// e.g. desiredMachineNames "m4","m5","m6" (desired machine names after a regular rollout of a MD with currentMachineNames "m1","m2","m3")
+	// e.g. desiredMachineNames "m4","m5","m6" (desired machine names after a regular rollout of an MD with currentMachineNames "m1","m2","m3")
 	// e.g. desiredMachineNames "m1","m2","m3" (desired machine names after rollout performed using in-place update for an MD with currentMachineNames "m1","m2","m3")
 	desiredMachineNames []string
 
@@ -422,7 +422,7 @@ func Test_OnDeleteSequences(t *testing.T) {
 		},
 		{ // delete 1 + scale up machine deployment in the middle
 			name: "6 Replicas, maxUserUnavailable 1, scale up to 9",
-			currentScope: &rolloutScope{ // Manually providing a scope simulating a MD originally with 6 replica in the middle of a rollout, with 3 machines already created in the newMS and 3 still on the oldMS, and then MD scaled up to 9.
+			currentScope: &rolloutScope{ // Manually providing a scope simulating an MD originally with 6 replicas in the middle of a rollout, with 3 machines already created in the newMS and 3 still on the oldMS, and then MD scaled up to 9.
 				machineDeployment: createMD("v2", 9, withOnDeleteStrategy()),
 				machineSets: []*clusterv1.MachineSet{
 					createMS("ms1", "v1", 3),
@@ -448,7 +448,7 @@ func Test_OnDeleteSequences(t *testing.T) {
 		},
 		{ // delete 1 + scale down machine deployment in the middle
 			name: "12 Replicas, maxUserUnavailable 1,  scale down to 6",
-			currentScope: &rolloutScope{ // Manually providing a scope simulating a MD originally with 12 replica in the middle of a rollout, with 3 machines already created in the newMS and 9 still on the oldMS, and then MD scaled down to 6.
+			currentScope: &rolloutScope{ // Manually providing a scope simulating an MD originally with 12 replicas in the middle of a rollout, with 3 machines already created in the newMS and 9 still on the oldMS, and then MD scaled down to 6.
 				machineDeployment: createMD("v2", 6, withOnDeleteStrategy()),
 				machineSets: []*clusterv1.MachineSet{
 					createMS("ms1", "v1", 9),
@@ -480,7 +480,7 @@ func Test_OnDeleteSequences(t *testing.T) {
 		},
 		{ // delete 1 + change spec in the middle
 			name: "6 Replicas, maxUserUnavailable 1, change spec",
-			currentScope: &rolloutScope{ // Manually providing a scope simulating a MD with 6 replica in the middle of a rollout, with 3 machines already created in the newMS and 3 still on the oldMS, and then MD spec is changed.
+			currentScope: &rolloutScope{ // Manually providing a scope simulating an MD with 6 replicas in the middle of a rollout, with 3 machines already created in the newMS and 3 still on the oldMS, and then MD spec is changed.
 				machineDeployment: createMD("v3", 6, withOnDeleteStrategy()),
 				machineSets: []*clusterv1.MachineSet{
 					createMS("ms1", "v1", 3),
@@ -581,7 +581,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 	maxIterations := tt.maxIterations
 
 	// Prevent deletion to start till the rollout planner did create the newMS.
-	// Note: this prevent machines being deleted and re-created on oldMSs in case of random sequences.
+	// Note: this prevents machines being deleted and re-created on oldMSs in case of random sequences.
 	canDelete := false
 
 	for {

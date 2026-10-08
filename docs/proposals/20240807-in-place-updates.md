@@ -94,7 +94,7 @@ Cluster API by default performs rollouts by creating a new machine and deleting 
 
 This approach, inspired by the principle of immutable infrastructure (the very same used by Kubernetes to manage Pods), has a set of considerable advantages:
 * It is simple to explain, it is predictable, consistent and easy to reason about with users and between engineers.
-* It drastically reduces the number of variables to be considered when managing the lifecycle of machines hosting nodes (it prevents each machines to become a snow flake) 
+* It drastically reduces the number of variables to be considered when managing the lifecycle of machines hosting nodes (it prevents each machine from becoming a snowflake) 
 * It is simple to implement, because it relies on two core primitives only, create and delete; additionally implementation does not depend on machine specific choice, like OS, bootstrap mechanism etc.
 * It allows to implement and maintain a sustainable test matrix, which is key to each Cluster API release and for the long term sustainability for the Cluster API project.
 
@@ -276,7 +276,7 @@ The changes supported by an updater can be the complete set of desired changes, 
 
 If the combination of the updaters can handle ALL the desired changes then CAPI will determine that the update can be performed in-place. 
 
-If ANY of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, it will fallback to the rolling update strategy, replacing machines as needed. 
+If ANY of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, it will fall back to the rolling update strategy, replacing machines as needed. 
 
 ### MachineDeployment updates
 
@@ -439,7 +439,7 @@ Remediation can be used as the solution to recover machine when in-place update 
 
 However, in-place updates might cause Nodes to become unhealthy while the update is in progress. In addition, an in-place update might take more (or less) time than a fresh machine creation. Hence, in order to successfully use MHC to remediate in-place updated Machines, in a future iteration of this proposal we will consider:
 * A mechanism to identify if a Machine is being updated. We will surface this in the Machine status. API details will be added later.
-* A way to define different rules for Machines on-going an update. This might involve new fields in the MHC object. We will decouple these API changes from this proposal. For the first implementation of in-place updates, we might decide to just disable remediation for Machines that are on-going an update.
+* A way to define different rules for Machines undergoing an update. This might involve new fields in the MHC object. We will decouple these API changes from this proposal. For the first implementation of in-place updates, we might decide to just disable remediation for Machines that are undergoing an update.
 
 ### Examples
 
@@ -746,7 +746,7 @@ To test the external update strategy, we will implement a "CAPD Kubeadm Updater"
 
 ### Graduation Criteria
 
-The initial plan is to provide support for external update strategy in the KCP and MD controllers under a feature flag (which would be unset by default) and to have the webhook API in an `alpha` stage ) which will allow us to iterate faster).
+The initial plan is to provide support for external update strategy in the KCP and MD controllers under a feature flag (which would be unset by default) and to have the webhook API in an `alpha` stage (which will allow us to iterate faster).
 
 The main criteria for graduating this feature will be community adoption and API stability. Once the feature is stable, we have fixes to any known bugs and the webhook API has remained stable without backward incompatible changes for some time, we will propose to the community moving the API out of the `alpha` stage. It will then be promoted to GA and the feature flag for enabling/disabling the functionality will be deprecated. When this happens
 we will provide a way to toggle the in-place possibly though the API.

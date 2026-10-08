@@ -121,7 +121,7 @@ sysctl fs.inotify.max_user_instances=8192
 Newly created clusters should be able to take advantage of the increased limits.
 
 ### MacOS and Docker Desktop -  "too many open files"
-This error was also observed in Docker Desktop 4.3 and 4.4 on MacOS. It can be resolved by updating to Docker Desktop for Mac 4.5 or using a version lower than 4.3.
+This error was also observed in Docker Desktop 4.3 and 4.4 on macOS. It can be resolved by updating to Docker Desktop for Mac 4.5 or using a version lower than 4.3.
 
 [The upstream issue for this error is closed as of the release of Docker 4.5.0](https://github.com/docker/for-mac/issues/6071)
 
@@ -235,7 +235,7 @@ The Cluster API projects is continuously improving its API, including improving 
 which allows for a more granular ownership of list items. 
 
 However, when transitioning from atomic lists to map lists, there are edge cases not supported
-and this can lead to a SSA patches failing to remove an item in a list.
+and this can lead to SSA patches failing to remove an item in a list.
 
 Note: the issue only occurs in a very specific scenario, most of the users are not affected
 (e.g. client-side apply or "continuous" SSA with GitOps tools works as expected)

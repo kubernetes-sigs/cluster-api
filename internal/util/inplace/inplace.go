@@ -93,7 +93,7 @@ func CleanupMachineSpecForDiff(spec *clusterv1.MachineSpec) *clusterv1.MachineSp
 	spec.ClusterName = ""
 
 	// Machine: should never change.
-	// MachineSet: not responsibility of the in-place update extension.
+	// MachineSet: not the responsibility of the in-place update extension.
 	spec.Bootstrap = clusterv1.Bootstrap{}
 	spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{}
 

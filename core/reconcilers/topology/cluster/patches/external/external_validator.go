@@ -49,7 +49,7 @@ func (e externalValidator) Validate(ctx context.Context, forObject client.Object
 		return nil, pkgerrors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", e.patch.External.ValidateTopologyExtension)
 	}
 
-	// Set the settings defined in external patch definition on the request object.
+	// Set the settings defined in the external patch definition on the request object.
 	// These settings will override overlapping keys defined in ExtensionConfig settings.
 	req.Settings = e.patch.External.Settings
 	// The req object is re-used across multiple calls to the patch generator.

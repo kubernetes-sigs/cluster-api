@@ -201,7 +201,7 @@ The right Go minor version for a Cluster API branch can be looked up as follows 
        ```
 
        **Notes**:
-        * `make promote-images` target tries to figure out your Github user handle in order to find the forked [k8s.io](https://github.com/kubernetes/k8s.io) repository.
+        * `make promote-images` target tries to figure out your GitHub user handle in order to find the forked [k8s.io](https://github.com/kubernetes/k8s.io) repository.
           If you have not forked the repo, please do it before running the Makefile target.
         * if `make promote-images` fails with an error like `FATAL while checking fork of kubernetes/k8s.io` you may be able to solve it by manually setting the USER_FORK variable i.e.  `export USER_FORK=<personal GitHub handle>`
         * `kpromo` uses `git@github.com:...` as remote to push the branch for the PR. If you don't have `ssh` set up you can configure
@@ -225,7 +225,7 @@ The right Go minor version for a Cluster API branch can be looked up as follows 
    <br>**Notes**:
     * This is only done for new latest stable releases, not for beta / RC releases and not for previous release branches.
     * Check if homebrew already has a PR to update the version (homebrew introduced automation that picks it up). Open one if no PR exists.
-      * To open a PR, you need two things: `tag` (i.e v1.5.3 & v1.4.8 releases are being published, where release-1.5 is the latest stable release branch, so tag would be v1.5.4) and `revision` (it is a commit hash of the tag, i.e if the tag is v1.5.3, it can be found by looking for commit id in [v1.5.3 tag page](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.5.3)).
+      * To open a PR, you need two things: `tag` (i.e. v1.5.3 & v1.4.8 releases are being published, where release-1.5 is the latest stable release branch, so tag would be v1.5.4) and `revision` (it is a commit hash of the tag, i.e. if the tag is v1.5.3, it can be found by looking for commit id in [v1.5.3 tag page](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.5.3)).
       * Once the PR is open, no action should be needed. Homebrew bot should push a second commit (see an example [here](https://github.com/Homebrew/homebrew-core/pull/129986/commits/0da6edddf1143aa50033f7e8ae1ebd07ecdd0941)) to the same PR to update the binary hashes automatically.
       * For an example please see: [PR: clusterctl 1.5.3](https://github.com/Homebrew/homebrew-core/pull/152279).
       * Homebrew has [conventions for commit messages](https://docs.brew.sh/Formula-Cookbook#commit) usually
@@ -241,7 +241,7 @@ Additional information:
   * Create/update/publish GitHub releases.
 
 ### [Optional] Public release session
-   1. Host a release session over a public zoom meeting.
+   1. Host a release session over a public Zoom meeting.
    2. Record the session for future reference and transparency.
    3. Use release process-related waiting periods as a forum for discussing issues/questions.
    4. Publish the recording on YouTube channel.

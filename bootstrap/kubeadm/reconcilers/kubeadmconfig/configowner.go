@@ -109,7 +109,7 @@ func (co ConfigOwner) IsMachinePool() bool {
 	return co.GetKind() == "MachinePool"
 }
 
-// KubernetesVersion returns the Kuberentes version for the config owner object.
+// KubernetesVersion returns the Kubernetes version for the config owner object.
 func (co ConfigOwner) KubernetesVersion() string {
 	fields := []string{"spec", "version"}
 	if co.IsMachinePool() {

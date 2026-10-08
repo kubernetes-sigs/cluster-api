@@ -211,7 +211,7 @@ When all hooks for a given lifecycle-point are removed, reconciliation
 will continue as normal.
 
 ##### Hook failure
-The machine-controller should not timeout or otherwise consider the lifecycle
+The machine-controller should not time out or otherwise consider the lifecycle
 hook as 'failed.'  Only the Hook Implementing Controller may decide to remove a
 particular lifecycle hook to allow the machine-controller to progress past the
 corresponding lifecycle-point.

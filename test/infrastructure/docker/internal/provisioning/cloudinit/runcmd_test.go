@@ -64,7 +64,7 @@ func TestRunCmdRun(t *testing.T) {
 			},
 		},
 		{
-			name: "hack kubeadm ingore errors",
+			name: "hack kubeadm ignore errors",
 			r: runCmd{
 				Cmds: []provisioning.Cmd{
 					{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /run/kubeadm/kubeadm.yaml"}},

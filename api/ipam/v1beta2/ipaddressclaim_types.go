@@ -53,7 +53,7 @@ type IPAddressClaimSpec struct {
 	PoolRef IPPoolReference `json:"poolRef,omitempty,omitzero"`
 }
 
-// IPAddressClaimStatus is the observed status of a IPAddressClaim.
+// IPAddressClaimStatus is the observed status of an IPAddressClaim.
 // +kubebuilder:validation:MinProperties=1
 type IPAddressClaimStatus struct {
 	// conditions represents the observations of a IPAddressClaim's current state.
@@ -68,7 +68,7 @@ type IPAddressClaimStatus struct {
 	// +optional
 	AddressRef IPAddressReference `json:"addressRef,omitempty,omitzero"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *IPAddressClaimDeprecatedStatus `json:"deprecated,omitempty"`
 }
@@ -87,17 +87,17 @@ type IPAddressReference struct {
 // IPAddressClaimDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type IPAddressClaimDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	// +optional
 	V1Beta1 *IPAddressClaimV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// IPAddressClaimV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// IPAddressClaimV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type IPAddressClaimV1Beta1DeprecatedStatus struct {
 	// conditions summarises the current state of the IPAddressClaim
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`

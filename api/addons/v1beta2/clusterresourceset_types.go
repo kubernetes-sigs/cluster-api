@@ -25,7 +25,7 @@ import (
 
 // ClusterResourceSet's ResourcesApplied condition and corresponding reasons.
 const (
-	// ClusterResourceSetResourcesAppliedCondition surfaces wether the resources in the ClusterResourceSet are applied to all matching clusters.
+	// ClusterResourceSetResourcesAppliedCondition surfaces whether the resources in the ClusterResourceSet are applied to all matching clusters.
 	// This indicates all resources exist, and no errors during applying them to all clusters.
 	ClusterResourceSetResourcesAppliedCondition = "ResourcesApplied"
 
@@ -101,7 +101,7 @@ type ClusterResourceSetStrategy string
 
 const (
 	// ClusterResourceSetStrategyApplyOnce is the default strategy a ClusterResourceSet strategy is assigned by
-	// ClusterResourceSet controller after being created if not specified by user.
+	// ClusterResourceSet controller after being created if not specified by the user.
 	ClusterResourceSetStrategyApplyOnce ClusterResourceSetStrategy = "ApplyOnce"
 	// ClusterResourceSetStrategyReconcile reapplies the resources managed by a ClusterResourceSet
 	// if their normalized hash changes.
@@ -129,7 +129,7 @@ type ClusterResourceSetStatus struct {
 	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *ClusterResourceSetDeprecatedStatus `json:"deprecated,omitempty"`
 }
@@ -137,17 +137,17 @@ type ClusterResourceSetStatus struct {
 // ClusterResourceSetDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ClusterResourceSetDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	// +optional
 	V1Beta1 *ClusterResourceSetV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// ClusterResourceSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// ClusterResourceSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ClusterResourceSetV1Beta1DeprecatedStatus struct {
 	// conditions defines current state of the ClusterResourceSet.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`

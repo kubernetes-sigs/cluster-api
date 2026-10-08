@@ -107,7 +107,7 @@ A component responsible for the provisioning and for the management of the contr
 Control plane providers can take different approach on how to manage the control plane;
 
 * __Self-provisioned__: A Kubernetes control plane consisting of pods or machines wholly managed by a single Cluster API deployment.
-  e.g kubeadm uses [static pods](https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/) for running components such as [kube-apiserver](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/), [kube-controller-manager](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/) and [kube-scheduler](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-scheduler/)
+  e.g. kubeadm uses [static pods](https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/) for running components such as [kube-apiserver](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/), [kube-controller-manager](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/) and [kube-scheduler](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-scheduler/)
   on control plane machines.
 
 * __Pod-based__ deployments require an external hosting cluster. The control plane components are deployed using standard *Deployment* and *StatefulSet* objects and the API is exposed using a *Service*.

@@ -66,7 +66,7 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 
 ### IPAM Provider
 
-A controller that watches `IPAddressClaims` and fulfils them with `IPAddresses` that it allocates from an IP Pool. It comes with it's own IP Pool custom resource definition to provide parameters for allocating addresses. Providers can work in-cluster relying only on custom resources, or integrate with external systems like Netbox or Infoblox.
+A controller that watches `IPAddressClaims` and fulfils them with `IPAddresses` that it allocates from an IP Pool. It comes with its own IP Pool custom resource definition to provide parameters for allocating addresses. Providers can work in-cluster relying only on custom resources, or integrate with external systems like Netbox or Infoblox.
 
 ### IPAddressClaim
 
@@ -90,7 +90,7 @@ IP address management for machines is currently left to the infrastructure provi
 
 While DHCP is a viable solution for dynamic IP assignment which also enables scaling, it can cause problems in conjunction with CAPI. Especially in smaller networks rolling cluster upgrades can exhaust the network in use. When multiple machines are replaced in quick succession, each of them will get a new DHCP lease. Unless the lease time is very short, at least twice as many IPs as the maximum number of nodes has to be allocated to a cluster.
 
-Metal3 has an ip-address-manager component that allows for in-cluster management of IP addresses through custom resources, allowing to avoid DHCP. CAPV allows to ommit the address from the template while having DHCP disabled, and will wait until it is set manually, allowing to implement custom controllers to take care of IP assignments. At DTAG we've extended metal3's ip-address-manager and wrote a custom controller for CAPV to integrate both with Infoblox, our IPAM solution of choice. The CAPV project has shown interest, and there has been a proposal to allow integrating metal3's ip-address-manager with external systems.
+Metal3 has an ip-address-manager component that allows for in-cluster management of IP addresses through custom resources, allowing to avoid DHCP. CAPV allows to omit the address from the template while having DHCP disabled, and will wait until it is set manually, allowing to implement custom controllers to take care of IP assignments. At DTAG we've extended metal3's ip-address-manager and wrote a custom controller for CAPV to integrate both with Infoblox, our IPAM solution of choice. The CAPV project has shown interest, and there has been a proposal to allow integrating metal3's ip-address-manager with external systems.
 
 All on-premise providers have a need for IP Address Management, since they can't leverage SDN features that are available in clouds such as AWS, Azure or GCP. We therefore propose to add an API contract to CAPI, which allows infrastructure providers to integrate with different IPAM systems. A similar approach to Kubernetes' PersistentVolumes should be used where infrastructure providers create Claims that reference a specific IP Pool, and IPAM providers fulfill claims to Pools managed by them.
 
@@ -106,8 +106,8 @@ All on-premise providers have a need for IP Address Management, since they can't
 
 - IPAM providers should not be added to CAPI directly, but live as individual projects instead.
 - `IPAddress` and `IPAddressClaim` will only have limited validation (e.g. that the referenced Pool exists and that IP address strings are valid addresses). Advanced validation (whether an IP is actually part of the correct subnet for example) needs to be handled by IPAM providers.
-- This propsoal only focuses on integrating Machine creation with an IPAM provider.
-  - Allocation of pools and addresses during cluster creation (e.g. the node network, the overlay network, API address etc.) is currently of scope of this proposal.
+- This proposal only focuses on integrating Machine creation with an IPAM provider.
+  - Allocation of pools and addresses during cluster creation (e.g. the node network, the overlay network, API address etc.) is currently out of scope of this proposal.
   - Support for allocating Pools could be added by extending the Proposal with an `IPPoolClaim` that can be used to divide IP Pools into smaller Pools. It would work the same way as `IPAddressClaims`, but yield new Pools of the same kind instead of an IPAddress.
 - Moving network configuration from infrastructure templates to `MachineDeployments` should be discussed in a separate proposal. The IPAM integration proposed here can be reused when network configuration is moved, and would allow `IPAddressClaims` to be created by CAPI instead of having to re-implement it in all infrastructure providers that want to support it.
 
@@ -146,11 +146,11 @@ The contract consists of three resources:
 
 - An IPAddressClaim, which is used to allocate addresses
 - An `IPAddress` that IPAM providers use to fulfil IPAddressClaims
-- IP Pools, which hold provider specific configuration on how addresses should be allocated, e.g. a specific subnet to use
+- IP Pools, which hold provider-specific configuration on how addresses should be allocated, e.g. a specific subnet to use
 
 Both **IPAddressClaims** and **IPAddresses** should be part of Cluster API, while **IPPools** are defined by the different IPAM providers.
 
-An **IPAddressClaim** is used by infrastructure providers to request an IP Address. The claim contains a reference to an IP Pool. Because the pool is provider specific, the IPAM controllers can decide whether to handle a claim by inspecting the group and kind of the pool reference.
+An **IPAddressClaim** is used by infrastructure providers to request an IP Address. The claim contains a reference to an IP Pool. Because the pool is provider-specific, the IPAM controllers can decide whether to handle a claim by inspecting the group and kind of the pool reference.
 
 If a IPAM controller detects a Claim that references a Pool it controls, it allocates an IP address from that pool and creates an **IPAddress** to fulfil the claim. It also updates the status of the `IPAddressClaim` with a reference to the created Address.  
 When allocation fails, the `Ready` condition of the claim should be set to false. Where applicable, the reasons specified in the IPAM api package should be used.
@@ -353,7 +353,7 @@ A claim is fulfilled once an `IPAddress` object is created, and the status of th
 
 The IPAM provider needs to ensure that address allocation is correct. Most importantly it must not assign the same IP address more than once within a pool. There is no validation on uniqueness on `IPAddress` objects.
 
-When an `IPAddressClaim` that is reconciled by a provider is deleted, the provider needs to release the IP address belonging to the claim and delete the related `IPAddress` object. To do so a Finalzier should be added to the claim to prevent its deletion until the address is released.
+When an `IPAddressClaim` that is reconciled by a provider is deleted, the provider needs to release the IP address belonging to the claim and delete the related `IPAddress` object. To do so a Finalizer should be added to the claim to prevent its deletion until the address is released.
 
 `IPAddress` objects (as well as claims) are immutable. For each `IPAddressClaim`, one corresponding `IPAddress` object gets created. As long as the claim exists that `IPAddress` object must not change. When an `IPAddress` object is deleted while its claim still exists there are two options:
 - The provider can re-create an `IPAddress` object with identical values as the previous object.
@@ -369,9 +369,9 @@ After the claim is created, the infrastructure provider needs to watch it until 
 
 It is the responsibility of the Infrastructure Provider to ensure the `IPAddressClaim` is not deleted as long as the IP address is in use. It should block the deletion of the `IPAddressClaim` using a Finalizer until the Infrastructure Machine is destroyed. It has to make sure the Finalizer is removed before the Machine is deleted.
 
-The `IPAddressClaim` must contain a owner reference to the Infrastructure Machine it was created for.
+The `IPAddressClaim` must contain an owner reference to the Infrastructure Machine it was created for.
 
-The Infrastructure Machine has to reflect IP Address allocation status in it's conditions, and this has to be incorporated into it's `Ready` condition. This is likely to be the case anyway, as the IP address will probably be required to provision the machine.
+The Infrastructure Machine has to reflect IP Address allocation status in its conditions, and this has to be incorporated into its `Ready` condition. This is likely to be the case anyway, as the IP address will probably be required to provision the machine.
 
 The used IP addresses must be reflected in `.Status.Addresses` of a Machine.
 

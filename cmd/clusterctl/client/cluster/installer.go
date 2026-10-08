@@ -125,7 +125,7 @@ func installComponentsAndUpdateInventory(ctx context.Context, components reposit
 
 // waitForProvidersReady waits till the installed components are ready.
 func waitForProvidersReady(ctx context.Context, opts InstallOptions, installQueue []repository.Components, proxy Proxy) error {
-	// If we dont have to wait for providers to be installed
+	// If we don't have to wait for providers to be installed
 	// return early.
 	if !opts.WaitProviders {
 		return nil

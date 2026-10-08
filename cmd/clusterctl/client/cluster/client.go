@@ -259,7 +259,7 @@ func retryWithExponentialBackoff(ctx context.Context, opts wait.Backoff, operati
 
 // newWriteBackoff creates a new API Machinery backoff parameter set suitable for use with clusterctl write operations.
 func newWriteBackoff() wait.Backoff {
-	// Return a exponential backoff configuration which returns durations for a total time of ~159s.
+	// Return an exponential backoff configuration which returns durations for a total time of ~159s.
 	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
 	return wait.Backoff{
 		Duration: 500 * time.Millisecond,
@@ -271,7 +271,7 @@ func newWriteBackoff() wait.Backoff {
 
 // newConnectBackoff creates a new API Machinery backoff parameter set suitable for use when clusterctl connect to a cluster.
 func newConnectBackoff() wait.Backoff {
-	// Return a exponential backoff configuration which returns durations for a total time of ~15s.
+	// Return an exponential backoff configuration which returns durations for a total time of ~15s.
 	// Example: 0, .25s, .6s, 1.2, 2.1s, 3.4s, 5.5s, 8s, 12s
 	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
 	return wait.Backoff{
@@ -285,7 +285,7 @@ func newConnectBackoff() wait.Backoff {
 // newShortConnectBackoff creates a new API Machinery backoff parameter set suitable for use when clusterctl connect to a cluster.
 // Preferred over newConnectBackoff() only when used to perform quick checks to check if a cluster is reachable.
 func newShortConnectBackoff() wait.Backoff {
-	// Return a exponential backoff configuration which returns durations for a total time of ~5s.
+	// Return an exponential backoff configuration which returns durations for a total time of ~5s.
 	// Example: 0, .25s, .6s, 1.2, 2.1s, 3.4s, 5.5s.
 	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
 	return wait.Backoff{
@@ -298,7 +298,7 @@ func newShortConnectBackoff() wait.Backoff {
 
 // newReadBackoff creates a new API Machinery backoff parameter set suitable for use with clusterctl read operations.
 func newReadBackoff() wait.Backoff {
-	// Return a exponential backoff configuration which returns durations for a total time of ~15s.
+	// Return an exponential backoff configuration which returns durations for a total time of ~15s.
 	// Example: 0, .25s, .6s, 1.2, 2.1s, 3.4s, 5.5s, 8s, 12s
 	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
 	return wait.Backoff{

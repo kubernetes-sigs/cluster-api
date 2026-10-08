@@ -197,7 +197,7 @@ func (r *Reconciler) inPlaceUpdateOrScaleUpControlPlane(ctx context.Context, con
 
 	// Run preflight checks to ensure that the control plane is stable before proceeding with the in-place update.
 	//
-	// Important! preflight checks play an important role in ensuring that KCP performs "one operation at time", by forcing
+	// Important! preflight checks play an important role in ensuring that KCP performs "one operation at a time", by forcing
 	// the system to wait for the previous operation to complete and the control plane to become stable before starting the next one.
 	//
 	// Note: before considering in-place updates, KCP first takes care of completing
@@ -238,7 +238,7 @@ func (r *Reconciler) inPlaceUpdateOrScaleDownControlPlane(ctx context.Context, c
 
 	// Run preflight checks to ensure that the control plane is stable before proceeding with the in-place update.
 	//
-	// Important! preflight checks play an important role in ensuring that KCP performs "one operation at time", by forcing
+	// Important! preflight checks play an important role in ensuring that KCP performs "one operation at a time", by forcing
 	// the system to wait for the previous operation to complete and the control plane to become stable before starting the next one.
 	//
 	// Note: before considering in-place updates, KCP first takes care of completing

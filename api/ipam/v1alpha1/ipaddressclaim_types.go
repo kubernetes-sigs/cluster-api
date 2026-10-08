@@ -30,7 +30,7 @@ type IPAddressClaimSpec struct {
 	PoolRef corev1.TypedLocalObjectReference `json:"poolRef"`
 }
 
-// IPAddressClaimStatus is the observed status of a IPAddressClaim.
+// IPAddressClaimStatus is the observed status of an IPAddressClaim.
 type IPAddressClaimStatus struct {
 	// addressRef is a reference to the address that was created for this claim.
 	// +optional

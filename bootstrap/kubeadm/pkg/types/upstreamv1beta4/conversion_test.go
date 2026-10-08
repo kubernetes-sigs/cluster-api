@@ -155,7 +155,7 @@ func spokeJoinConfigurationFuzzer(obj *JoinConfiguration, c randfill.Continue) {
 		obj.Discovery.File = nil
 	}
 
-	// If timeouts have been set, unset unsupported timeouts (only TLSBootstrap is supported - corresponds to JoinConfiguration.Discovery.Timeout in cabpk v1beta1 API
+	// If timeouts have been set, unset unsupported timeouts (only TLSBootstrap is supported - corresponds to JoinConfiguration.Discovery.Timeout in cabpk v1beta1 API)
 	if obj.Timeouts == nil {
 		return
 	}

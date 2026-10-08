@@ -529,7 +529,7 @@ func Test_clusterctlClient_templateOptionsToVariables_withExistingMachineCountVa
 	for name, wantValue := range wantVars {
 		gotValue, err := configClient.Variables().Get(name)
 		if err != nil {
-			t.Fatalf("variable %s is not definied in config variables", name)
+			t.Fatalf("variable %s is not defined in config variables", name)
 		}
 		if gotValue != wantValue {
 			t.Errorf("variable %s, got = %v, want %v", name, gotValue, wantValue)

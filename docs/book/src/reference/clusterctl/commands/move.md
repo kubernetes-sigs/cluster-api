@@ -83,7 +83,7 @@ This can now be achieved with the following procedure:
 8. Delete the bootstrap cluster
 
 > Note: It's required to have at least one worker node to schedule Cluster API workloads (i.e. controllers).
-> A cluster with a single control plane node won't be sufficient due to the `NoSchedule` taint. If a worker node isn't available, `clusterctl init` will timeout.
+> A cluster with a single control plane node won't be sufficient due to the `NoSchedule` taint. If a worker node isn't available, `clusterctl init` will time out.
 
 ## Dry run
 

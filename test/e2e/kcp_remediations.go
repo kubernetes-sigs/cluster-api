@@ -82,7 +82,7 @@ type KCPRemediationSpecInput struct {
 	// If not specified, "kcp-remediation" is used.
 	Flavor *string
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
@@ -106,7 +106,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 	})
 
@@ -345,7 +345,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		By("ALL THE CONTROL PLANE MACHINES SUCCESSFULLY PROVISIONED!")
 
 		// We now want to test remediation of a CP machine already provisioned.
-		// In order to do so we need to apply both mhc-test:fail as well as setting an unhealthy condition in order to trigger remediation
+		// In order to do so we need to both apply mhc-test:fail and set an unhealthy condition in order to trigger remediation
 
 		By("REMEDIATING THIRD CP")
 
@@ -431,7 +431,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 	})
 
 	AfterEach(func() {
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		// Dumps all the resources in the spec namespace, then cleans up the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }
@@ -641,7 +641,7 @@ func getServerAddr(ctx context.Context, clusterProxy framework.ClusterProxy) str
 	// With CAPD, we can't just access the bootstrap cluster via 127.0.0.1:<port> from the
 	// workload cluster. Instead we retrieve the server name from the cluster-info ConfigMap in the bootstrap
 	// cluster (e.g. "https://test-z45p9k-control-plane:6443")
-	// Note: This has been tested with MacOS,Linux and Prow.
+	// Note: This has been tested with macOS, Linux and Prow.
 	clusterInfoCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster-info",

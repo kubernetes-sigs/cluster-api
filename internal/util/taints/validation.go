@@ -39,7 +39,7 @@ func ValidateMachineTaints(taints []clusterv1.MachineTaint, taintsPath *field.Pa
 	for i, taint := range taints {
 		idxPath := taintsPath.Index(i)
 
-		// The following validations uses a switch statement, because if one of them matches, then the others won't.
+		// The following validations use a switch statement, because if one of them matches, then the others won't.
 
 		switch {
 		// Validate for keys which are reserved for usage by the cluster-api or providers.

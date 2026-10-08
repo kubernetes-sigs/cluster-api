@@ -125,7 +125,7 @@ func UnstructuredGetAll(sourceObj runtime.Unstructured) ([]metav1.Condition, err
 	}
 
 	// With unstructured, it is not possible to detect if conditions are not set if the type is wrongly defined.
-	// This methods assume condition are not set.
+	// This method assumes conditions are not set.
 	return nil, nil
 }
 

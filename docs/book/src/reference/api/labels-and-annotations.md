@@ -64,7 +64,7 @@
 
 # Internal Annotations
 
-Following annotation are used by CAPI internally. 
+The following annotations are used by CAPI internally. 
 
 > [!IMPORTANT]
 > **Internal annotations should not be used outside CAPI controllers**

@@ -2388,7 +2388,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo": {
-					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo", // the cluster should be a tenant of itself
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/foo",
 					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/foo-kubeconfig",
@@ -2407,7 +2407,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo": {
-					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo", // the cluster should be a tenant of itself
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/foo",
 					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/foo-kubeconfig",
@@ -2426,13 +2426,13 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo": {
-					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo", // the cluster should be a tenant of itself
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/foo",
 					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/foo-kubeconfig",
 				},
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/bar": {
-					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/bar", // the cluster should be tenant of itself
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/bar", // the cluster should be a tenant of itself
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/bar",
 					"/v1, Kind=Secret, ns1/bar-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/bar-kubeconfig",
@@ -2473,7 +2473,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
-					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",                                          // the cluster should be tenant of itself
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",                                          // the cluster should be a tenant of itself
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
@@ -2486,7 +2486,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				},
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2": {
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
-					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",                                          // the cluster should be tenant of itself
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",                                          // the cluster should be a tenant of itself
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster2",
 					"/v1, Kind=Secret, ns1/cluster2-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
@@ -2517,7 +2517,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
-					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // the cluster should be tenant of itself
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // the cluster should be a tenant of itself
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
@@ -2545,14 +2545,14 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
-					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // the cluster should be tenant of itself
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // the cluster should be a tenant of itself
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
 					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by the cluster
 				},
 				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2": {
-					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2", // the cluster should be tenant of itself
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2", // the cluster should be a tenant of itself
 					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster2",
 					"/v1, Kind=Secret, ns1/cluster2-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
@@ -2628,7 +2628,7 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 			},
 			wantCRSs: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
 				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1": {
-					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be tenant of itself
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be a tenant of itself
 					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by ClusterResourceSet
 					"/v1, Kind=Secret, ns1/resource-s1",                                               // resource are owned by ClusterResourceSet
 					"/v1, Kind=ConfigMap, ns1/resource-c1",                                            // resource are owned by ClusterResourceSet
@@ -2655,7 +2655,7 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 			},
 			wantCRSs: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
 				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1": {
-					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be tenant of itself
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be a tenant of itself
 					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by ClusterResourceSet
 					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster2", // ClusterResourceSetBinding are owned by ClusterResourceSet
 					"/v1, Kind=Secret, ns1/resource-s1",                                               // resource are owned by ClusterResourceSet
@@ -2718,7 +2718,7 @@ func Test_objectGraph_setGlobalIdentityTenants(t *testing.T) {
 			},
 			wantIdentity: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericClusterInfrastructureIdentity, infra1-identity": {
-					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericClusterInfrastructureIdentity, infra1-identity", // the global identity should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericClusterInfrastructureIdentity, infra1-identity", // the global identity should be a tenant of itself
 					"/v1, Kind=Secret, infra1-system/infra1-identity-credentials",
 				},
 			},

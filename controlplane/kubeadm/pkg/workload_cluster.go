@@ -154,14 +154,14 @@ func (w *Workload) UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.Sched
 	}
 }
 
-// UpdateCertificateValidityPeriodDays updates CertificateValidityPeriodDays in kubeadm config map.
+// UpdateCertificateValidityPeriodDays updates CertificateValidityPeriodDays in the kubeadm config map.
 func (w *Workload) UpdateCertificateValidityPeriodDays(certificateValidityPeriodDays int32) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.CertificateValidityPeriodDays = certificateValidityPeriodDays
 	}
 }
 
-// UpdateEncryptionAlgorithm updates EncryptionAlgorithmType in kubeadm config map.
+// UpdateEncryptionAlgorithm updates EncryptionAlgorithmType in the kubeadm config map.
 func (w *Workload) UpdateEncryptionAlgorithm(encryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.EncryptionAlgorithm = encryptionAlgorithm
@@ -219,7 +219,7 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 
 // HasKubeadmConfig returns if the cluster has the kubeadm-config ConfigMap.
 func (w *Workload) HasKubeadmConfig(ctx context.Context) (bool, error) {
-	// find the kubeadm conifg
+	// find the kubeadm config
 	key := client.ObjectKey{
 		Name:      kubeadmConfigKey,
 		Namespace: metav1.NamespaceSystem,

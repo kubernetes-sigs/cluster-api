@@ -41,13 +41,13 @@ type upgradeInfo struct {
 	// currentContract of the provider
 	currentContract string
 
-	// nextVersions return the list of versions available for upgrades, defined as the list of version available in the provider repository
+	// nextVersions returns the list of versions available for upgrades, defined as the list of versions available in the provider repository
 	// greater than the currentVersion.
 	nextVersions []version.Version
 }
 
 // getUpgradeInfo returns all the info required for taking upgrade decisions for a provider.
-// NOTE: This could contain also versions for the previous or next Cluster API contract (not supported in current clusterctl release, but upgrade plan should report this options).
+// NOTE: This could contain also versions for the previous or next Cluster API contract (not supported in current clusterctl release, but the upgrade plan should report these options).
 func (u *providerUpgrader) getUpgradeInfo(ctx context.Context, provider clusterctlv1.Provider) (*upgradeInfo, error) {
 	// Gets the list of versions available in the provider repository.
 	configRepository, err := u.configClient.Providers().Get(provider.ProviderName, provider.GetProviderType())
@@ -100,7 +100,7 @@ func (u *providerUpgrader) getUpgradeInfo(ctx context.Context, provider clusterc
 	// Filters the versions to be considered for upgrading the provider (next
 	// versions) and checks if the releaseSeries defined in metadata includes
 	// all of them.
-	// NOTE: This could contain also versions for the previous or next Cluster API contract (not supported in current clusterctl release, but upgrade plan should report this options).
+	// NOTE: This could contain also versions for the previous or next Cluster API contract (not supported in current clusterctl release, but the upgrade plan should report these options).
 	nextVersions := []version.Version{}
 	for _, repositoryVersion := range repositoryVersions {
 		// we are ignoring the conversion error here because a first check already passed above
@@ -149,7 +149,7 @@ func newUpgradeInfo(metadata *clusterctlv1.Metadata, currentVersion *version.Ver
 	}
 }
 
-// getContractsForUpgrade return the list of contract version available for a provider upgrade.
+// getContractsForUpgrade returns the list of contract versions available for a provider upgrade.
 func (i *upgradeInfo) getContractsForUpgrade() []string {
 	contractsForUpgrade := sets.Set[string]{}
 	for _, releaseSeries := range i.metadata.ReleaseSeries {
@@ -164,7 +164,7 @@ func (i *upgradeInfo) getContractsForUpgrade() []string {
 }
 
 // getLatestNextVersion returns the next available version for a provider within target contract versions or a compatible contract version, if available.
-// the next available version is the latest version available that implements one of the contract version.
+// the next available version is the latest version available that implements one of the contract versions.
 func (i *upgradeInfo) getLatestNextVersion(compatibleContracts sets.Set[string]) *version.Version {
 	var latestNextVersion *version.Version
 	for _, releaseSeries := range i.metadata.ReleaseSeries {
@@ -184,7 +184,7 @@ func (i *upgradeInfo) getLatestNextVersion(compatibleContracts sets.Set[string])
 				continue
 			}
 
-			// Drop the nextVersion if older that the latestNextVersion selected so far
+			// Drop the nextVersion if older than the latestNextVersion selected so far
 			if latestNextVersion == nil || latestNextVersion.LessThan(nextVersion) {
 				latestNextVersion = nextVersion
 			}

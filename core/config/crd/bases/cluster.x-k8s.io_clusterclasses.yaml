@@ -59,12 +59,12 @@ spec:
                   such list overrides availabilityGates defined in this field.
                 items:
                   description: ClusterAvailabilityGate contains the type of a Cluster
-                    condition to be used as availability gate.
+                    condition to be used as an availability gate.
                   properties:
                     conditionType:
                       description: |-
-                        conditionType refers to a condition with matching type in the Cluster's condition list.
-                        If the conditions doesn't exist, it will be treated as unknown.
+                        conditionType refers to a condition with a matching type in the Cluster's condition list.
+                        If the condition doesn't exist, it will be treated as unknown.
                         Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
                       maxLength: 316
                       minLength: 1
@@ -308,7 +308,7 @@ spec:
                           unhealthyRange specifies the range of unhealthy machines allowed.
                           Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
                           is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
-                          Eg. "[3-5]" - This means that remediation will be allowed only when:
+                          E.g. "[3-5]" - This means that remediation will be allowed only when:
                           (a) there are at least 3 unhealthy machines (and)
                           (b) there are at most 5 unhealthy machines
                         maxLength: 32
@@ -408,7 +408,7 @@ spec:
                       template:
                         description: |-
                           template defines the template to use for generating the name of the ControlPlane object.
-                          If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+                          If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`.
                           If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
                           get concatenated with a random suffix of length 5.
                           The templating mechanism provides the following arguments:
@@ -456,8 +456,8 @@ spec:
                       properties:
                         conditionType:
                           description: |-
-                            conditionType refers to a condition with matching type in the Machine's condition list.
-                            If the conditions doesn't exist, it will be treated as unknown.
+                            conditionType refers to a condition with a matching type in the Machine's condition list.
+                            If the condition doesn't exist, it will be treated as unknown.
                             Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                           maxLength: 316
                           minLength: 1
@@ -656,7 +656,7 @@ spec:
                   template:
                     description: |-
                       template defines the template to use for generating the name of the Infrastructure object.
-                      If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+                      If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`.
                       If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
                       get concatenated with a random suffix of length 5.
                       The templating mechanism provides the following arguments:
@@ -1564,7 +1564,7 @@ spec:
                                 unhealthyRange specifies the range of unhealthy machines allowed.
                                 Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
                                 is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
-                                Eg. "[3-5]" - This means that remediation will be allowed only when:
+                                E.g. "[3-5]" - This means that remediation will be allowed only when:
                                 (a) there are at least 3 unhealthy machines (and)
                                 (b) there are at most 5 unhealthy machines
                               maxLength: 32
@@ -1588,7 +1588,7 @@ spec:
                             template:
                               description: |-
                                 template defines the template to use for generating the name of the MachineDeployment object.
-                                If not defined, it will fallback to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
+                                If not defined, it will fall back to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
                                 If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
                                 get concatenated with a random suffix of length 5.
                                 The templating mechanism provides the following arguments:
@@ -1635,8 +1635,8 @@ spec:
                             properties:
                               conditionType:
                                 description: |-
-                                  conditionType refers to a condition with matching type in the Machine's condition list.
-                                  If the conditions doesn't exist, it will be treated as unknown.
+                                  conditionType refers to a condition with a matching type in the Machine's condition list.
+                                  If the condition doesn't exist, it will be treated as unknown.
                                   Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                                 maxLength: 316
                                 minLength: 1
@@ -2011,7 +2011,7 @@ spec:
                             template:
                               description: |-
                                 template defines the template to use for generating the name of the MachinePool object.
-                                If not defined, it will fallback to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
+                                If not defined, it will fall back to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
                                 If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
                                 get concatenated with a random suffix of length 5.
                                 The templating mechanism provides the following arguments:
@@ -2883,12 +2883,12 @@ spec:
                   such list overrides availabilityGates defined in this field.
                 items:
                   description: ClusterAvailabilityGate contains the type of a Cluster
-                    condition to be used as availability gate.
+                    condition to be used as an availability gate.
                   properties:
                     conditionType:
                       description: |-
-                        conditionType refers to a condition with matching type in the Cluster's condition list.
-                        If the conditions doesn't exist, it will be treated as unknown.
+                        conditionType refers to a condition with a matching type in the Cluster's condition list.
+                        If the condition doesn't exist, it will be treated as unknown.
                         Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
                       maxLength: 316
                       minLength: 1
@@ -3148,7 +3148,7 @@ spec:
                               apiVersion:
                                 description: |-
                                   apiVersion of the remediation template.
-                                  apiVersion must be fully qualified domain name followed by / and a version.
+                                  apiVersion must be a fully qualified domain name followed by / and a version.
                                   NOTE: This field must be kept in sync with the APIVersion of the remediation template.
                                 maxLength: 317
                                 minLength: 1
@@ -3186,7 +3186,7 @@ spec:
                                   unhealthyInRange specifies that remediations are only triggered if the number of
                                   unhealthy Machines is in the configured range.
                                   Takes precedence over unhealthyLessThanOrEqualTo.
-                                  Eg. "[3-5]" - This means that remediation will be allowed only when:
+                                  E.g. "[3-5]" - This means that remediation will be allowed only when:
                                   (a) there are at least 3 unhealthy Machines (and)
                                   (b) there are at most 5 unhealthy Machines
                                 maxLength: 32
@@ -3220,7 +3220,7 @@ spec:
                           apiVersion:
                             description: |-
                               apiVersion of the template.
-                              apiVersion must be fully qualified domain name followed by / and a version.
+                              apiVersion must be a fully qualified domain name followed by / and a version.
                             maxLength: 317
                             minLength: 1
                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -3244,7 +3244,7 @@ spec:
                           apiVersion:
                             description: |-
                               apiVersion of the template.
-                              apiVersion must be fully qualified domain name followed by / and a version.
+                              apiVersion must be a fully qualified domain name followed by / and a version.
                             maxLength: 317
                             minLength: 1
                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -3313,7 +3313,7 @@ spec:
                       template:
                         description: |-
                           template defines the template to use for generating the name of the ControlPlane object.
-                          If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+                          If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`.
                           If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
                           get concatenated with a random suffix of length 5.
                           The templating mechanism provides the following arguments:
@@ -3340,8 +3340,8 @@ spec:
                       properties:
                         conditionType:
                           description: |-
-                            conditionType refers to a condition with matching type in the Machine's condition list.
-                            If the conditions doesn't exist, it will be treated as unknown.
+                            conditionType refers to a condition with a matching type in the Machine's condition list.
+                            If the condition doesn't exist, it will be treated as unknown.
                             Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                           maxLength: 316
                           minLength: 1
@@ -3437,7 +3437,7 @@ spec:
                       apiVersion:
                         description: |-
                           apiVersion of the template.
-                          apiVersion must be fully qualified domain name followed by / and a version.
+                          apiVersion must be a fully qualified domain name followed by / and a version.
                         maxLength: 317
                         minLength: 1
                         pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -3461,7 +3461,7 @@ spec:
                       apiVersion:
                         description: |-
                           apiVersion of the template.
-                          apiVersion must be fully qualified domain name followed by / and a version.
+                          apiVersion must be a fully qualified domain name followed by / and a version.
                         maxLength: 317
                         minLength: 1
                         pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -3504,7 +3504,7 @@ spec:
                       template:
                         description: |-
                           template defines the template to use for generating the name of the Infrastructure object.
-                          If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+                          If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`.
                           If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
                           get concatenated with a random suffix of length 5.
                           The templating mechanism provides the following arguments:
@@ -3521,7 +3521,7 @@ spec:
                       apiVersion:
                         description: |-
                           apiVersion of the template.
-                          apiVersion must be fully qualified domain name followed by / and a version.
+                          apiVersion must be a fully qualified domain name followed by / and a version.
                         maxLength: 317
                         minLength: 1
                         pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -3545,7 +3545,7 @@ spec:
                       apiVersion:
                         description: |-
                           apiVersion of the template.
-                          apiVersion must be fully qualified domain name followed by / and a version.
+                          apiVersion must be a fully qualified domain name followed by / and a version.
                         maxLength: 317
                         minLength: 1
                         pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -3681,7 +3681,7 @@ spec:
                               apiVersion:
                                 description: |-
                                   apiVersion filters templates by apiVersion.
-                                  apiVersion must be fully qualified domain name followed by / and a version.
+                                  apiVersion must be a fully qualified domain name followed by / and a version.
                                 maxLength: 317
                                 minLength: 1
                                 pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -3847,7 +3847,7 @@ spec:
                         It can be used to add additional data for higher level tools to
                         a ClusterClassVariable.
 
-                        Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
+                        Deprecated: This field is deprecated and will be removed when support for v1beta1 is dropped. Please use XMetadata in JSONSchemaProps instead.
                       minProperties: 1
                       properties:
                         annotations:
@@ -4281,7 +4281,7 @@ spec:
                                 apiVersion:
                                   description: |-
                                     apiVersion of the template.
-                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                    apiVersion must be a fully qualified domain name followed by / and a version.
                                   maxLength: 317
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -4305,7 +4305,7 @@ spec:
                                 apiVersion:
                                   description: |-
                                     apiVersion of the template.
-                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                    apiVersion must be a fully qualified domain name followed by / and a version.
                                   maxLength: 317
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -4609,7 +4609,7 @@ spec:
                                     apiVersion:
                                       description: |-
                                         apiVersion of the remediation template.
-                                        apiVersion must be fully qualified domain name followed by / and a version.
+                                        apiVersion must be a fully qualified domain name followed by / and a version.
                                         NOTE: This field must be kept in sync with the APIVersion of the remediation template.
                                       maxLength: 317
                                       minLength: 1
@@ -4647,7 +4647,7 @@ spec:
                                         unhealthyInRange specifies that remediations are only triggered if the number of
                                         unhealthy Machines is in the configured range.
                                         Takes precedence over unhealthyLessThanOrEqualTo.
-                                        Eg. "[3-5]" - This means that remediation will be allowed only when:
+                                        E.g. "[3-5]" - This means that remediation will be allowed only when:
                                         (a) there are at least 3 unhealthy Machines (and)
                                         (b) there are at most 5 unhealthy Machines
                                       maxLength: 32
@@ -4678,7 +4678,7 @@ spec:
                                 apiVersion:
                                   description: |-
                                     apiVersion of the template.
-                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                    apiVersion must be a fully qualified domain name followed by / and a version.
                                   maxLength: 317
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -4702,7 +4702,7 @@ spec:
                                 apiVersion:
                                   description: |-
                                     apiVersion of the template.
-                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                    apiVersion must be a fully qualified domain name followed by / and a version.
                                   maxLength: 317
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -4776,7 +4776,7 @@ spec:
                             template:
                               description: |-
                                 template defines the template to use for generating the name of the MachineDeployment object.
-                                If not defined, it will fallback to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
+                                If not defined, it will fall back to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
                                 If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
                                 get concatenated with a random suffix of length 5.
                                 The templating mechanism provides the following arguments:
@@ -4802,8 +4802,8 @@ spec:
                             properties:
                               conditionType:
                                 description: |-
-                                  conditionType refers to a condition with matching type in the Machine's condition list.
-                                  If the conditions doesn't exist, it will be treated as unknown.
+                                  conditionType refers to a condition with a matching type in the Machine's condition list.
+                                  If the condition doesn't exist, it will be treated as unknown.
                                   Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                                 maxLength: 316
                                 minLength: 1
@@ -4992,7 +4992,7 @@ spec:
                                 apiVersion:
                                   description: |-
                                     apiVersion of the template.
-                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                    apiVersion must be a fully qualified domain name followed by / and a version.
                                   maxLength: 317
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -5016,7 +5016,7 @@ spec:
                                 apiVersion:
                                   description: |-
                                     apiVersion of the template.
-                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                    apiVersion must be a fully qualified domain name followed by / and a version.
                                   maxLength: 317
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -5111,7 +5111,7 @@ spec:
                                 apiVersion:
                                   description: |-
                                     apiVersion of the template.
-                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                    apiVersion must be a fully qualified domain name followed by / and a version.
                                   maxLength: 317
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -5135,7 +5135,7 @@ spec:
                                 apiVersion:
                                   description: |-
                                     apiVersion of the template.
-                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                    apiVersion must be a fully qualified domain name followed by / and a version.
                                   maxLength: 317
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
@@ -5209,7 +5209,7 @@ spec:
                             template:
                               description: |-
                                 template defines the template to use for generating the name of the MachinePool object.
-                                If not defined, it will fallback to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
+                                If not defined, it will fall back to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
                                 If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
                                 get concatenated with a random suffix of length 5.
                                 The templating mechanism provides the following arguments:
@@ -5369,22 +5369,22 @@ spec:
                 x-kubernetes-list-type: map
               deprecated:
                 description: deprecated groups all the status fields that are deprecated
-                  and will be removed when all the nested field are removed.
+                  and will be removed when all the nested fields are removed.
                 properties:
                   v1beta1:
                     description: v1beta1 groups all the status fields that are deprecated
-                      and will be removed when support for v1beta1 will be dropped.
+                      and will be removed when support for v1beta1 is dropped.
                     properties:
                       conditions:
                         description: |-
                           conditions defines current observed state of the ClusterClass.
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         items:
                           description: |-
                             Condition defines an observation of a Cluster API resource operational state.
 
-                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                           properties:
                             lastTransitionTime:
                               description: |-
@@ -5460,7 +5460,7 @@ spec:
                               It can be used to add additional data for higher level tools to
                               a ClusterClassVariable.
 
-                              Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
+                              Deprecated: This field is deprecated and will be removed when support for v1beta1 is dropped. Please use XMetadata in JSONSchemaProps instead.
                             minProperties: 1
                             properties:
                               annotations:

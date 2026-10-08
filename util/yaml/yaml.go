@@ -110,7 +110,7 @@ func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
 	return JoinYaml(ret...), nil
 }
 
-// Raw returns un-indented yaml string; it also remove the first empty line, if any.
+// Raw returns an un-indented yaml string; it also removes the first empty line, if any.
 // While writing yaml, always use space instead of tabs for indentation.
 func Raw(raw string) string {
 	return strings.TrimPrefix(heredoc.Doc(raw), "\n")

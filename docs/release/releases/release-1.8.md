@@ -26,11 +26,11 @@ The following table shows the preliminary dates for the `v1.8` release cycle.
 | Organize release retrospective                       | Release Lead | TBC                       | week 17  |
 
 After the `.0` the .1 release will be created to ensure faster Kubernetes support after K8s 1.31.0 will be available.
-After the `.1` we expect to release monthly patch release (more details will be provided in the 1.9 release schedule).
+After the `.1` we expect to release monthly patch releases (more details will be provided in the 1.9 release schedule).
 
 Note: This release cycle there are some additional constraints for the .1 release due to planned test infra activities;
 as a consequence .1 timeline has been compressed (from 1 week / 10 days delay of the last release cycle down to 2/3 days)
-and maintainers might change plans also last second to adapt to latest info about infrastructure availability.
+and maintainers might change plans also last second to adapt to the latest info about infrastructure availability.
 
 ## Release team
 

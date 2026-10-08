@@ -66,7 +66,7 @@ func newTemplateClient(input TemplateClientInput) *templateClient {
 }
 
 // Get return the template for the flavor specified.
-// In case the template does not exists, an error is returned.
+// In case the template does not exist, an error is returned.
 // Get assumes the following naming convention for templates: cluster-template[-<flavor_name>].yaml.
 func (c *templateClient) Get(ctx context.Context, flavor, targetNamespace string, skipTemplateProcess bool) (Template, error) {
 	log := logf.Log

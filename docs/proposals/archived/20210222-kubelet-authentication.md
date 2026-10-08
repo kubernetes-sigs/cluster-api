@@ -55,7 +55,7 @@ superseded-by:
     - [CSR PEM Blocks](#csr-pem-blocks)
     - [Attestation data](#attestation-data)
     - [Core Specification](#core-specification)
-    - [Provider Specification](#provider-specification)
+    - [provider-specification](#provider-specification)
       - [All providers](#all-providers)
       - [Insecure providers](#insecure-providers)
       - [Secure providers](#secure-providers)
@@ -110,7 +110,7 @@ problems:
 - Solve a class of attacks involving node impersonation allowing an attacker to access secrets and
   volumes they shouldn’t by using hardware attestation of node identity.
 - Reduce kubeadm token reuse in MachinePools where the cloud provider does not support continuous
-  update of the bootstrap userdata without creating new cloud provider specific MachinePool
+  update of the bootstrap userdata without creating new cloud provider-specific MachinePool
   resources (e.g. AWS Launch Configurations).
 
 This node attestation mechanism will be optional in the initial implementation, and can potentially
@@ -201,7 +201,7 @@ cluster
   approval and start the controller as part of its main.go or through an independent binary.
 
 * **kubelet-authenticator-null**
-  * **Code Location**: Part of CLuster API Provider, under bootstrap/node/attestation/null
+  * **Code Location**: Part of Cluster API Provider, under bootstrap/node/attestation/null
   * **Release Artifact**: None. Used only for testing.
   * **Description**: A "rubber-stamp" attestor that will validate all CSRs. We will not want to release
     this as an artifact to prevent it being accidentally used.
@@ -217,7 +217,7 @@ two parts:
   - Checking existing certificate validity
   - Certificate signing request generation for kubelet client certificates
   - Submission of CSRs to the API server and waiting for approval
-- A provider specific implementation for node attestation
+- A provider-specific implementation for node attestation
   - A provider will need to implement the generation of the attestation to be included in the CSR
     and the retrieval of the provider ID to be stored in an X.509 extension attribute.
   - A provider will need to implement checks to verify the SAN attributes of serving certificates.
@@ -302,10 +302,10 @@ The format of the attestation block is left to the provider.
     - We will additionally implement a challenge-response mechanism, similar to that done in
       [SPIRE's TPM plugin]. This proposal will be updated with the implementation.
     - However, since the mechanism for retrieving endorsement keys varies across
-    platforms, the TPM signer will additionally require a provider specific mechanism to provide the
+    platforms, the TPM signer will additionally require a provider-specific mechanism to provide the
     TPM Endorsement Key's CA.
 
-#### Provider Specification
+#### provider-specification
 
 ##### All providers
 - All providers MUST insert a ProviderID within the KubernetesNodeProviderIdentifierOID extension

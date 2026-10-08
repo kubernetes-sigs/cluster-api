@@ -2,7 +2,7 @@
 
 Infrastructure providers SHOULD implement an InfraCluster resource using Kubernetes' CustomResourceDefinition (CRD).
 
-The goal of an InfraCluster resource is to supply whatever prerequisites (in term of infrastructure) are necessary for running machines.
+The goal of an InfraCluster resource is to supply whatever prerequisites (in terms of infrastructure) are necessary for running machines.
 Examples might include networking, load balancers, firewall rules, and so on.
 
 The InfraCluster resource will be referenced by one of the Cluster API core resources, Cluster.
@@ -72,7 +72,7 @@ All resources MUST have the standard Kubernetes `TypeMeta` and `ObjectMeta` fiel
 ### All resources: `APIVersion` field value
 
 In Kubernetes `APIVersion` is a combination of API group and version.
-Special consideration MUST applies to both API group and version for all the resources Cluster API interacts with.
+Special consideration MUST apply to both API group and version for all the resources Cluster API interacts with.
 
 #### All resources: API group
 
@@ -456,7 +456,7 @@ type FooClusterTemplateResource struct {
 ```
 
 NOTE: in this example InfraClusterTemplate's `spec.template.spec` embeds `FooClusterSpec` from InfraCluster. This might not always be
-the best choice depending of if/how InfraCluster's spec fields applies to many clusters vs only one.
+the best choice depending on if/how InfraCluster's spec fields apply to many clusters vs only one.
 
 For each InfraClusterTemplate resource, you MUST also add the corresponding list resource.
 The list resource MUST be named as `<InfraClusterTemplate>List`.

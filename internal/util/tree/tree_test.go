@@ -380,7 +380,7 @@ func Test_TreePrefix(t *testing.T) {
 			},
 		},
 		{
-			name: "Multiple nested childs should get the right multiline prefix",
+			name: "Multiple nested children should get the right multiline prefix",
 			objectTree: func() *tree.ObjectTree {
 				root := fakeObject("root",
 					withCondition(metav1.Condition{
@@ -427,7 +427,7 @@ func Test_TreePrefix(t *testing.T) {
 			},
 		},
 		{
-			name: "Nested childs should get the right prefix with multiline message",
+			name: "Nested children should get the right prefix with multiline message",
 			objectTree: func() *tree.ObjectTree {
 				root := fakeObject("root",
 					withCondition(metav1.Condition{
@@ -468,7 +468,7 @@ func Test_TreePrefix(t *testing.T) {
 			},
 		},
 		{
-			name: "Conditions should get the right prefix with childs",
+			name: "Conditions should get the right prefix with children",
 			objectTree: func() *tree.ObjectTree {
 				root := fakeObject("root",
 					withCondition(metav1.Condition{

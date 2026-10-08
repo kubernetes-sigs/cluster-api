@@ -586,7 +586,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed-by-topology-controller", "spec", "bar")).To(Succeed())
 
-		// Set an other uid to original
+		// Set another uid to original
 		original.SetUID("a-wrong-one")
 		modified.SetUID("")
 

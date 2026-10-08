@@ -73,7 +73,7 @@ type CertManagerClient interface {
 	// older than the version currently suggested by clusterctl, upgrades it.
 	EnsureLatestVersion(ctx context.Context) error
 
-	// PlanUpgrade retruns a CertManagerUpgradePlan with information regarding
+	// PlanUpgrade returns a CertManagerUpgradePlan with information regarding
 	// a cert-manager upgrade if necessary.
 	PlanUpgrade(ctx context.Context) (CertManagerUpgradePlan, error)
 
@@ -454,7 +454,7 @@ func (cm *certManagerClient) getManifestObjs(ctx context.Context, certManagerCon
 		return nil, err
 	}
 
-	// Converts the file to ustructured objects.
+	// Converts the file to unstructured objects.
 	objs, err := utilyaml.ToUnstructured(file)
 	if err != nil {
 		return nil, pkgerrors.Wrap(err, "failed to parse yaml for cert-manager manifest")
@@ -533,7 +533,7 @@ func (cm *certManagerClient) createObj(ctx context.Context, obj unstructured.Uns
 			return pkgerrors.Wrapf(err, "failed to get cert-manager object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
 		}
 
-		// if it does not exists, create the component
+		// if it does not exist, create the component
 		log.V(5).Info("Creating", logf.UnstructuredToValues(obj)...)
 		if err := c.Create(ctx, &obj); err != nil {
 			return pkgerrors.Wrapf(err, "failed to create cert-manager component %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())

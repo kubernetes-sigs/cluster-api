@@ -1534,7 +1534,7 @@ func (f *FakeClusterClass) WithPaused() *FakeClusterClass {
 
 func (f *FakeClusterClass) Objs() []client.Object {
 	// objMap map where the key is the object to which the owner reference to the cluster class should be added
-	// and the value dictates if the onwner ref needs to be added.
+	// and the value dictates if the owner ref needs to be added.
 	// This map also dual functions as a way to de-duplicate and template objects that are reused.
 	objMap := map[client.Object]bool{}
 

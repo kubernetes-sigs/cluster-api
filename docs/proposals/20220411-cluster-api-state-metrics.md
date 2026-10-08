@@ -89,7 +89,7 @@ This proposal introduces a kube-state-metrics and Custom Resource configuration 
 
 ### Non-Goals
 
-- Implement metrics for provider specific CAPI CRs
+- Implement metrics for provider-specific CAPI CRs
 
 ### Future Work
 
@@ -127,7 +127,7 @@ As an application developer, I would like to deploy kube-state-metrics including
 
 Following Cluster API CRDs currently exist.
 The *In-scope* column marks CRDs for which metrics should be exposed.
-In future iterations other CRs or configuration for provider specific CRDs could be added.
+In future iterations other CRs or configuration for provider-specific CRDs could be added.
 
 | Name                      | API Group/Version                       | In-scope |
 |---------------------------|-----------------------------------------|----------|
@@ -177,7 +177,7 @@ Currently it is not important to implement metrics for `KubeadmConfig` and `Kube
 
 #### How does kube-state-metrics work
 
-Kube-state-metrics exposes metrics by a http endpoint to be consumed by either Prometheus itself or a compatible scraper [[1]].
+Kube-state-metrics exposes metrics by an HTTP endpoint to be consumed by either Prometheus itself or a compatible scraper [[1]].
 
 Since kube-state-metrics v1.5 large performance improvements got introduced to kube-state-metrics which are documented at the [Performance Optimization Proposal](https://github.com/kubernetes/kube-state-metrics/blob/master/docs/design/metrics-store-performance-optimization.md#Proposal). This document also explains the current internals of kube-state-metrics.
 
@@ -268,7 +268,7 @@ Common labels:
 | `capi_cluster_status_condition`    | `.status.conditions==<condition>` | Gauge | `condition=<condition>` `status=<true\|false>`                                                                                                                                                                       |                         |
 | `capi_cluster_status_phase`        | `.status.phase==<phase>`          | Gauge | `phase=<phase>`                                                                                                                                                                                                      | [Pod], [cluster phases] |
 
-*: A metric will only be exposed if the annotation existst. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
+*: A metric will only be exposed if the annotation exists. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
 
 #### KubeadmControlPlane CR
 
@@ -290,7 +290,7 @@ Common labels:
 | `capi_kubeadmcontrolplane_info`                                  | `1`                                            | Gauge | `version=.spec.version`                             | [Pod]        |
 | `capi_kubeadmcontrolplane_owner`                                 | `1`                                            | Gauge | `owner_kind=<owner kind>` `owner_name=<owner name>` | [ReplicaSet] |
 
-*: A metric will only be exposed if the annotation existst. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
+*: A metric will only be exposed if the annotation exists. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
 
 #### MachineDeployment CR
 
@@ -315,7 +315,7 @@ Common labels:
 | `capi_machinedeployment_status_phase`                                | `.status.phase==<phase>`                      | Gauge | `phase=<phase>`                                     | [Pod], [machinedeployment phases] |
 | `capi_machinedeployment_owner`                                       | `1`                                           | Gauge | `owner_kind=<owner kind>` `owner_name=<owner name>` | [ReplicaSet]                      |
 
-*: A metric will only be exposed if the annotation existst. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
+*: A metric will only be exposed if the annotation exists. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
 
 #### MachineSet CR
 
@@ -335,7 +335,7 @@ Common labels:
 | `capi_machineset_spec_replicas`                 | `.spec.replicas`                  | Gauge |                                                     | [ReplicaSet] |
 | `capi_machineset_owner`                         | `1`                               | Gauge | `owner_kind=<owner kind>` `owner_name=<owner name>` | [ReplicaSet] |
 
-*: A metric will only be exposed if the annotation existst. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
+*: A metric will only be exposed if the annotation exists. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
 
 #### Machine CR
 
@@ -353,7 +353,7 @@ Common labels:
 | `capi_machine_info`                | `1`                               | Gauge | `internal_ip=<.status.addresses>`<br>`version=<.spec.version>`<br>`provider_id=<.spec.providerID>`<br>`failure_domain=<.spec.failureDomain>` | [Pod]                   |
 | `capi_machine_status_noderef`      | `1`                               | Gauge | `node=<.status.nodeRef.name>`                                                                                                                |                         |
 
-*: A metric will only be exposed if the annotation existst. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
+*: A metric will only be exposed if the annotation exists. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
 
 #### MachineHealthCheck CR
 
@@ -371,7 +371,7 @@ Common labels:
 | `capi_machinehealthcheck_status_current_healthy`      | `.status.currentHealthy`          | Gauge |                                                        |              |
 | `capi_machinehealthcheck_status_remediations_allowed` | `.status.remediationsAllowed`     | Gauge |                                                        |              |
 
-*: A metric will only be exposed if the annotation existst. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
+*: A metric will only be exposed if the annotation exists. If so it will always have a value of `1` and expose a label which contains its value. Prometheus would drop labels having an empty value, which is why an empty value would be equal to a not set annotation otherwise.
 
 ### Gaduation Criteria
 

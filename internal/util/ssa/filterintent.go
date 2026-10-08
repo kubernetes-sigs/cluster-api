@@ -59,7 +59,7 @@ func FilterObject(obj *unstructured.Unstructured, input *FilterObjectInput) {
 // FilterIntent ensures that object only includes the fields and values for which the controller has an opinion,
 // and filter out everything else by removing it from the Value.
 // NOTE: This func is called recursively only for fields of type Map, but this is ok given the current use cases
-// this func has to address. More specifically, we are using this func for filtering out not allowed paths and for ignore paths;
+// this func has to address. More specifically, we are using this func for filtering out not allowed paths and for ignoring paths;
 // all of them are defined in reconcile_state.go and are targeting well-known fields inside nested maps.
 // Allowed paths / ignore paths which point to an array are not supported by the current implementation.
 func FilterIntent(ctx *FilterIntentInput) bool {

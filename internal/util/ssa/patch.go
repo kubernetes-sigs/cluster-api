@@ -48,7 +48,7 @@ func (w WithDryRun) ApplyToOptions(in *Options) {
 // identifier for the request.
 // The cache will be used to cache the result of the request.
 // In some cases we never read the modified object after ssa.Patch, so
-// SkipUpdateModifiedOnCacheHit allows to avoid unnecessary memory allocations.
+// SkipUpdateModifiedOnCacheHit allows avoiding unnecessary memory allocations.
 type WithCachingProxy struct {
 	Cache                        Cache
 	Original                     client.Object
@@ -183,7 +183,7 @@ func PrepareModified(scheme *runtime.Scheme, obj client.Object) (*unstructured.U
 			{"metadata", "namespace"},
 			// uid is optional for a server side apply intent but sets the expectation of an object getting created or a specific one updated.
 			{"metadata", "uid"},
-			// our controllers only have an opinion on labels, annotation, finalizers ownerReferences and spec.
+			// our controllers only have an opinion on labels, annotations, finalizers, ownerReferences and spec.
 			{"metadata", "labels"},
 			{"metadata", "annotations"},
 			{"metadata", "finalizers"},

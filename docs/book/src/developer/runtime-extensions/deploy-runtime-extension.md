@@ -30,7 +30,7 @@ in the Cluster. If the Runtime Extension requires access to the apiserver the de
 account with limited RBAC permission. Otherwise no service account should be used.
 
 On top of that, the container image for the Runtime Extension should be carefully designed in order to avoid
-privilege escalation (e.g using [distroless](https://github.com/GoogleContainerTools/distroless) base images).
+privilege escalation (e.g. using [distroless](https://github.com/GoogleContainerTools/distroless) base images).
 The Pod spec in the Deployment manifest should enforce security best practices (e.g. do not use privileged pods).
 
 ##  Alternative deployments methods

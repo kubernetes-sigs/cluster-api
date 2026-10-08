@@ -220,7 +220,7 @@ func TestClient_httpCall(t *testing.T) {
 	}
 	for _, tt := range tableTests {
 		t.Run(tt.name, func(*testing.T) {
-			// a http server is only required if we have a valid catalog, otherwise httpCall will not reach out to the server
+			// an HTTP server is only required if we have a valid catalog, otherwise httpCall will not reach out to the server
 			if tt.opts != nil && tt.opts.catalog != nil {
 				// create http server with fakeHookHandler
 				mux := http.NewServeMux()
@@ -239,7 +239,7 @@ func TestClient_httpCall(t *testing.T) {
 				tt.opts.config.CABundle = testcerts.CACert
 
 				// set httpClient in tt.opts
-				// Note: cert and key file are not necessary, because in this test the server do not requires client authentication with certificates signed by a given CA.
+				// Note: cert and key files are not necessary, because in this test the server does not require client authentication with certificates signed by a given CA.
 				u, err := url.Parse(srv.URL)
 				g.Expect(err).ToNot(HaveOccurred())
 
@@ -941,7 +941,7 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 	}
 	srv := createServer()
 
-	// Setup the runtime extension server so it requires client authentication with certificates signed by a given CA.
+	// Set up the runtime extension server so it requires client authentication with certificates signed by a given CA.
 	certpool := x509.NewCertPool()
 	certpool.AppendCertsFromPEM(testcerts.CACert)
 	srv.TLS.ClientAuth = tls.RequireAndVerifyClientCert

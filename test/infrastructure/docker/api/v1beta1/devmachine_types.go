@@ -284,7 +284,7 @@ type DockerMachineBackendSpec struct {
 	// +optional
 	CustomImage string `json:"customImage,omitempty"`
 
-	// preLoadImages allows to pre-load images in a newly created machine. This can be used to
+	// preLoadImages allows preloading images in a newly created machine. This can be used to
 	// speed up tests by avoiding e.g. to download CNI images on all the containers.
 	// +optional
 	PreLoadImages []string `json:"preLoadImages,omitempty"`

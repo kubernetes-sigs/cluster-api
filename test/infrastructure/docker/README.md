@@ -10,7 +10,7 @@ For a complete overview, please refer to the documentation available [here](http
 
 ## CAPD Goals
 
-* To be a the reference implementation of an infrastructure provider.
+* To be the reference implementation of an infrastructure provider.
 * The code is highly trusted and used in testing of ClusterAPI.
 * This provider can be used as a guide for developers looking to implement their own infrastructure provider.
 

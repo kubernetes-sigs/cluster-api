@@ -108,7 +108,7 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 
 	// T1 - mimic an existing environment with a provider using the DefaulterRemoveUnknownOrOmitableFields option in its own defaulting webhook.
 
-	// setupT1CRDAndWebHooks setups CRD and webhooks at t1.
+	// setupT1CRDAndWebHooks sets up CRD and webhooks at t1.
 	// At t1 we have a CRD in v1beta1, and the defaulting webhook is using the DefaulterRemoveUnknownOrOmitableFields option.
 	t.Log("setupT1CRDAndWebHooks")
 	ct1, t1CheckObj, t1CheckTemplate, t1webhookConfig, t1TemplateWebhookConfig := setupT1CRDAndWebHooks(g, ns)
@@ -141,9 +141,9 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	}, 5*time.Second).Should(Succeed())
 	assertClusterTopologyBecomesStable(g, cluster1Refs, ns.Name, "v1beta1")
 
-	// T2 -  mimic a clusterctl upgrade for a provider dropping DefaulterRemoveUnknownOrOmitableFields from its own defaulting webhook.
+	// T2 - mimic a clusterctl upgrade for a provider dropping DefaulterRemoveUnknownOrOmitableFields from its own defaulting webhook.
 
-	// setupT2CRDAndWebHooks setups CRD and webhooks at t2.
+	// setupT2CRDAndWebHooks sets up CRD and webhooks at t2.
 	// At t2 we have a CRD in v1beta1 and v1beta2 with the conversion webhook, and the defaulting webhook without the DefaulterRemoveUnknownOrOmitableFields option.
 	t.Log("setupT2CRDAndWebHooks")
 
@@ -1004,7 +1004,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 	}
 }
 
-// assertNoRollout assert a rollout did not happened by checking referenced template or referencedObjects did not changed/increased generation.
+// assertNoRollout asserts a rollout did not happen by checking that the referenced template or referencedObjects did not change/increase generation.
 //
 //nolint:unused
 func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter map[clusterv1.ContractVersionedObjectReference]int64) {
@@ -1084,7 +1084,7 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 	}
 }
 
-// assertClusterTopologyBecomesStable checks a cluster topology becomes stable ensuring all the objects included cluster, md and referenced template or referencedObjects do not changed/increased generation.
+// assertClusterTopologyBecomesStable checks a cluster topology becomes stable, ensuring all the objects including cluster, md and referenced template or referencedObjects do not change/increase generation.
 func assertClusterTopologyBecomesStable(g *WithT, refs map[clusterv1.ContractVersionedObjectReference]int64, namespace, version string) {
 	g.Consistently(func(g Gomega) {
 		for r, generation := range refs {
@@ -1097,7 +1097,7 @@ func assertClusterTopologyBecomesStable(g *WithT, refs map[clusterv1.ContractVer
 	}, 10*time.Second, 2*time.Second).Should(Succeed(), "Resource versions didn't stay stable")
 }
 
-// setupT1CRDAndWebHooks setups CRD and webhooks at t1.
+// setupT1CRDAndWebHooks sets up CRD and webhooks at t1.
 // At t1 we have a CRD in v1beta1, and the defaulting webhook is using the DefaulterRemoveUnknownOrOmitableFields option.
 func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *testt1v1beta1.TestResource, *testt1v1beta1.TestResourceTemplate, *admissionv1.MutatingWebhookConfiguration, *admissionv1.MutatingWebhookConfiguration) {
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
@@ -1183,7 +1183,7 @@ func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *test
 	return ct1, t1CheckObj, t1CheckTemplate, t1webhookConfig, t1TemplateWebhookConfig
 }
 
-// setupT2CRDAndWebHooks setups CRD and webhooks at t2.
+// setupT2CRDAndWebHooks sets up CRD and webhooks at t2.
 // At t2 we have a CRD in v1beta1 and v1beta2 with the conversion webhook, and the defaulting webhook without the DefaulterRemoveUnknownOrOmitableFields option.
 func setupT2CRDAndWebHooks(g *WithT, ns *corev1.Namespace, t1CheckObj *testt1v1beta1.TestResource, t1CheckTemplate *testt1v1beta1.TestResourceTemplate) (client.Client, *admissionv1.MutatingWebhookConfiguration, *admissionv1.MutatingWebhookConfiguration) {
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled

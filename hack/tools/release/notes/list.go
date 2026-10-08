@@ -94,7 +94,7 @@ func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, []string, 
 
 	fromDate := diff.MergeBaseCommit.Commit.Committer.Date
 	// We add an extra minute to avoid errors by 1 (observed during testing)
-	// We cross check the list of PRs against the list of commits, so we will filter out
+	// We cross-check the list of PRs against the list of commits, so we will filter out
 	// any PRs entries not belonging to the computed diff
 	toDate := toCommit.Committer.Date.Add(1 * time.Minute)
 

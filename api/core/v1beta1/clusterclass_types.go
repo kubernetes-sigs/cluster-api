@@ -243,7 +243,7 @@ type ControlPlaneClass struct {
 // ControlPlaneClassNamingStrategy defines the naming strategy for control plane objects.
 type ControlPlaneClassNamingStrategy struct {
 	// template defines the template to use for generating the name of the ControlPlane object.
-	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
 	// The templating mechanism provides the following arguments:
@@ -258,7 +258,7 @@ type ControlPlaneClassNamingStrategy struct {
 // InfrastructureNamingStrategy defines the naming strategy for infrastructure objects.
 type InfrastructureNamingStrategy struct {
 	// template defines the template to use for generating the name of the Infrastructure object.
-	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
 	// The templating mechanism provides the following arguments:
@@ -409,7 +409,7 @@ type MachineDeploymentClassTemplate struct {
 // MachineDeploymentClassNamingStrategy defines the naming strategy for machine deployment objects.
 type MachineDeploymentClassNamingStrategy struct {
 	// template defines the template to use for generating the name of the MachineDeployment object.
-	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
 	// The templating mechanism provides the following arguments:
@@ -461,7 +461,7 @@ type MachineHealthCheckClass struct {
 	// unhealthyRange specifies the range of unhealthy machines allowed.
 	// Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
 	// is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
-	// Eg. "[3-5]" - This means that remediation will be allowed only when:
+	// E.g. "[3-5]" - This means that remediation will be allowed only when:
 	// (a) there are at least 3 unhealthy machines (and)
 	// (b) there are at most 5 unhealthy machines
 	// +optional
@@ -592,7 +592,7 @@ type MachinePoolClassTemplate struct {
 // MachinePoolClassNamingStrategy defines the naming strategy for machine pool objects.
 type MachinePoolClassNamingStrategy struct {
 	// template defines the template to use for generating the name of the MachinePool object.
-	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
 	// The templating mechanism provides the following arguments:

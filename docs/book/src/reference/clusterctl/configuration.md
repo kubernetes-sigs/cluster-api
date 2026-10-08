@@ -287,7 +287,7 @@ This would transform `registry.k8s.io/cluster-api/cluster-api-controller:v1.8.0`
 
 ## Debugging/Logging
 
-To have more verbose logs you can use the `-v` flag when running the `clusterctl` and set the level of the logging verbose with a positive integer number, ie. `-v 3`.
+To have more verbose logs you can use the `-v` flag when running the `clusterctl` and set the level of the logging verbose with a positive integer number, i.e. `-v 3`.
 
 If you do not want to use the flag every time you issue a command you can set the environment variable `CLUSTERCTL_LOG_LEVEL` or set the variable in the `clusterctl` config file located by default at `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`.
 

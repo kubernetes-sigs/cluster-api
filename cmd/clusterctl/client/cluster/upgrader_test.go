@@ -70,7 +70,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			want: []UpgradePlan{
-				{ // one upgrade plan with the latest releases the current contract
+				{ // one upgrade plan with the latest releases for the current contract
 					Contract: currentContractVersion,
 					Providers: []UpgradeItem{
 						{
@@ -115,7 +115,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			want: []UpgradePlan{
-				{ // one upgrade plan with the latest releases the current contract
+				{ // one upgrade plan with the latest releases for the current contract
 					Contract: currentContractVersion,
 					Providers: []UpgradeItem{
 						{
@@ -166,7 +166,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
 			want: []UpgradePlan{
-				{ // one upgrade plan with the latest releases the current contract
+				{ // one upgrade plan with the latest releases for the current contract
 					Contract: currentContractVersion,
 					Providers: []UpgradeItem{
 						{

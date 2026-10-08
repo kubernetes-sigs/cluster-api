@@ -954,7 +954,7 @@ func TestComputeControlPlane(t *testing.T) {
 				expectedVersion: "v1.2.3",
 			},
 			{
-				name: "use controlplane.spec.version if the control plane's spec.version is not equal to status.version", // NOTE: there are a few other conditions preventing to pick up latest cluster.spec.topology.version (other than is upgrading which is test here); all those conditions are validated in TestComputeControlPlaneVersion
+				name: "use controlplane.spec.version if the control plane's spec.version is not equal to status.version", // NOTE: there are a few other conditions preventing to pick up latest cluster.spec.topology.version (other than is upgrading which is tested here); all those conditions are validated in TestComputeControlPlaneVersion
 				currentControlPlane: builder.ControlPlane("test1", "cp1").
 					WithSpecFields(map[string]interface{}{
 						"spec.version": "v1.2.2",
@@ -2937,7 +2937,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			expectPendingUpgrade:          false,
 		},
 		{
-			name:                          "should return next version from the upgrade plan if mutistep upgrade, if the control plane is not upgrading, not scaling, not ready to upgrade and none of the machine deployments are upgrading",
+			name:                          "should return next version from the upgrade plan if multistep upgrade, if the control plane is not upgrading, not scaling, not ready to upgrade and none of the machine deployments are upgrading",
 			currentMachineDeploymentState: currentMachineDeploymentState,
 			upgradingMachineDeployments:   []string{},
 			topologyVersion:               "v1.4.3",
@@ -2947,7 +2947,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		},
 		{
 			// Control plane is considered pending an upgrade if topology version did not yet propagate to the control plane.
-			name:                                 "should return next version from the upgrade plan if mutistep upgrade, if the control plane is pending an upgrade but this requires workers to upgrade first",
+			name:                                 "should return next version from the upgrade plan if multistep upgrade, if the control plane is pending an upgrade but this requires workers to upgrade first",
 			currentMachineDeploymentState:        currentMachineDeploymentState,
 			upgradingMachineDeployments:          []string{},
 			controlPlanePendingUpgrade:           true,

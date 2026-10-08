@@ -8,8 +8,8 @@ and `cluster-api-provider-aws` is one for Amazon Web Services. Note that an
 environment may refer to a cloud, bare metal, virtual machines, or any other
 infrastructure hosting Kubernetes. Finally, a single environment may include
 more than one [_variant_][variant-naming]. So for example,
-`cluster-api-provider-aws` may include both an implementation based on EC2 as
-well as one based on their hosted EKS solution.
+`cluster-api-provider-aws` may include both an implementation based on EC2
+and one based on their hosted EKS solution.
 
 For the purposes of this guide we will create an infrastructure provider for a
 service named **mailgun**. Therefore the name of the repository will be

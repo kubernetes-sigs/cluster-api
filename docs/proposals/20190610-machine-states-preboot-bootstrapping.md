@@ -108,7 +108,7 @@ In Cluster API v1alpha1, users can create Machine custom resources. When a Machi
 ### Non-Goals/Future Work
 1. To modify the Cluster object.
 1. To fully implement machine state lifecycle hooks. This must be part of a future proposal that builds on these proposed changes.
-1. To setup OS configuration, install software or any other features related to image building.
+1. To set up OS configuration, install software or any other features related to image building.
 1. To support post-boot configuration of Machine.
 1. To revisit MachineClass role and functionality.
 1. To customize the image beyond the settings required to run kubelet, that is an implementation constraint of the bootstrap provider.
@@ -352,7 +352,7 @@ The Machine Controller lives within Cluster API manager alongside MachineSet and
 - Update Status fields from provider custom resources.
 
 #### Machine Controller dynamic watchers
-The Machine Controller needs to watch for updates to bootstrap and infrastructure provider specific resources so it can copy bootstrap data/status and infrastructure provider status information to the Machine status. To achieve this, we can use controller-runtime’s `source.Informer` type and client-go’s `dynamicinformer.DynamicSharedInformerFactory`.
+The Machine Controller needs to watch for updates to bootstrap and infrastructure provider-specific resources so it can copy bootstrap data/status and infrastructure provider status information to the Machine status. To achieve this, we can use controller-runtime’s `source.Informer` type and client-go’s `dynamicinformer.DynamicSharedInformerFactory`.
 
 When the Machine Controller reconciles a Machine and sees a reference to a provider-specific resource, such as a KubeadmBootstrapConfig or an AWSMachineConfig, it can:
 - Get a dynamic informer for the provider-specific resource.

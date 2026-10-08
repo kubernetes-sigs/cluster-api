@@ -21,7 +21,7 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 // Conditions and condition Reasons for the KubeadmControlPlane object.
 
 const (
-	// MachinesReadyV1Beta1Condition reports an aggregate of current status of the machines controlled by the KubeadmControlPlane.
+	// MachinesReadyV1Beta1Condition reports an aggregate of the current status of the machines controlled by the KubeadmControlPlane.
 	MachinesReadyV1Beta1Condition clusterv1.ConditionType = "MachinesReady"
 )
 
@@ -31,8 +31,8 @@ const (
 	CertificatesAvailableV1Beta1Condition clusterv1.ConditionType = "CertificatesAvailable"
 
 	// CertificatesGenerationFailedV1Beta1Reason (Severity=Warning) documents a KubeadmControlPlane controller detecting
-	// an error while generating certificates; those kind of errors are usually temporary and the controller
-	// automatically recover from them.
+	// an error while generating certificates; those kinds of errors are usually temporary and the controller
+	// automatically recovers from them.
 	CertificatesGenerationFailedV1Beta1Reason = "CertificatesGenerationFailed"
 )
 
@@ -101,7 +101,7 @@ const (
 	// PodMissingV1Beta1Reason (Severity=Error) documents a pod does not exist.
 	PodMissingV1Beta1Reason = "PodMissing"
 
-	// PodFailedV1Beta1Reason (Severity=Error) documents if a pod failed during provisioning i.e., e.g CrashLoopbackOff, ImagePullBackOff
+	// PodFailedV1Beta1Reason (Severity=Error) documents if a pod failed during provisioning i.e., e.g. CrashLoopbackOff, ImagePullBackOff
 	// or if all the containers in a pod have terminated.
 	PodFailedV1Beta1Reason = "PodFailed"
 

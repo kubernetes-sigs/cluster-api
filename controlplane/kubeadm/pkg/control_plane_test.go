@@ -150,9 +150,9 @@ func TestControlPlane(t *testing.T) {
 }
 
 func TestHasMachinesToBeRemediated(t *testing.T) {
-	// healthy machine (without MachineHealthCheckSucceded condition)
+	// healthy machine (without MachineHealthCheckSucceeded condition)
 	healthyMachineNotProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine1"}}
-	// healthy machine (with MachineHealthCheckSucceded == true)
+	// healthy machine (with MachineHealthCheckSucceeded == true)
 	healthyMachineProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine2"}, Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node1"}}}
 	healthyMachineProvisioned.SetConditions([]metav1.Condition{
 		{
@@ -160,7 +160,7 @@ func TestHasMachinesToBeRemediated(t *testing.T) {
 			Status: metav1.ConditionTrue,
 		},
 	})
-	// unhealthy machine NOT eligible for KCP remediation (with MachineHealthCheckSucceded == False, but without MachineOwnerRemediated condition)
+	// unhealthy machine NOT eligible for KCP remediation (with MachineHealthCheckSucceeded == False, but without MachineOwnerRemediated condition)
 	unhealthyMachineNOTOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineNOTOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node2"}}}
 	unhealthyMachineNOTOwnerRemediated.SetConditions([]metav1.Condition{
 		{
@@ -168,7 +168,7 @@ func TestHasMachinesToBeRemediated(t *testing.T) {
 			Status: metav1.ConditionFalse,
 		},
 	})
-	// unhealthy machine eligible for KCP remediation (with MachineHealthCheckSucceded == False, with MachineOwnerRemediated condition)
+	// unhealthy machine eligible for KCP remediation (with MachineHealthCheckSucceeded == False, with MachineOwnerRemediated condition)
 	unhealthyMachineOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node3"}}}
 	unhealthyMachineOwnerRemediated.SetConditions([]metav1.Condition{
 		{
@@ -231,16 +231,16 @@ func TestHasMachinesToBeRemediated(t *testing.T) {
 }
 
 func TestHasHealthyMachineStillProvisioning(t *testing.T) {
-	// healthy machine (without MachineHealthCheckSucceded condition) still provisioning (without NodeRef)
+	// healthy machine (without MachineHealthCheckSucceeded condition) still provisioning (without NodeRef)
 	healthyMachineStillProvisioning1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachineStillProvisioning1"}}
 
-	// healthy machine (without MachineHealthCheckSucceded condition) provisioned (with NodeRef)
+	// healthy machine (without MachineHealthCheckSucceeded condition) provisioned (with NodeRef)
 	healthyMachineProvisioned1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachineProvisioned1"}}
 	healthyMachineProvisioned1.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "healthyMachine",
 	}
 
-	// unhealthy machine (with MachineHealthCheckSucceded condition) still provisioning (without NodeRef)
+	// unhealthy machine (with MachineHealthCheckSucceeded condition) still provisioning (without NodeRef)
 	unhealthyMachineStillProvisioning1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineStillProvisioning1"}}
 	unhealthyMachineStillProvisioning1.SetConditions([]metav1.Condition{
 		{
@@ -253,7 +253,7 @@ func TestHasHealthyMachineStillProvisioning(t *testing.T) {
 		},
 	})
 
-	// unhealthy machine (with MachineHealthCheckSucceded condition) provisioned (with NodeRef)
+	// unhealthy machine (with MachineHealthCheckSucceeded condition) provisioned (with NodeRef)
 	unhealthyMachineProvisioned1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineProvisioned1"}}
 	unhealthyMachineProvisioned1.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "unhealthyMachine",

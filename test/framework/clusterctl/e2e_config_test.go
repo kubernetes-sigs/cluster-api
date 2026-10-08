@@ -52,7 +52,7 @@ func Test_resolveReleaseMarker(t *testing.T) {
 		})
 	}
 
-	// setup an handlers with fake releases
+	// set up handlers with fake releases
 	muxGoproxy.HandleFunc("/github.com/o/r1/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v1.2.0\n")

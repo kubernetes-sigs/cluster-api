@@ -51,13 +51,13 @@ type QuickStartSpecInput struct {
 	// DeployClusterClassInSeparateNamespace defines if the ClusterClass should be deployed in a separate namespace.
 	DeployClusterClassInSeparateNamespace bool
 
-	// InfrastructureProvider allows to specify the infrastructure provider to be used when looking for
+	// InfrastructureProvider allows specifying the infrastructure provider to be used when looking for
 	// cluster templates.
 	// If not set, clusterctl will look at the infrastructure provider installed in the management cluster;
 	// if only one infrastructure provider exists, it will be used, otherwise the operation will fail if more than one exists.
 	InfrastructureProvider *string
 
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
+	// Flavor, if specified, is the template flavor used to create the cluster for testing.
 	// If not specified, the default flavor for the selected infrastructure provider is used.
 	Flavor *string
 
@@ -65,7 +65,7 @@ type QuickStartSpecInput struct {
 	// If not specified, 1 will be used.
 	ControlPlaneMachineCount *int64
 
-	// WorkerMachineCount defines number of worker machines to be added to the workload cluster.
+	// WorkerMachineCount defines the number of worker machines to be added to the workload cluster.
 	// If not specified, 1 will be used.
 	WorkerMachineCount *int64
 
@@ -74,7 +74,7 @@ type QuickStartSpecInput struct {
 	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
 
 	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "quick-start".
-	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
+	// This value is provided to clusterctl as the "EXTENSION_CONFIG_NAME" variable and can be used to template the
 	// name of the ExtensionConfig into the ClusterClass.
 	ExtensionConfigName string
 
@@ -86,7 +86,7 @@ type QuickStartSpecInput struct {
 	// Note: This should only be set if a Runtime Extension is used.
 	ExtensionServiceName string
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 
@@ -129,7 +129,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 			}
 		}
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 
 		if input.DeployClusterClassInSeparateNamespace {
@@ -249,7 +249,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 	})
 
 	AfterEach(func() {
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		// Dumps all the resources in the spec namespace, then cleans up the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		if !input.SkipCleanup {
 			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {

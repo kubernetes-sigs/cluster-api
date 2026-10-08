@@ -72,14 +72,14 @@ type node struct {
 	forceMove bool
 
 	// forceMoveHierarchy is set to true if the CRD of this object has the "move-hierarchy" label attached.
-	// This ensures the node and it's entire hierarchy of dependants (via owner ref chain) is moved.
+	// This ensures the node and its entire hierarchy of dependants (via the owner ref chain) are moved.
 	forceMoveHierarchy bool
 
 	// isGlobal gets set to true if this object is a global resource (no namespace).
 	isGlobal bool
 
 	// isGlobalHierarchy gets set to true if this object is part of a hierarchy of a global resource e.g.
-	// a secrets holding credentials for a global identity object.
+	// a secret holding credentials for a global identity object.
 	// When this flag is true the object should not be deleted from the source cluster.
 	isGlobalHierarchy bool
 
@@ -89,14 +89,14 @@ type node struct {
 	// virtual records if this node was discovered indirectly, e.g. by processing an OwnerRef, but not yet observed as a concrete object.
 	virtual bool
 
-	// newID stores the new UID the objects gets once created in the target cluster.
+	// newID stores the new UID the object gets once created in the target cluster.
 	newUID types.UID
 
-	// tenant define the list of objects which are tenant for the node, no matter if the node has a direct OwnerReference to the object or if
-	// the node is linked to a object indirectly in the OwnerReference chain.
+	// tenant defines the list of objects which are tenants for the node, no matter if the node has a direct OwnerReference to the object or if
+	// the node is linked to an object indirectly in the OwnerReference chain.
 	tenant map[*node]empty
 
-	// restoreObject holds the object that is referenced when creating a node during fromDirectory from file.
+	// restoreObject holds the object that is referenced when creating a node during fromDirectory from a file.
 	// the object can then be referenced latter when restoring objects to a target management cluster
 	restoreObject *unstructured.Unstructured
 
@@ -149,7 +149,7 @@ func (n *node) identityStr() string {
 }
 
 func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) error {
-	// If the node is a cluster check it see if it is uses a managed topology.
+	// If the node is a cluster, check to see if it uses a managed topology.
 	// In case, it uses a managed topology capture the name of the cluster class in use.
 	if n.identity.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("Cluster").GroupKind() {
 		cluster := &clusterv1.Cluster{}
@@ -204,12 +204,12 @@ func (o *objectGraph) addObj(obj *unstructured.Unstructured) error {
 		return pkgerrors.Wrapf(err, "failed to create node for object (Kind=%s, Name=%s)", obj.GetKind(), obj.GetName())
 	}
 
-	// Process OwnerReferences; if the owner object does not exists yet, create a virtual node as a placeholder for it.
+	// Process OwnerReferences; if the owner object does not exist yet, create a virtual node as a placeholder for it.
 	o.processOwnerReferences(obj, newNode)
 	return nil
 }
 
-// addRestoredObj adds a Kubernetes object to the object graph from file that is generated during a fromDirectory
+// addRestoredObj adds a Kubernetes object to the object graph from a file that is generated during a fromDirectory
 // Populates the restoredObject field to be referenced during fromDirectory
 // During add, OwnerReferences are processed in order to create the dependency graph.
 func (o *objectGraph) addRestoredObj(obj *unstructured.Unstructured) error {
@@ -227,7 +227,7 @@ func (o *objectGraph) addRestoredObj(obj *unstructured.Unstructured) error {
 	// Copy the raw object yaml to be referenced when restoring object
 	node.restoreObject = obj.DeepCopy()
 
-	// Process OwnerReferences; if the owner object does not exists yet, create a virtual node as a placeholder for it.
+	// Process OwnerReferences; if the owner object does not exist yet, create a virtual node as a placeholder for it.
 	o.processOwnerReferences(obj, node)
 
 	return nil
@@ -342,7 +342,7 @@ func (o *objectGraph) objMetaToNode(obj *unstructured.Unstructured, n *node) {
 }
 
 // getDiscoveryTypes returns the list of TypeMeta to be considered for the move discovery phase.
-// This list includes all the types defines by the CRDs installed by clusterctl and the ConfigMap/Secret core types.
+// This list includes all the types defined by the CRDs installed by clusterctl and the ConfigMap/Secret core types.
 func (o *objectGraph) getDiscoveryTypes(ctx context.Context) error {
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	getDiscoveryTypesBackoff := newReadBackoff()
@@ -671,7 +671,7 @@ func (o *objectGraph) getCRSs() []*node {
 	return clusters
 }
 
-// getMoveNodes returns the list of nodes existing in the object graph that belong at least to one tenant (e.g Cluster or to a ClusterResourceSet)
+// getMoveNodes returns the list of nodes existing in the object graph that belong at least to one tenant (e.g. Cluster or to a ClusterResourceSet)
 // or it is labeled for force move (at object level or at CRD level).
 func (o *objectGraph) getMoveNodes() []*node {
 	nodes := []*node{}
@@ -712,7 +712,7 @@ func (o *objectGraph) setSoftOwnership() {
 			continue
 		}
 
-		// If the secret is linked to a cluster, then add the cluster to the list of the secrets's softOwners.
+		// If the secret is linked to a cluster, then add the cluster to the list of the secret's softOwners.
 		for _, cluster := range clusters {
 			if secretClusterName == cluster.identity.Name && secret.identity.Namespace == cluster.identity.Namespace {
 				secret.addSoftOwner(cluster)
@@ -722,7 +722,7 @@ func (o *objectGraph) setSoftOwnership() {
 
 	clusterClasses := o.getClusterClasses()
 
-	// Cluster that uses a ClusterClass are soft owned by that ClusterClass.
+	// Clusters that use a ClusterClass are soft-owned by that ClusterClass.
 	for _, clusterClass := range clusterClasses {
 		for _, cluster := range clusters {
 			// if the cluster uses a managed topology and uses the clusterclass
@@ -740,7 +740,7 @@ func (o *objectGraph) setSoftOwnership() {
 	}
 
 	crsBindings := o.getClusterResourceSetBinding()
-	// ClusterResourceSetBinding that refers to a Cluster are soft owned by that Cluster.
+	// ClusterResourceSetBindings that refer to a Cluster are soft-owned by that Cluster.
 	for _, binding := range crsBindings {
 		clusterName, ok := binding.additionalInfo[clusterResourceSetBindingClusterNameKey]
 		if !ok {

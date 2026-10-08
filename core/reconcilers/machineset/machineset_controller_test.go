@@ -2851,7 +2851,7 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 		s.machines = append(s.machines, &m)
 	}
 
-	// syncReplicas should first cleanup previously orphaned BootstrapConfig/InfraMachine and then create a new Machine.
+	// syncReplicas should first clean up previously orphaned BootstrapConfig/InfraMachine and then create a new Machine.
 	res, err = r.syncReplicas(ctx, s)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(res.IsZero()).To(BeTrue())

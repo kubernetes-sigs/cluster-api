@@ -55,42 +55,42 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 
 ## Summary
 
-Cluster API is a Kubernetes project that brings declarative, [Kubernetes-style APIs](https://kubernetes.io/docs/concepts/overview/kubernetes-api/) to cluster creation, configuration, and management.  The project is highly successful, and has been adopted by a number of different providers.  Despite its popularity, the end user experience is fragmented across providers, and users are often confused by different version and release semantics and tools.  
+Cluster API is a Kubernetes project that brings declarative, [Kubernetes-style APIs](https://kubernetes.io/docs/concepts/overview/kubernetes-api/) to cluster creation, configuration, and management. The project is highly successful and has been adopted by a number of different providers.  Despite its popularity, the end user experience is fragmented across providers, and users are often confused by different version and release semantics and tools.  
 
 In this proposal we outline the rationale for a redesign of clusterctl, with the primary purpose of unifying the user experience and lifecycle management across Cluster API based providers. 
 
 ## Motivation
 
-One of the most relevant areas for improvement of Cluster API is the end user experience,  which is fragmented across providers.   The user experience is currently not optimized for the “day one” user story despite the improvements in the documentation.
+One of the most relevant areas for improvement of Cluster API is the end user experience, which is fragmented across providers.   The user experience is currently not optimized for the “day one” user story despite the improvements in the documentation.
 
 Originally, one of the root causes of this problem was the existence of a unique copy of clusterctl for each cluster API provider, each having a slightly different set of features (different flags, different subcommands).
 
 Another source of confusion is the current scope of clusterctl, which in some cases expanded outside of lifecycle management of Cluster API providers. For example, the support for different mechanisms for creating a bootstrap cluster (minikube, kind) takes on an unnecessary complexity and support burden.
 
-As a result, we are proposing a redesign of clusterctl with an emphasis on lifecycle management of Cluster API providers, and a unified user experience across all the Cluster API based providers
+As a result, we are proposing a redesign of clusterctl with an emphasis on lifecycle management of Cluster API providers and a unified user experience across all the Cluster API based providers
 
 ### Goals
 
 - Create a CLI that is optimized for the “day one” experience of using Cluster API.
-- Simplify lifecycle management (installation, upgrade, removal) of provider specific components.  This includes CRDs, controllers, etc.
+- Simplify lifecycle management (installation, upgrade, removal) of provider-specific components.  This includes CRDs, controllers, etc.
 - Enable new providers, or new versions of existing providers, to be added without recompiling.
 - Provide a consistent user experience across Cluster API providers.
-- Enable provider specific deployment templates, or flavors, to end users.  E.g. dev, test, prod, etc.
-- Provide support for air gapped environments
-- To create a well factored client library, that can be leveraged by management tools.
+- Enable provider-specific deployment templates, or flavors, to end users.  E.g. dev, test, prod, etc.
+- Provide support for air-gapped environments
+- To create a well-factored client library, that can be leveraged by management tools.
 
 ### Non-Goals/Future Work
 
-- To control the lifecycle of the management cluster. Users are expected to bring their own management cluster, either local (minikube/kind) or remote (aws,vsphere etc.).
-- To own provider specific preconditions (this can be handled a number of different ways).
+- To control the lifecycle of the management cluster. Users are expected to bring their own management cluster, either local (minikube/kind) or remote (aws,vsphere, etc.).
+- To own provider-specific preconditions (this can be handled a number of different ways).
 - To manage the lifecycle of target, or workload, clusters.  This is the domain of Cluster API providers, and not clusterctl. (at this time).
 - To install network addons or any other components in the workload clusters.
 - To become a general purpose cluster management tool.  E.g. collect logs, monitor resources, etc.
-- To abstract away provider specific details.
+- To abstract away provider-specific details.
 
 ## Proposal
 
-In this section we will outline a high level overview of the proposed tool and its associated user stories.
+In this section we will outline a high-level overview of the proposed tool and its associated user stories.
 
 ### Preconditions
 
@@ -107,7 +107,7 @@ Prior to running clusterctl it is required that the operator has a valid KUBECON
 #### Day Two Operations “Lifecycle Management”
 
 - As a Kubernetes operator I would like to be able to install new Cluster API providers into a management cluster.
-- As a Kubernetes operator I would like to be able to upgrade Cluster API components (including CRDs, controllers, etc).  
+- As a Kubernetes operator I would like to be able to upgrade Cluster API components (including CRDs, controllers, etc.).  
 - As a Kubernetes operator I would like to have a simple user experience to cleanly remove the Cluster API objects from a management cluster.
 
 #### Target Cluster Pivot Management
@@ -170,12 +170,12 @@ Please note that “day one” experience:
 Please note that “day one” experience:
 
 1. Assumes only one infrastructure provider and only one bootstrap provider installed in the cluster; in case of more than one provider installed, it will be possible to specify the target provider using the --infrastructure and --bootstrap flag.
-2. In order to fetch template from a provider repository, Assumes a naming convention should be established (details TBD).
+2. In order to fetch a template from a provider repository, Assumes a naming convention should be established (details TBD).
 3. Similarly, also template variables should be defined (details TBD).
 
 #### Day 2 operations
 
-The clusterctl command will provide support for following operations
+The clusterctl command will provide support for the following operations
 
 - Add more provider configurations using the clusterctl config file [1]
 - Override default provider configurations using the clusterctl config file [1]
@@ -189,21 +189,21 @@ The clusterctl command will provide support for following operations
 - Delete a provider (see next paragraph)
 - Reset the management cluster (see next paragraph)
 
-*[1] clusterctl will provide support pluggable provider repository implementations. Current plan is to support:*
+*[1] clusterctl will provide support for pluggable provider repository implementations. The current plan is to support:*
 
 - *GitHub release assets*
 - *GitHub tree e.g. for deploying a provider from a specific commit*
 *http/https web servers e.g. as a cheap alternative for mirroring - GitHub in air-gapped environments*
 - *file system e.g. for deploying a provider from the local dev environment*
 
-*Please note that GitHub release assets is the reference implementation of a provider repository; other providers type might have specific limitations with respect to the reference implementation (details TBD).*
+*Please note that GitHub release assets are the reference implementation of a provider repository; other providers type might have specific limitations with respect to the reference implementation (details TBD).*
 
-*[2] clusterctl command will try to prevent the user to create invalid configurations, e.g. (details TBD):*
+*[2] clusterctl command will try to prevent the user from creating invalid configurations, e.g. (details TBD):*
 
-- *Install different versions of the same provider because providers have a mix of namespaced objects and global objects, and thus it is not possible to fully isolate a provider versions.*
+- *Install different versions of the same provider because providers have a mix of namespaced objects and global objects, and thus it is not possible to fully isolate provider versions.*
 - *Install more instances of the same provider fighting for objects (watching objects in overlapping namespaces).*
 
-*In any case, will be allowed to ignore above warnings with a --force flag.*
+*In any case, will be allowed to ignore the above warnings with a --force flag.*
 
 **clusterctl pivot --target-cluster**
 
@@ -215,7 +215,7 @@ The implementation of pivoting will take benefit of the labels applied by cluste
 
 The clusterctl upgrade sequence is responsible for upgrading a provider version [1] [2].
 
-At high level, the upgrade sequence consist of two operations:
+At high level, the upgrade sequence consists of two operations:
 
 1. Delete all the provider components of the current version [3]
 1. Create provider components for the new version
@@ -224,13 +224,13 @@ The new provider version will be then responsible for conversion of the related 
 
 *[1] Upgrading the management cluster and upgrading workload clusters are considered out of scope of clusterctl upgrades.*
 
-*[2] in case of more than one instance of the same provider is installed on the management cluster, all the instance of the same provider will be upgraded in a single operation because providers have a mix of namespaced objects and global objects, and thus it is not possible to fully isolate a provider versions.*
+*[2] in case of more than one instance of the same provider is installed on the management cluster, all the instances of the same provider will be upgraded in a single operation because providers have a mix of namespaced objects and global objects, and thus it is not possible to fully isolate provider versions.*
 
 *[3] TBD exact details with regards to provider CRDs in order to make object conversion possible*
 
 **clusterctl delete [provider]**
 
-Deleting a provider sequence consist of the following actions:
+Deleting a provider sequence consists of the following actions:
 Identify all the provider components for a provider using the labels applied by clusterctl during install
 Delete all the provider components [1] with the exception of CRD definitions [2]
 
@@ -266,7 +266,7 @@ Standard unit/integration & e2e behavioral test plans will apply.
 
 ### Graduation Criteria [optional]
 
-TBD - At the time of this writing it is too early to determine graduation criteria.
+TBD - At the time of this writing, it is too early to determine graduation criteria.
 
 ### Version Skew Strategy
 

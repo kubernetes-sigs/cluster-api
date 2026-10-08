@@ -74,7 +74,7 @@ func (d PatchFormat) ApplyToWalkTemplates(in *WalkTemplatesOptions) {
 
 // WalkTemplates walks through all templates of a GeneratePatchesRequest and calls the mutateFunc.
 // By using walk templates it is possible to implement patches using typed API objects, which makes code
-// easier to read and less error prone than using unstructured or working with raw json/yaml.
+// easier to read and less error-prone than using unstructured or working with raw json/yaml.
 // Also, by using this func it is possible to ignore most of the details of the GeneratePatchesRequest
 // and GeneratePatchesResponse messages format and focus on writing patches/modifying the templates.
 func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehooksv1.GeneratePatchesRequest,
@@ -173,7 +173,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
 }
 
-// createJSONPatch creates a RFC 6902 JSON patch from the original and the modified object.
+// createJSONPatch creates an RFC 6902 JSON patch from the original and the modified object.
 func createJSONPatch(marshalledOriginal []byte, modified runtime.Object) ([]byte, error) {
 	marshalledModified, err := json.Marshal(modified)
 	if err != nil {
@@ -193,7 +193,7 @@ func createJSONPatch(marshalledOriginal []byte, modified runtime.Object) ([]byte
 	return patchBytes, nil
 }
 
-// createJSONMergePatch creates a RFC 7396 JSON merge patch from the original and the modified object.
+// createJSONMergePatch creates an RFC 7396 JSON merge patch from the original and the modified object.
 func createJSONMergePatch(marshalledOriginal []byte, modified runtime.Object) ([]byte, error) {
 	marshalledModified, err := json.Marshal(modified)
 	if err != nil {

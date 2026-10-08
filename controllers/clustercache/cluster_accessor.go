@@ -71,7 +71,7 @@ type clusterAccessorConfig struct {
 
 	// ControllerPodMetadata is the Pod metadata of the controller using this ClusterCache.
 	// This is only set when the POD_NAMESPACE, POD_NAME and POD_UID environment variables are set.
-	// This information will be used to detected if the controller is running on a workload cluster, so
+	// This information will be used to detect if the controller is running on a workload cluster, so
 	// that for the Cluster we're running on we can then access the apiserver directly instead of going
 	// through the apiserver loadbalancer.
 	ControllerPodMetadata *metav1.ObjectMeta
@@ -250,7 +250,7 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 	start := time.Now()
 	log.V(4).Info("Connecting")
 
-	// Creating clients, cache etc. is intentionally done without a lock to avoid blocking other reconcilers.
+	// Creating clients, cache, etc. is intentionally done without a lock to avoid blocking other reconcilers.
 	connection, err := ca.createConnection(ctx)
 
 	duration := time.Since(start)

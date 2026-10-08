@@ -78,7 +78,7 @@ func TestReconcile(t *testing.T) {
 			reconcileCache: reconcileCache,
 		}
 
-		// Setup an entire controller so that we can also test how the controller interacts with the queue during exponential backoff.
+		// Set up an entire controller so that we can also test how the controller interacts with the queue during exponential backoff.
 		ctrl, err := controller.NewTypedUnmanaged("cluster", controller.Options{
 			Reconciler:  r,
 			RateLimiter: r.queueRateLimiter,
@@ -263,7 +263,7 @@ func TestReconcile(t *testing.T) {
 		errorLock.Lock()
 		errorToReturn = nil
 		errorLock.Unlock()
-		// Wait for exp. backoff & go routines to handle the event & verify that counters go up & rateLimiter gets resetted.
+		// Wait for exp. backoff & go routines to handle the event & verify that counters go up & rateLimiter gets reset.
 		time.Sleep(rateLimitInterval + 10*time.Millisecond)
 		synctest.Wait()
 		g.Expect(reconcileCounter.Load()).To(Equal(int64(8)))

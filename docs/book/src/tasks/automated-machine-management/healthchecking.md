@@ -137,7 +137,7 @@ If `maxRetry` is not set (default), remediation will be retried infinitely.
 > [!TIP]
 > **Retry again once maxRetry is exhausted**
 >
-> If for some reasons you want to remediate once maxRetry is exhausted there are two options:
+> If for some reason you want to remediate once maxRetry is exhausted there are two options:
 > - Temporarily increase  `maxRetry` (recommended)
 > - Remove the `controlplane.cluster.x-k8s.io/remediation-for` annotation from the unhealthy machine or decrease `retryCount` in the annotation value.
 
@@ -197,7 +197,7 @@ This is useful for dynamically scaling clusters where the number of machines kee
 
 ## Skipping Remediation
 
-There are scenarios where remediation for a machine may be undesirable (eg. during cluster migration using `clusterctl move`). For such cases, MachineHealthCheck skips marking a Machine for remediation if:
+There are scenarios where remediation for a machine may be undesirable (e.g. during cluster migration using `clusterctl move`). For such cases, MachineHealthCheck skips marking a Machine for remediation if:
 
 - the Machine has the `cluster.x-k8s.io/skip-remediation` annotation
 - the Machine has the `cluster.x-k8s.io/paused` annotation

@@ -163,7 +163,7 @@ func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Co
 	}
 
 	// Create the net.Conn and return.
-	// If there is context deadline, also apply it to the stream inside the connection.
+	// If there is a context deadline, also apply it to the stream inside the connection.
 	conn := NewConn(connection, dataStream)
 	if deadline, ok := ctx.Deadline(); ok {
 		if err := conn.SetDeadline(deadline); err != nil {

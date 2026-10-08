@@ -50,7 +50,7 @@ func NewMemoryRepository() *MemoryRepository {
 
 // DefaultVersion returns the default version for this repository.
 // NOTE: The DefaultVersion is a required info usually derived from the repository configuration,
-// and it is used whenever the users gets files from the repository without providing a specific version.
+// and it is used whenever the user gets files from the repository without providing a specific version.
 func (f *MemoryRepository) DefaultVersion() string {
 	if f.defaultVersion == "" {
 		return latestVersionTag
@@ -115,7 +115,7 @@ func (f *MemoryRepository) WithPaths(rootPath, componentsPath string) *MemoryRep
 
 // WithVersions allows setting of the available versions.
 // NOTE: When adding a file to the repository for a specific version, a version
-// is automatically generated if missing; this func allows to define versions without any file.
+// is automatically generated if missing; this func allows defining versions without any file.
 func (f *MemoryRepository) WithVersions(version ...string) *MemoryRepository {
 	for _, v := range version {
 		f.versions[v] = true

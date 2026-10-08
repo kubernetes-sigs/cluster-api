@@ -240,7 +240,7 @@ func storageVersionForCRD(crd *apiextensionsv1.CustomResourceDefinition) (string
 // to the controller can be 60-90s, because the kubelet only periodically syncs secret contents to pods.
 // During this timespan conversion, validating- or mutating-webhooks may be unavailable and cause a failure.
 func newCRDMigrationBackoff() wait.Backoff {
-	// Return a exponential backoff configuration which returns durations for a total time of ~1m30s + some buffer.
+	// Return an exponential backoff configuration which returns durations for a total time of ~1m30s + some buffer.
 	// Example: 0, .25s, .6s, 1.1s, 1.8s, 2.7s, 4s, 6s, 9s, 12s, 17s, 25s, 35s, 49s, 69s, 97s, 135s
 	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
 	return wait.Backoff{

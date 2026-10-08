@@ -56,16 +56,16 @@ type ClusterInPlaceUpdateSpecInput struct {
 	// if only one infrastructure provider exists, it will be used, otherwise the operation will fail if more than one exists.
 	InfrastructureProvider *string
 
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
+	// Flavor, if specified, is the template flavor used to create the cluster for testing.
 	// If not specified, the default flavor for the selected infrastructure provider is used.
 	Flavor *string
 
-	// WorkerMachineCount defines number of worker machines to be added to the workload cluster.
+	// WorkerMachineCount defines the number of worker machines to be added to the workload cluster.
 	// If not specified, 1 will be used.
 	WorkerMachineCount *int64
 
 	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "in-place-update".
-	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
+	// This value is provided to clusterctl as the "EXTENSION_CONFIG_NAME" variable and can be used to template the
 	// name of the ExtensionConfig into the ClusterClass.
 	ExtensionConfigName string
 
@@ -77,7 +77,7 @@ type ClusterInPlaceUpdateSpecInput struct {
 	// Note: This should only be set if a Runtime Extension is used.
 	ExtensionServiceName string
 
-	// Allows to inject a function to be run after test namespace is created.
+	// Allows injecting a function to be run after the test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 
@@ -113,7 +113,7 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 			}
 		}
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
@@ -266,7 +266,7 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 	})
 
 	AfterEach(func() {
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		// Dumps all the resources in the spec namespace, then cleans up the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		if !input.SkipCleanup {
 			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {

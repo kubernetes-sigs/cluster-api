@@ -92,7 +92,7 @@ this approach:
 “We’ve got to say no to things today, so we can afford to do interesting things tomorrow”.
 
 This is something that is never done lightly, and it is always the result of an open discussion considering the status
-of the codebase, the status of the project CI signal, the complexity of the new feature etc. .
+of the codebase, the status of the project CI signal, the complexity of the new feature etc.
 
 Being very pragmatic, also the resources committed to implement and to maintain a feature over time must be considered
 when doing such an evaluation, because a model where everything falls on the shoulders of a small set of core

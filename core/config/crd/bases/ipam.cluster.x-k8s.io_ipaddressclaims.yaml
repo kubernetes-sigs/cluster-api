@@ -418,7 +418,7 @@ spec:
                   apiGroup:
                     description: |-
                       apiGroup of the IPPool.
-                      apiGroup must be fully qualified domain name.
+                      apiGroup must be a fully qualified domain name.
                     maxLength: 253
                     minLength: 1
                     pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
@@ -531,22 +531,22 @@ spec:
                 x-kubernetes-list-type: map
               deprecated:
                 description: deprecated groups all the status fields that are deprecated
-                  and will be removed when all the nested field are removed.
+                  and will be removed when all the nested fields are removed.
                 properties:
                   v1beta1:
                     description: v1beta1 groups all the status fields that are deprecated
-                      and will be removed when support for v1beta1 will be dropped.
+                      and will be removed when support for v1beta1 is dropped.
                     properties:
                       conditions:
                         description: |-
                           conditions summarises the current state of the IPAddressClaim
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         items:
                           description: |-
                             Condition defines an observation of a Cluster API resource operational state.
 
-                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                           properties:
                             lastTransitionTime:
                               description: |-

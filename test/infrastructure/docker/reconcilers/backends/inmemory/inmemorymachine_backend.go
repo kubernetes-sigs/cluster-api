@@ -53,7 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
-// MachineBackendReconciler reconciles a InMemoryMachine object.
+// MachineBackendReconciler reconciles an InMemoryMachine object.
 type MachineBackendReconciler struct {
 	client.Client
 	InMemoryManager inmemoryruntime.Manager
@@ -205,7 +205,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Create VM; a Cloud VM can be created as soon as the Infra Machine is created
-	// NOTE: for sake of simplicity we keep in memory resources as global resources (namespace empty).
+	// NOTE: for the sake of simplicity we keep in memory resources as global resources (namespace empty).
 	cloudMachine := &cloudv1.CloudMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: inMemoryMachine.Name,
@@ -379,7 +379,7 @@ func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, clus
 		}
 
 		// NOTE: for the first control plane machine we might create the node before etcd and API server pod are running
-		// but this is not an issue, because it won't be visible to CAPI until the API server start serving requests.
+		// but this is not an issue, because it won't be visible to CAPI until the API server starts serving requests.
 		if err := inmemoryClient.Create(ctx, node); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create Node")
 		}
@@ -537,7 +537,7 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 		}
 
 		// NOTE: for the first control plane machine we might create the etcd pod before the API server pod is running
-		// but this is not an issue, because it won't be visible to CAPI until the API server start serving requests.
+		// but this is not an issue, because it won't be visible to CAPI until the API server starts serving requests.
 		if err := inmemoryClient.Create(ctx, etcdPod); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create Pod")
 		}
@@ -1060,7 +1060,7 @@ func (r *MachineBackendReconciler) reconcileNormalCoredns(ctx context.Context, c
 	return ctrl.Result{}, nil
 }
 
-// ReconcileDelete handle in memory backend for deleted DevMachine.
+// ReconcileDelete handles the in memory backend for a deleted DevMachine.
 func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	if inMemoryMachine.Spec.Backend.InMemory == nil {
 		return ctrl.Result{}, pkgerrors.New("InMemoryBackendReconciler can't be called for DevMachines without an InMemory backend")

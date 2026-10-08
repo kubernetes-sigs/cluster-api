@@ -189,7 +189,7 @@ func (c *Catalog) Convert(in, out interface{}, context interface{}) error {
 	return c.scheme.Convert(in, out, context)
 }
 
-// GroupVersionHook returns the GVH of the hookFunc or an error if hook is not a function
+// GroupVersionHook returns the GVH of the hookFunc or an error if the hook is not a function
 // or not registered.
 func (c *Catalog) GroupVersionHook(hookFunc Hook) (GroupVersionHook, error) {
 	// Validate that hookFunc is a func.

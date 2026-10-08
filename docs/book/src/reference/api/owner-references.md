@@ -16,7 +16,7 @@ CAPI uses owner references in an opinionated way. The following guidelines shoul
 
 ## Owner reference relationships in Cluster API
 
-The below tables map out the a reference for ownership relationships for the objects in a Cluster API cluster. The tables
+The below tables map out a reference for ownership relationships for the objects in a Cluster API cluster. The tables
 are identical for classy and non-classy clusters.
 
 Providers may implement their own ownership relationships which may or may not map directly to the below tables. 

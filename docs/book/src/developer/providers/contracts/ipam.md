@@ -1,4 +1,4 @@
-# IPAM Provider Specification
+# IPAM provider-specification
 
 ## Overview
 
@@ -36,12 +36,12 @@ An IPAM provider must watch for new, updated and deleted IPAddressClaims that re
    2. If the paused field is empty and the `cluster.x-k8s.io/paused` annotation is not present, reconciliation can continue.
    3. If the referenced cluster is not found, abort reconciliation.
    4. If the referenced cluster has `spec.paused` set or a `cluster.x-k8s.io/paused` annotation, skip reconciliation
-3. Add any required provider-specific finalziers (you probably need one)
+3. Add any required provider-specific finalizers (you probably need one)
 4. Allocate an IP address for the claim
 5. Create an IPAddress object
    1. It should have the same name as the claim.
-   2. It must have a owner reference with `controller: true` and `blockOwnerDeletion: true` to the Claim
-   3. It must have a owner reference with `controller: false` and `blockOwnerDeletion: true` to the referenced Pool
+   2. It must have an owner reference with `controller: true` and `blockOwnerDeletion: true` to the Claim
+   3. It must have an owner reference with `controller: false` and `blockOwnerDeletion: true` to the referenced Pool
    4. It should have a Finalizer that prevents accidental deletion, e.g. `ipam.cluster.x-k8s.io/protect-address`.
 6. Set the `status.addressRef` on the IPAddressClaim to the created IPAddress
 

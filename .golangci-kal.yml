@@ -15,12 +15,12 @@ linters:
           linters:
             enable:
               - "commentstart" # Ensure comments start with the serialized version of the field name.
-              - "conditions" # Ensure conditions have the correct json tags and markers.
+              - "conditions" # Ensure conditions have the correct JSON tags and markers.
               - "conflictingmarkers"
               - "duplicatemarkers" # Ensure there are no exact duplicate markers. for types and fields.
               - "forbiddenmarkers" # Ensure that types and fields do not contain any markers that are forbidden.
               - "integers" # Ensure only int32 and int64 are used for integers.
-              - "jsontags" # Ensure every field has a json tag.
+              - "jsontags" # Ensure every field has a JSON tag.
               - "maxlength" # Ensure all strings and arrays have maximum lengths/maximum items.
               - "nobools" # Bools do not evolve over time, should use enums instead.
               - "nodurations" # Prevents usage of `Duration` types.
@@ -31,7 +31,7 @@ linters:
               - "optionalfields" # Ensure that all fields marked as optional adhere to being pointers and
                                  # having the `omitempty` value in their `json` tag where appropriate.
               - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
-              - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
+              - "requiredfields" # Required fields should not be pointers and should not have `omitempty`.
               - "ssatags" # Ensure array fields have the appropriate listType markers
               - "statusoptional" # Ensure all first children within status should be optional.
               - "statussubresource" # All root objects that have a `status` field should have a status subresource.
@@ -65,7 +65,7 @@ linters:
               useProtobuf: Forbid # We don't use protobuf, so protobuf tags are not required.
             optionalfields:
               pointers:
-                preference: WhenRequired # Always | WhenRequired # Whether to always require pointers, or only when required. Defaults to `Always`.
+                preference: WhenRequired # Always | WhenRequired # Whether to always require pointers or only when required. Defaults to `Always`.
                 policy: SuggestFix # SuggestFix | Warn # The policy for pointers in optional fields. Defaults to `SuggestFix`.
               omitempty:
                 policy: SuggestFix # SuggestFix | Warn | Ignore # The policy for omitempty in optional fields. Defaults to `SuggestFix`.

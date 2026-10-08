@@ -361,7 +361,7 @@ type ControlPlaneClassHealthCheckRemediationTriggerIf struct {
 	// unhealthyInRange specifies that remediations are only triggered if the number of
 	// unhealthy Machines is in the configured range.
 	// Takes precedence over unhealthyLessThanOrEqualTo.
-	// Eg. "[3-5]" - This means that remediation will be allowed only when:
+	// E.g. "[3-5]" - This means that remediation will be allowed only when:
 	// (a) there are at least 3 unhealthy Machines (and)
 	// (b) there are at most 5 unhealthy Machines
 	//
@@ -403,7 +403,7 @@ type ControlPlaneClassMachineDeletionSpec struct {
 // +kubebuilder:validation:MinProperties=1
 type ControlPlaneClassNamingSpec struct {
 	// template defines the template to use for generating the name of the ControlPlane object.
-	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
 	// The templating mechanism provides the following arguments:
@@ -419,7 +419,7 @@ type ControlPlaneClassNamingSpec struct {
 // +kubebuilder:validation:MinProperties=1
 type InfrastructureClassNamingSpec struct {
 	// template defines the template to use for generating the name of the Infrastructure object.
-	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .cluster.name }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
 	// The templating mechanism provides the following arguments:
@@ -677,7 +677,7 @@ type MachineDeploymentClassHealthCheckRemediationTriggerIf struct {
 	// unhealthyInRange specifies that remediations are only triggered if the number of
 	// unhealthy Machines is in the configured range.
 	// Takes precedence over unhealthyLessThanOrEqualTo.
-	// Eg. "[3-5]" - This means that remediation will be allowed only when:
+	// E.g. "[3-5]" - This means that remediation will be allowed only when:
 	// (a) there are at least 3 unhealthy Machines (and)
 	// (b) there are at most 5 unhealthy Machines
 	//
@@ -724,7 +724,7 @@ type MachineDeploymentClassMachineDeletionSpec struct {
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentClassNamingSpec struct {
 	// template defines the template to use for generating the name of the MachineDeployment object.
-	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
 	// The templating mechanism provides the following arguments:
@@ -897,7 +897,7 @@ type MachinePoolClassMachineDeletionSpec struct {
 // +kubebuilder:validation:MinProperties=1
 type MachinePoolClassNamingSpec struct {
 	// template defines the template to use for generating the name of the MachinePool object.
-	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
+	// If not defined, it will fall back to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
 	// The templating mechanism provides the following arguments:
@@ -930,7 +930,7 @@ type ClusterClassVariable struct {
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
 	//
-	// Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
+	// Deprecated: This field is deprecated and will be removed when support for v1beta1 is dropped. Please use XMetadata in JSONSchemaProps instead.
 	//
 	// +optional
 	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty,omitzero"`
@@ -1398,7 +1398,7 @@ type PatchDefinition struct {
 // Note: The results of selection based on the individual fields are ANDed.
 type PatchSelector struct {
 	// apiVersion filters templates by apiVersion.
-	// apiVersion must be fully qualified domain name followed by / and a version.
+	// apiVersion must be a fully qualified domain name followed by / and a version.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=317
@@ -1637,7 +1637,7 @@ type ClusterClassTemplateReference struct {
 	Name string `json:"name,omitempty"`
 
 	// apiVersion of the template.
-	// apiVersion must be fully qualified domain name followed by / and a version.
+	// apiVersion must be a fully qualified domain name followed by / and a version.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=317
@@ -1669,7 +1669,7 @@ func (r *ClusterClassTemplateReference) ToObjectReference(namespace string) *cor
 // ClusterClassTemplate is a minimal ClusterClass template.
 type ClusterClassTemplate struct {
 	// apiVersion of the template.
-	// apiVersion must be fully qualified domain name followed by / and a version.
+	// apiVersion must be a fully qualified domain name followed by / and a version.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=317
@@ -1720,7 +1720,7 @@ type ClusterClassStatus struct {
 	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *ClusterClassDeprecatedStatus `json:"deprecated,omitempty"`
 }
@@ -1728,17 +1728,17 @@ type ClusterClassStatus struct {
 // ClusterClassDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ClusterClassDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	// +optional
 	V1Beta1 *ClusterClassV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// ClusterClassV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// ClusterClassV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ClusterClassV1Beta1DeprecatedStatus struct {
 	// conditions defines current observed state of the ClusterClass.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
@@ -1785,7 +1785,7 @@ type ClusterClassStatusVariableDefinition struct {
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
 	//
-	// Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
+	// Deprecated: This field is deprecated and will be removed when support for v1beta1 is dropped. Please use XMetadata in JSONSchemaProps instead.
 	//
 	// +optional
 	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty,omitzero"`

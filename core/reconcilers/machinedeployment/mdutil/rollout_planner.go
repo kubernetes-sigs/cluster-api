@@ -85,7 +85,7 @@ func SyncMachinesPlanner(_ context.Context, ms *clusterv1.MachineSet, machines [
 	case diff > 0:
 		// if too many replicas, delete or move exceeding machines.
 
-		// If the MachineSet is accepting replicas from other MachineSets (and thus this is the newMS controlled by a MD),
+		// If the MachineSet is accepting replicas from other MachineSets (and thus this is the newMS controlled by an MD),
 		// detect if there are replicas still pending AcknowledgedMove.
 		// Note: replicas still pending AcknowledgeMove should not be counted when computing the numbers of machines to delete, because those machines are not included in ms.Spec.Replicas yet.
 		// Without this check, the following logic would try to align the number of replicas to "an incomplete" ms.Spec.Replicas and as a consequence wrongly delete replicas that should be preserved.

@@ -40,7 +40,7 @@
 The goal of this task is to initially create the docs so that we can continuously add notes going forward.
 The release notes doc will be used to collect release notes during the release cycle and will be eventually
 used to write the final release notes. The provider migration doc is part of the book and contains instructions
-for provider authors on how to adopt to the new Cluster API version.
+for provider authors on how to adapt to the new Cluster API version.
 
 1. Add a new migration doc for provider implementers.
    <br>Prior art: [Add v1.5 -> v1.6 migration doc](part of: https://github.com/kubernetes-sigs/cluster-api/pull/8996) - see changes to [SUMMARY.md](https://github.com/kubernetes-sigs/cluster-api/pull/8996/files#diff-72d1da5cbeb1afbe684444ec598fbe1815dd2ddc6aa99078ab577cefb9e279ac) and addition of [v1.5-to-v1.6.md](https://github.com/kubernetes-sigs/cluster-api/pull/8996/files#diff-135e34a16773fd40a82b4adbb265444a4fed6c1a973f48d621082b957e7ef93f)
@@ -113,7 +113,7 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
     - [ ] Update the `Kubernetes version support section`. If this is a patch release you can most probably copy the same values from the previous patch release notes. Except if this is the release where a new Kubernetes version support is added.
        <br>**Note**: Check our [Kubernetes support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions) in the CAPI book. In case of doubt, reach out to the current release lead.
     - [ ] If this is a `vX.X.0` release, fill in the content for the `Highlights` section. Otherwise, remove the section altogether.
-    - [ ] If there a deprecations in this release (for example, a CAPI API version drop), add them, to the `Deprecation Warning` section. Otherwise, remove the section altogether.
+    - [ ] If there are deprecations in this release (for example, a CAPI API version drop), add them to the `Deprecation Warning` section. Otherwise, remove the section altogether.
     - [ ] Look for area duplications in PR title. Sometimes authors add a prefix in their PR title that matches the area label. When the notes are generated, the area is as a prefix to the PR title, which can create redundant information. Remove the one from the PR title and just leave the area. Make sure you capitalize the title after this.
     - [ ] Check that all entries are in the right section. Sometimes the wrong emoji prefix is added to the PR title, which drives the section in which the entry is added in the release notes. Manually move any entry as needed. Note that fixing the PR title won't fix this even after regenerating the notes, since the notes tool reads this info from the commit messages and these don't get rewritten.
     - [ ] Sort manually all entries if you made any manual edits that might have altered the correct order.
@@ -159,7 +159,7 @@ Information can be distributed via:
 * Office hours
 * Release Team meetings
 * Cluster API book
-* [Github Issue](#communicate-beta-to-providers) (when communicating beta release to providers)
+* [GitHub Issue](#communicate-beta-to-providers) (when communicating beta release to providers)
 
 Relevant information includes:
 

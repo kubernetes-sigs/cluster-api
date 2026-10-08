@@ -72,12 +72,12 @@ spec:
                   NOTE: this field is considered only for computing v1beta2 conditions.
                 items:
                   description: ClusterAvailabilityGate contains the type of a Cluster
-                    condition to be used as availability gate.
+                    condition to be used as an availability gate.
                   properties:
                     conditionType:
                       description: |-
-                        conditionType refers to a condition with matching type in the Cluster's condition list.
-                        If the conditions doesn't exist, it will be treated as unknown.
+                        conditionType refers to a condition with a matching type in the Cluster's condition list.
+                        If the condition doesn't exist, it will be treated as unknown.
                         Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
                       maxLength: 316
                       minLength: 1
@@ -505,7 +505,7 @@ spec:
                               unhealthyRange specifies the range of unhealthy machines allowed.
                               Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
                               is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
-                              Eg. "[3-5]" - This means that remediation will be allowed only when:
+                              E.g. "[3-5]" - This means that remediation will be allowed only when:
                               (a) there are at least 3 unhealthy machines (and)
                               (b) there are at most 5 unhealthy machines
                             maxLength: 32
@@ -574,8 +574,8 @@ spec:
                           properties:
                             conditionType:
                               description: |-
-                                conditionType refers to a condition with matching type in the Machine's condition list.
-                                If the conditions doesn't exist, it will be treated as unknown.
+                                conditionType refers to a condition with a matching type in the Machine's condition list.
+                                If the condition doesn't exist, it will be treated as unknown.
                                 Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                               maxLength: 316
                               minLength: 1
@@ -1039,7 +1039,7 @@ spec:
                                     unhealthyRange specifies the range of unhealthy machines allowed.
                                     Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
                                     is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
-                                    Eg. "[3-5]" - This means that remediation will be allowed only when:
+                                    E.g. "[3-5]" - This means that remediation will be allowed only when:
                                     (a) there are at least 3 unhealthy machines (and)
                                     (b) there are at most 5 unhealthy machines
                                   maxLength: 32
@@ -1122,8 +1122,8 @@ spec:
                                 properties:
                                   conditionType:
                                     description: |-
-                                      conditionType refers to a condition with matching type in the Machine's condition list.
-                                      If the conditions doesn't exist, it will be treated as unknown.
+                                      conditionType refers to a condition with a matching type in the Machine's condition list.
+                                      If the condition doesn't exist, it will be treated as unknown.
                                       Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                                     maxLength: 316
                                     minLength: 1
@@ -1688,7 +1688,7 @@ spec:
                   failureMessage indicates that there is a fatal problem reconciling the
                   state, and will be set to a descriptive error message.
 
-                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 maxLength: 10240
                 minLength: 1
                 type: string
@@ -1698,7 +1698,7 @@ spec:
                   state, and will be set to a token value suitable for
                   programmatic interpretation.
 
-                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 type: string
               infrastructureReady:
                 description: infrastructureReady is the state of the infrastructure
@@ -2069,12 +2069,12 @@ spec:
                   from the corresponding ClusterClass will be used, if any.
                 items:
                   description: ClusterAvailabilityGate contains the type of a Cluster
-                    condition to be used as availability gate.
+                    condition to be used as an availability gate.
                   properties:
                     conditionType:
                       description: |-
-                        conditionType refers to a condition with matching type in the Cluster's condition list.
-                        If the conditions doesn't exist, it will be treated as unknown.
+                        conditionType refers to a condition with a matching type in the Cluster's condition list.
+                        If the condition doesn't exist, it will be treated as unknown.
                         Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
                       maxLength: 316
                       minLength: 1
@@ -2177,7 +2177,7 @@ spec:
                   apiGroup:
                     description: |-
                       apiGroup is the group of the resource being referenced.
-                      apiGroup must be fully qualified domain name.
+                      apiGroup must be a fully qualified domain name.
                       The corresponding version for this reference will be looked up from the contract
                       labels of the corresponding CRD of the resource being referenced.
                     maxLength: 253
@@ -2213,7 +2213,7 @@ spec:
                   apiGroup:
                     description: |-
                       apiGroup is the group of the resource being referenced.
-                      apiGroup must be fully qualified domain name.
+                      apiGroup must be a fully qualified domain name.
                       The corresponding version for this reference will be looked up from the contract
                       labels of the corresponding CRD of the resource being referenced.
                     maxLength: 253
@@ -2509,10 +2509,10 @@ spec:
                               and as a consequence the checks and remediation fields from cluster will be used instead of the
                               corresponding fields in ClusterClass.
 
-                              If an health check override is defined and remediation or remediation.triggerIf is not set,
+                              If a health check override is defined and remediation or remediation.triggerIf is not set,
                               remediation will always be triggered for unhealthy Machines.
 
-                              If an health check override is defined and remediation or remediation.templateRef is not set,
+                              If a health check override is defined and remediation or remediation.templateRef is not set,
                               the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
                               the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
                             minProperties: 1
@@ -2529,7 +2529,7 @@ spec:
                                   apiVersion:
                                     description: |-
                                       apiVersion of the remediation template.
-                                      apiVersion must be fully qualified domain name followed by / and a version.
+                                      apiVersion must be a fully qualified domain name followed by / and a version.
                                       NOTE: This field must be kept in sync with the APIVersion of the remediation template.
                                     maxLength: 317
                                     minLength: 1
@@ -2630,8 +2630,8 @@ spec:
                           properties:
                             conditionType:
                               description: |-
-                                conditionType refers to a condition with matching type in the Machine's condition list.
-                                If the conditions doesn't exist, it will be treated as unknown.
+                                conditionType refers to a condition with a matching type in the Machine's condition list.
+                                If the condition doesn't exist, it will be treated as unknown.
                                 Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                               maxLength: 316
                               minLength: 1
@@ -3087,10 +3087,10 @@ spec:
                                     and as a consequence the checks and remediation fields from cluster will be used instead of the
                                     corresponding fields in ClusterClass.
 
-                                    If an health check override is defined and remediation or remediation.triggerIf is not set,
+                                    If a health check override is defined and remediation or remediation.triggerIf is not set,
                                     remediation will always be triggered for unhealthy Machines.
 
-                                    If an health check override is defined and remediation or remediation.templateRef is not set,
+                                    If a health check override is defined and remediation or remediation.templateRef is not set,
                                     the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
                                     the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
                                   minProperties: 1
@@ -3127,7 +3127,7 @@ spec:
                                         apiVersion:
                                           description: |-
                                             apiVersion of the remediation template.
-                                            apiVersion must be fully qualified domain name followed by / and a version.
+                                            apiVersion must be a fully qualified domain name followed by / and a version.
                                             NOTE: This field must be kept in sync with the APIVersion of the remediation template.
                                           maxLength: 317
                                           minLength: 1
@@ -3243,8 +3243,8 @@ spec:
                                 properties:
                                   conditionType:
                                     description: |-
-                                      conditionType refers to a condition with matching type in the Machine's condition list.
-                                      If the conditions doesn't exist, it will be treated as unknown.
+                                      conditionType refers to a condition with a matching type in the Machine's condition list.
+                                      If the condition doesn't exist, it will be treated as unknown.
                                       Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
                                     maxLength: 316
                                     minLength: 1
@@ -3852,22 +3852,22 @@ spec:
                 type: object
               deprecated:
                 description: deprecated groups all the status fields that are deprecated
-                  and will be removed when all the nested field are removed.
+                  and will be removed when all the nested fields are removed.
                 properties:
                   v1beta1:
                     description: v1beta1 groups all the status fields that are deprecated
-                      and will be removed when support for v1beta1 will be dropped.
+                      and will be removed when support for v1beta1 is dropped.
                     properties:
                       conditions:
                         description: |-
                           conditions defines current service state of the cluster.
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         items:
                           description: |-
                             Condition defines an observation of a Cluster API resource operational state.
 
-                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                            Deprecated: This type is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                           properties:
                             lastTransitionTime:
                               description: |-
@@ -3921,7 +3921,7 @@ spec:
                           failureMessage indicates that there is a fatal problem reconciling the
                           state, and will be set to a descriptive error message.
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         maxLength: 10240
                         minLength: 1
                         type: string
@@ -3931,7 +3931,7 @@ spec:
                           state, and will be set to a token value suitable for
                           programmatic interpretation.
 
-                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         type: string
                     type: object
                 type: object
@@ -3977,7 +3977,7 @@ spec:
                     description: |-
                       controlPlaneInitialized denotes when the control plane is functional enough to accept requests.
                       This information is usually used as a signal for starting all the provisioning operations that depends on
-                      a functional API server, but do not require a full HA control plane to exists, like e.g. join worker Machines,
+                      a functional API server, but do not require a full HA control plane to exist, like e.g. join worker Machines,
                       install core addons like CNI, CPI, CSI etc.
                       NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
                       The value of this field is never updated after initialization is completed.

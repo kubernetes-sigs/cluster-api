@@ -51,7 +51,7 @@ type InitOptions struct {
 	InfrastructureProviders []string
 
 	// ControlPlaneProviders and versions (e.g. kubeadm:v1.1.5) to add to the management cluster.
-	// If unspecified, the kubeadm control plane provider latest release is used.
+	// If unspecified, the kubeadm control plane provider's latest release is used.
 	ControlPlaneProviders []string
 
 	// IPAMProviders and versions (e.g. infoblox:v0.0.1) to add to the management cluster.
@@ -67,7 +67,7 @@ type InitOptions struct {
 	// will be installed in a provider's default namespace.
 	TargetNamespace string
 
-	// LogUsageInstructions instructs the init command to print the usage instructions in case of first run.
+	// LogUsageInstructions instructs the init command to print the usage instructions in case of the first run.
 	LogUsageInstructions bool
 
 	// WaitProviders instructs the init command to wait till the providers are installed.
@@ -77,7 +77,7 @@ type InitOptions struct {
 	WaitProviderTimeout time.Duration
 
 	// SkipTemplateProcess allows for skipping the call to the template processor, including also variable replacement in the component YAML.
-	// NOTE this works only if the rawYaml is a valid yaml by itself, like e.g when using envsubst/the simple processor.
+	// NOTE this works only if the rawYaml is a valid yaml by itself, like e.g. when using envsubst/the simple processor.
 	skipTemplateProcess bool
 
 	// IgnoreValidationErrors allows for skipping the validation of provider installs.
@@ -128,7 +128,7 @@ func (c *clusterctlClient) Init(ctx context.Context, options InitOptions) ([]Com
 		return nil, err
 	}
 
-	// Before installing the providers, validates the management cluster resulting by the planned installation. The following checks are performed:
+	// Before installing the providers, validate the management cluster resulting from the planned installation. The following checks are performed:
 	// - There should be only one instance of the same provider.
 	// - All the providers must support the same contract version or compatible versions.
 	// - All provider CRDs that are referenced in core Cluster API CRDs must comply with the CRD naming scheme,
@@ -303,7 +303,7 @@ type addToInstallerOptions struct {
 	providerList        *clusterctlv1.ProviderList
 }
 
-// addToInstaller adds the components to the install queue and checks that the actual provider type match the target group.
+// addToInstaller adds the components to the install queue and checks that the actual provider type matches the target group.
 func (c *clusterctlClient) addToInstaller(ctx context.Context, options addToInstallerOptions, providerType clusterctlv1.ProviderType, providers ...string) error {
 	for _, provider := range providers {
 		// It is possible to opt-out from automatic installation of bootstrap/control-plane providers using '-' as a provider name (NoopProvider).

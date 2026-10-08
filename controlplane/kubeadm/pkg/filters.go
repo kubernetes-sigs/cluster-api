@@ -48,7 +48,7 @@ type UpToDateResult struct {
 }
 
 // UpToDate checks if a Machine is up to date with the control plane's configuration.
-// If not, messages explaining why are provided with different level of detail for logs and conditions.
+// If not, messages explaining why are provided with different levels of detail for logs and conditions.
 func UpToDate(
 	ctx context.Context,
 	dynamicCache dynamiccache.DynamicCache,
@@ -199,7 +199,7 @@ func matchesInfraMachine(
 	if !ok1 || !ok2 {
 		// All kcp cloned infra machines should have this annotation.
 		// Missing the annotation may be due to older version machines or adopted machines.
-		// Should not be considered as mismatch.
+		// Should not be considered as a mismatch.
 		return "", nil, nil, true, nil
 	}
 

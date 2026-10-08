@@ -324,7 +324,7 @@ func renderValueTemplate(valueTemplate string, variables map[string]apiextension
 		return nil, pkgerrors.Wrapf(err, "failed to parse template: %q", valueTemplate)
 	}
 
-	// Convert the flat variables map in a nested map, so that variables can be
+	// Convert the flat variables map into a nested map, so that variables can be
 	// consumed in templates like this: `{{ .builtin.cluster.name }}`
 	// NOTE: Variable values are also converted to their Go types as
 	// they cannot be directly consumed as byte arrays.

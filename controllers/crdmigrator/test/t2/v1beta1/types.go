@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	// GroupVersion is group version used to test CRD migration.
+	// GroupVersion is the group version used to test CRD migration.
 	GroupVersion = schema.GroupVersion{Group: "test.cluster.x-k8s.io", Version: "v1beta1"}
 
 	// schemeBuilder is used to add go types to the GroupVersionKind scheme.

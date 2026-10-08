@@ -71,7 +71,7 @@ var (
 var (
 	ctx = ctrl.SetupSignalHandler()
 
-	// watchesCtx is used in log streaming to be able to get canceld via cancelWatches after ending the test suite.
+	// watchesCtx is used in log streaming to be able to get canceled via cancelWatches after ending the test suite.
 	watchesCtx, cancelWatches = context.WithCancel(ctx)
 
 	// e2eConfig to be used for this test, read from configPath.

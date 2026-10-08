@@ -50,7 +50,7 @@ import (
 // components.yaml: infrastructure-components.yaml
 //
 // Concrete example (windows):
-// NB. the input is an URI specification, not a windows path. see https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/ for more details
+// NB. the input is a URI specification, not a Windows path. see https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/ for more details
 // /C:/cluster-api/out/repo/infrastructure-docker/latest/infrastructure-components.yaml
 // basepath: C:\cluster-api\out\repo
 // provider-label: infrastructure-docker

@@ -3,7 +3,7 @@
 The Cluster API project supports ecosystem growth and extensibility.
 
 As part of this effort, everyone is welcome to add to the list below both providers sponsored
-by SIG Cluster Lifecycle as well as providers from other open-source repositories.
+by SIG Cluster Lifecycle and providers from other open-source repositories.
 
 Each provider is the responsibility of the respective maintainers and we highly recommend
 everyone interested in a specific provider to engage with the corresponding team to show support, share use cases,

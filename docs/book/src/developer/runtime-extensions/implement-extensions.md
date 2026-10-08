@@ -287,7 +287,7 @@ and recorded in Cluster API controller's logs. As a consequence:
 
 > [!CAUTION]
 > If an error message is not deterministic and it changes at every call even if the problem is the same, it could
-> lead to to Kubernetes resources conditions continuously changing, and this generates a denial attack to
+> lead to Kubernetes resources conditions continuously changing, and this generates a denial attack to
 > controllers processing those resource that might impact system stability.
 
 ### ExtensionConfig

@@ -33,7 +33,7 @@ type WaitForNodesReadyInput struct {
 	WaitForNodesReady []interface{}
 }
 
-// WaitForNodesReady waits until there are exactly the given count nodes and they have the correct Kubernetes version
+// WaitForNodesReady waits until there are exactly the given count of nodes and they have the correct Kubernetes version
 // and are ready.
 func WaitForNodesReady(ctx context.Context, input WaitForNodesReadyInput) {
 	Eventually(func() (bool, error) {

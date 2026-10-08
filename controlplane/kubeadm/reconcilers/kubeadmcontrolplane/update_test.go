@@ -134,7 +134,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	initialMachine := &clusterv1.MachineList{}
 	g.Eventually(func(g Gomega) {
 		// Nb. This Eventually block also forces the cache to update so that subsequent
-		// reconcile and updateControlPlane calls use the updated cache and avoids flakiness in the test.
+		// reconcile and updateControlPlane calls use the updated cache and avoid flakiness in the test.
 		g.Expect(env.List(ctx, initialMachine, client.InNamespace(cluster.Namespace))).To(Succeed())
 		g.Expect(initialMachine.Items).To(HaveLen(1))
 	}, timeout).Should(Succeed())

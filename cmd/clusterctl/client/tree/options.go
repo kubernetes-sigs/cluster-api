@@ -60,7 +60,7 @@ func (n ObjectMetaName) ApplyToAdd(options *addObjectOptions) {
 	options.MetaName = string(n)
 }
 
-// The GroupingObject option makes this node responsible of triggering the grouping action
+// The GroupingObject option makes this node responsible for triggering the grouping action
 // when adding the node's children.
 type GroupingObject bool
 
@@ -79,7 +79,7 @@ func (n NoEcho) ApplyToAdd(options *addObjectOptions) {
 }
 
 // The ZOrder options defines the sorting of child objects when the tree is printed. Objects are sorted by their z-order
-// from highest to lowest, and then by their name in alphaebetical order if the z-order is the same. Objects with no
+// from highest to lowest, and then by their name in alphabetical order if the z-order is the same. Objects with no
 // z-order set are assumed to have a default z-order of 0.
 type ZOrder int
 

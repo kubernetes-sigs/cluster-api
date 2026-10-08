@@ -25,7 +25,7 @@ import (
 
 // ClusterResourceSet's ResourcesApplied condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ResourcesAppliedV1Beta2Condition surfaces wether the resources in the ClusterResourceSet are applied to all matching clusters.
+	// ResourcesAppliedV1Beta2Condition surfaces whether the resources in the ClusterResourceSet are applied to all matching clusters.
 	// This indicates all resources exist, and no errors during applying them to all clusters.
 	ResourcesAppliedV1Beta2Condition = "ResourcesApplied"
 
@@ -99,7 +99,7 @@ type ClusterResourceSetStrategy string
 
 const (
 	// ClusterResourceSetStrategyApplyOnce is the default strategy a ClusterResourceSet strategy is assigned by
-	// ClusterResourceSet controller after being created if not specified by user.
+	// ClusterResourceSet controller after being created if not specified by the user.
 	ClusterResourceSetStrategyApplyOnce ClusterResourceSetStrategy = "ApplyOnce"
 	// ClusterResourceSetStrategyReconcile reapplies the resources managed by a ClusterResourceSet
 	// if their normalized hash changes.

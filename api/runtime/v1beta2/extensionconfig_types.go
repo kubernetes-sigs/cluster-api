@@ -119,7 +119,7 @@ func (r *ServiceReference) IsDefined() bool {
 // ExtensionConfigStatus defines the observed state of ExtensionConfig.
 // +kubebuilder:validation:MinProperties=1
 type ExtensionConfigStatus struct {
-	// conditions represents the observations of a ExtensionConfig's current state.
+	// conditions represents the observations of an ExtensionConfig's current state.
 	// Known condition types are Discovered, Paused.
 	// +optional
 	// +listType=map
@@ -134,27 +134,27 @@ type ExtensionConfigStatus struct {
 	// +kubebuilder:validation:MaxItems=512
 	Handlers []ExtensionHandler `json:"handlers,omitempty"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *ExtensionConfigDeprecatedStatus `json:"deprecated,omitempty"`
 }
 
 // ExtensionConfigDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 type ExtensionConfigDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	V1Beta1 *ExtensionConfigV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// ExtensionConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// ExtensionConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ExtensionConfigV1Beta1DeprecatedStatus struct {
 	// conditions defines current service state of the ExtensionConfig.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
@@ -201,7 +201,7 @@ type GroupVersionHook struct {
 
 // FailurePolicy specifies how unrecognized errors when calling the ExtensionHandler are handled.
 // FailurePolicy helps with extensions not working consistently, e.g. due to an intermittent network issue.
-// The following type of errors are never ignored by FailurePolicy Ignore:
+// The following types of errors are never ignored by FailurePolicy Ignore:
 // - Misconfigurations (e.g. incompatible types)
 // - Extension explicitly returns a Status Failure.
 // +kubebuilder:validation:Enum=Ignore;Fail

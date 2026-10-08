@@ -7,7 +7,7 @@ workflow that offers easy deployments and rapid iterative builds.
 
 ## Prerequisites
 
-1. [Docker](https://docs.docker.com/install/): v19.03 or newer (on MacOS e.g. via [Lima](https://github.com/lima-vm/lima))
+1. [Docker](https://docs.docker.com/install/): v19.03 or newer (on macOS e.g. via [Lima](https://github.com/lima-vm/lima))
 2. [kind](https://kind.sigs.k8s.io): v0.33.0 or newer
 3. [Tilt](https://docs.tilt.dev/install.html): v0.33.18 or newer
 4. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
@@ -648,7 +648,7 @@ Ensure the [**default_registry** field](#tilt-settings-fields) is a valid regist
 
 By default all registries except localhost:5000 are accessed via HTTPS.
 
-If you run a HTTP registry you may have to configure the registry in docker/podman.
+If you run an HTTP registry you may have to configure the registry in docker/podman.
 
 For example, in podman a `localhost:5001` registry configuration should be declared in `/etc/containers/registries.conf.d` with this content:
 ````

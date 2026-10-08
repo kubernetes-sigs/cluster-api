@@ -6,7 +6,7 @@ index 0af935a..8db6157 100644
  # Go Vulnerability Management
  
 +This is a fork of the govulncheck tool which adds the ability to exclude specific
-+vulnerebalities.
++vulnerabilities.
 +
 +It is configured through the `.govuln_exclude` file by default which takes the following format
 +```

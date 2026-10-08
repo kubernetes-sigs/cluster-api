@@ -40,7 +40,7 @@ const (
 
 var (
 	// DefaultNodeStartupTimeoutSeconds is the time allowed for a node to start up.
-	// Can be made longer as part of spec if required for particular provider.
+	// Can be made longer as part of spec if required for a particular provider.
 	// 10 minutes should allow the instance to start and the node to join the
 	// cluster on most providers.
 	DefaultNodeStartupTimeoutSeconds = int32(600)
@@ -194,7 +194,7 @@ type MachineHealthCheckRemediationTemplateReference struct {
 	Name string `json:"name,omitempty"`
 
 	// apiVersion of the remediation template.
-	// apiVersion must be fully qualified domain name followed by / and a version.
+	// apiVersion must be a fully qualified domain name followed by / and a version.
 	// NOTE: This field must be kept in sync with the APIVersion of the remediation template.
 	// +required
 	// +kubebuilder:validation:MinLength=1
@@ -359,7 +359,7 @@ type MachineHealthCheckStatus struct {
 	// +kubebuilder:validation:items:MaxLength=253
 	Targets []string `json:"targets,omitempty"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *MachineHealthCheckDeprecatedStatus `json:"deprecated,omitempty"`
 }
@@ -367,17 +367,17 @@ type MachineHealthCheckStatus struct {
 // MachineHealthCheckDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachineHealthCheckDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	// +optional
 	V1Beta1 *MachineHealthCheckV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// MachineHealthCheckV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// MachineHealthCheckV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachineHealthCheckV1Beta1DeprecatedStatus struct {
 	// conditions defines current service state of the MachineHealthCheck.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`

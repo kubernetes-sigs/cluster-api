@@ -69,18 +69,18 @@ This proposal outlines the replacement of these provider-specific embedded field
 
 Embedding opaque provider-specific information has some disadvantages:
 - Using an embedded provider spec as a `RawExtension` means its content is not validated as part of the Cluster object validation
-- Embedding the provider spec makes difficult implementing the logic of the provider as an independent controller watching for changes in the specs. Instead, providers implement cluster controllers which embed the generic logic and a provider-specific actuator which implements the logic for handling events in the Cluster object.
+- Embedding the provider spec makes it difficult to implement the logic of the provider as an independent controller watching for changes in the specs. Instead, providers implement cluster controllers which embed the generic logic and a provider-specific actuator which implements the logic for handling events in the Cluster object.
 - Embedding the provider status as part of the Cluster requires that either the generic cluster controller be responsible for pulling this state from the provider (e.g. by invoking a provider actuator) or the provider updating this field, incurring in overlapping responsibilities.
 
 ### Goals
 
-1. To use Kubernetes Controllers to manage the lifecycle of provider specific cluster infrastructure object.
-1. To validate provider-specific object as early as possible (create, update).
+1. To use Kubernetes Controllers to manage the lifecycle of provider-specific cluster infrastructure object.
+1. To validate a provider-specific object as early as possible (create, update).
 1. Allow cluster providers to expose the status via a status subresource, eliminating the need of status updates across controllers.
 
 ### Non-Goals/Future Work
 1. To modify the generic Cluster object beyond the elements related to the provider-specific specs and status.
-1. Splitting the provider-specific infrastructure into more granular elements, such as network infrastructure and control plane specs. Revisiting the definition of the provider specific infrastructure is left for further proposals.
+1. Splitting the provider-specific infrastructure into more granular elements, such as network infrastructure and control plane specs. Revisiting the definition of the provider-specific infrastructure is left for further proposals.
 1. To replace the cluster status by alternative representations, such as a list of conditions.
 1. To propose cluster state lifecycle hooks. This must be part of a future proposal that builds on these proposed changes
 
@@ -96,7 +96,7 @@ type ClusterSpec struct
 - **To remove**
     - **ProviderSpec** [optional] _Superseded by InfrastructureRef_
         - Type: `ProviderSpec`
-        - Description:  Provider-specific serialized configuration to use during cluster creation. It is recommended that providers maintain  their own versioned API types that should be  serialized/deserialized from this field.
+        - Description: Provider-specific serialized configuration to use during cluster creation. It is recommended that providers maintain their own versioned API types that should be serialized/deserialized from this field.
 
 - **To add**
     - **InfrastructureRef**
@@ -109,7 +109,7 @@ type ClusterStatus struct
 - **To remove**
     - **ProviderStatus** [optional]
         - Type: `*runtime.RawExtension`
-        - Description:  Provider-specific status. It is recommended that providers maintain their own versioned API types that should be serialized/deserialized from this field.
+        - Description: Provider-specific status. It is recommended that providers maintain their own versioned API types that should be serialized/deserialized from this field.
 
 - **To add**
     - **InfrastructureReady** [optional]
@@ -120,7 +120,7 @@ type ClusterStatus struct
 
 Moving the provider-specific infrastructure specs to a separate object makes a clear separation of responsibilities between the generic Cluster controller and the provider's cluster infrastructure controller, but also introduces the need for coordination as the provider controller will likely require information from the Cluster object during the cluster provisioning process.
 
-It is also necessary to model the state of the cluster along the provisioning process to be able to keep track of its progress. In order to do so, a new `InfrastructureReady` field is introduced as part of the `ClusterStatus` struct. The state and their transitions conditions are explained in detail in section [States and Transition](#states-and-transitions).
+It is also necessary to model the state of the cluster along the provisioning process to be able to keep track of its progress. In order to do so, a new `InfrastructureReady` field is introduced as part of the `ClusterStatus` struct. The state and their transition conditions are explained in detail in section [States and Transition](#states-and-transitions).
 
 The sequence diagram below describes the high-level process, collaborations and state transitions.
 <!--https://sequencediagram.org/index.html#initialData=C4S2BsFMAIDEQOYFcBOMDMAuaBVAzpCtAMZoCGwke0Z0AtmcQBYgB2MA7mE9ANZIAjSGQAmdaAID2k4HmAoyAB0WEAUKsbBJRfGtUBiaAFoj0AOIAlAPI4ACgGVo9gCoBBC8+Mn1isilDEIL6swAgokkiK0PrgiEyhaJCs0Kq+-iCBwcDQrrYAkk6EAG5qSSI+fgFBZCFhEVExccAC4EgwqZUZ1SHQAMKtcoQ5+dAAsows7H2SIeHgUCiqZeqGJubWdo4AogByACJeRuq6KEYAfLkF9sWEmPxCxBA0yuAAnsYAZvQTbJAAdK8yHRwKpLoUUCVTuczv0kIMiGDxsxftNZpJ5rdoDtIBwxj92OpYfDhgUkZMYL0ZvJ0Qtzn0BpQESMySjKWiMShMCypmzqRzoBZIMQZoEoBpHiAihQKQyhoj8RSqXMFupVKwZDBJJD6XDGSS8cieUqaZjTIBQcgN5L+9mAFDhf1sTDIBGgIGokDoimArwAOqxzZbftaVMQ-gAhaSyeRKP57Ci0N3QAA8rBA4DOfoD3P+9hD4cjcgUij+bI+iEFX0TikkiiQ4GlIkz0At2eDQvzMkLMdL5cgXzpNrteAdTpdifV2QARILRK9J+oa9lBQBHJAgNAiaAzN6ur7AJiagQAKyF2VHrAA5NkhEloARb0IPtpIKoiXr5YbFezaWcdcSP+SqJ8gsmCuCIm4cBQzBDE+RB+q2ubthGnbRsWPYIBWfwANJsJukjHqeeBLKw5SqIuAqQKu66QHhrA7iAe4HluBGPNA55XhIkC3veySPs+r6ykypIKkByqEHSb5ysyIm8mJnJgRBUEHkQsHQPBCptqGeSsB8CiFkgjyoJAmE4SRzEno81DQNZ1nEaR5ErmuG5bnR7wMdA+6HhZZ7Ope15cckPGcbBL6SUJgZGt+4m-mF+rZqJJryeB0CQcA0EqdoamsAhebIVGRYljMZYYX22G4eZhF2QuXoUVRznbm5jFeae0AiJIVB+WxZAlDQEWahw7BEGgHyEEkxChYJcUycaHISZNAGsjNIHXNkOVIQWqGFTpvb9r+VgDYQFajaw414AA2gADAAuh5kh9QJupScJn4JbNFwjNcEKYjgigiNK0BYYIwhiHlXaKOhD3-tJL2yYlSZJiYYKfZC2CCng1asAQVVkTVjnUbR9FNRVrFtR1HFOj1tDxZIB1DX2x3jZD77Q4BsNvX+zPPazS23CtfWaX82m6c68gGcARkVsYe200daAnVQl03Vo92xQtkXAdFSM3JyuC-f9rgAOr2ELemi4ZaAQ6rLOLVFKDw4jH3a6jVAY1jyxM09fWvT+HOe-FbPLZAq0aYO4vDo6zowAAvNAk62GUbAIPOHvhf7POnO9VxO7rf2UF7odwinU0w+n9tGFrX062jrsvqoIjCBKUp51bXM2xrKBAA -->
@@ -198,7 +198,12 @@ The Cluster Controller should be the only controller having write permissions to
 
 #### Cluster Controller dynamic watchers
 
-As the provider spec data is no longer inlined in the Cluster object, the Cluster Controller needs to watch for updates to provider specific resources so it can detect events. To achieve this, when the Cluster Controller reconciles a Cluster and detects a reference to a provider-specific infrastructure object, it starts watching this resource using the [dynamic informer](https://godoc.org/k8s.io/client-go/dynamic/dynamicinformer) and a [`handler.EnqueueRequestForOwner`](https://godoc.org/sigs.k8s.io/controller-runtime/pkg/handler#EnqueueRequestForOwner) configured with Cluster as the OwnerType, to ensure it only watches provider objects related to a CAPI cluster.
+As the provider spec data is no longer inlined in the Cluster object, the Cluster Controller needs to watch for 
+updates to provider-specific resources so it can detect events. To achieve this, when the Cluster Controller 
+reconciles a Cluster and detects a reference to a provider-specific infrastructure object, it starts watching this 
+resource using the [dynamic informer](https://godoc.org/k8s.io/client-go/dynamic/dynamicinformer) and a [`handler.
+EnqueueRequestForOwner`](https://godoc.org/sigs.k8s.io/controller-runtime/pkg/handler#EnqueueRequestForOwner) 
+configured with Cluster as the OwnerType, to ensure it only watches provider objects related to a CAPI cluster.
 
 ### Risks and Mitigations
 

@@ -44,8 +44,8 @@ func TestReleaseNotesIntegration(t *testing.T) {
 			expected: "test/golden/v1.3.10.md",
 		},
 		{
-			// By default when using the `--release` options, notes command computes
-			// everything from last tag to HEAD. Hence if we use the head of release-1.5,
+			// By default, when using the `--release` options, notes command computes
+			// everything from last tag to HEAD. Hence, if we use the head of release-1.5,
 			// this test will become invalid every time we backport some PR to release
 			// branch release-1.5.
 			// Instead, to simulate the v1.5.0 release, we manually set the `--to` flag,
@@ -68,7 +68,7 @@ func TestReleaseNotesIntegration(t *testing.T) {
 				g.Expect(os.Chdir(orgCurrentDir)).To(Succeed())
 			})
 
-			// a two workers config is slow but it guarantees no rate limiting
+			// a two-worker config is slow, but it guarantees no rate limiting
 			os.Args = append([]string{os.Args[0]}, tc.args...)
 
 			old := os.Stdout // keep backup of the real stdout to restore later
@@ -77,7 +77,7 @@ func TestReleaseNotesIntegration(t *testing.T) {
 			os.Stdout = w
 
 			t.Cleanup(func() {
-				// Reset defined flags so we can can call cmd.run() again
+				// Reset defined flags so we can call cmd.run() again
 				flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 			})
 

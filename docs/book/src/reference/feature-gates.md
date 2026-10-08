@@ -17,7 +17,7 @@ The following tables are a summary of the feature gates that are available in Cl
 
 ## Enabling Feature Gates for Management Clusters Started with clusterctl
 
-Users can enable/disable features gates by setting OS environment variables before running `clusterctl init`, e.g.:
+Users can enable/disable feature gates by setting OS environment variables before running `clusterctl init`, e.g.:
 
 ```yaml
 export EXP_SOME_FEATURE_NAME=true
@@ -39,8 +39,8 @@ As an example, Cluster API Provider Azure (CAPZ) has support for MachinePool thr
 
 ## Enabling Feature Gates for e2e Tests
 
-One way to enable fature gates for E2E tests it to set environment variables on the clusterctl config file used
-to boostrap the management cluster used during the test. For CAPI, these configs are under ./test/e2e/config/... such as `docker.yaml`:
+One way to enable feature gates for E2E tests is to set environment variables on the clusterctl config file used
+to bootstrap the management cluster used during the test. For CAPI, these configs are under ./test/e2e/config/... such as `docker.yaml`:
 
 ```yaml
 variables:
@@ -53,7 +53,7 @@ Another way is to set them as environmental variables before running e2e tests.
 
 ## Enabling Feature Gates on Tilt
 
-On development environments started with `Tilt`, features gates can be enabled by setting the feature variables in `kustomize_substitutions`, e.g.:
+In development environments started with `Tilt`, feature gates can be enabled by setting the feature variables in `kustomize_substitutions`, e.g.:
 
 ```yaml
 kustomize_substitutions:
@@ -66,7 +66,7 @@ For more details on setting up a development environment with `tilt`, see [Devel
 
 ## Enabling Feature Gates on Existing Management Clusters
 
-To enable/disable features gates on existing management clusters, users can edit the corresponding controller manager
+To enable/disable feature gates on existing management clusters, users can edit the corresponding controller manager
 deployments, which will then trigger a restart with the requested features. E.g. for the CAPI controller manager
 deployment:
 
@@ -86,7 +86,7 @@ Similarly, to **validate** if a particular feature is enabled, see the arguments
 kubectl describe -n capi-system deployment.apps/capi-controller-manager
 ```
 
-Following controller manager deployments have to be edited in order to enable/disable their respective feature gates:
+The following controller manager deployments have to be edited in order to enable/disable their respective feature gates:
 
 * [ClusterClass](../tasks/cluster-class/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).

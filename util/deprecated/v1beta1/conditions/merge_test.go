@@ -152,7 +152,7 @@ func TestNewConditionsGroup(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(got).To(HaveLen(5))
 
-		// The top group should be False/Error and it should have two condition
+		// The top group should be False/Error and it should have two conditions
 		g.Expect(got.TopGroup().status).To(Equal(corev1.ConditionFalse))
 		g.Expect(got.TopGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
 		g.Expect(got.TopGroup().conditions).To(HaveLen(2))
@@ -162,7 +162,7 @@ func TestNewConditionsGroup(t *testing.T) {
 		g.Expect(got.TrueGroup().severity).To(Equal(clusterv1.ConditionSeverityNone))
 		g.Expect(got.TrueGroup().conditions).To(HaveLen(4))
 
-		// The error group should be False/Error and it should have two condition
+		// The error group should be False/Error and it should have two conditions
 		g.Expect(got.ErrorGroup().status).To(Equal(corev1.ConditionFalse))
 		g.Expect(got.ErrorGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
 		g.Expect(got.ErrorGroup().conditions).To(HaveLen(2))
@@ -172,7 +172,7 @@ func TestNewConditionsGroup(t *testing.T) {
 		g.Expect(got.WarningGroup().severity).To(Equal(clusterv1.ConditionSeverityWarning))
 		g.Expect(got.WarningGroup().conditions).To(HaveLen(4))
 
-		// got[0] should be False/Error and it should have two condition
+		// got[0] should be False/Error and it should have two conditions
 		g.Expect(got[0].status).To(Equal(corev1.ConditionFalse))
 		g.Expect(got[0].severity).To(Equal(clusterv1.ConditionSeverityError))
 		g.Expect(got[0].conditions).To(HaveLen(2))
@@ -182,7 +182,7 @@ func TestNewConditionsGroup(t *testing.T) {
 		g.Expect(got[1].severity).To(Equal(clusterv1.ConditionSeverityWarning))
 		g.Expect(got[1].conditions).To(HaveLen(4))
 
-		// got[2] should be False/Info and it should have two condition
+		// got[2] should be False/Info and it should have two conditions
 		g.Expect(got[2].status).To(Equal(corev1.ConditionFalse))
 		g.Expect(got[2].severity).To(Equal(clusterv1.ConditionSeverityInfo))
 		g.Expect(got[2].conditions).To(HaveLen(2))
@@ -192,7 +192,7 @@ func TestNewConditionsGroup(t *testing.T) {
 		g.Expect(got[3].severity).To(Equal(clusterv1.ConditionSeverityNone))
 		g.Expect(got[3].conditions).To(HaveLen(4))
 
-		// got[4] should be Unknown and it should have two condition
+		// got[4] should be Unknown and it should have two conditions
 		g.Expect(got[4].status).To(Equal(corev1.ConditionUnknown))
 		g.Expect(got[4].severity).To(Equal(clusterv1.ConditionSeverityNone))
 		g.Expect(got[4].conditions).To(HaveLen(2))

@@ -51,7 +51,7 @@ type Config struct {
 func (cfg *Config) NewSignedCert(key crypto.Signer, caCert *x509.Certificate, caKey crypto.Signer) (*x509.Certificate, error) {
 	serial, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
-		return nil, pkgerrors.Wrap(err, "failed to generate random integer for signed cerficate")
+		return nil, pkgerrors.Wrap(err, "failed to generate random integer for signed certificate")
 	}
 
 	if cfg.CommonName == "" {

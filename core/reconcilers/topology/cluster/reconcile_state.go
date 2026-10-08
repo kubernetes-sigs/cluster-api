@@ -87,7 +87,7 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 	// Reconcile desired state of the ControlPlane object.
 	createdControlPlane, errControlPlane := r.reconcileControlPlane(ctx, s)
 	if errControlPlane != nil {
-		// NOTE: report control plane error immediately only if we did not just create the infrastructure cluster; otherwise attempt reconcile cluster before returning.
+		// NOTE: report control plane error immediately only if we did not just create the infrastructure cluster; otherwise attempt to reconcile the cluster before returning.
 		if !createdInfraCluster {
 			return errControlPlane
 		}
@@ -184,7 +184,7 @@ func (r *Reconciler) callAfterHooks(ctx context.Context, s *scope.Scope) error {
 }
 
 func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *scope.Scope) error {
-	// If the cluster topology is being created then track to intent to call the AfterControlPlaneInitialized hook so that we can call it later.
+	// If the cluster topology is being created then track the intent to call the AfterControlPlaneInitialized hook so that we can call it later.
 	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
 		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, false, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
 			return err
@@ -232,7 +232,7 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 	// Note: also check that the AfterControlPlaneUpgrade hooks and the AfterWorkersUpgrade hooks already have been called.
 	if hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) && !hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) && !hooks.IsPending(runtimehooksv1.AfterWorkersUpgrade, s.Current.Cluster) {
 		// Call the registered extensions for the hook after the cluster is fully upgraded.
-		// A clusters is considered fully upgraded if:
+		// A cluster is considered fully upgraded if:
 		// - Control plane is stable (not upgrading, not scaling, not about to upgrade)
 		// - MachineDeployments/MachinePools are not currently upgrading
 		// - MachineDeployments/MachinePools are not pending an upgrade

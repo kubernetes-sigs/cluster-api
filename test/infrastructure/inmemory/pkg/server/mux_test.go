@@ -848,7 +848,7 @@ func getCachingClient(restConfig *rest.Config) (client.WithWatch, context.Cancel
 	return c, cancelCache, nil
 }
 
-// newCertificateAuthority creates new certificate and private key for the certificate authority.
+// newCertificateAuthority creates a new certificate and private key for the certificate authority.
 func newCertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
 	key, err := certs.NewPrivateKey()
 	if err != nil {

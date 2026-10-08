@@ -229,7 +229,7 @@ func (r *Reconciler) createInfraMachine(ctx context.Context, kcp *controlplanev1
 	// Create the full object with capi-kubeadmcontrolplane.
 	// Below ssa.RemoveManagedFieldsForLabelsAndAnnotations will drop ownership for labels and annotations
 	// so that in a subsequent syncMachines call capi-kubeadmcontrolplane-metadata can take ownership for them.
-	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
+	// Note: This is done in a way that it does not rely on managedFields being stored in the cache, so we can optimize
 	// memory usage by dropping managedFields before storing objects in the cache.
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, infraMachine); err != nil {
 		return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create InfraMachine")
@@ -259,7 +259,7 @@ func (r *Reconciler) createKubeadmConfig(ctx context.Context, kcp *controlplanev
 	// Create the full object with capi-kubeadmcontrolplane.
 	// Below ssa.RemoveManagedFieldsForLabelsAndAnnotations will drop ownership for labels and annotations
 	// so that in a subsequent syncMachines call capi-kubeadmcontrolplane-metadata can take ownership for them.
-	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
+	// Note: This is done in a way that it does not rely on managedFields being stored in the cache, so we can optimize
 	// memory usage by dropping managedFields before storing objects in the cache.
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, kubeadmConfig); err != nil {
 		return nil, clusterv1.ContractVersionedObjectReference{}, pkgerrors.Wrapf(err, "failed to create KubeadmConfig")

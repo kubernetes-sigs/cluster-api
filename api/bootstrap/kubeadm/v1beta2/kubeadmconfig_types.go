@@ -32,7 +32,7 @@ const (
 	// CloudConfig make the bootstrap data to be of cloud-config format.
 	CloudConfig Format = "cloud-config"
 
-	// Ignition make the bootstrap data to be of Ignition format.
+	// Ignition makes the bootstrap data use the Ignition format.
 	Ignition Format = "ignition"
 )
 
@@ -63,7 +63,7 @@ type KubeadmConfigSpec struct {
 	// +optional
 	DiskSetup DiskSetup `json:"diskSetup,omitempty,omitzero"`
 
-	// mounts specifies a list of mount points to be setup.
+	// mounts specifies a list of mount points to be set up.
 	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
@@ -193,7 +193,7 @@ type KubeadmConfigStatus struct {
 	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested fields are removed.
 	// +optional
 	Deprecated *KubeadmConfigDeprecatedStatus `json:"deprecated,omitempty"`
 }
@@ -210,24 +210,24 @@ type KubeadmConfigInitializationStatus struct {
 // KubeadmConfigDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type KubeadmConfigDeprecatedStatus struct {
-	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 	// +optional
 	V1Beta1 *KubeadmConfigV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// KubeadmConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// KubeadmConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 is dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type KubeadmConfigV1Beta1DeprecatedStatus struct {
 	// conditions defines current service state of the KubeadmConfig.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// failureReason will be set on non-retryable errors
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -236,7 +236,7 @@ type KubeadmConfigV1Beta1DeprecatedStatus struct {
 
 	// failureMessage will be set on non-retryable errors
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -363,7 +363,7 @@ type File struct {
 	// +optional
 	Encoding Encoding `json:"encoding,omitempty"`
 
-	// append specifies whether to append Content to existing file if Path exists.
+	// append specifies whether to append Content to an existing file if Path exists.
 	// +optional
 	Append *bool `json:"append,omitempty"`
 
@@ -551,13 +551,13 @@ func (r *NTP) IsDefined() bool {
 // DiskSetup defines input for generated disk_setup and fs_setup in cloud-init.
 // +kubebuilder:validation:MinProperties=1
 type DiskSetup struct {
-	// partitions specifies the list of the partitions to setup.
+	// partitions specifies the list of the partitions to set up.
 	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Partitions []Partition `json:"partitions,omitempty"`
 
-	// filesystems specifies the list of file systems to setup.
+	// filesystems specifies the list of file systems to set up.
 	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
@@ -590,8 +590,8 @@ type Partition struct {
 	// +optional
 	Overwrite *bool `json:"overwrite,omitempty"`
 
-	// tableType specifies the tupe of partition table. The following are supported:
-	// 'mbr': default and setups a MS-DOS partition table
+	// tableType specifies the type of partition table. The following are supported:
+	// 'mbr': default and sets up an MS-DOS partition table
 	// 'gpt': setups a GPT partition table
 	// +optional
 	// +kubebuilder:validation:Enum=mbr;gpt

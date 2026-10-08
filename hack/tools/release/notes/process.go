@@ -165,7 +165,7 @@ func (g prEntriesProcessor) generateNoteEntry(p *pr) *notesEntry {
 		// Release trigger PRs from previous releases are not included in the release notes
 		return nil
 	case strings.HasPrefix(entry.title, ":seedling:"), strings.HasPrefix(entry.title, "🌱"):
-		// Skip PRs from depndabot. Dependency updates are listed in the dependencies section.
+		// Skip PRs from dependabot. Dependency updates are listed in the dependencies section.
 		if p.user == "dependabot[bot]" {
 			return nil
 		}

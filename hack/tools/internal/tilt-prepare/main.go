@@ -825,7 +825,7 @@ func prepareWorkload(prefix, binaryName, containerName string, objs []unstructur
 			// remove securityContext for tilt live_update, see https://github.com/tilt-dev/tilt/issues/3060
 			container.SecurityContext = nil
 			// ensure it's also removed from the pod template matching this container
-			// setting this outside the loop would means altering every deployments
+			// setting this outside the loop would mean altering every deployment
 			deployment.Spec.Template.Spec.SecurityContext = nil
 
 			// alter deployment for working nicely with delve debugger;
@@ -886,7 +886,7 @@ func updateDeployment(prefix string, objs []unstructured.Unstructured, f updateD
 		if obj.GetKind() != "Deployment" {
 			continue
 		}
-		// Ignore Deployments that are not part of the provider, eg. ASO in CAPZ.
+		// Ignore Deployments that are not part of the provider, e.g. ASO in CAPZ.
 		if _, exists := obj.GetLabels()[clusterv1.ProviderNameLabel]; !exists {
 			continue
 		}
@@ -985,7 +985,7 @@ func updateNamespacePodSecurityStandard(objs []unstructured.Unstructured) {
 		if obj.GetKind() != "Namespace" {
 			continue
 		}
-		// Ignore Deployments that are not part of the provider, eg. ASO in CAPZ.
+		// Ignore Deployments that are not part of the provider, e.g. ASO in CAPZ.
 		if _, exists := obj.GetLabels()[clusterv1.ProviderNameLabel]; !exists {
 			continue
 		}

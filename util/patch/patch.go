@@ -248,7 +248,7 @@ func (h *Helper) patchStatus(ctx context.Context, obj client.Object) error {
 // we allow different controllers to act on conditions of the same object.
 //
 // This method has an internal backoff loop. When a conflict is detected, the method
-// asks the Client for the a new version of the object we're trying to patch.
+// asks the Client for a new version of the object we're trying to patch.
 //
 // Condition changes are then applied to the latest version of the object, and if there are
 // no unresolvable conflicts, the patch is sent again.

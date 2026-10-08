@@ -1,13 +1,13 @@
 ---
 title: Label & Annotation Sync Between Machines and underlying Kubernetes Nodes
 authors:
-- "@arvinderpal" (original proposal author)
-- "@enxebre"     (original proposal author)
+- "@arvinderpal" # original proposal author
+- "@enxebre"     # original proposal author
 - "@fabriziopandini"
 reviewers:
-- @sbueringer
-- @oscar
-- @vincepri
+- "@sbueringer"
+- "@oscar"
+- "@vincepri"
 creation-date: 2022-02-10
 last-updated: 2022-02-26
 status: implementable

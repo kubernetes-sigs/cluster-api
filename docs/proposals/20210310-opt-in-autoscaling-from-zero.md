@@ -56,7 +56,7 @@ status: implementable
   differently by each autoscaler cloud implementation. In the case of Cluster API, node groups correspond
   directly to MachineSets and MachineDeployments that are marked for autoscaling.
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 ## Summary
 
@@ -285,7 +285,7 @@ _Note: the annotations will be defined in the cluster autoscaler, not in cluster
 
 Users may specify node labels and taints through the following mechanisms:
 
-1. **MachineSet or MachineDeployment labels** - Labels with the `node.cluster.x-k8s.io/` prefix in `spec.template.spec.metadata.labels` will be propagated to Nodes per CAPI's [metadata propagation](https://cluster-api.sigs.k8s.io/reference/api/metadata-propagation) behavior.
+1. **MachineSet or MachineDeployment labels** - Labels with the `node.cluster.x-k8s.io/` prefix in `spec.template.spec.metadata.labels` will be propagated to Nodes per CAPI's [metadata propagation](../book/src/reference/api/metadata-propagation.md) behavior.
 
 ```
 kind: <MachineSet or MachineDeployment>

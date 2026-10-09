@@ -81,7 +81,7 @@ Last but not least, the end state should also tackle most of the code organizati
 - Acknowledge or support [Hyrum's Law](https://www.hyrumslaw.com/).
   - Each consumer of a Go dependency must perform careful due diligence before adding dependencies to their projects, 
     and this implies that they have to take into account the guarantees that any dependencies including Cluster API offers.
-  - See also [The right to be Unfinished](https://cluster-api.sigs.k8s.io/user/manifesto#the-right-to-be-unfinished) and [The complexity budget](https://cluster-api.sigs.k8s.io/user/manifesto#the-complexity-budget) in the Cluster API manifest.
+  - See also [The right to be Unfinished](../book/src/user/manifesto.md#the-right-to-be-unfinished) and [The complexity budget](../book/src/user/manifesto.md#the-complexity-budget) in the Cluster API manifest.
 
 ## Proposal
 
@@ -199,7 +199,7 @@ Accordingly, moving code to `sigs.k8s.io/cluster-api/utils` will be subject to a
 the decision will also consider factors like:
 - Community interest / number of possible consumers / number of candidate maintainers 
 - The readiness of the code to become part of a library intended for broader usage across the CAPI ecosystem
-- The notion of [the complexity budget](https://cluster-api.sigs.k8s.io/user/manifesto#the-complexity-budget)
+- The notion of [the complexity budget](../book/src/user/manifesto.md#the-complexity-budget)
 - etc.
 
 Last but not least, please note that for the `sigs.k8s.io/cluster-api` Go module it is allowed to bump the min Go version 

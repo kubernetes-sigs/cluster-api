@@ -284,6 +284,6 @@ This feature is linked to MachinePools feature, and therefore awaits its graduat
 - [x] 05/18/2022: Update proposal to address newer feedback
 
 <!-- Links -->
-[Cluster API Book Glossary]: https://cluster-api.sigs.k8s.io/reference/glossary.html
-[MachineDeployment]: https://cluster-api.sigs.k8s.io/user/concepts.html#machinedeployment
-[provider contract]: https://cluster-api.sigs.k8s.io/developer/core/controllers/machine-pool#infrastructure-provider
+[Cluster API Book Glossary]: ../book/src/reference/glossary.md
+[MachineDeployment]: ../book/src/user/concepts.md#machinedeployment
+[provider contract]: ../book/src/developer/providers/contracts/infra-machinepool.md

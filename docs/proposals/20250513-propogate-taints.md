@@ -71,7 +71,7 @@ see-also:
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 ## Summary
 
@@ -88,7 +88,7 @@ Very early versions of Kubernetes tracked taints as annotations, but they have l
 ## Motivation
 
 As stated in the goals of the project, Cluster API tries to "define common operations" and "manage the lifecycle [...] of Kubernetes-conformant Clusters using a declarative API"
-[[0]](https://main.cluster-api.sigs.k8s.io/introduction#goals).
+[[0]](../book/src/introduction.md#goals).
 Users of Cluster API can currently update labels and annotations on Cluster API objects and have those values propagate from their high level resources all the way down to nodes (see the [related proposal](./20220927-labels-and-annotations-sync-between-machine-and-nodes.md) for more context).
 While this is useful, it does not provide a way to, for example, reserve a set of nodes for specific workloads like GPU or network functions.
 
@@ -440,7 +440,7 @@ This ensures that a node ever only gets these taints added once, at the time of 
 
 If a Node re-registers itself, the controller would add the `OnInitialization` taints again in addition to the `Always` taints because the tracking annotation does not exist.
 
-**Note:** If a bootstrap provider supports the `node.cluster.x-k8s.io/uninitialized` taint as documented in [Contract rules for BootstrapConfig](https://cluster-api.sigs.k8s.io/developer/providers/contracts/bootstrap-config#taint-nodes-at-creation), the implementation ensures that all `OnInitialization` taints are applied in the same call through which the `node.cluster.x-k8s.io/uninitialized` taint is getting removed. This prevents that workload without proper tolerations could be scheduled to the node in the time between node creation and Cluster API adding the `OnInitialization` taints.
+**Note:** If a bootstrap provider supports the `node.cluster.x-k8s.io/uninitialized` taint as documented in [Contract rules for BootstrapConfig](../book/src/developer/providers/contracts/bootstrap-config.md#taint-nodes-at-creation), the implementation ensures that all `OnInitialization` taints are applied in the same call through which the `node.cluster.x-k8s.io/uninitialized` taint is getting removed. This prevents that workload without proper tolerations could be scheduled to the node in the time between node creation and Cluster API adding the `OnInitialization` taints.
 
 **Note:** A taint added by a bootstrap provider (e.g. CABPK) will be treated as a taint added by any other actor and will not get special handling. Especially for an `Always` taint this means the machine controller would adopt the taint and start tracking it.
 
@@ -464,7 +464,7 @@ This should be done similar to how the existing in-place mutable fields like `Re
 
 ##### Changes to the cluster-autoscaler
 
-The cluster-autoscaler implementation for CAPI as of today consumes the `capacity.cluster-autoscaler.kubernetes.io/taints` (see [Pre-defined labels and taints on nodes scaled from zero](https://cluster-api.sigs.k8s.io/tasks/automated-machine-management/autoscaling#pre-defined-labels-and-taints-on-nodes-scaled-from-zero)).
+The cluster-autoscaler implementation for CAPI as of today consumes the `capacity.cluster-autoscaler.kubernetes.io/taints` (see [Pre-defined labels and taints on nodes scaled from zero](../book/src/user/guide/lifecycle/autoscaling.md#pre-defined-labels-and-taints-on-nodes-scaled-from-zero)).
 
 It should be adjusted to also consider the configured taints.
 

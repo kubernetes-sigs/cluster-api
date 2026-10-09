@@ -92,7 +92,7 @@ To reduce the amount of flakes please periodically:
 ### Post-release cleanup
 Once the new minor release (e.g., `v1.8.0`) has been officially cut, perform the following cleanup:
 
-1. In [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/), remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file according to our policy documented in [Support and guarantees](https://cluster-api.sigs.k8s.io/reference/versions#cluster-api-release-support).
+1. In [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/), remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file according to our policy documented in [Support and guarantees](../../../book/src/reference/versions.md#cluster-api-release-support).
 
    We can now drop test coverage for branches out of support (e.g. `release-1.5`).
 

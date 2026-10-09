@@ -194,7 +194,7 @@ a new supported version; compatibility for older contract versions will be dropp
 >
 > Also, might be that in future compatibility will be subject to limitations (e.g. compatibility only for infrastructure 
 > providers of an older contract version) e.g.
-> - A core provider implementing the v1beta2 contract will still read `status.failureReason` and `status.failureMessae` 
+> - A core provider implementing the v1beta2 contract will still read `status.failureReason` and `status.failureMessage` 
 >   from an infrastructure provider still implementing the v1beta1 contract, but those info won't be considered
 >   anymore by controllers as terminal failures nor trigger machine remediation (v1beta1 compatibility has some limitations).
 
@@ -356,7 +356,7 @@ To look up the max supported CoreDNS version of a specific Cluster API version:
 Note: unlike `kubeadm upgrade`, the Kubeadm Control Plane provider does not automatically upgrade CoreDNS to a new
 default version as part of a Kubernetes upgrade. CoreDNS is only reconciled when the target version is explicitly
 set in `KubeadmControlPlane.spec.kubeadmConfigSpec.clusterConfiguration.dns.imageTag`. See
-[How to upgrade CoreDNS](../tasks/upgrading-clusters.md#how-to-upgrade-coredns) for more details.
+[How to upgrade CoreDNS](../user/guide/lifecycle/upgrades.md#how-to-upgrade-coredns) for more details.
 
 ### Other providers
 

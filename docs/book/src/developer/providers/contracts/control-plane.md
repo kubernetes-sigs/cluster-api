@@ -839,7 +839,7 @@ Control Plane providers are expected to create and maintain a Kubeconfig secret 
 workload cluster.
 
 Such secret might be used also by operators to gain initial access to the cluster, but this secret MUST not be shared
-with other users or applications build on top of Cluster API. Instead, follow instruction in [Certificate Management](https://cluster-api.sigs.k8s.io/tasks/certs/)
+with other users or applications build on top of Cluster API. Instead, follow instruction in [Certificate Management](../../../user/guide/configuration/control-plane/using-custom-certificates.md)
 to create custom certificates for additional users or other applications.
 
 The kubeconfig secret MUST:
@@ -963,11 +963,11 @@ is implemented in ControlPlane controllers:
 [ControlPlane: terminal failures]: #controlplane-terminal-failures 
 [ControlPlaneTemplate, ControlPlaneTemplateList resource definition]: #controlplanetemplate-controlplanetemplatelist-resource-definition
 [Cluster kubeconfig management]: #cluster-kubeconfig-management
-[Certificate Management]: https://cluster-api.sigs.k8s.io/tasks/certs/
+[Certificate Management]: ../../../user/guide/configuration/control-plane/using-custom-certificates.md
 [Cluster certificate management]: #cluster-certificate-management
 [Machine placement]: #machine-placement
 [Metadata propagation]: #metadata-propagation
-[Metadata propagation rules]: https://main.cluster-api.sigs.k8s.io/reference/api/metadata-propagation
+[Metadata propagation rules]: ../../../reference/api/metadata-propagation.md
 [Label and Annotations Sync Between Machines and underlying Kubernetes Nodes]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220927-labels-and-annotations-sync-between-machine-and-nodes.md
 [MinReadySeconds and UpToDate propagation]: #minreadyseconds-and-uptodate-propagation
 [Support for running multiple instances]: #support-for-running-multiple-instances

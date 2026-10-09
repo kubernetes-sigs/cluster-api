@@ -291,7 +291,7 @@ Execute the run configuration with `Debug`.
 >
 > Now you can start the e2e test via IDE as described above but with the additional `-e2e.use-existing-cluster=true` flag.
 >
-> **Note**: This can also be used to debug controllers during e2e tests as described in [Developing Cluster API with Tilt](tilt.md#wiring-up-debuggers).
+> **Note**: This can also be used to debug controllers during e2e tests as described in [Developing Cluster API with Tilt](tilt.md).
 >
 > The e2e tests also create a local clusterctl repository. After it has been created on a first test execution this step can also be
 > skipped by setting `-e2e.clusterctl-config=<ARTIFACTS>/repository/clusterctl-config.yaml`. This also works with a clusterctl repository created
@@ -608,6 +608,5 @@ In Cluster API Unit and integration test MUST use [go test].
 [controller-runtime]: https://github.com/kubernetes-sigs/controller-runtime
 [envtest]: https://github.com/kubernetes-sigs/controller-runtime/tree/main/pkg/envtest
 [fakeclient]: https://github.com/kubernetes-sigs/controller-runtime/tree/main/pkg/client/fake
-[test/helpers]: https://github.com/kubernetes-sigs/cluster-api/tree/main/test/helpers
 
 [vscode-go]: https://marketplace.visualstudio.com/items?itemName=golang.Go

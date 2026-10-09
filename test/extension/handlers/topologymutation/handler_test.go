@@ -48,6 +48,51 @@ func init() {
 	_ = bootstrapv1.AddToScheme(testScheme)
 }
 
+func TestHandler_DiscoverVariables(t *testing.T) {
+	g := NewWithT(t)
+	h := NewExtensionHandlers()
+	resp := &runtimehooksv1.DiscoverVariablesResponse{}
+
+	h.DiscoverVariables(context.Background(), &runtimehooksv1.DiscoverVariablesRequest{}, resp)
+
+	g.Expect(resp.Status).To(Equal(runtimehooksv1.ResponseStatusSuccess))
+	g.Expect(resp.Variables).To(HaveLen(6))
+
+	expected := map[string]struct {
+		typeName string
+		required bool
+	}{
+		"kubeadmControlPlaneMaxSurge":      {typeName: "string"},
+		"etcdImageTag":                     {typeName: "string"},
+		"files":                            {typeName: "array"},
+		"preKubeadmCommands":               {typeName: "array"},
+		"kubeadmConfigTemplateAnnotations": {typeName: "object"},
+		"imageRepository":                  {typeName: "string", required: true},
+	}
+	variables := make(map[string]clusterv1.ClusterClassVariable, len(resp.Variables))
+	for _, variable := range resp.Variables {
+		variables[variable.Name] = variable
+	}
+	for name, want := range expected {
+		variable, ok := variables[name]
+		g.Expect(ok).To(BeTrue(), "variable %q should be returned", name)
+		g.Expect(variable.Required).NotTo(BeNil())
+		g.Expect(*variable.Required).To(Equal(want.required))
+		g.Expect(variable.Schema.OpenAPIV3Schema.Type).To(Equal(want.typeName))
+	}
+
+	maxSurge := variables["kubeadmControlPlaneMaxSurge"].Schema.OpenAPIV3Schema
+	g.Expect(string(maxSurge.Default.Raw)).To(Equal(`""`))
+	g.Expect(string(maxSurge.Example.Raw)).To(Equal(`"0"`))
+	g.Expect(maxSurge.Description).NotTo(BeEmpty())
+	g.Expect(maxSurge.XValidations).To(HaveLen(1))
+
+	imageRepository := variables["imageRepository"].Schema.OpenAPIV3Schema
+	g.Expect(string(imageRepository.Example.Raw)).To(Equal(`"kindest"`))
+	g.Expect(imageRepository.XMetadata.Labels).To(HaveKeyWithValue("objects", "DevCluster"))
+	g.Expect(imageRepository.XMetadata.Annotations).To(HaveKey("description"))
+}
+
 func Test_patchDevClusterTemplate(t *testing.T) {
 	g := NewWithT(t)
 

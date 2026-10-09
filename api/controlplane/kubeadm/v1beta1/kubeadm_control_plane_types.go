@@ -246,8 +246,15 @@ type RemediationStrategy struct {
 	//	If M1-2 (replacement of M1-1) becomes unhealthy, remediation-retry #2 will happen, etc.
 	//
 	// A retry could happen only after RetryPeriod from the previous retry.
-	// If a machine is marked as unhealthy after MinHealthyPeriod from the previous remediation expired,
-	// this is not considered a retry anymore because the new issue is assumed unrelated from the previous one.
+	//
+	// If a machine becomes unhealthy again before MinHealthyPeriod from the previous remediation expired,
+	// this is considered a retry of the same sequence.
+	//
+	// If a machine becomes unhealthy again after MinHealthyPeriod expired, this is not considered
+	// a retry anymore because the new issue is assumed unrelated from the previous one.
+	//
+	// Once MaxRetry is exhausted, remediation does not happen again until the machine becomes unhealthy
+	// after MinHealthyPeriod from the previous remediation expired.
 	//
 	// If not set, the remedation will be retried infinitely.
 	// +optional
@@ -265,12 +272,12 @@ type RemediationStrategy struct {
 	// counter restarts from 0. For example, assuming MinHealthyPeriod is set to 1h (default)
 	//
 	//	M1 become unhealthy; remediation happens, and M1-1 is created as a replacement.
-	//	If M1-1 (replacement of M1) has problems within the 1hr after the creation, also
+	//	If M1-1 (replacement of M1) becomes unhealthy within the 1hr after M1 has been remediated, also
 	//	this machine will be remediated and this operation is considered a retry - a problem related
 	//	to the original issue happened to M1 -.
 	//
-	//	If instead the problem on M1-1 is happening after MinHealthyPeriod expired, e.g. four days after
-	//	m1-1 has been created as a remediation of M1, the problem on M1-1 is considered unrelated to
+	//	If instead M1-1 becomes unhealthy after MinHealthyPeriod expired, e.g. four days after
+	//	M1 has been remediated, the problem on M1-1 is considered unrelated to
 	//	the original issue happened to M1.
 	//
 	// If not set, this value is defaulted to 1h.

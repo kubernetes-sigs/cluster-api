@@ -133,7 +133,11 @@ For example, given a control plane with three machines M1, M2, M3:
 
 A retry will only happen after the `retryPeriodSeconds` from the previous retry has elapsed. If `retryPeriodSeconds` is not set (default), a retry will happen immediately.
 
-If a machine is marked as unhealthy after `minHealthyPeriodSeconds` (default 3600) has passed since the previous remediation this is no longer considered a retry because the new issue is assumed unrelated to the previous one.
+If a machine becomes unhealthy again before `minHealthyPeriodSeconds` (default 3600) has passed since the previous 
+remediation, this is considered a retry of the same sequence.
+
+If a machine becomes unhealthy again after `minHealthyPeriodSeconds` has passed since the previous remediation, 
+this is no longer considered a retry because the new issue is assumed unrelated from the previous one and a new sequence starts.
 
 If `maxRetry` is not set (default), remediation will be retried infinitely.
 

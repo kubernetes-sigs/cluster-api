@@ -73,7 +73,7 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 			Status:             mhc.Spec.Checks.UnhealthyNodeConditions[0].Status,
 			LastTransitionTime: metav1.Time{Time: time.Now()},
 		}
-		PatchNodeCondition(ctx, PatchNodeConditionInput{
+		nodeName := PatchNodeCondition(ctx, PatchNodeConditionInput{
 			ClusterProxy:  input.ClusterProxy,
 			Cluster:       input.Cluster,
 			NodeCondition: unhealthyNodeCondition,
@@ -82,10 +82,11 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 
 		fmt.Fprintln(GinkgoWriter, "Waiting for remediation")
 		WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx, WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput{
-			ClusterProxy:       input.ClusterProxy,
-			Cluster:            input.Cluster,
-			MachineHealthCheck: mhc,
-			MachinesCount:      len(machines),
+			ClusterProxy:        input.ClusterProxy,
+			Cluster:             input.Cluster,
+			MachineHealthCheck:  mhc,
+			MachinesCount:       len(machines),
+			ExpectedDeletedNode: nodeName,
 		}, input.WaitForMachineRemediation...)
 	}
 }
@@ -122,10 +123,11 @@ func machineHealthCheckOptions(machineHealthCheck clusterv1.MachineHealthCheck) 
 
 // WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput is the input for WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition.
 type WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput struct {
-	ClusterProxy       ClusterProxy
-	Cluster            *clusterv1.Cluster
-	MachineHealthCheck *clusterv1.MachineHealthCheck
-	MachinesCount      int
+	ClusterProxy        ClusterProxy
+	Cluster             *clusterv1.Cluster
+	MachineHealthCheck  *clusterv1.MachineHealthCheck
+	MachinesCount       int
+	ExpectedDeletedNode string
 }
 
 // WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition patches a node condition to any one of the machines with a node ref.
@@ -135,6 +137,7 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 	Expect(input.MachineHealthCheck).NotTo(BeNil(), "Invalid argument. input.MachineHealthCheck can't be nil when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 	Expect(input.MachinesCount).NotTo(BeZero(), "Invalid argument. input.MachinesCount can't be zero when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
+	Expect(input.ExpectedDeletedNode).NotTo(BeEmpty(), "Invalid argument. input.ExpectedDeletedNode can't be empty when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 
 	fmt.Fprintln(GinkgoWriter, "Waiting until the node with unhealthy node condition is remediated")
 	Eventually(func() bool {
@@ -164,6 +167,22 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 				return false
 			}
 		}
+
+		nodes := &corev1.NodeList{}
+		// This should not be an Expect(), because it may return error during machine deletion.
+		err := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().List(ctx, nodes)
+		if err != nil {
+			fmt.Fprintf(GinkgoWriter, "Failed to get nodes: %s", err)
+			return false
+		}
+		Expect(nodes.Items).NotTo(BeEmpty())
+		for _, existingNode := range nodes.Items {
+			if existingNode.Name == input.ExpectedDeletedNode {
+				// This node should be deleted by remediation, but still exists
+				return false
+			}
+		}
+
 		return true
 	}, intervals...).Should(BeTrue())
 }

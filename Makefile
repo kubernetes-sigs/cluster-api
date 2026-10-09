@@ -591,6 +591,7 @@ DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
 generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-md-remediation --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-md-remediation.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-mp-remediation --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-mp-remediation.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-kcp-md-taints --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-kcp-md-taints.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-kcp-remediation --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-kcp-remediation.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-kcp-adoption/step1 --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-kcp-adoption.yaml

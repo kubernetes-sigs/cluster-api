@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -80,6 +81,8 @@ type Reconciler struct {
 	APIReader    client.Reader
 	ClusterCache clustercache.ClusterCache
 	DynamicCache dynamiccache.DynamicCache
+
+	PreflightChecks sets.Set[clusterv1.MachineSetPreflightCheck]
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string

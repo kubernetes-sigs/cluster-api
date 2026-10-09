@@ -4007,6 +4007,25 @@ MachinePoolList contains a list of MachinePool.
 
 
 
+#### MachinePoolRemediationSpec
+
+
+
+MachinePoolRemediationSpec controls how unhealthy Machines are remediated (through a MachineHealthCheck).
+This only applies to infrastructure providers supporting and enabling the
+"MachinePool Machines" feature. For other setups, no remediation is done.
+
+_Validation:_
+- MinProperties: 1
+
+_Appears in:_
+- [MachinePoolSpec](#machinepoolspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `maxInFlight` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#intorstring-intstr-util)_ | maxInFlight determines how many in flight remediations should happen at the same time.<br />MaxInFlight can be set to a fixed number or a percentage.<br />Example: when this is set to 20%, the MachinePool controller deletes at most 20% of<br />the desired replicas.<br />If not set, remediation is limited to all machines under the active MachinePool's management. |  | Optional: \{\} <br /> |
+
+
 #### MachinePoolSpec
 
 
@@ -4025,6 +4044,7 @@ _Appears in:_
 | `template` _[MachineTemplateSpec](#machinetemplatespec)_ | template describes the machines that will be created. |  | Required: \{\} <br /> |
 | `providerIDList` _string array_ | providerIDList are the identification IDs of machine instances provided by the provider.<br />This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances. |  | MaxItems: 10000 <br />items:MaxLength: 512 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 | `failureDomains` _string array_ | failureDomains is the list of failure domains this MachinePool should be attached to. |  | MaxItems: 100 <br />items:MaxLength: 256 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
+| `remediation` _[MachinePoolRemediationSpec](#machinepoolremediationspec)_ | remediation controls how unhealthy Machines are remediated (through a MachineHealthCheck).<br />This only applies to infrastructure providers supporting and enabling the<br />"MachinePool Machines" feature. For other setups, no remediation is done. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 
 
 #### MachinePoolStatus

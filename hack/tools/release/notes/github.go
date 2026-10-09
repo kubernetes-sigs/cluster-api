@@ -56,7 +56,13 @@ type githubDiff struct {
 }
 
 type githubCommitNode struct {
-	Commit githubCommit `json:"commit"`
+	SHA     string               `json:"sha"`
+	Parents []githubCommitParent `json:"parents"`
+	Commit  githubCommit         `json:"commit"`
+}
+
+type githubCommitParent struct {
+	SHA string `json:"sha"`
 }
 
 type githubCommitter struct {

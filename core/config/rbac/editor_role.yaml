@@ -1,0 +1,56 @@
+# Aggregates write access to the user-managed Cluster API resources into the builtin
+# "edit" and "admin" ClusterRoles.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: editor-role
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusters
+  - clusterclasses
+  - machines
+  - machinesets
+  - machinedeployments
+  - machinepools
+  - machinehealthchecks
+  - machinedrainrules
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - patch
+  - update
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machinesets/scale
+  - machinedeployments/scale
+  - machinepools/scale
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - addons.cluster.x-k8s.io
+  resources:
+  - clusterresourcesets
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - patch
+  - update
+- apiGroups:
+  - ipam.cluster.x-k8s.io
+  resources:
+  - ipaddressclaims
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - patch
+  - update

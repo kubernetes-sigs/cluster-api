@@ -354,6 +354,12 @@ const (
 	// not yet completed because a cluster upgrade is still in progress.
 	TopologyReconciledClusterUpgradingV1Beta1Reason = "ClusterUpgrading"
 
+	// TopologyReconciledWaitingForFailureDomainsV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster
+	// topology not yet completed because the creation of at least one MachineDeployment or MachinePool is deferred until
+	// the failure domains are reported in the Cluster, so that the failureDomain(s) requested in those objects can be
+	// validated.
+	TopologyReconciledWaitingForFailureDomainsV1Beta1Reason = "WaitingForFailureDomains"
+
 	// TopologyReconciledClusterClassNotReconciledV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology not
 	// yet completed because the ClusterClass has not reconciled yet. If this condition persists there may be an issue
 	// with the ClusterClass surfaced in the ClusterClass status or controller logs.

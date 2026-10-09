@@ -95,6 +95,11 @@ type WorkerUpgradeTracker struct {
 	// TopologyReconciled condition.
 	pendingCreateTopologyNames sets.Set[string]
 
+	// waitingForFailureDomainsTopologyNames is the set of MachineDeployment or MachinePool topology names whose creation
+	// is deferred because failureDomain(s) for the Cluster have not been reported yet, so the ones requested in the
+	// topology cannot be validated against them.
+	waitingForFailureDomainsTopologyNames sets.Set[string]
+
 	// pendingUpgradeNames is the set of MachineDeployment/MachinePool names that are not going to pick up the new version
 	// in the current reconcile loop.
 	// By marking a MachineDeployment/MachinePool as pendingUpgrade we skip reconciling the MachineDeployment/MachinePool.
@@ -180,18 +185,20 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 	}
 	return &UpgradeTracker{
 		MachineDeployments: WorkerUpgradeTracker{
-			pendingCreateTopologyNames: sets.Set[string]{},
-			pendingUpgradeNames:        sets.Set[string]{},
-			deferredNames:              sets.Set[string]{},
-			upgradingNames:             sets.Set[string]{},
-			maxUpgradeConcurrency:      options.maxMDUpgradeConcurrency,
+			pendingCreateTopologyNames:            sets.Set[string]{},
+			waitingForFailureDomainsTopologyNames: sets.Set[string]{},
+			pendingUpgradeNames:                   sets.Set[string]{},
+			deferredNames:                         sets.Set[string]{},
+			upgradingNames:                        sets.Set[string]{},
+			maxUpgradeConcurrency:                 options.maxMDUpgradeConcurrency,
 		},
 		MachinePools: WorkerUpgradeTracker{
-			pendingCreateTopologyNames: sets.Set[string]{},
-			pendingUpgradeNames:        sets.Set[string]{},
-			deferredNames:              sets.Set[string]{},
-			upgradingNames:             sets.Set[string]{},
-			maxUpgradeConcurrency:      options.maxMPUpgradeConcurrency,
+			pendingCreateTopologyNames:            sets.Set[string]{},
+			waitingForFailureDomainsTopologyNames: sets.Set[string]{},
+			pendingUpgradeNames:                   sets.Set[string]{},
+			deferredNames:                         sets.Set[string]{},
+			upgradingNames:                        sets.Set[string]{},
+			maxUpgradeConcurrency:                 options.maxMPUpgradeConcurrency,
 		},
 	}
 }
@@ -296,6 +303,31 @@ func (m *WorkerUpgradeTracker) IsAnyPendingCreate() bool {
 // are pending create.
 func (m *WorkerUpgradeTracker) PendingCreateTopologyNames() []string {
 	return sets.List(m.pendingCreateTopologyNames)
+}
+
+// MarkWaitingForFailureDomains marks a MachineDeployment or MachinePool topology whose creation is deferred because the
+// failureDomain(s) in the Cluster has not been reported yet, so the requested failureDomain(s) cannot be validated
+// against them.
+func (m *WorkerUpgradeTracker) MarkWaitingForFailureDomains(topologyName string) {
+	m.waitingForFailureDomainsTopologyNames.Insert(topologyName)
+}
+
+// IsWaitingForFailureDomains returns true if the creation of the MachineDeployment or MachinePool topology is deferred
+// waiting for failureDomain(s) in the Cluster to be reported.
+func (m *WorkerUpgradeTracker) IsWaitingForFailureDomains(topologyName string) bool {
+	return m.waitingForFailureDomainsTopologyNames.Has(topologyName)
+}
+
+// IsAnyWaitingForFailureDomains returns true if the creation of any MachineDeployment or MachinePool topology is
+// deferred waiting for failureDomain(s) in the Cluster to be reported. Returns false, otherwise.
+func (m *WorkerUpgradeTracker) IsAnyWaitingForFailureDomains() bool {
+	return len(m.waitingForFailureDomainsTopologyNames) != 0
+}
+
+// WaitingForFailureDomainsTopologyNames returns the list of MachineDeployment or MachinePool topology names whose
+// creation is deferred waiting for failureDomain(s) in the Cluster to be reported.
+func (m *WorkerUpgradeTracker) WaitingForFailureDomainsTopologyNames() []string {
+	return sets.List(m.waitingForFailureDomainsTopologyNames)
 }
 
 // MarkPendingUpgrade marks a machine deployment as in need of an upgrade.

@@ -77,6 +77,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               failureDomains:
                 description: failureDomains is the list of failure domains this MachinePool
                   should be attached to.
@@ -208,6 +211,9 @@ spec:
                         maxLength: 63
                         minLength: 1
                         type: string
+                        x-kubernetes-validations:
+                        - message: field is immutable
+                          rule: oldSelf == self
                       failureDomain:
                         description: |-
                           failureDomain is the failure domain the machine will be created in.
@@ -420,6 +426,9 @@ spec:
             - clusterName
             - template
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachinePool.
             properties:
@@ -790,6 +799,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               failureDomains:
                 description: failureDomains is the list of failure domains this MachinePool
                   should be attached to.
@@ -907,6 +919,9 @@ spec:
                         maxLength: 63
                         minLength: 1
                         type: string
+                        x-kubernetes-validations:
+                        - message: field is immutable
+                          rule: oldSelf == self
                       deletion:
                         description: deletion contains configuration options for Machine
                           deletion.
@@ -1131,6 +1146,9 @@ spec:
             - clusterName
             - template
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachinePool.
             minProperties: 1

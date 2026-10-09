@@ -107,60 +107,6 @@ func TestMachineBootstrapValidation(t *testing.T) {
 	}
 }
 
-func TestMachineClusterNameImmutable(t *testing.T) {
-	tests := []struct {
-		name           string
-		oldClusterName string
-		newClusterName string
-		expectErr      bool
-	}{
-		{
-			name:           "when the cluster name has not changed",
-			oldClusterName: "foo",
-			newClusterName: "foo",
-			expectErr:      false,
-		},
-		{
-			name:           "when the cluster name has changed",
-			oldClusterName: "foo",
-			newClusterName: "bar",
-			expectErr:      true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			newMachine := &clusterv1.Machine{
-				Spec: clusterv1.MachineSpec{
-					ClusterName: tt.newClusterName,
-					Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
-						Name: "bootstrap1",
-					}},
-				},
-			}
-			oldMachine := &clusterv1.Machine{
-				Spec: clusterv1.MachineSpec{
-					ClusterName: tt.oldClusterName,
-					Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
-						Name: "bootstrap1",
-					}},
-				},
-			}
-
-			warnings, err := (&Machine{}).ValidateUpdate(ctx, oldMachine, newMachine)
-			if tt.expectErr {
-				g.Expect(err).To(HaveOccurred())
-				g.Expect(warnings).To(BeEmpty())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(warnings).To(BeEmpty())
-			}
-		})
-	}
-}
-
 func TestMachineVersionValidation(t *testing.T) {
 	tests := []struct {
 		name      string

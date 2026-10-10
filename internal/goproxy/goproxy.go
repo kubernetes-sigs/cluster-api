@@ -81,7 +81,7 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 		var rawResponse []byte
 		var responseStatusCode int
 		var retryError error
-		_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(context.Context) (bool, error) {
+		pollErr := wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(context.Context) (bool, error) {
 			retryError = nil
 
 			resp, err := http.DefaultClient.Do(req)
@@ -111,8 +111,14 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 			}
 			return true, nil
 		})
+		if pollErr != nil && ctx.Err() != nil {
+			return nil, pollErr
+		}
 		if retryError != nil {
 			return nil, retryError
+		}
+		if pollErr != nil {
+			return nil, pollErr
 		}
 
 		// Don't try to read the versions if status was not found.

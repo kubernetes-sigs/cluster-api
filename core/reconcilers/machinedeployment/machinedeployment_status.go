@@ -233,6 +233,10 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 		})
 		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
 	}
+	if ptr.Deref(machineDeployment.Spec.Paused, false) {
+		message = fmt.Sprintf("Rollout is paused because spec.paused is set to true\n%s", message)
+	}
+
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentRollingOutCondition,
 		Status:  metav1.ConditionTrue,

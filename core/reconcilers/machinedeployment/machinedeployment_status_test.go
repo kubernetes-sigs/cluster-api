@@ -331,6 +331,30 @@ func Test_setRollingOutCondition(t *testing.T) {
 					"* InfrastructureMachine is not up-to-date",
 			},
 		},
+		{
+			name: "paused MachineDeployment with a not up-to-date machine surfaces the rollout as paused",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Paused: ptr.To(true),
+				},
+			},
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withCondition(metav1.Condition{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateReason,
+					Message: "* Version v1.25.0, v1.26.0 required",
+				})),
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentRollingOutReason,
+				Message: "Rollout is paused because spec.paused is set to true\n" +
+					"Rolling out 1 not up-to-date replicas\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

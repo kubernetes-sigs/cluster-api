@@ -3482,9 +3482,11 @@ func TestNodeDeletion(t *testing.T) {
 	testCases := []struct {
 		name                   string
 		deletionTimeoutSeconds *int32
+		nodeDeletionStartTime  *metav1.Time
 		resultErr              bool
 		clusterDeleted         bool
 		expectNodeDeletion     bool
+		expectPhaseClockSet    bool
 		expectDeletingReason   string
 		createFakeClient       func(...client.Object) client.Client
 	}{
@@ -3530,8 +3532,24 @@ func TestNodeDeletion(t *testing.T) {
 			},
 		},
 		{
+			name:                   "should retry when the timeout has not expired since node deletion started",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			expectPhaseClockSet:    true,
+			expectDeletingReason:   clusterv1.MachineDeletingDeletingNodeReason,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				fc := fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+				return fakeClientWithNodeDeletionErr{fc}
+			},
+		},
+		{
 			name:                   "should not return an error when timeout is expired and node deletion fails",
 			deletionTimeoutSeconds: ptr.To(int32(1)),
+			nodeDeletionStartTime:  &metav1.Time{Time: deletionTime},
 			resultErr:              false,
 			expectNodeDeletion:     false,
 			expectDeletingReason:   clusterv1.DeletionCompletedReason,
@@ -3566,6 +3584,9 @@ func TestNodeDeletion(t *testing.T) {
 
 			m := testMachine.DeepCopy()
 			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
+			if tc.nodeDeletionStartTime != nil {
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: *tc.nodeDeletionStartTime}
+			}
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 
@@ -3597,6 +3618,11 @@ func TestNodeDeletion(t *testing.T) {
 					n := &corev1.Node{}
 					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
 				}
+			}
+			if tc.expectPhaseClockSet {
+				g.Expect(controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer)).To(BeTrue())
+				g.Expect(m.Status.Deletion).ToNot(BeNil())
+				g.Expect(m.Status.Deletion.NodeDeletionStartTime.IsZero()).To(BeFalse())
 			}
 			g.Expect(s.deletingReason).To(Equal(tc.expectDeletingReason))
 		})

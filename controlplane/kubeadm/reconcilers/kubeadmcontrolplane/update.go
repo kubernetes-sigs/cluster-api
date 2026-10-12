@@ -19,6 +19,7 @@ package kubeadmcontrolplane
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
@@ -214,9 +215,12 @@ func (r *Reconciler) inPlaceUpdateOrScaleUpControlPlane(ctx context.Context, con
 	// to canUpdateMachine as part of the scale down for this Machine.
 	// We only have to repeat the canUpdateMachine call as part of a scale up if the write call to set UpdateInProgressAnnotation
 	// fails or if we fail to create the Machine.
-	canUpdateMachineResult, err := r.canUpdateMachine(ctx, machineToInPlaceUpdate, machineUpToDateResult)
+	canUpdateMachineResult, err := r.canUpdateMachine(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult, time.Now())
 	if err != nil {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to determine if Machine %s can be updated in-place", machineToInPlaceUpdate.Name)
+	}
+	if canUpdateMachineResult.retryAfter > 0 {
+		return ctrl.Result{RequeueAfter: canUpdateMachineResult.retryAfter}, nil
 	}
 
 	if canUpdateMachineResult.canUpdateMachine && !canUpdateMachineResult.affectsAvailability {
@@ -262,9 +266,12 @@ func (r *Reconciler) inPlaceUpdateOrScaleDownControlPlane(ctx context.Context, c
 	// If it returns false, we are going to fall back to scale down which will delete the Machine.
 	// We only have to repeat the canUpdateMachine call if the write call to set UpdateInProgressAnnotation
 	// fails or if we fail to delete the Machine.
-	canUpdateMachineResult, err := r.canUpdateMachine(ctx, machineToInPlaceUpdateOrScaleDown, machineUpToDateResult)
+	canUpdateMachineResult, err := r.canUpdateMachine(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, machineUpToDateResult, time.Now())
 	if err != nil {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to determine if Machine %s can be updated in-place", machineToInPlaceUpdateOrScaleDown.Name)
+	}
+	if canUpdateMachineResult.retryAfter > 0 {
+		return ctrl.Result{RequeueAfter: canUpdateMachineResult.retryAfter}, nil
 	}
 
 	if canUpdateMachineResult.canUpdateMachine {

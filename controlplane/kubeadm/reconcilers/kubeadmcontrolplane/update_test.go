@@ -24,6 +24,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -329,6 +330,12 @@ func Test_rollingUpdate(t *testing.T) {
 	canUpdateMachineFalseFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
 		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
 	}
+	canUpdateMachineRequeueAfterFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false, retryAfter: 7 * time.Second}, nil
+	}
+	canUpdateMachineErrorFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, pkgerrors.New("canUpdateMachine failed")
+	}
 
 	tests := []struct {
 		name                            string
@@ -490,6 +497,39 @@ func Test_rollingUpdate(t *testing.T) {
 			wantTriggerInPlaceUpdateCalled:  false,
 			wantScaleUpCalled:               true,
 		},
+		{
+			name:                            "In-place updates: preflightChecks succeeded, canUpdateMachine: requeueAfter > 0, requeue",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineRequeueAfterFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleUpCalled:               false,
+			wantRes:                         ctrl.Result{RequeueAfter: 7 * time.Second},
+		},
+		{
+			name:                            "In-place updates: preflightChecks succeeded, canUpdateMachine: error, return error",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineErrorFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleUpCalled:               false,
+			wantError:                       true,
+			wantErrorMessage:                "failed to determine if Machine machine-0 can be updated in-place: canUpdateMachine failed",
+		},
 		// In-place updates: inPlaceUpdateOrScaleDownControlPlane
 		{
 			name:                            "In-place updates: Machine not eligible for in-place: scale down",
@@ -558,6 +598,39 @@ func Test_rollingUpdate(t *testing.T) {
 			wantCanUpdateMachineCalled:      true,
 			wantTriggerInPlaceUpdateCalled:  false,
 			wantScaleDownCalled:             true,
+		},
+		{
+			name:                            "In-place updates: preflightChecks succeeded, canUpdateMachine: requeueAfter > 0, requeue",
+			maxSurge:                        0,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineRequeueAfterFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleDownCalled:             false,
+			wantRes:                         ctrl.Result{RequeueAfter: 7 * time.Second},
+		},
+		{
+			name:                            "In-place updates: preflightChecks succeeded, canUpdateMachine: error, return error",
+			maxSurge:                        0,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineErrorFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleDownCalled:             false,
+			wantError:                       true,
+			wantErrorMessage:                "failed to determine if Machine machine-0 can be updated in-place: canUpdateMachine failed",
 		},
 	}
 	for _, tt := range tests {

@@ -134,6 +134,7 @@ apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: CanUpdateMachineResponse
 status: Success # or Failure
 message: "error message if status == Failure"
+retryAfterSeconds: 15 # Set retryAfterSeconds > 0 if a decision cannot be made yet
 machinePatch:
   patchType: JSONPatch
   patch: <JSON-patch>
@@ -148,6 +149,8 @@ Note:
 - Extensions should return per-object patches to be applied on current objects to indicate which changes they can handle in-place.
 - Only fields in Machine/InfraMachine/BootstrapConfig spec have to be covered by patches
 - Patches must be in JSONPatch or JSONMergePatch format
+- If `retryAfterSeconds` is set to a non-zero value, the extension signals that it is not yet able to decide if the change can be handled in-place.
+  The other fields of the response are ignored, no fallback to a rollout is performed and the hook will be called again after the given amount of seconds.
 - `affectsAvailability` is an optional value, if missing it defaults to true.
 - When `CanUpdateMachineResponse` hook specifies that the required change does not affect availability, the in-place update will start immediately, without creating an additional machine/using maxSurge (if available)
   - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.

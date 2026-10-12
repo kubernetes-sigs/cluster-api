@@ -618,7 +618,7 @@ func (in *CanUpdateMachineRequestObjects) DeepCopy() *CanUpdateMachineRequestObj
 func (in *CanUpdateMachineResponse) DeepCopyInto(out *CanUpdateMachineResponse) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.CommonResponse = in.CommonResponse
+	out.CommonRetryResponse = in.CommonRetryResponse
 	in.MachinePatch.DeepCopyInto(&out.MachinePatch)
 	in.InfrastructureMachinePatch.DeepCopyInto(&out.InfrastructureMachinePatch)
 	in.BootstrapConfigPatch.DeepCopyInto(&out.BootstrapConfigPatch)

@@ -1415,6 +1415,14 @@ func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineResponse(ref common.Refer
 							Format:      "",
 						},
 					},
+					"retryAfterSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
 					"machinePatch": {
 						SchemaProps: spec.SchemaProps{
 							Description: "machinePatch when applied to the current Machine spec, indicates changes handled in-place. Only fields in spec have to be covered by the patch.",
@@ -1444,7 +1452,7 @@ func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineResponse(ref common.Refer
 						},
 					},
 				},
-				Required: []string{"status"},
+				Required: []string{"status", "retryAfterSeconds"},
 			},
 		},
 		Dependencies: []string{

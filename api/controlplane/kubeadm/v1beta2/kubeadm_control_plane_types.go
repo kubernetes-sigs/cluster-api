@@ -246,6 +246,13 @@ const (
 
 	// KubeadmControlPlaneNotRollingOutReason surfaces when all the machines are up-to-date.
 	KubeadmControlPlaneNotRollingOutReason = clusterv1.NotRollingOutReason
+
+	// KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason surfaces when the rollout is
+	// waiting for the rollout decision (i.e. a decision from CanUpdateMachine on how to move forward).
+	KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason = "WaitingForRolloutDecision"
+
+	// KubeadmControlPlaneRollingOutInternalErrorReason surfaces unexpected failures during rollout.
+	KubeadmControlPlaneRollingOutInternalErrorReason = clusterv1.InternalErrorReason
 )
 
 // KubeadmControlPlane's ScalingUp condition and corresponding reasons.

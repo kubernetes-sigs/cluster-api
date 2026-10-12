@@ -24,24 +24,33 @@ package inplaceupdate
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	"gomodules.xyz/jsonpatch/v2"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
+)
+
+const (
+	extensionConfigNameKey = "extensionConfigName"
 )
 
 // ExtensionHandlers provides a common struct shared across the in-place update hook handlers.
@@ -120,6 +129,17 @@ func (h *ExtensionHandlers) DoCanUpdateMachine(ctx context.Context, req *runtime
 
 	if req.Settings["disableInPlaceUpdates"] == "true" {
 		resp.Status = runtimehooksv1.ResponseStatusSuccess
+		return
+	}
+
+	// If a response is preloaded for this hook, return it as is. This allows E2E tests to control the hook behaviour during a test.
+	found, err := h.readResponseFromConfigMap(ctx, &req.Desired.Machine, runtimehooksv1.CanUpdateMachine, req.Settings, resp)
+	if err != nil {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = err.Error()
+		return
+	}
+	if found {
 		return
 	}
 
@@ -244,6 +264,47 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
 	resp.Message = "Extension is updating Machine"
 	resp.RetryAfterSeconds = 5
+}
+
+// readResponseFromConfigMap reads the response that is preloaded for the given hook from a well known ConfigMap
+// (<cluster name>-<extensionConfigName>-test-extension-hookresponses, the same ConfigMap that is used by the lifecycle hooks)
+// and unmarshals it into response.
+// The response must be stored under the key <hook name>-preloadedResponse, e.g. for the CanUpdateMachine hook:
+// `{"Status": "Success", "RetryAfterSeconds": 10, "Message": "waiting for the update plan"}`.
+// It returns true if a response could be read from the ConfigMap, false if the ConfigMap does not exist
+// or if there is no preloaded response for the hook.
+func (h *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, machine *clusterv1.Machine, hook runtimecatalog.Hook, settings map[string]string, response runtimehooksv1.ResponseObject) (bool, error) {
+	hookName := runtimecatalog.HookName(hook)
+	if _, ok := settings[extensionConfigNameKey]; !ok {
+		return false, pkgerrors.New(extensionConfigNameKey + " must be set in settings")
+	}
+	configMapName := configMapName(machine.Spec.ClusterName, settings[extensionConfigNameKey])
+	log := ctrl.LoggerFrom(ctx)
+	configMap := &corev1.ConfigMap{}
+	if err := h.client.Get(ctx, client.ObjectKey{Namespace: machine.Namespace, Name: configMapName}, configMap); err != nil {
+		if apierrors.IsNotFound(err) {
+			// A ConfigMap of responses does not exist, so there is no preloaded response.
+			return false, nil
+		}
+		return false, pkgerrors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(machine.Namespace, configMapName))
+	}
+
+	data, ok := configMap.Data[hookName+"-preloadedResponse"]
+	if !ok {
+		return false, nil
+	}
+
+	if err := yaml.Unmarshal([]byte(data), response); err != nil {
+		return false, pkgerrors.Wrapf(err, "failed to read %q response information from ConfigMap", hookName)
+	}
+	if r, ok := response.(runtimehooksv1.RetryResponseObject); ok {
+		log.Info(fmt.Sprintf("%s response is %s. retry: %v", hookName, r.GetStatus(), r.GetRetryAfterSeconds()))
+	}
+	return true, nil
+}
+
+func configMapName(clusterName, extensionConfigName string) string {
+	return fmt.Sprintf("%s-%s-test-extension-hookresponses", clusterName, extensionConfigName)
 }
 
 func (h *ExtensionHandlers) getObjectsFromCanUpdateMachineRequest(req *runtimehooksv1.CanUpdateMachineRequest) (*clusterv1.Machine, *clusterv1.Machine, runtime.Object, runtime.Object, runtime.Object, runtime.Object, error) { //nolint:gocritic // accepting high number of return parameters for now

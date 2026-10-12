@@ -1559,7 +1559,17 @@ func Test_providerUpgrader_checkClusterClassRefs(t *testing.T) {
 				getCompatibleContractVersions: getCompatibleContractVersions,
 			}
 
-			err := u.checkClusterClassRefs(ctx, tt.plan)
+			componentsByProvider := map[string]repository.Components{}
+			for _, upgradeItem := range tt.plan.Providers {
+				if upgradeItem.NextVersion == "" {
+					continue
+				}
+				components, err := u.getUpgradeComponents(ctx, upgradeItem)
+				g.Expect(err).ToNot(HaveOccurred())
+				componentsByProvider[upgradeItem.InstanceName()] = components
+			}
+
+			err := u.checkClusterClassRefs(ctx, tt.plan, componentsByProvider)
 			if tt.wantErr != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErr))

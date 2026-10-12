@@ -414,9 +414,25 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 		return providers[a].GetProviderType().Order() < providers[b].GetProviderType().Order()
 	})
 
+	installQueue := []repository.Components{}
+	componentsByProvider := map[string]repository.Components{}
+	for _, upgradeItem := range providers {
+		if upgradeItem.NextVersion == "" {
+			continue
+		}
+
+		components, err := u.getUpgradeComponents(ctx, upgradeItem)
+		if err != nil {
+			return err
+		}
+
+		installQueue = append(installQueue, components)
+		componentsByProvider[upgradeItem.InstanceName()] = components
+	}
+
 	// Check that upgrading won't break ClusterClass templateRefs by dropping CRD
 	// apiVersions that are still pinned.
-	if err := u.checkClusterClassRefs(ctx, upgradePlan); err != nil {
+	if err := u.checkClusterClassRefs(ctx, upgradePlan, componentsByProvider); err != nil {
 		return err
 	}
 
@@ -440,22 +456,13 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 		}
 	}
 
-	installQueue := []repository.Components{}
-
 	// Delete old providers and deploy new ones if necessary, i.e. there is a NextVersion.
 	for _, upgradeItem := range providers {
 		// If there is not a specified next version, skip it (we are already up-to-date).
-		if upgradeItem.NextVersion == "" {
+		components, ok := componentsByProvider[upgradeItem.InstanceName()]
+		if !ok {
 			continue
 		}
-
-		// Gets the provider components for the target version.
-		components, err := u.getUpgradeComponents(ctx, upgradeItem)
-		if err != nil {
-			return err
-		}
-
-		installQueue = append(installQueue, components)
 
 		// Delete the provider, preserving CRD, namespace and the inventory.
 		if err := u.providerComponents.Delete(ctx, DeleteOptions{
@@ -558,7 +565,7 @@ func scaleDownDeployment(ctx context.Context, c client.Client, deploy appsv1.Dep
 
 // checkClusterClassRefs checks that upgrading providers won't break any
 // ClusterClass by no longer serving CRD apiVersions still pinned in templateRefs.
-func (u *providerUpgrader) checkClusterClassRefs(ctx context.Context, upgradePlan *UpgradePlan) error {
+func (u *providerUpgrader) checkClusterClassRefs(ctx context.Context, upgradePlan *UpgradePlan, componentsByProvider map[string]repository.Components) error {
 	log := logf.Log
 
 	c, err := u.proxy.NewClient(ctx)
@@ -603,13 +610,9 @@ func (u *providerUpgrader) checkClusterClassRefs(ctx context.Context, upgradePla
 
 	var msgs []string
 	for _, upgradeItem := range upgradePlan.Providers {
-		if upgradeItem.NextVersion == "" {
+		components, ok := componentsByProvider[upgradeItem.InstanceName()]
+		if !ok {
 			continue
-		}
-
-		components, err := u.getUpgradeComponents(ctx, upgradeItem)
-		if err != nil {
-			return pkgerrors.Wrapf(err, "failed to get upgrade components for %s", upgradeItem.InstanceName())
 		}
 
 		for _, obj := range components.Objs() {
@@ -635,7 +638,7 @@ func (u *providerUpgrader) checkClusterClassRefs(ctx context.Context, upgradePla
 				return pkgerrors.Wrapf(err, "failed to get existing CRD %s", newCRD.Name)
 			}
 
-			for _, v := range sets.List(noLongerServedCRDVersions(existingCRD, newCRD)) {
+			for _, v := range noLongerServedCRDVersions(existingCRD, newCRD) {
 				affected := refsByGVK[gk.WithVersion(v)]
 				if affected.Len() > 0 {
 					msgs = append(msgs, fmt.Sprintf(
@@ -654,11 +657,11 @@ func (u *providerUpgrader) checkClusterClassRefs(ctx context.Context, upgradePla
 	return nil
 }
 
-// noLongerServedCRDVersions returns the CRD versions that oldCRD serves but newCRD
+// noLongerServedCRDVersions returns the sorted CRD versions that oldCRD serves but newCRD
 // no longer serves, either because they were removed or switched to served: false.
 // Both cases make the apiVersion unavailable and break ClusterClasses pinned to it.
-func noLongerServedCRDVersions(oldCRD, newCRD *apiextensionsv1.CustomResourceDefinition) sets.Set[string] {
-	return servedCRDVersions(oldCRD).Difference(servedCRDVersions(newCRD))
+func noLongerServedCRDVersions(oldCRD, newCRD *apiextensionsv1.CustomResourceDefinition) []string {
+	return sets.List(servedCRDVersions(oldCRD).Difference(servedCRDVersions(newCRD)))
 }
 
 // servedCRDVersions returns the names of the versions a CRD serves.

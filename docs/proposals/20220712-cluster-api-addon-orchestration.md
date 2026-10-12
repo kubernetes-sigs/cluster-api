@@ -100,7 +100,7 @@ This solution will likely require at least three iterations:
 
 ## Motivation
 
-ClusterResourceSets are the current solution for managing add-ons in Cluster API. However, ClusterResourceSets have been designed as a temporary measure until a better alternative is available. In particular, an add-on solution in Cluster API should be in line with the [goals of Cluster API](https://cluster-api.sigs.k8s.io/#goals) by aiming “to reuse and integrate existing ecosystem components rather than duplicating their functionality.” These components include other projects in SIG Cluster Lifecycle such as [Cluster Add-ons](https://github.com/kubernetes-sigs/cluster-addons) and well established tools like Helm, kapp, ArgoCD, and Flux. 
+ClusterResourceSets are the current solution for managing add-ons in Cluster API. However, ClusterResourceSets have been designed as a temporary measure until a better alternative is available. In particular, an add-on solution in Cluster API should be in line with the [goals of Cluster API](../book/src/introduction.md#goals) by aiming “to reuse and integrate existing ecosystem components rather than duplicating their functionality.” These components include other projects in SIG Cluster Lifecycle such as [Cluster Add-ons](https://github.com/kubernetes-sigs/cluster-addons) and well established tools like Helm, kapp, ArgoCD, and Flux. 
 
 This proposal does not intend to solve the issue of add-ons in all of Kubernetes. Rather, it aims to bring add-ons into the Cluster API cluster lifecycle by managing add-ons using a declarative spec and orchestrating existing package management tools.
 

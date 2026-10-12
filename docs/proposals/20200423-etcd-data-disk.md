@@ -30,7 +30,7 @@ status: implementable
     - [Story 2](#story-2)
   - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
   - [Changes required in the bootstrap provider (i.e. CABPK)](#changes-required-in-the-bootstrap-provider-ie-cabpk)
-  - [Changes required in the infrastructure provider (here Azure is used as an example to illustrate the required changes).](#changes-required-in-the-infrastructure-provider-here-azure-is-used-as-an-example-to-illustrate-the-required-changes)
+  - [Changes required in the infrastructure provider (here Azure is used as an example to illustrate the required changes)](#changes-required-in-the-infrastructure-provider-here-azure-is-used-as-an-example-to-illustrate-the-required-changes)
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Alternatives](#alternatives)
   - [Use script to do the etcd mount and append that script to preKubeadmCommands](#use-script-to-do-the-etcd-mount-and-append-that-script-to-prekubeadmcommands)
@@ -42,7 +42,7 @@ status: implementable
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 ## Summary
 
@@ -146,7 +146,7 @@ references:
 https://cloudinit.readthedocs.io/en/latest/topics/examples.html#disk-setup
 https://cloudinit.readthedocs.io/en/latest/topics/examples.html#adjust-mount-points-mounted
 
-### Changes required in the infrastructure provider (here Azure is used as an example to illustrate the required changes). 
+### Changes required in the infrastructure provider (here Azure is used as an example to illustrate the required changes)
 
 These changes are required to run etcd on a data device but it should be noted that someone could use the KubeadmConfig changes described above without making any changes to infrastructure.
 

@@ -78,7 +78,7 @@ they will be required to start managing their own conditions fork/custom impleme
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 Condition: The state of an object with regard to its appearance, quality, or working order.
 
@@ -131,7 +131,7 @@ investigating issues.
 As a developer, as a user, as a tool built on top of Cluster API, I would like to have common types
 for defining conditions on different Cluster API or provider objects.
 
-#### Story 2        
+#### Story 2
 As a user, I would like to quickly understand the current state of my cluster
 during the initial provisioning workflow.
 

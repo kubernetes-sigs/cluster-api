@@ -73,7 +73,7 @@ See the proposal process for details on each of these items.
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 If this proposal adds new terms, or defines some, make the changes to the book's glossary when in PR stage.
 

@@ -920,7 +920,7 @@ Some of the actions are described below:
 
 The operator will be written with unit and integration tests using envtest and
 existing patterns as defined under the [Developer
-Guide/Testing](https://cluster-api.sigs.k8s.io/developer/core/testing.html) section
+Guide/Testing](../book/src/developer/core/testing.md) section
 in the Cluster API book.
 
 Existing E2E tests will verify that existing clusterctl commands such as `init`

@@ -3179,7 +3179,7 @@ _Appears in:_
 | `machineNaming` _[MachineNamingSpec](#machinenamingspec)_ | machineNaming allows changing the naming pattern used when creating Machines.<br />Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `remediation` _[MachineDeploymentRemediationSpec](#machinedeploymentremediationspec)_ | remediation controls how unhealthy Machines are remediated. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[MachineDeploymentDeletionSpec](#machinedeploymentdeletionspec)_ | deletion contains configuration options for MachineDeployment deletion. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
-| `paused` _boolean_ | paused, when set to true, indicates that the MachineDeployment should halt<br />rolling out changes to its Machines.<br />When only the rollout is paused, other changes such as scaling up, down or remediation are still allowed. |  | Optional: \{\} <br /> |
+| `paused` _boolean_ | paused when set to true indicates that the MachineDeployment should halt<br />rolling out changes to its Machines.<br />When only the rollout is paused, other changes such as scaling up, down or remediation are still allowed. |  | Optional: \{\} <br /> |
 
 
 #### MachineDeploymentStatus

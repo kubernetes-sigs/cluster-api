@@ -222,7 +222,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 	var notes []string
 	// Surface first that the rollout is paused, if this is the case.
 	if ptr.Deref(machineDeployment.Spec.Paused, false) {
-		notes = append(notes, "* spec.paused is set to true, rollout paused")
+		notes = append(notes, "* Rollout is blocked because spec.paused is set to true")
 	}
 	if rolloutReasons.Len() > 0 {
 		// Surface rollout reasons ensuring that if there is a version change, it goes first.

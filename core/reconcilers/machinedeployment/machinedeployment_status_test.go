@@ -350,8 +350,8 @@ func Test_setRollingOutCondition(t *testing.T) {
 				Type:   clusterv1.MachineDeploymentRollingOutCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineDeploymentRollingOutReason,
-				Message: "Rollout is paused because spec.paused is set to true\n" +
-					"Rolling out 1 not up-to-date replicas\n" +
+				Message: "Rolling out 1 not up-to-date replicas\n" +
+					"* spec.paused is set to true, rollout paused\n" +
 					"* Version v1.25.0, v1.26.0 required",
 			},
 		},

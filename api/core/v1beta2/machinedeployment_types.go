@@ -289,9 +289,10 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Deletion MachineDeploymentDeletionSpec `json:"deletion,omitempty,omitzero"`
 
-	// paused indicates that the MachineDeployment is paused. When paused, the MachineDeployment
-	// does not roll out changes to its Machine template, but it still reconciles other changes
-	// such as scaling. To fully pause reconciliation, use the cluster.x-k8s.io/paused annotation instead.
+	// paused, when set to true, indicates that the MachineDeployment should halt
+	// rolling out changes to its Machines.
+	//
+	// When only the rollout is paused, other changes such as scaling up, down or remediation are still allowed.
 	// +optional
 	Paused *bool `json:"paused,omitempty"`
 }

@@ -3819,7 +3819,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 					},
 					"paused": {
 						SchemaProps: spec.SchemaProps{
-							Description: "paused indicates that the deployment is paused.",
+							Description: "paused, when set to true, indicates that the MachineDeployment should halt rolling out changes to its Machines.\n\nWhen only the rollout is paused, other changes such as scaling up, down or remediation are still allowed.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},

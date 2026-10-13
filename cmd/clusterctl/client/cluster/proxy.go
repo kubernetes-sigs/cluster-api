@@ -352,13 +352,13 @@ func (k *proxy) GetResourceNames(ctx context.Context, groupVersion, kind string,
 func listObjByGVK(ctx context.Context, c client.Client, groupVersion, kind string, options []client.ListOption) (*unstructured.UnstructuredList, error) {
 	objList := new(unstructured.UnstructuredList)
 	objList.SetAPIVersion(groupVersion)
-	objList.SetKind(kind)
+	objList.SetKind(kind + "List")
 
 	resourceListBackoff := newReadBackoff()
 	if err := retryWithExponentialBackoff(ctx, resourceListBackoff, func(ctx context.Context) error {
 		return c.List(ctx, objList, options...)
 	}); err != nil {
-		return nil, pkgerrors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
+		return nil, pkgerrors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", schema.FromAPIVersionAndKind(groupVersion, kind))
 	}
 
 	return objList, nil

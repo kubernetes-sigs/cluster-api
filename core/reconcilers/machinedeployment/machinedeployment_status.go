@@ -219,6 +219,11 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 
 	// Rolling out.
 	message := fmt.Sprintf("Rolling out %d not up-to-date replicas", rollingOutReplicas)
+	var notes []string
+	// Surface first that the rollout is paused, if this is the case.
+	if ptr.Deref(machineDeployment.Spec.Paused, false) {
+		notes = append(notes, "* Rollout is blocked because spec.paused is set to true")
+	}
 	if rolloutReasons.Len() > 0 {
 		// Surface rollout reasons ensuring that if there is a version change, it goes first.
 		reasons := rolloutReasons.UnsortedList()
@@ -231,7 +236,10 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 			}
 			return reasons[i] < reasons[j]
 		})
-		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
+		notes = append(notes, reasons...)
+	}
+	if len(notes) > 0 {
+		message += fmt.Sprintf("\n%s", strings.Join(notes, "\n"))
 	}
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentRollingOutCondition,

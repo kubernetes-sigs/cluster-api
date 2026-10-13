@@ -289,7 +289,10 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Deletion MachineDeploymentDeletionSpec `json:"deletion,omitempty,omitzero"`
 
-	// paused indicates that the deployment is paused.
+	// paused when set to true indicates that the MachineDeployment should halt
+	// rolling out changes to its Machines.
+	//
+	// When only the rollout is paused, other changes such as scaling up, down or remediation are still allowed.
 	// +optional
 	Paused *bool `json:"paused,omitempty"`
 }

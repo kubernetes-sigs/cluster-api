@@ -183,7 +183,7 @@ func Test_canUpdateMachine(t *testing.T) {
 			wantCanExtensionsUpdateMachineCalled: true,
 			wantCanUpdateMachineResult:           canUpdateMachineResult{retryAfter: 10 * time.Second},
 			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
-				WaitingForDecisionMessage: "Rollout for Machine machine-to-in-place-update is blocked by CanUpdateMachine hook: message 1, message 2",
+				WaitingForDecisionMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update: message 1, message 2",
 			},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
 				Machine:             machineKey,
@@ -211,7 +211,7 @@ func Test_canUpdateMachine(t *testing.T) {
 			wantCanExtensionsUpdateMachineCalled: true,
 			wantCanUpdateMachineResult:           canUpdateMachineResult{retryAfter: 10 * time.Second},
 			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
-				WaitingForDecisionMessage: "Rollout for Machine machine-to-in-place-update is blocked by CanUpdateMachine hook",
+				WaitingForDecisionMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update",
 			},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
 				Machine:       machineKey,
@@ -232,7 +232,7 @@ func Test_canUpdateMachine(t *testing.T) {
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
 			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
-				InternalErrorMessage: "Rollout for Machine machine-to-in-place-update is blocked by CanUpdateMachine hook: extension failed",
+				InternalErrorMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update: extension failed",
 			},
 			wantError:        true,
 			wantErrorMessage: "extension failed",
@@ -256,7 +256,7 @@ func Test_canUpdateMachine(t *testing.T) {
 			wantCanExtensionsUpdateMachineCalled: false,
 			wantCanUpdateMachineResult:           canUpdateMachineResult{retryAfter: time.Hour},
 			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
-				WaitingForDecisionMessage: "Rollout for Machine machine-to-in-place-update is blocked by CanUpdateMachine hook: waiting for the update plan",
+				WaitingForDecisionMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update: waiting for the update plan",
 			},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
 				Machine:       machineKey,

@@ -222,7 +222,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 	var notes []string
 	// Surface first that the rollout is paused, if this is the case.
 	if ptr.Deref(machineDeployment.Spec.Paused, false) {
-		notes = append(notes, "* Rollout is blocked because spec.paused is set to true")
+		notes = append(notes, "* Blocked because spec.paused is set to true")
 	}
 	if rolloutReasons.Len() > 0 {
 		// Surface rollout reasons ensuring that if there is a version change, it goes first.
@@ -239,7 +239,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 		notes = append(notes, reasons...)
 	}
 	if len(notes) > 0 {
-		message += fmt.Sprintf("\n%s", strings.Join(notes, "\n"))
+		message += fmt.Sprintf(":\n%s", strings.Join(notes, "\n"))
 	}
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentRollingOutCondition,
@@ -284,7 +284,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		var message string
 		// Only surface this message if the MachineDeployment is not deleting.
 		if machineDeployment.DeletionTimestamp.IsZero() && missingReferencesMessage != "" {
-			message = fmt.Sprintf("Scaling up would be blocked %s", missingReferencesMessage)
+			message = fmt.Sprintf("Scaling up would be blocked because %s", missingReferencesMessage)
 		}
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingUpCondition,
@@ -298,7 +298,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	// Scaling up.
 	message := fmt.Sprintf("Scaling up from %d to %d replicas", currentReplicas, desiredReplicas)
 	if missingReferencesMessage != "" {
-		message += fmt.Sprintf(" is blocked %s", missingReferencesMessage)
+		message += fmt.Sprintf(":\n* Blocked because %s", missingReferencesMessage)
 	}
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentScalingUpCondition,
@@ -342,7 +342,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 		message := fmt.Sprintf("Scaling down from %d to %d replicas", currentReplicas, desiredReplicas)
 		staleMessage := aggregateStaleMachines(machines)
 		if staleMessage != "" {
-			message += fmt.Sprintf("\n* %s", staleMessage)
+			message += fmt.Sprintf(":\n* Blocked because %s", staleMessage)
 		}
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingDownCondition,
@@ -515,7 +515,7 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 		}
 		staleMessage := aggregateStaleMachines(machines)
 		if staleMessage != "" {
-			message += fmt.Sprintf("\n* %s", staleMessage)
+			message += fmt.Sprintf(":\n* %s", staleMessage)
 		}
 	}
 	if len(machines) == 0 && len(machineSets) > 0 {
@@ -547,10 +547,10 @@ func calculateMissingReferencesMessage(machineDeployment *clusterv1.MachineDeplo
 	}
 
 	if len(missingObjects) == 1 {
-		return fmt.Sprintf("because %s does not exist", missingObjects[0])
+		return fmt.Sprintf("%s does not exist", missingObjects[0])
 	}
 
-	return fmt.Sprintf("because %s do not exist", strings.Join(missingObjects, " and "))
+	return fmt.Sprintf("%s do not exist", strings.Join(missingObjects, " and "))
 }
 
 func aggregateStaleMachines(machines collections.Machines) string {

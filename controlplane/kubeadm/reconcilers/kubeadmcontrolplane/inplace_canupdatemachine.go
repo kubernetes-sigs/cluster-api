@@ -119,7 +119,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.Con
 		r.canUpdateMachineCache.Add(*entry)
 
 		if entry.Retry {
-			msg := fmt.Sprintf("Rollout for Machine %s is blocked by CanUpdateMachine hook", machine.Name)
+			msg := fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s", machine.Name)
 			if len(entry.Messages) > 0 {
 				msg = fmt.Sprintf("%s: %s", msg, strings.Join(entry.Messages, ", "))
 			}
@@ -144,7 +144,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.Con
 
 	res, reasons, err := r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
 	if err != nil {
-		controlPlane.CanUpdateMachineResults.InternalErrorMessage = fmt.Sprintf("Rollout for Machine %s is blocked by CanUpdateMachine hook: %s", machine.Name, err.Error())
+		controlPlane.CanUpdateMachineResults.InternalErrorMessage = fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s: %s", machine.Name, err.Error())
 		return canUpdateMachineResult{canUpdateMachine: false}, err
 	}
 
@@ -166,7 +166,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.Con
 	r.canUpdateMachineCache.Add(entry)
 
 	if res.retryAfter > 0 {
-		msg := fmt.Sprintf("Rollout for Machine %s is blocked by CanUpdateMachine hook", machine.Name)
+		msg := fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s", machine.Name)
 		if len(res.messages) > 0 {
 			msg = fmt.Sprintf("%s: %s", msg, strings.Join(res.messages, ", "))
 		}

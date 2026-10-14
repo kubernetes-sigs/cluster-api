@@ -225,7 +225,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, cluster) {
 		// Start building the condition message showing upgrade progress.
 		msgBuilder := &strings.Builder{}
-		fmt.Fprintf(msgBuilder, "Cluster is upgrading to %s", cluster.Spec.Topology.Version)
+		fmt.Fprintf(msgBuilder, "Cluster is upgrading to %s:", cluster.Spec.Topology.Version)
 
 		// Setting condition reasons showing upgrade is progress; this will be overridden only
 		// when users are blocking upgrade to make further progress, e.g. deferred upgrades

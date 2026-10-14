@@ -186,10 +186,10 @@ linters:
         - kubeapilinter
 
     # TODO: Excludes that should be removed once the corresponding issues in KAL are fixed
-    # KAL incorrectly reports that the Taints field doesn't have to be a pointer (it has to be to preserve []).
+    # KAL incorrectly reports that the Taints/AllowedOperations fields don't have to be pointers (it has to be to preserve []).
     # See: https://github.com/kubernetes-sigs/kube-api-linter/issues/116
-    - path: "api/bootstrap/kubeadm/v1beta2/kubeadm_types.go"
-      text: "optionalfields: field Taints underlying type does not need to be a pointer. The pointer should be removed."
+    - path: "api/bootstrap/kubeadm/v1beta2/kubeadm_types.go|api/runtime/hooks/v1alpha1/inplaceupdate_types"
+      text: "optionalfields: field (Taints|AllowedOperations) underlying type does not need to be a pointer. The pointer should be removed."
       linters:
         - kubeapilinter
      # KAL incorrectly reports that the zero value is valid

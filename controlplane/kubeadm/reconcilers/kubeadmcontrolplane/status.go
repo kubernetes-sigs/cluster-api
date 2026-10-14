@@ -286,6 +286,8 @@ func setRollingOutCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *
 		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", canUpdateMachineResults.InternalErrorMessage))
 	case canUpdateMachineResults.WaitingForDecisionMessage != "":
 		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", canUpdateMachineResults.WaitingForDecisionMessage))
+	case canUpdateMachineResults.RolloutBlockedMessage != "":
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", canUpdateMachineResults.RolloutBlockedMessage))
 	}
 
 	if rolloutReasons.Len() > 0 {
@@ -313,6 +315,8 @@ func setRollingOutCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *
 		reason = controlplanev1.KubeadmControlPlaneRollingOutInternalErrorReason
 	case canUpdateMachineResults.WaitingForDecisionMessage != "":
 		reason = controlplanev1.KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason
+	case canUpdateMachineResults.RolloutBlockedMessage != "":
+		reason = controlplanev1.KubeadmControlPlaneRollingOutRolloutBlockedReason
 	default:
 		reason = controlplanev1.KubeadmControlPlaneRollingOutReason
 	}

@@ -367,6 +367,31 @@ func Test_setRollingOutCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "rollout blocked by the CanUpdateMachine hook",
+			kcp:  &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineUpToDateCondition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineNotUpToDateReason,
+						Message: "* Version v1.25.0, v1.26.0 required",
+					},
+				}}},
+			},
+			canUpdateMachineResults: pkg.CanUpdateMachineResults{
+				RolloutBlockedMessage: "Blocked by CanUpdateMachine hook for Machine m1: preflight check failed",
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneRollingOutRolloutBlockedReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked by CanUpdateMachine hook for Machine m1: preflight check failed\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
 			name: "CanUpdateMachine hook returned an error",
 			cluster: &clusterv1.Cluster{
 				Spec: clusterv1.ClusterSpec{

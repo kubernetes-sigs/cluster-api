@@ -85,6 +85,33 @@ type CanUpdateMachineResponse struct {
 	// Default is true.
 	// +optional
 	AffectsAvailability *bool `json:"affectsAvailability,omitempty"`
+
+	// allowedOperations defines the operations Cluster API is allowed to use to roll out changes to the Machines.
+	// If not set, both UpdateInPlace and Replace are allowed.
+	// If set to an empty list, no operation is allowed and the rollout is blocked.
+	// Note: allowedOperations is orthogonal to the patches, e.g. if the patches cover the entire diff but only
+	// Replace is allowed, changes are rolled out by replacing Machines.
+	// +optional
+	AllowedOperations *[]MachineUpdateOperation `json:"allowedOperations,omitempty"`
+}
+
+// MachineUpdateOperation defines an operation that can be used to roll out changes to a Machine.
+// +kubebuilder:validation:Enum=UpdateInPlace;Replace
+type MachineUpdateOperation string
+
+const (
+	// MachineUpdateOperationUpdateInPlace identifies the operation of updating a Machine in-place.
+	MachineUpdateOperationUpdateInPlace MachineUpdateOperation = "UpdateInPlace"
+
+	// MachineUpdateOperationReplace identifies the operation of replacing a Machine
+	// (i.e. creating a new Machine and deleting the old one).
+	MachineUpdateOperationReplace MachineUpdateOperation = "Replace"
+)
+
+// AllMachineUpdateOperations are all MachineUpdateOperations known by this version of CAPI.
+var AllMachineUpdateOperations = []MachineUpdateOperation{
+	MachineUpdateOperationUpdateInPlace,
+	MachineUpdateOperationReplace,
 }
 
 // Patch is a single patch (JSONPatch or JSONMergePatch) which can include multiple operations.
@@ -235,7 +262,9 @@ func init() {
 			"- This hook is called during the planning phase of updates\n" +
 			"- Only spec is provided, status fields are not included\n" +
 			"- If no extension can cover the required changes, CAPI will fallback to rolling updates\n" +
-			"- Only fields in Machine/InfraMachine/BootstrapConfig spec have to be covered by patches\n",
+			"- Only fields in Machine/InfraMachine/BootstrapConfig spec have to be covered by patches\n" +
+			"- Extensions can use allowedOperations to express which operations (UpdateInPlace, Replace) are allowed to roll out the changes, " +
+			"e.g. to block the rollout by returning an empty list\n",
 	})
 
 	catalogBuilder.RegisterHook(CanUpdateMachineSet, &runtimecatalog.HookMeta{

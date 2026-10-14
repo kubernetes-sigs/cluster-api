@@ -125,11 +125,20 @@ type Reconciler struct {
 	overrideScaleDownControlPlaneFunc  func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToDelete *clusterv1.Machine) (ctrl.Result, error)
 	overridePreflightChecksFunc        func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult
 	overrideCanUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (canUpdateMachineResult, error)
-	overrideCanExtensionsUpdateMachine func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error)
+	overrideCanExtensionsUpdateMachine func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error)
 	overrideTriggerInPlaceUpdate       func(ctx context.Context, controlPlane *pkg.ControlPlane, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, affectsAvailability bool) error
+	overrideNowFunc                    func() time.Time
 	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 	//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
 	disableRemoveManagedFieldsForLabelsAndAnnotations bool
+}
+
+// now returns the current time. It can be overridden for unit tests via overrideNowFunc.
+func (r *Reconciler) now() time.Time {
+	if r.overrideNowFunc != nil {
+		return r.overrideNowFunc()
+	}
+	return time.Now()
 }
 
 // SetupWithManager sets up the reconciler with the Manager.

@@ -1451,6 +1451,21 @@ func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineResponse(ref common.Refer
 							Format:      "",
 						},
 					},
+					"allowedOperations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "allowedOperations defines the operations Cluster API is allowed to use to roll out changes to the Machines. If not set, both UpdateInPlace and Replace are allowed. If set to an empty list, no operation is allowed and the rollout is blocked. Note: allowedOperations is orthogonal to the patches, e.g. if the patches cover the entire diff but only Replace is allowed, changes are rolled out by replacing Machines.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"status", "retryAfterSeconds"},
 			},

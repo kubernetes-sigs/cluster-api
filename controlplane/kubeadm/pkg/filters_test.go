@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types/upstream"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
+	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -435,6 +436,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
 					InitConfiguration: bootstrapv1.InitConfiguration{
+						SkipPhases: []string{"addon/coredns", "addon/kube-proxy"},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "name",
 						},
@@ -471,6 +473,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					InitConfiguration: bootstrapv1.InitConfiguration{
+						SkipPhases: []string{"addon/coredns", "addon/kube-proxy"},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "name",
 						},
@@ -485,6 +488,106 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
+	})
+	t.Run("returns false if JoinConfiguration is not equal: skipPhases is the same in the returned KubeadmConfigs", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
+					InitConfiguration: bootstrapv1.InitConfiguration{
+						Patches: bootstrapv1.Patches{
+							Directory: "/test/patches", // This field has changed
+						},
+						SkipPhases: []string{"addon/coredns", "addon/kube-proxy"},
+					},
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						Patches: bootstrapv1.Patches{
+							Directory: "/test/patches", // This field has changed
+						},
+						// SkipPhases: is not set to []string{"addon/coredns", "addon/kube-proxy"} here, but this
+						// field should be the same for both returned KubeadmConfigs so in-place updates
+						// don't have to account for this diff.
+					},
+				},
+				Version: "v1.30.0",
+			},
+		}
+		m := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "test",
+			},
+			Spec: clusterv1.MachineSpec{
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
+					},
+				},
+			},
+		}
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: bootstrapv1.InitConfiguration{
+						Patches: bootstrapv1.Patches{
+							Directory: "/test/patches/old", // This field has changed
+						},
+						SkipPhases: []string{"addon/coredns", "addon/kube-proxy"},
+					},
+				},
+			},
+		}
+		reason, currentKubeadmConfig, desiredKubeadmConfig, match, err := matchesKubeadmConfig(machineConfigs, kcp, &clusterv1.Cluster{}, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(currentKubeadmConfig).ToNot(BeNil())
+		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
+		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(match).To(BeFalse())
+		// Diff should show diff between InitConfigurations (skipPhases is the same in this case).
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig is outdated: diff: &v1beta2.KubeadmConfigSpec{
+    ClusterConfiguration: {},
+    InitConfiguration: v1beta2.InitConfiguration{
+      ... // 2 identical fields
+      LocalAPIEndpoint: {},
+      SkipPhases:       {"addon/coredns", "addon/kube-proxy"},
+-     Patches:          v1beta2.Patches{Directory: "/test/patches/old"},
++     Patches:          v1beta2.Patches{Directory: "/test/patches"},
+      Timeouts:         {},
+    },
+    JoinConfiguration: {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
+    Files:             nil,
+    ... // 10 identical fields
+  }`))
+		// Verify what is sent in CanUpdateMachine.
+		desiredKubeadmConfigWithJoinForDiff, currentKubeadmConfigWithJoinForDiff := PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig, true)
+		match, diff, err := compare.Diff(&currentKubeadmConfigWithJoinForDiff.Spec, &desiredKubeadmConfigWithJoinForDiff.Spec)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeFalse())
+		// Diff should show diff between JoinConfiguration and InitConfiguration converted to JoinConfiguration.
+		// The conversion to JoinConfiguration should omit phases that cannot be set in JoinConfiguration because
+		// they are not supported for kubeadm join.
+		g.Expect(diff).To(BeComparableTo(`&v1beta2.KubeadmConfigSpec{
+    ClusterConfiguration: {},
+    InitConfiguration:    {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
+    JoinConfiguration: v1beta2.JoinConfiguration{
+      ... // 3 identical fields
+      ControlPlane: &{},
+      SkipPhases:   nil,
+-     Patches:      v1beta2.Patches{Directory: "/test/patches/old"},
++     Patches:      v1beta2.Patches{Directory: "/test/patches"},
+      Timeouts:     {},
+    },
+    Files:     nil,
+    DiskSetup: {},
+    ... // 9 identical fields
+  }`))
 	})
 	t.Run("returns false if InitConfiguration is NOT equal", func(t *testing.T) {
 		g := NewWithT(t)

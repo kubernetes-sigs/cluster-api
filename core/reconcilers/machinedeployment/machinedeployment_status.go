@@ -59,7 +59,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) 
 
 	setAvailableCondition(ctx, s.machineDeployment, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
-	setRollingOutCondition(ctx, s.machineDeployment, s.machines)
+	setRollingOutCondition(ctx, s.machineDeployment, s.machines, s.canUpdateMachineSetResults)
 	setScalingUpCondition(ctx, s.machineDeployment, s.machineSets, s.bootstrapTemplateNotFound, s.infrastructureTemplateNotFound, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 	setScalingDownCondition(ctx, s.machineDeployment, s.machineSets, s.machines, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
@@ -187,7 +187,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	})
 }
 
-func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines) {
+func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines, canUpdateMachineSetResults canUpdateMachineSetResults) {
 	// Count machines rolling out and collect reasons why a rollout is happening.
 	// Note: The code below collects all the reasons for which at least a machine is rolling out; under normal circumstances
 	// all the machines are rolling out for the same reasons, however, in case of changes to
@@ -218,11 +218,26 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 	}
 
 	// Rolling out.
+	// Surface paused and the messages of the CanUpdateMachineSet hook.
+	// Note: Only the messages of the most relevant category are surfaced, a pending decision pauses the entire rollout
+	// and thus is more relevant than a rollout that is blocked for some of the MachineSets.
 	message := fmt.Sprintf("Rolling out %d not up-to-date replicas", rollingOutReplicas)
 	var notes []string
 	// Surface first that the rollout is paused, if this is the case.
 	if ptr.Deref(machineDeployment.Spec.Paused, false) {
 		notes = append(notes, "* Blocked because spec.paused is set to true")
+	}
+	reason := clusterv1.MachineDeploymentRollingOutReason
+	switch {
+	case canUpdateMachineSetResults.internalErrorMessage != "":
+		notes = append(notes, fmt.Sprintf("* %s", canUpdateMachineSetResults.internalErrorMessage))
+		reason = clusterv1.MachineDeploymentRollingOutInternalErrorReason
+	case len(canUpdateMachineSetResults.waitingForDecisionMessages) > 0:
+		notes = append(notes, toSortedBulletPoints(canUpdateMachineSetResults.waitingForDecisionMessages)...)
+		reason = clusterv1.MachineDeploymentRollingOutWaitingForRolloutDecisionReason
+	case len(canUpdateMachineSetResults.rolloutBlockedMessages) > 0:
+		notes = append(notes, toSortedBulletPoints(canUpdateMachineSetResults.rolloutBlockedMessages)...)
+		reason = clusterv1.MachineDeploymentRollingOutRolloutBlockedReason
 	}
 	if rolloutReasons.Len() > 0 {
 		// Surface rollout reasons ensuring that if there is a version change, it goes first.
@@ -244,9 +259,19 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentRollingOutCondition,
 		Status:  metav1.ConditionTrue,
-		Reason:  clusterv1.MachineDeploymentRollingOutReason,
+		Reason:  reason,
 		Message: message,
 	})
+}
+
+// toSortedBulletPoints returns the messages as bullet points, sorted to keep the condition message stable.
+func toSortedBulletPoints(messages []string) []string {
+	bulletPoints := make([]string, 0, len(messages))
+	for _, message := range messages {
+		bulletPoints = append(bulletPoints, fmt.Sprintf("* %s", message))
+	}
+	sort.Strings(bulletPoints)
+	return bulletPoints
 }
 
 func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachineSetsForDeploymentSucceeded bool) {

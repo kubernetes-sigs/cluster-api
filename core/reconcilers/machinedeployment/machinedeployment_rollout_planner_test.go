@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
@@ -1021,6 +1022,12 @@ func (r rolloutScope) rolloutPlannerResultSummary(p *rolloutPlanner) string {
 		if d.OtherChanges != "" {
 			fmt.Fprintf(&o, "      - Diff: %s\n", d.OtherChanges)
 		}
+		if p.rolloutDecisionPending {
+			fmt.Fprintf(&o, "    - Rollout blocked, waiting for canUpdateMachineSet decision (retry after %s)\n", p.pendingRetryAfter.Sub(p.now()).Round(time.Second))
+		}
+		if p.blockedMSs.Has(ms.Name) {
+			fmt.Fprintf(&o, "    - Rollout blocked, operation not allowed\n")
+		}
 	}
 	return o.String()
 }
@@ -1253,6 +1260,54 @@ func randomTaskOrder(taskCount int, rng *rand.Rand) []int {
 }
 
 type machineDeploymentOption func(md *clusterv1.MachineDeployment)
+
+func TestRequeueAfter(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name              string
+		pendingRetryAfter time.Time
+		blockedRetryAfter time.Time
+		want              time.Duration
+	}{
+		{
+			name: "Do not requeue if the rollout is neither pending nor blocked",
+			want: 0,
+		},
+		{
+			name:              "Requeue when the pending cached result expires",
+			pendingRetryAfter: now.Add(3 * time.Minute),
+			want:              3 * time.Minute,
+		},
+		{
+			name:              "Requeue when the blocked cached result expires",
+			blockedRetryAfter: now.Add(2 * time.Minute),
+			want:              2 * time.Minute,
+		},
+		{
+			name:              "Requeue after the pending retryAfter if the rollout is pending and blocked (blocked is re-evaluated when the rollout is unpaused)",
+			pendingRetryAfter: now.Add(3 * time.Minute),
+			blockedRetryAfter: now.Add(1 * time.Minute),
+			want:              3 * time.Minute,
+		},
+		{
+			name:              "Requeue after at least 1s if the cached result already expired",
+			pendingRetryAfter: now.Add(-1 * time.Minute),
+			want:              time.Second,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			p := &rolloutPlanner{
+				pendingRetryAfter: tt.pendingRetryAfter,
+				blockedRetryAfter: tt.blockedRetryAfter,
+				overrideNowFunc:   func() time.Time { return now },
+			}
+			g.Expect(p.requeueAfter()).To(Equal(tt.want))
+		})
+	}
+}
 
 func withRollingUpdateStrategy(maxSurge, maxUnavailable int32) func(md *clusterv1.MachineDeployment) {
 	return func(md *clusterv1.MachineDeployment) {

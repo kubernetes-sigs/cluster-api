@@ -94,6 +94,7 @@ func Test_canUpdateMachine(t *testing.T) {
 		wantError                            bool
 		wantErrorMessage                     string
 	}{
+		// Feature gate and objects missing
 		{
 			name:                            "Return false if feature gate is not enabled",
 			enableInPlaceUpdatesFeatureGate: false,
@@ -104,6 +105,8 @@ func Test_canUpdateMachine(t *testing.T) {
 			enableInPlaceUpdatesFeatureGate: true,
 			wantCanUpdateMachineResult:      canUpdateMachineResult{canUpdateMachine: false},
 		},
+
+		// Invalid extension configuration
 		{
 			name:                            "Return false if no CanUpdateMachine extensions registered",
 			enableInPlaceUpdatesFeatureGate: true,
@@ -121,6 +124,8 @@ func Test_canUpdateMachine(t *testing.T) {
 			wantError:        true,
 			wantErrorMessage: "found multiple CanUpdateMachine hooks (test-update-extension-1,test-update-extension-2): only one hook is supported",
 		},
+
+		// Without cache entry, allowed operations not set
 		{
 			name:                            "Return false if canExtensionsUpdateMachine returns false",
 			enableInPlaceUpdatesFeatureGate: true,
@@ -171,6 +176,33 @@ func Test_canUpdateMachine(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:                            "Return true if canExtensionsUpdateMachine returns true - does not affect availability",
+			enableInPlaceUpdatesFeatureGate: true,
+			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
+			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
+				canUpdateMachineGVH: {"test-update-extension"},
+			},
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
+				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
+					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
+				}
+				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, retryAfter: now.Add(5 * time.Minute)}, nil
+			},
+			wantCanExtensionsUpdateMachineCalled: true,
+			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, retryAfter: now.Add(5 * time.Minute)},
+			wantCacheEntry: &CanUpdateMachineCacheEntry{
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:          now.Add(5 * time.Minute),
+					canUpdateMachine:    true,
+					affectsAvailability: false,
+				},
+			},
+		},
+
+		// Without cache entry, allowed operations set
 		{
 			name:                            "Return allowed operations and messages if canExtensionsUpdateMachine returns them",
 			enableInPlaceUpdatesFeatureGate: true,
@@ -233,6 +265,8 @@ func Test_canUpdateMachine(t *testing.T) {
 				},
 			},
 		},
+
+		// Without cache entry, retry after
 		{
 			name:                            "Return retryAfter if canExtensionsUpdateMachine returns retryAfter with messages",
 			enableInPlaceUpdatesFeatureGate: true,
@@ -290,6 +324,8 @@ func Test_canUpdateMachine(t *testing.T) {
 				},
 			},
 		},
+
+		// Error calling the extension
 		{
 			name:                            "Return error, set ErrorMessage and don't cache if canExtensionsUpdateMachine returns an error",
 			enableInPlaceUpdatesFeatureGate: true,
@@ -1060,6 +1096,100 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 			},
 			wantError:        true,
 			wantErrorMessage: `failed to call extension handler "test-update-extension": got failure response with message: failed`,
+		},
+		{
+			name: "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions) - does not affect availability",
+			machineUpToDateResult: pkg.UpToDateResult{
+				DesiredMachine:       desiredMachine,
+				CurrentInfraMachine:  currentInfraMachine,
+				DesiredInfraMachine:  desiredInfraMachine,
+				CurrentKubeadmConfig: currentKubeadmConfig,
+				DesiredKubeadmConfig: desiredKubeadmConfig,
+			},
+			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					MachinePatch:        patchToUpdateMachine,
+					AffectsAvailability: new(false),
+				},
+				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse:        runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					InfrastructureMachinePatch: patchToUpdateInfraMachine,
+					AffectsAvailability:        new(false),
+				},
+				"test-update-extension-3": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse:  runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					BootstrapConfigPatch: patchToUpdateKubeadmConfig,
+					AffectsAvailability:  new(false),
+				},
+			},
+			callExtensionExpectedChanges: map[string]func(runtime.Object){
+				"test-update-extension-2": func(object runtime.Object) {
+					if machine, ok := object.(*clusterv1.Machine); ok {
+						// After the call to test-update-extension-1 we expect that patchToUpdateMachine is already applied.
+						machine.Spec.Version = "v1.31.0"
+					}
+				},
+				"test-update-extension-3": func(object runtime.Object) {
+					if machine, ok := object.(*clusterv1.Machine); ok {
+						// After the call to test-update-extension-1 we expect that patchToUpdateMachine is already applied.
+						machine.Spec.Version = "v1.31.0"
+					}
+					if infraMachine, ok := object.(*unstructured.Unstructured); ok {
+						// After the call to test-update-extension-2 we expect that patchToUpdateInfraMachine is already applied.
+						_ = unstructured.SetNestedField(infraMachine.Object, "in-place updated world", "spec", "hello")
+					}
+				},
+			},
+			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, retryAfter: now.Add(5 * time.Minute)},
+		},
+		{
+			name: "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions) - at least one affects availability",
+			machineUpToDateResult: pkg.UpToDateResult{
+				DesiredMachine:       desiredMachine,
+				CurrentInfraMachine:  currentInfraMachine,
+				DesiredInfraMachine:  desiredInfraMachine,
+				CurrentKubeadmConfig: currentKubeadmConfig,
+				DesiredKubeadmConfig: desiredKubeadmConfig,
+			},
+			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					MachinePatch:        patchToUpdateMachine,
+					AffectsAvailability: new(false),
+				},
+				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse:        runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					InfrastructureMachinePatch: patchToUpdateInfraMachine,
+					AffectsAvailability:        new(true),
+				},
+				"test-update-extension-3": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse:  runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					BootstrapConfigPatch: patchToUpdateKubeadmConfig,
+					AffectsAvailability:  new(false),
+				},
+			},
+			callExtensionExpectedChanges: map[string]func(runtime.Object){
+				"test-update-extension-2": func(object runtime.Object) {
+					if machine, ok := object.(*clusterv1.Machine); ok {
+						// After the call to test-update-extension-1 we expect that patchToUpdateMachine is already applied.
+						machine.Spec.Version = "v1.31.0"
+					}
+				},
+				"test-update-extension-3": func(object runtime.Object) {
+					if machine, ok := object.(*clusterv1.Machine); ok {
+						// After the call to test-update-extension-1 we expect that patchToUpdateMachine is already applied.
+						machine.Spec.Version = "v1.31.0"
+					}
+					if infraMachine, ok := object.(*unstructured.Unstructured); ok {
+						// After the call to test-update-extension-2 we expect that patchToUpdateInfraMachine is already applied.
+						_ = unstructured.SetNestedField(infraMachine.Object, "in-place updated world", "spec", "hello")
+					}
+				},
+			},
+			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, retryAfter: now.Add(5 * time.Minute)},
 		},
 	}
 

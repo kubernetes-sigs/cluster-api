@@ -169,15 +169,15 @@ type CanUpdateMachineSetRequestObjects struct {
 	BootstrapConfigTemplate runtime.RawExtension `json:"bootstrapConfigTemplate,omitempty,omitzero"`
 }
 
-var _ ResponseObject = &CanUpdateMachineSetResponse{}
+var _ RetryResponseObject = &CanUpdateMachineSetResponse{}
 
 // CanUpdateMachineSetResponse is the response of the CanUpdateMachineSet hook.
 // +kubebuilder:object:root=true
 type CanUpdateMachineSetResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonResponse contains Status and Message fields common to all response types.
-	CommonResponse `json:",inline"`
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
+	CommonRetryResponse `json:",inline"`
 
 	// machineSetPatch when applied to the current MachineSet spec, indicates changes handled in-place.
 	// +optional
@@ -196,6 +196,14 @@ type CanUpdateMachineSetResponse struct {
 	// Default is true.
 	// +optional
 	AffectsAvailability *bool `json:"affectsAvailability,omitempty"`
+
+	// allowedOperations defines the operations Cluster API is allowed to use to roll out changes to the Machines.
+	// If not set, both UpdateInPlace and Replace are allowed.
+	// If set to an empty list, no operation is allowed and the rollout is blocked.
+	// Note: allowedOperations is orthogonal to the patches, e.g. if the patches cover the entire diff but only
+	// Replace is allowed, changes are rolled out by replacing Machines.
+	// +optional
+	AllowedOperations *[]MachineUpdateOperation `json:"allowedOperations,omitempty"`
 }
 
 // CanUpdateMachineSet is the hook that will be called to determine if an extension
@@ -314,8 +322,10 @@ func init() {
 			"Notes:\n" +
 			"- This hook is called during the planning phase of updates\n" +
 			"- Only spec is provided, status fields are not included\n" +
-			"- If no extension can cover the required changes, CAPI will fallback to rolling updates\n" +
-			"- Only fields in MachineSet/InfraMachineTemplate/BootstrapConfigTemplate spec.template.spec have to be covered by patches\n",
+			"- If no extension can cover the required changes, CAPI will fallback to rolling updates, unless allowedOperations does not allow it\n" +
+			"- Only fields in MachineSet/InfraMachineTemplate/BootstrapConfigTemplate spec.template.spec have to be covered by patches\n" +
+			"- allowedOperations can be used to restrict the operations used to roll out changes (InPlaceUpdate, Replace); if not set, both are allowed\n" +
+			"- retryAfterSeconds > 0 can be used to signal that the decision is still in progress; the rollout is paused until the hook is called again\n",
 	})
 
 	catalogBuilder.RegisterHook(UpdateMachine, &runtimecatalog.HookMeta{

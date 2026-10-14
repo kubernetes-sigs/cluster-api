@@ -93,7 +93,7 @@ type ClusterInPlaceUpdateSpecInput struct {
 }
 
 // ClusterInPlaceUpdateSpec implements a test for in-place updates.
-// Note: This test works with KCP as it tests the KCP in-place update feature.
+// Note: This test works with KCP and MachineDeployments as it tests the KCP and MachineDeployment in-place update features.
 func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInPlaceUpdateSpecInput) {
 	var (
 		specName         = "in-place-update"
@@ -225,10 +225,10 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 			"five in-place update",
 		} {
 			if i == 0 {
-				// In the first iteration the CanUpdateMachine extension first responds with RetryAfterSeconds
-				// to test that KCP waits for the extension's decision.
-				Byf("[%d] Configure the CanUpdateMachine extension to respond with RetryAfterSeconds", i)
-				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "CanUpdateMachine",
+				// In the first iteration the CanUpdateMachine and CanUpdateMachineSet extensions first respond with RetryAfterSeconds
+				// to test that KCP and the MachineDeployments wait for the extension's decision.
+				Byf("[%d] Configure the CanUpdateMachine and CanUpdateMachineSet extensions to respond with RetryAfterSeconds", i)
+				setPreloadedCanUpdateHookResponses(ctx, mgmtClient, cluster, input.ExtensionConfigName,
 					`{"Status": "Success", "RetryAfterSeconds": 5, "Message": "decision is in progress"}`)
 
 				Byf("[%d] Trigger a rollout by modifying the files variable", i)
@@ -237,16 +237,22 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 				Byf("[%d] Verify KCP is waiting for the decision of the CanUpdateMachine extension", i)
 				verifyKCPRollingOutCondition(ctx, mgmtClient, cluster, controlplanev1.KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason, "decision is in progress", input.E2EConfig.GetIntervals(specName, "wait-control-plane")...)
 
-				// Then the CanUpdateMachine extension blocks the rollout by responding with an empty list of allowedOperations,
-				// so neither in-place update nor replacing the Machine is allowed.
-				// Note: The extension does not have to be able to handle the change in-place for this.
-				// Note: KCP calls the extension again after the RetryAfterSeconds of the previous response expired.
-				Byf("[%d] Configure the CanUpdateMachine extension to block the rollout by responding with an empty list of allowedOperations", i)
-				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "CanUpdateMachine",
+				Byf("[%d] Verify the MachineDeployments are waiting for the decision of the CanUpdateMachineSet extension", i)
+				verifyMachineDeploymentsRollingOutCondition(ctx, mgmtClient, cluster, clusterv1.MachineDeploymentRollingOutWaitingForRolloutDecisionReason, "decision is in progress", input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...)
+
+				// Then the CanUpdateMachine and CanUpdateMachineSet extensions block the rollout by responding with an empty list of allowedOperations,
+				// so neither in-place update nor replacing the Machines is allowed.
+				// Note: The extensions do not have to be able to handle the change in-place for this.
+				// Note: KCP and the MachineDeployments call the extensions again after the RetryAfterSeconds of the previous response expired.
+				Byf("[%d] Configure the CanUpdateMachine and CanUpdateMachineSet extensions to block the rollout by responding with an empty list of allowedOperations", i)
+				setPreloadedCanUpdateHookResponses(ctx, mgmtClient, cluster, input.ExtensionConfigName,
 					`{"Status": "Success", "Message": "rollout is blocked by the extension", "AllowedOperations": []}`)
 
 				Byf("[%d] Verify KCP rollout is blocked by the CanUpdateMachine extension", i)
 				verifyKCPRollingOutCondition(ctx, mgmtClient, cluster, controlplanev1.KubeadmControlPlaneRollingOutRolloutBlockedReason, "rollout is blocked by the extension", input.E2EConfig.GetIntervals(specName, "wait-control-plane")...)
+
+				Byf("[%d] Verify the MachineDeployments rollout is blocked by the CanUpdateMachineSet extension", i)
+				verifyMachineDeploymentsRollingOutCondition(ctx, mgmtClient, cluster, clusterv1.MachineDeploymentRollingOutRolloutBlockedReason, "rollout is blocked by the extension", input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...)
 
 				Byf("[%d] Verify no Machine is changed while the rollout is blocked", i)
 				Consistently(func(g Gomega) {
@@ -255,11 +261,11 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 					g.Expect(machineNames(machineObjectsWhileBlocked.WorkerMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.WorkerMachines)))
 				}, 15*time.Second, 3*time.Second).Should(Succeed())
 
-				// Finally the CanUpdateMachine extension stops blocking the rollout.
-				// Note: The blocked decision is cached until the KCP spec changes or the cache entry expires.
-				// Modifying the files variable below changes the KCP spec again, which unblocks the rollout.
-				Byf("[%d] Configure the CanUpdateMachine extension to stop blocking the rollout", i)
-				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "CanUpdateMachine", "")
+				// Finally the CanUpdateMachine and CanUpdateMachineSet extensions stop blocking the rollout.
+				// Note: The blocked decision is cached until the KCP spec / the new MachineSet changes or the cache entry expires.
+				// Modifying the files variable below changes the KCP spec and creates a new MachineSet again, which unblocks the rollout.
+				Byf("[%d] Configure the CanUpdateMachine and CanUpdateMachineSet extensions to stop blocking the rollout", i)
+				setPreloadedCanUpdateHookResponses(ctx, mgmtClient, cluster, input.ExtensionConfigName, "")
 
 				// The UpdateMachine extension responds with the first updateStatus before the in-place update is triggered,
 				// the other updateStatus are configured by verifyUpdateMachineUpdateStatuses below.
@@ -519,6 +525,34 @@ func verifyKCPRollingOutCondition(ctx context.Context, c client.Client, cluster 
 		g.Expect(rollingOutCondition.Reason).To(Equal(reason))
 		g.Expect(rollingOutCondition.Message).To(ContainSubstring(messageSubstring))
 	}, intervals...).Should(Succeed())
+}
+
+// verifyMachineDeploymentsRollingOutCondition verifies that the RollingOut condition of all MachineDeployments of the Cluster
+// has the given reason and that its message contains messageSubstring.
+func verifyMachineDeploymentsRollingOutCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, reason, messageSubstring string, intervals ...interface{}) {
+	Eventually(func(g Gomega) {
+		machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
+			Lister:      c,
+			ClusterName: cluster.Name,
+			Namespace:   cluster.Namespace,
+		})
+		g.Expect(machineDeployments).ToNot(BeEmpty())
+		for _, machineDeployment := range machineDeployments {
+			rollingOutCondition := conditions.Get(machineDeployment, clusterv1.MachineDeploymentRollingOutCondition)
+			g.Expect(rollingOutCondition).ToNot(BeNil(), "RollingOut condition of MachineDeployment %s", klog.KObj(machineDeployment))
+			g.Expect(rollingOutCondition.Status).To(Equal(metav1.ConditionTrue), "RollingOut condition of MachineDeployment %s", klog.KObj(machineDeployment))
+			g.Expect(rollingOutCondition.Reason).To(Equal(reason), "RollingOut condition of MachineDeployment %s", klog.KObj(machineDeployment))
+			g.Expect(rollingOutCondition.Message).To(ContainSubstring(messageSubstring), "RollingOut condition of MachineDeployment %s", klog.KObj(machineDeployment))
+		}
+	}, intervals...).Should(Succeed())
+}
+
+// setPreloadedCanUpdateHookResponses sets the same response for the CanUpdateMachine (used by KCP) and the
+// CanUpdateMachineSet (used by MachineDeployments) hooks. If response is empty the preloaded responses are removed.
+func setPreloadedCanUpdateHookResponses(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName, response string) {
+	for _, hookName := range []string{"CanUpdateMachine", "CanUpdateMachineSet"} {
+		setPreloadedHookResponse(ctx, c, cluster, extensionConfigName, hookName, response)
+	}
 }
 
 // setPreloadedHookResponse sets the response the test extension returns for a hook in the hook responses ConfigMap.

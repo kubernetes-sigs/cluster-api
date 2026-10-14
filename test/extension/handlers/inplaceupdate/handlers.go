@@ -133,7 +133,7 @@ func (h *ExtensionHandlers) DoCanUpdateMachine(ctx context.Context, req *runtime
 	}
 
 	// If a response is preloaded for this hook, return it as is. This allows E2E tests to control the hook behaviour during a test.
-	found, err := h.readResponseFromConfigMap(ctx, &req.Desired.Machine, runtimehooksv1.CanUpdateMachine, req.Settings, resp)
+	found, err := h.readResponseFromConfigMap(ctx, req.Desired.Machine.Namespace, req.Desired.Machine.Spec.ClusterName, runtimehooksv1.CanUpdateMachine, req.Settings, resp)
 	if err != nil {
 		resp.Status = runtimehooksv1.ResponseStatusFailure
 		resp.Message = err.Error()
@@ -188,6 +188,17 @@ func (h *ExtensionHandlers) DoCanUpdateMachineSet(ctx context.Context, req *runt
 
 	if req.Settings["disableInPlaceUpdates"] == "true" {
 		resp.Status = runtimehooksv1.ResponseStatusSuccess
+		return
+	}
+
+	// If a response is preloaded for this hook, return it as is. This allows E2E tests to control the hook behaviour during a test.
+	found, err := h.readResponseFromConfigMap(ctx, req.Desired.MachineSet.Namespace, req.Desired.MachineSet.Spec.ClusterName, runtimehooksv1.CanUpdateMachineSet, req.Settings, resp)
+	if err != nil {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = err.Error()
+		return
+	}
+	if found {
 		return
 	}
 
@@ -282,24 +293,24 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 // readResponseFromConfigMap reads the response that is preloaded for the given hook from a well known ConfigMap
 // (<cluster name>-<extensionConfigName>-test-extension-hookresponses, the same ConfigMap that is used by the lifecycle hooks)
 // and unmarshals it into response.
-// The response must be stored under the key <hook name>-preloadedResponse, e.g. for the CanUpdateMachine hook:
+// The response must be stored under the key <hook name>-preloadedResponse, e.g. for the CanUpdateMachine and CanUpdateMachineSet hooks:
 // `{"Status": "Success", "RetryAfterSeconds": 10, "Message": "waiting for the update plan"}`.
 // It returns true if a response could be read from the ConfigMap, false if the ConfigMap does not exist
 // or if there is no preloaded response for the hook.
-func (h *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, machine *clusterv1.Machine, hook runtimecatalog.Hook, settings map[string]string, response runtimehooksv1.ResponseObject) (bool, error) {
+func (h *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, namespace, clusterName string, hook runtimecatalog.Hook, settings map[string]string, response runtimehooksv1.ResponseObject) (bool, error) {
 	hookName := runtimecatalog.HookName(hook)
 	if _, ok := settings[extensionConfigNameKey]; !ok {
 		return false, pkgerrors.New(extensionConfigNameKey + " must be set in settings")
 	}
-	configMapName := configMapName(machine.Spec.ClusterName, settings[extensionConfigNameKey])
+	configMapName := configMapName(clusterName, settings[extensionConfigNameKey])
 	log := ctrl.LoggerFrom(ctx)
 	configMap := &corev1.ConfigMap{}
-	if err := h.client.Get(ctx, client.ObjectKey{Namespace: machine.Namespace, Name: configMapName}, configMap); err != nil {
+	if err := h.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: configMapName}, configMap); err != nil {
 		if apierrors.IsNotFound(err) {
 			// A ConfigMap of responses does not exist, so there is no preloaded response.
 			return false, nil
 		}
-		return false, pkgerrors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(machine.Namespace, configMapName))
+		return false, pkgerrors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(namespace, configMapName))
 	}
 
 	data, ok := configMap.Data[hookName+"-preloadedResponse"]

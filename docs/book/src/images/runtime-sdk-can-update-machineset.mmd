@@ -1,0 +1,15 @@
+flowchart TD
+    A([CanUpdateMachineSet hook called]) --> B{Can the extension<br/>compute an answer?}
+    B -- "No (internal error)" --> Failure["<b>Failure</b><br/>status: Failure<br/>message: '...'"]:::bad
+    B -- Yes --> C{Is the decision<br/>still in progress?}
+    C -- Yes --> Retry["<b>Retry</b><br/>status: Success<br/>retryAfterSeconds: 15<br/>message: '...'"]:::wait
+    C -- No --> D{Is the configuration<br/>valid?}
+    D -- No --> Block["<b>Blocked</b><br/>status: Success<br/>allowedOperations: []<br/>message: '...'"]:::bad
+    D -- Yes --> E{Can the change<br/>be performed in-place?}
+    E -- Yes --> InPlace["<b>In-place</b><br/>status: Success<br/>*Patch: ...<br/>allowedOperations: unset or<br/>[UpdateInPlace] or<br/>[UpdateInPlace, Replace]<br/>message: '...'"]:::ok
+    E -- No --> G{Only in-place changes allowed?}
+    G -- No --> Rollout["<b>Replace</b><br/>status: Success<br/>allowedOperations: unset or<br/>[Replace] or<br/>[Replace, UpdateInPlace]<br/>message: '...'"]:::ok
+    G -- Yes --> InPlaceOnly["<b>Block</b><br/>status: Success<br/>allowedOperations: [] or<br/>[UpdateInPlace]<br/>message: '...'"]:::bad
+    classDef ok fill:#d4edda,stroke:#28a745,color:#000;
+    classDef wait fill:#fff3cd,stroke:#e0a800,color:#000;
+    classDef bad fill:#f8d7da,stroke:#dc3545,color:#000;

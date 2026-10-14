@@ -27,6 +27,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -35,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
@@ -905,6 +907,7 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 }
 
 func TestReconcileInPlaceUpdateIntent(t *testing.T) {
+	now := time.Now()
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
 
 	testCases := []struct {
@@ -915,11 +918,18 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		machines               []*clusterv1.Machine
 		scaleIntents           map[string]int32
 		upToDateResults        map[string]mdutil.UpToDateResult
-		canUpdateResult        map[string]canUpdateMachineSetInPlaceResult
+		canUpdateResult        map[string]canUpdateMachineSetResult
+		canUpdateError         map[string]error
 		expectedCanUpdateCalls map[string]bool
 		expectMoveFromMS       []string
 		expectScaleIntents     map[string]int32
 		expectedNotes          map[string][]string
+		expectError            string
+
+		expectRolloutDecisionPending     bool
+		expectRetryAfter                 time.Duration
+		expectBlockedMSs                 []string
+		expectCanUpdateMachineSetResults canUpdateMachineSetResults
 	}{
 		// NewMS not scaling up
 
@@ -941,7 +951,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -971,7 +981,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms1": {EligibleForInPlaceUpdate: true},
 			},
 			expectedCanUpdateCalls: map[string]bool{},
-			canUpdateResult:        map[string]canUpdateMachineSetInPlaceResult{},
+			canUpdateResult:        map[string]canUpdateMachineSetResult{},
 			expectMoveFromMS:       []string{},
 			expectScaleIntents:     map[string]int32{},
 			expectedNotes:          map[string][]string{},
@@ -991,7 +1001,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms1": {EligibleForInPlaceUpdate: true},
 			},
 			expectedCanUpdateCalls: map[string]bool{},
-			canUpdateResult:        map[string]canUpdateMachineSetInPlaceResult{},
+			canUpdateResult:        map[string]canUpdateMachineSetResult{},
 			expectMoveFromMS:       []string{},
 			expectScaleIntents:     map[string]int32{},
 			expectedNotes:          map[string][]string{},
@@ -1010,7 +1020,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			scaleIntents:           map[string]int32{},
 			upToDateResults:        map[string]mdutil.UpToDateResult{},
 			expectedCanUpdateCalls: map[string]bool{},
-			canUpdateResult:        map[string]canUpdateMachineSetInPlaceResult{},
+			canUpdateResult:        map[string]canUpdateMachineSetResult{},
 			expectMoveFromMS:       []string{},
 			expectScaleIntents:     map[string]int32{},
 			expectedNotes:          map[string][]string{},
@@ -1031,7 +1041,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms1": {EligibleForInPlaceUpdate: false},
 			},
 			expectedCanUpdateCalls: map[string]bool{},
-			canUpdateResult:        map[string]canUpdateMachineSetInPlaceResult{},
+			canUpdateResult:        map[string]canUpdateMachineSetResult{},
 			expectMoveFromMS:       []string{},
 			expectScaleIntents:     map[string]int32{},
 			expectedNotes:          map[string][]string{},
@@ -1054,7 +1064,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: false,
 				},
@@ -1094,7 +1104,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms2": true,
 				"ms5": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1137,7 +1147,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1172,7 +1182,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1209,7 +1219,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1247,7 +1257,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1284,7 +1294,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1324,7 +1334,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1360,7 +1370,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1396,7 +1406,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1432,7 +1442,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: true,
@@ -1470,7 +1480,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: false,
@@ -1505,7 +1515,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: false,
@@ -1541,7 +1551,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: false,
@@ -1578,7 +1588,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: false,
@@ -1615,7 +1625,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: false,
@@ -1655,7 +1665,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: false,
@@ -1691,7 +1701,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: false,
@@ -1727,7 +1737,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: false,
@@ -1763,7 +1773,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectedCanUpdateCalls: map[string]bool{
 				"ms1": true,
 			},
-			canUpdateResult: map[string]canUpdateMachineSetInPlaceResult{
+			canUpdateResult: map[string]canUpdateMachineSetResult{
 				"ms1": {
 					canUpdateMachineSet: true,
 					affectsAvailability: false,
@@ -1778,6 +1788,259 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				"ms2": {"surge 1 dropped to prioritize in-place updates"},
 			},
 		},
+
+		// CanUpdateMachineSet allowedOperations and retryAfterSeconds
+
+		{
+			name:  "When at least one oldMS is pending, pause the rollout by dropping scale intents of all the oldMSs and surge, but keep the move annotation of oldMSs with an in-place decision",
+			md:    createMD("v3", 4, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms3", "v3", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2),
+				createMS("ms2", "v2", 2),
+			},
+			scaleIntents: map[string]int32{"ms1": 1, "ms2": 1, "ms3": 2},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+				"ms2": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true, "ms2": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {canUpdateMachineSet: true, affectsAvailability: true},
+				"ms2": {retryAfter: now.Add(30 * time.Second), retryAfterFromExtension: true},
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms3 (affects availability)"},
+				"ms2": {"rollout paused, waiting for the extension to take a decision about how to roll out changes (retry after 30s)"},
+				"ms3": {"surge 1 dropped: rollout paused, waiting for the extension to take a decision about how to roll out changes"},
+			},
+			expectCanUpdateMachineSetResults: canUpdateMachineSetResults{waitingForDecisionMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms2"}},
+			expectRolloutDecisionPending:     true,
+			expectRetryAfter:                 30 * time.Second,
+		},
+		{
+			name:  "When multiple oldMSs are pending, retry after the shortest interval",
+			md:    createMD("v3", 4, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms3", "v3", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2),
+				createMS("ms2", "v2", 2),
+			},
+			scaleIntents: map[string]int32{"ms1": 1, "ms2": 1},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+				"ms2": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true, "ms2": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {retryAfter: now.Add(2 * time.Minute), retryAfterFromExtension: true, messages: []string{"waiting for the update plan", "waiting for approval"}},
+				"ms2": {retryAfter: now.Add(30 * time.Second), retryAfterFromExtension: true},
+			},
+			expectMoveFromMS:   []string{},
+			expectScaleIntents: map[string]int32{},
+			expectedNotes: map[string][]string{
+				"ms1": {"rollout paused, waiting for the extension to take a decision about how to roll out changes (retry after 2m0s)"},
+				"ms2": {"rollout paused, waiting for the extension to take a decision about how to roll out changes (retry after 30s)"},
+			},
+			expectCanUpdateMachineSetResults: canUpdateMachineSetResults{waitingForDecisionMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1: waiting for the update plan, waiting for approval", "Blocked by CanUpdateMachineSet hook for MachineSet ms2"}},
+			expectRolloutDecisionPending:     true,
+			expectRetryAfter:                 30 * time.Second,
+		},
+		{
+			name:  "When oldMS is pending, keep the part of the newMS scale up that is not using surge (MachineDeployment scaled up)",
+			md:    createMD("v3", 5, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms3", "v3", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2),
+			},
+			scaleIntents: map[string]int32{"ms1": 1, "ms3": 3},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {retryAfter: now.Add(30 * time.Second), retryAfterFromExtension: true},
+			},
+			expectMoveFromMS:   []string{},
+			expectScaleIntents: map[string]int32{"ms3": 3},
+			expectedNotes: map[string][]string{
+				"ms1": {"rollout paused, waiting for the extension to take a decision about how to roll out changes (retry after 30s)"},
+			},
+			expectCanUpdateMachineSetResults: canUpdateMachineSetResults{waitingForDecisionMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1"}},
+			expectRolloutDecisionPending:     true,
+			expectRetryAfter:                 30 * time.Second,
+		},
+		{
+			name:  "When in-place update is possible but only Replace is allowed, fallback to replacing machines (no move, scale intent preserved)",
+			md:    createMD("v2", 2),
+			newMS: createMS("ms2", "v2", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			scaleIntents: map[string]int32{"ms1": 0},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {canUpdateMachineSet: true, affectsAvailability: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace})},
+			},
+			expectMoveFromMS:   []string{},
+			expectScaleIntents: map[string]int32{"ms1": 0},
+			expectedNotes: map[string][]string{
+				"ms1": {"in-place update is possible but not allowed, falling back to replace machines"},
+			},
+		},
+		{
+			name:  "When in-place update is not possible and only InPlaceUpdate is allowed, block the rollout by dropping the oldMS scale intent",
+			md:    createMD("v2", 2),
+			newMS: createMS("ms2", "v2", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			scaleIntents: map[string]int32{"ms1": 0},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {canUpdateMachineSet: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace})},
+			},
+			expectMoveFromMS:   []string{},
+			expectScaleIntents: map[string]int32{},
+			expectedNotes: map[string][]string{
+				"ms1": {"rollout blocked, replace operation is not allowed and not all changes can be updated in-place"},
+			},
+			expectCanUpdateMachineSetResults: canUpdateMachineSetResults{rolloutBlockedMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1: replace operation is not allowed and not all changes can be updated in-place"}},
+			expectBlockedMSs:                 []string{"ms1"},
+		},
+		{
+			name:  "When no operation is allowed, block the rollout by dropping the oldMS scale intent",
+			md:    createMD("v2", 2),
+			newMS: createMS("ms2", "v2", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			scaleIntents: map[string]int32{"ms1": 0},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {canUpdateMachineSet: true, affectsAvailability: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed", "maintenance window is closed"}},
+			},
+			expectMoveFromMS:   []string{},
+			expectScaleIntents: map[string]int32{},
+			expectedNotes: map[string][]string{
+				"ms1": {"rollout blocked, neither replace nor in-place update operations are allowed: preflight check failed, maintenance window is closed"},
+			},
+			expectCanUpdateMachineSetResults: canUpdateMachineSetResults{rolloutBlockedMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1: neither replace nor in-place update operations are allowed: preflight check failed, maintenance window is closed"}},
+			expectBlockedMSs:                 []string{"ms1"},
+		},
+		{
+			name:  "When one oldMS is blocked and another one is rolling out, drop the scale intent of the blocked oldMS only and keep surge (surge is part of the rolling update)",
+			md:    createMD("v3", 4, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms3", "v3", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2),
+				createMS("ms2", "v2", 2),
+			},
+			scaleIntents: map[string]int32{"ms1": 1, "ms2": 1, "ms3": 2},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+				"ms2": {EligibleForInPlaceUpdate: false},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {canUpdateMachineSet: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace})},
+			},
+			expectMoveFromMS:   []string{},
+			expectScaleIntents: map[string]int32{"ms2": 1, "ms3": 2},
+			expectedNotes: map[string][]string{
+				"ms1": {"rollout blocked, replace operation is not allowed and not all changes can be updated in-place"},
+			},
+			expectCanUpdateMachineSetResults: canUpdateMachineSetResults{rolloutBlockedMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1: replace operation is not allowed and not all changes can be updated in-place"}},
+			expectBlockedMSs:                 []string{"ms1"},
+		},
+		{
+			name:  "When all the oldMSs are blocked, drop surge from the newMS scale up intent",
+			md:    createMD("v3", 4, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms3", "v3", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2),
+				createMS("ms2", "v2", 2),
+			},
+			scaleIntents: map[string]int32{"ms1": 1, "ms2": 1, "ms3": 2},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+				"ms2": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true, "ms2": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {canUpdateMachineSet: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace})},
+				"ms2": {canUpdateMachineSet: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{})},
+			},
+			expectMoveFromMS:   []string{},
+			expectScaleIntents: map[string]int32{},
+			expectedNotes: map[string][]string{
+				"ms1": {"rollout blocked, replace operation is not allowed and not all changes can be updated in-place"},
+				"ms2": {"rollout blocked, neither replace nor in-place update operations are allowed"},
+				"ms3": {"surge 1 dropped: rollout blocked, replacing machines is not allowed"},
+			},
+			expectCanUpdateMachineSetResults: canUpdateMachineSetResults{rolloutBlockedMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1: replace operation is not allowed and not all changes can be updated in-place", "Blocked by CanUpdateMachineSet hook for MachineSet ms2: neither replace nor in-place update operations are allowed"}},
+			expectBlockedMSs:                 []string{"ms1", "ms2"},
+		},
+		{
+			name:  "When one oldMS is updated in-place and another one is blocked, surge is part of the in-place update (dropped to prioritize in-place updates)",
+			md:    createMD("v3", 4, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms3", "v3", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2),
+				createMS("ms2", "v2", 2),
+			},
+			scaleIntents: map[string]int32{"ms1": 1, "ms2": 1, "ms3": 2},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+				"ms2": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true, "ms2": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {canUpdateMachineSet: true, affectsAvailability: true},
+				"ms2": {canUpdateMachineSet: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace})},
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{"ms1": 1},
+			expectedNotes: map[string][]string{
+				"ms1": {"should scale down by moving Machines to MachineSet ms3 (affects availability)"},
+				"ms2": {"rollout blocked, replace operation is not allowed and not all changes can be updated in-place"},
+				"ms3": {"surge 1 dropped to prioritize in-place updates"},
+			},
+			expectCanUpdateMachineSetResults: canUpdateMachineSetResults{rolloutBlockedMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms2: replace operation is not allowed and not all changes can be updated in-place"}},
+			expectBlockedMSs:                 []string{"ms2"},
+		},
+		{
+			name:  "When canUpdateMachineSet returns an error, return the error and collect the internal error message",
+			md:    createMD("v2", 2),
+			newMS: createMS("ms2", "v2", 1),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			scaleIntents: map[string]int32{"ms1": 0},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{"ms1": true},
+			canUpdateResult: map[string]canUpdateMachineSetResult{
+				"ms1": {internalErrorMessage: "extension failed"},
+			},
+			canUpdateError: map[string]error{"ms1": pkgerrors.New("extension failed")},
+			expectError:    "failed to determine if MachineSet ms1 can be updated in-place: extension failed",
+			expectCanUpdateMachineSetResults: canUpdateMachineSetResults{
+				internalErrorMessage: "Blocked by CanUpdateMachineSet hook for MachineSet ms1: extension failed",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1787,18 +2050,25 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			canUpdateCalls := make(map[string]bool)
 
 			planner := newRolloutPlanner(nil, nil, nil)
+			planner.overrideNowFunc = func() time.Time { return now }
 			planner.md = tc.md
 			planner.newMS = tc.newMS
 			planner.oldMSs = tc.oldMS
 			planner.machines = tc.machines
 			planner.scaleIntents = tc.scaleIntents
 			planner.upToDateResults = tc.upToDateResults
-			planner.overrideCanUpdateMachineSetInPlace = func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
+			planner.overrideCanUpdateMachineSetInPlace = func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
 				canUpdateCalls[oldMS.Name] = true
-				return tc.canUpdateResult[oldMS.Name], nil
+				return tc.canUpdateResult[oldMS.Name], tc.canUpdateError[oldMS.Name]
 			}
 
 			err := planner.reconcileInPlaceUpdateIntent(ctx)
+			if tc.expectError != "" {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(Equal(tc.expectError))
+				g.Expect(planner.canUpdateMachineSetResults).To(Equal(tc.expectCanUpdateMachineSetResults), "Unexpected canUpdateMachineSetResults")
+				return
+			}
 			g.Expect(err).ToNot(HaveOccurred(), "Got unexpected error from reconcileInPlaceUpdateIntent")
 
 			g.Expect(planner.scaleIntents).To(Equal(tc.expectScaleIntents), "Unexpected scaleIntents")
@@ -1826,6 +2096,11 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				}
 			}
 			g.Expect(planner.notes).To(Equal(tc.expectedNotes), "unexpected notes")
+
+			g.Expect(planner.rolloutDecisionPending).To(Equal(tc.expectRolloutDecisionPending), "Unexpected rolloutDecisionPending")
+			g.Expect(planner.canUpdateMachineSetResults).To(Equal(tc.expectCanUpdateMachineSetResults), "Unexpected canUpdateMachineSetResults")
+			g.Expect(planner.retryAfter).To(Equal(tc.expectRetryAfter), "Unexpected retryAfter")
+			g.Expect(planner.blockedMSs.Equal(sets.New(tc.expectBlockedMSs...))).To(BeTrue(), "Unexpected blockedMSs: %v", sets.List(planner.blockedMSs))
 		})
 	}
 }
@@ -1841,6 +2116,9 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 		expectScaleIntent          map[string]int32
 		expectedNotes              map[string][]string
 		skipMaxUnavailabilityCheck bool
+
+		rolloutDecisionPending bool
+		blockedMSs             sets.Set[string]
 	}{
 		{
 			name:        "no op if there are no replicas on old machinesets",
@@ -1947,6 +2225,29 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 				"ms2": {"scaling down by 1 to unblock rollout stuck due to unavailable Machine on oldMS"},
 			},
 		},
+		{
+			name:        "no op if the rollout is paused waiting for a decision from the extension, even if there is a deadlock",
+			scaleIntent: map[string]int32{},
+			newMS:       createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(3)), // same as "unblock a deadlock when necessary", but the rollout is paused
+			},
+			rolloutDecisionPending: true,
+			expectScaleIntent:      map[string]int32{},
+			expectedNotes:          map[string][]string{},
+		},
+		{
+			name:        "no op if at least one oldMS is blocked, even if another oldMS has unavailable replicas",
+			scaleIntent: map[string]int32{},
+			newMS:       createMS("ms3", "v3", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(3)), // same as "unblock a deadlock when necessary"
+				createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)), // blocked
+			},
+			blockedMSs:        sets.New("ms2"),
+			expectScaleIntent: map[string]int32{},
+			expectedNotes:     map[string][]string{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1957,6 +2258,9 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 				oldMSs:       tt.oldMSs,
 				scaleIntents: tt.scaleIntent,
 				notes:        make(map[string][]string),
+
+				rolloutDecisionPending: tt.rolloutDecisionPending,
+				blockedMSs:             tt.blockedMSs,
 			}
 			p.reconcileDeadlockBreaker(ctx)
 			g.Expect(p.scaleIntents).To(Equal(tt.expectScaleIntent), "unexpected scaleIntents")
@@ -2008,7 +2312,7 @@ type rollingUpdateSequenceTestCase struct {
 	desiredMachineNames []string
 
 	// overrideCanUpdateMachineSetInPlaceFunc allows to inject a function that will be used to perform the canUpdateMachineSetInPlace decision
-	overrideCanUpdateMachineSetInPlaceFunc func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error)
+	overrideCanUpdateMachineSetInPlaceFunc func(i int) func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetResult, error)
 
 	// expectedMachinesCreated, expectedMachinesDeleted and expectedMachinesUpdatedInPlace assert the
 	// total number of machine create, delete and in-place update operations performed over the whole rollout.
@@ -2544,25 +2848,376 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			// m1 is updated in place
 			// m2 is deleted to restore the desired number of replicas
 			desiredMachineNames: []string{"m1", "m3", "m4"},
-			overrideCanUpdateMachineSetInPlaceFunc: func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
-				switch oldMS.Name {
-				case "ms1":
-					return canUpdateMachineSetInPlaceResult{
-						canUpdateMachineSet: true,
-						affectsAvailability: true,
-					}, nil
-				case "ms2":
-					return canUpdateMachineSetInPlaceResult{
-						canUpdateMachineSet: true,
-						affectsAvailability: false,
-					}, nil
-				default:
-					return canUpdateMachineSetInPlaceResult{}, fmt.Errorf("invalid MachineSet name %s", oldMS.Name)
+			overrideCanUpdateMachineSetInPlaceFunc: func(_ int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					switch oldMS.Name {
+					case "ms1":
+						return canUpdateMachineSetResult{
+							canUpdateMachineSet: true,
+							affectsAvailability: true,
+						}, nil
+					case "ms2":
+						return canUpdateMachineSetResult{
+							canUpdateMachineSet: true,
+							affectsAvailability: false,
+						}, nil
+					default:
+						return canUpdateMachineSetResult{}, fmt.Errorf("invalid MachineSet name %s", oldMS.Name)
+					}
 				}
 			},
 			expectedMachinesCreated:        1,
 			expectedMachinesDeleted:        1,
 			expectedMachinesUpdatedInPlace: 2,
+		},
+
+		// Rollout with In-place updates retry after
+
+		{ // scale out by 1
+			name:                "In-place rollout, 3 Replicas, maxSurge 1, MaxUnavailable 0 - retry after",
+			maxSurge:            1,
+			maxUnavailable:      0,
+			currentMachineNames: []string{"m1", "m2", "m3"},
+			desiredMachineNames: []string{"m1", "m2", "m3"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(i int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					if i < 10 {
+						return canUpdateMachineSetResult{
+							retryAfter:              time.Now().Add(2 * time.Second),
+							retryAfterFromExtension: true,
+						}, nil
+					}
+					return canUpdateMachineSetResult{
+						canUpdateMachineSet: true,
+						affectsAvailability: false,
+					}, nil
+				}
+			},
+			expectedMachinesUpdatedInPlace: 3,
+		},
+
+		// Rollout with In-place updates fallback to rollout
+
+		{ // scale out by 1
+			name:                "In-place rollout, 3 Replicas, maxSurge 1, MaxUnavailable 0 - fallback to rollout",
+			maxSurge:            1,
+			maxUnavailable:      0,
+			currentMachineNames: []string{"m1", "m2", "m3"},
+			desiredMachineNames: []string{"m4", "m5", "m6"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(_ int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					return canUpdateMachineSetResult{
+						canUpdateMachineSet: true,
+						affectsAvailability: false,
+						allowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
+					}, nil
+				}
+			},
+			expectedMachinesCreated: 3,
+			expectedMachinesDeleted: 3,
+		},
+
+		// Rollout with In-place updates block rollout
+
+		{ // scale out by 1
+			name:                "In-place rollout, 3 Replicas, maxSurge 1, MaxUnavailable 0 - block all operations",
+			maxSurge:            1,
+			maxUnavailable:      0,
+			currentMachineNames: []string{"m1", "m2", "m3"},
+			desiredMachineNames: []string{"m1", "m2", "m3"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(i int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					if i < 10 {
+						return canUpdateMachineSetResult{
+							canUpdateMachineSet: true,
+							affectsAvailability: false,
+							allowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{}),
+						}, nil
+					}
+					return canUpdateMachineSetResult{
+						canUpdateMachineSet: true,
+						affectsAvailability: false,
+					}, nil
+				}
+			},
+			expectedMachinesUpdatedInPlace: 3,
+		},
+
+		{ // scale out by 1
+			name:                "In-place rollout, 3 Replicas, maxSurge 1, MaxUnavailable 0 - only in-place",
+			maxSurge:            1,
+			maxUnavailable:      0,
+			currentMachineNames: []string{"m1", "m2", "m3"},
+			desiredMachineNames: []string{"m1", "m2", "m3"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(i int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					if i < 10 {
+						return canUpdateMachineSetResult{
+							canUpdateMachineSet: false,
+							affectsAvailability: false,
+							allowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+						}, nil
+					}
+					return canUpdateMachineSetResult{
+						canUpdateMachineSet: true,
+						affectsAvailability: false,
+						allowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+					}, nil
+				}
+			},
+			expectedMachinesUpdatedInPlace: 3,
+		},
+
+		// Rollout with In-place updates, multiple old MS, retry after, fallback to rollout and block rollout
+
+		{ // ms1 in-place, ms2 in-place possible but only rolling update allowed
+			name:           "In-place rollout, multiple old MS, MaxSurge 1, MaxUnavailable 0 - one MS in-place, one MS fallback to rollout",
+			maxSurge:       1,
+			maxUnavailable: 0,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating multiple old MS
+				machineDeployment: createMD("v3", 3, withRollingUpdateStrategy(1, 0)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 2),
+					createMS("ms2", "v2", 1),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						createM("m1", "ms1", "v1"),
+						createM("m2", "ms1", "v1"),
+					},
+					"ms2": {
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 3,
+			},
+			desiredMachineNames: []string{"m1", "m2", "m4"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(_ int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					switch oldMS.Name {
+					case "ms1":
+						return canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false}, nil
+					case "ms2":
+						return canUpdateMachineSetResult{
+							canUpdateMachineSet: true,
+							affectsAvailability: false,
+							allowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
+						}, nil
+					default:
+						return canUpdateMachineSetResult{}, fmt.Errorf("invalid MachineSet name %s", oldMS.Name)
+					}
+				}
+			},
+			expectedMachinesCreated:        1,
+			expectedMachinesDeleted:        1,
+			expectedMachinesUpdatedInPlace: 2,
+		},
+		{ // ms1 in-place, ms2 blocked until iteration 10
+			name:           "In-place rollout, multiple old MS, MaxSurge 1, MaxUnavailable 0 - one MS in-place, one MS blocked",
+			maxSurge:       1,
+			maxUnavailable: 0,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating multiple old MS
+				machineDeployment: createMD("v3", 3, withRollingUpdateStrategy(1, 0)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 2),
+					createMS("ms2", "v2", 1),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						createM("m1", "ms1", "v1"),
+						createM("m2", "ms1", "v1"),
+					},
+					"ms2": {
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 3,
+			},
+			desiredMachineNames: []string{"m1", "m2", "m3"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(i int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					switch oldMS.Name {
+					case "ms1":
+						return canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false}, nil
+					case "ms2":
+						if i < 10 {
+							return canUpdateMachineSetResult{
+								canUpdateMachineSet: false,
+								allowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+							}, nil
+						}
+						return canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false}, nil
+					default:
+						return canUpdateMachineSetResult{}, fmt.Errorf("invalid MachineSet name %s", oldMS.Name)
+					}
+				}
+			},
+			expectedMachinesCreated:        0,
+			expectedMachinesDeleted:        0,
+			expectedMachinesUpdatedInPlace: 3,
+		},
+		{ // ms1 rolling update, ms2 blocked until iteration 10
+			name:           "In-place rollout, multiple old MS, MaxSurge 1, MaxUnavailable 0 - one MS rolling update, one MS blocked",
+			maxSurge:       1,
+			maxUnavailable: 0,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating multiple old MS
+				machineDeployment: createMD("v3", 3, withRollingUpdateStrategy(1, 0)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 2),
+					createMS("ms2", "v2", 1),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						createM("m1", "ms1", "v1"),
+						createM("m2", "ms1", "v1"),
+					},
+					"ms2": {
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 3,
+			},
+			desiredMachineNames: []string{"m4", "m5", "m6"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(i int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					switch oldMS.Name {
+					case "ms1":
+						return canUpdateMachineSetResult{canUpdateMachineSet: false}, nil
+					case "ms2":
+						if i < 10 {
+							return canUpdateMachineSetResult{
+								canUpdateMachineSet: false,
+								allowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+							}, nil
+						}
+						return canUpdateMachineSetResult{canUpdateMachineSet: false}, nil
+					default:
+						return canUpdateMachineSetResult{}, fmt.Errorf("invalid MachineSet name %s", oldMS.Name)
+					}
+				}
+			},
+			expectedMachinesCreated:        3,
+			expectedMachinesDeleted:        3,
+			expectedMachinesUpdatedInPlace: 0,
+		},
+		{ // ms1 and ms2 blocked until iteration 10
+			name:           "In-place rollout, multiple old MS, MaxSurge 1, MaxUnavailable 0 - all MS blocked",
+			maxSurge:       1,
+			maxUnavailable: 0,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating multiple old MS
+				machineDeployment: createMD("v3", 3, withRollingUpdateStrategy(1, 0)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 2),
+					createMS("ms2", "v2", 1),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						createM("m1", "ms1", "v1"),
+						createM("m2", "ms1", "v1"),
+					},
+					"ms2": {
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 3,
+			},
+			desiredMachineNames: []string{"m4", "m5", "m6"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(i int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					if i < 10 {
+						return canUpdateMachineSetResult{
+							canUpdateMachineSet: false,
+							allowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{}),
+						}, nil
+					}
+					return canUpdateMachineSetResult{canUpdateMachineSet: false}, nil
+				}
+			},
+			expectedMachinesCreated:        3,
+			expectedMachinesDeleted:        3,
+			expectedMachinesUpdatedInPlace: 0,
+		},
+		{ // ms1 rolling update, ms2 retry after until iteration 10 (the whole rollout is paused)
+			name:           "In-place rollout, multiple old MS, MaxSurge 1, MaxUnavailable 0 - one MS rolling update, one MS retry after",
+			maxSurge:       1,
+			maxUnavailable: 0,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating multiple old MS
+				machineDeployment: createMD("v3", 3, withRollingUpdateStrategy(1, 0)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 2),
+					createMS("ms2", "v2", 1),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						createM("m1", "ms1", "v1"),
+						createM("m2", "ms1", "v1"),
+					},
+					"ms2": {
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 3,
+			},
+			desiredMachineNames: []string{"m4", "m5", "m6"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(i int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					switch oldMS.Name {
+					case "ms1":
+						return canUpdateMachineSetResult{canUpdateMachineSet: false}, nil
+					case "ms2":
+						if i < 10 {
+							return canUpdateMachineSetResult{retryAfter: time.Now().Add(2 * time.Second), retryAfterFromExtension: true}, nil
+						}
+						return canUpdateMachineSetResult{canUpdateMachineSet: false}, nil
+					default:
+						return canUpdateMachineSetResult{}, fmt.Errorf("invalid MachineSet name %s", oldMS.Name)
+					}
+				}
+			},
+			expectedMachinesCreated:        3,
+			expectedMachinesDeleted:        3,
+			expectedMachinesUpdatedInPlace: 0,
+		},
+		{ // ms1 in-place, ms2 retry after until iteration 10 (the whole rollout is paused)
+			name:           "In-place rollout, multiple old MS, MaxSurge 1, MaxUnavailable 0 - one MS in-place, one MS retry after",
+			maxSurge:       1,
+			maxUnavailable: 0,
+			currentScope: &rolloutScope{ // Manually providing a scope simulating multiple old MS
+				machineDeployment: createMD("v3", 3, withRollingUpdateStrategy(1, 0)),
+				machineSets: []*clusterv1.MachineSet{
+					createMS("ms1", "v1", 2),
+					createMS("ms2", "v2", 1),
+				},
+				machineSetMachines: map[string][]*clusterv1.Machine{
+					"ms1": {
+						createM("m1", "ms1", "v1"),
+						createM("m2", "ms1", "v1"),
+					},
+					"ms2": {
+						createM("m3", "ms2", "v2"),
+					},
+				},
+				machineUID: 3,
+			},
+			desiredMachineNames: []string{"m1", "m2", "m3"},
+			overrideCanUpdateMachineSetInPlaceFunc: func(i int) func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+				return func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					switch oldMS.Name {
+					case "ms1":
+						return canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false}, nil
+					case "ms2":
+						if i < 10 {
+							return canUpdateMachineSetResult{retryAfter: time.Now().Add(2 * time.Second), retryAfterFromExtension: true}, nil
+						}
+						return canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false}, nil
+					default:
+						return canUpdateMachineSetResult{}, fmt.Errorf("invalid MachineSet name %s", oldMS.Name)
+					}
+				}
+			},
+			expectedMachinesCreated:        0,
+			expectedMachinesDeleted:        0,
+			expectedMachinesUpdatedInPlace: 3,
 		},
 	}
 
@@ -2656,13 +3311,13 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 			if task == "md" {
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
 				p := newRolloutPlanner(nil, nil, nil)
-				p.overrideCanUpdateMachineSetInPlace = func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
-					return canUpdateMachineSetInPlaceResult{
+				p.overrideCanUpdateMachineSetInPlace = func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+					return canUpdateMachineSetResult{
 						canUpdateMachineSet: false,
 					}, nil
 				}
 				if tt.overrideCanUpdateMachineSetInPlaceFunc != nil {
-					p.overrideCanUpdateMachineSetInPlace = tt.overrideCanUpdateMachineSetInPlaceFunc
+					p.overrideCanUpdateMachineSetInPlace = tt.overrideCanUpdateMachineSetInPlaceFunc(i)
 				}
 				p.overrideComputeDesiredMS = func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 					log := ctrl.LoggerFrom(ctx)
@@ -2791,18 +3446,22 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 	}
 }
 
-func oldMSCanAlwaysUpdateInPlace(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
-	return canUpdateMachineSetInPlaceResult{
-		canUpdateMachineSet: true,
-		affectsAvailability: true,
-	}, nil
+func oldMSCanAlwaysUpdateInPlace(_ int) func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+	return func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+		return canUpdateMachineSetResult{
+			canUpdateMachineSet: true,
+			affectsAvailability: true,
+		}, nil
+	}
 }
 
-func oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error) {
-	return canUpdateMachineSetInPlaceResult{
-		canUpdateMachineSet: true,
-		affectsAvailability: false,
-	}, nil
+func oldMSCanAlwaysUpdateInPlaceWithoutAffectingAvailability(_ int) func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+	return func(_ context.Context, _, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
+		return canUpdateMachineSetResult{
+			canUpdateMachineSet: true,
+			affectsAvailability: false,
+		}, nil
+	}
 }
 
 func maxUnavailableBreachToleration() func(log *fileLogger, _ int, _ *rolloutScope, _, _ int32) bool {

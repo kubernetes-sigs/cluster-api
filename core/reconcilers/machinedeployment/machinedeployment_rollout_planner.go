@@ -25,6 +25,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -58,9 +59,33 @@ type rolloutPlanner struct {
 	scaleIntents map[string]int32
 	notes        map[string][]string
 
+	// rolloutDecisionPending is true if at least one CanUpdateMachineSet answer asked to be called again later;
+	// retryAfter is the shortest of the requested intervals.
+	rolloutDecisionPending bool
+	retryAfter             time.Duration
+	// blockedMSs contains the oldMSs for which the extension does not allow any operation that can roll out the changes.
+	blockedMSs sets.Set[string]
+
+	// canUpdateMachineSetResults are the messages of the CanUpdateMachineSet hook that have to be surfaced in the RollingOut condition.
+	canUpdateMachineSetResults canUpdateMachineSetResults
+
+	overrideNowFunc                       func() time.Time
 	overrideComputeDesiredMS              func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error)
-	overrideCanUpdateMachineSetInPlace    func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error)
-	overrideCanExtensionsUpdateMachineSet func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error)
+	overrideCanUpdateMachineSetInPlace    func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetResult, error)
+	overrideCanExtensionsUpdateMachineSet func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetResult, error)
+}
+
+// canUpdateMachineSetResults are the messages of the CanUpdateMachineSet hook for all the oldMSs, surfaced in the RollingOut condition.
+type canUpdateMachineSetResults struct {
+	// internalErrorMessage is the message for the oldMS for which calling the extensions failed.
+	// Note: This is a single message because the planner returns as soon as calling the extensions fails for one oldMS.
+	internalErrorMessage string
+
+	// waitingForDecisionMessages are the messages for the oldMSs for which the decision is still in progress.
+	waitingForDecisionMessages []string
+
+	// rolloutBlockedMessages are the messages for the oldMSs for which no operation that can roll out the changes is allowed.
+	rolloutBlockedMessages []string
 }
 
 func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client, canUpdateMachineSetCache cache.Cache[CanUpdateMachineSetCacheEntry]) *rolloutPlanner {
@@ -71,6 +96,14 @@ func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client, canU
 		scaleIntents:             make(map[string]int32),
 		notes:                    make(map[string][]string),
 	}
+}
+
+// now returns the current time. It can be overridden for unit tests via overrideNowFunc.
+func (p *rolloutPlanner) now() time.Time {
+	if p.overrideNowFunc != nil {
+		return p.overrideNowFunc()
+	}
+	return time.Now()
 }
 
 // init rollout planner internal state by taking care of:
@@ -334,6 +367,23 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 	desiredMS.Spec.Template.Spec.Taints = deployment.Spec.Template.Spec.Taints
 
 	return desiredMS, nil
+}
+
+// requeueAfter returns after how long the MachineDeployment must be reconciled again to follow up on a rollout
+// that is pending (waiting for an answer from an extension) or blocked (no allowed operation can roll out changes).
+// It returns 0 if there is no need to requeue.
+func (p *rolloutPlanner) requeueAfter() time.Duration {
+	var requeueAfter time.Duration
+	if p.rolloutDecisionPending {
+		requeueAfter = p.retryAfter
+	}
+	// Note: A blocked rollout is re-evaluated when the cached CanUpdateMachineSet result expires,
+	// because that is when the extension is asked again about the allowed operations.
+	// FIXME: look at this. if there is a retry after, we should respect it (we should use the 5 minutes only when blocked, and may be this is handled in canUpdateMachineSet). Also check KCP implementation
+	if p.blockedMSs.Len() > 0 && (requeueAfter == 0 || canUpdateMachineSetCacheDuration < requeueAfter) {
+		requeueAfter = canUpdateMachineSetCacheDuration
+	}
+	return requeueAfter
 }
 
 func (p *rolloutPlanner) addNotef(ms *clusterv1.MachineSet, format string, a ...any) {

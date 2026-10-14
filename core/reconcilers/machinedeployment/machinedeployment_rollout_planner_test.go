@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
@@ -1021,6 +1022,12 @@ func (r rolloutScope) rolloutPlannerResultSummary(p *rolloutPlanner) string {
 		if d.OtherChanges != "" {
 			fmt.Fprintf(&o, "      - Diff: %s\n", d.OtherChanges)
 		}
+		if p.retryAfter > 0 {
+			fmt.Fprintf(&o, "    - Rollout blocked, waiting for canUpdateMachineSet decision (retry after %s)\n", p.retryAfter.Round(time.Second))
+		}
+		if p.blockedMSs.Has(ms.Name) {
+			fmt.Fprintf(&o, "    - Rollout blocked, operation not allowed\n")
+		}
 	}
 	return o.String()
 }
@@ -1253,6 +1260,58 @@ func randomTaskOrder(taskCount int, rng *rand.Rand) []int {
 }
 
 type machineDeploymentOption func(md *clusterv1.MachineDeployment)
+
+func TestRequeueAfter(t *testing.T) {
+	tests := []struct {
+		name                   string
+		rolloutDecisionPending bool
+		retryAfter             time.Duration
+		blockedMSs             sets.Set[string]
+		want                   time.Duration
+	}{
+		{
+			name: "Do not requeue if the rollout is neither pending nor blocked",
+			want: 0,
+		},
+		{
+			name:                   "Requeue after retryAfter if the rollout is pending",
+			rolloutDecisionPending: true,
+			retryAfter:             15 * time.Minute,
+			want:                   15 * time.Minute,
+		},
+		{
+			name:       "Requeue after the blocked recheck interval if the rollout is blocked",
+			blockedMSs: sets.New("ms1"),
+			want:       canUpdateMachineSetCacheDuration,
+		},
+		{
+			name:                   "Requeue after the blocked recheck interval if the rollout is blocked and pending with a longer retryAfter",
+			rolloutDecisionPending: true,
+			retryAfter:             15 * time.Minute,
+			blockedMSs:             sets.New("ms1"),
+			want:                   canUpdateMachineSetCacheDuration,
+		},
+		{
+			name:                   "Requeue after retryAfter if the rollout is blocked and pending with a shorter retryAfter",
+			rolloutDecisionPending: true,
+			retryAfter:             10 * time.Second,
+			blockedMSs:             sets.New("ms1"),
+			want:                   10 * time.Second,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			p := &rolloutPlanner{
+				rolloutDecisionPending: tt.rolloutDecisionPending,
+				retryAfter:             tt.retryAfter,
+				blockedMSs:             tt.blockedMSs,
+			}
+			g.Expect(p.requeueAfter()).To(Equal(tt.want))
+		})
+	}
+}
 
 func withRollingUpdateStrategy(maxSurge, maxUnavailable int32) func(md *clusterv1.MachineDeployment) {
 	return func(md *clusterv1.MachineDeployment) {

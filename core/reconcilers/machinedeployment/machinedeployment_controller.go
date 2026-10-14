@@ -218,7 +218,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return ctrl.Result{}, r.reconcileDelete(ctx, s)
 	}
 
-	return ctrl.Result{}, r.reconcile(ctx, s)
+	return r.reconcile(ctx, s)
 }
 
 type scope struct {
@@ -231,6 +231,7 @@ type scope struct {
 	infrastructureTemplateNotFound               bool
 	infrastructureTemplateExists                 bool
 	getAndAdoptMachineSetsForDeploymentSucceeded bool
+	canUpdateMachineSetResults                   canUpdateMachineSetResults
 }
 
 func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *clusterv1.MachineDeployment, options ...patch.Option) error {
@@ -262,7 +263,7 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 	return patchHelper.Patch(ctx, md, options...)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
+func (r *Reconciler) reconcile(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile MachineDeployment")
 
@@ -291,23 +292,23 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 	}))
 
 	if err := r.getTemplatesAndSetOwner(ctx, s); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	if err := r.getAndAdoptMachineSetsForDeployment(ctx, s); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	var anyManagedFieldIssueMitigated bool
 	for _, ms := range s.machineSets {
 		managedFieldIssueMitigated, err := ssa.MitigateManagedFieldsIssue(ctx, r.Client, ms, machineDeploymentManagerName)
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 		anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
 	}
 	if anyManagedFieldIssueMitigated {
-		return nil // No requeue needed, changes will trigger another reconcile.
+		return ctrl.Result{}, nil // No requeue needed, changes will trigger another reconcile.
 	}
 
 	// If not already present, add a label specifying the MachineDeployment name to MachineSets.
@@ -324,25 +325,25 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		original := machineSet.DeepCopy()
 		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = md.Name
 		if err := r.Client.Patch(ctx, machineSet, client.MergeFrom(original)); err != nil {
-			return pkgerrors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 	}
 
 	templateExists := s.infrastructureTemplateExists && (!md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() || s.bootstrapTemplateExists)
 
 	if ptr.Deref(md.Spec.Paused, false) {
-		return r.sync(ctx, md, s.machineSets, s.machines, templateExists)
+		return ctrl.Result{}, r.sync(ctx, md, s.machineSets, s.machines, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		return r.rolloutRollingUpdate(ctx, md, s.machineSets, s.machines, templateExists)
+		return r.rolloutRollingUpdate(ctx, s, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
-		return r.rolloutOnDelete(ctx, md, s.machineSets, s.machines, templateExists)
+		return ctrl.Result{}, r.rolloutOnDelete(ctx, md, s.machineSets, s.machines, templateExists)
 	}
 
-	return pkgerrors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
+	return ctrl.Result{}, pkgerrors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
 }
 
 // createOrUpdateMachineSetsAndSyncMachineDeploymentRevision applies changes identified by the rolloutPlanner to both newMS and oldMSs.

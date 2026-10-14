@@ -28,7 +28,7 @@ Cluster API is responsible to choose the best strategy to achieve desired state,
 update extensions, Cluster API is expanding the set of tools that can be used to achieve the desired state.
 
 If external update extensions can not cover the totality of the desired changes, CAPI will fall back to Cluster API’s default, 
-immutable rollouts.
+replace machines (immutable rollouts).
 
 Cluster API will be also responsible to determine which Machine/MachineSet should be updated, as well as to handle rollout
 options like MaxSurge/MaxUnavailable. With this regard:
@@ -42,12 +42,16 @@ options like MaxSurge/MaxUnavailable. With this regard:
     is “buffer” for in-place, in-place update can proceed.
     - When in-place is possible, the system should try to in-place update as many machines as possible.
       In practice, this means that maxSurge might not be fully used (it is used only for scale up by one if maxUnavailable=0).
-- The `CanUpdateMachineResponse` or the `CanUpdateMachineSetResponse`hook can override the default behavior and specify 
+- The `CanUpdateMachineResponse` or the `CanUpdateMachineSetResponse` hook can override the default behavior and specify 
   that the required change does not affect availability. In this case the in-place update will start immediately, without
   creating an additional machine/using maxSurge (if available)
   - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
   - If something goes wrong unexpectedly, and the operation leads to actual unavailability, control plane components or workloads could be impacted.
   - **Use this feature with caution!**
+- The `CanUpdateMachineResponse` or the `CanUpdateMachineSetResponse` hook are also to express a binding opinion on which operations 
+  can be used to roll out the changes for the Machine or for Machines controlled by the MachineSet.
+  - This opinion can be used to block the rollout under temporary circumstances: e.g. preflight checks fail.
+  - Please note that some limitations apply, see documentation below.  
 - No in-place updates are performed for workers machines when using rollout strategy `OnDelete`.
 
 > [!IMPORTANT]
@@ -79,6 +83,12 @@ For additional details about the OpenAPI spec of the upgrade plan hooks, please 
 file and then open it from the [Swagger UI](https://editor.swagger.io/).
 
 ### CanUpdateMachine
+
+> [!IMPORTANT] The can CanUpdateMachine hook MUST be implemented by control plane providers that
+> are using Cluster API Machines to represent replicas and supporting in-place updates for those replicas.
+> 
+> The documentation in this paragraph focuses on the reference implementation in the KubeadmControlPlane (KCP) provider, 
+> but the behavior of the CanUpdateMachine hook MUST be the same also when implemented by other control plane providers.
 
 This hook is called by KCP when performing the "can update in-place" for a control plane machine.
 
@@ -151,7 +161,7 @@ Note:
 - Only fields in Machine/InfraMachine/BootstrapConfig spec have to be covered by patches
 - Patches must be in JSONPatch or JSONMergePatch format
 - If `retryAfterSeconds` is set to a non-zero value, the extension signals that it is not yet able to decide if the change can be handled in-place.
-  The other fields of the response are ignored, no fallback to a rollout is performed and the hook will be called again after the given amount of seconds.
+  The other fields of the response are ignored, no fallback to machine replace is performed and the hook will be called again after the given amount of seconds.
 - `affectsAvailability` is an optional value, if missing it defaults to true.
 - When `CanUpdateMachineResponse` hook specifies that the required change does not affect availability, the in-place update will start immediately, without creating an additional machine/using maxSurge (if available)
   - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
@@ -228,7 +238,8 @@ Example Response:
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: CanUpdateMachineSetResponse
 status: Success # or Failure
-message: "error message if status == Failure"
+message: 15 # Set retryAfterSeconds > 0 if a decision cannot be made yet
+retryAfterSeconds: 0
 machineSetPatch:
   patchType: JSONPatch
   patch: <JSON-patch>
@@ -237,17 +248,41 @@ infrastructureMachineTemplatePatch:
 boostrapConfigTemplatePatch:
   ...
 affectsAvailability: true
+allowedOperations: [UpdateInPlace, Replace] # optional, if missing all operations are allowed
 ```
 
 Note:
 - Extensions should return per-object patches to be applied on current objects to indicate which changes they can handle in-place.
 - Only fields in MachineSet/InfraMachineTemplate/BootstrapConfigTemplate spec.template.spec have to be covered by patches
 - Patches must be in JSONPatch or JSONMergePatch format
+- If `retryAfterSeconds` is set to a non-zero value, the extension signals that it is not yet able to decide if the change can be handled in-place.
+  The other fields of the response are ignored, no fallback to machine replace is performed and the hook will be called again after the given amount of seconds.
+  - While the decision is still in progress for at least one MachineSet, the rollout is paused for the entire MachineDeployment: 
+    - Machines are not scaled down (or moved) from old MachineSet and no additional Machines are created on the new MachineSet because of `maxSurge`. 
+    - Scale up/down due to changes to the MachineDeployment `spec.replicas` still happen.
 - `affectsAvailability` is an optional value, if missing it defaults to true.
 - When `CanUpdateMachineSetResponse` specifies that the required change does not affect availability, the in-place update will start immediately, without creating an additional machine/using maxSurge (if available)
   - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
   - If something goes wrong unexpectedly, and the operation leads to actual unavailability, workloads could be impacted.
   - **Use this feature with caution!**
+- `allowedOperations` is an optional value that allows the extension to express a binding opinion on which operations can be used to roll out the changes for the Machines controlled by the MachineSet:
+  - `UpdateInPlace`: the controlled Machines can be updated in-place.
+  - `Replace`: the controlled Machines can be replaced (i.e. a new Machine is created and the old one is deleted).
+  - If `allowedOperations` is not set, the extension has no opinion and all operations are allowed (this is the default).
+  - If `allowedOperations` is set to an empty list (`allowedOperations: []`), no operation is allowed and the rollout for the Machines controlled by the MachineSet is blocked.
+    **Note**: an empty list and a missing field have a different meaning. When implementing an extension in Go using the types in `sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1`
+    an empty list must be a non-nil empty slice, e.g. `new([]runtimehooksv1.MachineUpdateOperation{})`.
+  - `allowedOperations` is independent of the patches returned by the extension: patches tell which changes can be handled in-place, `allowedOperations` tells which operations are allowed.
+    A runtime extension can e.g. block a rollout for the Machines controlled by the MachineSet when a preflight check fails, even if it would be able to handle the changes in-place.
+    A runtime extension can e.g. also cover the entire diff but return `allowedOperations: [Replace]`, then KCP would replace the Machine.
+- When the update is blocked the extension is called again every 5 minutes, so it is possible to unblock the rollout by changing the answer.
+  The answer is also evaluated again when the desired state of KCP is changed.
+- The new MachineSet has no `CanUpdateMachineSet` call, and the usage of `maxSurge` is allowed or blocked according to the following rules:
+  - If at least one old MachineSet is updated in-place, the usage of `maxSurge` is considered part of the in-place update operation.
+    - If the `UpdateInPlace` is blocked by all the old MachineSets, usage of `maxSurge` is blocked as well.
+  - Otherwise, if at least one old MachineSet is rolled out (including fallbacks from in-place update), usage of `maxSurge` is considered part of the replace operation. 
+    - If the `Replace` operation is blocked by all the old MachineSets, usage of `maxSurge` is blocked as well.
+  - If instead all the old MachineSets are blocked, usage of `maxSurge` is blocked as well.
   
 ### UpdateMachine
 

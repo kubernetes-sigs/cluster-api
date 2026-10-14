@@ -19,6 +19,7 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -310,7 +311,7 @@ func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bo
 		// Convert InitConfiguration to JoinConfiguration
 		currentKubeadmConfig.Spec.JoinConfiguration.Timeouts = currentKubeadmConfig.Spec.InitConfiguration.Timeouts
 		currentKubeadmConfig.Spec.JoinConfiguration.Patches = currentKubeadmConfig.Spec.InitConfiguration.Patches
-		currentKubeadmConfig.Spec.JoinConfiguration.SkipPhases = currentKubeadmConfig.Spec.InitConfiguration.SkipPhases
+		currentKubeadmConfig.Spec.JoinConfiguration.SkipPhases = removeKubeadmInitOnlyPhases(currentKubeadmConfig.Spec.InitConfiguration.SkipPhases)
 		currentKubeadmConfig.Spec.JoinConfiguration.NodeRegistration = currentKubeadmConfig.Spec.InitConfiguration.NodeRegistration
 		currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{
 			LocalAPIEndpoint: currentKubeadmConfig.Spec.InitConfiguration.LocalAPIEndpoint,
@@ -372,6 +373,14 @@ func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bo
 	dropOmittableFields(&currentKubeadmConfig.Spec)
 
 	return desiredKubeadmConfig, currentKubeadmConfig
+}
+
+// removeKubeadmInitOnlyPhases removes phases that are only supported by kubeadm init
+// and accordingly cannot be set in a JoinConfiguration.
+func removeKubeadmInitOnlyPhases(phases []string) []string {
+	return slices.DeleteFunc(phases, func(p string) bool {
+		return p == "addon/coredns" || p == "addon/kube-proxy"
+	})
 }
 
 // dropOmittableFields makes the comparison tolerant to omittable fields being set in the go struct. It applies to:

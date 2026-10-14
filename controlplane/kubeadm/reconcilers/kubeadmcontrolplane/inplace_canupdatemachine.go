@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
@@ -40,14 +42,45 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
-type canUpdateMachineResult struct {
-	canUpdateMachine    bool
-	affectsAvailability bool
+// CanUpdateMachineCacheEntry is an entry for the CanUpdateMachine hook cache.
+type CanUpdateMachineCacheEntry struct {
+	// Machine is the machine for which we cache the CanUpdateMachine result.
+	Machine client.ObjectKey
+
+	// KCPGeneration is the generation for which we cache the CanUpdateMachine result.
+	KCPGeneration int64
+
+	// RetryAfter is the time after which we retry calling the CanUpdateMachine extensions.
+	RetryAfter time.Time
+
+	// Retry is true if CanUpdateMachine returned RetryAfterSeconds.
+	// Note: This is needed to differentiated between RetryAfterSeconds>0 and
+	// the caching of the CanUpdateMachine results that is always done.
+	// When we have a cache hit we have to treat these cases differently.
+	Retry bool
+
+	CanUpdateMachine    bool
+	AffectsAvailability bool
+	Reasons             []string
+	Messages            []string
 }
 
-func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (canUpdateMachineResult, error) {
+// Key returns the cache key of a CanUpdateMachineCacheEntry.
+func (r CanUpdateMachineCacheEntry) Key() string {
+	return r.Machine.String()
+}
+
+type canUpdateMachineResult struct {
+	retryAfter          time.Duration
+	canUpdateMachine    bool
+	affectsAvailability bool
+	messages            []string
+}
+
+func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.ControlPlane, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, reconciliationTime time.Time) (canUpdateMachineResult, error) {
 	if r.overrideCanUpdateMachineFunc != nil {
 		return r.overrideCanUpdateMachineFunc(ctx, machine, machineUpToDateResult)
 	}
@@ -81,9 +114,65 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Ma
 		return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
 	}
 
+	if entry, retryAfter := tryToGetResultsFromCache(r.canUpdateMachineCache, machine, controlPlane.KCP, reconciliationTime); entry != nil {
+		// Refresh the cache entry, so only tryToGetResultsFromCache decides when a cache entry should not be used anymore.
+		r.canUpdateMachineCache.Add(*entry)
+
+		if entry.Retry {
+			msg := fmt.Sprintf("Rollout for Machine %s is blocked by CanUpdateMachine hook", machine.Name)
+			if len(entry.Messages) > 0 {
+				msg = fmt.Sprintf("%s: %s", msg, strings.Join(entry.Messages, ", "))
+			}
+			controlPlane.CanUpdateMachineResults.WaitingForDecisionMessage = msg
+			log.V(5).Info(fmt.Sprintf("Machine %s cannot be rolled out yet: extensions returned retryAfterSeconds, requeuing after %s", klog.KObj(machine), retryAfter))
+			return canUpdateMachineResult{retryAfter: retryAfter}, nil
+		}
+		if !entry.CanUpdateMachine {
+			log.V(5).Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions (cached)", klog.KObj(machine)), "reason", strings.Join(entry.Reasons, ","))
+			return canUpdateMachineResult{canUpdateMachine: false}, nil
+		}
+		if entry.AffectsAvailability {
+			log.V(5).Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (affects availability) (cached)", klog.KObj(machine)))
+		} else {
+			log.V(5).Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (does not affect availability) (cached)", klog.KObj(machine)))
+		}
+		return canUpdateMachineResult{
+			canUpdateMachine:    entry.CanUpdateMachine,
+			affectsAvailability: entry.AffectsAvailability,
+		}, nil
+	}
+
 	res, reasons, err := r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
 	if err != nil {
+		controlPlane.CanUpdateMachineResults.InternalErrorMessage = fmt.Sprintf("Rollout for Machine %s is blocked by CanUpdateMachine hook: %s", machine.Name, err.Error())
 		return canUpdateMachineResult{canUpdateMachine: false}, err
+	}
+
+	entry := CanUpdateMachineCacheEntry{
+		Machine:             client.ObjectKeyFromObject(machine),
+		KCPGeneration:       controlPlane.KCP.Generation,
+		CanUpdateMachine:    res.canUpdateMachine,
+		AffectsAvailability: res.affectsAvailability,
+		Reasons:             reasons,
+		Messages:            res.messages,
+	}
+	if res.retryAfter > 0 {
+		// Needed to differentiate from the retryAfter==0 case below on cache hits.
+		entry.Retry = true
+		entry.RetryAfter = reconciliationTime.Add(res.retryAfter) // Cache for retryAfter.
+	} else {
+		entry.RetryAfter = reconciliationTime.Add(5 * time.Minute) // Cache for 5m.
+	}
+	r.canUpdateMachineCache.Add(entry)
+
+	if res.retryAfter > 0 {
+		msg := fmt.Sprintf("Rollout for Machine %s is blocked by CanUpdateMachine hook", machine.Name)
+		if len(res.messages) > 0 {
+			msg = fmt.Sprintf("%s: %s", msg, strings.Join(res.messages, ", "))
+		}
+		controlPlane.CanUpdateMachineResults.WaitingForDecisionMessage = msg
+		log.Info(fmt.Sprintf("Machine %s cannot be rolled out yet: extensions returned retryAfterSeconds, requeuing after %s", klog.KObj(machine), res.retryAfter))
+		return canUpdateMachineResult{retryAfter: res.retryAfter}, nil
 	}
 	if !res.canUpdateMachine {
 		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions", klog.KObj(machine)), "reason", strings.Join(reasons, ","))
@@ -95,6 +184,32 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Ma
 		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (does not affect availability)", klog.KObj(machine)))
 	}
 	return res, nil
+}
+
+func tryToGetResultsFromCache(cache cache.Cache[CanUpdateMachineCacheEntry], machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, reconciliationTime time.Time) (*CanUpdateMachineCacheEntry, time.Duration) {
+	entry, ok := cache.Has(CanUpdateMachineCacheEntry{
+		Machine: client.ObjectKeyFromObject(machine),
+	}.Key())
+	// If cache entry does not exist, don't use the cache.
+	if !ok {
+		return nil, 0
+	}
+
+	// If KCP generation changed, don't use the cache.
+	// I.e. as soon as KCP generation is changed we will call CanUpdateMachine again.
+	if kcp.Generation != entry.KCPGeneration {
+		return nil, 0
+	}
+
+	timeUntilRetry := entry.RetryAfter.Sub(reconciliationTime)
+
+	// If RetryAfter is in the past, don't use the cache.
+	if timeUntilRetry <= 0 {
+		return nil, 0
+	}
+
+	// If RetryAfter is in the future, use the cache.
+	return &entry, timeUntilRetry
 }
 
 // canExtensionsUpdateMachine calls CanUpdateMachine extensions to decide if a Machine can be updated in-place.
@@ -117,6 +232,7 @@ func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *cl
 	}
 
 	var reasons []string
+	var messages []string
 	var affectsAvailability bool
 	for _, extensionHandler := range extensionHandlers {
 		// Call CanUpdateMachine extension.
@@ -124,6 +240,14 @@ func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *cl
 		if err := r.RuntimeClient.CallExtension(ctx, runtimehooksv1.CanUpdateMachine, machine, extensionHandler, req, resp); err != nil {
 			return canUpdateMachineResult{canUpdateMachine: false}, nil, err
 		}
+
+		messages = append(messages, resp.Message)
+
+		// If the extension asks to be called again later, stop here and requeue.
+		if resp.RetryAfterSeconds > 0 {
+			return canUpdateMachineResult{retryAfter: time.Duration(resp.RetryAfterSeconds) * time.Second, messages: messages}, nil, nil
+		}
+
 		affectsAvailability = affectsAvailability || ptr.Deref(resp.AffectsAvailability, true)
 
 		// Apply patches from the CanUpdateMachine response to the request.

@@ -106,6 +106,7 @@ type Reconciler struct {
 	recorder                        record.EventRecorder
 	ClusterCache                    clustercache.ClusterCache
 	DynamicCache                    dynamiccache.DynamicCache
+	canUpdateMachineCache           cache.Cache[CanUpdateMachineCacheEntry]
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -176,6 +177,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
+	r.canUpdateMachineCache = cache.New[CanUpdateMachineCacheEntry](ctx, 30*time.Minute)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadmcontrolplane-controller")
 	r.ssaCache = ssa.NewCache("kubeadmcontrolplane")

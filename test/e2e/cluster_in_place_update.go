@@ -31,15 +31,19 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // ClusterInPlaceUpdateSpecInput is the input for ClusterInPlaceUpdateSpec.
@@ -220,6 +224,14 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 		} {
 			Byf("[%d] Trigger in-place update by modifying the files variable", i)
 
+			if i == 0 {
+				// In the first iteration the CanUpdateMachine extension first responds with RetryAfterSeconds
+				// to test that KCP waits for the extension's decision before the in-place update is done.
+				Byf("[%d] Configure the CanUpdateMachine extension to respond with RetryAfterSeconds", i)
+				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "CanUpdateMachine",
+					`{"Status": "Success", "RetryAfterSeconds": 5, "Message": "decision is in progress"}`)
+			}
+
 			originalCluster := cluster.DeepCopy()
 			// Ensure the files variable is set to the expected value (first remove, then add the variable).
 			cluster.Spec.Topology.Variables = slices.DeleteFunc(cluster.Spec.Topology.Variables, func(v clusterv1.ClusterVariable) bool {
@@ -230,6 +242,26 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 				Value: apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf(`[{"path":%q,"content":%q}]`, filePath, fileContent))},
 			})
 			Expect(mgmtClient.Patch(ctx, cluster, client.MergeFrom(originalCluster))).To(Succeed())
+
+			if i == 0 {
+				Byf("[%d] Verify KCP is waiting for the decision of the CanUpdateMachine extension", i)
+				Eventually(func(g Gomega) {
+					kcp := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+						Lister:      mgmtClient,
+						ClusterName: cluster.Name,
+						Namespace:   cluster.Namespace,
+					})
+					g.Expect(kcp).ToNot(BeNil())
+					rollingOutCondition := conditions.Get(kcp, controlplanev1.KubeadmControlPlaneRollingOutCondition)
+					g.Expect(rollingOutCondition).ToNot(BeNil())
+					g.Expect(rollingOutCondition.Status).To(Equal(metav1.ConditionTrue))
+					g.Expect(rollingOutCondition.Reason).To(Equal(controlplanev1.KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason))
+					g.Expect(rollingOutCondition.Message).To(ContainSubstring("decision is in progress"))
+				}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...).Should(Succeed())
+
+				Byf("[%d] Configure the CanUpdateMachine extension to stop responding with RetryAfterSeconds", i)
+				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "CanUpdateMachine", "")
+			}
 
 			var machineObjectsAfterInPlaceUpdate machineObjects
 			Eventually(func(g Gomega) {
@@ -276,6 +308,33 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 			}
 		}
 	})
+}
+
+// setPreloadedHookResponse sets the response the test extension returns for a hook in the hook responses ConfigMap.
+// If response is empty the preloaded response is removed, so the extension falls back to its default behavior.
+func setPreloadedHookResponse(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName, hookName, response string) {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      hookResponsesConfigMapName(cluster.Name, extensionConfigName),
+		},
+	}
+	key := hookName + "-preloadedResponse"
+	// Note: Using Eventually to handle conflicts, e.g. with the test extension recording hook calls in the same ConfigMap.
+	Eventually(func() error {
+		_, err := controllerutil.CreateOrUpdate(ctx, c, configMap, func() error {
+			if response == "" {
+				delete(configMap.Data, key)
+				return nil
+			}
+			if configMap.Data == nil {
+				configMap.Data = map[string]string{}
+			}
+			configMap.Data[key] = response
+			return nil
+		})
+		return err
+	}, 10*time.Second, 1*time.Second).Should(Succeed(), "Failed to set the preloaded response for hook %s in ConfigMap %s", hookName, klog.KObj(configMap))
 }
 
 type machineObjects struct {

@@ -270,10 +270,13 @@ func Test_setRollingOutCondition(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		kcp             *controlplanev1.KubeadmControlPlane
-		machines        []*clusterv1.Machine
-		expectCondition metav1.Condition
+		name                    string
+		cluster                 *clusterv1.Cluster
+		kcp                     *controlplanev1.KubeadmControlPlane
+		machines                []*clusterv1.Machine
+		preflightChecks         pkg.PreflightCheckResults
+		canUpdateMachineResults pkg.CanUpdateMachineResults
+		expectCondition         metav1.Condition
 	}{
 		{
 			name:     "no machines",
@@ -338,6 +341,75 @@ func Test_setRollingOutCondition(t *testing.T) {
 					"* InfrastructureMachine is not up-to-date",
 			},
 		},
+		{
+			name: "waiting for the rollout decision of the CanUpdateMachine hook",
+			kcp:  &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineUpToDateCondition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineNotUpToDateReason,
+						Message: "* Version v1.25.0, v1.26.0 required",
+					},
+				}}},
+			},
+			canUpdateMachineResults: pkg.CanUpdateMachineResults{
+				WaitingForDecisionMessage: "Rollout for Machine m1 is blocked by CanUpdateMachine hook: detailed message",
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason,
+				Message: "Rolling out 1 not up-to-date replicas\n" +
+					"* Rollout for Machine m1 is blocked by CanUpdateMachine hook: detailed message\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
+			name: "CanUpdateMachine hook returned an error",
+			cluster: &clusterv1.Cluster{
+				Spec: clusterv1.ClusterSpec{
+					Topology: clusterv1.Topology{
+						Version: "v1.32.0",
+					},
+				},
+			},
+			kcp: &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineUpToDateCondition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineNotUpToDateReason,
+						Message: "* Version v1.25.0, v1.26.0 required",
+					},
+				}}},
+			},
+			preflightChecks: pkg.PreflightCheckResults{
+				HasDeletingMachine:               true,
+				CertificateMissing:               true,
+				ControlPlaneComponentsNotHealthy: true,
+				EtcdClusterNotHealthy:            true,
+				TopologyVersionMismatch:          true,
+			},
+			canUpdateMachineResults: pkg.CanUpdateMachineResults{
+				InternalErrorMessage: "Rollout for Machine m1 is blocked by CanUpdateMachine hook: extension failed",
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneRollingOutInternalErrorReason,
+				Message: "Rolling out 1 not up-to-date replicas\n" +
+					"* waiting for a version upgrade to v1.32.0 to be propagated\n" +
+					"* waiting for a control plane Machine to complete deletion\n" +
+					"* cluster certificates are missing or unknown\n" +
+					"* waiting for control plane components to become healthy\n" +
+					"* waiting for etcd cluster to become healthy\n" +
+					"* Rollout for Machine m1 is blocked by CanUpdateMachine hook: extension failed\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -347,7 +419,11 @@ func Test_setRollingOutCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setRollingOutCondition(ctx, tt.kcp, machines)
+			cluster := tt.cluster
+			if cluster == nil {
+				cluster = &clusterv1.Cluster{}
+			}
+			setRollingOutCondition(ctx, cluster, tt.kcp, machines, tt.preflightChecks, tt.canUpdateMachineResults)
 
 			condition := conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneRollingOutCondition)
 			g.Expect(condition).ToNot(BeNil())

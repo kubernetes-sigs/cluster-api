@@ -159,7 +159,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, controlPlane *pkg.Control
 	}
 	setReplicas(ctx, controlPlane.KCP, controlPlane.Machines)
 	setInitializedCondition(ctx, controlPlane.KCP)
-	setRollingOutCondition(ctx, controlPlane.KCP, controlPlane.Machines)
+	setRollingOutCondition(ctx, controlPlane.Cluster, controlPlane.KCP, controlPlane.Machines, controlPlane.PreflightCheckResults, controlPlane.CanUpdateMachineResults)
 	setScalingUpCondition(ctx, controlPlane.Cluster, controlPlane.KCP, controlPlane.Machines, controlPlane.InfraMachineTemplateIsNotFound, controlPlane.PreflightCheckResults)
 	setScalingDownCondition(ctx, controlPlane.Cluster, controlPlane.KCP, controlPlane.Machines, controlPlane.PreflightCheckResults)
 	setMachinesReadyCondition(ctx, controlPlane.KCP, controlPlane.Machines)
@@ -246,7 +246,8 @@ func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmContr
 	})
 }
 
-func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines) {
+func setRollingOutCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines,
+	preflightChecks pkg.PreflightCheckResults, canUpdateMachineResults pkg.CanUpdateMachineResults) {
 	// Count machines rolling out and collect reasons why a rollout is happening.
 	// Note: The code below collects all the reasons for which at least a machine is rolling out; under normal circumstances
 	// all the machines are rolling out for the same reasons, however, in case of changes to KCP
@@ -278,6 +279,19 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 
 	// Rolling out.
 	message := fmt.Sprintf("Rolling out %d not up-to-date replicas", rollingOutReplicas)
+
+	additionalMessages := getPreflightMessages(cluster, preflightChecks)
+	switch {
+	case canUpdateMachineResults.InternalErrorMessage != "":
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", canUpdateMachineResults.InternalErrorMessage))
+	case canUpdateMachineResults.WaitingForDecisionMessage != "":
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", canUpdateMachineResults.WaitingForDecisionMessage))
+	}
+
+	if len(additionalMessages) > 0 {
+		message += fmt.Sprintf("\n%s", strings.Join(additionalMessages, "\n"))
+	}
+
 	if rolloutReasons.Len() > 0 {
 		// Surface rollout reasons ensuring that if there is a version change, it goes first.
 		reasons := rolloutReasons.UnsortedList()
@@ -292,10 +306,21 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 		})
 		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
 	}
+
+	var reason string
+	switch {
+	case canUpdateMachineResults.InternalErrorMessage != "":
+		reason = controlplanev1.KubeadmControlPlaneRollingOutInternalErrorReason
+	case canUpdateMachineResults.WaitingForDecisionMessage != "":
+		reason = controlplanev1.KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason
+	default:
+		reason = controlplanev1.KubeadmControlPlaneRollingOutReason
+	}
+
 	conditions.Set(kcp, metav1.Condition{
 		Type:    controlplanev1.KubeadmControlPlaneRollingOutCondition,
 		Status:  metav1.ConditionTrue,
-		Reason:  controlplanev1.KubeadmControlPlaneRollingOutReason,
+		Reason:  reason,
 		Message: message,
 	})
 }

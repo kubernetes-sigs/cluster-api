@@ -79,8 +79,11 @@ type ControlPlane struct {
 	// InfraMachineTemplateIsNotFound is true if getting the infra machine template object failed with an NotFound err
 	InfraMachineTemplateIsNotFound bool
 
-	// PreflightChecks contains description about pre flight check results blocking machines creation or deletion.
+	// PreflightCheckResults contains description about pre flight check results blocking machines creation or deletion.
 	PreflightCheckResults PreflightCheckResults
+
+	// CanUpdateMachineResults contains descriptions about CanUpdateMachine results blocking rollout progress.
+	CanUpdateMachineResults CanUpdateMachineResults
 
 	// TODO: we should see if we can combine these with the Machine objects so we don't have all these separate lookups
 	// See discussion on https://github.com/kubernetes-sigs/cluster-api/pull/3405
@@ -117,6 +120,15 @@ type PreflightCheckResults struct {
 	EtcdClusterNotHealthy bool
 	// TopologyVersionMismatch reports true if preflight check detected that the Cluster's topology version does not match the control plane's version
 	TopologyVersionMismatch bool
+}
+
+// CanUpdateMachineResults contains description about CanUpdateMachine results blocking rollout progress.
+type CanUpdateMachineResults struct {
+	// InternalErrorMessage surfaces an error that occurred when calling canExtensionsUpdateMachine.
+	InternalErrorMessage string
+
+	// WaitingForDecisionMessage surfaces that the rollout is waiting for a decision from the CanUpdateMachine hooks.
+	WaitingForDecisionMessage string
 }
 
 // NewControlPlane returns an instantiated ControlPlane.

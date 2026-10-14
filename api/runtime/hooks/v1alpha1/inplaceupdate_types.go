@@ -56,15 +56,15 @@ type CanUpdateMachineRequestObjects struct {
 	BootstrapConfig runtime.RawExtension `json:"bootstrapConfig,omitempty,omitzero"`
 }
 
-var _ ResponseObject = &CanUpdateMachineResponse{}
+var _ RetryResponseObject = &CanUpdateMachineResponse{}
 
 // CanUpdateMachineResponse is the response of the CanUpdateMachine hook.
 // +kubebuilder:object:root=true
 type CanUpdateMachineResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonResponse contains Status and Message fields common to all response types.
-	CommonResponse `json:",inline"`
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
+	CommonRetryResponse `json:",inline"`
 
 	// machinePatch when applied to the current Machine spec, indicates changes handled in-place.
 	// Only fields in spec have to be covered by the patch.

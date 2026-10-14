@@ -1329,7 +1329,7 @@ func (a *attachedVolumeInformation) conditionMessage(machine *clusterv1.Machine)
 		return ""
 	}
 
-	conditionMessage := fmt.Sprintf("Waiting for Node volumes to be detached (started at %s)", machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
+	conditionMessage := fmt.Sprintf("Waiting for Node volumes to be detached (started at %s):", machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
 
 	if len(a.persistentVolumeClaims) > 0 {
 		slices.Sort(a.persistentVolumeClaims)

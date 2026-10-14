@@ -159,12 +159,12 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 	if missingReferencesMessage != "" || len(scaleUpPreflightCheckErrMessages) > 0 {
 		listMessages := make([]string, len(scaleUpPreflightCheckErrMessages))
 		for i, msg := range scaleUpPreflightCheckErrMessages {
-			listMessages[i] = fmt.Sprintf("* %s", msg)
+			listMessages[i] = fmt.Sprintf("* Blocked because %s", msg)
 		}
 		if missingReferencesMessage != "" {
-			listMessages = append(listMessages, fmt.Sprintf("* %s", missingReferencesMessage))
+			listMessages = append(listMessages, fmt.Sprintf("* Blocked because %s", missingReferencesMessage))
 		}
-		message += fmt.Sprintf(" is blocked because:\n%s", strings.Join(listMessages, "\n"))
+		message += fmt.Sprintf(":\n%s", strings.Join(listMessages, "\n"))
 	}
 	conditions.Set(ms, metav1.Condition{
 		Type:    clusterv1.MachineSetScalingUpCondition,
@@ -214,7 +214,7 @@ func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machin
 		message := fmt.Sprintf("Scaling down from %d to %d replicas", currentReplicas, desiredReplicas)
 		staleMessage := aggregateStaleMachines(machines)
 		if staleMessage != "" {
-			message += fmt.Sprintf("\n* %s", staleMessage)
+			message += fmt.Sprintf(":\n* Blocked because %s", staleMessage)
 		}
 		conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingDownCondition,
@@ -419,7 +419,7 @@ func setDeletingCondition(_ context.Context, machineSet *clusterv1.MachineSet, m
 		}
 		staleMessage := aggregateStaleMachines(machines)
 		if staleMessage != "" {
-			message += fmt.Sprintf("\n* %s", staleMessage)
+			message += fmt.Sprintf(":\n* %s", staleMessage)
 		}
 	}
 	if message == "" {

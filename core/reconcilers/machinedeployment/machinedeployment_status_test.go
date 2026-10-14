@@ -325,7 +325,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 				Type:   clusterv1.MachineDeploymentRollingOutCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineDeploymentRollingOutReason,
-				Message: "Rolling out 2 not up-to-date replicas\n" +
+				Message: "Rolling out 2 not up-to-date replicas:\n" +
 					"* Version v1.25.0, v1.26.0 required\n" +
 					"* Failure domain failure-domain1, failure-domain2 required\n" +
 					"* InfrastructureMachine is not up-to-date",
@@ -350,8 +350,8 @@ func Test_setRollingOutCondition(t *testing.T) {
 				Type:   clusterv1.MachineDeploymentRollingOutCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineDeploymentRollingOutReason,
-				Message: "Rolling out 1 not up-to-date replicas\n" +
-					"* Rollout is blocked because spec.paused is set to true\n" +
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked because spec.paused is set to true\n" +
 					"* Version v1.25.0, v1.26.0 required",
 			},
 		},
@@ -554,10 +554,11 @@ func Test_setScalingUpCondition(t *testing.T) {
 			infrastructureTemplateNotFound: false,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentScalingUpCondition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentScalingUpReason,
-				Message: "Scaling up from 0 to 3 replicas is blocked because KubeadmBootstrapTemplate does not exist",
+				Type:   clusterv1.MachineDeploymentScalingUpCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentScalingUpReason,
+				Message: "Scaling up from 0 to 3 replicas:\n" +
+					"* Blocked because KubeadmBootstrapTemplate does not exist",
 			},
 			expectedPhase: clusterv1.MachineDeploymentPhaseScalingUp,
 		},
@@ -568,10 +569,26 @@ func Test_setScalingUpCondition(t *testing.T) {
 			infrastructureTemplateNotFound: true,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentScalingUpCondition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentScalingUpReason,
-				Message: "Scaling up from 0 to 3 replicas is blocked because DockerMachineTemplate does not exist",
+				Type:   clusterv1.MachineDeploymentScalingUpCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentScalingUpReason,
+				Message: "Scaling up from 0 to 3 replicas:\n" +
+					"* Blocked because DockerMachineTemplate does not exist",
+			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingUp,
+		},
+		{
+			name:                           "scaling up and blocked by bootstrap and infrastructure object",
+			machineDeployment:              machineDeploymentWith3Replicas.DeepCopy(),
+			bootstrapTemplateNotFound:      true,
+			infrastructureTemplateNotFound: true,
+			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentScalingUpCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentScalingUpReason,
+				Message: "Scaling up from 0 to 3 replicas:\n" +
+					"* Blocked because KubeadmBootstrapTemplate and DockerMachineTemplate do not exist",
 			},
 			expectedPhase: clusterv1.MachineDeploymentPhaseScalingUp,
 		},
@@ -732,8 +749,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Type:   clusterv1.MachineDeploymentScalingDownCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineDeploymentScalingDownReason,
-				Message: "Scaling down from 2 to 1 replicas\n" +
-					"* Machine stale-machine-1 is in deletion since more than 15m, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors, Pods not completed yet",
+				Message: "Scaling down from 2 to 1 replicas:\n" +
+					"* Blocked because Machine stale-machine-1 is in deletion since more than 15m, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors, Pods not completed yet",
 			},
 			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
@@ -755,8 +772,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Type:   clusterv1.MachineDeploymentScalingDownCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineDeploymentScalingDownReason,
-				Message: "Scaling down from 4 to 1 replicas\n" +
-					"* Machines stale-machine-1, stale-machine-2, stale-machine-3 are in deletion since more than 15m",
+				Message: "Scaling down from 4 to 1 replicas:\n" +
+					"* Blocked because Machines stale-machine-1, stale-machine-2, stale-machine-3 are in deletion since more than 15m",
 			},
 			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
@@ -780,8 +797,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Type:   clusterv1.MachineDeploymentScalingDownCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineDeploymentScalingDownReason,
-				Message: "Scaling down from 6 to 1 replicas\n" +
-					"* Machines stale-machine-1, stale-machine-2, stale-machine-3, ... (2 more) are in deletion since more than 15m",
+				Message: "Scaling down from 6 to 1 replicas:\n" +
+					"* Blocked because Machines stale-machine-1, stale-machine-2, stale-machine-3, ... (2 more) are in deletion since more than 15m",
 			},
 			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
@@ -1221,7 +1238,7 @@ func Test_setDeletingCondition(t *testing.T) {
 				Type:   clusterv1.MachineDeploymentDeletingCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineDeploymentDeletingReason,
-				Message: "Deleting 1 Machine\n" +
+				Message: "Deleting 1 Machine:\n" +
 					"* Machine m1 is in deletion since more than 15m",
 			},
 		},

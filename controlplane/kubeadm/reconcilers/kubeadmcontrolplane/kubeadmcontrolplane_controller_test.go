@@ -4763,6 +4763,44 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(controlPlane.DeletingMessage).To(Equal("Deletion completed"))
 	})
 
+	t.Run("surfaces control plane Machines in deletion since more than 15m as a list", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster, kcp, _ := createClusterWithControlPlane(metav1.NamespaceDefault)
+		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
+		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+
+		m, _ := createMachineNodePair("test-0", cluster, kcp, true)
+		m.Finalizers = []string{"cluster.x-k8s.io/block-deletion"}
+		m.DeletionTimestamp = &metav1.Time{Time: time.Now().Add(-1 * time.Hour)}
+		initObjs = append(initObjs, m)
+
+		fakeClient := newFakeClient(initObjs...)
+
+		r := &Reconciler{
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
+			managementCluster: &fakeManagementCluster{
+				Management: &pkg.Management{Client: fakeClient},
+				Workload:   &fakeWorkloadCluster{},
+			},
+			controller: capicontrollerutil.NewFakeController(),
+			recorder:   record.NewFakeRecorder(32),
+		}
+
+		controlPlane := &pkg.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: collections.FromMachines(m),
+		}
+
+		result, err := r.reconcileDelete(ctx, controlPlane)
+		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionReason))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Deleting 1 Machine:\n* Machine test-0 is in deletion since more than 15m"))
+	})
+
 	t.Run("does not remove any control plane Machines if other Machines exist", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -4813,7 +4851,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionReason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("KubeadmControlPlane deletion blocked because following objects still exist:\n* Machines: worker-0, worker-1, worker-2, worker-3, worker-4, ... (5 more)"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Waiting for deletion of the following objects:\n" +
+			"* Machines: worker-0, worker-1, worker-2, worker-3, worker-4, ... (5 more)"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -4874,7 +4913,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionReason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("KubeadmControlPlane deletion blocked because following objects still exist:\n* MachinePools: mp-0, mp-1, mp-2, mp-3, mp-4, ... (5 more)"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Waiting for deletion of the following objects:\n" +
+			"* MachinePools: mp-0, mp-1, mp-2, mp-3, mp-4, ... (5 more)"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{

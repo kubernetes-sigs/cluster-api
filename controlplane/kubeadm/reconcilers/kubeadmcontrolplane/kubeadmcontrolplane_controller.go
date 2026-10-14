@@ -754,7 +754,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 		for i := range names {
 			names[i] = "* " + names[i]
 		}
-		controlPlane.DeletingMessage = fmt.Sprintf("KubeadmControlPlane deletion blocked because following objects still exist:\n%s", strings.Join(names, "\n"))
+		controlPlane.DeletingMessage = fmt.Sprintf("Waiting for deletion of the following objects:\n%s", strings.Join(names, "\n"))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -813,7 +813,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 		}
 		staleMessage := aggregateStaleMachines(machines)
 		if staleMessage != "" {
-			message += fmt.Sprintf(" and %s", staleMessage)
+			message += fmt.Sprintf(":\n* %s", staleMessage)
 		}
 	}
 	controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionReason

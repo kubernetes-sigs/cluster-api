@@ -1726,6 +1726,8 @@ func TestCheckRetryLimits(t *testing.T) {
 		invalidAnnotation   bool
 		remediationSpec     controlplanev1.KubeadmControlPlaneRemediationSpec
 		unhealthySince      *time.Time // when MachineHealthCheckSucceeded turned False; nil means the condition is missing.
+		machineVersion      string     // version of the machine to be remediated; the KCP version is v1.31.0 (empty means same as KCP).
+		rolloutAfterExpired bool       // KCP spec.rollout.after is expired and newer than the machine.
 		wantErr             bool
 		wantCanRemediate    bool
 		wantRetryCount      int
@@ -1870,6 +1872,31 @@ func TestCheckRetryLimits(t *testing.T) {
 			wantCanRemediate: true,
 			wantRetryCount:   0,
 		},
+		{
+			name:             "MaxRetry reached, Machine configuration is outdated: retry counter is reset",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: reconciliationTime.Add(-defaultMinHealthyPeriod / 2)}, RetryCount: 3},
+			machineVersion:   "v1.30.0",
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+		{
+			name:             "RetryPeriodSeconds not expired, Machine configuration is outdated: retry counter is reset",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), RetryPeriodSeconds: utilptr.To[int32](600)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: reconciliationTime.Add(-time.Minute)}, RetryCount: 1},
+			machineVersion:   "v1.30.0",
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+		{
+			name:                "MaxRetry reached, only rolloutAfter expired: remediation is blocked, Machine configuration is not outdated, retry count is carried over",
+			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: reconciliationTime.Add(-defaultMinHealthyPeriod / 2)}, RetryCount: 3},
+			rolloutAfterExpired: true,
+			wantCanRemediate:    false,
+			wantRetryCount:      3,
+			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1893,11 +1920,22 @@ func TestCheckRetryLimits(t *testing.T) {
 					LastTransitionTime: metav1.Time{Time: *tt.unhealthySince},
 				})
 			}
-			controlPlane := &pkg.ControlPlane{
-				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec: controlplanev1.KubeadmControlPlaneSpec{Remediation: tt.remediationSpec},
-				},
+			kcp := &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{Version: "v1.31.0", Remediation: tt.remediationSpec},
 			}
+			machine.Spec.Version = kcp.Spec.Version
+			machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: machine.Name}
+			if tt.machineVersion != "" {
+				machine.Spec.Version = tt.machineVersion
+			}
+			if tt.rolloutAfterExpired {
+				machine.CreationTimestamp = metav1.NewTime(time.Now().Add(-2 * time.Hour))
+				kcp.Spec.Rollout.After = metav1.NewTime(time.Now().Add(-time.Hour))
+			}
+			// Note: Using NewControlPlane to compute the UpToDate results the same way the KCP controller does.
+			c := fake.NewFakeClient()
+			controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, c, &clusterv1.Cluster{}, kcp, collections.FromMachines(machine))
+			g.Expect(err).ToNot(HaveOccurred())
 
 			r := &Reconciler{}
 			data, canRemediate, err := r.checkRetryLimits(logr.Discard(), machine, controlPlane, reconciliationTime)

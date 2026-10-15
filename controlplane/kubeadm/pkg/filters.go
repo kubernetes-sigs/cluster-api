@@ -40,6 +40,7 @@ import (
 type UpToDateResult struct {
 	LogMessages              []string
 	ConditionMessages        []string
+	ConfigurationNotUpToDate bool
 	EligibleForInPlaceUpdate bool
 	DesiredMachine           *clusterv1.Machine
 	CurrentInfraMachine      *unstructured.Unstructured
@@ -98,6 +99,7 @@ func UpToDate(
 		return false, nil, pkgerrors.Wrapf(err, "failed to determine if Machine %s is up-to-date", machine.Name)
 	}
 	if !matches {
+		res.ConfigurationNotUpToDate = true
 		res.LogMessages = append(res.LogMessages, specLogMessages...)
 		res.ConditionMessages = append(res.ConditionMessages, specConditionMessages...)
 	}

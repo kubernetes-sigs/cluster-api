@@ -5,6 +5,12 @@
         "pattern": "https://azure.microsoft.com/en-us/products/kubernetes-service"
     },{
         "pattern": "https://kubernetes.slack.com"
+    },{
+        "comment": "Moved to /user/guide/lifecycle/machine_deletions; this URL only shows up in frozen release notes, which we don't edit (CHANGELOG/README.md).",
+        "pattern": "^https://main\\.cluster-api\\.sigs\\.k8s\\.io/tasks/automated-machine-management/machine_deletions$"
+    },{
+        "comment": "Historical release team roster entries (docs/release/releases); these GitHub profiles now 404, but we have no reliable way to tell if the account was renamed or deleted, so we don't rewrite past credits.",
+        "pattern": "^https://github\\.com/(onasser1|SubhasmitaSw)/?$"
     }],
     "httpHeaders": [{
         "comment": "Workaround as suggested here: https://github.com/tcort/markdown-link-check/issues/201",
@@ -17,5 +23,6 @@
     "retryOn429": true,
     "retryCount": 5,
     "fallbackRetryDelay": "30s",
-    "aliveStatusCodes": [200, 206]
+    "comment_aliveStatusCodes": "502/503/504 added because github.com/.../compare links intermittently fail with these from CI, not because the link is actually dead; see #14366.",
+    "aliveStatusCodes": [200, 206, 502, 503, 504]
 }

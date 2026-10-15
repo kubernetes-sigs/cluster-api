@@ -656,6 +656,10 @@ type KubeadmControlPlaneRemediationSpec struct {
 	// Once maxRetry is exhausted, remediation does not happen again until the machine becomes unhealthy
 	// after minHealthyPeriodSeconds from the previous remediation expired.
 	//
+	// The number of retries is reset if the machine to be remediated does not match the KCP configuration anymore
+	// (e.g. version, infrastructure machine template or KubeadmConfig changed), because the replacement machine
+	// will be created with a different configuration.
+	//
 	// If not set, the remedation will be retried infinitely.
 	// +optional
 	MaxRetry *int32 `json:"maxRetry,omitempty"`

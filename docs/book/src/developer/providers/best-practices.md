@@ -19,14 +19,14 @@ However, some best practice are worth to notice:
 
 - Provider implementations SHOULD accept every valid Kubernetes resource name and namespace permitted by the applicable Cluster API resource.
     - Names can exceed constraints imposed by an infrastructure platform or by derived fields such as a VM hostname.
-    - Validate these constraints explicitly and report actionable errors rather than relying on the target platform
-      to reject requests during provisioning.
 
 - When an external system imposes shorter or narrower naming rules, derive a compliant infrastructure name without changing the Kubernetes resource's name.
     - Use a deterministic transformation that preserves a readable prefix where useful and incorporates a hash of the full
       Kubernetes identity (including namespace when needed) to avoid collisions after truncation or normalization.
     - Apply the transformation conditionally when the original name is not accepted, to avoid changing names unnecessarily.
     - Apply the same transformation wherever the name is referenced, and do not assume Kubernetes names are globally unique across namespaces.
+    - Report an actionable naming validation error only if a compliant infrastructure name cannot be derived.
+      Do not pass an invalid name to the target platform and rely on it to reject the request during provisioning.
 
 - Test boundary and normalization cases for every infrastructure-specific name.
     - Cover maximum supported lengths, long valid Kubernetes names, punctuation accepted by Kubernetes but restricted by the target system,

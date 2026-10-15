@@ -135,7 +135,6 @@ func Revision(obj runtime.Object) (int64, error) {
 var annotationsToSkip = map[string]bool{
 	corev1.LastAppliedConfigAnnotation:  true,
 	clusterv1.RevisionAnnotation:        true,
-	revisionHistoryAnnotation:           true,
 	clusterv1.DesiredReplicasAnnotation: true,
 	clusterv1.MaxReplicasAnnotation:     true,
 
@@ -173,11 +172,6 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 	}
 	return int32(intValue), true
 }
-
-// revisionHistoryAnnotation maintains the history of all old revisions that a machine set has served for a machine deployment.
-//
-// Deprecated: This annotation is deprecated and is going to be removed in the next release.
-const revisionHistoryAnnotation = "machinedeployment.clusters.x-k8s.io/revision-history"
 
 // MachineSetAnnotationsFromMachineDeployment return the annotations that should be set on all the MachineSets and
 // that are derived from the controlling MachineDeployment.
@@ -248,9 +242,6 @@ func GetRevisionAnnotations(_ context.Context, oldMS *clusterv1.MachineSet) map[
 	annotations := map[string]string{}
 	if v, ok := oldMS.Annotations[clusterv1.RevisionAnnotation]; ok {
 		annotations[clusterv1.RevisionAnnotation] = v
-	}
-	if v, ok := oldMS.Annotations[revisionHistoryAnnotation]; ok {
-		annotations[revisionHistoryAnnotation] = v
 	}
 	return annotations
 }

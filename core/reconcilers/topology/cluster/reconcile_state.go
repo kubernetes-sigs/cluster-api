@@ -623,8 +623,11 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 		// the desired MachineDeployment.
 		return pkgerrors.Errorf("new MachineDeployment is missing the %q label", clusterv1.ClusterTopologyMachineDeploymentNameLabel)
 	}
-	// Return early if the MachineDeployment is pending create.
-	if s.UpgradeTracker.MachineDeployments.IsPendingCreate(mdTopologyName) {
+	// Return early if the MachineDeployment is pending create (held off while the control plane is not stable)
+	// or if its creation is deferred waiting for Cluster.status.failureDomains to be reported so the requested
+	// failureDomain can be validated.
+	if s.UpgradeTracker.MachineDeployments.IsPendingCreate(mdTopologyName) ||
+		s.UpgradeTracker.MachineDeployments.IsWaitingForFailureDomains(mdTopologyName) {
 		return nil
 	}
 
@@ -936,8 +939,11 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 		// the desired MachinePool.
 		return pkgerrors.Errorf("new MachinePool is missing the %q label", clusterv1.ClusterTopologyMachinePoolNameLabel)
 	}
-	// Return early if the MachinePool is pending create.
-	if s.UpgradeTracker.MachinePools.IsPendingCreate(mpTopologyName) {
+	// Return early if the MachinePool is pending create (held off while the control plane is not stable)
+	// or if its creation is deferred waiting for Cluster.status.failureDomains to be reported so the requested
+	// failureDomain(s) can be validated.
+	if s.UpgradeTracker.MachinePools.IsPendingCreate(mpTopologyName) ||
+		s.UpgradeTracker.MachinePools.IsWaitingForFailureDomains(mpTopologyName) {
 		return nil
 	}
 

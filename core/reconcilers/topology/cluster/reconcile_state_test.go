@@ -2320,6 +2320,9 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	upgradeTrackerWithMD1PendingCreate := scope.NewUpgradeTracker()
 	upgradeTrackerWithMD1PendingCreate.MachineDeployments.MarkPendingCreate("md-1-topology")
 
+	upgradeTrackerWithMD1WaitingForFD := scope.NewUpgradeTracker()
+	upgradeTrackerWithMD1WaitingForFD.MachineDeployments.MarkWaitingForFailureDomains("md-1-topology")
+
 	infrastructureMachineTemplate2 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-2").Build()
 	bootstrapTemplate2 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-2").Build()
 	md2 := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2, bootstrapTemplate2, nil)
@@ -2429,6 +2432,14 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			name:           "Should not create desired MachineDeployment if the current does not exists yet and it marked as pending create",
 			current:        nil,
 			upgradeTracker: upgradeTrackerWithMD1PendingCreate,
+			desired:        []*scope.MachineDeploymentState{md1},
+			want:           nil,
+			wantErr:        false,
+		},
+		{
+			name:           "Should not create desired MachineDeployment if the current does not exist yet and it is waiting for failure domains",
+			current:        nil,
+			upgradeTracker: upgradeTrackerWithMD1WaitingForFD,
 			desired:        []*scope.MachineDeploymentState{md1},
 			want:           nil,
 			wantErr:        false,
@@ -2748,6 +2759,9 @@ func TestReconcileMachinePools(t *testing.T) {
 	upgradeTrackerWithmp1PendingCreate := scope.NewUpgradeTracker()
 	upgradeTrackerWithmp1PendingCreate.MachinePools.MarkPendingCreate("mp-1-topology")
 
+	upgradeTrackerWithmp1WaitingForFD := scope.NewUpgradeTracker()
+	upgradeTrackerWithmp1WaitingForFD.MachinePools.MarkWaitingForFailureDomains("mp-1-topology")
+
 	infrastructureMachinePool2 := builder.TestInfrastructureMachinePool(metav1.NamespaceDefault, "infrastructure-machinepool-2").Build()
 	bootstrapConfig2 := builder.TestBootstrapConfig(metav1.NamespaceDefault, "bootstrap-config-2").Build()
 	mp2 := newFakeMachinePoolTopologyState("mp-2", infrastructureMachinePool2, bootstrapConfig2)
@@ -2846,6 +2860,14 @@ func TestReconcileMachinePools(t *testing.T) {
 			name:           "Should not create desired MachinePool if the current does not exists yet and it marked as pending create",
 			current:        nil,
 			upgradeTracker: upgradeTrackerWithmp1PendingCreate,
+			desired:        []*scope.MachinePoolState{mp1},
+			want:           nil,
+			wantErr:        false,
+		},
+		{
+			name:           "Should not create desired MachinePool if the current does not exist yet and it is waiting for failure domains",
+			current:        nil,
+			upgradeTracker: upgradeTrackerWithmp1WaitingForFD,
 			desired:        []*scope.MachinePoolState{mp1},
 			want:           nil,
 			wantErr:        false,

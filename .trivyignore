@@ -3,3 +3,12 @@
 # code is not called by CAPI anyway, so we can ignore these for now.
 CVE-2026-56855
 CVE-2026-78662
+
+# These golang.org/x/net vulnerabilities (GO-2026-6611, GO-2026-6612 and
+# GO-2026-6617 in govulncheck) are fixed in 0.60.0, but that requires
+# go 1.26.0. They affect the HTTP/2 server in golang.org/x/net/http2,
+# which CAPI does not use.
+# Also see .govuln_exclude.
+CVE-2026-78669
+CVE-2026-78663
+CVE-2026-97032

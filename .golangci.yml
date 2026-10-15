@@ -52,6 +52,8 @@ linters:
   disable:
     # TODO: It will be dropped when the Go version migration is done.
     - usetesting
+    # Ignoring new findings from version bump.
+    - prealloc
   settings:
     forbidigo:
       forbid:
@@ -389,7 +391,7 @@ linters:
       - linters:
           - goconst
         path: (.+)_test\.go
-        # It's clearer to see that a field gets accessed or func gets called on the embedded objects 
+        # It's clearer to see that a field gets accessed or func gets called on the embedded objects
       - linters:
           - staticcheck
         path: (.+)\.go$
@@ -410,6 +412,48 @@ linters:
           - revive
         path: test/infrastructure/inmemory/pkg/server/api/.*\.go$
         text: 'var-naming: avoid meaningless package names'
+      ## Start: Ignoring new findings from version bump.
+      - linters:
+          - staticcheck
+        text: 'QF1012: Use fmt\.Fprintf'
+      - linters:
+          - govet
+        text: 'inline: Constant reflect\.Ptr should be inlined'
+      - linters:
+          - staticcheck
+        text: "SA5008: malformed `json` tag"
+      - linters:
+          - gosec
+        path: test/framework/kubetest/setup\.go
+        text: 'G304:'
+      - linters:
+          - gosec
+        path: test/framework/suite_helpers\.go
+        text: 'G122:'
+      - linters:
+          - gosec
+        path: (hack/tools/internal/tilt-prepare/main\.go|hack/tools/release/notes/github\.go)
+        text: 'G204:'
+      - linters:
+          - nolintlint
+        text: 'directive .* is unused'
+      - linters:
+          - gosec
+        path: _test\.go
+        text: 'G101:'
+      - linters:
+          - gosec
+        path: (cmd/clusterctl/client/cluster/template\.go|internal/test/envtest/environment\.go|test/framework/clusterctl/repository\.go)
+        text: 'G703:'
+      - linters:
+          - gosec
+        path: cmd/clusterctl/client/repository/repository_github_test\.go
+        text: 'G705:'
+      - linters:
+          - gosec
+        path: hack/tools/mdbook/
+        text: 'G706:'
+      ## End: Ignoring new findings from version bump.
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

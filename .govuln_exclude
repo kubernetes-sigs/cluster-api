@@ -1,0 +1,12 @@
+# The following golang.org/x/net advisories are fixed in v0.60.0, but that requires go 1.26.0.
+# GO-2026-6617, GO-2026-6612, GO-2026-6611 and GO-2026-6603 affect the HTTP/2 server. CAPI does not use
+# golang.org/x/net/http2 for serving (webhook and metrics servers use net/http from the standard library).
+# govulncheck only finds traces through the HTTP/2 client (e.g. client-go and clusterctl).
+GO-2026-6617
+GO-2026-6612
+GO-2026-6611
+GO-2026-6603
+# GO-2026-6610 affects the HTTP/2 client (transport accepting malformed framing headers). This can only be
+# triggered by a malicious server, i.e. the kube-apiserver of a workload cluster or a repository host
+# configured by the user.
+GO-2026-6610

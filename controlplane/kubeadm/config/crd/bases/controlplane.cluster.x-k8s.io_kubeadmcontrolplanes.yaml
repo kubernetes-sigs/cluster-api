@@ -2489,7 +2489,11 @@ spec:
                       anymore because the new issue is assumed unrelated from the
                       previous one.\n\nOnce MaxRetry is exhausted, remediation does
                       not happen again until the machine becomes unhealthy\nafter
-                      MinHealthyPeriod from the previous remediation expired.\n\nIf
+                      MinHealthyPeriod from the previous remediation expired.\n\nThe
+                      number of retries is reset if the machine to be remediated does
+                      not match the KCP configuration anymore\n(e.g. version, infrastructure
+                      machine template or KubeadmConfig changed), because the replacement
+                      machine\nwill be created with a different configuration.\n\nIf
                       not set, the remedation will be retried infinitely."
                     format: int32
                     type: integer
@@ -5614,7 +5618,11 @@ spec:
                       retry anymore because the new issue is assumed unrelated from
                       the previous one.\n\nOnce maxRetry is exhausted, remediation
                       does not happen again until the machine becomes unhealthy\nafter
-                      minHealthyPeriodSeconds from the previous remediation expired.\n\nIf
+                      minHealthyPeriodSeconds from the previous remediation expired.\n\nThe
+                      number of retries is reset if the machine to be remediated does
+                      not match the KCP configuration anymore\n(e.g. version, infrastructure
+                      machine template or KubeadmConfig changed), because the replacement
+                      machine\nwill be created with a different configuration.\n\nIf
                       not set, the remedation will be retried infinitely."
                     format: int32
                     type: integer

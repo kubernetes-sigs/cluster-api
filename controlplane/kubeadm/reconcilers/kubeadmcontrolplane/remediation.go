@@ -541,6 +541,7 @@ func pickMachineToBeRemediatedByConditionState(i, j *clusterv1.Machine, conditio
 // checkRetryLimits checks if KCP is allowed to remediate considering retry limits:
 // - Remediation cannot happen because retryPeriod is not yet expired.
 // - KCP already reached the maximum number of retries for a machine.
+// Retry limits do not apply if the machine to be remediated does not match the KCP configuration anymore.
 // NOTE: Counting the number of retries is required In order to prevent infinite remediation e.g. in case the
 // first Control Plane machine is failing due to quota issue.
 func (r *Reconciler) checkRetryLimits(log logr.Logger, machineToBeRemediated *clusterv1.Machine, controlPlane *pkg.ControlPlane, reconciliationTime time.Time) (*RemediationData, bool, error) {
@@ -562,6 +563,11 @@ func (r *Reconciler) checkRetryLimits(log logr.Logger, machineToBeRemediated *cl
 
 	// If there is no last remediation, this is the first try of a new retry sequence.
 	if lastRemediationData == nil {
+		return remediationInProgressData, true, nil
+	}
+
+	// If the Machine does not match the KCP configuration anymore, this is the first try of a new retry sequence.
+	if controlPlane.MachineConfigurationNotUpToDate(machineToBeRemediated.Name) {
 		return remediationInProgressData, true, nil
 	}
 

@@ -1817,6 +1817,7 @@ func TestUpToDate(t *testing.T) {
 		infraConfigs                   map[string]*unstructured.Unstructured
 		machineConfigs                 map[string]*bootstrapv1.KubeadmConfig
 		expectUptoDate                 bool
+		expectConfigurationOutdated    bool
 		expectEligibleForInPlaceUpdate bool
 		expectLogMessages              []string
 		expectConditionMessages        []string
@@ -1833,6 +1834,34 @@ func TestUpToDate(t *testing.T) {
 			expectConditionMessages:        nil,
 		},
 		{
+			name: "delete annotation, configuration matches",
+			kcp:  defaultKcp,
+			machine: func() *clusterv1.Machine {
+				machine := defaultMachine.DeepCopy()
+				machine.Annotations = map[string]string{clusterv1.DeleteMachineAnnotation: ""}
+				return machine
+			}(),
+			infraConfigs:                   defaultInfraConfigs,
+			machineConfigs:                 defaultMachineConfigs,
+			expectUptoDate:                 true,
+			expectEligibleForInPlaceUpdate: false,
+			expectConfigurationOutdated:    false,
+		},
+		{
+			name: "remediate annotation, configuration matches",
+			kcp:  defaultKcp,
+			machine: func() *clusterv1.Machine {
+				machine := defaultMachine.DeepCopy()
+				machine.Annotations = map[string]string{clusterv1.RemediateMachineAnnotation: ""}
+				return machine
+			}(),
+			infraConfigs:                   defaultInfraConfigs,
+			machineConfigs:                 defaultMachineConfigs,
+			expectUptoDate:                 true,
+			expectEligibleForInPlaceUpdate: false,
+			expectConfigurationOutdated:    false,
+		},
+		{
 			name: "certificate are expiring soon",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
@@ -1846,6 +1875,7 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: false,
 			expectLogMessages:              []string{"certificates will expire soon, rolloutBefore expired"},
 			expectConditionMessages:        []string{"Certificates will expire soon"},
+			expectConfigurationOutdated:    false,
 		},
 		{
 			name: "rollout after expired",
@@ -1861,6 +1891,24 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: false,
 			expectLogMessages:              []string{"rolloutAfter expired"},
 			expectConditionMessages:        []string{"KubeadmControlPlane spec.rolloutAfter expired"},
+			expectConfigurationOutdated:    false,
+		},
+		{
+			name: "rollout before and rollout after expired, configuration matches",
+			kcp: func() *controlplanev1.KubeadmControlPlane {
+				kcp := defaultKcp.DeepCopy()
+				kcp.Spec.Rollout.Before.CertificatesExpiryDays = 150
+				kcp.Spec.Rollout.After = metav1.Time{Time: reconciliationTime.Add(-1 * 24 * time.Hour)}
+				return kcp
+			}(),
+			machine:                        defaultMachine,
+			infraConfigs:                   defaultInfraConfigs,
+			machineConfigs:                 defaultMachineConfigs,
+			expectUptoDate:                 false,
+			expectEligibleForInPlaceUpdate: false,
+			expectLogMessages:              []string{"certificates will expire soon, rolloutBefore expired", "rolloutAfter expired"},
+			expectConditionMessages:        []string{"Certificates will expire soon", "KubeadmControlPlane spec.rolloutAfter expired"},
+			expectConfigurationOutdated:    false,
 		},
 		{
 			name: "kubernetes version does not match",
@@ -1880,6 +1928,7 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: true,
 			expectLogMessages:              []string{"Machine version \"v1.30.0\" is not equal to KCP version \"v1.30.2\""},
 			expectConditionMessages:        []string{"Version v1.30.0, v1.30.2 required"},
+			expectConfigurationOutdated:    true,
 		},
 		{
 			name: "kubernetes version does not match + delete annotation",
@@ -1902,6 +1951,7 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: false, // Not eligible for in-place update because of delete annotation.
 			expectLogMessages:              []string{"Machine version \"v1.30.0\" is not equal to KCP version \"v1.30.2\""},
 			expectConditionMessages:        []string{"Version v1.30.0, v1.30.2 required"},
+			expectConfigurationOutdated:    true,
 		},
 		{
 			name: "kubernetes version does not match + remediate annotation",
@@ -1924,6 +1974,7 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: false, // Not eligible for in-place update because of remediate annotation.
 			expectLogMessages:              []string{"Machine version \"v1.30.0\" is not equal to KCP version \"v1.30.2\""},
 			expectConditionMessages:        []string{"Version v1.30.0, v1.30.2 required"},
+			expectConfigurationOutdated:    true,
 		},
 		{
 			name: "KubeadmConfig is not up-to-date",
@@ -1952,7 +2003,8 @@ func TestUpToDate(t *testing.T) {
     JoinConfiguration: {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
     ... // 11 identical fields
   }`},
-			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
+			expectConditionMessages:     []string{"KubeadmConfig is not up-to-date"},
+			expectConfigurationOutdated: true,
 		},
 		{
 			name: "InfraMachine is not up-to-date",
@@ -1973,7 +2025,8 @@ func TestUpToDate(t *testing.T) {
 			expectLogMessages: []string{"Infrastructure template on KCP rotated from " +
 				"TestInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io infra-machine-template1 to " +
 				"TestInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io infra-machine-template2"},
-			expectConditionMessages: []string{"TestInfrastructureMachine is not up-to-date"},
+			expectConditionMessages:     []string{"TestInfrastructureMachine is not up-to-date"},
+			expectConfigurationOutdated: true,
 		},
 	}
 
@@ -1991,6 +2044,7 @@ func TestUpToDate(t *testing.T) {
 			g.Expect(upToDate).To(Equal(tt.expectUptoDate))
 			g.Expect(res).ToNot(BeNil())
 			g.Expect(res.EligibleForInPlaceUpdate).To(Equal(tt.expectEligibleForInPlaceUpdate))
+			g.Expect(res.ConfigurationNotUpToDate).To(Equal(tt.expectConfigurationOutdated))
 			g.Expect(res.DesiredMachine).ToNot(BeNil())
 			g.Expect(res.DesiredMachine.Spec.Version).To(Equal(tt.kcp.Spec.Version))
 			g.Expect(res.CurrentInfraMachine).ToNot(BeNil())

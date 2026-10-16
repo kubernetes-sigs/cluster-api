@@ -128,7 +128,7 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.22.0
+CONTROLLER_GEN_VER := v0.23.0
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -307,7 +307,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./core \
 		paths=./core/reconcilers/... \
 		paths=./core/webhooks/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./core/config/crd/bases \
 		output:rbac:dir=./core/config/rbac \
@@ -315,40 +315,40 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		webhook
 	$(CONTROLLER_GEN) \
 		paths=./cmd/clusterctl/api/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./cmd/clusterctl/config/crd/bases
 	$(KUSTOMIZE) build $(CLUSTERCTL_MANIFEST_DIR)/crd > $(CLUSTERCTL_MANIFEST_DIR)/manifest/clusterctl-api.yaml
 	$(CONTROLLER_GEN) \
 		paths=./util/test/builder/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./util/test/builder/crd
 	$(CONTROLLER_GEN) \
 		paths=./internal/topology/upgrade/test/t1/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./internal/topology/upgrade/test/t1/crd
 	$(CONTROLLER_GEN) \
 		paths=./internal/topology/upgrade/test/t2/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./internal/topology/upgrade/test/t2/crd
 	$(CONTROLLER_GEN) \
 		paths=./controllers/crdmigrator/test/t1/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./controllers/crdmigrator/test/t1/crd
 	$(CONTROLLER_GEN) \
 		paths=./controllers/crdmigrator/test/t2/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./controllers/crdmigrator/test/t2/crd
 	$(CONTROLLER_GEN) \
 		paths=./controllers/crdmigrator/test/t3/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./controllers/crdmigrator/test/t3/crd
 	$(CONTROLLER_GEN) \
 		paths=./controllers/crdmigrator/test/t4/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./controllers/crdmigrator/test/t4/crd
 	$(CONTROLLER_GEN) \
 		paths=./util/deprecated/v1beta1/test/builder/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./util/deprecated/v1beta1/test/builder/crd
 
 .PHONY: generate-manifests-kubeadm-bootstrap
@@ -359,7 +359,7 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 		paths=./bootstrap/kubeadm \
 		paths=./bootstrap/kubeadm/reconcilers/... \
 		paths=./bootstrap/kubeadm/webhooks/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
 		output:rbac:dir=./bootstrap/kubeadm/config/rbac \
@@ -374,7 +374,7 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 		paths=./controlplane/kubeadm \
 		paths=./controlplane/kubeadm/reconcilers/... \
 		paths=./controlplane/kubeadm/webhooks/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
 		output:rbac:dir=./controlplane/kubeadm/config/rbac \
@@ -389,7 +389,7 @@ generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifest
 		paths=./api/... \
 		paths=./reconcilers/... \
 		paths=./webhooks/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
 		output:webhook:dir=./config/webhook \

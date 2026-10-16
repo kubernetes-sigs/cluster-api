@@ -68,6 +68,51 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 				"9263": false,
 			},
 		},
+		{
+			name: "backport merge uses release PR instead of original PR in cherry-picked subject",
+			commits: []githubCommitNode{
+				{
+					SHA:    "release-commit",
+					Commit: githubCommit{Message: "Restore apiVersionGetter after unit tests (#14189)"},
+				},
+				{
+					SHA: "release-merge-commit",
+					Parents: []githubCommitParent{
+						{SHA: "release-base-tip"},
+						{SHA: "release-commit"},
+					},
+					Commit: githubCommit{Message: "Merge pull request #14255 from dlanov/fix-14253-conversion-getter\n\n[release-1.14] Restore apiVersionGetter after unit tests"},
+				},
+			},
+			want: map[string]bool{
+				"14255": false,
+			},
+		},
+		{
+			name: "first parent of a merge commit is still counted",
+			commits: []githubCommitNode{
+				{
+					SHA:    "first-parent-commit",
+					Commit: githubCommit{Message: "Fix race in KCP proxy DialContext (#14280)"},
+				},
+				{
+					SHA:    "second-parent-commit",
+					Commit: githubCommit{Message: "fix: flaky test"},
+				},
+				{
+					SHA: "merge-commit",
+					Parents: []githubCommitParent{
+						{SHA: "first-parent-commit"},
+						{SHA: "second-parent-commit"},
+					},
+					Commit: githubCommit{Message: "Merge pull request #14299 from cherrypick-robot/cherry-pick-14295-to-release-1.13\n\n[release-1.13] fix flaky test"},
+				},
+			},
+			want: map[string]bool{
+				"14280": false,
+				"14299": false,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -1,0 +1,66 @@
+# Aggregates read-only access to the Cluster API resources that cannot hold credentials
+# into the builtin "view", "edit" and "admin" ClusterRoles. "edit" and "admin" do not inherit
+# the rules aggregated into "view", hence the additional labels.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: viewer-role
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusters
+  - clusters/status
+  - clusterclasses
+  - clusterclasses/status
+  - machines
+  - machines/status
+  - machinesets
+  - machinesets/status
+  - machinesets/scale
+  - machinedeployments
+  - machinedeployments/status
+  - machinedeployments/scale
+  - machinepools
+  - machinepools/status
+  - machinepools/scale
+  - machinehealthchecks
+  - machinehealthchecks/status
+  - machinedrainrules
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - addons.cluster.x-k8s.io
+  resources:
+  - clusterresourcesets
+  - clusterresourcesets/status
+  - clusterresourcesetbindings
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ipam.cluster.x-k8s.io
+  resources:
+  - ipaddresses
+  - ipaddressclaims
+  - ipaddressclaims/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - runtime.cluster.x-k8s.io
+  resources:
+  - extensionconfigs
+  - extensionconfigs/status
+  verbs:
+  - get
+  - list
+  - watch

@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -60,7 +61,7 @@ func Test_canUpdateMachine(t *testing.T) {
 	}
 	machineKey := client.ObjectKeyFromObject(machineToInPlaceUpdate)
 	const kcpGeneration = int64(5)
-	reconciliationTime := time.Now()
+	now := time.Now()
 	nonEmptyMachineUpToDateResult := pkg.UpToDateResult{
 		// No real content needed for this, fields should just not be nil,
 		EligibleForInPlaceUpdate: true,
@@ -83,7 +84,7 @@ func Test_canUpdateMachine(t *testing.T) {
 		enableInPlaceUpdatesFeatureGate bool
 		// cacheEntry is an entry that already exists in the cache when canUpdateMachine is called.
 		cacheEntry                     *CanUpdateMachineCacheEntry
-		canExtensionsUpdateMachineFunc func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error)
+		canExtensionsUpdateMachineFunc func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error)
 		getAllExtensionsResponses      map[runtimecatalog.GroupVersionHook][]string
 
 		wantCanExtensionsUpdateMachineCalled bool
@@ -127,20 +128,22 @@ func Test_canUpdateMachine(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineResult{canUpdateMachine: false}, []string{"can not update"}, nil
+				return canUpdateMachineResult{canUpdateMachine: false, reasons: []string{"can not update"}, retryAfter: now.Add(5 * time.Minute)}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
-			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false},
+			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false, retryAfter: now.Add(5 * time.Minute), reasons: []string{"can not update"}},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:          machineKey,
-				KCPGeneration:    kcpGeneration,
-				CanUpdateMachine: false,
-				Reasons:          []string{"can not update"},
-				RetryAfter:       reconciliationTime.Add(5 * time.Minute),
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					canUpdateMachine: false,
+					reasons:          []string{"can not update"},
+					retryAfter:       now.Add(5 * time.Minute),
+				},
 			},
 		},
 		{
@@ -150,20 +153,84 @@ func Test_canUpdateMachine(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true}, nil, nil
+				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, retryAfter: now.Add(5 * time.Minute)}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
-			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true},
+			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:             machineKey,
-				KCPGeneration:       kcpGeneration,
-				CanUpdateMachine:    true,
-				AffectsAvailability: true,
-				RetryAfter:          reconciliationTime.Add(5 * time.Minute),
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					canUpdateMachine:    true,
+					affectsAvailability: true,
+					retryAfter:          now.Add(5 * time.Minute),
+				},
+			},
+		},
+		{
+			name:                            "Return allowed operations and messages if canExtensionsUpdateMachine returns them",
+			enableInPlaceUpdatesFeatureGate: true,
+			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
+			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
+				canUpdateMachineGVH: {"test-update-extension"},
+			},
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
+				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
+					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
+				}
+				return canUpdateMachineResult{canUpdateMachine: true, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)}, nil
+			},
+			wantCanExtensionsUpdateMachineCalled: true,
+			wantCanUpdateMachineResult: canUpdateMachineResult{
+				retryAfter:        now.Add(5 * time.Minute),
+				canUpdateMachine:  true,
+				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+				messages:          []string{"only in-place"},
+			},
+			wantCacheEntry: &CanUpdateMachineCacheEntry{
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					canUpdateMachine:  true,
+					allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+					messages:          []string{"only in-place"},
+					retryAfter:        now.Add(5 * time.Minute),
+				},
+			},
+		},
+		{
+			name:                            "Return that no operation is allowed if canExtensionsUpdateMachine returns it",
+			enableInPlaceUpdatesFeatureGate: true,
+			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
+			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
+				canUpdateMachineGVH: {"test-update-extension"},
+			},
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
+				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
+					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
+				}
+				return canUpdateMachineResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)}, nil
+			},
+			wantCanExtensionsUpdateMachineCalled: true,
+			wantCanUpdateMachineResult: canUpdateMachineResult{
+				retryAfter:        now.Add(5 * time.Minute),
+				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				messages:          []string{"preflight check failed"},
+				reasons:           []string{"no operation is allowed"},
+			},
+			wantCacheEntry: &CanUpdateMachineCacheEntry{
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					messages:          []string{"preflight check failed"},
+					retryAfter:        now.Add(5 * time.Minute),
+					reasons:           []string{"no operation is allowed"},
+				},
 			},
 		},
 		{
@@ -173,26 +240,27 @@ func Test_canUpdateMachine(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
-			// Note: canUpdateMachine must ignore the result and reasons if requeueAfter > 0.
-			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, messages: []string{"message 1", "message 2"}, retryAfter: 10 * time.Second}, nil, nil
+				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, messages: []string{"message 1", "message 2"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
-			wantCanUpdateMachineResult:           canUpdateMachineResult{retryAfter: 10 * time.Second},
+			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, messages: []string{"message 1", "message 2"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
 			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
 				WaitingForDecisionMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update: message 1, message 2",
 			},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:             machineKey,
-				KCPGeneration:       kcpGeneration,
-				Retry:               true,
-				CanUpdateMachine:    true,
-				AffectsAvailability: true,
-				Messages:            []string{"message 1", "message 2"},
-				RetryAfter:          reconciliationTime.Add(10 * time.Second),
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfterFromExtension: true,
+					canUpdateMachine:        true,
+					affectsAvailability:     true,
+					messages:                []string{"message 1", "message 2"},
+					retryAfter:              now.Add(10 * time.Second),
+				},
 			},
 		},
 		{
@@ -202,22 +270,24 @@ func Test_canUpdateMachine(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineResult{retryAfter: 10 * time.Second}, nil, nil
+				return canUpdateMachineResult{retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
-			wantCanUpdateMachineResult:           canUpdateMachineResult{retryAfter: 10 * time.Second},
+			wantCanUpdateMachineResult:           canUpdateMachineResult{retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
 			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
 				WaitingForDecisionMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update",
 			},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
 				Machine:       machineKey,
 				KCPGeneration: kcpGeneration,
-				Retry:         true,
-				RetryAfter:    reconciliationTime.Add(10 * time.Second),
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfterFromExtension: true,
+					retryAfter:              now.Add(10 * time.Second),
+				},
 			},
 		},
 		{
@@ -227,8 +297,8 @@ func Test_canUpdateMachine(t *testing.T) {
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
-			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, _ []string) (canUpdateMachineResult, []string, error) {
-				return canUpdateMachineResult{canUpdateMachine: false, retryAfter: 10 * time.Second}, nil, pkgerrors.Errorf("extension failed")
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, _ []string) (canUpdateMachineResult, error) {
+				return canUpdateMachineResult{canUpdateMachine: false, retryAfter: now.Add(10 * time.Second)}, pkgerrors.Errorf("extension failed")
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
 			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
@@ -249,21 +319,25 @@ func Test_canUpdateMachine(t *testing.T) {
 			cacheEntry: &CanUpdateMachineCacheEntry{
 				Machine:       machineKey,
 				KCPGeneration: kcpGeneration,
-				RetryAfter:    reconciliationTime.Add(1 * time.Hour),
-				Retry:         true,
-				Messages:      []string{"waiting for the update plan"},
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:              now.Add(1 * time.Hour),
+					retryAfterFromExtension: true,
+					messages:                []string{"waiting for the update plan"},
+				},
 			},
 			wantCanExtensionsUpdateMachineCalled: false,
-			wantCanUpdateMachineResult:           canUpdateMachineResult{retryAfter: time.Hour},
+			wantCanUpdateMachineResult:           canUpdateMachineResult{messages: []string{"waiting for the update plan"}, retryAfter: now.Add(time.Hour), retryAfterFromExtension: true},
 			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
 				WaitingForDecisionMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update: waiting for the update plan",
 			},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
 				Machine:       machineKey,
 				KCPGeneration: kcpGeneration,
-				RetryAfter:    reconciliationTime.Add(1 * time.Hour),
-				Retry:         true,
-				Messages:      []string{"waiting for the update plan"},
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:              now.Add(1 * time.Hour),
+					retryAfterFromExtension: true,
+					messages:                []string{"waiting for the update plan"},
+				},
 			},
 		},
 		{
@@ -274,22 +348,26 @@ func Test_canUpdateMachine(t *testing.T) {
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
 			cacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:          machineKey,
-				KCPGeneration:    kcpGeneration,
-				RetryAfter:       reconciliationTime.Add(10 * time.Minute),
-				CanUpdateMachine: false,
-				Reasons:          []string{"cached reason"},
-				Messages:         []string{"cached message"},
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:       now.Add(10 * time.Minute),
+					canUpdateMachine: false,
+					reasons:          []string{"cached reason"},
+					messages:         []string{"cached message"},
+				},
 			},
 			wantCanExtensionsUpdateMachineCalled: false,
-			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: false},
+			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: false, messages: []string{"cached message"}, retryAfter: now.Add(10 * time.Minute), reasons: []string{"cached reason"}},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:          machineKey,
-				KCPGeneration:    kcpGeneration,
-				RetryAfter:       reconciliationTime.Add(10 * time.Minute),
-				CanUpdateMachine: false,
-				Reasons:          []string{"cached reason"},
-				Messages:         []string{"cached message"},
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:       now.Add(10 * time.Minute),
+					canUpdateMachine: false,
+					reasons:          []string{"cached reason"},
+					messages:         []string{"cached message"},
+				},
 			},
 		},
 		{
@@ -300,22 +378,58 @@ func Test_canUpdateMachine(t *testing.T) {
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
 			cacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:             machineKey,
-				KCPGeneration:       kcpGeneration,
-				RetryAfter:          reconciliationTime.Add(10 * time.Minute),
-				CanUpdateMachine:    true,
-				AffectsAvailability: true,
-				Messages:            []string{"cached message"},
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:          now.Add(10 * time.Minute),
+					canUpdateMachine:    true,
+					affectsAvailability: true,
+					messages:            []string{"cached message"},
+				},
 			},
 			wantCanExtensionsUpdateMachineCalled: false,
-			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true},
+			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, messages: []string{"cached message"}, retryAfter: now.Add(10 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:             machineKey,
-				KCPGeneration:       kcpGeneration,
-				RetryAfter:          reconciliationTime.Add(10 * time.Minute),
-				CanUpdateMachine:    true,
-				AffectsAvailability: true,
-				Messages:            []string{"cached message"},
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:          now.Add(10 * time.Minute),
+					canUpdateMachine:    true,
+					affectsAvailability: true,
+					messages:            []string{"cached message"},
+				},
+			},
+		},
+		{
+			name:                            "Return cached disallowed operations without calling extensions if a valid cache entry exists",
+			enableInPlaceUpdatesFeatureGate: true,
+			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
+			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
+				canUpdateMachineGVH: {"test-update-extension"},
+			},
+			cacheEntry: &CanUpdateMachineCacheEntry{
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:        now.Add(2 * time.Minute),
+					allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					messages:          []string{"cached message"},
+				},
+			},
+			wantCanExtensionsUpdateMachineCalled: false,
+			wantCanUpdateMachineResult: canUpdateMachineResult{
+				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				messages:          []string{"cached message"},
+				retryAfter:        now.Add(2 * time.Minute),
+			},
+			wantCacheEntry: &CanUpdateMachineCacheEntry{
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:        now.Add(2 * time.Minute),
+					allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					messages:          []string{"cached message"},
+				},
 			},
 		},
 		{
@@ -328,23 +442,27 @@ func Test_canUpdateMachine(t *testing.T) {
 			cacheEntry: &CanUpdateMachineCacheEntry{
 				Machine:       machineKey,
 				KCPGeneration: kcpGeneration,
-				RetryAfter:    reconciliationTime.Add(-1 * time.Second), // Retry is expired
-				Retry:         true,
-				Messages:      []string{"waiting for the update plan"},
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:              now.Add(-1 * time.Second), // Retry is expired,
+					retryAfterFromExtension: true,
+					messages:                []string{"waiting for the update plan"},
+				},
 			},
-			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false}, nil, nil
+				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, retryAfter: now.Add(5 * time.Minute)}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
-			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true},
+			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:          machineKey,
-				KCPGeneration:    kcpGeneration,
-				RetryAfter:       reconciliationTime.Add(5 * time.Minute),
-				CanUpdateMachine: true,
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:       now.Add(5 * time.Minute),
+					canUpdateMachine: true,
+				},
 			},
 		},
 		{
@@ -355,26 +473,30 @@ func Test_canUpdateMachine(t *testing.T) {
 				canUpdateMachineGVH: {"test-update-extension"},
 			},
 			cacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:          machineKey,
-				KCPGeneration:    kcpGeneration - 1, // older generation
-				RetryAfter:       reconciliationTime.Add(10 * time.Minute),
-				CanUpdateMachine: false,
-				Reasons:          []string{"cached reason"},
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration - 1, // older generation
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:       now.Add(10 * time.Minute),
+					canUpdateMachine: false,
+					reasons:          []string{"cached reason"},
+				},
 			},
-			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
+			canExtensionsUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
-					return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Errorf("unexpected error")
+					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true}, nil, nil
+				return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, retryAfter: now.Add(5 * time.Minute)}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
-			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true},
+			wantCanUpdateMachineResult:           canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
-				Machine:             machineKey,
-				KCPGeneration:       kcpGeneration,
-				RetryAfter:          reconciliationTime.Add(5 * time.Minute),
-				CanUpdateMachine:    true,
-				AffectsAvailability: true,
+				Machine:       machineKey,
+				KCPGeneration: kcpGeneration,
+				canUpdateMachineResult: canUpdateMachineResult{
+					retryAfter:          now.Add(5 * time.Minute),
+					canUpdateMachine:    true,
+					affectsAvailability: true,
+				},
 			},
 		},
 	}
@@ -395,7 +517,8 @@ func Test_canUpdateMachine(t *testing.T) {
 			r := &Reconciler{
 				RuntimeClient:         runtimeClient,
 				canUpdateMachineCache: cache.New[CanUpdateMachineCacheEntry](t.Context(), 30*time.Minute),
-				overrideCanExtensionsUpdateMachine: func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
+				overrideNowFunc:       func() time.Time { return now },
+				overrideCanExtensionsUpdateMachine: func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
 					canExtensionsUpdateMachineCalled = true
 					return tt.canExtensionsUpdateMachineFunc(ctx, machine, machineUpToDateResult, extensionHandlers)
 				},
@@ -409,14 +532,14 @@ func Test_canUpdateMachine(t *testing.T) {
 				},
 			}
 
-			res, err := r.canUpdateMachine(ctx, controlPlane, machineToInPlaceUpdate, tt.machineUpToDateResult, reconciliationTime)
+			res, err := r.canUpdateMachine(ctx, controlPlane, machineToInPlaceUpdate, tt.machineUpToDateResult)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(res).To(Equal(tt.wantCanUpdateMachineResult))
+			g.Expect(res).To(BeComparableTo(tt.wantCanUpdateMachineResult, cmp.AllowUnexported(canUpdateMachineResult{})))
 			g.Expect(controlPlane.CanUpdateMachineResults).To(BeComparableTo(tt.wantCanUpdateMachineResults))
 
 			g.Expect(canExtensionsUpdateMachineCalled).To(Equal(tt.wantCanExtensionsUpdateMachineCalled), "canExtensionsUpdateMachineCalled: actual: %t expected: %t", canExtensionsUpdateMachineCalled, tt.wantCanExtensionsUpdateMachineCalled)
@@ -427,12 +550,14 @@ func Test_canUpdateMachine(t *testing.T) {
 				return
 			}
 			g.Expect(ok).To(BeTrue())
-			g.Expect(entry).To(BeComparableTo(*tt.wantCacheEntry))
+			g.Expect(entry).To(BeComparableTo(*tt.wantCacheEntry, cmp.AllowUnexported(CanUpdateMachineCacheEntry{}, canUpdateMachineResult{})))
 		})
 	}
 }
 
 func Test_canExtensionsUpdateMachine(t *testing.T) {
+	now := time.Now()
+
 	currentMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine-to-in-place-update",
@@ -525,7 +650,6 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 		callExtensionResponses       map[string]runtimehooksv1.ResponseObject
 		callExtensionExpectedChanges map[string]func(runtime.Object)
 		wantCanUpdateMachineResult   canUpdateMachineResult
-		wantReasons                  []string
 		wantError                    bool
 		wantErrorMessage             string
 	}{
@@ -543,7 +667,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": responseWithEmptyPatches,
 			},
-			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true},
+			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, messages: []string{"no changes handled"}, retryAfter: now.Add(5 * time.Minute)},
 		},
 		{
 			name: "Return false if current and desired objects are not equal and no patches are returned",
@@ -558,9 +682,12 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": responseWithEmptyPatches,
 			},
-			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false},
-			wantReasons: []string{
-				`Machine cannot be updated in-place: &v1beta2.Machine{
+			wantCanUpdateMachineResult: canUpdateMachineResult{
+				canUpdateMachine:    false,
+				affectsAvailability: false,
+				messages:            []string{"no changes handled"},
+				reasons: []string{
+					`Machine cannot be updated in-place: &v1beta2.Machine{
     TypeMeta:   {},
     ObjectMeta: {},
     Spec: v1beta2.MachineSpec{
@@ -575,7 +702,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
     },
     Status: {},
   }`,
-				`KubeadmConfig cannot be updated in-place: &unstructured.Unstructured{
+					`KubeadmConfig cannot be updated in-place: &unstructured.Unstructured{
     Object: map[string]any{
       "spec": map[string]any{
 -       "clusterConfiguration": map[string]any{"etcd": map[string]any{"local": map[string]any{"imageTag": string("3.5.0-0")}}},
@@ -586,10 +713,12 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
       },
     },
   }`,
-				`TestInfrastructureMachine cannot be updated in-place: &unstructured.Unstructured{
+					`TestInfrastructureMachine cannot be updated in-place: &unstructured.Unstructured{
 -   Object: map[string]any{"spec": map[string]any{"hello": string("world")}},
 +   Object: map[string]any{"spec": map[string]any{"hello": string("in-place updated world")}},
   }`,
+				},
+				retryAfter: now.Add(5 * time.Minute),
 			},
 		},
 		{
@@ -611,7 +740,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					AffectsAvailability:        new(false),
 				},
 			},
-			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false},
+			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, retryAfter: now.Add(5 * time.Minute)},
 		},
 		{
 			name: "Return true if current and desired objects are not equal and patches are returned that account for all diffs (multiple extensions)",
@@ -658,7 +787,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					}
 				},
 			},
-			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true},
+			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, retryAfter: now.Add(5 * time.Minute)},
 		},
 		{
 			name: "Return false if current and desired objects are not equal and patches are returned that only account for some diffs",
@@ -678,9 +807,12 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					BootstrapConfigPatch:       emptyPatch,
 				},
 			},
-			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false},
-			wantReasons: []string{
-				`KubeadmConfig cannot be updated in-place: &unstructured.Unstructured{
+			wantCanUpdateMachineResult: canUpdateMachineResult{
+				canUpdateMachine:    false,
+				affectsAvailability: false,
+				messages:            []string{"only handled the Machine"},
+				reasons: []string{
+					`KubeadmConfig cannot be updated in-place: &unstructured.Unstructured{
     Object: map[string]any{
       "spec": map[string]any{
 -       "clusterConfiguration": map[string]any{"etcd": map[string]any{"local": map[string]any{"imageTag": string("3.5.0-0")}}},
@@ -691,10 +823,12 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
       },
     },
   }`,
-				`TestInfrastructureMachine cannot be updated in-place: &unstructured.Unstructured{
+					`TestInfrastructureMachine cannot be updated in-place: &unstructured.Unstructured{
 -   Object: map[string]any{"spec": map[string]any{"hello": string("world")}},
 +   Object: map[string]any{"spec": map[string]any{"hello": string("in-place updated world")}},
   }`,
+				},
+				retryAfter: now.Add(5 * time.Minute),
 			},
 		},
 		{
@@ -719,7 +853,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					AffectsAvailability:        new(false),
 				},
 			},
-			wantCanUpdateMachineResult: canUpdateMachineResult{messages: []string{"waiting for the update plan"}, retryAfter: 10 * time.Second},
+			wantCanUpdateMachineResult: canUpdateMachineResult{messages: []string{"waiting for the update plan"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
 		},
 		{
 			name: "Return requeueAfter as soon as one of multiple extensions returns RetryAfterSeconds (following extensions are not called)",
@@ -753,7 +887,158 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					}
 				},
 			},
-			wantCanUpdateMachineResult: canUpdateMachineResult{messages: []string{"message of extension 1", "message of extension 2"}, retryAfter: 5 * time.Second},
+			wantCanUpdateMachineResult: canUpdateMachineResult{messages: []string{"message of extension 1", "message of extension 2"}, retryAfter: now.Add(5 * time.Second), retryAfterFromExtension: true},
+		},
+		{
+			name: "Return true and disallow InPlaceUpdate if allowedOperations contains only Replace",
+			machineUpToDateResult: pkg.UpToDateResult{
+				DesiredMachine:       desiredMachine,
+				CurrentInfraMachine:  currentInfraMachine,
+				DesiredInfraMachine:  desiredInfraMachine,
+				CurrentKubeadmConfig: currentKubeadmConfig,
+				DesiredKubeadmConfig: desiredKubeadmConfig,
+			},
+			extensionHandlers: []string{"test-update-extension"},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"test-update-extension": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse:        runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "only replace"}},
+					MachinePatch:               patchToUpdateMachine,
+					InfrastructureMachinePatch: patchToUpdateInfraMachine,
+					BootstrapConfigPatch:       patchToUpdateKubeadmConfig,
+					AffectsAvailability:        new(false),
+					AllowedOperations:          ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
+				},
+			},
+			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}), messages: []string{"only replace"}, retryAfter: now.Add(5 * time.Minute)},
+		},
+		{
+			name: "Return false and allow InPlaceUpdate if allowedOperations contains only InPlaceUpdate and patches only account for some diffs",
+			machineUpToDateResult: pkg.UpToDateResult{
+				DesiredMachine:       desiredMachine,
+				CurrentInfraMachine:  currentInfraMachine,
+				DesiredInfraMachine:  desiredInfraMachine,
+				CurrentKubeadmConfig: currentKubeadmConfig,
+				DesiredKubeadmConfig: desiredKubeadmConfig,
+			},
+			extensionHandlers: []string{"test-update-extension"},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"test-update-extension": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse:        runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "only handled the Machine"}},
+					MachinePatch:               patchToUpdateMachine,
+					InfrastructureMachinePatch: emptyPatch,
+					BootstrapConfigPatch:       emptyPatch,
+					AllowedOperations:          ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+				},
+			},
+			wantCanUpdateMachineResult: canUpdateMachineResult{
+				canUpdateMachine:  false,
+				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+				messages:          []string{"only handled the Machine"},
+				reasons: []string{
+					`KubeadmConfig cannot be updated in-place: &unstructured.Unstructured{
+    Object: map[string]any{
+      "spec": map[string]any{
+-       "clusterConfiguration": map[string]any{"etcd": map[string]any{"local": map[string]any{"imageTag": string("3.5.0-0")}}},
++       "clusterConfiguration": map[string]any{"etcd": map[string]any{"local": map[string]any{"imageTag": string("3.6.4-0")}}},
+        "format":               string("cloud-config"),
+        "initConfiguration":    map[string]any{"nodeRegistration": map[string]any{"imagePullPolicy": string("IfNotPresent")}},
+        "joinConfiguration":    map[string]any{"controlPlane": map[string]any{}, "nodeRegistration": map[string]any{"imagePullPolicy": string("IfNotPresent")}},
+      },
+    },
+  }`,
+					`TestInfrastructureMachine cannot be updated in-place: &unstructured.Unstructured{
+-   Object: map[string]any{"spec": map[string]any{"hello": string("world")}},
++   Object: map[string]any{"spec": map[string]any{"hello": string("in-place updated world")}},
+  }`,
+				},
+				retryAfter: now.Add(5 * time.Minute),
+			},
+		},
+		{
+			name: "Return no operation allowed if allowedOperations is an empty list (patches in the response are ignored)",
+			machineUpToDateResult: pkg.UpToDateResult{
+				DesiredMachine:       desiredMachine,
+				CurrentInfraMachine:  currentInfraMachine,
+				DesiredInfraMachine:  desiredInfraMachine,
+				CurrentKubeadmConfig: currentKubeadmConfig,
+				DesiredKubeadmConfig: desiredKubeadmConfig,
+			},
+			extensionHandlers: []string{"test-update-extension"},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"test-update-extension": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse:        runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "preflight check failed"}},
+					MachinePatch:               patchToUpdateMachine,
+					InfrastructureMachinePatch: patchToUpdateInfraMachine,
+					BootstrapConfigPatch:       patchToUpdateKubeadmConfig,
+					AffectsAvailability:        new(false),
+					AllowedOperations:          ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				},
+			},
+			wantCanUpdateMachineResult: canUpdateMachineResult{
+				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				messages:          []string{"preflight check failed"},
+				reasons:           []string{"no operation is allowed by extensions"},
+				retryAfter:        now.Add(5 * time.Minute),
+			},
+		},
+		{
+			name: "Return no operation allowed as soon as the allowed operations of the extensions have no operation in common (following extensions are not called)",
+			machineUpToDateResult: pkg.UpToDateResult{
+				DesiredMachine:       desiredMachine,
+				CurrentInfraMachine:  currentInfraMachine,
+				DesiredInfraMachine:  desiredInfraMachine,
+				CurrentKubeadmConfig: currentKubeadmConfig,
+				DesiredKubeadmConfig: desiredKubeadmConfig,
+			},
+			// Note: Calling test-update-extension-3 would panic, so we use that to verify it is not called.
+			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 1"}},
+					MachinePatch:        patchToUpdateMachine,
+					AffectsAvailability: new(false),
+					AllowedOperations:   ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+				},
+				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 2"}},
+					AllowedOperations:   ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
+				},
+			},
+			callExtensionExpectedChanges: map[string]func(runtime.Object){
+				"test-update-extension-2": func(object runtime.Object) {
+					if machine, ok := object.(*clusterv1.Machine); ok {
+						// After the call to test-update-extension-1 we expect that patchToUpdateMachine is already applied.
+						machine.Spec.Version = "v1.31.0"
+					}
+				},
+			},
+			wantCanUpdateMachineResult: canUpdateMachineResult{
+				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				messages:          []string{"message of extension 1", "message of extension 2"},
+				reasons:           []string{"no operation is allowed by extensions"},
+				retryAfter:        now.Add(5 * time.Minute),
+			},
+		},
+		{
+			name: "Ignore allowedOperations if the extension returns RetryAfterSeconds",
+			machineUpToDateResult: pkg.UpToDateResult{
+				DesiredMachine:       desiredMachine,
+				CurrentInfraMachine:  currentInfraMachine,
+				DesiredInfraMachine:  desiredInfraMachine,
+				CurrentKubeadmConfig: currentKubeadmConfig,
+				DesiredKubeadmConfig: desiredKubeadmConfig,
+			},
+			extensionHandlers: []string{"test-update-extension"},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"test-update-extension": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						CommonResponse:    runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "waiting for the update plan"},
+						RetryAfterSeconds: 10,
+					},
+					AllowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				},
+			},
+			wantCanUpdateMachineResult: canUpdateMachineResult{messages: []string{"waiting for the update plan"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
 		},
 		{
 			name: "Return error if the extension returns a failure (even if RetryAfterSeconds is set)",
@@ -795,11 +1080,12 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 				Build()
 
 			r := &Reconciler{
-				Client:        fakeClient,
-				RuntimeClient: runtimeClient,
+				Client:          fakeClient,
+				RuntimeClient:   runtimeClient,
+				overrideNowFunc: func() time.Time { return now },
 			}
 
-			res, reasons, err := r.canExtensionsUpdateMachine(ctx, currentMachine, tt.machineUpToDateResult, tt.extensionHandlers)
+			res, err := r.canExtensionsUpdateMachine(ctx, currentMachine, tt.machineUpToDateResult, tt.extensionHandlers)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))
@@ -807,9 +1093,108 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(res).To(Equal(tt.wantCanUpdateMachineResult))
-			g.Expect(reasons).To(BeComparableTo(tt.wantReasons))
 		})
 	}
+}
+
+func Test_intersectAllowedOperations(t *testing.T) {
+	inPlaceUpdate := runtimehooksv1.MachineUpdateOperationUpdateInPlace
+	replace := runtimehooksv1.MachineUpdateOperationReplace
+
+	tests := []struct {
+		name string
+		a    *[]runtimehooksv1.MachineUpdateOperation
+		b    *[]runtimehooksv1.MachineUpdateOperation
+		want *[]runtimehooksv1.MachineUpdateOperation
+	}{
+		{
+			name: "No opinion if both are not set",
+			a:    nil,
+			b:    nil,
+			want: nil,
+		},
+		{
+			name: "No opinion of a: b is returned",
+			a:    nil,
+			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+		},
+		{
+			name: "No opinion of b: a is returned",
+			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{replace}),
+			b:    nil,
+			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{replace}),
+		},
+		{
+			name: "Empty list stays empty if the other one has no opinion",
+			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			b:    nil,
+			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+		},
+		{
+			name: "Empty list blocks everything",
+			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
+			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+		},
+		{
+			name: "Only operations allowed by both are returned",
+			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
+			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+		},
+		{
+			name: "No operation in common",
+			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{replace}),
+			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+		},
+		{
+			name: "Unknown operations are ignored",
+			a:    nil,
+			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{"SomethingNew"}),
+			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+		},
+		{
+			name: "Duplicates are removed",
+			a:    nil,
+			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{replace, inPlaceUpdate, replace}),
+			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got := intersectAllowedOperations(tt.a, tt.b)
+			if tt.want == nil {
+				g.Expect(got).To(BeNil())
+			} else {
+				g.Expect(got).ToNot(BeNil())
+				g.Expect(got).To(Equal(tt.want))
+			}
+		})
+	}
+}
+
+func Test_isOperationAllowed(t *testing.T) {
+	g := NewWithT(t)
+
+	inPlaceUpdate := runtimehooksv1.MachineUpdateOperationUpdateInPlace
+	replace := runtimehooksv1.MachineUpdateOperationReplace
+
+	// nil means no opinion, i.e. all operations are allowed.
+	g.Expect(isOperationAllowed(nil, inPlaceUpdate)).To(BeTrue())
+	g.Expect(isOperationAllowed(nil, replace)).To(BeTrue())
+
+	// An empty list means that no operation is allowed.
+	noOperations := ptr.To([]runtimehooksv1.MachineUpdateOperation{})
+	g.Expect(isOperationAllowed(noOperations, inPlaceUpdate)).To(BeFalse())
+	g.Expect(isOperationAllowed(noOperations, replace)).To(BeFalse())
+
+	onlyInPlaceUpdate := ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate})
+	g.Expect(isOperationAllowed(onlyInPlaceUpdate, inPlaceUpdate)).To(BeTrue())
+	g.Expect(isOperationAllowed(onlyInPlaceUpdate, replace)).To(BeFalse())
 }
 
 func validateCanUpdateMachineRequests(currentMachine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, callExtensionExpectedChanges map[string]func(runtime.Object)) func(name string, object runtimehooksv1.RequestObject) error {

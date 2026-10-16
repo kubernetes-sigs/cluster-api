@@ -143,6 +143,7 @@ infrastructureMachinePatch:
 boostrapConfigPatch:
   ...
 affectsAvailability: true
+allowedOperations: [UpdateInPlace, Replace] # optional, if missing all operations are allowed
 ```
 
 Note: 
@@ -158,6 +159,18 @@ Note:
   - **Use this feature with caution!**
 - If using KCP, KCP might override the `CanUpdateMachineResponse` and decide to scale up or down when this will be considered safer than performing in place to preserve the overall control plane health (e.g. when
   there are unhealthy machines).
+- `allowedOperations` is an optional value that allows the extension to express a binding opinion on which operations can be used to roll out the changes to the Machine:
+  - `UpdateInPlace`: the Machine can be updated in-place.
+  - `Replace`: the Machine can be replaced (i.e. a new Machine is created and the old one is deleted).
+  - If `allowedOperations` is not set, the extension has no opinion and all operations are allowed (this is the default).
+  - If `allowedOperations` is set to an empty list (`allowedOperations: []`), no operation is allowed and the rollout of the Machine is blocked.
+    **Note**: an empty list and a missing field have a different meaning. When implementing an extension in Go using the types in `sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1`
+    an empty list must be a non-nil empty slice, e.g. `new([]runtimehooksv1.MachineUpdateOperation{})`.
+  - `allowedOperations` is independent of the patches returned by the extension: patches tell which changes can be handled in-place, `allowedOperations` tells which operations are allowed.
+    A runtime extension can e.g. block a rollout when a preflight check fails, even if it would be able to handle the changes in-place.
+    A runtime extension can e.g. also cover the entire diff but return `allowedOperations: [Replace]`, then KCP would replace the Machine.
+  - When the update is blocked the extension is called again every 5 minutes, so it is possible to unblock the rollout by changing the answer.
+    The answer is also evaluated again when the desired state of KCP is changed.
 
 ### CanUpdateMachineSet
 

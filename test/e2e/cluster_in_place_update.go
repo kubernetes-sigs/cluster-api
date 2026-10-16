@@ -222,46 +222,46 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 			"fourth in-place update",
 			"five in-place update",
 		} {
-			Byf("[%d] Trigger in-place update by modifying the files variable", i)
-
 			if i == 0 {
 				// In the first iteration the CanUpdateMachine extension first responds with RetryAfterSeconds
-				// to test that KCP waits for the extension's decision before the in-place update is done.
+				// to test that KCP waits for the extension's decision.
 				Byf("[%d] Configure the CanUpdateMachine extension to respond with RetryAfterSeconds", i)
 				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "CanUpdateMachine",
 					`{"Status": "Success", "RetryAfterSeconds": 5, "Message": "decision is in progress"}`)
-			}
 
-			originalCluster := cluster.DeepCopy()
-			// Ensure the files variable is set to the expected value (first remove, then add the variable).
-			cluster.Spec.Topology.Variables = slices.DeleteFunc(cluster.Spec.Topology.Variables, func(v clusterv1.ClusterVariable) bool {
-				return v.Name == "files"
-			})
-			cluster.Spec.Topology.Variables = append(cluster.Spec.Topology.Variables, clusterv1.ClusterVariable{
-				Name:  "files",
-				Value: apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf(`[{"path":%q,"content":%q}]`, filePath, fileContent))},
-			})
-			Expect(mgmtClient.Patch(ctx, cluster, client.MergeFrom(originalCluster))).To(Succeed())
+				Byf("[%d] Trigger a rollout by modifying the files variable", i)
+				setFilesVariable(ctx, mgmtClient, cluster, filePath, "blocked update")
 
-			if i == 0 {
 				Byf("[%d] Verify KCP is waiting for the decision of the CanUpdateMachine extension", i)
-				Eventually(func(g Gomega) {
-					kcp := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
-						Lister:      mgmtClient,
-						ClusterName: cluster.Name,
-						Namespace:   cluster.Namespace,
-					})
-					g.Expect(kcp).ToNot(BeNil())
-					rollingOutCondition := conditions.Get(kcp, controlplanev1.KubeadmControlPlaneRollingOutCondition)
-					g.Expect(rollingOutCondition).ToNot(BeNil())
-					g.Expect(rollingOutCondition.Status).To(Equal(metav1.ConditionTrue))
-					g.Expect(rollingOutCondition.Reason).To(Equal(controlplanev1.KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason))
-					g.Expect(rollingOutCondition.Message).To(ContainSubstring("decision is in progress"))
-				}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...).Should(Succeed())
+				verifyKCPRollingOutCondition(ctx, mgmtClient, cluster, controlplanev1.KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason, "decision is in progress", input.E2EConfig.GetIntervals(specName, "wait-control-plane")...)
 
-				Byf("[%d] Configure the CanUpdateMachine extension to stop responding with RetryAfterSeconds", i)
+				// Then the CanUpdateMachine extension blocks the rollout by responding with an empty list of allowedOperations,
+				// so neither in-place update nor replacing the Machine is allowed.
+				// Note: The extension does not have to be able to handle the change in-place for this.
+				// Note: KCP calls the extension again after the RetryAfterSeconds of the previous response expired.
+				Byf("[%d] Configure the CanUpdateMachine extension to block the rollout by responding with an empty list of allowedOperations", i)
+				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "CanUpdateMachine",
+					`{"Status": "Success", "Message": "rollout is blocked by the extension", "AllowedOperations": []}`)
+
+				Byf("[%d] Verify KCP rollout is blocked by the CanUpdateMachine extension", i)
+				verifyKCPRollingOutCondition(ctx, mgmtClient, cluster, controlplanev1.KubeadmControlPlaneRollingOutRolloutBlockedReason, "rollout is blocked by the extension", input.E2EConfig.GetIntervals(specName, "wait-control-plane")...)
+
+				Byf("[%d] Verify no Machine is changed while the rollout is blocked", i)
+				Consistently(func(g Gomega) {
+					machineObjectsWhileBlocked := getMachineObjects(ctx, g, mgmtClient, cluster)
+					g.Expect(machineNames(machineObjectsWhileBlocked.ControlPlaneMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.ControlPlaneMachines)))
+					g.Expect(machineNames(machineObjectsWhileBlocked.WorkerMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.WorkerMachines)))
+				}, 15*time.Second, 3*time.Second).Should(Succeed())
+
+				// Finally the CanUpdateMachine extension stops blocking the rollout.
+				// Note: The blocked decision is cached until the KCP spec changes or the cache entry expires.
+				// Modifying the files variable below changes the KCP spec again, which unblocks the rollout.
+				Byf("[%d] Configure the CanUpdateMachine extension to stop blocking the rollout", i)
 				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "CanUpdateMachine", "")
 			}
+
+			Byf("[%d] Trigger in-place update by modifying the files variable", i)
+			setFilesVariable(ctx, mgmtClient, cluster, filePath, fileContent)
 
 			var machineObjectsAfterInPlaceUpdate machineObjects
 			Eventually(func(g Gomega) {
@@ -308,6 +308,38 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 			}
 		}
 	})
+}
+
+// setFilesVariable sets the files variable of the Cluster topology to a single file with the given path and content.
+func setFilesVariable(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, filePath, fileContent string) {
+	originalCluster := cluster.DeepCopy()
+	// Ensure the files variable is set to the expected value (first remove, then add the variable).
+	cluster.Spec.Topology.Variables = slices.DeleteFunc(cluster.Spec.Topology.Variables, func(v clusterv1.ClusterVariable) bool {
+		return v.Name == "files"
+	})
+	cluster.Spec.Topology.Variables = append(cluster.Spec.Topology.Variables, clusterv1.ClusterVariable{
+		Name:  "files",
+		Value: apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf(`[{"path":%q,"content":%q}]`, filePath, fileContent))},
+	})
+	Expect(c.Patch(ctx, cluster, client.MergeFrom(originalCluster))).To(Succeed())
+}
+
+// verifyKCPRollingOutCondition verifies that the RollingOut condition of the KubeadmControlPlane has the given reason
+// and that its message contains messageSubstring.
+func verifyKCPRollingOutCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, reason, messageSubstring string, intervals ...interface{}) {
+	Eventually(func(g Gomega) {
+		kcp := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+			Lister:      c,
+			ClusterName: cluster.Name,
+			Namespace:   cluster.Namespace,
+		})
+		g.Expect(kcp).ToNot(BeNil())
+		rollingOutCondition := conditions.Get(kcp, controlplanev1.KubeadmControlPlaneRollingOutCondition)
+		g.Expect(rollingOutCondition).ToNot(BeNil())
+		g.Expect(rollingOutCondition.Status).To(Equal(metav1.ConditionTrue))
+		g.Expect(rollingOutCondition.Reason).To(Equal(reason))
+		g.Expect(rollingOutCondition.Message).To(ContainSubstring(messageSubstring))
+	}, intervals...).Should(Succeed())
 }
 
 // setPreloadedHookResponse sets the response the test extension returns for a hook in the hook responses ConfigMap.

@@ -19,6 +19,7 @@ package kubeadmcontrolplane
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/blang/semver/v4"
@@ -29,6 +30,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -215,21 +217,29 @@ func (r *Reconciler) inPlaceUpdateOrScaleUpControlPlane(ctx context.Context, con
 	// to canUpdateMachine as part of the scale down for this Machine.
 	// We only have to repeat the canUpdateMachine call as part of a scale up if the write call to set UpdateInProgressAnnotation
 	// fails or if we fail to create the Machine.
-	canUpdateMachineResult, err := r.canUpdateMachine(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult, time.Now())
+	canUpdateMachineResult, err := r.canUpdateMachine(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
 	if err != nil {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to determine if Machine %s can be updated in-place", machineToInPlaceUpdate.Name)
 	}
-	if canUpdateMachineResult.retryAfter > 0 {
-		return ctrl.Result{RequeueAfter: canUpdateMachineResult.retryAfter}, nil
+	if canUpdateMachineResult.retryAfterFromExtension {
+		// Note: retryAfter can already be in the past (e.g. if a cached result expired in the meantime), a RequeueAfter <= 0 would not requeue at all.
+		return ctrl.Result{RequeueAfter: max(canUpdateMachineResult.retryAfter.Sub(r.now()), time.Second)}, nil
 	}
 
-	if canUpdateMachineResult.canUpdateMachine && !canUpdateMachineResult.affectsAvailability {
+	// In-place update is only possible if the extensions can handle all changes in-place, don't affect availability
+	// (we are at minReplicas, so we cannot afford a Machine to become unavailable) and allow the UpdateInPlace operation.
+	if canUpdateMachineResult.canUpdateMachine && !canUpdateMachineResult.affectsAvailability && isOperationAllowed(canUpdateMachineResult.allowedOperations, runtimehooksv1.MachineUpdateOperationUpdateInPlace) {
 		// Note: Requeue is not needed, changes to Machines trigger another reconcile.
 		return ctrl.Result{}, r.triggerInPlaceUpdate(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult, canUpdateMachineResult.affectsAvailability)
 	}
 
-	// Note: No need to run preflightChecks again, they already succeeded.
-	return r.scaleUpControlPlane(ctx, controlPlane, false)
+	// The fallback is scale up (replacement of the Machine), but only if extensions allow it.
+	if isOperationAllowed(canUpdateMachineResult.allowedOperations, runtimehooksv1.MachineUpdateOperationReplace) {
+		// Note: No need to run preflightChecks again, they already succeeded.
+		return r.scaleUpControlPlane(ctx, controlPlane, false)
+	}
+
+	return r.blockRollout(ctx, controlPlane, machineToInPlaceUpdate, canUpdateMachineResult, true), nil
 }
 
 func (r *Reconciler) inPlaceUpdateOrScaleDownControlPlane(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdateOrScaleDown *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (ctrl.Result, error) {
@@ -266,19 +276,54 @@ func (r *Reconciler) inPlaceUpdateOrScaleDownControlPlane(ctx context.Context, c
 	// If it returns false, we are going to fall back to scale down which will delete the Machine.
 	// We only have to repeat the canUpdateMachine call if the write call to set UpdateInProgressAnnotation
 	// fails or if we fail to delete the Machine.
-	canUpdateMachineResult, err := r.canUpdateMachine(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, machineUpToDateResult, time.Now())
+	canUpdateMachineResult, err := r.canUpdateMachine(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, machineUpToDateResult)
 	if err != nil {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to determine if Machine %s can be updated in-place", machineToInPlaceUpdateOrScaleDown.Name)
 	}
-	if canUpdateMachineResult.retryAfter > 0 {
-		return ctrl.Result{RequeueAfter: canUpdateMachineResult.retryAfter}, nil
+	if canUpdateMachineResult.retryAfterFromExtension {
+		// Note: retryAfter can already be in the past (e.g. if a cached result expired in the meantime), a RequeueAfter <= 0 would not requeue at all.
+		return ctrl.Result{RequeueAfter: max(canUpdateMachineResult.retryAfter.Sub(r.now()), time.Second)}, nil
 	}
 
-	if canUpdateMachineResult.canUpdateMachine {
+	// In-place update is only possible if the extensions can handle all changes in-place and allow the UpdateInPlace operation.
+	// Note: We are at maxReplicas, so an in-place update that affects availability is fine.
+	if canUpdateMachineResult.canUpdateMachine && isOperationAllowed(canUpdateMachineResult.allowedOperations, runtimehooksv1.MachineUpdateOperationUpdateInPlace) {
 		// Note: Requeue is not needed, changes to Machines trigger another reconcile.
 		return ctrl.Result{}, r.triggerInPlaceUpdate(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, machineUpToDateResult, canUpdateMachineResult.affectsAvailability)
 	}
 
-	// Note: No need to run preflightChecks again, they already succeeded.
-	return r.scaleDownControlPlane(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, false)
+	// The fallback is scale down (replacement of the Machine), but only if extensions allow it.
+	if isOperationAllowed(canUpdateMachineResult.allowedOperations, runtimehooksv1.MachineUpdateOperationReplace) {
+		// Note: No need to run preflightChecks again, they already succeeded.
+		return r.scaleDownControlPlane(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, false)
+	}
+
+	return r.blockRollout(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, canUpdateMachineResult, false), nil
+}
+
+// blockRollout blocks the rollout of a Machine, because the extensions did not allow an operation that can be used
+// to roll out the changes to the Machine. The rollout stays blocked until the extensions change their opinion, which
+// we find out when the cached CanUpdateMachine result expires, or when the KCP spec is changed.
+func (r *Reconciler) blockRollout(ctx context.Context, controlPlane *pkg.ControlPlane, machine *clusterv1.Machine, canUpdateMachineResult canUpdateMachineResult, affectsAvailabilityRelevant bool) ctrl.Result {
+	var msg string
+	// Note: blockRollout is only called if the Replace operation is not allowed.
+	if !isOperationAllowed(canUpdateMachineResult.allowedOperations, runtimehooksv1.MachineUpdateOperationUpdateInPlace) {
+		msg = "neither replace nor in-place update operations are allowed"
+	} else {
+		msg = "replace operation is not allowed"
+		if !canUpdateMachineResult.canUpdateMachine {
+			msg += " and not all changes can be updated in-place"
+		} else if affectsAvailabilityRelevant && canUpdateMachineResult.affectsAvailability {
+			msg += " and the in-place update would impact control plane availability"
+		}
+	}
+	if len(canUpdateMachineResult.messages) > 0 {
+		msg += fmt.Sprintf(": %s", strings.Join(canUpdateMachineResult.messages, ", "))
+	}
+	controlPlane.CanUpdateMachineResults.RolloutBlockedMessage = fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s: %s", machine.Name, msg)
+
+	ctrl.LoggerFrom(ctx).Info(fmt.Sprintf("Machine %s cannot be rolled out: rollout is blocked by CanUpdateMachine hook: %s", klog.KObj(machine), msg))
+	// Note: The result of the CanUpdateMachine call is cached, so the extensions are called again when retryAfter has passed.
+	// Note: retryAfter can already be in the past (e.g. if a cached result expired in the meantime), a RequeueAfter <= 0 would not requeue at all.
+	return ctrl.Result{RequeueAfter: max(canUpdateMachineResult.retryAfter.Sub(r.now()), time.Second)}
 }

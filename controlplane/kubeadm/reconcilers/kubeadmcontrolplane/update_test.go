@@ -39,6 +39,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
@@ -47,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -309,6 +311,8 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 }
 
 func Test_rollingUpdate(t *testing.T) {
+	now := time.Now()
+
 	preflightChecksFailedFunc := func(_ context.Context, _ *pkg.ControlPlane, _ ...*clusterv1.Machine) preflightChecksResult {
 		return preflightChecksResult{succeeded: false, requeueAfter: 3 * time.Second}
 	}
@@ -330,8 +334,26 @@ func Test_rollingUpdate(t *testing.T) {
 	canUpdateMachineFalseFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
 		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
 	}
+	canUpdateMachineNoOperationAllowedFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+	}
+	canUpdateMachineNoOperationAllowedWithoutMessageFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+	}
+	canUpdateMachineTrueOnlyInPlaceAndDoesNotAffectAvailabilityFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+	}
+	canUpdateMachineTrueOnlyInPlaceAndAffectsAvailabilityFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+	}
+	canUpdateMachineFalseOnlyInPlaceFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{canUpdateMachine: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+	}
+	canUpdateMachineTrueOnlyReplaceFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
+		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace})}, nil
+	}
 	canUpdateMachineRequeueAfterFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
-		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false, retryAfter: 7 * time.Second}, nil
+		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false, retryAfter: now.Add(7 * time.Second), retryAfterFromExtension: true}, nil
 	}
 	canUpdateMachineErrorFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
 		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, pkgerrors.New("canUpdateMachine failed")
@@ -356,6 +378,7 @@ func Test_rollingUpdate(t *testing.T) {
 		wantError                       bool
 		wantErrorMessage                string
 		wantRes                         ctrl.Result
+		wantRolloutBlockedMessage       string
 	}{
 		// Regular rollout (no in-place updates, enableInPlaceUpdatesFeatureGate: false)
 		{
@@ -632,6 +655,156 @@ func Test_rollingUpdate(t *testing.T) {
 			wantError:                       true,
 			wantErrorMessage:                "failed to determine if Machine machine-0 can be updated in-place: canUpdateMachine failed",
 		},
+		// In-place updates: allowed operations: inPlaceUpdateOrScaleUpControlPlane
+		{
+			name:                            "In-place updates: canUpdateMachine: no operation allowed, rollout is blocked and requeued after the cache duration",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineNoOperationAllowedFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantRes:                         ctrl.Result{RequeueAfter: 5 * time.Minute},
+			wantRolloutBlockedMessage:       "Blocked by CanUpdateMachine hook for Machine machine-0: neither replace nor in-place update operations are allowed: preflight check failed",
+		},
+		{
+			name:                            "In-place updates: canUpdateMachine: no operation allowed without message, rollout is blocked and requeued after the default",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineNoOperationAllowedWithoutMessageFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantRes:                         ctrl.Result{RequeueAfter: 5 * time.Minute},
+			wantRolloutBlockedMessage:       "Blocked by CanUpdateMachine hook for Machine machine-0: neither replace nor in-place update operations are allowed",
+		},
+		{
+			name:                            "In-place updates: canUpdateMachine: only in-place allowed, affectsAvailability: false, triggerInPlaceUpdate called",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineTrueOnlyInPlaceAndDoesNotAffectAvailabilityFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  true,
+		},
+		{
+			name:                            "In-place updates: canUpdateMachine: only in-place allowed, affectsAvailability: true, rollout is blocked (no scale up)",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineTrueOnlyInPlaceAndAffectsAvailabilityFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantRes:                         ctrl.Result{RequeueAfter: 5 * time.Minute},
+			wantRolloutBlockedMessage:       "Blocked by CanUpdateMachine hook for Machine machine-0: replace operation is not allowed and the in-place update would impact control plane availability",
+		},
+		{
+			name:                            "In-place updates: canUpdateMachine: only in-place allowed, canUpdateMachine: false, rollout is blocked (no scale up)",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineFalseOnlyInPlaceFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantRes:                         ctrl.Result{RequeueAfter: 5 * time.Minute},
+			wantRolloutBlockedMessage:       "Blocked by CanUpdateMachine hook for Machine machine-0: replace operation is not allowed and not all changes can be updated in-place",
+		},
+		{
+			name:                            "In-place updates: canUpdateMachine: only replace allowed, even if canUpdateMachine: true, scale up",
+			maxSurge:                        1,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineTrueOnlyReplaceFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleUpCalled:               true,
+		},
+		// In-place updates: allowed operations: inPlaceUpdateOrScaleDownControlPlane
+		{
+			name:                            "In-place updates: canUpdateMachine: no operation allowed, rollout is blocked and requeued after the cache duration",
+			maxSurge:                        0,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineNoOperationAllowedFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantRes:                         ctrl.Result{RequeueAfter: 5 * time.Minute},
+			wantRolloutBlockedMessage:       "Blocked by CanUpdateMachine hook for Machine machine-0: neither replace nor in-place update operations are allowed: preflight check failed",
+		},
+		{
+			name:                            "In-place updates: canUpdateMachine: only in-place allowed, affectsAvailability: true, triggerInPlaceUpdate called",
+			maxSurge:                        0,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineTrueOnlyInPlaceAndAffectsAvailabilityFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  true,
+		},
+		{
+			name:                            "In-place updates: canUpdateMachine: only in-place allowed, canUpdateMachine: false, rollout is blocked (no scale down)",
+			maxSurge:                        0,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineFalseOnlyInPlaceFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantRes:                         ctrl.Result{RequeueAfter: 5 * time.Minute},
+			wantRolloutBlockedMessage:       "Blocked by CanUpdateMachine hook for Machine machine-0: replace operation is not allowed and not all changes can be updated in-place",
+		},
+		{
+			name:                            "In-place updates: canUpdateMachine: only replace allowed, even if canUpdateMachine: true, scale down",
+			maxSurge:                        0,
+			currentReplicas:                 3,
+			currentUpToDateReplicas:         0,
+			desiredReplicas:                 3,
+			enableInPlaceUpdatesFeatureGate: true,
+			machineEligibleForInPlaceUpdate: true,
+			preflightChecksFunc:             preflightChecksSucceededFunc,
+			canUpdateMachineFunc:            canUpdateMachineTrueOnlyReplaceFunc,
+			wantPreflightChecksFuncCalled:   true,
+			wantCanUpdateMachineCalled:      true,
+			wantTriggerInPlaceUpdateCalled:  false,
+			wantScaleDownCalled:             true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -647,6 +820,7 @@ func Test_rollingUpdate(t *testing.T) {
 			var scaleUpCalled bool
 			var triggerInPlaceUpdateCalled bool
 			r := &Reconciler{
+				overrideNowFunc: func() time.Time { return now },
 				overridePreflightChecksFunc: func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult {
 					preflightChecksFuncCalled = true
 					return tt.preflightChecksFunc(ctx, controlPlane, excludeFor...)
@@ -667,8 +841,9 @@ func Test_rollingUpdate(t *testing.T) {
 					triggerInPlaceUpdateCalled = true
 					return nil
 				},
-				controller: capicontrollerutil.NewFakeController(),
-				recorder:   record.NewFakeRecorder(32),
+				canUpdateMachineCache: cache.New[CanUpdateMachineCacheEntry](ctx, 30*time.Minute),
+				controller:            capicontrollerutil.NewFakeController(),
+				recorder:              record.NewFakeRecorder(32),
 			}
 
 			machines := collections.Machines{}
@@ -719,6 +894,7 @@ func Test_rollingUpdate(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(res).To(Equal(tt.wantRes))
+			g.Expect(controlPlane.CanUpdateMachineResults.RolloutBlockedMessage).To(Equal(tt.wantRolloutBlockedMessage))
 
 			g.Expect(preflightChecksFuncCalled).To(Equal(tt.wantPreflightChecksFuncCalled), "preflightChecksFuncCalled: actual: %t expected: %t", preflightChecksFuncCalled, tt.wantPreflightChecksFuncCalled)
 			g.Expect(canUpdateMachineCalled).To(Equal(tt.wantCanUpdateMachineCalled), "canUpdateMachineCalled: actual: %t expected: %t", canUpdateMachineCalled, tt.wantCanUpdateMachineCalled)

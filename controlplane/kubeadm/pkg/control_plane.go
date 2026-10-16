@@ -129,6 +129,10 @@ type CanUpdateMachineResults struct {
 
 	// WaitingForDecisionMessage surfaces that the rollout is waiting for a decision from the CanUpdateMachine hooks.
 	WaitingForDecisionMessage string
+
+	// RolloutBlockedMessage surfaces that the rollout is blocked because the CanUpdateMachine hooks
+	// do not allow any operation that can be used to roll out the changes.
+	RolloutBlockedMessage string
 }
 
 // NewControlPlane returns an instantiated ControlPlane.

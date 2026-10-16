@@ -251,6 +251,10 @@ const (
 	// waiting for the rollout decision (i.e. a decision from CanUpdateMachine on how to move forward).
 	KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason = "WaitingForRolloutDecision"
 
+	// KubeadmControlPlaneRollingOutRolloutBlockedReason surfaces when the rollout is blocked
+	// (i.e. CanUpdateMachine does not allow any operation that can be used to roll out the changes).
+	KubeadmControlPlaneRollingOutRolloutBlockedReason = "RolloutBlocked"
+
 	// KubeadmControlPlaneRollingOutInternalErrorReason surfaces unexpected failures during rollout.
 	KubeadmControlPlaneRollingOutInternalErrorReason = clusterv1.InternalErrorReason
 )

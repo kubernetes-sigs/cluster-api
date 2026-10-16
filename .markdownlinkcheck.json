@@ -5,12 +5,6 @@
         "pattern": "https://azure.microsoft.com/en-us/products/kubernetes-service"
     },{
         "pattern": "https://kubernetes.slack.com"
-    },{
-        "comment": "Moved to /user/guide/lifecycle/machine_deletions; this URL only shows up in frozen release notes, which we don't edit (CHANGELOG/README.md).",
-        "pattern": "^https://main\\.cluster-api\\.sigs\\.k8s\\.io/tasks/automated-machine-management/machine_deletions$"
-    },{
-        "comment": "Historical release team roster entries (docs/release/releases); these GitHub profiles now 404, but we have no reliable way to tell if the account was renamed or deleted, so we don't rewrite past credits.",
-        "pattern": "^https://github\\.com/(onasser1|SubhasmitaSw)/?$"
     }],
     "httpHeaders": [{
         "comment": "Workaround as suggested here: https://github.com/tcort/markdown-link-check/issues/201",

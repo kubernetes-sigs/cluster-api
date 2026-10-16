@@ -156,7 +156,15 @@ const (
 	// MachineDeploymentNotRollingOutReason surfaces when all the machines are up-to-date.
 	MachineDeploymentNotRollingOutReason = NotRollingOutReason
 
-	// MachineDeploymentRollingOutInternalErrorReason surfaces unexpected failures when listing machines.
+	// MachineDeploymentRollingOutWaitingForRolloutDecisionReason surfaces when the rollout is
+	// waiting for the rollout decision (i.e. a decision from CanUpdateMachineSet on how to move forward).
+	MachineDeploymentRollingOutWaitingForRolloutDecisionReason = "WaitingForRolloutDecision"
+
+	// MachineDeploymentRollingOutRolloutBlockedReason surfaces when the rollout is blocked
+	// (i.e. CanUpdateMachineSet does not allow any operation that can be used to roll out the changes).
+	MachineDeploymentRollingOutRolloutBlockedReason = "RolloutBlocked"
+
+	// MachineDeploymentRollingOutInternalErrorReason surfaces unexpected failures during rollout.
 	MachineDeploymentRollingOutInternalErrorReason = InternalErrorReason
 )
 

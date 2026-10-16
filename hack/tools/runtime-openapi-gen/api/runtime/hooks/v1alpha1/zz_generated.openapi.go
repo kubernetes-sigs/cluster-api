@@ -1607,6 +1607,14 @@ func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetResponse(ref common.Re
 							Format:      "",
 						},
 					},
+					"retryAfterSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
 					"machineSetPatch": {
 						SchemaProps: spec.SchemaProps{
 							Description: "machineSetPatch when applied to the current MachineSet spec, indicates changes handled in-place.",
@@ -1635,8 +1643,23 @@ func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetResponse(ref common.Re
 							Format:      "",
 						},
 					},
+					"allowedOperations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "allowedOperations defines the operations Cluster API is allowed to use to roll out changes to the Machines. If not set, both UpdateInPlace and Replace are allowed. If set to an empty list, no operation is allowed and the rollout is blocked. Note: allowedOperations is orthogonal to the patches, e.g. if the patches cover the entire diff but only Replace is allowed, changes are rolled out by replacing Machines.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
 				},
-				Required: []string{"status"},
+				Required: []string{"status", "retryAfterSeconds"},
 			},
 		},
 		Dependencies: []string{

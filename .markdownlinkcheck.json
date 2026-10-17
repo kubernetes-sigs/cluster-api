@@ -17,5 +17,6 @@
     "retryOn429": true,
     "retryCount": 5,
     "fallbackRetryDelay": "30s",
-    "aliveStatusCodes": [200, 206]
+    "comment_aliveStatusCodes": "502/503/504 added because github.com/.../compare links intermittently fail with these from CI, not because the link is actually dead; see #14366.",
+    "aliveStatusCodes": [200, 206, 502, 503, 504]
 }

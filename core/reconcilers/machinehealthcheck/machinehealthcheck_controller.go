@@ -427,15 +427,14 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 		if m.Spec.Remediation.TemplateRef.IsDefined() {
 			// Get remediation request object
 			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
-			if err != nil {
-				if !apierrors.IsNotFound(pkgerrors.Cause(err)) {
-					wrappedErr := pkgerrors.Wrapf(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName)
-					errList = append(errList, wrappedErr)
-				}
+			if err != nil && !apierrors.IsNotFound(pkgerrors.Cause(err)) {
+				wrappedErr := pkgerrors.Wrapf(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName)
+				errList = append(errList, wrappedErr)
 				continue
 			}
+			// If the request is NotFound there is nothing to delete, fall through to patch HealthCheckSucceeded=True.
 			// Check that obj has no DeletionTimestamp to avoid hot loop
-			if obj.GetDeletionTimestamp() == nil {
+			if err == nil && obj.GetDeletionTimestamp() == nil {
 				// Issue a delete for remediation request.
 				if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
 					errList = append(errList, pkgerrors.Wrapf(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name))

@@ -233,21 +233,58 @@ type UpdateMachineRequestObjects struct {
 var _ RetryResponseObject = &UpdateMachineResponse{}
 
 // UpdateMachineResponse is the response of the UpdateMachine hook.
-// The status of the update operation is determined by the CommonRetryResponse fields:
-// - Status=Success + RetryAfterSeconds > 0: update is in progress
-// - Status=Success + RetryAfterSeconds = 0: update completed successfully
-// - Status=Failure: update failed
+// The outcome of the update operation is determined by the Status and UpdateStatus fields:
+//   - Status=Failure: unexpected error while handling the call, the hook is called again with exponential backoff
+//   - Status=Success + UpdateStatus=InProgress: update is in progress, the hook is called again after RetryAfterSeconds
+//   - Status=Success + UpdateStatus=Failed: update failed, the hook is called again after RetryAfterSeconds
+//   - Status=Success + UpdateStatus=Blocked: update blocked, the hook is called again after RetryAfterSeconds
+//   - Status=Success + UpdateStatus=Completed: update completed successfully
+//   - Status=Success + UpdateStatus=CompletedButDirty: update completed, but the Machine is dirty
+//
+// If UpdateStatus is not set, it is defaulted to InProgress if RetryAfterSeconds > 0 and to Completed otherwise.
+// If RetryAfterSeconds is 0 with UpdateStatus InProgress, Failed or Blocked a default of 5 minutes is used.
 // +kubebuilder:object:root=true
 type UpdateMachineResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
 	CommonRetryResponse `json:",inline"`
+
+	// updateStatus is the status of the in-place update. It is only considered if status is Success.
+	// +optional
+	UpdateStatus MachineUpdateStatus `json:"updateStatus,omitempty"`
 }
+
+// MachineUpdateStatus represents the status of an in-place update as reported by the UpdateMachine hook.
+// +kubebuilder:validation:Enum=InProgress;Failed;Blocked;Completed;CompletedButDirty
+// +enum
+type MachineUpdateStatus string
+
+const (
+	// MachineUpdateStatusInProgress signals that the in-place update is in progress.
+	// The hook is called again after retryAfterSeconds (defaulted to 5m).
+	MachineUpdateStatusInProgress MachineUpdateStatus = "InProgress"
+
+	// MachineUpdateStatusFailed signals that the in-place update failed.
+	// The hook is called again after retryAfterSeconds (defaulted to 5m).
+	MachineUpdateStatusFailed MachineUpdateStatus = "Failed"
+
+	// MachineUpdateStatusBlocked signals that the in-place update is blocked.
+	// The hook is called again after retryAfterSeconds (defaulted to 5m).
+	MachineUpdateStatusBlocked MachineUpdateStatus = "Blocked"
+
+	// MachineUpdateStatusCompleted signals that the in-place update completed successfully.
+	MachineUpdateStatusCompleted MachineUpdateStatus = "Completed"
+
+	// MachineUpdateStatusCompletedButDirty signals that the in-place update is completed,
+	// but the Machine is left in a dirty state. The Machine is tracked as dirty until the
+	// next in-place update of this Machine completes with updateStatus Completed.
+	MachineUpdateStatusCompletedButDirty MachineUpdateStatus = "CompletedButDirty"
+)
 
 // UpdateMachine is the hook that will be called to perform in-place updates on a machine.
 // This hook should be idempotent and can be called multiple times for the same machine
-// until it reports Done or Failed status.
+// until it reports updateStatus Completed or CompletedButDirty.
 func UpdateMachine(*UpdateMachineRequest, *UpdateMachineResponse) {}
 
 func init() {
@@ -286,9 +323,12 @@ func init() {
 		Summary: "Cluster API Runtime will call this hook to perform in-place updates on a Machine",
 		Description: "Cluster API Runtime will call this hook to perform the actual in-place update on a Machine. " +
 			"The request contains the desired state for Machine, InfraMachine and optionally BootstrapConfig. " +
-			"The hook will be called repeatedly until it reports Done or Failed status.\n" +
+			"The hook will be called repeatedly until it reports updateStatus Completed or CompletedButDirty.\n" +
 			"\n" +
 			"Notes:\n" +
-			"- This hook must be idempotent - it can be called multiple times for the same Machine\n",
+			"- This hook must be idempotent - it can be called multiple times for the same Machine\n" +
+			"- updateStatus InProgress, Failed and Blocked are retried after retryAfterSeconds (a default of 5 minutes is used if retryAfterSeconds is 0)\n" +
+			"- updateStatus CompletedButDirty completes the update, but the Machine is tracked as dirty until the next in-place update completes\n" +
+			"- status Failure is considered an unexpected error and retried with exponential backoff\n",
 	})
 }

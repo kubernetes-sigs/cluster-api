@@ -123,7 +123,7 @@ type RuntimeClient struct {
 func (fc *RuntimeClient) GetAllExtensions(_ context.Context, hook runtimecatalog.Hook, _ client.Object) ([]string, error) {
 	gvh, err := fc.catalog.GroupVersionHook(hook)
 	if err != nil {
-		return nil, pkgerrors.Wrap(err, "failed to compute GVH")
+		return nil, pkgerrors.Wrapf(err, "failed to get extension handlers for hook %q: failed to compute GroupVersionHook", runtimecatalog.HookName(hook))
 	}
 	return fc.getAllResponses[gvh], nil
 }
@@ -136,7 +136,7 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 
 	gvh, err := fc.catalog.GroupVersionHook(hook)
 	if err != nil {
-		return pkgerrors.Wrap(err, "failed to compute GVH")
+		return pkgerrors.Wrapf(err, "failed to call extension handlers for hook %q: failed to compute GroupVersionHook", runtimecatalog.HookName(hook))
 	}
 
 	if fc.callAllValidations != nil {
@@ -156,11 +156,13 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 		panic("cannot update response")
 	}
 
+	// Note: The fake client does not know which extension handler produced the response, so the error
+	// does not include the "failed to call extension handler" part the real client adds for the handler.
 	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
 		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-			return pkgerrors.Errorf("runtime hook %q failed", gvh)
+			return pkgerrors.Errorf("failed to call extension handlers for hook %q: got failure response with message: %v", gvh.GroupHook(), response.GetMessage())
 		}
-		return pkgerrors.Errorf("runtime hook %q got unknown response status %q", gvh, response.GetStatus())
+		return pkgerrors.Errorf("failed to call extension handlers for hook %q: got unknown response status %q with message: %v", gvh.GroupHook(), response.GetStatus(), response.GetMessage())
 	}
 	return nil
 }
@@ -191,9 +193,9 @@ func (fc *RuntimeClient) CallExtension(ctx context.Context, hook runtimecatalog.
 	// If the received response is not a success then return an error.
 	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
 		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-			return pkgerrors.Errorf("ExtensionHandler %s failed with message %s", name, response.GetMessage())
+			return pkgerrors.Errorf("failed to call extension handler %q: got failure response with message: %v", name, response.GetMessage())
 		}
-		return pkgerrors.Errorf("ExtensionHandler %s got unknown response status %q", name, response.GetStatus())
+		return pkgerrors.Errorf("failed to call extension handler %q: got unknown response status %q with message: %v", name, response.GetStatus(), response.GetMessage())
 	}
 	return nil
 }

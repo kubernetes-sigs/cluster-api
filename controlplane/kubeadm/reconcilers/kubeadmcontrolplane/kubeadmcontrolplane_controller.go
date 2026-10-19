@@ -1164,6 +1164,18 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *pkg.Cont
 			continue
 		}
 
+		// If the last in-place update completed with updateStatus CompletedButDirty the Machine is still considered up-to-date
+		// (so the rollout can continue with the next Machine), but we surface that the Machine is dirty in the message.
+		if msg, dirty := inplace.DirtyUpToDateMessage(machine); dirty {
+			conditions.Set(machine, metav1.Condition{
+				Type:    clusterv1.MachineUpToDateCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineUpToDateReason,
+				Message: msg,
+			})
+			continue
+		}
+
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionTrue,

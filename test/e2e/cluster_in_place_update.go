@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -39,6 +40,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -258,26 +260,49 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 				// Modifying the files variable below changes the KCP spec again, which unblocks the rollout.
 				Byf("[%d] Configure the CanUpdateMachine extension to stop blocking the rollout", i)
 				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "CanUpdateMachine", "")
+
+				// The UpdateMachine extension responds with the first updateStatus before the in-place update is triggered,
+				// the other updateStatus are configured by verifyUpdateMachineUpdateStatuses below.
+				Byf("[%d] Configure the UpdateMachine extension to respond with updateStatus %s", i, updateMachineUpdateStatusSteps[0].updateStatus)
+				setPreloadedHookResponse(ctx, mgmtClient, cluster, input.ExtensionConfigName, "UpdateMachine", updateMachineUpdateStatusSteps[0].response())
 			}
 
 			Byf("[%d] Trigger in-place update by modifying the files variable", i)
 			setFilesVariable(ctx, mgmtClient, cluster, filePath, fileContent)
 
+			if i == 0 {
+				// For the first control plane Machine of the first in-place update the UpdateMachine extension returns
+				// InProgress, Failed, Blocked and CompletedButDirty (in this order) and we verify the conditions of the Machine.
+				// Afterward the extension stops returning preloaded responses and the rollout continues as usual.
+				// Note: The preloaded responses are not specific to a Machine. If other Machines are updated before the
+				// preloaded response is removed, they also complete with updateStatus CompletedButDirty.
+				verifyUpdateMachineUpdateStatuses(ctx, mgmtClient, cluster, input.ExtensionConfigName, i, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...)
+			}
+
 			var machineObjectsAfterInPlaceUpdate machineObjects
 			Eventually(func(g Gomega) {
 				// Ensure the in-place update was done.
-				framework.VerifyClusterCondition(ctx, framework.VerifyClusterConditionInput{
-					Getter:        mgmtClient,
-					Name:          clusterResources.Cluster.Name,
-					Namespace:     clusterResources.Cluster.Namespace,
-					ConditionType: clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
-				})
-				framework.VerifyClusterCondition(ctx, framework.VerifyClusterConditionInput{
-					Getter:        mgmtClient,
-					Name:          clusterResources.Cluster.Name,
-					Namespace:     clusterResources.Cluster.Namespace,
-					ConditionType: clusterv1.ClusterWorkerMachinesUpToDateCondition,
-				})
+				if i == 0 {
+					// After the first in-place update at least one Machine is dirty (see verifyUpdateMachineUpdateStatuses),
+					// so the conditions are still true, but their messages mention the dirty Machines.
+					verifyClusterConditionAllowingDirtyMachines(ctx, g, mgmtClient, cluster, clusterv1.ClusterControlPlaneMachinesUpToDateCondition)
+					verifyClusterConditionAllowingDirtyMachines(ctx, g, mgmtClient, cluster, clusterv1.ClusterWorkerMachinesUpToDateCondition)
+				} else {
+					// The dirty state goes away when the next in-place update of a Machine completes with updateStatus Completed.
+					// So from the second in-place update on no Machine is dirty anymore, which means the messages of the conditions are empty.
+					framework.VerifyClusterCondition(ctx, framework.VerifyClusterConditionInput{
+						Getter:        mgmtClient,
+						Name:          clusterResources.Cluster.Name,
+						Namespace:     clusterResources.Cluster.Namespace,
+						ConditionType: clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
+					})
+					framework.VerifyClusterCondition(ctx, framework.VerifyClusterConditionInput{
+						Getter:        mgmtClient,
+						Name:          clusterResources.Cluster.Name,
+						Namespace:     clusterResources.Cluster.Namespace,
+						ConditionType: clusterv1.ClusterWorkerMachinesUpToDateCondition,
+					})
+				}
 
 				// Ensure only in-place updates were executed and no Machine was re-created.
 				machineObjectsAfterInPlaceUpdate = getMachineObjects(ctx, g, mgmtClient, cluster)
@@ -308,6 +333,160 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 			}
 		}
 	})
+}
+
+// updateMachineUpdateStatusStep is a step of verifyUpdateMachineUpdateStatuses.
+type updateMachineUpdateStatusStep struct {
+	// updateStatus is the updateStatus the UpdateMachine extension returns in this step.
+	updateStatus string
+	// message is the message the UpdateMachine extension returns in this step.
+	message string
+
+	// updatingStatus and updatingReason are the expected Updating condition of the Machine
+	// while the extension returns the response of this step.
+	updatingStatus metav1.ConditionStatus
+	updatingReason string
+
+	// upToDateStatus, upToDateReason and upToDateMessage (substring) are the expected UpToDate condition of the Machine
+	// while the extension returns the response of this step.
+	upToDateStatus  metav1.ConditionStatus
+	upToDateReason  string
+	upToDateMessage string
+}
+
+// response returns the preloaded response the UpdateMachine extension should return in this step.
+func (s updateMachineUpdateStatusStep) response() string {
+	return fmt.Sprintf(`{"Status": "Success", "UpdateStatus": %q, "RetryAfterSeconds": 5, "Message": %q}`, s.updateStatus, s.message)
+}
+
+// updateMachineUpdateStatusSteps are the steps verifyUpdateMachineUpdateStatuses goes through (in this order).
+var updateMachineUpdateStatusSteps = []updateMachineUpdateStatusStep{
+	{
+		updateStatus:   string(runtimehooksv1.MachineUpdateStatusInProgress),
+		message:        "extension is updating the machine",
+		updatingStatus: metav1.ConditionTrue,
+		updatingReason: clusterv1.MachineInPlaceUpdatingReason,
+		upToDateStatus: metav1.ConditionFalse,
+		upToDateReason: clusterv1.MachineUpToDateUpdatingReason,
+		// The message of the extension is surfaced while the Machine is updating.
+		upToDateMessage: "extension is updating the machine",
+	},
+	{
+		updateStatus:   string(runtimehooksv1.MachineUpdateStatusFailed),
+		message:        "extension failed to update the machine",
+		updatingStatus: metav1.ConditionTrue,
+		updatingReason: clusterv1.MachineInPlaceUpdateFailedReason,
+		upToDateStatus: metav1.ConditionFalse,
+		upToDateReason: clusterv1.MachineUpToDateUpdatingReason,
+		// The message of the extension is surfaced while the Machine is updating.
+		upToDateMessage: "extension failed to update the machine",
+	},
+	{
+		updateStatus:   string(runtimehooksv1.MachineUpdateStatusBlocked),
+		message:        "extension is blocked updating the machine",
+		updatingStatus: metav1.ConditionTrue,
+		updatingReason: clusterv1.MachineInPlaceUpdateBlockedReason,
+		upToDateStatus: metav1.ConditionFalse,
+		upToDateReason: clusterv1.MachineUpToDateUpdatingReason,
+		// The message of the extension is surfaced while the Machine is updating.
+		upToDateMessage: "extension is blocked updating the machine",
+	},
+	{
+		updateStatus: string(runtimehooksv1.MachineUpdateStatusCompletedButDirty),
+		message:      "dirty",
+		// The in-place update is completed, so the Machine is not updating anymore.
+		updatingStatus: metav1.ConditionFalse,
+		updatingReason: clusterv1.MachineNotUpdatingReason,
+		// A dirty Machine is still up-to-date, so the rollout can continue with the next Machine.
+		upToDateStatus:  metav1.ConditionTrue,
+		upToDateReason:  clusterv1.MachineUpToDateReason,
+		upToDateMessage: "In-place update completed, but the Machine might still differ from the desired state",
+	},
+}
+
+// verifyUpdateMachineUpdateStatuses goes through the updateMachineUpdateStatusSteps for the first control plane Machine
+// which is updated in-place, and verifies the Updating and UpToDate conditions of the Machine in each step.
+// Note: The extension is already configured to return the first step (see updateMachineUpdateStatusSteps[0]).
+// When the last step is verified, the preloaded UpdateMachine response is removed, so the extension falls back to its
+// default behavior (which completes the in-place update with updateStatus Completed) for the remaining Machines.
+// Note: The preloaded response is returned for all Machines. Machines which are updated before it is removed (KCP continues
+// with the next Machine as soon as a dirty Machine is up-to-date) are also dirty, so the Machine verified here
+// is not necessarily the only dirty Machine.
+func verifyUpdateMachineUpdateStatuses(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, iteration int, intervals ...interface{}) {
+	// Wait until the first control plane Machine is updating.
+	var machineName string
+	Eventually(func(g Gomega) {
+		for _, machine := range getMachineObjects(ctx, g, c, cluster).ControlPlaneMachines {
+			if conditions.IsTrue(machine, clusterv1.MachineUpdatingCondition) {
+				machineName = machine.Name
+				return
+			}
+		}
+		g.Expect(machineName).ToNot(BeEmpty(), "no control plane Machine is updating")
+	}, intervals...).Should(Succeed())
+
+	for i, step := range updateMachineUpdateStatusSteps {
+		if i > 0 {
+			Byf("[%d] Configure the UpdateMachine extension to respond with updateStatus %s", iteration, step.updateStatus)
+			setPreloadedHookResponse(ctx, c, cluster, extensionConfigName, "UpdateMachine", step.response())
+		}
+
+		Byf("[%d] Verify Machine %s has Updating condition %s=%s (reason %s) and UpToDate condition %s=%s (reason %s) when the extension responds with updateStatus %s",
+			iteration, machineName, clusterv1.MachineUpdatingCondition, step.updatingStatus, step.updatingReason, clusterv1.MachineUpToDateCondition, step.upToDateStatus, step.upToDateReason, step.updateStatus)
+		// Note: The message of the extension is only surfaced in the Updating condition while the Machine is updating.
+		updatingMessage := ""
+		if step.updatingStatus == metav1.ConditionTrue {
+			updatingMessage = step.message
+		}
+		verifyMachineCondition(ctx, c, cluster, machineName, clusterv1.MachineUpdatingCondition, step.updatingStatus, step.updatingReason, updatingMessage, intervals...)
+		verifyMachineCondition(ctx, c, cluster, machineName, clusterv1.MachineUpToDateCondition, step.upToDateStatus, step.upToDateReason, step.upToDateMessage, intervals...)
+	}
+
+	// The last step is CompletedButDirty, so the Machine should also be tracked as dirty.
+	Byf("[%d] Verify Machine %s is tracked as dirty", iteration, machineName)
+	Eventually(func(g Gomega) {
+		machine := &clusterv1.Machine{}
+		g.Expect(c.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: machineName}, machine)).To(Succeed())
+		g.Expect(machine.Annotations).To(HaveKeyWithValue(clusterv1.UpdateDirtyAnnotation, ""))
+		g.Expect(machine.Annotations).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+	}, intervals...).Should(Succeed())
+
+	// Remove the preloaded response, so the rollout continues as usual with the other Machines.
+	Byf("[%d] Remove the preloaded response of the UpdateMachine extension", iteration)
+	setPreloadedHookResponse(ctx, c, cluster, extensionConfigName, "UpdateMachine", "")
+}
+
+// verifyMachineCondition verifies that the Machine has a condition with the given type, status and reason
+// and that the message of the condition contains messageSubstring.
+func verifyMachineCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, machineName, conditionType string, status metav1.ConditionStatus, reason, messageSubstring string, intervals ...interface{}) {
+	Eventually(func(g Gomega) {
+		machine := &clusterv1.Machine{}
+		g.Expect(c.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: machineName}, machine)).To(Succeed())
+		condition := conditions.Get(machine, conditionType)
+		g.Expect(condition).ToNot(BeNil())
+		g.Expect(condition.Status).To(Equal(status))
+		g.Expect(condition.Reason).To(Equal(reason))
+		g.Expect(condition.Message).To(ContainSubstring(messageSubstring))
+	}, intervals...).Should(Succeed())
+}
+
+// verifyClusterConditionAllowingDirtyMachines verifies that the condition of the Cluster is true and that its message
+// is either empty or only mentions dirty Machines, i.e. Machines for which the last in-place update completed with
+// updateStatus CompletedButDirty. Dirty Machines are still up-to-date, but their UpToDate message is surfaced
+// in the aggregated condition of the Cluster.
+func verifyClusterConditionAllowingDirtyMachines(ctx context.Context, g Gomega, c client.Client, cluster *clusterv1.Cluster, conditionType string) {
+	currentCluster := &clusterv1.Cluster{}
+	g.Expect(c.Get(ctx, client.ObjectKeyFromObject(cluster), currentCluster)).To(Succeed())
+
+	condition := conditions.Get(currentCluster, conditionType)
+	g.Expect(condition).ToNot(BeNil())
+	g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+	if condition.Message == "" {
+		return
+	}
+	for line := range strings.SplitSeq(condition.Message, "\n") {
+		g.Expect(line).To(ContainSubstring("In-place update completed, but the Machine might still differ from the desired state"))
+	}
 }
 
 // setFilesVariable sets the files variable of the Cluster topology to a single file with the given path and content.

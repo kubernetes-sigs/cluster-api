@@ -81,6 +81,17 @@ func IsUpdateInProgressAndAffectsAvailability(machine *clusterv1.Machine) bool {
 	return (inPlaceUpdateInProgress || hasUpdateMachinePending) && affectsAvailability
 }
 
+// DirtyUpToDateMessage returns the message that should be surfaced in the UpToDate condition if the last in-place update
+// of the Machine completed with updateStatus CompletedButDirty. The returned bool is false if the Machine is not dirty.
+// Note: A dirty Machine is still considered up-to-date, so the rollout can continue with the next Machine.
+func DirtyUpToDateMessage(machine *clusterv1.Machine) (string, bool) {
+	if _, ok := machine.Annotations[clusterv1.UpdateDirtyAnnotation]; !ok {
+		return "", false
+	}
+
+	return "In-place update completed, but the Machine might still differ from the desired state", true
+}
+
 // CleanupMachineSpecForDiff cleans up a MachineSpec for diff.
 // Note: Please update mdutil.MachineTemplateDeepCopyRolloutFields accordingly if necessary.
 func CleanupMachineSpecForDiff(spec *clusterv1.MachineSpec) *clusterv1.MachineSpec {

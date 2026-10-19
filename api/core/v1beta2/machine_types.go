@@ -98,6 +98,12 @@ const (
 	// UpdateInProgressAnnotation is an internal annotation added to machines by the controller owning the Machine when in-place update
 	// is started, e.g. by the MachineSet controller; the annotation will be removed by the Machine controller when in-place update is completed.
 	UpdateInProgressAnnotation = "in-place-updates.internal.cluster.x-k8s.io/update-in-progress"
+
+	// UpdateDirtyAnnotation is an internal annotation added to machines by the Machine controller when the UpdateMachine
+	// hook completed an in-place update with updateStatus CompletedButDirty.
+	// The annotation is removed by the Machine controller when the next in-place update of the Machine completes
+	// with updateStatus Completed.
+	UpdateDirtyAnnotation = "in-place-updates.internal.cluster.x-k8s.io/dirty"
 )
 
 // UpdateInProgressAnnotationData is used to store data about the in-place update in the UpdateInProgressAnnotation.
@@ -193,6 +199,9 @@ const (
 
 	// MachineInPlaceUpdateFailedReason surfaces when the in-place update has failed.
 	MachineInPlaceUpdateFailedReason = "InPlaceUpdateFailed"
+
+	// MachineInPlaceUpdateBlockedReason surfaces when the in-place update is blocked.
+	MachineInPlaceUpdateBlockedReason = "InPlaceUpdateBlocked"
 
 	// MachineInPlaceUpdateInternalErrorReason surfaces unexpected failures during in-place update.
 	MachineInPlaceUpdateInternalErrorReason = InternalErrorReason

@@ -236,12 +236,23 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(&req.Desired.Machine))
 	log.Info("UpdateMachine is called")
 	defer func() {
-		log.Info("UpdateMachine response", "Machine", klog.KObj(&req.Desired.Machine), "status", resp.Status, "message", resp.Message, "retryAfterSeconds", resp.RetryAfterSeconds)
+		log.Info("UpdateMachine response", "Machine", klog.KObj(&req.Desired.Machine), "status", resp.Status, "updateStatus", resp.UpdateStatus, "message", resp.Message, "retryAfterSeconds", resp.RetryAfterSeconds)
 	}()
 
 	if req.Settings["disableInPlaceUpdates"] == "true" {
 		resp.Status = runtimehooksv1.ResponseStatusFailure
 		resp.Message = "Unexpected call to UpdateMachine hook after CanUpdateMachine or CanUpdateMachineSet did not return any patches"
+		return
+	}
+
+	// If a response is preloaded for this hook, return it as is. This allows E2E tests to control the hook behaviour during a test.
+	found, err := h.readResponseFromConfigMap(ctx, &req.Desired.Machine, runtimehooksv1.UpdateMachine, req.Settings, resp)
+	if err != nil {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = err.Error()
+		return
+	}
+	if found {
 		return
 	}
 
@@ -253,6 +264,7 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 		if time.Since(firstTimeCalled.(time.Time)) > time.Duration(15+rand.Intn(5))*time.Second {
 			h.state.Delete(key)
 			resp.Status = runtimehooksv1.ResponseStatusSuccess
+			resp.UpdateStatus = runtimehooksv1.MachineUpdateStatusCompleted
 			resp.Message = "Extension completed updating Machine"
 			resp.RetryAfterSeconds = 0
 			return
@@ -262,6 +274,7 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 	}
 
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
+	resp.UpdateStatus = runtimehooksv1.MachineUpdateStatusInProgress
 	resp.Message = "Extension is updating Machine"
 	resp.RetryAfterSeconds = 5
 }

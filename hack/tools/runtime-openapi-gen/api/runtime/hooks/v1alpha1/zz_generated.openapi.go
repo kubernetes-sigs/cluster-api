@@ -3084,7 +3084,7 @@ func schema_api_runtime_hooks_v1alpha1_UpdateMachineResponse(ref common.Referenc
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "UpdateMachineResponse is the response of the UpdateMachine hook. The status of the update operation is determined by the CommonRetryResponse fields: - Status=Success + RetryAfterSeconds > 0: update is in progress - Status=Success + RetryAfterSeconds = 0: update completed successfully - Status=Failure: update failed",
+				Description: "UpdateMachineResponse is the response of the UpdateMachine hook. The outcome of the update operation is determined by the Status and UpdateStatus fields:\n  - Status=Failure: unexpected error while handling the call, the hook is called again with exponential backoff\n  - Status=Success + UpdateStatus=InProgress: update is in progress, the hook is called again after RetryAfterSeconds\n  - Status=Success + UpdateStatus=Failed: update failed, the hook is called again after RetryAfterSeconds\n  - Status=Success + UpdateStatus=Blocked: update blocked, the hook is called again after RetryAfterSeconds\n  - Status=Success + UpdateStatus=Completed: update completed successfully\n  - Status=Success + UpdateStatus=CompletedButDirty: update completed, but the Machine is dirty\n\nIf UpdateStatus is not set, it is defaulted to InProgress if RetryAfterSeconds > 0 and to Completed otherwise. If RetryAfterSeconds is 0 with UpdateStatus InProgress, Failed or Blocked a default of 5 minutes is used.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -3123,6 +3123,14 @@ func schema_api_runtime_hooks_v1alpha1_UpdateMachineResponse(ref common.Referenc
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
+						},
+					},
+					"updateStatus": {
+						SchemaProps: spec.SchemaProps{
+							Description: "updateStatus is the status of the in-place update. It is only considered if status is Success.\n\nPossible enum values:\n - `\"Blocked\"` signals that the in-place update is blocked. The hook is called again after retryAfterSeconds (defaulted to 5m).\n - `\"Completed\"` signals that the in-place update completed successfully.\n - `\"CompletedButDirty\"` signals that the in-place update is completed, but the Machine is left in a dirty state. The Machine is tracked as dirty until the next in-place update of this Machine completes with updateStatus Completed.\n - `\"Failed\"` signals that the in-place update failed. The hook is called again after retryAfterSeconds (defaulted to 5m).\n - `\"InProgress\"` signals that the in-place update is in progress. The hook is called again after retryAfterSeconds (defaulted to 5m).",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"Blocked", "Completed", "CompletedButDirty", "Failed", "InProgress"},
 						},
 					},
 				},

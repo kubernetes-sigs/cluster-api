@@ -18,6 +18,7 @@ package machine
 
 import (
 	"context"
+	"maps"
 	"testing"
 	"time"
 
@@ -68,7 +69,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 		wantReason            string
 		wantMessage           string
 		wantCacheEntry        *UpdateMachineCacheEntry
-		verify                func(*testing.T, *WithT, context.Context, *Reconciler, *scope)
+		verify                func(context.Context, *testing.T, *WithT, *Reconciler, *scope)
 	}{
 		{
 			name:           "feature gate disabled returns immediately",
@@ -84,36 +85,10 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				return machine
 			}(),
-			infraMachine: func() contractapi.InfraMachine {
-				infra := newTestInfraMachine("infra")
-				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-				return infra
-			}(),
-			bootstrapConfig: func() contractapi.BootstrapConfig {
-				bootstrap := newTestBootstrapConfig("bootstrap")
-				bootstrap.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-				return bootstrap
-			}(),
-			wantResult: ctrl.Result{},
-			verify: func(t *testing.T, g *WithT, ctx context.Context, r *Reconciler, s *scope) {
-				t.Helper()
-
-				updatedMachine := &clusterv1.Machine{}
-				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.machine), updatedMachine)).To(Succeed())
-				g.Expect(updatedMachine.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation))
-
-				updatedInfra := &unstructured.Unstructured{}
-				updatedInfra.SetGroupVersionKind(s.infraMachineGVK)
-				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.infraMachine), updatedInfra)).To(Succeed())
-				g.Expect(updatedInfra.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
-
-				if s.bootstrapConfig != nil {
-					updatedBootstrap := &unstructured.Unstructured{}
-					updatedBootstrap.SetGroupVersionKind(s.bootstrapConfigGVK)
-					g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.bootstrapConfig), updatedBootstrap)).To(Succeed())
-					g.Expect(updatedBootstrap.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
-				}
-			},
+			infraMachine:    newInPlaceUpdatingTestInfraMachine(),
+			bootstrapConfig: newInPlaceUpdatingTestBootstrapConfig(),
+			wantResult:      ctrl.Result{},
+			verify:          verifyInPlaceUpdateCompleted,
 		},
 		{
 			name:           "waits for pending hook to be marked",
@@ -144,152 +119,207 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantMessage:     "In-place update not possible: InfraMachine not found",
 		},
 		{
-			name:           "requeues while UpdateMachine hook is in progress",
-			featureEnabled: true,
-			machine: func() *clusterv1.Machine {
-				machine := newTestMachine()
-				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
-				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
-				machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
-					APIGroup: infraMachineGVK.Group,
-					Kind:     infraMachineGVK.Kind,
-					Name:     "infra",
-				}
-				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
-				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
-				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
-				return machine
-			}(),
-			infraMachine: func() contractapi.InfraMachine {
-				infra := newTestInfraMachine("infra")
-				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-				return infra
-			}(),
-			updateMachineResponse: &runtimehooksv1.UpdateMachineResponse{
-				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Status:  runtimehooksv1.ResponseStatusSuccess,
-						Message: "processing",
-					},
-					RetryAfterSeconds: 30,
-				},
-			},
-			wantResult:  ctrl.Result{RequeueAfter: 30 * time.Second},
-			wantReason:  clusterv1.MachineInPlaceUpdatingReason,
-			wantMessage: "In-place update in progress (affects availability): processing",
+			name:                  "surfaces the message and returns an error when UpdateMachine hook returns status Failure",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(nil),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusFailure, "", "internal problem", 0),
+			wantResult:            ctrl.Result{},
+			wantErr:               true,
+			wantErrContains:       "internal problem",
+			wantReason:            clusterv1.MachineInPlaceUpdateInternalErrorReason,
+			wantMessage:           `In-place update failed: failed to call extension handler "test-extension": got failure response with message: internal problem`,
+			verify:                verifyInPlaceUpdateNotCompleted,
+		},
+		{
+			name:                  "returns an error when UpdateMachine hook returns an unknown updateStatus",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(nil),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, "Foo", "", 0),
+			wantResult:            ctrl.Result{},
+			wantErr:               true,
+			wantErrContains:       `unknown updateStatus "Foo"`,
+			wantReason:            clusterv1.MachineInPlaceUpdateInternalErrorReason,
+			wantMessage:           `In-place update failed: invalid response from extension handler "test-extension": unknown updateStatus "Foo"`,
+			verify:                verifyInPlaceUpdateNotCompleted,
+		},
+		{
+			name:                  "requeues while UpdateMachine hook is in progress",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(nil),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, "", "processing", 30),
+			wantResult:            ctrl.Result{RequeueAfter: 30 * time.Second},
+			wantReason:            clusterv1.MachineInPlaceUpdatingReason,
+			wantMessage:           "In-place update in progress (affects availability): processing",
 			wantCacheEntry: &UpdateMachineCacheEntry{
 				Machine: machineKey,
 				updateMachineResult: updateMachineResult{
-					retryAfter:              now.Add(30 * time.Second),
-					retryAfterFromExtension: true,
-					messages:                []string{"processing"},
+					retryAfter:   now.Add(30 * time.Second),
+					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+					messages:     []string{"processing"},
 				},
 			},
+			verify: verifyInPlaceUpdateNotCompleted,
 		},
 		{
-			name:           "requeues while UpdateMachine hook is in progress (does not affect availability)",
-			featureEnabled: true,
-			machine: func() *clusterv1.Machine {
-				machine := newTestMachine()
-				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = "{\"affectsAvailability\":false}"
-				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
-				machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
-					APIGroup: infraMachineGVK.Group,
-					Kind:     infraMachineGVK.Kind,
-					Name:     "infra",
-				}
-				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
-				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
-				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
-				return machine
-			}(),
-			infraMachine: func() contractapi.InfraMachine {
-				infra := newTestInfraMachine("infra")
-				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-				return infra
-			}(),
-			updateMachineResponse: &runtimehooksv1.UpdateMachineResponse{
-				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Status:  runtimehooksv1.ResponseStatusSuccess,
-						Message: "processing",
-					},
-					RetryAfterSeconds: 30,
-				},
-			},
-			wantResult:  ctrl.Result{RequeueAfter: 30 * time.Second},
-			wantReason:  clusterv1.MachineInPlaceUpdatingReason,
-			wantMessage: "In-place update in progress (does not affect availability): processing",
+			name:                  "requeues while UpdateMachine hook is in progress (does not affect availability)",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(map[string]string{clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}"}),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, "", "processing", 30),
+			wantResult:            ctrl.Result{RequeueAfter: 30 * time.Second},
+			wantReason:            clusterv1.MachineInPlaceUpdatingReason,
+			wantMessage:           "In-place update in progress (does not affect availability): processing",
 			wantCacheEntry: &UpdateMachineCacheEntry{
 				Machine: machineKey,
 				updateMachineResult: updateMachineResult{
-					retryAfter:              now.Add(30 * time.Second),
-					retryAfterFromExtension: true,
-					messages:                []string{"processing"},
+					retryAfter:   now.Add(30 * time.Second),
+					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+					messages:     []string{"processing"},
 				},
 			},
+			verify: verifyInPlaceUpdateNotCompleted,
 		},
 		{
-			name:           "completes successfully and cleans annotations",
-			featureEnabled: true,
-			machine: func() *clusterv1.Machine {
-				machine := newTestMachine()
-				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
-				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
-				machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
-					APIGroup: infraMachineGVK.Group,
-					Kind:     infraMachineGVK.Kind,
-					Name:     "infra",
-				}
-				machine.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{
-					APIGroup: bootstrapConfigGVK.Group,
-					Kind:     bootstrapConfigGVK.Kind,
-					Name:     "bootstrap",
-				}
-				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
-				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
-				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
-				return machine
-			}(),
-			infraMachine: func() contractapi.InfraMachine {
-				infra := newTestInfraMachine("infra")
-				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-				return infra
-			}(),
-			bootstrapConfig: func() contractapi.BootstrapConfig {
-				bootstrap := newTestBootstrapConfig("bootstrap")
-				bootstrap.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
-				return bootstrap
-			}(),
-			updateMachineResponse: &runtimehooksv1.UpdateMachineResponse{
-				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Status:  runtimehooksv1.ResponseStatusSuccess,
-						Message: "done",
-					},
-					RetryAfterSeconds: 0,
+			name:                  "completes successfully and cleans annotations",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachineWithBootstrapConfig(),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			bootstrapConfig:       newInPlaceUpdatingTestBootstrapConfig(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, "", "done", 0),
+			wantResult:            ctrl.Result{},
+			verify:                verifyInPlaceUpdateCompleted,
+		},
+		// Test cases with updateStatus set.
+		{
+			name:                  "requeues with default retry while UpdateMachine hook is in progress without retryAfterSeconds",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(nil),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusInProgress, "processing", 0),
+			wantResult:            ctrl.Result{RequeueAfter: updateMachineCacheDuration},
+			wantReason:            clusterv1.MachineInPlaceUpdatingReason,
+			wantMessage:           "In-place update in progress (affects availability): processing",
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(updateMachineCacheDuration),
+					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+					messages:     []string{"processing"},
 				},
 			},
-			wantResult: ctrl.Result{},
-			verify: func(t *testing.T, g *WithT, ctx context.Context, r *Reconciler, s *scope) {
+			verify: verifyInPlaceUpdateNotCompleted,
+		},
+		{
+			name:                  "requeues and surfaces InPlaceUpdateFailed when UpdateMachine hook returns updateStatus Failed",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(nil),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusFailed, "something failed", 15),
+			wantResult:            ctrl.Result{RequeueAfter: 15 * time.Second},
+			wantReason:            clusterv1.MachineInPlaceUpdateFailedReason,
+			wantMessage:           "In-place update failed: something failed",
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(15 * time.Second),
+					updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
+					messages:     []string{"something failed"},
+				},
+			},
+			verify: verifyInPlaceUpdateNotCompleted,
+		},
+		{
+			name:                  "requeues with default retry when UpdateMachine hook returns updateStatus Failed without retryAfterSeconds",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(nil),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusFailed, "something failed", 0),
+			wantResult:            ctrl.Result{RequeueAfter: updateMachineCacheDuration},
+			wantReason:            clusterv1.MachineInPlaceUpdateFailedReason,
+			wantMessage:           "In-place update failed: something failed",
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(updateMachineCacheDuration),
+					updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
+					messages:     []string{"something failed"},
+				},
+			},
+			verify: verifyInPlaceUpdateNotCompleted,
+		},
+		{
+			name:                  "requeues and surfaces InPlaceUpdateBlocked when UpdateMachine hook returns updateStatus Blocked",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(nil),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusBlocked, "waiting for something", 20),
+			wantResult:            ctrl.Result{RequeueAfter: 20 * time.Second},
+			wantReason:            clusterv1.MachineInPlaceUpdateBlockedReason,
+			wantMessage:           "In-place update blocked: waiting for something",
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(20 * time.Second),
+					updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
+					messages:     []string{"waiting for something"},
+				},
+			},
+			verify: verifyInPlaceUpdateNotCompleted,
+		},
+		{
+			name:                  "requeues with default retry when UpdateMachine hook returns updateStatus Blocked without retryAfterSeconds",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(nil),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusBlocked, "waiting for something", 0),
+			wantResult:            ctrl.Result{RequeueAfter: updateMachineCacheDuration},
+			wantReason:            clusterv1.MachineInPlaceUpdateBlockedReason,
+			wantMessage:           "In-place update blocked: waiting for something",
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(updateMachineCacheDuration),
+					updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
+					messages:     []string{"waiting for something"},
+				},
+			},
+			verify: verifyInPlaceUpdateNotCompleted,
+		},
+		{
+			name:                  "completes and removes dirty annotation when UpdateMachine hook returns updateStatus Completed",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(map[string]string{clusterv1.UpdateDirtyAnnotation: ""}),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusCompleted, "done", 0),
+			wantResult:            ctrl.Result{},
+			verify: func(ctx context.Context, t *testing.T, g *WithT, r *Reconciler, s *scope) {
 				t.Helper()
+
+				verifyInPlaceUpdateCompleted(ctx, t, g, r, s)
 
 				updatedMachine := &clusterv1.Machine{}
 				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.machine), updatedMachine)).To(Succeed())
-				g.Expect(updatedMachine.Annotations).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
-				g.Expect(updatedMachine.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation))
+				g.Expect(updatedMachine.Annotations).ToNot(HaveKey(clusterv1.UpdateDirtyAnnotation))
+			},
+		},
+		{
+			name:                  "completes and sets dirty annotation when UpdateMachine hook returns updateStatus CompletedButDirty",
+			featureEnabled:        true,
+			machine:               newInPlaceUpdatingTestMachine(nil),
+			infraMachine:          newInPlaceUpdatingTestInfraMachine(),
+			updateMachineResponse: newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusCompletedButDirty, "dirty", 0),
+			wantResult:            ctrl.Result{},
+			verify: func(ctx context.Context, t *testing.T, g *WithT, r *Reconciler, s *scope) {
+				t.Helper()
 
-				updatedInfra := &unstructured.Unstructured{}
-				updatedInfra.SetGroupVersionKind(s.infraMachineGVK)
-				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.infraMachine), updatedInfra)).To(Succeed())
-				g.Expect(updatedInfra.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+				verifyInPlaceUpdateCompleted(ctx, t, g, r, s)
 
-				if s.bootstrapConfig != nil {
-					updatedBootstrap := &unstructured.Unstructured{}
-					updatedBootstrap.SetGroupVersionKind(s.bootstrapConfigGVK)
-					g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.bootstrapConfig), updatedBootstrap)).To(Succeed())
-					g.Expect(updatedBootstrap.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
-				}
+				updatedMachine := &clusterv1.Machine{}
+				g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.machine), updatedMachine)).To(Succeed())
+				g.Expect(updatedMachine.Annotations).To(HaveKeyWithValue(clusterv1.UpdateDirtyAnnotation, ""))
 			},
 		},
 	}
@@ -375,9 +405,115 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			}
 
 			if tt.verify != nil {
-				tt.verify(t, g, ctx, r, s)
+				tt.verify(ctx, t, g, r, s)
 			}
 		})
+	}
+}
+
+// newInPlaceUpdatingTestMachineWithBootstrapConfig returns the same Machine as newInPlaceUpdatingTestMachine,
+// but with a reference to a BootstrapConfig.
+func newInPlaceUpdatingTestMachineWithBootstrapConfig() *clusterv1.Machine {
+	bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
+
+	machine := newInPlaceUpdatingTestMachine(nil)
+	machine.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{
+		APIGroup: bootstrapConfigGVK.Group,
+		Kind:     bootstrapConfigGVK.Kind,
+		Name:     "bootstrap",
+	}
+	return machine
+}
+
+// newInPlaceUpdatingTestMachine returns a Machine for which an in-place update is in progress (hook pending, annotation set)
+// and all preconditions for calling the UpdateMachine hook are met.
+func newInPlaceUpdatingTestMachine(additionalAnnotations map[string]string) *clusterv1.Machine {
+	infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
+
+	machine := newTestMachine()
+	machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
+	machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
+	maps.Copy(machine.Annotations, additionalAnnotations)
+	machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+		APIGroup: infraMachineGVK.Group,
+		Kind:     infraMachineGVK.Kind,
+		Name:     "infra",
+	}
+	machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+	machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
+	return machine
+}
+
+// newInPlaceUpdatingTestInfraMachine returns the InfraMachine matching newInPlaceUpdatingTestMachine.
+func newInPlaceUpdatingTestInfraMachine() contractapi.InfraMachine {
+	infra := newTestInfraMachine("infra")
+	infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
+	return infra
+}
+
+// newInPlaceUpdatingTestBootstrapConfig returns the BootstrapConfig matching newInPlaceUpdatingTestMachineWithBootstrapConfig.
+func newInPlaceUpdatingTestBootstrapConfig() contractapi.BootstrapConfig {
+	bootstrap := newTestBootstrapConfig("bootstrap")
+	bootstrap.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
+	return bootstrap
+}
+
+func newUpdateMachineResponse(status runtimehooksv1.ResponseStatus, updateStatus runtimehooksv1.MachineUpdateStatus, message string, retryAfterSeconds int32) *runtimehooksv1.UpdateMachineResponse {
+	return &runtimehooksv1.UpdateMachineResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status:  status,
+				Message: message,
+			},
+			RetryAfterSeconds: retryAfterSeconds,
+		},
+		UpdateStatus: updateStatus,
+	}
+}
+
+// verifyInPlaceUpdateNotCompleted verifies that the in-place update annotation and the pending hook annotation
+// were not touched.
+func verifyInPlaceUpdateNotCompleted(ctx context.Context, t *testing.T, g *WithT, r *Reconciler, s *scope) {
+	t.Helper()
+
+	updatedMachine := &clusterv1.Machine{}
+	g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.machine), updatedMachine)).To(Succeed())
+	g.Expect(updatedMachine.Annotations).To(HaveKey(clusterv1.UpdateInProgressAnnotation))
+	g.Expect(updatedMachine.Annotations).To(HaveKey(runtimev1.PendingHooksAnnotation))
+
+	updatedInfra := &unstructured.Unstructured{}
+	updatedInfra.SetGroupVersionKind(s.infraMachineGVK)
+	g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.infraMachine), updatedInfra)).To(Succeed())
+	g.Expect(updatedInfra.GetAnnotations()).To(HaveKey(clusterv1.UpdateInProgressAnnotation))
+
+	if s.bootstrapConfig != nil {
+		updatedBootstrap := &unstructured.Unstructured{}
+		updatedBootstrap.SetGroupVersionKind(s.bootstrapConfigGVK)
+		g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.bootstrapConfig), updatedBootstrap)).To(Succeed())
+		g.Expect(updatedBootstrap.GetAnnotations()).To(HaveKey(clusterv1.UpdateInProgressAnnotation))
+	}
+}
+
+// verifyInPlaceUpdateCompleted verifies that the in-place update annotation and the pending hook were removed.
+func verifyInPlaceUpdateCompleted(ctx context.Context, t *testing.T, g *WithT, r *Reconciler, s *scope) {
+	t.Helper()
+
+	updatedMachine := &clusterv1.Machine{}
+	g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.machine), updatedMachine)).To(Succeed())
+	g.Expect(updatedMachine.Annotations).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+	g.Expect(updatedMachine.Annotations).ToNot(HaveKey(runtimev1.PendingHooksAnnotation))
+
+	updatedInfra := &unstructured.Unstructured{}
+	updatedInfra.SetGroupVersionKind(s.infraMachineGVK)
+	g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.infraMachine), updatedInfra)).To(Succeed())
+	g.Expect(updatedInfra.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
+
+	if s.bootstrapConfig != nil {
+		updatedBootstrap := &unstructured.Unstructured{}
+		updatedBootstrap.SetGroupVersionKind(s.bootstrapConfigGVK)
+		g.Expect(r.Client.Get(ctx, ctrlclient.ObjectKeyFromObject(s.bootstrapConfig), updatedBootstrap)).To(Succeed())
+		g.Expect(updatedBootstrap.GetAnnotations()).ToNot(HaveKey(clusterv1.UpdateInProgressAnnotation))
 	}
 }
 
@@ -420,16 +556,19 @@ func TestUpdateMachine(t *testing.T) {
 				updateGVH: {"ext"},
 			},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
-				"ext": &runtimehooksv1.UpdateMachineResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						CommonResponse: runtimehooksv1.CommonResponse{
-							Status:  runtimehooksv1.ResponseStatusFailure,
-							Message: "extension failed",
-						},
-					},
-				},
+				"ext": newUpdateMachineResponse(runtimehooksv1.ResponseStatusFailure, "", "extension failed", 0),
 			},
-			wantErr: "ExtensionHandler ext failed with message extension failed",
+			wantErr: `failed to call extension handler "ext": got failure response with message: extension failed`,
+		},
+		{
+			name: "fails when hook returns an unknown updateStatus",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"ext": newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, "Foo", "", 0),
+			},
+			wantErr: `invalid response from extension handler "ext": unknown updateStatus "Foo"`,
 		},
 		{
 			name: "returns requeue when hook succeeds with retry",
@@ -437,27 +576,19 @@ func TestUpdateMachine(t *testing.T) {
 				updateGVH: {"ext"},
 			},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
-				"ext": &runtimehooksv1.UpdateMachineResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						CommonResponse: runtimehooksv1.CommonResponse{
-							Status:  runtimehooksv1.ResponseStatusSuccess,
-							Message: "processing",
-						},
-						RetryAfterSeconds: 45,
-					},
-				},
+				"ext": newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, "", "processing", 45),
 			},
 			wantResult: updateMachineResult{
-				retryAfter:              now.Add(45 * time.Second),
-				retryAfterFromExtension: true,
-				messages:                []string{"processing"},
+				retryAfter:   now.Add(45 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+				messages:     []string{"processing"},
 			},
 			wantCacheEntry: &UpdateMachineCacheEntry{
 				Machine: machineKey,
 				updateMachineResult: updateMachineResult{
-					retryAfter:              now.Add(45 * time.Second),
-					retryAfterFromExtension: true,
-					messages:                []string{"processing"},
+					retryAfter:   now.Add(45 * time.Second),
+					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+					messages:     []string{"processing"},
 				},
 			},
 		},
@@ -467,24 +598,130 @@ func TestUpdateMachine(t *testing.T) {
 				updateGVH: {"ext"},
 			},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
-				"ext": &runtimehooksv1.UpdateMachineResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						CommonResponse: runtimehooksv1.CommonResponse{
-							Status:  runtimehooksv1.ResponseStatusSuccess,
-							Message: "done",
-						},
-					},
-				},
+				"ext": newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, "", "done", 0),
 			},
 			wantResult: updateMachineResult{
-				retryAfter: now.Add(updateMachineCacheDuration),
-				messages:   []string{"done"},
+				retryAfter:   now.Add(updateMachineCacheDuration),
+				updateStatus: runtimehooksv1.MachineUpdateStatusCompleted,
+				messages:     []string{"done"},
 			},
 			wantCacheEntry: &UpdateMachineCacheEntry{
 				Machine: machineKey,
 				updateMachineResult: updateMachineResult{
-					retryAfter: now.Add(updateMachineCacheDuration),
-					messages:   []string{"done"},
+					retryAfter:   now.Add(updateMachineCacheDuration),
+					updateStatus: runtimehooksv1.MachineUpdateStatusCompleted,
+					messages:     []string{"done"},
+				},
+			},
+		},
+		// Test cases with updateStatus set.
+		{
+			name: "returns InProgress when hook returns updateStatus InProgress",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"ext": newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusInProgress, "processing", 15),
+			},
+			wantResult: updateMachineResult{
+				retryAfter:   now.Add(15 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+				messages:     []string{"processing"},
+			},
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(15 * time.Second),
+					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+					messages:     []string{"processing"},
+				},
+			},
+		},
+		{
+			name: "returns Failed when hook returns updateStatus Failed",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"ext": newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusFailed, "failed", 15),
+			},
+			wantResult: updateMachineResult{
+				retryAfter:   now.Add(15 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
+				messages:     []string{"failed"},
+			},
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(15 * time.Second),
+					updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
+					messages:     []string{"failed"},
+				},
+			},
+		},
+		{
+			name: "returns Blocked when hook returns updateStatus Blocked",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"ext": newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusBlocked, "blocked", 20),
+			},
+			wantResult: updateMachineResult{
+				retryAfter:   now.Add(20 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
+				messages:     []string{"blocked"},
+			},
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(20 * time.Second),
+					updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
+					messages:     []string{"blocked"},
+				},
+			},
+		},
+		{
+			name: "returns Completed when hook returns updateStatus Completed",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"ext": newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusCompleted, "done", 0),
+			},
+			wantResult: updateMachineResult{
+				retryAfter:   now.Add(updateMachineCacheDuration),
+				updateStatus: runtimehooksv1.MachineUpdateStatusCompleted,
+				messages:     []string{"done"},
+			},
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(updateMachineCacheDuration),
+					updateStatus: runtimehooksv1.MachineUpdateStatusCompleted,
+					messages:     []string{"done"},
+				},
+			},
+		},
+		{
+			name: "returns CompletedButDirty when hook returns updateStatus CompletedButDirty",
+			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
+				updateGVH: {"ext"},
+			},
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"ext": newUpdateMachineResponse(runtimehooksv1.ResponseStatusSuccess, runtimehooksv1.MachineUpdateStatusCompletedButDirty, "dirty", 0),
+			},
+			wantResult: updateMachineResult{
+				retryAfter:   now.Add(updateMachineCacheDuration),
+				updateStatus: runtimehooksv1.MachineUpdateStatusCompletedButDirty,
+				messages:     []string{"dirty"},
+			},
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:   now.Add(updateMachineCacheDuration),
+					updateStatus: runtimehooksv1.MachineUpdateStatusCompletedButDirty,
+					messages:     []string{"dirty"},
 				},
 			},
 		},
@@ -639,7 +876,7 @@ func TestCompleteInPlaceUpdate_MissingInfra(t *testing.T) {
 	}
 	scope := &scope{machine: machine, infraMachine: nil}
 
-	err := r.completeInPlaceUpdate(context.Background(), scope)
+	err := r.completeInPlaceUpdate(context.Background(), scope, "")
 	g.Expect(err).ToNot(HaveOccurred())
 }
 

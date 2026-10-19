@@ -193,6 +193,9 @@ const (
 
 	// MachineInPlaceUpdateFailedReason surfaces when the in-place update has failed.
 	MachineInPlaceUpdateFailedReason = "InPlaceUpdateFailed"
+
+	// MachineInPlaceUpdateInternalErrorReason surfaces unexpected failures during in-place update.
+	MachineInPlaceUpdateInternalErrorReason = InternalErrorReason
 )
 
 // Machine's BootstrapConfigReady condition and corresponding reasons.

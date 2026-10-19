@@ -116,10 +116,12 @@ type Reconciler struct {
 	// during a single reconciliation.
 	nodeDeletionRetryTimeout time.Duration
 
-	hookCache            cache.Cache[cache.HookEntry]
+	updateMachineCache   cache.Cache[UpdateMachineCacheEntry]
 	externalObjectsCache cache.Cache[externalObjectsCacheEntry]
 
 	predicateLog *logr.Logger
+
+	overrideNowFunc func() time.Time
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -178,7 +180,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.hookCache = cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)
+	r.updateMachineCache = cache.New[UpdateMachineCacheEntry](ctx, 30*time.Minute)
 	r.externalObjectsCache = cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
@@ -1422,4 +1424,12 @@ func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, 
 		nodeStatusVolumeNamesWithoutPV:      attachedNodeVolumeNames.Difference(foundAttachedNodeVolumeNames).UnsortedList(),
 		persistentVolumeNamesWithoutPV:      attachedPVNames.Difference(foundAttachedPVNames).UnsortedList(),
 	}, nil
+}
+
+// now returns the current time. It can be overridden for unit tests via overrideNowFunc.
+func (r *Reconciler) now() time.Time {
+	if r.overrideNowFunc != nil {
+		return r.overrideNowFunc()
+	}
+	return time.Now()
 }

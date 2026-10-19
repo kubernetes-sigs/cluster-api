@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,6 +49,9 @@ import (
 )
 
 func TestReconcileInPlaceUpdate(t *testing.T) {
+	now := time.Now()
+	machineKey := ctrlclient.ObjectKeyFromObject(newTestMachine())
+
 	infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
 	bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
 
@@ -63,6 +67,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 		wantErrContains       string
 		wantReason            string
 		wantMessage           string
+		wantCacheEntry        *UpdateMachineCacheEntry
 		verify                func(*testing.T, *WithT, context.Context, *Reconciler, *scope)
 	}{
 		{
@@ -135,7 +140,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantResult:      ctrl.Result{},
 			wantErr:         true,
 			wantErrContains: "InfraMachine not found",
-			wantReason:      clusterv1.MachineInPlaceUpdateFailedReason,
+			wantReason:      clusterv1.MachineInPlaceUpdateInternalErrorReason,
 			wantMessage:     "In-place update not possible: InfraMachine not found",
 		},
 		{
@@ -172,6 +177,14 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantResult:  ctrl.Result{RequeueAfter: 30 * time.Second},
 			wantReason:  clusterv1.MachineInPlaceUpdatingReason,
 			wantMessage: "In-place update in progress (affects availability): processing",
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:              now.Add(30 * time.Second),
+					retryAfterFromExtension: true,
+					messages:                []string{"processing"},
+				},
+			},
 		},
 		{
 			name:           "requeues while UpdateMachine hook is in progress (does not affect availability)",
@@ -207,6 +220,14 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantResult:  ctrl.Result{RequeueAfter: 30 * time.Second},
 			wantReason:  clusterv1.MachineInPlaceUpdatingReason,
 			wantMessage: "In-place update in progress (does not affect availability): processing",
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:              now.Add(30 * time.Second),
+					retryAfterFromExtension: true,
+					messages:                []string{"processing"},
+				},
+			},
 		},
 		{
 			name:           "completes successfully and cleans annotations",
@@ -306,8 +327,8 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
 						updateGVH: {"test-extension"},
 					}).
-					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-						updateGVH: tt.updateMachineResponse,
+					WithCallExtensionResponses(map[string]runtimehooksv1.ResponseObject{
+						"test-extension": tt.updateMachineResponse,
 					}).
 					Build()
 			}
@@ -318,8 +339,9 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				APIReader:            fakeClient,
 				DynamicCache:         dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
 				RuntimeClient:        runtimeClient,
-				hookCache:            cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+				updateMachineCache:   cache.New[UpdateMachineCacheEntry](ctx, 30*time.Minute),
 				externalObjectsCache: cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour),
+				overrideNowFunc:      func() time.Time { return now },
 			}
 			s := &scope{
 				machine:            tt.machine,
@@ -344,6 +366,14 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			g.Expect(s.updatingReason).To(Equal(tt.wantReason))
 			g.Expect(s.updatingMessage).To(Equal(tt.wantMessage))
 
+			entry, ok := r.updateMachineCache.Has(UpdateMachineCacheEntry{Machine: machineKey}.Key())
+			if tt.wantCacheEntry == nil {
+				g.Expect(ok).To(BeFalse())
+			} else {
+				g.Expect(ok).To(BeTrue())
+				g.Expect(entry).To(BeComparableTo(*tt.wantCacheEntry, cmp.AllowUnexported(UpdateMachineCacheEntry{}, updateMachineResult{})))
+			}
+
 			if tt.verify != nil {
 				tt.verify(t, g, ctx, r, s)
 			}
@@ -351,7 +381,10 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 	}
 }
 
-func TestCallUpdateMachineHook(t *testing.T) {
+func TestUpdateMachine(t *testing.T) {
+	now := time.Now()
+	machineKey := ctrlclient.ObjectKeyFromObject(newTestMachine())
+
 	catalog := runtimecatalog.New()
 	if err := runtimehooksv1.AddToCatalog(catalog); err != nil {
 		t.Fatalf("failed to add hooks to catalog: %v", err)
@@ -362,51 +395,49 @@ func TestCallUpdateMachineHook(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                      string
-		getAllExtensionResponses  map[runtimecatalog.GroupVersionHook][]string
-		callAllExtensionResponses map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject
-		wantResult                ctrl.Result
-		wantMessage               string
-		wantErr                   bool
-		wantErrSubstrings         []string
-		wantHookCacheEntry        *cache.HookEntry
+		name                     string
+		getAllExtensionResponses map[runtimecatalog.GroupVersionHook][]string
+		callExtensionResponses   map[string]runtimehooksv1.ResponseObject
+		wantResult               updateMachineResult
+		wantErr                  string
+		wantCacheEntry           *UpdateMachineCacheEntry
 	}{
 		{
 			name:                     "fails if no extensions registered",
 			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{},
-			wantErr:                  true,
-			wantErrSubstrings:        []string{"no extensions registered for UpdateMachine hook"},
+			wantErr:                  "no extensions registered for UpdateMachine hook",
 		},
 		{
 			name: "fails if multiple extensions registered",
 			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
 				updateGVH: {"ext-a", "ext-b"},
 			},
-			wantErr:           true,
-			wantErrSubstrings: []string{"found multiple UpdateMachine hooks (ext-a,ext-b): only one hook is supported"},
+			wantErr: "found multiple UpdateMachine hooks (ext-a,ext-b): only one hook is supported",
 		},
 		{
 			name: "fails when hook invocation returns error",
 			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
 				updateGVH: {"ext"},
 			},
-			callAllExtensionResponses: map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-				updateGVH: &runtimehooksv1.UpdateMachineResponse{
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"ext": &runtimehooksv1.UpdateMachineResponse{
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusFailure},
+						CommonResponse: runtimehooksv1.CommonResponse{
+							Status:  runtimehooksv1.ResponseStatusFailure,
+							Message: "extension failed",
+						},
 					},
 				},
 			},
-			wantErr:           true,
-			wantErrSubstrings: []string{"runtime hook", "UpdateMachine", "failed"},
+			wantErr: "ExtensionHandler ext failed with message extension failed",
 		},
 		{
 			name: "returns requeue when hook succeeds with retry",
 			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
 				updateGVH: {"ext"},
 			},
-			callAllExtensionResponses: map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-				updateGVH: &runtimehooksv1.UpdateMachineResponse{
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"ext": &runtimehooksv1.UpdateMachineResponse{
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 						CommonResponse: runtimehooksv1.CommonResponse{
 							Status:  runtimehooksv1.ResponseStatusSuccess,
@@ -416,18 +447,27 @@ func TestCallUpdateMachineHook(t *testing.T) {
 					},
 				},
 			},
-			wantResult:  ctrl.Result{RequeueAfter: 45 * time.Second},
-			wantMessage: "processing",
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(newTestMachine(), runtimehooksv1.UpdateMachine,
-				time.Now().Add(45*time.Second), "processing")),
+			wantResult: updateMachineResult{
+				retryAfter:              now.Add(45 * time.Second),
+				retryAfterFromExtension: true,
+				messages:                []string{"processing"},
+			},
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter:              now.Add(45 * time.Second),
+					retryAfterFromExtension: true,
+					messages:                []string{"processing"},
+				},
+			},
 		},
 		{
 			name: "returns message when hook succeeds",
 			getAllExtensionResponses: map[runtimecatalog.GroupVersionHook][]string{
 				updateGVH: {"ext"},
 			},
-			callAllExtensionResponses: map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-				updateGVH: &runtimehooksv1.UpdateMachineResponse{
+			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
+				"ext": &runtimehooksv1.UpdateMachineResponse{
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 						CommonResponse: runtimehooksv1.CommonResponse{
 							Status:  runtimehooksv1.ResponseStatusSuccess,
@@ -436,8 +476,17 @@ func TestCallUpdateMachineHook(t *testing.T) {
 					},
 				},
 			},
-			wantResult:  ctrl.Result{},
-			wantMessage: "done",
+			wantResult: updateMachineResult{
+				retryAfter: now.Add(updateMachineCacheDuration),
+				messages:   []string{"done"},
+			},
+			wantCacheEntry: &UpdateMachineCacheEntry{
+				Machine: machineKey,
+				updateMachineResult: updateMachineResult{
+					retryAfter: now.Add(updateMachineCacheDuration),
+					messages:   []string{"done"},
+				},
+			},
 		},
 	}
 
@@ -445,16 +494,20 @@ func TestCallUpdateMachineHook(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			// Note: currentTime can be moved forward by the test without affecting the expected values based on now.
+			currentTime := now
+
 			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCatalog(catalog).
 				WithGetAllExtensionResponses(tt.getAllExtensionResponses).
-				WithCallAllExtensionResponses(tt.callAllExtensionResponses).
+				WithCallExtensionResponses(tt.callExtensionResponses).
 				Build()
 
 			r := &Reconciler{
 				RuntimeClient:        runtimeClient,
-				hookCache:            cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+				updateMachineCache:   cache.New[UpdateMachineCacheEntry](ctx, 30*time.Minute),
 				externalObjectsCache: cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour),
+				overrideNowFunc:      func() time.Time { return currentTime },
 			}
 			infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
 			bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
@@ -467,49 +520,57 @@ func TestCallUpdateMachineHook(t *testing.T) {
 				bootstrapConfigGVK: bootstrapConfigGVK,
 			}
 			// Note: Warm up the externalObjectsCache to also test the code path with a warmed up cache.
-			// Without a cache hit callUpdateMachineHook below would fail because Reconciler.APIReader is not set.
+			// Without a cache hit updateMachine below would fail because Reconciler.APIReader is not set.
 			// TestReconcileInPlaceUpdate in contrast is testing the code path with an empty cache.
-			infraMachineUnstructured := newTestUnstructured(scope.infraMachineGVK, scope.infraMachine.GetName())
-			infraMachineUnstructured.SetResourceVersion(scope.infraMachine.GetResourceVersion())
-			r.externalObjectsCache.Add(externalObjectsCacheEntry{obj: infraMachineUnstructured})
-			bootstrapConfigUnstructured := newTestUnstructured(scope.bootstrapConfigGVK, scope.bootstrapConfig.GetName())
-			bootstrapConfigUnstructured.SetResourceVersion(scope.bootstrapConfig.GetResourceVersion())
-			r.externalObjectsCache.Add(externalObjectsCacheEntry{obj: bootstrapConfigUnstructured})
+			warmUpExternalObjectsCache(r, scope)
 
-			result, message, err := r.callUpdateMachineHook(t.Context(), scope)
-
-			if tt.wantErr {
+			result, err := r.updateMachine(t.Context(), scope)
+			if tt.wantErr != "" {
 				g.Expect(err).To(HaveOccurred())
-				for _, substr := range tt.wantErrSubstrings {
-					g.Expect(err.Error()).To(ContainSubstring(substr))
-				}
+				g.Expect(err.Error()).To(Equal(tt.wantErr))
 				return
 			}
 
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(result).To(Equal(tt.wantResult))
-			g.Expect(message).To(Equal(tt.wantMessage))
+			g.Expect(result).To(BeComparableTo(tt.wantResult, cmp.AllowUnexported(updateMachineResult{})))
 
-			if tt.wantHookCacheEntry != nil {
-				// Verify the cache entry.
-				cacheEntry, ok := r.hookCache.Has(tt.wantHookCacheEntry.Key())
-				g.Expect(ok).To(BeTrue())
-				g.Expect(cacheEntry.ObjectKey).To(Equal(tt.wantHookCacheEntry.ObjectKey))
-				g.Expect(cacheEntry.HookName).To(Equal(tt.wantHookCacheEntry.HookName))
-				g.Expect(cacheEntry.ReconcileAfter).To(BeTemporally("~", tt.wantHookCacheEntry.ReconcileAfter, 5*time.Second))
-				g.Expect(cacheEntry.ResponseMessage).To(Equal(tt.wantHookCacheEntry.ResponseMessage))
-
-				// Call callUpdateMachineHook again and verify the cache hit.
-				secondResult, message, err := r.callUpdateMachineHook(context.Background(), scope)
-				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(message).To(Equal(tt.wantHookCacheEntry.ResponseMessage))
-				// RequeueAfter should be now < then the previous RequeueAfter.
-				g.Expect(secondResult.RequeueAfter).To(BeNumerically("<", result.RequeueAfter))
-			} else {
-				g.Expect(r.hookCache.Len()).To(Equal(0))
+			entry, ok := r.updateMachineCache.Has(UpdateMachineCacheEntry{Machine: machineKey}.Key())
+			if tt.wantCacheEntry == nil {
+				g.Expect(ok).To(BeFalse())
+				return
 			}
+
+			// Verify the cache entry.
+			g.Expect(ok).To(BeTrue())
+			g.Expect(entry).To(BeComparableTo(*tt.wantCacheEntry, cmp.AllowUnexported(UpdateMachineCacheEntry{}, updateMachineResult{})))
+
+			// Call updateMachine again before retryAfter and verify the cache hit.
+			currentTime = now.Add(10 * time.Second)
+			secondResult, err := r.updateMachine(t.Context(), scope)
+			g.Expect(err).ToNot(HaveOccurred())
+			// The cached result is returned as is, i.e. retryAfter is not recomputed based on the new time.
+			g.Expect(secondResult).To(BeComparableTo(tt.wantResult, cmp.AllowUnexported(updateMachineResult{})))
+
+			// Call updateMachine again after retryAfter and verify the cache entry is not used anymore.
+			// Note: A completed result removes the objects from the externalObjectsCache, so we have to warm it up again.
+			warmUpExternalObjectsCache(r, scope)
+			currentTime = tt.wantResult.retryAfter.Add(time.Second)
+			thirdResult, err := r.updateMachine(t.Context(), scope)
+			g.Expect(err).ToNot(HaveOccurred())
+			// retryAfter is recomputed based on the new time.
+			g.Expect(thirdResult.retryAfter).To(Equal(currentTime.Add(tt.wantResult.retryAfter.Sub(now))))
 		})
 	}
+}
+
+// warmUpExternalObjectsCache adds the InfraMachine and BootstrapConfig of the scope to the externalObjectsCache.
+func warmUpExternalObjectsCache(r *Reconciler, s *scope) {
+	infraMachineUnstructured := newTestUnstructured(s.infraMachineGVK, s.infraMachine.GetName())
+	infraMachineUnstructured.SetResourceVersion(s.infraMachine.GetResourceVersion())
+	r.externalObjectsCache.Add(externalObjectsCacheEntry{obj: infraMachineUnstructured})
+	bootstrapConfigUnstructured := newTestUnstructured(s.bootstrapConfigGVK, s.bootstrapConfig.GetName())
+	bootstrapConfigUnstructured.SetResourceVersion(s.bootstrapConfig.GetResourceVersion())
+	r.externalObjectsCache.Add(externalObjectsCacheEntry{obj: bootstrapConfigUnstructured})
 }
 
 func TestRemoveInPlaceUpdateAnnotation(t *testing.T) {
@@ -572,7 +633,10 @@ func TestCompleteInPlaceUpdate_MissingInfra(t *testing.T) {
 	}
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine).Build()
 
-	r := &Reconciler{Client: client}
+	r := &Reconciler{
+		Client:             client,
+		updateMachineCache: cache.New[UpdateMachineCacheEntry](ctx, 30*time.Minute),
+	}
 	scope := &scope{machine: machine, infraMachine: nil}
 
 	err := r.completeInPlaceUpdate(context.Background(), scope)

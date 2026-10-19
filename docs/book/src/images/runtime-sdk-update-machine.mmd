@@ -1,0 +1,36 @@
+flowchart TD
+   Start([UpdateMachine hook called]) --> CheckError{Internal error?}
+
+   CheckError -- Yes --> Failure["status: Failure<br/>message: '...'"]
+   CheckError -- No --> CheckProgress{In-place update<br/>still in progress?}
+
+   CheckProgress -- Yes --> InProgress["status: Success<br/>updateStatus: InProgress<br/>retryAfterSeconds: 15<br/>message: '...'"]
+   CheckProgress -- No --> CheckState{State of the<br/>in-place update}
+
+   CheckState -- "Successfully completed<br/>(all done)" --> Completed["status: Success<br/>updateStatus: Completed"]
+   CheckState -- "Intentional block<br/>(preflight checks)" --> Blocked["status: Success<br/>updateStatus: Blocked<br/>retryAfterSeconds: 15<br/>message: '...'"]
+   CheckState -- "Unexpected block<br/>(failed to complete)" --> Failed["status: Success<br/>updateStatus: Failed<br/>retryAfterSeconds: 15<br/>message: '...'"]
+
+   Blocked --> RetryLoop((System checks for<br/>unblock every<br/>retryAfterSeconds))
+   Failed --> RetryLoop
+
+   RetryLoop --> UnblockState{State after unblock}
+
+   UnblockState -- "Successfully completed<br/>(all done)" --> UnblockCompleted["status: Success<br/>updateStatus: Completed"]
+   UnblockState -- "Machine left in<br/>dirty state" --> Dirty["status: Success<br/>updateStatus: CompletedButDirty"]
+
+   Completed --> ContinueRollout([Continue rollout])
+   UnblockCompleted --> ContinueRollout
+   Dirty --> ContinueRollout
+
+   classDef error fill:#f8d7da,stroke:#dc3545,stroke-width:2px,color:#721c24
+   classDef success fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#155724
+   classDef warning fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#856404
+   classDef progress fill:#d1ecf1,stroke:#17a2b8,stroke-width:2px,color:#0c5460
+   classDef action fill:#e2e3e5,stroke:#6c757d,stroke-width:2px,color:#383d41
+
+   class Failure error
+   class Completed,UnblockCompleted success
+   class Blocked,Failed,Dirty warning
+   class InProgress progress
+   class ContinueRollout action

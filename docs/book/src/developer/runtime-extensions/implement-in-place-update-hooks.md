@@ -229,6 +229,7 @@ apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: CanUpdateMachineSetResponse
 status: Success # or Failure
 message: "error message if status == Failure"
+retryAfterSeconds: 15
 machineSetPatch:
   patchType: JSONPatch
   patch: <JSON-patch>
@@ -252,6 +253,17 @@ Note:
 ### UpdateMachine
 
 This hook is called by the Machine controller when performing the in-place updates for a Machine.
+
+The hook is called only after the owner controller (KCP or MachineSet) decided to update the Machine in-place, i.e. after the
+[CanUpdateMachine](#canupdatemachine) or [CanUpdateMachineSet](#canupdatemachineset) hooks said that the changes can be handled
+in-place and `allowedOperations` allows the `UpdateInPlace` operation. At that point:
+- The owner controller writes the desired state of the Machine, InfraMachine and BootstrapConfig, sets the `in-place-updates.internal.cluster.x-k8s.io/update-in-progress` annotation on them,
+  and marks the `UpdateMachine` hook as pending on the Machine.
+- The Machine controller starts calling the `UpdateMachine` hook as soon as the Machine is running (infrastructure provisioned, bootstrap data created, node ref set)
+  and the annotation is set on the Machine, the InfraMachine and the BootstrapConfig.
+
+Neither `CanUpdateMachine` nor `CanUpdateMachineSet` are called again for a Machine while its in-place update is in progress, so
+`allowedOperations` has no effect on an update that already started.
 
 Example request:
 
@@ -296,12 +308,37 @@ Example Response:
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: UpdateMachineResponse
 status: Success # or Failure
-message: "error message if status == Failure"
+updateStatus: InProgress # InProgress, Completed, Failed, Blocked or CompletedButDirty (planned, see UpdateStatus below)
+message: ...
 retryAfterSeconds: 10
 ```
 
-Note:
-- The status of the update operation is determined by the CommonRetryResponse fields:
-  - Status=Success + RetryAfterSeconds > 0: update is in progress
-  - Status=Success + RetryAfterSeconds = 0: update completed successfully
-  - Status=Failure: update failed
+Below a table with all the possible answer and the implications on the rollout process
+
+| UpdateMachineResponse                                                      | Meaning                                                                                                               | Rollout can proceed |
+|:---------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------|:--------------------|
+| `status: Failure`, `message`                                               | Internal error while computing the response.                                                                          | No                  |
+| `status: Success`, `updateStatus: InProgress`, `retryAfterSeconds`         | The in-place update is still in progress.                                                                             | No                  |
+| `status: Success`, `updateStatus: Completed`                               | The in-place update completed successfully.                                                                           | Yes                 |
+| `status: Success`, `updateStatus: Blocked`, `retryAfterSeconds`, `message` | The in-place update is intentionally blocked (e.g. preflight checks).                                                 | No                  |
+| `status: Success`, `updateStatus: Failed`, `retryAfterSeconds`, `message`  | The in-place update is blocked unexpectedly, because it failed to complete.                                           | No                  |
+| `status: Success`, `updateStatus: CompletedButDirty`                       | The in-place update was recovered with manual intervention on the Machine, and the Machine might be in a dirty state. | Yes                 |
+
+Below is the decision tree that `UpdateMachine` implementers can use to compute the answer:
+
+![UpdateMachine decision tree](../../images/runtime-sdk-update-machine.png)
+
+Notes:
+- While the update is in progress, the `Updating` condition surfaces `updateStatus` using different reason; the message also reports if the update affects availability.
+- `retryAfterSeconds` > 0, the hook is not called again before the given amount of seconds; the `message` is surfaced in the `Updating` condition of the Machine.
+- Only `Completed` and `CompletedButDirty` allow the rollout to proceed.
+- If the hook returns `Status=Failure` (or the call fails), the reconcile of the Machine fails and it is retried with exponential backoff.
+  - The `Updating` condition of the Machine has reason `InPlaceUpdateFailed`; the detailed error is only available in the controller logs.
+  - There is no timeout and no automatic fallback to replacing the Machine: the in-place update stays in progress, and the owner controller does not start
+    another operation on that Machine, until the extension reports success.
+  - To wait for a long running operation, return `retryAfterSeconds` instead of `Failure`.
+- In all the other cases CAPI keeps calling the `UpdateMachine` hook, so it can detect a manual recovery, but it slows down the retries and avoids unnecessary requests when possible (see `retryAfterSeconds`).
+  - The hook is called repeatedly until the update completes, so it MUST be idempotent: the request only contains the desired state, and the extension
+    is responsible for comparing it with the current state of the Machine and for performing the necessary actions.
+- The fact that a Machine is "dirty" after a manual recovery is only tracked in an annotation and surfaced in a condition. CAPI does not implement default workflows for dirty Machines;
+  if this is considered in the future, it should rely on MachineHealthCheck instead of re-inventing the wheel.

@@ -101,7 +101,7 @@ systemd:
         [Service]
         # To not restart the unit when it exits, as it is expected.
         Type=oneshot
-        ExecStart=/etc/kubeadm.sh
+        ExecStart=/bin/bash /etc/kubeadm.sh
         [Install]
         WantedBy=multi-user.target
     {{- if .NTP }}{{ if .NTP.Enabled }}

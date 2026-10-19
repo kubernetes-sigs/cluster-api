@@ -301,6 +301,12 @@ func (c *ControlPlane) NotUpToDateMachines() (collections.Machines, map[string]U
 	return c.MachinesNotUpToDate, c.machinesUpToDateResults
 }
 
+// MachineConfigurationNotUpToDate returns true if the given machine does not match the KCP configuration.
+// Note: Machines that are not up-to-date only because rollout.before or rollout.after expired are not considered outdated.
+func (c *ControlPlane) MachineConfigurationNotUpToDate(machineName string) bool {
+	return c.machinesUpToDateResults[machineName].ConfigurationNotUpToDate
+}
+
 // UpToDateMachines returns the machines that are up to date with the control
 // plane's configuration.
 func (c *ControlPlane) UpToDateMachines() collections.Machines {

@@ -152,7 +152,9 @@ func EvaluateExpressions(
 		if unhealthy {
 			unhealthyConditionsMessages = append(unhealthyConditionsMessages, c.Message)
 		}
-		nextChecks = append(nextChecks, nextCheck)
+		if nextCheck > 0 {
+			nextChecks = append(nextChecks, nextCheck)
+		}
 	}
 	nextCheck := minDuration(nextChecks)
 

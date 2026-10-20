@@ -547,6 +547,14 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:    testNodeHealthy,
 	}
 
+	// Two expressions: Machine matches for shorter than the duration, Node doesn't match.
+	machineExpressionMatchesShorterNodeExpressionDoesNotMatch := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCBothExpressions,
+		Machine: testMachineUnhealthy200.DeepCopy(),
+		Node:    testNodeHealthy,
+	}
+
 	// Two expressions, both match: messages are combined in the order of the expressions.
 	bothExpressionsMatch := healthCheckTarget{
 		Cluster: cluster,
@@ -762,6 +770,13 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediationCondition:        []clusterv1.Condition{machineExpressionUnhealthy400Condition},
 			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{machineExpressionUnhealthy400V1Beta2Condition},
 			expectedNextCheckTimes:                   []time.Duration{},
+		},
+		{
+			desc:                     "unhealthyExpressions: multiple expressions where one matches for shorter than duration and other does not match",
+			targets:                  []healthCheckTarget{machineExpressionMatchesShorterNodeExpressionDoesNotMatch},
+			expectedHealthy:          []healthCheckTarget{machineExpressionMatchesShorterNodeExpressionDoesNotMatch},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{100 * time.Second}, // 300s duration - 200s elapsed
 		},
 		{
 			desc:                                     "unhealthyExpressions: messages of all matching expressions are combined",

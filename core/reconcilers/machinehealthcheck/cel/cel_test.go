@@ -572,6 +572,50 @@ func TestEvaluateExpressions(t *testing.T) {
 				{Expression: `!machine.has_condition_since("InfrastructureReady", "True", "10m")`, Message: "Machine condition message"},
 			},
 		},
+		{
+			name: "returns healthy with multiple expressions and picks min nextCheck when some expressions have no nextCheck (valid nextCheck first)",
+			node: nodeWithConditions(
+				corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionFalse, LastTransitionTime: metav1.NewTime(now)},
+			),
+			machine: machineWithConditions(
+				metav1.Condition{Type: "InfrastructureReady", Status: metav1.ConditionTrue, LastTransitionTime: metav1.NewTime(now.Add(-15 * time.Minute))},
+			),
+			expressions: []clusterv1.UnhealthyExpression{
+				{Expression: `node.has_condition_since("Ready", "False", "5m")`, Message: "Node condition message"},
+				{Expression: `!machine.has_condition_since("InfrastructureReady", "True", "10m")`, Message: "Machine condition message"},
+			},
+			expectedNextCheck: 5 * time.Minute,
+		},
+		{
+			name: "returns healthy with multiple expressions and picks min nextCheck when some expressions have no nextCheck (zero nextCheck first)",
+			node: nodeWithConditions(
+				corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionFalse, LastTransitionTime: metav1.NewTime(now)},
+			),
+			machine: machineWithConditions(
+				metav1.Condition{Type: "InfrastructureReady", Status: metav1.ConditionTrue, LastTransitionTime: metav1.NewTime(now.Add(-15 * time.Minute))},
+			),
+			expressions: []clusterv1.UnhealthyExpression{
+				{Expression: `!machine.has_condition_since("InfrastructureReady", "True", "10m")`, Message: "Machine condition message"},
+				{Expression: `node.has_condition_since("Ready", "False", "5m")`, Message: "Node condition message"},
+			},
+			expectedNextCheck: 5 * time.Minute,
+		},
+		{
+			name: "returns healthy with multiple expressions and picks min nextCheck among multiple valid nextChecks and zero nextCheck",
+			node: nodeWithConditions(
+				corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionFalse, LastTransitionTime: metav1.NewTime(now)},
+			),
+			machine: machineWithConditions(
+				metav1.Condition{Type: "InfrastructureReady", Status: metav1.ConditionFalse, LastTransitionTime: metav1.NewTime(now)},
+			),
+			expressions: []clusterv1.UnhealthyExpression{
+				{Expression: `machine.has_condition_since("InfrastructureReady", "False", "10m")`, Message: "Machine condition message"},
+				{Expression: `machine.has_condition("InfrastructureReady", "False")`, Message: "Immediate machine condition message"},
+				{Expression: `node.has_condition_since("Ready", "False", "5m")`, Message: "Node condition message"},
+			},
+			expectedUnhealthyConditionMessages: []string{"Immediate machine condition message"},
+			expectedNextCheck:                  5 * time.Minute,
+		},
 		// Caching
 		{
 			name:    "evaluates expression if MHC generation changed",

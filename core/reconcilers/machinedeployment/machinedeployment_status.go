@@ -59,7 +59,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) 
 
 	setAvailableCondition(ctx, s.machineDeployment, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
-	setRollingOutCondition(ctx, s.machineDeployment, s.machines, s.canUpdateMachineSetResults)
+	setRollingOutCondition(ctx, s.machineDeployment, s.machines, s.canUpdateMachineSetResults, s.rolloutReconciled)
 	setScalingUpCondition(ctx, s.machineDeployment, s.machineSets, s.bootstrapTemplateNotFound, s.infrastructureTemplateNotFound, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 	setScalingDownCondition(ctx, s.machineDeployment, s.machineSets, s.machines, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
@@ -187,7 +187,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	})
 }
 
-func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines, canUpdateMachineSetResults canUpdateMachineSetResults) {
+func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines, canUpdateMachineSetResults canUpdateMachineSetResults, rolloutReconciled bool) {
 	// Count machines rolling out and collect reasons why a rollout is happening.
 	// Note: The code below collects all the reasons for which at least a machine is rolling out; under normal circumstances
 	// all the machines are rolling out for the same reasons, however, in case of changes to
@@ -214,6 +214,12 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 			Reason:  clusterv1.MachineDeploymentNotRollingOutReason,
 			Message: message,
 		})
+		return
+	}
+
+	// Note: If the reconcile returned before the rollout step, the results of the CanUpdateMachineSet hook are unknown,
+	// the condition is not updated to avoid dropping the hook messages until the next reconcile.
+	if !rolloutReconciled {
 		return
 	}
 

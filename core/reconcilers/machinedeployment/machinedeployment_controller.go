@@ -232,6 +232,8 @@ type scope struct {
 	infrastructureTemplateExists                 bool
 	getAndAdoptMachineSetsForDeploymentSucceeded bool
 	canUpdateMachineSetResults                   canUpdateMachineSetResults
+	// rolloutReconciled is set when the reconcile reached the rollout/sync step, so canUpdateMachineSetResults are known.
+	rolloutReconciled bool
 }
 
 func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *clusterv1.MachineDeployment, options ...patch.Option) error {
@@ -330,6 +332,8 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) (ctrl.Result, erro
 	}
 
 	templateExists := s.infrastructureTemplateExists && (!md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() || s.bootstrapTemplateExists)
+
+	s.rolloutReconciled = true
 
 	if ptr.Deref(md.Spec.Paused, false) {
 		return ctrl.Result{}, r.sync(ctx, md, s.machineSets, s.machines, templateExists)

@@ -274,8 +274,37 @@ func Test_setRollingOutCondition(t *testing.T) {
 		machines          []*clusterv1.Machine
 		// canUpdateMachineSetResults are the messages of the CanUpdateMachineSet hook collected by the rollout planner.
 		canUpdateMachineSetResults canUpdateMachineSetResults
-		expectCondition            metav1.Condition
+		// rolloutNotReconciled is true when the reconcile returned before the rollout step, so canUpdateMachineSetResults are unknown.
+		rolloutNotReconciled bool
+		expectCondition      metav1.Condition
 	}{
+		{
+			name: "keep the previous condition if the reconcile returned before the rollout step",
+			machineDeployment: func() *clusterv1.MachineDeployment {
+				md := &clusterv1.MachineDeployment{}
+				conditions.Set(md, metav1.Condition{
+					Type:    clusterv1.MachineDeploymentRollingOutCondition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineDeploymentRollingOutRolloutBlockedReason,
+					Message: "Rolling out 1 not up-to-date replicas:\n* MachineSet ms1: replace operation is not allowed",
+				})
+				return md
+			}(),
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withCondition(metav1.Condition{
+					Type:   clusterv1.MachineUpToDateCondition,
+					Status: metav1.ConditionFalse,
+					Reason: clusterv1.MachineNotUpToDateReason,
+				})),
+			},
+			rolloutNotReconciled: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineDeploymentRollingOutCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineDeploymentRollingOutRolloutBlockedReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n* MachineSet ms1: replace operation is not allowed",
+			},
+		},
 		{
 			name:              "no machines",
 			machineDeployment: &clusterv1.MachineDeployment{},
@@ -512,7 +541,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setRollingOutCondition(ctx, tt.machineDeployment, machines, tt.canUpdateMachineSetResults)
+			setRollingOutCondition(ctx, tt.machineDeployment, machines, tt.canUpdateMachineSetResults, !tt.rolloutNotReconciled)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRollingOutCondition)
 			g.Expect(condition).ToNot(BeNil())

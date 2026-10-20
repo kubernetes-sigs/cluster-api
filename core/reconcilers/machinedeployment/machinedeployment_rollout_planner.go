@@ -373,23 +373,6 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 	return desiredMS, nil
 }
 
-// requeueAfter returns after how long the MachineDeployment must be reconciled again to follow up on a rollout
-// that is pending (waiting for an answer from an extension) or blocked (no allowed operation can roll out changes).
-// It returns 0 if there is no need to requeue.
-func (p *rolloutPlanner) requeueAfter() time.Duration {
-	// Note: If at least one oldMS is pending, the entire rollout is paused and nothing can change before all the pending oldMSs
-	// get a decision; blocked oldMSs are re-evaluated at that time, if their cached result expired in the meantime.
-	retryAfter := p.pendingRetryAfter
-	if retryAfter.IsZero() {
-		retryAfter = p.blockedRetryAfter
-	}
-	if retryAfter.IsZero() {
-		return 0
-	}
-	// Note: retryAfter can already be in the past (e.g. if a cached result expired in the meantime), a RequeueAfter <= 0 would not requeue at all.
-	return max(retryAfter.Sub(p.now()), time.Second) // RequeueAfter should be at least 1s, because controller rate limiter is using 1s.
-}
-
 func (p *rolloutPlanner) addNotef(ms *clusterv1.MachineSet, format string, a ...any) {
 	msg := fmt.Sprintf(format, a...)
 	for _, note := range p.notes[ms.Name] {

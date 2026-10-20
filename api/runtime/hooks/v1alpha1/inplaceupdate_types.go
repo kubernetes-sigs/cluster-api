@@ -324,7 +324,8 @@ func init() {
 			"- Only spec is provided, status fields are not included\n" +
 			"- If no extension can cover the required changes, CAPI will fallback to rolling updates, unless allowedOperations does not allow it\n" +
 			"- Only fields in MachineSet/InfraMachineTemplate/BootstrapConfigTemplate spec.template.spec have to be covered by patches\n" +
-			"- allowedOperations can be used to restrict the operations used to roll out changes (InPlaceUpdate, Replace); if not set, both are allowed\n" +
+			"- Extensions can use allowedOperations to express which operations (UpdateInPlace, Replace) are allowed to roll out the changes, " +
+			"e.g. to block the rollout by returning an empty list\n" +
 			"- retryAfterSeconds > 0 can be used to signal that the decision is still in progress; the rollout is paused until the hook is called again\n",
 	})
 

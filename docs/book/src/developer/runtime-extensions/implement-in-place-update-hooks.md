@@ -84,7 +84,7 @@ file and then open it from the [Swagger UI](https://editor.swagger.io/).
 
 ### CanUpdateMachine
 
-> [!IMPORTANT] The can CanUpdateMachine hook MUST be implemented by control plane providers that
+> [!IMPORTANT] The CanUpdateMachine hook MUST be implemented by control plane providers that
 > are using Cluster API Machines to represent replicas and supporting in-place updates for those replicas.
 > 
 > The documentation in this paragraph focuses on the reference implementation in the KubeadmControlPlane (KCP) provider, 
@@ -238,8 +238,8 @@ Example Response:
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: CanUpdateMachineSetResponse
 status: Success # or Failure
-message: 15 # Set retryAfterSeconds > 0 if a decision cannot be made yet
-retryAfterSeconds: 0
+message: "error message if status == Failure"
+retryAfterSeconds: 15 # Set retryAfterSeconds > 0 if a decision cannot be made yet
 machineSetPatch:
   patchType: JSONPatch
   patch: <JSON-patch>
@@ -274,9 +274,9 @@ Note:
     an empty list must be a non-nil empty slice, e.g. `new([]runtimehooksv1.MachineUpdateOperation{})`.
   - `allowedOperations` is independent of the patches returned by the extension: patches tell which changes can be handled in-place, `allowedOperations` tells which operations are allowed.
     A runtime extension can e.g. block a rollout for the Machines controlled by the MachineSet when a preflight check fails, even if it would be able to handle the changes in-place.
-    A runtime extension can e.g. also cover the entire diff but return `allowedOperations: [Replace]`, then KCP would replace the Machine.
+    A runtime extension can e.g. also cover the entire diff but return `allowedOperations: [Replace]`, then the MachineDeployment would replace the Machines.
 - When the update is blocked the extension is called again every 5 minutes, so it is possible to unblock the rollout by changing the answer.
-  The answer is also evaluated again when the desired state of KCP is changed.
+  The answer is also evaluated again when the desired state of the MachineDeployment is changed.
 - The new MachineSet has no `CanUpdateMachineSet` call, and the usage of `maxSurge` is allowed or blocked according to the following rules:
   - If at least one old MachineSet is updated in-place, the usage of `maxSurge` is considered part of the in-place update operation.
     - If the `UpdateInPlace` is blocked by all the old MachineSets, usage of `maxSurge` is blocked as well.

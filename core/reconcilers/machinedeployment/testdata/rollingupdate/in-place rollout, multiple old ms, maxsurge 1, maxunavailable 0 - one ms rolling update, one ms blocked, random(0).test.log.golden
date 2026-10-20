@@ -29,7 +29,7 @@
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
       - Updated old MachineSet ms2
         - Diff: cluster.x-k8s.io/disable-machine-create: false
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 0/1 replicas, 0 available, 0 upToDate ()
       - MachineSet ms3 created, it is now the current MachineSet
       - Scaled up current MachineSet ms3 from 0 to 1 replicas (+1)
@@ -48,7 +48,7 @@
         - Reason: 4 available replicas > 3 minimum available replicas
         - Diff: replicas 1
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 1/1 replicas, 1 available, 1 upToDate (m4)
 [MS controller] Reconcile ms1
     ms1: 1/1 replicas, 1 available, 0 upToDate (m2)
@@ -63,7 +63,7 @@
     md: 3/3 replicas, 3 available, 1 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m2)
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: from 1/1 to 1/2 replicas, 1 available, 1 upToDate (m4)
       - Scaled up current MachineSet ms3 from 1 to 2 replicas (+1)
         - Reason: 3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge
@@ -72,7 +72,7 @@
     md: 3/3 replicas, 3 available, 1 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m2)
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 1/2 replicas, 1 available, 1 upToDate (m4)
 [MS controller] Reconcile ms3
     ms3: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
@@ -88,7 +88,7 @@
         - Reason: 4 available replicas > 3 minimum available replicas
         - Diff: replicas 0
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
 [MS controller] Reconcile ms3
     ms3: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
@@ -107,7 +107,7 @@
     md: 3/3 replicas, 3 available, 2 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
 [MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()

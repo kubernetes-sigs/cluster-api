@@ -24,7 +24,7 @@
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
       - Updated old MachineSet ms2
         - Diff: cluster.x-k8s.io/disable-machine-create: false
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 0/0 replicas, 0 available, 0 upToDate ()
       - MachineSet ms3 created, it is now the current MachineSet
 [MS controller] Reconcile ms1
@@ -39,7 +39,7 @@
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m2)
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: from 1/0 to 1/1 replicas, 1 available, 0 upToDate (m1🟢)
       - Scaled up current MachineSet ms3 from 0 to 1 replicas (+1)
         - Reason: acknowledge Machines m1 moved from an old MachineSet, 3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge, surge 1 dropped to prioritize in-place updates
@@ -54,7 +54,7 @@
     md: 3/3 replicas, 3 available, 0 upToDate
     ms1: 1/1 replicas, 1 available, 0 upToDate (m2)
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 1/1 replicas, 1 available, 0 upToDate (m1🟢)
       - Updated current MachineSet ms3
         - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
@@ -72,7 +72,7 @@
         - Reason: should scale down by moving Machines to MachineSet ms3 (does not affect availability), surge 1 for MachineSet ms3 converted to scale down for MachineSet ms1 to 0 replicas (-1)
         - Diff: replicas 0
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 1/1 replicas, 1 available, 1 upToDate (m1)
 [MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
@@ -88,7 +88,7 @@
       - Updated old MachineSet ms1
         - Diff: in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset removed
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: from 2/1 to 2/2 replicas, 2 available, 1 upToDate (m1,m2🟢)
       - Scaled up current MachineSet ms3 from 1 to 2 replicas (+1)
         - Reason: acknowledge Machines m2 moved from an old MachineSet, 3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge, surge 1 dropped: rollout blocked, replacing machines is not allowed
@@ -103,7 +103,7 @@
     md: 3/3 replicas, 3 available, 1 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 2/2 replicas, 2 available, 1 upToDate (m1,m2🟢)
       - Updated current MachineSet ms3
         - Diff: in-place-updates.internal.cluster.x-k8s.io/acknowledged-move removed
@@ -118,7 +118,7 @@
     md: 3/3 replicas, 3 available, 2 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 2/2 replicas, 2 available, 2 upToDate (m1,m2)
 [MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
@@ -130,7 +130,7 @@
     md: 3/3 replicas, 3 available, 2 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 2/2 replicas, 2 available, 2 upToDate (m1,m2)
 [MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
@@ -142,7 +142,7 @@
     md: 3/3 replicas, 3 available, 2 upToDate
     ms1: 0/0 replicas, 0 available, 0 upToDate ()
     ms2: 1/1 replicas, 1 available, 0 upToDate (m3)
-      - Rollout blocked, operation not allowed
+      - Rollout blocked, no operations allowed
     ms3: 2/2 replicas, 2 available, 2 upToDate (m1,m2)
 [MS controller] Reconcile ms1
     ms1: 0/0 replicas, 0 available, 0 upToDate ()

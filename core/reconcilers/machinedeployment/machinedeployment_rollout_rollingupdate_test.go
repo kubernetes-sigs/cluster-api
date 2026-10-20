@@ -2068,7 +2068,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			if tc.expectError != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tc.expectError))
-				g.Expect(planner.canUpdateMachineSetResults).To(Equal(tc.expectCanUpdateMachineSetResults), "Unexpected canUpdateMachineSetResults")
+				g.Expect(planner.canUpdateMachineSetResults).To(Equal(tc.expectCanUpdateMachineSetResults))
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred(), "Got unexpected error from reconcileInPlaceUpdateIntent")
@@ -2099,20 +2099,20 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			}
 			g.Expect(planner.notes).To(Equal(tc.expectedNotes), "unexpected notes")
 
-			g.Expect(planner.rolloutDecisionPending).To(Equal(tc.expectRolloutDecisionPending), "Unexpected rolloutDecisionPending")
-			g.Expect(planner.canUpdateMachineSetResults).To(Equal(tc.expectCanUpdateMachineSetResults), "Unexpected canUpdateMachineSetResults")
+			g.Expect(planner.rolloutDecisionPending).To(Equal(tc.expectRolloutDecisionPending))
+			g.Expect(planner.canUpdateMachineSetResults).To(Equal(tc.expectCanUpdateMachineSetResults))
 			if tc.expectPendingRetryAfter == 0 {
-				g.Expect(planner.pendingRetryAfter.IsZero()).To(BeTrue(), "Unexpected pendingRetryAfter")
+				g.Expect(planner.pendingRetryAfter.IsZero()).To(BeTrue())
 			} else {
-				g.Expect(planner.pendingRetryAfter).To(Equal(now.Add(tc.expectPendingRetryAfter)), "Unexpected pendingRetryAfter")
+				g.Expect(planner.pendingRetryAfter).To(Equal(now.Add(tc.expectPendingRetryAfter)))
 			}
 			if tc.expectBlockedRetryAfter == 0 {
-				g.Expect(planner.blockedRetryAfter.IsZero()).To(BeTrue(), "Unexpected blockedRetryAfter")
+				g.Expect(planner.blockedRetryAfter.IsZero()).To(BeTrue())
 			} else {
-				g.Expect(planner.blockedRetryAfter).To(Equal(now.Add(tc.expectBlockedRetryAfter)), "Unexpected blockedRetryAfter")
+				g.Expect(planner.blockedRetryAfter).To(Equal(now.Add(tc.expectBlockedRetryAfter)))
 			}
 
-			g.Expect(planner.blockedMSs.Equal(sets.New(tc.expectBlockedMSs...))).To(BeTrue(), "Unexpected blockedMSs: %v", sets.List(planner.blockedMSs))
+			g.Expect(sets.List(planner.blockedMSs)).To(Equal(sets.List(sets.New(tc.expectBlockedMSs...))))
 		})
 	}
 }
@@ -3008,7 +3008,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 				return func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (canUpdateMachineSetResult, error) {
 					switch oldMS.Name {
 					case "ms1":
-						return canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false}, nil
+						return canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: true}, nil
 					case "ms2":
 						return canUpdateMachineSetResult{
 							canUpdateMachineSet: true,
@@ -3498,4 +3498,52 @@ func getTaskListRollingUpdate(current *rolloutScope) []string {
 	}
 	taskList = append(taskList, fmt.Sprintf("ms%d", len(current.machineSets)+1)) // r the MachineSet that might be created when reconciling md
 	return taskList
+}
+
+func TestRequeueAfter(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name              string
+		pendingRetryAfter time.Time
+		blockedRetryAfter time.Time
+		want              time.Duration
+	}{
+		{
+			name: "Do not requeue if the rollout is neither pending nor blocked",
+			want: 0,
+		},
+		{
+			name:              "Requeue when the pending cached result expires",
+			pendingRetryAfter: now.Add(3 * time.Minute),
+			want:              3 * time.Minute,
+		},
+		{
+			name:              "Requeue when the blocked cached result expires",
+			blockedRetryAfter: now.Add(2 * time.Minute),
+			want:              2 * time.Minute,
+		},
+		{
+			name:              "Requeue after the pending retryAfter if the rollout is pending and blocked (blocked is re-evaluated when the rollout is unpaused)",
+			pendingRetryAfter: now.Add(3 * time.Minute),
+			blockedRetryAfter: now.Add(1 * time.Minute),
+			want:              3 * time.Minute,
+		},
+		{
+			name:              "Requeue after at least 1s if the cached result already expired",
+			pendingRetryAfter: now.Add(-1 * time.Minute),
+			want:              time.Second,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			p := &rolloutPlanner{
+				pendingRetryAfter: tt.pendingRetryAfter,
+				blockedRetryAfter: tt.blockedRetryAfter,
+				overrideNowFunc:   func() time.Time { return now },
+			}
+			g.Expect(p.requeueAfter()).To(Equal(tt.want))
+		})
+	}
 }

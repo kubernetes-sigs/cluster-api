@@ -12,3 +12,12 @@ CVE-2026-78662
 CVE-2026-78669
 CVE-2026-78663
 CVE-2026-97032
+
+# These golang.org/x/net vulnerabilities (GO-2026-6603 and GO-2026-6610 in
+# govulncheck) are fixed in 0.60.0, but that requires go 1.26.0.
+# CVE-2026-78659 affects the HTTP/2 server, which CAPI does not use.
+# CVE-2026-78660 affects the HTTP/2 client and can only be triggered by a
+# malicious server, which is not reasonable to defend against.
+# Also see .govuln_exclude.
+CVE-2026-78659
+CVE-2026-78660

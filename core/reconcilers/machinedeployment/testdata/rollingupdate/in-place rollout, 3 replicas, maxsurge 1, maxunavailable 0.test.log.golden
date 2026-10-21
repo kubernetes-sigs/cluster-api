@@ -22,7 +22,7 @@
     ms2: 0/1 replicas, 0 available, 0 upToDate ()
       - MachineSet ms2 created, it is now the current MachineSet
       - Scaled up current MachineSet ms2 from 0 to 1 replicas (+1)
-        - Reason: 3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge, surge 1 allowed to create availability for in-place updates
+        - Reason: MachineSet ms1 can rollout in place affecting availability, maxSurge limit set to 1 for ms2, 3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge
 [MS controller] Reconcile ms1
     ms1: 3/3 replicas, 3 available, 0 upToDate (m1,m2,m3)
 [MS controller] Reconcile ms2
@@ -32,7 +32,7 @@
     md: 4/3 replicas, 4 available, 1 upToDate
     ms1: from 3/3 to 3/2 replicas, 3 available, 0 upToDate (m1,m2,m3)
       - Scaled down old MachineSet ms1 from 3 to 2 replicas (-1)
-        - Reason: 4 available replicas > 3 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (affects availability)
+        - Reason: should scale down by moving Machines to MachineSet ms2 (affects availability), 4 available replicas > 3 minimum available replicas
         - Diff: replicas 2
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
 [MS controller] Reconcile ms1
@@ -46,7 +46,7 @@
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
     ms2: from 2/1 to 2/2 replicas, 1 available, 1 upToDate (m1🟡,m4)
       - Scaled up current MachineSet ms2 from 1 to 2 replicas (+1)
-        - Reason: acknowledge Machines m1 moved from an old MachineSet
+        - Reason: acknowledge Machines m1 moved from an old MachineSet, MachineSet ms1 can rollout in place affecting availability, maxSurge limit set to 1 for ms2
         - Diff: replicas 2,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m1
 [MS controller] Reconcile ms1
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
@@ -67,7 +67,7 @@
     md: 4/3 replicas, 4 available, 2 upToDate
     ms1: from 2/2 to 2/1 replicas, 2 available, 0 upToDate (m2,m3)
       - Scaled down old MachineSet ms1 from 2 to 1 replicas (-1)
-        - Reason: 4 available replicas > 3 minimum available replicas, should scale down by moving Machines to MachineSet ms2 (affects availability)
+        - Reason: should scale down by moving Machines to MachineSet ms2 (affects availability), 4 available replicas > 3 minimum available replicas
         - Diff: replicas 1
     ms2: 2/2 replicas, 2 available, 2 upToDate (m1,m4)
 [MS controller] Reconcile ms1

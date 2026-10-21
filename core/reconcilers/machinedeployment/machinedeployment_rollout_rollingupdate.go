@@ -38,6 +38,20 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
+type oldMSRolloutDecision string
+
+const (
+	// oldMSRolloutPendingDecision means that the extension asked to be called again later before taking a decision.
+	oldMSRolloutPendingDecision oldMSRolloutDecision = "Pending"
+	// oldMSRolloutUpdateInPlaceDecision means that Machines are going to be moved to the newMS and updated in-place.
+	oldMSRolloutUpdateInPlaceDecision oldMSRolloutDecision = "UpdateInPlace"
+	// oldMSRolloutReplaceDecision means that Machines are going to be replaced.
+	// Note: This decision also applies when in-place update is possible but not allowed or when in-place update is not possible (fallback).
+	oldMSRolloutReplaceDecision oldMSRolloutDecision = "Replace"
+	// oldMSRolloutBlockedDecision means that the extension does not allow any operation that can roll out the changes; as a consequence, the rollout is blocked.
+	oldMSRolloutBlockedDecision oldMSRolloutDecision = "Blocked"
+)
+
 // rolloutRollingUpdate reconcile machine sets controlled by a MachineDeployment that is using the RolloutUpdate strategy.
 // Note: The returned result requests a requeue when the rollout is paused waiting for an answer from the CanUpdateMachineSet extension,
 // or blocked because the extension does not allow any operation that can roll out changes.
@@ -83,6 +97,11 @@ func (p *rolloutPlanner) planRollingUpdate(ctx context.Context) error {
 	// Adjust the replica count for the newMS after a move operation has been completed.
 	p.reconcileReplicasPendingAcknowledgeMove(ctx)
 
+	// Perform the can update MachineSet decision.
+	if err := p.canUpdateMachineSetInPlaceDecisions(ctx); err != nil {
+		return err
+	}
+
 	// Scale up, if we can.
 	if err := p.reconcileNewMachineSet(ctx); err != nil {
 		return err
@@ -90,11 +109,6 @@ func (p *rolloutPlanner) planRollingUpdate(ctx context.Context) error {
 
 	// Scale down, if we can.
 	if err := p.reconcileOldMachineSetsRollingUpdate(ctx); err != nil {
-		return err
-	}
-
-	// Ensures CAPI rolls out changes by performing in-place updates whenever possible.
-	if err := p.reconcileInPlaceUpdateIntent(ctx); err != nil {
 		return err
 	}
 
@@ -191,6 +205,91 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 	}
 }
 
+// canUpdateMachineSetInPlaceDecisions call the extensions registered for the canUdateMachineSet and
+// perform the decision about how to rollout changes for each one of the OldMs.
+// Note: If the InPlaceUpdates feature gate is off, this method is a no-op.
+func (p *rolloutPlanner) canUpdateMachineSetInPlaceDecisions(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
+		return nil
+	}
+
+	// If new MS already has all desired replicas, it does not make sense to perform more in-place updates.
+	if ptr.Deref(p.newMS.Spec.Replicas, 0) >= ptr.Deref(p.md.Spec.Replicas, 0) {
+		return nil
+	}
+
+	// Determine the rollout decision for each oldMS.
+	p.pendingMSs = sets.Set[string]{}
+	p.blockedMSs = sets.Set[string]{}
+	p.inPlaceUpdateCandidates = sets.Set[string]{}
+	p.inPlaceUpdateCandidatesNotAffectingAvailability = sets.Set[string]{}
+	p.replaceCandidates = sets.Set[string]{}
+	for _, oldMS := range p.oldMSs {
+		// If the oldMS doesn't have replicas anymore, nothing left to do.
+		if ptr.Deref(oldMS.Status.Replicas, 0) <= 0 {
+			continue
+		}
+
+		// If the oldMS is not eligible for in-place updates, changes can be rolled out only by replacing machines.
+		// Note: The extension is not called in this case, so it cannot block the rollout.
+		if result, ok := p.upToDateResults[oldMS.Name]; !ok || !result.EligibleForInPlaceUpdate {
+			p.replaceCandidates.Insert(oldMS.Name)
+			continue
+		}
+
+		// Check if the MachineSet can update in place and which operations are allowed.
+		res, err := p.canUpdateMachineSetInPlace(ctx, oldMS, p.newMS)
+		if err != nil {
+			// Note: internalErrorMessage is only set if calling the extensions failed, other errors are not caused by the hook.
+			if res.internalErrorMessage != "" {
+				p.canUpdateMachineSetResults.internalErrorMessage = canUpdateMachineSetHookMessage(oldMS, res.internalErrorMessage)
+			}
+			return pkgerrors.Wrapf(err, "failed to determine if MachineSet %s can be updated in-place", oldMS.Name)
+		}
+		decision := rolloutDecision(res)
+		log.V(5).Info(fmt.Sprintf("CanUpdate decision for MachineSet %s: %s, can update in-place: %t, affects availability: %t", klog.KObj(oldMS), decision, res.canUpdateMachineSet, res.affectsAvailability), "MachineSet", klog.KObj(oldMS))
+
+		switch decision {
+		case oldMSRolloutPendingDecision:
+			p.pendingMSs.Insert(oldMS.Name)
+			// Note: The rollout stays paused until all the pending oldMSs get a decision, and cached pending results are used until
+			// their retryAfter, so the pause cannot be lifted before the latest retryAfter.
+			if res.retryAfter.After(p.pendingRetryAfter) {
+				p.pendingRetryAfter = res.retryAfter
+			}
+			p.canUpdateMachineSetResults.waitingForDecisionMessages = append(p.canUpdateMachineSetResults.waitingForDecisionMessages, canUpdateMachineSetHookMessage(oldMS, strings.Join(res.messages, ", ")))
+			p.addNotef(oldMS, "rollout paused, waiting for the extension to take a decision about how to roll out changes (retry after %s)", res.retryAfter.Sub(p.now()).Truncate(time.Second))
+		case oldMSRolloutBlockedDecision:
+			p.blockedMSs.Insert(oldMS.Name)
+			// Note: Blocked oldMSs are re-evaluated independently, so we have to reconcile when the first cached result expires.
+			if p.blockedRetryAfter.IsZero() || res.retryAfter.Before(p.blockedRetryAfter) {
+				p.blockedRetryAfter = res.retryAfter
+			}
+			msg := blockedMessage(res)
+			p.canUpdateMachineSetResults.rolloutBlockedMessages = append(p.canUpdateMachineSetResults.rolloutBlockedMessages, canUpdateMachineSetHookMessage(oldMS, msg))
+			p.addNotef(oldMS, "rollout blocked, %s", msg)
+			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be rolled out: rollout is blocked by CanUpdateMachineSet hook: %s", klog.KObj(oldMS), msg), "MachineSet", klog.KObj(oldMS))
+		case oldMSRolloutReplaceDecision:
+			p.replaceCandidates.Insert(oldMS.Name)
+			if res.canUpdateMachineSet {
+				p.addNotef(oldMS, "in-place update is possible but not allowed, falling back to replace machines")
+			}
+		case oldMSRolloutUpdateInPlaceDecision:
+			p.inPlaceUpdateCandidates.Insert(oldMS.Name)
+			if res.affectsAvailability {
+				p.addNotef(oldMS, "should scale down by moving Machines to MachineSet %s (affects availability)", p.newMS.Name)
+			} else {
+				p.inPlaceUpdateCandidatesNotAffectingAvailability.Insert(oldMS.Name)
+				p.addNotef(oldMS, "should scale down by moving Machines to MachineSet %s (does not affect availability)", p.newMS.Name)
+			}
+			// Note: The annotations triggering the move are set by reconcileOldMachineSetsRollingUpdate, only if the rollout is not paused.
+		}
+	}
+	return nil
+}
+
 // reconcileNewMachineSet reconciles the replica number for the new MS.
 // Note: In case of scale down this function does not consider the possible impact on availability.
 // This is considered acceptable because historically it never led to any problem, but we might revisit this in the future
@@ -221,7 +320,30 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 		return nil
 	}
 
-	newReplicasCount, note, err := mdutil.NewMSNewReplicas(p.md, allMSs, *p.newMS.Spec.Replicas)
+	// Note: If the InPlaceUpdates feature gate is off, maxSurgeLimit will not be set and NewMSNewReplicas will
+	// use maxSurge as usual when necessary.
+	// Note: maxSurge is also used at its fullest extent when there are only replaceCandidates (no pendingMS, no inPlaceUpdateCandidates).
+	// Note: scale up/down due to changes to MachineDeployment spec.replicas still happen.
+	var maxSurgeLimit *int
+	switch {
+	case p.pendingMSs.Len() > 0:
+		maxSurgeLimit = new(0)
+		p.addNotef(p.newMS, "Rollout paused for MachineSet %s, maxSurge cannot be used for %s", sortAndJoin(p.pendingMSs.UnsortedList()), p.newMS.Name)
+	case p.replaceCandidates.Len() == 0 && p.inPlaceUpdateCandidates.Len() == 0 && p.blockedMSs.Len() > 0: // everything is blocked
+		maxSurgeLimit = new(0)
+		p.addNotef(p.newMS, "Rollout blocked for MachineSet %s, maxSurge cannot be used for %s", sortAndJoin(p.blockedMSs.UnsortedList()), p.newMS.Name)
+	case p.inPlaceUpdateCandidatesNotAffectingAvailability.Len() > 0:
+		maxSurgeLimit = new(0)
+		p.addNotef(p.newMS, "MachineSet %s can rollout in place without affecting availability, maxSurge is not required for %s", sortAndJoin(p.inPlaceUpdateCandidatesNotAffectingAvailability.UnsortedList()), p.newMS.Name)
+	case p.inPlaceUpdateCandidates.Len() > 0 && mdutil.MaxUnavailable(*p.md) > 0:
+		maxSurgeLimit = new(0)
+		p.addNotef(p.newMS, "MachineSet %s can rollout in place affecting availability, maxUnavailable is greater than zero, maxSurge is not required for %s", sortAndJoin(p.inPlaceUpdateCandidates.UnsortedList()), p.newMS.Name)
+	case p.inPlaceUpdateCandidates.Len() > 0 && mdutil.MaxUnavailable(*p.md) == 0:
+		p.addNotef(p.newMS, "MachineSet %s can rollout in place affecting availability, maxSurge limit set to 1 for %s", sortAndJoin(p.inPlaceUpdateCandidates.UnsortedList()), p.newMS.Name)
+		maxSurgeLimit = new(1)
+	}
+
+	newReplicasCount, note, err := mdutil.NewMSNewReplicas(p.md, allMSs, *p.newMS.Spec.Replicas, maxSurgeLimit)
 	if err != nil {
 		return err
 	}
@@ -241,8 +363,28 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 	return nil
 }
 
+// reconcileOldMachineSetsRollingUpdate computes the scale down intents for the oldMSs, oldest first, without breaching
+// the MaxUnavailable limits of the MachineDeployment.
 func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
 	allMSs := append(p.oldMSs, p.newMS)
+
+	// If at least one oldMS is waiting for a decision from the extension, pause the rollout.
+	// Note: If the InPlaceUpdates feature gate is off, pendingMSs will always be empty.
+	if p.pendingMSs.Len() > 0 {
+		// Note: scale down due to changes to MachineDeployment spec.replicas still happen.
+		p.scaleDownExcessReplicas(ctx)
+		return nil
+	}
+
+	// Set annotations so oldMSs for which the decision was UpdateInPlace are informed that they have to move machines to the newMS;
+	// Also set the annotation on the newMS so it is ready to accept those replicas.
+	// Note: This must happen before the check below, because an oldMS can have spec.replicas 0 and still have Machines to be moved,
+	// and the annotation must stay in place until the move is completed.
+	// Note: If the InPlaceUpdates feature gate is off, this method is a no-op.
+	if err := p.setMoveMachinesAnnotations(); err != nil {
+		return err
+	}
 
 	// no op if there are no replicas on old machinesets
 	if mdutil.GetReplicaCountForMachineSets(p.oldMSs) == 0 {
@@ -303,11 +445,39 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 	// if necessary, it will reduce the extent of the scale down accordingly.
 	totalScaleDownCount := max(totalSpecReplicas-totalPendingScaleDown-totalInPlaceUpdatingNotAffectingAvailability-minAvailable-newMSUnavailableMachineCount, 0)
 	if totalScaleDownCount <= 0 {
+		// If there is room for scaling down, but there are inPlaceUpdateCandidatesNotAffectingAvailability, and no scale down is in progress,
+		// scale down by one.
+		// Note: If the InPlaceUpdates feature gate is off, inPlaceUpdateCandidatesNotAffectingAvailability will always be empty.
+		if p.inPlaceUpdateCandidatesNotAffectingAvailability.Len() > 0 && totalInPlaceUpdatingNotAffectingAvailability == 0 && totalPendingScaleDown == 0 {
+			// Scale down one of the oldMS candidate for in-place update and that can perform an update without affecting availability.
+			// Sort oldMSs so the system will start moving machines from the oldest MS first.
+			candidates := make([]*clusterv1.MachineSet, 0, p.inPlaceUpdateCandidatesNotAffectingAvailability.Len())
+			for _, oldMS := range p.oldMSs {
+				if p.inPlaceUpdateCandidatesNotAffectingAvailability.Has(oldMS.Name) {
+					candidates = append(candidates, oldMS)
+				}
+			}
+			sort.Sort(mdutil.MachineSetsByCreationTimestamp(candidates))
+			oldMS := candidates[0]
+
+			newScaleDownIntentOldMS := max(p.replicasAfterScaleIntent(oldMS)-1, 0)
+			p.addNotef(oldMS, "scale down for MachineSet %s to %d replicas (-%d) allowed for in place update not affecting availability", oldMS.Name, newScaleDownIntentOldMS, 1)
+			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleDownIntentOldMS, 1), "MachineSet", klog.KObj(oldMS))
+			p.scaleIntents[oldMS.Name] = newScaleDownIntentOldMS
+		}
 		return nil
 	}
 
-	// Sort oldMSs so the system will start deleting from the oldest MS first.
-	sort.Sort(mdutil.MachineSetsByCreationTimestamp(p.oldMSs))
+	// Do not scale down the oldMSs for which the canUpdateMachineSet decision is to block the rollout.
+	scaleDownCandidates := make([]*clusterv1.MachineSet, 0, len(p.oldMSs))
+	for _, oldMS := range p.oldMSs {
+		if !p.blockedMSs.Has(oldMS.Name) {
+			scaleDownCandidates = append(scaleDownCandidates, oldMS)
+		}
+	}
+
+	// Sort candidates so the system will start deleting from the oldest MS first.
+	sort.Sort(mdutil.MachineSetsByCreationTimestamp(scaleDownCandidates))
 
 	// Scale down only unavailable replicas / up to residual totalScaleDownCount.
 	// NOTE: The system must scale down unavailable replicas first in order to increase chances for the rollout to progress.
@@ -326,31 +496,104 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 	// In the example above, the scaleDownOldMSs should not scale down OldMS from 3->2 replicas.
 	// In other use cases, e.g. when scaling down an oldMS from 5->3 replicas, the scaleDownOldMSs should limit scale down extent
 	// only partially if this doesn't breach MaxUnavailable (e.g. scale down 5->4 instead of 5->3).
-	totalScaleDownCount, totalAvailableReplicas = p.scaleDownOldMSs(ctx, totalScaleDownCount, totalAvailableReplicas, minAvailable, true)
+	totalScaleDownCount, totalAvailableReplicas = p.scaleDownOldMSs(ctx, scaleDownCandidates, totalScaleDownCount, totalAvailableReplicas, minAvailable, true)
 
 	// Then scale down old MS down to zero replicas / down to residual totalScaleDownCount.
 	// NOTE: Also in this case, we should continuously assess if reducing the number of replicase could further impact availability,
 	// and if necessary, limit scale down extent to ensure the operation respects MaxUnavailable limits.
-	_, _ = p.scaleDownOldMSs(ctx, totalScaleDownCount, totalAvailableReplicas, minAvailable, false)
+	_, _ = p.scaleDownOldMSs(ctx, scaleDownCandidates, totalScaleDownCount, totalAvailableReplicas, minAvailable, false)
 
 	return nil
 }
 
-func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, totalScaleDownCount, totalAvailableReplicas, minAvailable int32, scaleDownOnlyUnavailableReplicas bool) (int32, int32) {
+// setMoveMachinesAnnotations informing the oldMS that it must move machines to the newMS, and the newMS to accept those replicas.
+// Note: Cleanup of the move annotations will happen automatically as soon as the rollout planner stops
+// to set them, because move annotations are not part of the output of computeDesiredMS.
+// Note: If the InPlaceUpdates feature gate is off, this method is a no-op.
+func (p *rolloutPlanner) setMoveMachinesAnnotations() error {
+	for _, oldMS := range p.oldMSs {
+		if !p.inPlaceUpdateCandidates.Has(oldMS.Name) {
+			continue
+		}
+
+		// Set the annotation informing the oldMS that it must move machines to the newMS instead of deleting them.
+		// Note: After a machine is moved from oldMS to newMS, the newMS will take care of the in-place update process.
+		affectsAvailability := !p.inPlaceUpdateCandidatesNotAffectingAvailability.Has(oldMS.Name)
+		if oldMS.Annotations == nil {
+			oldMS.Annotations = map[string]string{}
+		}
+		moveMachinesToMachineSetAnnotationData := clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{
+			Name:                p.newMS.Name,
+			AffectsAvailability: new(affectsAvailability),
+		}
+		dataBytes, err := json.Marshal(moveMachinesToMachineSetAnnotationData)
+		if err != nil {
+			return pkgerrors.Wrapf(err, "failed to trigger in-place update for MachineSet %s by setting the %s annotation: failed to Marshal data", klog.KObj(oldMS), clusterv1.MachineSetMoveMachinesToMachineSetAnnotation)
+		}
+		oldMS.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] = string(dataBytes)
+	}
+
+	// Set the annotation informing the newMS that it will receive replicas moved from oldMS selected as in-place candidates.
+	// Note: there is a two-ways check before the move operation:
+	if p.inPlaceUpdateCandidates.Len() > 0 {
+		if p.newMS.Annotations == nil {
+			p.newMS.Annotations = map[string]string{}
+		}
+		p.newMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] = sortAndJoin(p.inPlaceUpdateCandidates.UnsortedList())
+	}
+	return nil
+}
+
+// scaleDownExcessReplicas sets the scale down intent for the oldMSs, oldest first, when the MachineSets have more replicas
+// than MachineDeployment spec.replicas.
+// Note: This is a plain scale down, so Machines are deleted: it does not depend on the CanUpdateMachineSet decisions and,
+// like the scale down of the newMS in reconcileNewMachineSet, it does not consider minAvailable because it is requested by the user.
+func (p *rolloutPlanner) scaleDownExcessReplicas(ctx context.Context) {
 	log := ctrl.LoggerFrom(ctx)
 
+	mdReplicas := ptr.Deref(p.md.Spec.Replicas, 0)
+	maxSurge := mdutil.MaxSurge(*p.md)
+
+	// Note: Replicas are computed after applying the intents already set in this reconcile, e.g. newMS scale down.
+	totalReplicas := p.replicasAfterScaleIntent(p.newMS)
 	for _, oldMS := range p.oldMSs {
+		totalReplicas += p.replicasAfterScaleIntent(oldMS)
+	}
+
+	excessReplicas := totalReplicas - (mdReplicas + maxSurge)
+	if excessReplicas <= 0 {
+		return
+	}
+
+	sort.Sort(mdutil.MachineSetsByCreationTimestamp(p.oldMSs))
+	for _, oldMS := range p.oldMSs {
+		if excessReplicas <= 0 {
+			break
+		}
+		replicas := p.replicasAfterScaleIntent(oldMS)
+		scaleDown := min(replicas, excessReplicas)
+		if scaleDown <= 0 {
+			continue
+		}
+		p.scaleIntents[oldMS.Name] = replicas - scaleDown
+		excessReplicas -= scaleDown
+		p.addNotef(oldMS, "%d current Machines > %d MachineDeployment spec.replicas + %d maxSurge", totalReplicas, mdReplicas, maxSurge)
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), replicas-scaleDown, scaleDown), "MachineSet", klog.KObj(oldMS))
+	}
+}
+
+// scaleDownOldMSs sets the scale down intent for the given oldMSs, in order, up to totalScaleDownCount replicas.
+func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, oldMSs []*clusterv1.MachineSet, totalScaleDownCount, totalAvailableReplicas, minAvailable int32, scaleDownOnlyUnavailableReplicas bool) (int32, int32) {
+	log := ctrl.LoggerFrom(ctx)
+
+	for _, oldMS := range oldMSs {
 		// No op if there is no scaling down left.
 		if totalScaleDownCount <= 0 {
 			break
 		}
 
-		replicas := ptr.Deref(oldMS.Spec.Replicas, 0)
-		if v, ok := p.scaleIntents[oldMS.Name]; ok {
-			replicas = v
-		}
-
 		// No op if this MS has been already scaled down to zero.
+		replicas := p.replicasAfterScaleIntent(oldMS)
 		if replicas <= 0 {
 			continue
 		}
@@ -439,427 +682,6 @@ func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, totalScaleDownCoun
 	return totalScaleDownCount, totalAvailableReplicas
 }
 
-// oldMSRolloutDecision is the decision about how to roll out changes for the Machines of an oldMS.
-type oldMSRolloutDecision string
-
-const (
-	// oldMSRolloutPendingDecision means that the extension asked to be called again later before taking a decision.
-	oldMSRolloutPendingDecision oldMSRolloutDecision = "Pending"
-	// oldMSRolloutUpdateInPlaceDecision means that Machines are going to be moved to the newMS and updated in-place.
-	oldMSRolloutUpdateInPlaceDecision oldMSRolloutDecision = "UpdateInPlace"
-	// oldMSRolloutReplaceDecision means that Machines are going to be replaced.
-	// Note: This decision also applies when in-place update is possible but not allowed or when in-place update is not possible (fallback).
-	oldMSRolloutReplaceDecision oldMSRolloutDecision = "Replace"
-	// oldMSRolloutBlockedDecision means that the extension does not allow any operation that can roll out the changes; as a consequence, the rollout is blocked.
-	oldMSRolloutBlockedDecision oldMSRolloutDecision = "Blocked"
-)
-
-// rolloutDecision returns how to roll out changes for the oldMS, considering that allowedOperations is orthogonal to
-// the fact that the extension can cover the entire diff with patches.
-func rolloutDecision(r canUpdateMachineSetResult) oldMSRolloutDecision {
-	switch {
-	case r.retryAfterFromExtension:
-		return oldMSRolloutPendingDecision
-	case r.canUpdateMachineSet && isOperationAllowed(r.allowedOperations, runtimehooksv1.MachineUpdateOperationUpdateInPlace):
-		return oldMSRolloutUpdateInPlaceDecision
-	case isOperationAllowed(r.allowedOperations, runtimehooksv1.MachineUpdateOperationReplace):
-		return oldMSRolloutReplaceDecision
-	default:
-		return oldMSRolloutBlockedDecision
-	}
-}
-
-// reconcileInPlaceUpdateIntent ensures CAPI rolls out changes by performing in-place updates whenever possible,
-// and it enforces the binding opinion of the CanUpdateMachineSet extension about how to roll out changes.
-//
-// When calling this func, new and old MS already have their scale intent, which was computed under the assumption that
-// rollout is going to happen by delete/re-create, and thus it will impact availability.
-//
-// By default in-place updates are assumed to impact availability because the system must account
-// for scenarios when the operation fails, leading to remediation of the machine/unavailability.
-//
-// First, this func determines a decision for each oldMS with replicas:
-//   - Pending: the extension asked to be called again later.
-//   - UpdateInPlace: in-place update operation is possible and allowed; the oldMS moves Machines to the newMS instead of deleting them.
-//   - Replace: in-place update operation is not possible or not allowed, and replace operation is allowed (also as a fallback).
-//   - Blocked: no allowed operation can roll out changes; the scale intent for the oldMS is dropped.
-//
-// Then:
-//   - If at least one decision is Pending, the entire rollout is paused because it is not possible to plan how to optimize for in-place
-//     without all the answers.
-//     As a consequence: scale intents of all the oldMSs and the part of the scale up
-//     intent of the newMS that uses maxSurge are dropped. Scale up/down of the newMS due to changes to md.spec.replicas are preserved.
-//     Note: OldMSs with an InPlaceUpdate decision still get the move annotations, so moves that are already in progress are not
-//     turned into deletions.
-//   - The newMS has no CanUpdateMachineSet answer, so the usage of maxSurge is attributed to the operations performed on the oldMSs:
-//     if at least one oldMS is going to be updated in-place maxSurge is considered part of the in-place update operation,
-//     and this is consistent with the requirement to prioritize in-place when possible;
-//     otherwise, if no OldMS is going to be updated in-place and at least one oldMS is replacing machines (including fallbacks from in-place)
-//     maxSurge is considered part of the replace operation; if all the oldMSs are blocked, maxSurge is blocked as well.
-//
-// Note:
-//   - This function can rely on scale intent previously computed, and in the case in-place update is possible,
-//     influence how scale down on oldMS is performed.
-//   - In case of update in-place, creation of additional machines due to maxSurge is capped to 1 or entirely dropped because
-//     rollout planner must give priority to in-place when possible.
-//     More specifically, using one slot for maxSurge is required to create an additional machine at the
-//     beginning of an in-place upgrade unless MaxUnavailable >= 1 (the MD configuration allows introducing unavailability)
-//     or the runtime extension declares that it can perform the in-place update without affecting availability.
-//   - Creation of new machines due to scale up goes through as usual.
-//
-// Warning! When the runtime extension declares that it can perform the in-place update without affecting availability,
-// then Cluster API does not provide the safety net that is provided by creating additional machines.
-// In case of problems during such in-place updates, user workloads might be impacted and/or disrupted.
-func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error {
-	log := ctrl.LoggerFrom(ctx)
-
-	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
-		return nil
-	}
-
-	// If new MS already has all desired replicas, it does not make sense to perform more in-place updates.
-	if ptr.Deref(p.newMS.Spec.Replicas, 0) >= ptr.Deref(p.md.Spec.Replicas, 0) {
-		return nil
-	}
-
-	// Determine the rollout decision for each oldMS.
-	inPlaceUpdateCandidates := sets.Set[string]{}
-	inPlaceUpdateCandidatesNotAffectingAvailability := []*clusterv1.MachineSet{}
-	replaceOperationMSs := []*clusterv1.MachineSet{}
-	for _, oldMS := range p.oldMSs {
-		// If the oldMS doesn't have replicas anymore, nothing left to do.
-		if ptr.Deref(oldMS.Status.Replicas, 0) <= 0 {
-			continue
-		}
-
-		// If the oldMS is not eligible for in-place updates, changes can be rolled out only by replacing machines.
-		// Note: The extension is not called in this case, so it cannot block the rollout.
-		if result, ok := p.upToDateResults[oldMS.Name]; !ok || !result.EligibleForInPlaceUpdate {
-			replaceOperationMSs = append(replaceOperationMSs, oldMS)
-			continue
-		}
-
-		// Check if the MachineSet can update in place and which operations are allowed.
-		res, err := p.canUpdateMachineSetInPlace(ctx, oldMS, p.newMS)
-		if err != nil {
-			// Note: internalErrorMessage is only set if calling the extensions failed, other errors are not caused by the hook.
-			if res.internalErrorMessage != "" {
-				p.canUpdateMachineSetResults.internalErrorMessage = canUpdateMachineSetHookMessage(oldMS, res.internalErrorMessage)
-			}
-			return pkgerrors.Wrapf(err, "failed to determine if MachineSet %s can be updated in-place", oldMS.Name)
-		}
-		decision := rolloutDecision(res)
-		log.V(5).Info(fmt.Sprintf("CanUpdate decision for MachineSet %s: %s, can update in-place: %t, affects availability: %t", klog.KObj(oldMS), decision, res.canUpdateMachineSet, res.affectsAvailability), "MachineSet", klog.KObj(oldMS))
-
-		switch decision {
-		case oldMSRolloutPendingDecision:
-			p.rolloutDecisionPending = true
-			// Note: The rollout stays paused until all the pending oldMSs get a decision, and cached pending results are used until
-			// their retryAfter, so the pause cannot be lifted before the latest retryAfter.
-			if res.retryAfter.After(p.pendingRetryAfter) {
-				p.pendingRetryAfter = res.retryAfter
-			}
-			p.canUpdateMachineSetResults.waitingForDecisionMessages = append(p.canUpdateMachineSetResults.waitingForDecisionMessages, canUpdateMachineSetHookMessage(oldMS, strings.Join(res.messages, ", ")))
-			p.addNotef(oldMS, "rollout paused, waiting for the extension to take a decision about how to roll out changes (retry after %s)", res.retryAfter.Sub(p.now()).Truncate(time.Second))
-		case oldMSRolloutBlockedDecision:
-			if p.blockedMSs == nil {
-				p.blockedMSs = sets.Set[string]{}
-			}
-			p.blockedMSs.Insert(oldMS.Name)
-			// Note: Blocked oldMSs are re-evaluated independently, so we have to reconcile when the first cached result expires.
-			if p.blockedRetryAfter.IsZero() || res.retryAfter.Before(p.blockedRetryAfter) {
-				p.blockedRetryAfter = res.retryAfter
-			}
-			// Note: The decision is only blocked if the Replace operation is not allowed.
-			var msg string
-			if !isOperationAllowed(res.allowedOperations, runtimehooksv1.MachineUpdateOperationUpdateInPlace) {
-				msg = "neither replace nor in-place update operations are allowed"
-			} else {
-				msg = "replace operation is not allowed"
-				// Note: In MD, affecting availability never blocks the rollout, it only affects the decision if
-				// maxSurge should be used or converted to a scale down (see below in this func).
-				if !res.canUpdateMachineSet {
-					msg += " and not all changes can be updated in-place"
-				}
-			}
-			if len(res.messages) > 0 {
-				msg += fmt.Sprintf(": %s", strings.Join(res.messages, ", "))
-			}
-			p.canUpdateMachineSetResults.rolloutBlockedMessages = append(p.canUpdateMachineSetResults.rolloutBlockedMessages, canUpdateMachineSetHookMessage(oldMS, msg))
-			p.addNotef(oldMS, "rollout blocked, %s", msg)
-			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be rolled out: rollout is blocked by CanUpdateMachineSet hook: %s", klog.KObj(oldMS), msg), "MachineSet", klog.KObj(oldMS))
-		case oldMSRolloutReplaceDecision:
-			replaceOperationMSs = append(replaceOperationMSs, oldMS)
-			if res.canUpdateMachineSet {
-				p.addNotef(oldMS, "in-place update is possible but not allowed, falling back to replace machines")
-			}
-		case oldMSRolloutUpdateInPlaceDecision:
-			// Set the annotation informing the oldMS that it must move machines to the newMS instead of deleting them.
-			// Note: After a machine is moved from oldMS to newMS, the newMS will take care of the in-place update process.
-			// Note: Cleanup of the MachineSetMoveMachinesToMachineSetAnnotation will happen automatically as soon as the rollout planner stops
-			// to set it, because this annotation is not part of the output of computeDesiredMS
-			// (same applies to newMS, so annotation will always be removed from newMS).
-			// Note: The annotation is set also when the rollout is paused (pending decision for another oldMS), so
-			// scale downs already in progress keep moving Machines instead of deleting them.
-			if oldMS.Annotations == nil {
-				oldMS.Annotations = map[string]string{}
-			}
-
-			moveMachinesToMachineSetAnnotationData := clusterv1.MachineSetMoveMachinesToMachineSetAnnotationData{
-				Name:                p.newMS.Name,
-				AffectsAvailability: new(res.affectsAvailability),
-			}
-			if res.affectsAvailability {
-				p.addNotef(oldMS, "should scale down by moving Machines to MachineSet %s (affects availability)", p.newMS.Name)
-			} else {
-				inPlaceUpdateCandidatesNotAffectingAvailability = append(inPlaceUpdateCandidatesNotAffectingAvailability, oldMS)
-				p.addNotef(oldMS, "should scale down by moving Machines to MachineSet %s (does not affect availability)", p.newMS.Name)
-			}
-			dataBytes, err := json.Marshal(moveMachinesToMachineSetAnnotationData)
-			if err != nil {
-				return pkgerrors.Wrapf(err, "failed to trigger in-place update for MachineSet %s by setting the %s annotation: failed to Marshal data", klog.KObj(oldMS), clusterv1.MachineSetMoveMachinesToMachineSetAnnotation)
-			}
-			oldMS.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] = string(dataBytes)
-			inPlaceUpdateCandidates.Insert(oldMS.Name)
-		}
-	}
-
-	// Set the annotation informing the newMS that it will receive replicas moved from oldMS selected as in-place candidates.
-	// Note: there is a two-ways check before the move operation:
-	// 	"oldMS must have: move to newMS" and "newMS must have: accept replicas from oldMS"
-	// Note: Cleanup of the MachineSetReceiveMachinesFromMachineSetsAnnotation will happen automatically as soon as the rollout planner stops
-	// to set it, because this annotation is not part of the output of computeDesiredMS
-	// (same applies to oldMS, so annotation will always be removed from oldMS).
-	if inPlaceUpdateCandidates.Len() > 0 {
-		if p.newMS.Annotations == nil {
-			p.newMS.Annotations = map[string]string{}
-		}
-		p.newMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] = sortAndJoin(inPlaceUpdateCandidates.UnsortedList())
-	}
-
-	// Compute how much of the scale up intent of the newMS is using maxSurge.
-	// Note: This must happen before dropping scale intents of oldMSs, because the computation is based on the intents set so far.
-	scaleUpCount, maxSurgeUsed := p.newMSMaxSurgeUsed()
-
-	// If at least one oldMS is waiting for a decision from the extension, pause the rollout.
-	// Pausing the rollout implies dropping scale down intent from oldMSs and dropping maxSurge for the newMS scale up intent (scale up for other reasons is preserved).
-	if p.rolloutDecisionPending {
-		for _, oldMS := range p.oldMSs {
-			if _, ok := p.scaleIntents[oldMS.Name]; ok {
-				log.V(5).Info(fmt.Sprintf("Dropping scale intent for MachineSet %s while waiting for the extension to take a decision about how to roll out changes", klog.KObj(oldMS)), "MachineSet", klog.KObj(oldMS))
-				delete(p.scaleIntents, oldMS.Name)
-			}
-		}
-		p.dropNewMSMaxSurge(ctx, scaleUpCount, maxSurgeUsed, "rollout paused, waiting for the extension to take a decision about how to roll out changes")
-		return nil
-	}
-
-	// If rollout is not paused due to retry after, rollout might be blocked for some of the OldMSs.
-	// Drop scale intent for oldMSs that are blocked.
-	// Note: We iterate over p.oldMSs instead of p.blockedMSs because blockedMSs only has names while logging requires the MachineSet.
-	for _, oldMS := range p.oldMSs {
-		if !p.blockedMSs.Has(oldMS.Name) {
-			continue
-		}
-		if _, ok := p.scaleIntents[oldMS.Name]; ok {
-			log.V(5).Info(fmt.Sprintf("Dropping scale intent for MachineSet %s because the rollout is blocked", klog.KObj(oldMS)), "MachineSet", klog.KObj(oldMS))
-			delete(p.scaleIntents, oldMS.Name)
-		}
-	}
-
-	// Everything below this point is about checking if rollout planner is using maxSurge,
-	// and if possible, drop the usage of maxSurge / minimize unnecessary Machine creations because rollout planner
-	// must give priority to in-place when possible.
-
-	// If the newMS is not scaling up using maxSurge, nothing left to do (we have to create new machines).
-	if maxSurgeUsed <= 0 {
-		return nil
-	}
-
-	// If there are no oldMSs to be updated in-place, the usage of maxSurge can only be considered part of a replace machine operation.
-	if inPlaceUpdateCandidates.Len() <= 0 {
-		// When part of a replace machine operation, maxSurge should be blocked if
-		// there is a chance we want to use maxSurge for this operation when it will unblock,
-		// and it is not required to unblock replace operations.
-		maxSurgeIsBlocked := len(replaceOperationMSs) == 0 && p.blockedMSs.Len() > 0
-		if maxSurgeIsBlocked {
-			p.dropNewMSMaxSurge(ctx, scaleUpCount, maxSurgeUsed, "rollout blocked, replacing machines is not allowed")
-		}
-		return nil
-	}
-
-	// At this point, rollout planner know that scale down of at least one OldMS is going to happen using move and the update in-place operation.
-	// In this case, rollout planner must prioritize in-place updates over creation of new Machines.
-	// As a consequence, it is required to revisit the scale up intent for the newMS and defer as much as possible
-	// of the creation of new Machines due to maxSurge.
-	newScaleUpCount := max(scaleUpCount-maxSurgeUsed, 0)
-
-	// If the revisited scale up count for the newMS is 0 and the newMS is not already scaling up from a previous reconcile (no scale up at all),
-	// check if the rollout planner is required to use one slot from MaxSurge e.g. to start or unblock a rollout.
-	// Note: Rollout planner will use one slot from MaxSurge - one and not more - only if:
-	// - The rollout is not progressing in other ways (on top of newMS not scaling from a previous reconcile, there are also no oldMS scaling down)
-	// - There are no in-place updates in progress (the rollout planner must wait for in-place updates to complete or fail/go
-	//   through remediation before creating additional machines)
-	if newScaleUpCount == 0 && !p.scalingOrInPlaceUpdateInProgress(ctx) {
-		newScaleUpCount = 1
-	} else {
-		p.addNotef(p.newMS, "surge %d dropped to prioritize in-place updates", maxSurgeUsed)
-
-		newScaleIntent := ptr.Deref(p.newMS.Spec.Replicas, 0) + newScaleUpCount
-		log.V(5).Info(fmt.Sprintf("Revisited scale up intent for MachineSet %s to %d replicas (+%d) to prevent creation of new machines while there are still in-place updates to be performed", klog.KObj(p.newMS), newScaleIntent, newScaleUpCount), "MachineSet", klog.KObj(p.newMS))
-		if newScaleUpCount == 0 {
-			delete(p.scaleIntents, p.newMS.Name)
-		} else {
-			p.scaleIntents[p.newMS.Name] = newScaleIntent
-		}
-		return nil
-	}
-
-	// At the point, we know that rollout is not progressing in other ways (on top of newMS not scaling from a previous reconcile, there are also no oldMS scaling down
-	// and no in-place upgrade in progress), so it looks like the only way to progress is to scale up newMS by one by using one slot from maxSurge.
-	//
-	// Make a final try to check if we can avoid using maxSurge / scale up newMS by one.
-	//
-	// If at least one of the oldMS candidate for in-place update can perform an update without affecting availability,
-	// then we have a way forward that will not impact availability and that abides to the principle of prioritizing in-place updates over creation of new Machines.
-	if len(inPlaceUpdateCandidatesNotAffectingAvailability) > 0 {
-		// Drop scale up newMS / usage of MaxSurge
-		newScaleUpCount = 0
-
-		// Scale down one of the oldMS candidate for in-place update and that can perform an update without affecting availability.
-		// Sort oldMSs so the system will start moving machines from the oldest MS first.
-		sort.Sort(mdutil.MachineSetsByCreationTimestamp(inPlaceUpdateCandidatesNotAffectingAvailability))
-		oldMS := inPlaceUpdateCandidatesNotAffectingAvailability[0]
-
-		replicasOldMS := ptr.Deref(oldMS.Spec.Replicas, 0)
-		if i, ok := p.scaleIntents[oldMS.Name]; ok {
-			replicasOldMS = i
-		}
-		newScaleDownIntentOldMS := max(replicasOldMS-1, 0)
-		p.addNotef(oldMS, "surge %d for MachineSet %s converted to scale down for MachineSet %s to %d replicas (-%d)", maxSurgeUsed, p.newMS.Name, oldMS.Name, newScaleDownIntentOldMS, 1)
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleDownIntentOldMS, 1), "MachineSet", klog.KObj(oldMS))
-		p.scaleIntents[oldMS.Name] = newScaleDownIntentOldMS
-	} else {
-		p.addNotef(p.newMS, "surge 1 allowed to create availability for in-place updates")
-	}
-
-	newScaleIntent := ptr.Deref(p.newMS.Spec.Replicas, 0) + newScaleUpCount
-	log.V(5).Info(fmt.Sprintf("Revisited scale up intent for MachineSet %s to %d replicas (+%d) to prevent creation of new machines while there are still in-place updates to be performed", klog.KObj(p.newMS), newScaleIntent, newScaleUpCount), "MachineSet", klog.KObj(p.newMS))
-	if newScaleUpCount == 0 {
-		delete(p.scaleIntents, p.newMS.Name)
-	} else {
-		p.scaleIntents[p.newMS.Name] = newScaleIntent
-	}
-
-	return nil
-}
-
-func canUpdateMachineSetHookMessage(oldMS *clusterv1.MachineSet, details string) string {
-	msg := fmt.Sprintf("Blocked by CanUpdateMachineSet hook for MachineSet %s", oldMS.Name)
-	if details != "" {
-		msg = fmt.Sprintf("%s: %s", msg, details)
-	}
-	return msg
-}
-
-// newMSMaxSurgeUsed returns the size of the current scale up intent for the newMS and how much of it is using maxSurge.
-//
-// We consider that scale up intent is using maxSurge when the target total number of replicas will be greater than md.spec replicas,
-// more specifically:
-//
-// The target total number of replicas is computed considering existing replicas and scale intents (it mimics the computation
-// in mdutil.TotalMachineSetsReplicaSum +/- scale intent).
-//
-// If the target total number of replicas is greater than md.spec.replicas, it means that there will be exceeding replicas,
-// due to one of the following reasons:
-//   - reconcileNewMachineSet used maxSurge when setting the scale intent for the newMS (note that reconcileNewMachineSet can also change set the scale intent for the newMS the user scaled up/down md.spec.replicas).
-//   - The user scaled down md.spec.replicas and exceeding replicas are not yet deleted.
-//
-// The actual amount of maxSurge slots used can be identified by looking at the number of replicas
-// being added to the new MS, and picking the min between this value and the number of exceeding replicas.
-func (p *rolloutPlanner) newMSMaxSurgeUsed() (scaleUpCount, maxSurgeUsed int32) {
-	// If the newMS is not scaling up, there is no maxSurge in use.
-	if scaleIntent, ok := p.scaleIntents[p.newMS.Name]; !ok || scaleIntent <= ptr.Deref(p.newMS.Spec.Replicas, 0) {
-		return 0, 0
-	}
-
-	totalReplicas := int32(0)
-	for _, ms := range append(p.oldMSs, p.newMS) {
-		if ms != nil {
-			replicas := ptr.Deref(ms.Spec.Replicas, 0)
-			if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
-				replicas = scaleIntent
-			}
-			totalReplicas += max(replicas, ptr.Deref(ms.Status.Replicas, 0))
-		}
-	}
-	exceedingReplicas := max(totalReplicas-ptr.Deref(p.md.Spec.Replicas, 0), 0)
-
-	scaleUpCount = max(p.scaleIntents[p.newMS.Name]-ptr.Deref(p.newMS.Spec.Replicas, 0), 0)
-	return scaleUpCount, min(scaleUpCount, exceedingReplicas)
-}
-
-// dropNewMSMaxSurge removes from the scale up intent of the newMS the replicas that are using maxSurge.
-// Note: The part of the scale up intent that is not using maxSurge, e.g. due to md.spec.replicas being scaled up, is preserved.
-func (p *rolloutPlanner) dropNewMSMaxSurge(ctx context.Context, scaleUpCount, maxSurgeUsed int32, reason string) {
-	log := ctrl.LoggerFrom(ctx)
-
-	if maxSurgeUsed <= 0 {
-		return
-	}
-
-	newScaleUpCount := max(scaleUpCount-maxSurgeUsed, 0)
-	newScaleIntent := ptr.Deref(p.newMS.Spec.Replicas, 0) + newScaleUpCount
-	p.addNotef(p.newMS, "surge %d dropped: %s", maxSurgeUsed, reason)
-	log.V(5).Info(fmt.Sprintf("Revisited scale up intent for MachineSet %s to %d replicas (+%d) because %s", klog.KObj(p.newMS), newScaleIntent, newScaleUpCount, reason), "MachineSet", klog.KObj(p.newMS))
-	if newScaleUpCount == 0 {
-		delete(p.scaleIntents, p.newMS.Name)
-	} else {
-		p.scaleIntents[p.newMS.Name] = newScaleIntent
-	}
-}
-
-func (p *rolloutPlanner) scalingOrInPlaceUpdateInProgress(_ context.Context) bool {
-	// Check if the new MS or old MS are scaling.
-	if ptr.Deref(p.newMS.Spec.Replicas, 0) != ptr.Deref(p.newMS.Status.Replicas, 0) {
-		return true
-	}
-	for _, oldMS := range p.oldMSs {
-		if ptr.Deref(oldMS.Spec.Replicas, 0) < ptr.Deref(oldMS.Status.Replicas, 0) {
-			return true
-		}
-		if scaleIntent, ok := p.scaleIntents[oldMS.Name]; ok && scaleIntent < ptr.Deref(oldMS.Spec.Replicas, 0) {
-			return true
-		}
-	}
-
-	// Check that there are no updates in progress.
-	// We check both that the newMS MachineSet will report that the update is completed via .status.upToDateReplicas
-	// and the Machine controller through the annotations so this code does not depend on a specific execution order
-	// of the MachineSet and Machine controllers.
-	if ptr.Deref(p.newMS.Spec.Replicas, 0) != ptr.Deref(p.newMS.Status.UpToDateReplicas, 0) {
-		return true
-	}
-	for _, m := range p.machines {
-		if inplace.IsUpdateInProgress(m) {
-			p.updatingMachineNames = append(p.updatingMachineNames, m.Name)
-		}
-	}
-	if len(p.updatingMachineNames) > 0 {
-		return true
-	}
-
-	// We are also checking AvailableReplicas because we want to make sure that we wait until the
-	// Machine goes back to Available after the in-place update is completed.
-	// If we would not wait for this, the rolloutPlaner would use maxSurge to create an additional Machine.
-	// Note: This also means that if any Machine of the new MachineSet becomes unavailable we are blocking
-	// further progress of the in-place update.
-	if ptr.Deref(p.newMS.Spec.Replicas, 0) != ptr.Deref(p.newMS.Status.AvailableReplicas, 0) {
-		return true
-	}
-	return false
-}
-
 // This funcs tries to detect and address the case when a rollout is not making progress because both scaling down and scaling up are blocked.
 // Note: This func must be called after computing scale up/down intent for all the MachineSets.
 // Note: This func only address deadlock due to unavailable machines not getting deleted on oldMSs, e.g. due to a wrong configuration.
@@ -870,7 +692,7 @@ func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 
 	// If the rollout is paused waiting for a decision from the extension, or blocked because no allowed operation can roll out changes,
 	// this is not a deadlock, it is the expected state.
-	if p.rolloutDecisionPending || p.blockedMSs.Len() > 0 {
+	if p.pendingMSs.Len() > 0 || p.blockedMSs.Len() > 0 {
 		return
 	}
 
@@ -923,11 +745,6 @@ func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 	}
 }
 
-func sortAndJoin(a []string) string {
-	sort.Strings(a)
-	return strings.Join(a, ",")
-}
-
 // requeueAfter returns after how long the MachineDeployment must be reconciled again to follow up on a rollout
 // that is pending (waiting for an answer from an extension) or blocked (no allowed operation can roll out changes).
 // It returns 0 if there is no need to requeue.
@@ -942,5 +759,56 @@ func (p *rolloutPlanner) requeueAfter() time.Duration {
 		return 0
 	}
 	// Note: retryAfter can already be in the past (e.g. if a cached result expired in the meantime), a RequeueAfter <= 0 would not requeue at all.
-	return max(retryAfter.Sub(p.now()), time.Second) // RequeueAfter should be at least 1s, because controller rate limiter is using 1s.
+	// RequeueAfter should be at least 1s, because controller rate limiter is using 1s.
+	return max(retryAfter.Sub(p.now()), time.Second)
+}
+
+// rolloutDecision returns how to roll out changes for the oldMS, considering that allowedOperations is orthogonal to
+// the fact that the extension can cover the entire diff with patches.
+func rolloutDecision(r canUpdateMachineSetResult) oldMSRolloutDecision {
+	switch {
+	case r.retryAfterFromExtension:
+		return oldMSRolloutPendingDecision
+	case r.canUpdateMachineSet && isOperationAllowed(r.allowedOperations, runtimehooksv1.MachineUpdateOperationUpdateInPlace):
+		return oldMSRolloutUpdateInPlaceDecision
+	case isOperationAllowed(r.allowedOperations, runtimehooksv1.MachineUpdateOperationReplace):
+		// Note: The oldMSRolloutReplaceDecision decision happens if
+		// - In place update is not possible for the specific change
+		// - In place update is possible, but not allowed
+		return oldMSRolloutReplaceDecision
+	default:
+		return oldMSRolloutBlockedDecision
+	}
+}
+
+func canUpdateMachineSetHookMessage(oldMS *clusterv1.MachineSet, details string) string {
+	msg := fmt.Sprintf("Blocked by CanUpdateMachineSet hook for MachineSet %s", oldMS.Name)
+	if details != "" {
+		msg = fmt.Sprintf("%s: %s", msg, details)
+	}
+	return msg
+}
+
+func blockedMessage(res canUpdateMachineSetResult) string {
+	// Note: The decision is only blocked if the Replace operation is not allowed.
+	var msg string
+	if !isOperationAllowed(res.allowedOperations, runtimehooksv1.MachineUpdateOperationUpdateInPlace) {
+		msg = "neither replace nor in-place update operations are allowed"
+	} else {
+		msg = "replace operation is not allowed"
+		// Note: In MD, affecting availability never blocks the rollout, it only affects the decision if
+		// maxSurge should be used or converted to a scale down (see below in this func).
+		if !res.canUpdateMachineSet {
+			msg += " and not all changes can be updated in-place"
+		}
+	}
+	if len(res.messages) > 0 {
+		msg += fmt.Sprintf(": %s", strings.Join(res.messages, ", "))
+	}
+	return msg
+}
+
+func sortAndJoin(a []string) string {
+	sort.Strings(a)
+	return strings.Join(a, ",")
 }

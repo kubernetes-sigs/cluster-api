@@ -48,10 +48,10 @@ options like MaxSurge/MaxUnavailable. With this regard:
   - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
   - If something goes wrong unexpectedly, and the operation leads to actual unavailability, control plane components or workloads could be impacted.
   - **Use this feature with caution!**
-- The `CanUpdateMachineResponse` or the `CanUpdateMachineSetResponse` hook are also to express a binding opinion on which operations 
+- The `CanUpdateMachineResponse` or the `CanUpdateMachineSetResponse` hook can also be used to express a binding opinion on which operations 
   can be used to roll out the changes for the Machine or for Machines controlled by the MachineSet.
   - This opinion can be used to block the rollout under temporary circumstances: e.g. preflight checks fail.
-  - Please note that some limitations apply, see documentation below.  
+  - Please note that some limitations apply, see documentation below.
 - No in-place updates are performed for workers machines when using rollout strategy `OnDelete`.
 
 > [!IMPORTANT]
@@ -260,6 +260,8 @@ Note:
   - While the decision is still in progress for at least one MachineSet, the rollout is paused for the entire MachineDeployment: 
     - Machines are not scaled down (or moved) from old MachineSet and no additional Machines are created on the new MachineSet because of `maxSurge`. 
     - Scale up/down due to changes to the MachineDeployment `spec.replicas` still happen.
+      - When scaling down, excess Machines are deleted (oldest MachineSet first); they are never moved to the new MachineSet to be updated in-place, because the decision is not known yet.
+      - When scaling up, `maxSurge` is not used.
 - `affectsAvailability` is an optional value, if missing it defaults to true.
 - When `CanUpdateMachineSetResponse` specifies that the required change does not affect availability, the in-place update will start immediately, without creating an additional machine/using maxSurge (if available)
   - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
@@ -347,7 +349,7 @@ Depending on the answer, the outcome applies to that single MachineSet or to the
 Effects on the rollout:
 - Pending pauses everything.
   - The planner can't decide how to use `maxSurge` or how to optimize for in-place without all the answers.
-  - It drops the scale down of all the old MachineSets and the part of the new MachineSet scale up that uses `maxSurge`.
+  - It blocks scale down of the outdated replicase from all the old MachineSets and also blocks the part of the new MachineSet scale up that uses `maxSurge`. Scale up/down due to changes to MachineDeployment spec.replicas still happen.
   - It keeps scale up caused by `spec.replicas` changes, and moves already in progress, so concurrent operations like scale up still work.
   - The MachineDeployment is requeued at the latest `retryAfter` of the pending MachineSets. Results are cached until then, so the pause can't lift earlier.
 - Blocked is per MachineSet.

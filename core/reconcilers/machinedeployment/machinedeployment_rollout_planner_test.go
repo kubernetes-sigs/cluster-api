@@ -1022,7 +1022,7 @@ func (r rolloutScope) rolloutPlannerResultSummary(p *rolloutPlanner) string {
 		if d.OtherChanges != "" {
 			fmt.Fprintf(&o, "      - Diff: %s\n", d.OtherChanges)
 		}
-		if p.rolloutDecisionPending {
+		if p.pendingMSs.Len() > 0 {
 			fmt.Fprintf(&o, "    - Rollout blocked, waiting for canUpdateMachineSet decision (retry after %s)\n", p.pendingRetryAfter.Sub(p.now()).Round(time.Second))
 		}
 		if p.blockedMSs.Has(ms.Name) {

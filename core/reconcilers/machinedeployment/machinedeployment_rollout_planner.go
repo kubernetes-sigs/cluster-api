@@ -19,6 +19,7 @@ package machinedeployment
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -59,10 +60,15 @@ type rolloutPlanner struct {
 	scaleIntents map[string]int32
 	notes        map[string][]string
 
-	// rolloutDecisionPending is true if at least one CanUpdateMachineSet answer asked to be called again later.
-	rolloutDecisionPending bool
+	// pendingMSs contains the oldMSs for which the CanUpdateMachineSet answer asked to be called again later.
+	pendingMSs sets.Set[string]
 	// blockedMSs contains the oldMSs for which the extension does not allow any operation that can roll out the changes.
 	blockedMSs sets.Set[string]
+
+	inPlaceUpdateCandidates                         sets.Set[string]
+	inPlaceUpdateCandidatesNotAffectingAvailability sets.Set[string]
+	replaceCandidates                               sets.Set[string]
+
 	// pendingRetryAfter is the latest time at which a CanUpdateMachineSet result of a pending oldMS expires;
 	// it is zero if no oldMS is pending.
 	pendingRetryAfter time.Time
@@ -373,12 +379,18 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 	return desiredMS, nil
 }
 
+// replicasAfterScaleIntent returns the replicas of the MachineSet after applying the scale intent set in the current reconcile, if any.
+func (p *rolloutPlanner) replicasAfterScaleIntent(ms *clusterv1.MachineSet) int32 {
+	if v, ok := p.scaleIntents[ms.Name]; ok {
+		return v
+	}
+	return ptr.Deref(ms.Spec.Replicas, 0)
+}
+
 func (p *rolloutPlanner) addNotef(ms *clusterv1.MachineSet, format string, a ...any) {
 	msg := fmt.Sprintf(format, a...)
-	for _, note := range p.notes[ms.Name] {
-		if note == msg {
-			return
-		}
+	if slices.Contains(p.notes[ms.Name], msg) {
+		return
 	}
 	p.notes[ms.Name] = append(p.notes[ms.Name], msg)
 }

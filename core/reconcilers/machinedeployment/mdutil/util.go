@@ -663,7 +663,7 @@ func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clus
 // 1) The new MS is saturated: newMS's replicas == deployment's replicas
 // 2) For RollingUpdateStrategy: Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas.
 // 3) For OnDeleteStrategy: Max number of machines allowed is reached: deployment's replicas == all MSs' replicas.
-func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*clusterv1.MachineSet, newMSReplicas int32) (int32, string, error) {
+func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*clusterv1.MachineSet, newMSReplicas int32, maxSurgeLimit *int) (int32, string, error) {
 	switch deployment.Spec.Rollout.Strategy.Type {
 	case clusterv1.RollingUpdateMachineDeploymentStrategyType:
 		// Check if we can scale up.
@@ -671,6 +671,11 @@ func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*cluster
 		if err != nil {
 			return 0, "", err
 		}
+
+		if maxSurgeLimit != nil {
+			maxSurge = min(maxSurge, *maxSurgeLimit)
+		}
+
 		// Find the total number of machines
 		currentMachineCount := TotalMachineSetsReplicaSum(allMSs)
 		maxTotalMachines := *(deployment.Spec.Replicas) + int32(maxSurge)

@@ -32,7 +32,7 @@
     md: 4/3 replicas, 4 available, 1 upToDate
     ms1: from 3/3 to 3/2 replicas, 3 available, 0 upToDate (m1,m2,m3)
       - Scaled down old MachineSet ms1 from 3 to 2 replicas (-1)
-        - Reason: 4 available replicas > 3 minimum available replicas, in-place update is possible but not allowed, falling back to replace machines
+        - Reason: in-place update is possible but not allowed, falling back to replace machines, 4 available replicas > 3 minimum available replicas
         - Diff: replicas 2
     ms2: 1/1 replicas, 1 available, 1 upToDate (m4)
 [MS controller] Reconcile ms1
@@ -56,7 +56,7 @@
     md: 4/3 replicas, 4 available, 2 upToDate
     ms1: from 2/2 to 2/1 replicas, 2 available, 0 upToDate (m2,m3)
       - Scaled down old MachineSet ms1 from 2 to 1 replicas (-1)
-        - Reason: 4 available replicas > 3 minimum available replicas, in-place update is possible but not allowed, falling back to replace machines
+        - Reason: in-place update is possible but not allowed, falling back to replace machines, 4 available replicas > 3 minimum available replicas
         - Diff: replicas 1
     ms2: 2/2 replicas, 2 available, 2 upToDate (m4,m5)
 [MS controller] Reconcile ms1

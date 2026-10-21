@@ -36,7 +36,7 @@ var (
 
 func TestMain(m *testing.M) {
 	// Enable all feature gates that are off per default to avoid webhook validation errors when trying to create objects.
-	for _, fg := range []featuregate.Feature{feature.ClusterTopology, feature.KubeadmBootstrapFormatIgnition, feature.RuntimeSDK, feature.InPlaceUpdates, feature.MachineTaintPropagation} {
+	for _, fg := range []featuregate.Feature{feature.ClusterTopology, feature.KubeadmBootstrapFormatIgnition, feature.RuntimeSDK, feature.InPlaceUpdates} {
 		if err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=%v", fg, true)); err != nil {
 			panic(fmt.Sprintf("unable to set %s feature gate: %v", fg, err))
 		}

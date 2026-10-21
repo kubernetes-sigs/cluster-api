@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -70,6 +71,7 @@ import (
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
+	utillabels "sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -99,6 +101,7 @@ const (
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets;machinesets/status;machinesets/finalizers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
 
 // Reconciler reconciles a MachineSet object.
 type Reconciler struct {
@@ -276,6 +279,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		)
 		return doReconcile(ctx, s, reconcileDelete)
 	}
+
+	// Remove the finalizer which was previously used by the topology/machineset controller, which
+	// has been merged into this controller. The cleanup it was responsible for now happens in reconcileDelete.
+	// Note: This is intentionally only done here and not for deleting MachineSets as the legacy finalizer must
+	// only be removed together with the finalizer of this controller once the cleanup has been done to avoid
+	// issues when CAPI is upgraded while the MachineSet only has MachineSetTopologyFinalizer set.
+	// Note: This code can be removed with Cluster API v1.18.
+	controllerutil.RemoveFinalizer(s.machineSet, clusterv1.MachineSetTopologyFinalizer) //nolint:staticcheck // Intentionally used to clean up the legacy finalizer.
 
 	reconcileNormal := append(alwaysReconcile,
 		wrapErrMachineSetReconcileFunc(r.reconcileUnhealthyMachines, "failed to reconcile unhealthy machines"),
@@ -566,8 +577,19 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 	// If all the descendant machines are deleted, then remove the machineset's finalizer.
 	if len(machineList) == 0 {
+		// If the MachineSet is topology-owned, delete the referenced templates if they are not used by other
+		// MachineDeployments or MachineSets, i.e. the templates would otherwise be orphaned after the MachineSet deletion completes.
+		if utillabels.IsTopologyOwned(machineSet) {
+			if err := r.deleteUnusedTemplates(ctx, machineSet); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
 		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(machineSet), machineSet.UID)
 		controllerutil.RemoveFinalizer(machineSet, clusterv1.MachineSetFinalizer)
+		// Also remove the legacy finalizer of the topology/machineset controller if it is still set,
+		// e.g. because the MachineSet was already deleting when the controllers were merged.
+		controllerutil.RemoveFinalizer(machineSet, clusterv1.MachineSetTopologyFinalizer) //nolint:staticcheck // Intentionally used to clean up the legacy finalizer.
 		return ctrl.Result{}, nil
 	}
 
@@ -585,6 +607,75 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 	log.Info("Waiting for Machines to be deleted", "Machines", clog.ObjNamesString(machineList))
 	return ctrl.Result{}, nil
+}
+
+// deleteUnusedTemplates deletes the templates referenced in a topology-owned MachineSet if they are not used by other
+// MachineDeployments or MachineSets, i.e. the templates would otherwise be orphaned after the MachineSet deletion completes.
+// Note: We assume templates are not reused by different MachineDeployments, which is (only) true for topology-owned
+// MachineDeployments.
+// Note: MachineSets are listed via APIReader to avoid race conditions caused by an outdated cache.
+func (r *Reconciler) deleteUnusedTemplates(ctx context.Context, machineSet *clusterv1.MachineSet) error {
+	// Gets the name of the MachineDeployment that controls this MachineSet.
+	mdName, err := getMachineDeploymentName(machineSet)
+	if err != nil {
+		return err
+	}
+
+	// Get all the MachineSets for the MachineDeployment.
+	msList, err := mdutil.GetMachineSetsForDeployment(ctx, r.APIReader, *mdName)
+	if err != nil {
+		return err
+	}
+
+	// Fetch the MachineDeployment instance, if it still exists.
+	// Note: This can happen because MachineDeployments are deleted before their corresponding MachineSets.
+	md := &clusterv1.MachineDeployment{}
+	if err := r.Client.Get(ctx, *mdName, md); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return pkgerrors.Wrapf(err, "failed to get MachineDeployment/%s", mdName.Name)
+		}
+		// If the MachineDeployment doesn't exist anymore, set md to nil, so we can handle that case correctly below.
+		md = nil
+	}
+
+	// Calculate which templates are still in use by MachineDeployments or MachineSets which are not in deleting state.
+	templatesInUse, err := mdutil.CalculateTemplatesInUse(md, msList)
+	if err != nil {
+		return err
+	}
+
+	// Delete unused templates.
+	ref := machineSet.Spec.Template.Spec.Bootstrap.ConfigRef
+	if err := mdutil.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, machineSet.Namespace); err != nil {
+		return pkgerrors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(machineSet.Namespace, ref.Name), klog.KObj(machineSet))
+	}
+	ref = machineSet.Spec.Template.Spec.InfrastructureRef
+	if err := mdutil.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, machineSet.Namespace); err != nil {
+		return pkgerrors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(machineSet.Namespace, ref.Name), klog.KObj(machineSet))
+	}
+	return nil
+}
+
+// getMachineDeploymentName calculates the MachineDeployment name based on owner references.
+func getMachineDeploymentName(ms *clusterv1.MachineSet) (*types.NamespacedName, error) {
+	for _, ref := range ms.GetOwnerReferences() {
+		if ref.Kind != "MachineDeployment" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, pkgerrors.Errorf("could not calculate MachineDeployment name for MachineSet %s: invalid apiVersion %q: %v",
+				klog.KObj(ms), ref.APIVersion, err)
+		}
+		if gv.Group == clusterv1.GroupVersion.Group {
+			return &client.ObjectKey{Namespace: ms.Namespace, Name: ref.Name}, nil
+		}
+	}
+
+	// Note: Once we set an owner reference to a MachineDeployment in a MachineSet it stays there
+	// and is not deleted when the MachineDeployment is deleted. So we assume there's something wrong,
+	// if we couldn't find a MachineDeployment owner reference.
+	return nil, pkgerrors.Errorf("could not calculate MachineDeployment name for MachineSet %s", klog.KObj(ms))
 }
 
 func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *scope) (ctrl.Result, bool, error) {

@@ -35,7 +35,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/core/reconcilers/topology/machineset"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util"
@@ -289,7 +289,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 
 	for _, deployment := range input.MachineDeployments {
 		// Get MachineSets of the MachineDeployment before the upgrade.
-		msListBeforeUpgrade, err := machineset.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(deployment))
+		msListBeforeUpgrade, err := mdutil.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(deployment))
 		Expect(err).ToNot(HaveOccurred())
 
 		log.Logf("Patching the new infrastructure ref to Machine Deployment %s", klog.KObj(deployment))
@@ -321,7 +321,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 
 		Eventually(func(g Gomega) {
 			// Get MachineSets of the MachineDeployment after the upgrade.
-			msListAfterUpgrade, err := machineset.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(deployment))
+			msListAfterUpgrade, err := mdutil.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(deployment))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Find the new MachineSet.
@@ -366,7 +366,7 @@ func UpgradeMachineDeploymentInPlaceMutableFieldsAndWait(ctx context.Context, in
 
 	for _, deployment := range input.MachineDeployments {
 		// Get MachineSet and Machines of the MachineDeployment before the upgrade.
-		msListBeforeUpgrade, err := machineset.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(deployment))
+		msListBeforeUpgrade, err := mdutil.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(deployment))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(msListBeforeUpgrade).To(HaveLen(1), "expecting exactly 1 MachineSet")
 		machineSetBeforeUpgrade := msListBeforeUpgrade[0]
@@ -398,7 +398,7 @@ func UpgradeMachineDeploymentInPlaceMutableFieldsAndWait(ctx context.Context, in
 		log.Logf("Waiting for in-place propagation to complete")
 		Eventually(func(g Gomega) {
 			// Get MachineSet and Machines of the MachineDeployment after the upgrade.
-			msListAfterUpgrade, err := machineset.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(deployment))
+			msListAfterUpgrade, err := mdutil.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(deployment))
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(msListAfterUpgrade).To(HaveLen(1), "expecting exactly 1 MachineSet")
 			machineSetAfterUpgrade := msListAfterUpgrade[0]

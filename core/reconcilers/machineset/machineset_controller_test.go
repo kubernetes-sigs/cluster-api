@@ -207,6 +207,9 @@ func TestMachineSetReconciler(t *testing.T) {
 						UID:        machineDeployment.UID,
 					},
 				},
+				// Set the legacy finalizer of the topology/machineset controller (which has been merged
+				// into this controller) to verify it is removed during normal reconciliation.
+				Finalizers: []string{clusterv1.MachineSetTopologyFinalizer}, //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
 			},
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: testCluster.Name,
@@ -283,6 +286,13 @@ func TestMachineSetReconciler(t *testing.T) {
 		defer func() {
 			g.Expect(env.Delete(ctx, instance)).To(Succeed())
 		}()
+
+		t.Log("Verifying the legacy topology finalizer is removed and the MachineSet finalizer is set")
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(instance), instance)).To(Succeed())
+			g.Expect(instance.Finalizers).To(ContainElement(clusterv1.MachineSetFinalizer))
+			g.Expect(instance.Finalizers).ToNot(ContainElement(clusterv1.MachineSetTopologyFinalizer)) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+		}, timeout).Should(Succeed())
 
 		t.Log("Verifying the linked bootstrap template has a cluster owner reference")
 		g.Eventually(func() bool {
@@ -4802,4 +4812,234 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 	g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(machine), machine)).To(Succeed())
 	g.Expect(machine.Spec.Version).To(Equal(machineSet.Spec.Template.Spec.Version))
 	g.Expect(machine.Spec.FailureDomain).To(Equal(machineSet.Spec.Template.Spec.FailureDomain))
+}
+
+func TestReconciler_reconcileDelete_TopologyOwned(t *testing.T) {
+	deletionTimeStamp := metav1.Now()
+
+	mdName := "md"
+
+	msBT := builder.BootstrapTemplate(metav1.NamespaceDefault, "msBT").Build()
+	msIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "msIMT").Build()
+	ms := builder.MachineSet(metav1.NamespaceDefault, "ms").
+		WithBootstrapTemplate(msBT).
+		WithInfrastructureTemplate(msIMT).
+		WithLabels(map[string]string{
+			clusterv1.MachineDeploymentNameLabel: mdName,
+			clusterv1.ClusterTopologyOwnedLabel:  "",
+		}).
+		Build()
+	ms.SetDeletionTimestamp(&deletionTimeStamp)
+	ms.SetFinalizers([]string{clusterv1.MachineSetFinalizer})
+	ms.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			Kind:       "MachineDeployment",
+			APIVersion: clusterv1.GroupVersion.String(),
+			Name:       "md",
+		},
+	})
+
+	t.Run("Should delete templates of a MachineSet and remove its finalizers", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+		ms.SetFinalizers([]string{clusterv1.MachineSetFinalizer, clusterv1.MachineSetTopologyFinalizer}) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(ms, msBT, msIMT, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(ms.Finalizers).To(BeEmpty())
+		g.Expect(templateExists(fakeClient, msBT)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeFalse())
+	})
+
+	t.Run("Should delete infra template of a MachineSet without a bootstrap template", func(t *testing.T) {
+		g := NewWithT(t)
+
+		msWithoutBootstrapTemplateIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "msWithoutBootstrapTemplateIMT").Build()
+		msWithoutBootstrapTemplate := builder.MachineSet(metav1.NamespaceDefault, "msWithoutBootstrapTemplate").
+			WithInfrastructureTemplate(msWithoutBootstrapTemplateIMT).
+			WithLabels(map[string]string{
+				clusterv1.MachineDeploymentNameLabel: mdName,
+				clusterv1.ClusterTopologyOwnedLabel:  "",
+			}).
+			Build()
+		msWithoutBootstrapTemplate.SetDeletionTimestamp(&deletionTimeStamp)
+		msWithoutBootstrapTemplate.SetFinalizers([]string{clusterv1.MachineSetFinalizer})
+		msWithoutBootstrapTemplate.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				Kind:       "MachineDeployment",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       "md",
+			},
+		})
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(msWithoutBootstrapTemplate, msWithoutBootstrapTemplateIMT, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: msWithoutBootstrapTemplate})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(msWithoutBootstrapTemplate, clusterv1.MachineSetFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msWithoutBootstrapTemplateIMT)).To(BeFalse())
+	})
+
+	t.Run("Should not delete templates of a MachineSet when they are still in use in a MachineDeployment", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+
+		md := builder.MachineDeployment(metav1.NamespaceDefault, "md").
+			WithBootstrapTemplate(msBT).
+			WithInfrastructureTemplate(msIMT).
+			Build()
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(md, ms, msBT, msIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeTrue())
+	})
+
+	t.Run("Should not delete templates of a MachineSet when they are still in use in another MachineSet", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+
+		md := builder.MachineDeployment(metav1.NamespaceDefault, "md").
+			WithBootstrapTemplate(msBT).
+			WithInfrastructureTemplate(msIMT).
+			Build()
+		md.SetDeletionTimestamp(&deletionTimeStamp)
+		md.SetFinalizers([]string{clusterv1.MachineDeploymentFinalizer})
+
+		// anotherMS is another MachineSet of the same MachineDeployment using the same templates.
+		// Because anotherMS is not in deleting, reconcileDelete should not delete the templates.
+		anotherMS := builder.MachineSet(metav1.NamespaceDefault, "anotherMS").
+			WithBootstrapTemplate(msBT).
+			WithInfrastructureTemplate(msIMT).
+			WithLabels(map[string]string{
+				clusterv1.MachineDeploymentNameLabel: mdName,
+			}).
+			Build()
+		anotherMS.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				Kind:       "MachineDeployment",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       "md",
+			},
+		})
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(md, anotherMS, ms, msBT, msIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeTrue())
+	})
+
+	t.Run("Should not delete templates and keep finalizers of a MachineSet while Machines exist", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+		ms.SetFinalizers([]string{clusterv1.MachineSetFinalizer, clusterv1.MachineSetTopologyFinalizer}) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+
+		machine := builder.Machine(metav1.NamespaceDefault, "m0").WithClusterName("test").Build()
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(ms, machine, msBT, msIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms, machines: []*clusterv1.Machine{machine}})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(ms.Finalizers).To(ConsistOf(clusterv1.MachineSetFinalizer, clusterv1.MachineSetTopologyFinalizer)) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+		g.Expect(templateExists(fakeClient, msBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeTrue())
+	})
+
+	t.Run("Should not delete templates of a MachineSet which is not topology-owned", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+		delete(ms.Labels, clusterv1.ClusterTopologyOwnedLabel)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(ms, msBT, msIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeTrue())
+	})
+}
+
+func templateExists(c client.Reader, template *unstructured.Unstructured) bool {
+	obj := &unstructured.Unstructured{}
+	obj.SetKind(template.GetKind())
+	obj.SetAPIVersion(template.GetAPIVersion())
+
+	err := c.Get(ctx, client.ObjectKeyFromObject(template), obj)
+	if err != nil && !apierrors.IsNotFound(err) {
+		panic(pkgerrors.Wrapf(err, "failed to get %s/%s", template.GetKind(), template.GetName()))
+	}
+	return err == nil
 }

@@ -22,8 +22,12 @@ import (
 )
 
 const (
-	// MachineDeploymentTopologyFinalizer is the finalizer used by the topology MachineDeployment controller to
+	// MachineDeploymentTopologyFinalizer was the finalizer used by the topology MachineDeployment controller to
 	// clean up referenced template resources if necessary when a MachineDeployment is being deleted.
+	//
+	// Deprecated: The topology MachineDeployment controller has been merged into the MachineDeployment controller,
+	// which now handles the cleanup based on MachineDeploymentFinalizer. This finalizer is not set anymore and is only
+	// removed by the MachineDeployment controller from MachineDeployments which still have it.
 	MachineDeploymentTopologyFinalizer = "machinedeployment.topology.cluster.x-k8s.io"
 
 	// MachineDeploymentFinalizer is the finalizer used by the MachineDeployment controller to

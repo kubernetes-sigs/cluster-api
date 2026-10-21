@@ -59,7 +59,9 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 		// but the UpdateMachine hook is still pending or annotations are still on InfraMachine/BootstrapConfig.
 		if hasUpdateMachinePending {
 			log.Info("In-place update annotation removed but UpdateMachine hook still pending, cleaning up orphaned hook and annotations")
-			if err := r.completeInPlaceUpdate(ctx, s); err != nil {
+			// Note: Not passing an UpdateStatus because we don't have it available here, but the code path
+			// that uses it is also not executed if the UpdateInProgressAnnotation has been already removed.
+			if err := r.completeInPlaceUpdate(ctx, s, ""); err != nil {
 				return ctrl.Result{}, pkgerrors.Wrap(err, "failed to clean up orphaned UpdateMachine hook and annotations")
 			}
 		}
@@ -106,12 +108,14 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 	if err != nil {
 		return ctrl.Result{}, pkgerrors.Wrap(err, "in-place update failed")
 	}
-	if updateMachineResult.retryAfterFromExtension {
+	if updateMachineResult.updateStatus == runtimehooksv1.MachineUpdateStatusInProgress ||
+		updateMachineResult.updateStatus == runtimehooksv1.MachineUpdateStatusFailed ||
+		updateMachineResult.updateStatus == runtimehooksv1.MachineUpdateStatusBlocked {
 		// Note: retryAfter can already be in the past (e.g. if a cached result expired in the meantime), a RequeueAfter <= 0 would not requeue at all.
 		return ctrl.Result{RequeueAfter: max(updateMachineResult.retryAfter.Sub(r.now()), time.Second)}, nil
 	}
 
-	if err := r.completeInPlaceUpdate(ctx, s); err != nil {
+	if err := r.completeInPlaceUpdate(ctx, s, updateMachineResult.updateStatus); err != nil {
 		return ctrl.Result{}, pkgerrors.Wrap(err, "failed to complete in-place update")
 	}
 
@@ -153,13 +157,11 @@ func (r UpdateMachineCacheEntry) Key() string {
 
 type updateMachineResult struct {
 	// retryAfter is the time at which the result expires and we should reconcile again (and call UpdateMachine extensions again).
-	// Note: This is either the retry requested by an extension via retryAfterSeconds (see retryAfterFromExtension)
-	// or the time at which the cached result expires.
+	// Note: This is either the retry requested by an extension (updateStatus InProgress, Failed or Blocked) or the time at which the cached result expires.
 	retryAfter time.Time
 
-	// retryAfterFromExtension is true if an extension returned retryAfterSeconds, i.e. the in-place update is still in progress.
-	// Note: This is needed to differentiate between retryAfterSeconds>0 and other cases.
-	retryAfterFromExtension bool
+	// updateStatus is the status of the in-place update as reported by the extensions.
+	updateStatus runtimehooksv1.MachineUpdateStatus
 
 	// messages are the messages from the UpdateMachine responses.
 	messages []string
@@ -175,19 +177,19 @@ func (r *Reconciler) updateMachine(ctx context.Context, s *scope) (updateMachine
 	extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.UpdateMachine, s.machine)
 	if err != nil {
 		s.updatingReason = clusterv1.MachineInPlaceUpdateInternalErrorReason
-		s.updatingMessage = fmt.Sprintf("UpdateMachine hook failed: %s", err.Error())
+		s.updatingMessage = fmt.Sprintf("In-place update failed: %s", err.Error())
 		return updateMachineResult{}, err
 	}
 	if len(extensionHandlers) == 0 {
 		err := pkgerrors.New("no extensions registered for UpdateMachine hook")
 		s.updatingReason = clusterv1.MachineInPlaceUpdateInternalErrorReason
-		s.updatingMessage = fmt.Sprintf("UpdateMachine hook failed: %s", err.Error())
+		s.updatingMessage = fmt.Sprintf("In-place update failed: %s", err.Error())
 		return updateMachineResult{}, err
 	}
 	if len(extensionHandlers) > 1 {
 		err := pkgerrors.Errorf("found multiple UpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
 		s.updatingReason = clusterv1.MachineInPlaceUpdateInternalErrorReason
-		s.updatingMessage = fmt.Sprintf("UpdateMachine hook failed: %s", err.Error())
+		s.updatingMessage = fmt.Sprintf("In-place update failed: %s", err.Error())
 		return updateMachineResult{}, err
 	}
 
@@ -209,7 +211,7 @@ func (r *Reconciler) updateMachine(ctx context.Context, s *scope) (updateMachine
 		res, err = r.extensionsUpdateMachine(ctx, s, extensionHandlers)
 		if err != nil {
 			s.updatingReason = clusterv1.MachineInPlaceUpdateInternalErrorReason
-			s.updatingMessage = "UpdateMachine hook failed: please check controller logs for errors"
+			s.updatingMessage = fmt.Sprintf("In-place update failed: %s", err.Error())
 			return updateMachineResult{}, err
 		}
 
@@ -222,23 +224,32 @@ func (r *Reconciler) updateMachine(ctx context.Context, s *scope) (updateMachine
 		})
 	}
 
+	// messagesSuffix is appended to the message of the Updating condition to surface the messages of the extensions.
+	messagesSuffix := ""
 	if len(res.messages) > 0 {
 		log = log.WithValues("messages", strings.Join(res.messages, ","))
+		messagesSuffix = fmt.Sprintf(": %s", strings.Join(res.messages, ", "))
 	}
-	switch {
-	case res.retryAfterFromExtension:
+	switch res.updateStatus {
+	case runtimehooksv1.MachineUpdateStatusInProgress:
 		s.updatingReason = clusterv1.MachineInPlaceUpdatingReason
 		if inplace.IsUpdateInProgressAndAffectsAvailability(s.machine) {
-			s.updatingMessage = "In-place update in progress (affects availability)"
+			s.updatingMessage = "In-place update in progress (affects availability)" + messagesSuffix
+			log.Info(fmt.Sprintf("Machine %s is still updating in-place (affects availability): extensions returned updateStatus %s, requeuing%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
 		} else {
-			s.updatingMessage = "In-place update in progress (does not affect availability)"
+			s.updatingMessage = "In-place update in progress (does not affect availability)" + messagesSuffix
+			log.Info(fmt.Sprintf("Machine %s is still updating in-place (does not affect availability): extensions returned updateStatus %s, requeuing%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
 		}
-		if len(res.messages) > 0 {
-			s.updatingMessage += fmt.Sprintf(": %s", strings.Join(res.messages, ", "))
-		}
-		log.Info(fmt.Sprintf("Machine %s is still updating in-place: extensions returned retryAfterSeconds, requeuing%s", klog.KObj(s.machine), logSuffix))
-	default:
-		log.Info(fmt.Sprintf("Machine %s has been updated in-place by extensions%s", klog.KObj(s.machine), logSuffix))
+	case runtimehooksv1.MachineUpdateStatusFailed:
+		s.updatingReason = clusterv1.MachineInPlaceUpdateFailedReason
+		s.updatingMessage = "In-place update failed" + messagesSuffix
+		log.Info(fmt.Sprintf("In-place update of Machine %s failed: extensions returned updateStatus %s, requeuing%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
+	case runtimehooksv1.MachineUpdateStatusBlocked:
+		s.updatingReason = clusterv1.MachineInPlaceUpdateBlockedReason
+		s.updatingMessage = "In-place update blocked" + messagesSuffix
+		log.Info(fmt.Sprintf("In-place update of Machine %s blocked: extensions returned updateStatus %s, requeuing%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
+	case runtimehooksv1.MachineUpdateStatusCompleted, runtimehooksv1.MachineUpdateStatusCompletedButDirty:
+		log.Info(fmt.Sprintf("Machine %s has been updated in-place by extensions (updateStatus %s)%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
 	}
 	return res, nil
 }
@@ -303,6 +314,7 @@ func (r *Reconciler) extensionsUpdateMachine(ctx context.Context, s *scope, exte
 	}
 
 	var messages []string
+	dirty := false
 	for _, extensionHandler := range extensionHandlers {
 		// Call UpdateMachine extension.
 		resp := &runtimehooksv1.UpdateMachineResponse{}
@@ -314,13 +326,25 @@ func (r *Reconciler) extensionsUpdateMachine(ctx context.Context, s *scope, exte
 			messages = append(messages, resp.Message)
 		}
 
-		// If the extension asks to be called again later, stop here and requeue.
-		if resp.RetryAfterSeconds > 0 {
+		updateStatus, err := getUpdateStatus(resp)
+		if err != nil {
+			return updateMachineResult{}, pkgerrors.Wrapf(err, "invalid response from extension handler %q", extensionHandler)
+		}
+
+		switch updateStatus {
+		case runtimehooksv1.MachineUpdateStatusInProgress, runtimehooksv1.MachineUpdateStatusFailed, runtimehooksv1.MachineUpdateStatusBlocked:
+			// Note: If the extension did not return retryAfterSeconds, we use a default.
+			retryAfter := time.Duration(resp.RetryAfterSeconds) * time.Second
+			if retryAfter <= 0 {
+				retryAfter = updateMachineCacheDuration
+			}
 			return updateMachineResult{
-				retryAfter:              r.now().Add(time.Duration(resp.RetryAfterSeconds) * time.Second),
-				retryAfterFromExtension: true,
-				messages:                messages,
+				retryAfter:   r.now().Add(retryAfter),
+				updateStatus: updateStatus,
+				messages:     messages,
 			}, nil
+		case runtimehooksv1.MachineUpdateStatusCompletedButDirty:
+			dirty = true
 		}
 	}
 
@@ -330,18 +354,47 @@ func (r *Reconciler) extensionsUpdateMachine(ctx context.Context, s *scope, exte
 		r.externalObjectsCache.Delete(bootstrapConfigCacheEntry)
 	}
 
+	updateStatus := runtimehooksv1.MachineUpdateStatusCompleted
+	if dirty {
+		updateStatus = runtimehooksv1.MachineUpdateStatusCompletedButDirty
+	}
 	return updateMachineResult{
-		retryAfter: r.now().Add(updateMachineCacheDuration),
-		messages:   messages,
+		retryAfter:   r.now().Add(updateMachineCacheDuration),
+		updateStatus: updateStatus,
+		messages:     messages,
 	}, nil
+}
+
+// getUpdateStatus returns the UpdateStatus of an UpdateMachineResponse with status Success.
+// If updateStatus is not set, it is defaulted based on retryAfterSeconds: InProgress if retryAfterSeconds > 0, Completed otherwise.
+func getUpdateStatus(resp *runtimehooksv1.UpdateMachineResponse) (runtimehooksv1.MachineUpdateStatus, error) {
+	switch resp.UpdateStatus {
+	case runtimehooksv1.MachineUpdateStatusInProgress,
+		runtimehooksv1.MachineUpdateStatusCompleted,
+		runtimehooksv1.MachineUpdateStatusFailed,
+		runtimehooksv1.MachineUpdateStatusBlocked,
+		runtimehooksv1.MachineUpdateStatusCompletedButDirty:
+		return resp.UpdateStatus, nil
+	case "":
+		if resp.RetryAfterSeconds > 0 {
+			return runtimehooksv1.MachineUpdateStatusInProgress, nil
+		}
+		return runtimehooksv1.MachineUpdateStatusCompleted, nil
+	default:
+		return "", pkgerrors.Errorf("unknown updateStatus %q", resp.UpdateStatus)
+	}
 }
 
 // completeInPlaceUpdate removes in-place update annotations from InfraMachine, BootstrapConfig, Machine,
 // and then marks the UpdateMachine hook as done (removes it from pending-hooks annotation).
-func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope) error {
+// Depending on updateStatus the dirty annotation of the Machine is updated:
+// - Completed: the dirty annotation is removed.
+// - CompletedButDirty: the dirty annotation is set.
+// - Otherwise (e.g. when cleaning up an orphaned hook): the dirty annotation is not changed.
+func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope, updateStatus runtimehooksv1.MachineUpdateStatus) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := r.removeInPlaceUpdateAnnotation(ctx, r.Client, "Machine", s.machine); err != nil {
+	if err := r.completeInPlaceUpdateOnMachine(ctx, s.machine, updateStatus); err != nil {
 		return err
 	}
 
@@ -377,6 +430,36 @@ func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope) error 
 	r.updateMachineCache.Delete(UpdateMachineCacheEntry{Machine: client.ObjectKeyFromObject(s.machine)})
 
 	log.Info("Completed in-place update")
+	return nil
+}
+
+// completeInPlaceUpdateOnMachine removes the in-place update annotation from the Machine, updates the dirty annotation
+// and patches the Machine immediately.
+func (r *Reconciler) completeInPlaceUpdateOnMachine(ctx context.Context, machine *clusterv1.Machine, updateStatus runtimehooksv1.MachineUpdateStatus) error {
+	// Note: The in-place update annotation and the dirty annotation are changed in the same patch, so if the in-place
+	// update annotation is already gone, a previous call already applied all changes.
+	if _, ok := machine.GetAnnotations()[clusterv1.UpdateInProgressAnnotation]; !ok {
+		return nil
+	}
+
+	// Note: DeepCopy object to not modify the passed-in object which can lead to conflict errors later on.
+	obj := machine.DeepCopy()
+	orig := machine.DeepCopy()
+
+	annotations := obj.GetAnnotations()
+	delete(annotations, clusterv1.UpdateInProgressAnnotation)
+	switch updateStatus {
+	case runtimehooksv1.MachineUpdateStatusCompletedButDirty:
+		annotations[clusterv1.UpdateDirtyAnnotation] = ""
+	case runtimehooksv1.MachineUpdateStatusCompleted:
+		delete(annotations, clusterv1.UpdateDirtyAnnotation)
+	}
+	obj.SetAnnotations(annotations)
+
+	if err := r.Client.Patch(ctx, obj, client.MergeFrom(orig)); err != nil {
+		return pkgerrors.Wrapf(err, "failed to complete in-place update on Machine %s: failed to patch annotations", klog.KObj(machine))
+	}
+
 	return nil
 }
 

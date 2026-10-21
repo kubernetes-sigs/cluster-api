@@ -173,7 +173,7 @@ def load_provider_tilt_files():
 
 tilt_helper_dockerfile_header = """
 # Tilt image
-FROM golang:1.26.6 as tilt-helper
+FROM golang:1.26.10 as tilt-helper
 # Install delve. Note this should be kept in step with the Go release minor version.
 RUN go install github.com/go-delve/delve/cmd/dlv@v1.26
 # Support live reloading with Tilt

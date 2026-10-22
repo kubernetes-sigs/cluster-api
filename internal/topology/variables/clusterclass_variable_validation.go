@@ -252,20 +252,28 @@ func validateRootSchema(ctx context.Context, oldClusterClassVariables, clusterCl
 		}
 		return allErrs
 	}
-	ss := wrappedStructural.Properties["variableSchema"]
 
 	// Validate defaults in the structural schema.
 	// Note: Since convertToAPIExtensionsJSONSchemaProps converts the XValidations,
 	// this func internally now also uses CEL to validate the defaults values.
-	validationErrors, err = structuraldefaulting.ValidateDefaults(ctx, fldPath, &ss, false, true)
+	// Note: The wrapped schema is used so the variable schema is not handled as the root of a resource,
+	// for which CEL type information can only be built if it is `type: object`.
+	validationErrors, err = structuraldefaulting.ValidateDefaults(ctx, fldPath, wrappedStructural, false, true)
 	if err != nil {
 		return append(allErrs, field.Invalid(fldPath, "", err.Error()))
 	}
 	if len(validationErrors) > 0 {
-		return append(allErrs, validationErrors...)
+		for _, validationError := range validationErrors {
+			// Remove .properties[variableSchema], this only exists because we had to wrap via wrappedSchema.
+			validationError.Field = strings.Replace(validationError.Field, "openAPIV3Schema.properties[variableSchema]", "openAPIV3Schema", 1)
+			allErrs = append(allErrs, validationError)
+		}
+		return allErrs
 	}
 
-	celContext := apiextensionsvalidation.RootCELContext(apiExtensionsSchema)
+	// Note: The CEL context is built for the wrapped schema so the variable schema is not handled as the root of a resource,
+	// for which CEL type information can only be built if it is `type: object`.
+	celContext := apiextensionsvalidation.RootCELContext(wrappedSchema).ChildPropertyContext(apiExtensionsSchema, "variableSchema")
 
 	// Context:
 	// * EnvSets are CEL environments configured with various options (https://github.com/kubernetes/kubernetes/blob/v1.30.0/staging/src/k8s.io/apiserver/pkg/cel/environment/base.go#L49)

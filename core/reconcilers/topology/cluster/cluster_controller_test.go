@@ -70,7 +70,6 @@ var (
 )
 
 func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -167,8 +166,6 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -219,7 +216,6 @@ func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 300 * time.Second
 
@@ -310,7 +306,6 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -410,7 +405,6 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 30 * time.Second
 
@@ -707,7 +701,6 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 // TestClusterReconciler_deleteClusterClass tests the correct deletion behaviour for a ClusterClass with references in existing Clusters.
 // In this case deletion of the ClusterClass should be blocked by the webhook.
 func TestClusterReconciler_deleteClusterClass(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -1795,7 +1788,6 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 }
 
 func TestClusterClassToCluster(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "cluster-reconcile-namespace")

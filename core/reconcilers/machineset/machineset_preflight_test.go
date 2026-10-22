@@ -36,7 +36,6 @@ import (
 )
 
 func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	ns := "ns1"
 
 	controlPlaneWithNoVersion := builder.ControlPlane(ns, "cp1").Build()

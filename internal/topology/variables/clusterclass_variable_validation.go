@@ -271,7 +271,8 @@ func validateRootSchema(ctx context.Context, oldClusterClassVariables, clusterCl
 		return allErrs
 	}
 
-	// Note: The CEL context is built for the wrapped schema for the same reason as above.
+	// Note: The CEL context is built for the wrapped schema so the variable schema is not handled as the root of a resource,
+	// for which CEL type information can only be built if it is `type: object`.
 	celContext := apiextensionsvalidation.RootCELContext(wrappedSchema).ChildPropertyContext(apiExtensionsSchema, "variableSchema")
 
 	// Context:

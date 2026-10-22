@@ -257,7 +257,7 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 	}
 
 	// If a response is preloaded for this hook, return it as is. This allows E2E tests to control the hook behaviour during a test.
-	found, err := h.readResponseFromConfigMap(ctx, &req.Desired.Machine, runtimehooksv1.UpdateMachine, req.Settings, resp)
+	found, err := h.readResponseFromConfigMap(ctx, req.Desired.Machine.Namespace, req.Desired.Machine.Spec.ClusterName, runtimehooksv1.UpdateMachine, req.Settings, resp)
 	if err != nil {
 		resp.Status = runtimehooksv1.ResponseStatusFailure
 		resp.Message = err.Error()

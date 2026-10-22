@@ -1110,7 +1110,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				},
 			},
 			wantError:        true,
-			wantErrorMessage: "ExtensionHandler test-update-extension failed with message failed",
+			wantErrorMessage: `failed to call extension handler "test-update-extension": got failure response with message: failed`,
 		},
 
 		{

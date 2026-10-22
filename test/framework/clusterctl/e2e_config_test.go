@@ -204,6 +204,50 @@ func Test_E2EConfig_DeepCopy(t *testing.T) {
 	}))
 }
 
+func Test_E2EConfig_AbsPaths(t *testing.T) {
+	const basePath = "/base/config"
+
+	tests := []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{name: "empty value is kept", value: "", want: ""},
+		{name: "relative path is joined with the base path", value: "data/infra", want: "/base/config/data/infra"},
+		{name: "absolute path is kept", value: "/abs/data/infra", want: "/abs/data/infra"},
+		{name: "relative file URL is joined with the base path", value: "file://data/infra", want: "/base/config/data/infra"},
+		{name: "https URL is kept", value: "https://example.com/infra/components.yaml?ref=main", want: "https://example.com/infra/components.yaml?ref=main"},
+		{
+			name:  "go-getter git over ssh URL is kept",
+			value: "git::ssh://git@git.example.com/org/repo//config/default/?timeout=120&ref=main",
+			want:  "git::ssh://git@git.example.com/org/repo//config/default/?timeout=120&ref=main",
+		},
+		{
+			name:  "scp-like git URL is kept",
+			value: "git@git.example.com:org/repo.git//config/default?ref=main",
+			want:  "git@git.example.com:org/repo.git//config/default?ref=main",
+		},
+	}
+
+	// The Value is handled the same way, whatever the Type.
+	for _, versionType := range []ComponentSourceType{KustomizeSource, URLSource} {
+		for _, tt := range tests {
+			t.Run(fmt.Sprintf("%s: %s", versionType, tt.name), func(t *testing.T) {
+				g := NewWithT(t)
+
+				c := &E2EConfig{
+					Providers: []ProviderConfig{{
+						Versions: []ProviderVersionSource{{Type: versionType, Value: tt.value}},
+					}},
+				}
+				c.AbsPaths(basePath)
+
+				g.Expect(c.Providers[0].Versions[0].Value).To(Equal(tt.want))
+			})
+		}
+	}
+}
+
 // newFakeGithubReleases sets up a test HTTP server along with a github.Client that is
 // configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.

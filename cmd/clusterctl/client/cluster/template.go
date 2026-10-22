@@ -220,7 +220,16 @@ func (t *templateClient) getGitHubFileContent(ctx context.Context, rURL *url.URL
 }
 
 func getGithubFileContentFromCode(ctx context.Context, ghClient *github.Client, fullPath string, owner string, repo string, path string, branch string) ([]byte, error) {
-	fileContent, _, _, err := ghClient.Repositories.GetContents(ctx, owner, repo, path, &github.RepositoryContentGetOptions{Ref: branch})
+	fileContent, _, response, err := ghClient.Repositories.GetContents(ctx, owner, repo, path, &github.RepositoryContentGetOptions{Ref: branch})
+	if err != nil && response != nil && response.StatusCode == http.StatusNotFound {
+		resolvedBranch, resolvedPath, resolveErr := resolveGitHubBranchAndPath(ctx, ghClient, owner, repo, branch, path)
+		if resolveErr != nil {
+			return nil, handleGithubErr(resolveErr, "failed to resolve branch for %q", fullPath)
+		}
+		if resolvedBranch != "" {
+			fileContent, _, _, err = ghClient.Repositories.GetContents(ctx, owner, repo, resolvedPath, &github.RepositoryContentGetOptions{Ref: resolvedBranch})
+		}
+	}
 	if err != nil {
 		return nil, handleGithubErr(err, "failed to get %q", fullPath)
 	}
@@ -235,6 +244,32 @@ func getGithubFileContentFromCode(ctx context.Context, ghClient *github.Client, 
 		return nil, pkgerrors.Wrapf(err, "failed to decode file %q", fullPath)
 	}
 	return content, nil
+}
+
+func resolveGitHubBranchAndPath(ctx context.Context, ghClient *github.Client, owner, repo, branch, path string) (string, string, error) {
+	pathParts := strings.Split(path, "/")
+	if len(pathParts) < 2 {
+		return "", "", nil
+	}
+
+	refs, _, err := ghClient.Git.ListMatchingRefs(ctx, owner, repo, fmt.Sprintf("heads/%s/%s", branch, pathParts[0]))
+	if err != nil {
+		return "", "", err
+	}
+
+	branchAndPath := branch + "/" + path
+	resolvedBranch := ""
+	for _, ref := range refs {
+		refName := strings.TrimPrefix(ref.GetRef(), "refs/heads/")
+		if strings.HasPrefix(branchAndPath, refName+"/") && len(refName) > len(resolvedBranch) {
+			resolvedBranch = refName
+		}
+	}
+	if resolvedBranch == "" {
+		return "", "", nil
+	}
+
+	return resolvedBranch, strings.TrimPrefix(branchAndPath, resolvedBranch+"/"), nil
 }
 
 func (t *templateClient) getRawURLFileContent(ctx context.Context, rURL string) ([]byte, error) {

@@ -19,6 +19,7 @@ package machinepool
 import (
 	"context"
 	"fmt"
+	"math"
 	"reflect"
 	"slices"
 	"strings"
@@ -559,7 +560,12 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
 
-	res, err := r.reconcileUnhealthyMachinePoolMachines(ctx, s, machineList.Items)
+	machines := make([]*clusterv1.Machine, 0, len(machineList.Items))
+	for idx := range machineList.Items {
+		machines = append(machines, &machineList.Items[idx])
+	}
+
+	res, err := r.reconcileUnhealthyMachinePoolMachines(ctx, s, machines)
 	if err != nil {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to reconcile unhealthy machines for MachinePool %s", klog.KObj(mp))
 	}
@@ -791,7 +797,7 @@ func patchMachineConditions(ctx context.Context, c client.Client, machines []*cl
 	return nil
 }
 
-func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, s *scope, machines []clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, s *scope, machines []*clusterv1.Machine) (ctrl.Result, error) {
 	if len(machines) == 0 {
 		return ctrl.Result{}, nil
 	}
@@ -799,8 +805,8 @@ func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, 
 	log := ctrl.LoggerFrom(ctx)
 	mp := s.machinePool
 
-	machinesWithHealthCheck := slices.DeleteFunc(slices.Clone(machines), func(machine clusterv1.Machine) bool {
-		return !conditions.Has(&machine, clusterv1.MachineHealthCheckSucceededCondition)
+	machinesWithHealthCheck := slices.DeleteFunc(slices.Clone(machines), func(machine *clusterv1.Machine) bool {
+		return !conditions.Has(machine, clusterv1.MachineHealthCheckSucceededCondition)
 	})
 	if len(machinesWithHealthCheck) == 0 {
 		// This means there is no MachineHealthCheck selecting any machines
@@ -814,14 +820,9 @@ func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, 
 		return ctrl.Result{RequeueAfter: 10 * time.Minute}, nil
 	}
 
-	unhealthyMachines := slices.DeleteFunc(slices.Clone(machines), func(machine clusterv1.Machine) bool {
-		return !collections.IsUnhealthyAndOwnerRemediated(&machine)
-	})
-	log.V(4).Info("Reconciling unhealthy MachinePool machines", "unhealthyMachines", len(unhealthyMachines))
-
 	// Calculate how many in flight machines we should remediate.
 	// By default, we allow all machines to be remediated at the same time.
-	maxInFlight := len(unhealthyMachines)
+	maxInFlight := math.MaxInt
 	if mp.Spec.Remediation.MaxInFlight != nil {
 		var err error
 		replicas := int(ptr.Deref(mp.Spec.Replicas, 1))
@@ -832,21 +833,23 @@ func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, 
 		log = log.WithValues("maxInFlight", maxInFlight, "replicas", replicas)
 	}
 
-	machinesToRemediate := make([]*clusterv1.Machine, 0, len(unhealthyMachines))
+	machinesToRemediate := make([]*clusterv1.Machine, 0, len(machines))
 	inFlight := 0
-	for _, m := range unhealthyMachines {
-		if !m.DeletionTimestamp.IsZero() {
-			if conditions.IsTrue(&m, clusterv1.MachineOwnerRemediatedCondition) {
-				// Machine has been remediated by this controller and still in flight.
+	for _, machine := range machines {
+		if !machine.DeletionTimestamp.IsZero() {
+			if c := conditions.Get(machine, clusterv1.MachineOwnerRemediatedCondition); c != nil && c.Status == metav1.ConditionFalse && c.Reason == clusterv1.MachinePoolMachineRemediationMachineDeletingReason {
+				// Remediation for this Machine has been triggered by this controller but it is still in flight,
+				// i.e. it still goes through the deletion workflow and exists in etcd.
 				inFlight++
 			}
 			continue
 		}
-		if conditions.IsFalse(&m, clusterv1.MachineOwnerRemediatedCondition) {
-			machinesToRemediate = append(machinesToRemediate, &m)
+		if collections.IsUnhealthyAndOwnerRemediated(machine) {
+			machinesToRemediate = append(machinesToRemediate, machine)
 		}
 	}
 	log = log.WithValues("inFlight", inFlight)
+	log.V(4).Info("Reconciling unhealthy MachinePool machines", "machinesToBeRemediated", len(machinesToRemediate))
 
 	if len(machinesToRemediate) == 0 {
 		log.V(5).Info("No MachinePool machines to remediate, requeueing")
@@ -875,6 +878,9 @@ func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, 
 		return ctrl.Result{}, nil
 	}
 
+	// Sort the machines from newest to oldest.
+	// We are trying to remediate machines failing to come up first because
+	// there is a chance that they are not hosting any workloads (minimize disruption).
 	remediation.SortMachinesToRemediate(machinesToRemediate)
 
 	haveMoreMachinesToRemediate := false
@@ -922,21 +928,25 @@ func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, 
 
 	// PreflightChecks passed, so it is safe to remediate unhealthy machines by deleting them.
 
-	// Remediate unhealthy machines by deleting them
+	// Note: We intentionally patch the Machines before we delete them to make this code reentrant.
+	// If we delete the Machine first, the Machine would be filtered out on next reconcile because
+	// it has a deletionTimestamp so it would never get the condition and wouldn't count as in flight.
+	if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
+		Type:    clusterv1.MachineOwnerRemediatedCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  clusterv1.MachinePoolMachineRemediationMachineDeletingReason,
+		Message: "Machine is deleting",
+	}, &clusterv1.Condition{
+		Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+		Status: corev1.ConditionTrue,
+	}); err != nil {
+		return ctrl.Result{}, err
+	}
 	var errs []error
-	for _, m := range machinesToRemediate {
-		log.Info("Deleting unhealthy Machine", "Machine", klog.KObj(m))
-		patch := client.MergeFrom(m.DeepCopy())
-		if err := r.Client.Delete(ctx, m); err != nil {
-			if apierrors.IsNotFound(err) {
-				continue
-			}
-			errs = append(errs, pkgerrors.Wrapf(err, "failed to delete Machine %s", klog.KObj(m)))
-			continue
-		}
-		v1beta1conditions.MarkTrue(m, clusterv1.MachineOwnerRemediatedCondition)
-		if err := r.Client.Status().Patch(ctx, m, patch); err != nil && !apierrors.IsNotFound(err) {
-			errs = append(errs, pkgerrors.Wrapf(err, "failed to update status of Machine %s", klog.KObj(m)))
+	for _, machine := range machinesToRemediate {
+		log.Info("Deleting unhealthy Machine", "Machine", klog.KObj(machine))
+		if err := r.Client.Delete(ctx, machine); err != nil && !apierrors.IsNotFound(err) {
+			errs = append(errs, pkgerrors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine)))
 		}
 	}
 

@@ -250,6 +250,10 @@ const (
 	// MachinePoolMachineRemediationDeferredReason surfaces when remediation of a MachinePool machine must be deferred.
 	MachinePoolMachineRemediationDeferredReason = "RemediationDeferred"
 
+	// MachinePoolMachineRemediationMachineDeletingReason surfaces when remediation of a MachinePool machine
+	// has been completed by deleting the unhealthy machine.
+	MachinePoolMachineRemediationMachineDeletingReason = "MachineDeleting"
+
 	// MachineSetMachineRemediationMachineDeletingReason surfaces when remediation of a MachineSet machine
 	// has been completed by deleting the unhealthy machine.
 	// Note: After an unhealthy machine is deleted, a new one is created by the MachineSet as part of the

@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -2382,6 +2383,100 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		delNode := &corev1.Node{}
 		g.Expect(env.Get(ctx, client.ObjectKeyFromObject(node), delNode)).To(Succeed())
 	})
+}
+
+func TestReconcileUnhealthyMachinePoolMachinesRespectsMaxInFlight(t *testing.T) {
+	g := NewWithT(t)
+
+	scheme := runtime.NewScheme()
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName,
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	machinePool := getMachinePool(3, "machinepool-max-in-flight", clusterName, metav1.NamespaceDefault)
+	machinePool.Spec.Remediation.MaxInFlight = ptr.To(intstr.FromInt32(1))
+
+	machines := getMachines(3, machinePool.Name, clusterName, metav1.NamespaceDefault)
+	for i := range machines {
+		machines[i].Finalizers = []string{clusterv1.MachineFinalizer}
+		machines[i].CreationTimestamp = metav1.NewTime(time.Now().Add(time.Duration(i) * time.Minute))
+		conditions.Set(&machines[i], metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachineHealthCheckSucceededReason,
+		})
+	}
+	for _, i := range []int{1, 2} {
+		conditions.Set(&machines[i], metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineHealthCheckHasRemediateAnnotationReason,
+		})
+		conditions.Set(&machines[i], metav1.Condition{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineOwnerRemediatedWaitingForRemediationReason,
+		})
+	}
+
+	objects := []client.Object{testCluster, &machinePool}
+	for i := range machines {
+		objects = append(objects, &machines[i])
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).WithStatusSubresource(&clusterv1.Machine{}).Build()
+
+	r := &Reconciler{
+		Client: fakeClient,
+	}
+	s := &scope{
+		cluster:     testCluster,
+		machinePool: &machinePool,
+	}
+
+	listMachines := func() []*clusterv1.Machine {
+		machineList := &clusterv1.MachineList{}
+		g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(metav1.NamespaceDefault))).To(Succeed())
+		ret := make([]*clusterv1.Machine, 0, len(machineList.Items))
+		for idx := range machineList.Items {
+			ret = append(ret, &machineList.Items[idx])
+		}
+		return ret
+	}
+	getMachine := func(name string) *clusterv1.Machine {
+		machine := &clusterv1.Machine{}
+		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: name}, machine)).To(Succeed())
+		return machine
+	}
+
+	// The newest unhealthy Machine gets remediated first, the other one has to wait
+	_, err := r.reconcileUnhealthyMachinePoolMachines(ctx, s, listMachines())
+	g.Expect(err).ToNot(HaveOccurred())
+
+	expectedRemediatedMachine := getMachine(machines[2].Name)
+	g.Expect(expectedRemediatedMachine.DeletionTimestamp.IsZero()).To(BeFalse())
+	remediatedCondition := conditions.Get(expectedRemediatedMachine, clusterv1.MachineOwnerRemediatedCondition)
+	g.Expect(remediatedCondition).ToNot(BeNil())
+	g.Expect(remediatedCondition.Status).To(Equal(metav1.ConditionFalse))
+	g.Expect(remediatedCondition.Reason).To(Equal(clusterv1.MachinePoolMachineRemediationMachineDeletingReason))
+	g.Expect(v1beta1conditions.IsTrue(expectedRemediatedMachine, clusterv1.MachineOwnerRemediatedV1Beta1Condition)).To(BeTrue())
+
+	g.Expect(getMachine(machines[1].Name).DeletionTimestamp.IsZero()).To(BeTrue())
+
+	// While the first remediation is still in flight, the other unhealthy Machine must not be deleted
+	_, err = r.reconcileUnhealthyMachinePoolMachines(ctx, s, listMachines())
+	g.Expect(err).ToNot(HaveOccurred())
+
+	deferredRemediationMachine := getMachine(machines[1].Name)
+	g.Expect(deferredRemediationMachine.DeletionTimestamp.IsZero()).To(BeTrue())
+	deferredCondition := conditions.Get(deferredRemediationMachine, clusterv1.MachineOwnerRemediatedCondition)
+	g.Expect(deferredCondition).ToNot(BeNil())
+	g.Expect(deferredCondition.Reason).To(Equal(clusterv1.MachinePoolMachineRemediationDeferredReason))
+
+	g.Expect(getMachine(machines[0].Name).DeletionTimestamp.IsZero()).To(BeTrue())
 }
 
 func getInfraMachines(replicas int, mpName, clusterName, nsName string) []unstructured.Unstructured {

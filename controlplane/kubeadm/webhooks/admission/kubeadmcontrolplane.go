@@ -87,6 +87,7 @@ func (webhook *KubeadmControlPlane) ValidateCreate(_ context.Context, k *control
 	allErrs := validateKubeadmControlPlaneSpec(spec, field.NewPath("spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(nil, &spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, bootstrapadmission.Validate(&spec.KubeadmConfigSpec, true, field.NewPath("spec", "kubeadmConfigSpec"))...)
+	allErrs = append(allErrs, bootstrapadmission.ValidateImageRepositories(&spec.KubeadmConfigSpec, nil, field.NewPath("spec", "kubeadmConfigSpec"))...)
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), k.Name, allErrs)
 	}
@@ -240,6 +241,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldK, newK
 	allErrs = append(allErrs, validateClusterConfiguration(&oldK.Spec.KubeadmConfigSpec.ClusterConfiguration, &newK.Spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, webhook.validateCoreDNSVersion(oldK, newK)...)
 	allErrs = append(allErrs, bootstrapadmission.Validate(&newK.Spec.KubeadmConfigSpec, true, field.NewPath("spec", "kubeadmConfigSpec"))...)
+	allErrs = append(allErrs, bootstrapadmission.ValidateImageRepositories(&newK.Spec.KubeadmConfigSpec, &oldK.Spec.KubeadmConfigSpec, field.NewPath("spec", "kubeadmConfigSpec"))...)
 
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), newK.Name, allErrs)

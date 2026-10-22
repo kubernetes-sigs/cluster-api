@@ -256,10 +256,10 @@ and `kubeadm` control-plane providers.
 ### Enabling Feature Gates
 
 Feature gates can be enabled by exporting environment variables before executing `clusterctl init`.
-For example, the `ClusterTopology` feature, which is required to enable support for managed topologies and ClusterClass,
+For example, the `RuntimeSDK` feature, which is required to enable support for Runtime Extensions,
 can be enabled via:
 ```bash
-export CLUSTER_TOPOLOGY=true
+export EXP_RUNTIME_SDK=true
 ```
 See documentation about supported [Feature Gates].
 
@@ -532,15 +532,12 @@ clusterctl init --infrastructure digitalocean
 > [!WARNING]
 > The Docker provider is not designed for production use and is intended for development environments only.
 
-The Docker provider requires the `ClusterTopology` and `MachinePool` features to deploy ClusterClass-based clusters.
+The Docker provider requires the `ClusterTopology` and `MachinePool` features to deploy ClusterClass-based clusters (both are enabled by default).
 We are only supporting ClusterClass-based cluster-templates in this quickstart as ClusterClass makes it possible to
 adapt configuration based on Kubernetes version. This is required to install Kubernetes clusters < v1.24 and
 for the upgrade from v1.23 to v1.24 as we have to use different cgroupDrivers depending on Kubernetes version.
 
 ```bash
-# Enable the ClusterTopology feature gate.
-export CLUSTER_TOPOLOGY=true
-
 # Initialize the management cluster
 clusterctl init --infrastructure docker
 ```

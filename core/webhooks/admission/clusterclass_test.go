@@ -54,7 +54,8 @@ func init() {
 }
 
 func TestClusterClassValidationFeatureGated(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
+	// NOTE: ClusterTopology feature flag is enabled by default, thus we have to disable it explicitly to test the disabled behavior.
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, false)
 
 	tests := []struct {
 		name      string
@@ -159,10 +160,6 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 }
 
 func TestClusterClassValidation(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
@@ -1987,10 +1984,6 @@ func TestClusterClassValidation(t *testing.T) {
 }
 
 func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	tests := []struct {
 		name            string
 		oldClusterClass *clusterv1.ClusterClass
@@ -2827,10 +2820,6 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 }
 
 func TestGetClustersUsingClusterClass(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	topology := builder.ClusterTopology().WithClass("class1")
 
 	tests := []struct {

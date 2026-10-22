@@ -24,14 +24,12 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/component-base/featuregate"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/cluster-api/core/reconcilers/clusterclass"
 	"sigs.k8s.io/cluster-api/core/setup"
-	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 	"sigs.k8s.io/cluster-api/util/index"
@@ -43,9 +41,6 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	if err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=%v", feature.ClusterTopology, true)); err != nil {
-		panic(fmt.Sprintf("unable to set ClusterTopology feature gate: %v", err))
-	}
 	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
 			panic(fmt.Sprintf("unable to setup index: %v", err))

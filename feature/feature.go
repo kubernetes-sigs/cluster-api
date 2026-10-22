@@ -38,6 +38,7 @@ const (
 	// ClusterTopology is a feature gate for the ClusterClass and managed topologies functionality.
 	//
 	// alpha: v0.4
+	// beta: v1.15
 	ClusterTopology featuregate.Feature = "ClusterTopology"
 
 	// ClusterClassInlineTemplates is a feature gate for the ClusterClass inline templates functionality.
@@ -104,10 +105,10 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	// Every feature should be initiated here:
 	PriorityQueue:                  {Default: true, PreRelease: featuregate.GA},
 	ReconcilerRateLimiting:         {Default: true, PreRelease: featuregate.GA},
+	ClusterTopology:                {Default: true, PreRelease: featuregate.Beta},
 	MachinePool:                    {Default: true, PreRelease: featuregate.Beta},
 	MachineSetPreflightChecks:      {Default: true, PreRelease: featuregate.Beta},
 	MachineTaintPropagation:        {Default: true, PreRelease: featuregate.Beta},
-	ClusterTopology:                {Default: false, PreRelease: featuregate.Alpha},
 	KubeadmBootstrapFormatIgnition: {Default: false, PreRelease: featuregate.Alpha},
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},
 	InPlaceUpdates:                 {Default: false, PreRelease: featuregate.Alpha},

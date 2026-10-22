@@ -124,7 +124,12 @@ func (k *proxy) ValidateKubernetesVersion() error {
 	}
 
 	minVer := version.MinimumKubernetesVersion
-	if clusterTopologyFeatureGate, _ := strconv.ParseBool(os.Getenv("CLUSTER_TOPOLOGY")); clusterTopologyFeatureGate {
+	// Note: The ClusterTopology feature gate is enabled by default, so it is only considered disabled if explicitly set to a false value.
+	clusterTopologyFeatureGate := true
+	if v, ok := os.LookupEnv("CLUSTER_TOPOLOGY"); ok {
+		clusterTopologyFeatureGate, _ = strconv.ParseBool(v)
+	}
+	if clusterTopologyFeatureGate {
 		minVer = version.MinimumKubernetesVersionClusterTopology
 	}
 

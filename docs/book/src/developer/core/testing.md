@@ -300,7 +300,6 @@ Execute the run configuration with `Debug`.
 > **Feature gates**: E2E tests often use features which need to be enabled first. Make sure to enable the feature gates in the tilt settings file:
 > ```yaml
 > kustomize_substitutions:
->   CLUSTER_TOPOLOGY: "true"
 >   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
 >   EXP_RUNTIME_SDK: "true"
 > ```

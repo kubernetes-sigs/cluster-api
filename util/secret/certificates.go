@@ -278,7 +278,7 @@ func (c Certificates) EnsureAllExist() error {
 		if len(certificate.KeyPair.Cert) == 0 {
 			return pkgerrors.Wrapf(ErrMissingCrt, "for certificate: %s", certificate.Purpose)
 		}
-		if !certificate.External && certificate.KeyFile != "" {
+		if certificate.KeyFile != "" {
 			if len(certificate.KeyPair.Key) == 0 {
 				return pkgerrors.Wrapf(ErrMissingKey, "for certificate: %s", certificate.Purpose)
 			}

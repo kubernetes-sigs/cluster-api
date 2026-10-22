@@ -290,7 +290,7 @@ In case conditions are implemented on a BootstrapConfig resource, Cluster API wi
 
 Other fields will be ignored.
 
-If a condition with type `Ready` exist, such condition will be mirrored in Machine's `BootstrapConfigReady` condition.
+If a condition with type `Ready` exist, such condition will be mirrored in Machine's and MachinePool's `BootstrapConfigReady` condition.
 
 Please note that the `Ready` condition is expected to surface the status of the BootstrapConfig during its own entire lifecycle,
 including initial provisioning, but not limited to that.

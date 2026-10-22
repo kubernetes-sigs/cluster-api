@@ -68,7 +68,7 @@ type WorkloadCluster interface {
 	GetAPIServerCertificateExpiry(ctx context.Context, kubeadmConfig *bootstrapv1.KubeadmConfig, nodeName string) (*time.Time, error)
 
 	// Upgrade related tasks.
-	UpdateImageRepositoryInKubeadmConfigMap(imageRepository string) func(*bootstrapv1.ClusterConfiguration)
+	UpdateImageRepositoryInKubeadmConfigMap(imageRepository, dnsImageRepository string) func(*bootstrapv1.ClusterConfiguration)
 	UpdateFeatureGatesInKubeadmConfigMap(kubeadmConfigSpec bootstrapv1.KubeadmConfigSpec, kubernetesVersion semver.Version) func(*bootstrapv1.ClusterConfiguration)
 	UpdateEtcdLocalInKubeadmConfigMap(localEtcd bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration)
 	UpdateEtcdExternalInKubeadmConfigMap(externalEtcd bootstrapv1.ExternalEtcd) func(*bootstrapv1.ClusterConfiguration)
@@ -110,13 +110,16 @@ func (w *Workload) getConfigMap(ctx context.Context, configMap client.ObjectKey)
 }
 
 // UpdateImageRepositoryInKubeadmConfigMap updates the image repository in the kubeadm config map.
-func (w *Workload) UpdateImageRepositoryInKubeadmConfigMap(imageRepository string) func(*bootstrapv1.ClusterConfiguration) {
+// dnsImageRepository, when set, is applied to the DNS section in the same
+// reconcile so both repositories land in the config map together (see #14267).
+func (w *Workload) UpdateImageRepositoryInKubeadmConfigMap(imageRepository, dnsImageRepository string) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
-		if imageRepository == "" {
-			return
+		if imageRepository != "" {
+			c.ImageRepository = imageRepository
 		}
-
-		c.ImageRepository = imageRepository
+		if dnsImageRepository != "" {
+			c.DNS.ImageRepository = dnsImageRepository
+		}
 	}
 }
 

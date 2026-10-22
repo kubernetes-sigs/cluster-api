@@ -1174,11 +1174,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				// Enabling the feature flag temporarily for this test.
 				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)
 			}
-			if tt.enableTaintsFeature {
-				// NOTE: MachineTaintPropagation feature flag is disabled by default.
-				// Enabling the feature flag temporarily for this test.
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
-			}
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, tt.enableTaintsFeature)
 
 			g := NewWithT(t)
 

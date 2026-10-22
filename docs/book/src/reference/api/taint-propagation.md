@@ -1,7 +1,7 @@
 # Taint propagation
 
 > [!IMPORTANT]
-> The `MachineTaintPropagation` feature gate must be set to true in order to use this feature.
+> The `MachineTaintPropagation` feature gate is enabled by default (Beta).
 > See [Feature Gates](../feature-gates.md) for more details.
 
 Cluster API controllers implement consistent taint propagation across Cluster API resources and from Machines to

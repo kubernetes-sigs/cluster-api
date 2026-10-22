@@ -37,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -56,7 +55,6 @@ import (
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
@@ -1363,8 +1361,6 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 }
 
 func TestReconcileCluster(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	cluster1 := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 		WithTopology(&clusterv1.Topology{
 			ClassRef: clusterv1.ClusterClassRef{
@@ -1620,8 +1616,6 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 }
 
 func TestReconcileControlPlane(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	testReconcileControlPlane(t, "v1beta1")
 	testReconcileControlPlane(t, "v1beta2")
 }
@@ -3835,8 +3829,6 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 }
 
 func TestReconcileState(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	ict := builder.TestInfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()
 	cpt := builder.TestControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").

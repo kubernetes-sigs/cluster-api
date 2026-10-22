@@ -5,7 +5,7 @@ The following tables are a summary of the feature gates that are available in Cl
 | Feature gate                     | Maturity level | Note                                                                                                                                                                                                                                                                                                                                                    |
 |----------------------------------|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `ClusterClassInlineTemplates`    | Alpha          | env var: `EXP_CLUSTERCLASS_INLINE_TEMPLATES`<br>See this [ClusterClass with inline templates](../user/guide/configuration/cluster-class/write-clusterclass.md#clusterclass-with-inline-templates).<br>Important!: This feature gate should only be enabled if there are no more clients in the environment that are using the v1beta1 ClusterClass API. |
-| `ClusterTopology`                | Alpha          | env var: `CLUSTER_TOPOLOGY`<br>See [ClusterClass](../user/guide/configuration/cluster-class/index.md).                                                                                                                                                                                                                                                  |
+| `ClusterTopology`                | Beta           | env var: `CLUSTER_TOPOLOGY`<br>See [ClusterClass](../user/guide/configuration/cluster-class/index.md).                                                                                                                                                                                                                                                  |
 | `InPlaceUpdates`                 | Alpha          | env var: `EXP_IN_PLACE_UPDATES`<br>See [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md).<br>Important!: Also requires `RuntimeSDK`.                                                                                                                                                     |
 | `KubeadmBootstrapFormatIgnition` | Alpha          | env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`<br>See [Ignition](../user/guide/configuration/bootstrap/kubeadm-bootstrap/ignition.md).                                                                                                                                                                                                                |
 | `MachinePool`                    | Beta           | env var: `EXP_MACHINE_POOL`<br>See [MachinePools](../user/guide/configuration/workers/machine-pools.md).                                                                                                                                                                                                                                                |
@@ -44,7 +44,6 @@ to boostrap the management cluster used during the test. For CAPI, these configs
 
 ```yaml
 variables:
-  CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
 ```
@@ -57,7 +56,6 @@ On development environments started with `Tilt`, features gates can be enabled b
 
 ```yaml
 kustomize_substitutions:
-  CLUSTER_TOPOLOGY: 'true'
   EXP_RUNTIME_SDK: 'true'
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: 'true'
 ```

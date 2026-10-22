@@ -40,7 +40,6 @@ import (
 )
 
 func Test_warmupRunnable_Start(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	t.Run("succeed to warm up registry on Start", func(t *testing.T) {

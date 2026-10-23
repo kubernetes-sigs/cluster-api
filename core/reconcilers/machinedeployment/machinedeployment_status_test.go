@@ -272,8 +272,39 @@ func Test_setRollingOutCondition(t *testing.T) {
 		name              string
 		machineDeployment *clusterv1.MachineDeployment
 		machines          []*clusterv1.Machine
-		expectCondition   metav1.Condition
+		// canUpdateMachineSetResults are the messages of the CanUpdateMachineSet hook collected by the rollout planner.
+		canUpdateMachineSetResults canUpdateMachineSetResults
+		// rolloutNotReconciled is true when the reconcile returned before the rollout step, so canUpdateMachineSetResults are unknown.
+		rolloutNotReconciled bool
+		expectCondition      metav1.Condition
 	}{
+		{
+			name: "keep the previous condition if the reconcile returned before the rollout step",
+			machineDeployment: func() *clusterv1.MachineDeployment {
+				md := &clusterv1.MachineDeployment{}
+				conditions.Set(md, metav1.Condition{
+					Type:    clusterv1.MachineDeploymentRollingOutCondition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineDeploymentRollingOutRolloutBlockedReason,
+					Message: "Rolling out 1 not up-to-date replicas:\n* MachineSet ms1: replace operation is not allowed",
+				})
+				return md
+			}(),
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withCondition(metav1.Condition{
+					Type:   clusterv1.MachineUpToDateCondition,
+					Status: metav1.ConditionFalse,
+					Reason: clusterv1.MachineNotUpToDateReason,
+				})),
+			},
+			rolloutNotReconciled: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineDeploymentRollingOutCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineDeploymentRollingOutRolloutBlockedReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n* MachineSet ms1: replace operation is not allowed",
+			},
+		},
 		{
 			name:              "no machines",
 			machineDeployment: &clusterv1.MachineDeployment{},
@@ -355,6 +386,152 @@ func Test_setRollingOutCondition(t *testing.T) {
 					"* Version v1.25.0, v1.26.0 required",
 			},
 		},
+		{
+			name:              "waiting for the rollout decision of the CanUpdateMachineSet hook",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withCondition(metav1.Condition{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateReason,
+					Message: "* Version v1.25.0, v1.26.0 required",
+				})),
+			},
+			canUpdateMachineSetResults: canUpdateMachineSetResults{waitingForDecisionMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1: detailed message"}},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentRollingOutWaitingForRolloutDecisionReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked by CanUpdateMachineSet hook for MachineSet ms1: detailed message\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
+			name:              "rollout blocked by the CanUpdateMachineSet hook",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withCondition(metav1.Condition{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateReason,
+					Message: "* Version v1.25.0, v1.26.0 required",
+				})),
+			},
+			canUpdateMachineSetResults: canUpdateMachineSetResults{rolloutBlockedMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1: neither replace nor in-place update operations are allowed: preflight check failed"}},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentRollingOutRolloutBlockedReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked by CanUpdateMachineSet hook for MachineSet ms1: neither replace nor in-place update operations are allowed: preflight check failed\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
+			name:              "CanUpdateMachineSet hook returned an error",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withCondition(metav1.Condition{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateReason,
+					Message: "* Version v1.25.0, v1.26.0 required",
+				})),
+			},
+			canUpdateMachineSetResults: canUpdateMachineSetResults{internalErrorMessage: "Blocked by CanUpdateMachineSet hook for MachineSet ms1: extension failed"},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentRollingOutInternalErrorReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked by CanUpdateMachineSet hook for MachineSet ms1: extension failed\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
+			name:              "waiting for the rollout decision for multiple MachineSets surfaces one sorted message per MachineSet",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withCondition(metav1.Condition{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateReason,
+					Message: "* Version v1.25.0, v1.26.0 required",
+				})),
+			},
+			canUpdateMachineSetResults: canUpdateMachineSetResults{waitingForDecisionMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms2", "Blocked by CanUpdateMachineSet hook for MachineSet ms1: detailed message"}},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentRollingOutWaitingForRolloutDecisionReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked by CanUpdateMachineSet hook for MachineSet ms1: detailed message\n" +
+					"* Blocked by CanUpdateMachineSet hook for MachineSet ms2\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
+			name:              "CanUpdateMachineSet hook messages: waiting for the rollout decision wins over rollout blocked",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withCondition(metav1.Condition{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateReason,
+					Message: "* Version v1.25.0, v1.26.0 required",
+				})),
+			},
+			canUpdateMachineSetResults: canUpdateMachineSetResults{
+				waitingForDecisionMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1"},
+				rolloutBlockedMessages:     []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms2: preflight check failed"},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentRollingOutWaitingForRolloutDecisionReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked by CanUpdateMachineSet hook for MachineSet ms1\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
+			name:              "CanUpdateMachineSet hook messages: internal error wins over waiting for the rollout decision and rollout blocked",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withCondition(metav1.Condition{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateReason,
+					Message: "* Version v1.25.0, v1.26.0 required",
+				})),
+			},
+			canUpdateMachineSetResults: canUpdateMachineSetResults{
+				internalErrorMessage:       "Blocked by CanUpdateMachineSet hook for MachineSet ms3: extension failed",
+				waitingForDecisionMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1"},
+				rolloutBlockedMessages:     []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms2: preflight check failed"},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentRollingOutInternalErrorReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked by CanUpdateMachineSet hook for MachineSet ms3: extension failed\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
+			name:                       "CanUpdateMachineSet hook messages are ignored if no machine is rolling out",
+			machineDeployment:          &clusterv1.MachineDeployment{},
+			machines:                   []*clusterv1.Machine{fakeMachine("machine-1", withCondition(upToDateCondition))},
+			canUpdateMachineSetResults: canUpdateMachineSetResults{waitingForDecisionMessages: []string{"Blocked by CanUpdateMachineSet hook for MachineSet ms1"}},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineDeploymentRollingOutCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineDeploymentNotRollingOutReason,
+				Message: "",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -364,7 +541,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setRollingOutCondition(ctx, tt.machineDeployment, machines)
+			setRollingOutCondition(ctx, tt.machineDeployment, machines, tt.canUpdateMachineSetResults, !tt.rolloutNotReconciled)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRollingOutCondition)
 			g.Expect(condition).ToNot(BeNil())

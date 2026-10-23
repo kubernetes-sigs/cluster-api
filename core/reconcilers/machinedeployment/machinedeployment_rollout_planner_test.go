@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
@@ -631,6 +632,9 @@ func machineSetControllerMutatorCreateMachines(_ context.Context, ms *clusterv1.
 	sortMachinesByName(scope.machineSetMachines[ms.Name])
 
 	scope.machinesCreated += len(machinesAdded)
+	for _, machineName := range machinesAdded {
+		scope.recordOperation(operationCreate, machineName)
+	}
 	fmt.Fprintf(logLines, "      - %s scaled up to %d/%[2]d replicas (%s created)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesAdded, ","))
 }
 
@@ -710,6 +714,9 @@ func machineSetControllerMutatorMoveMachines(_ context.Context, ms *clusterv1.Ma
 	}
 	scope.machineSetMachines[ms.Name] = machinesSetMachines
 	scope.machinesUpdatedInPlace += len(machinesMoved)
+	for _, machineName := range machinesMoved {
+		scope.recordOperation(operationUpdateInPlace, machineName)
+	}
 	fmt.Fprintf(logLines, "      - %s scaled down to %d/%d replicas (%s moved to %s)", ms.Name, len(scope.machineSetMachines[ms.Name]), ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesMoved, ","), targetMS.Name)
 
 	// Sort machines to ensure consistent reporting during tests.
@@ -751,6 +758,9 @@ func machineSetControllerMutatorDeleteMachines(_ context.Context, ms *clusterv1.
 	sortMachinesByName(scope.machineSetMachines[ms.Name])
 
 	scope.machinesDeleted += len(machinesDeleted)
+	for _, machineName := range machinesDeleted {
+		scope.recordOperation(operationDelete, machineName)
+	}
 	fmt.Fprintf(logLines, "      - %s scaled down to %d/%[2]d replicas (%s deleted)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesDeleted, ","))
 }
 
@@ -790,6 +800,19 @@ type rolloutScope struct {
 	machinesCreated        int
 	machinesDeleted        int
 	machinesUpdatedInPlace int
+
+	// operations records the operations performed on Machines while running a test case, e.g. "create m4", "delete m1", "update in-place m2".
+	operations []string
+}
+
+const (
+	operationCreate        = "create"
+	operationDelete        = "delete"
+	operationUpdateInPlace = "update in-place"
+)
+
+func (r *rolloutScope) recordOperation(operation, machineName string) {
+	r.operations = append(r.operations, fmt.Sprintf("%s %s", operation, machineName))
 }
 
 func initCurrentRolloutScope(currentMachineNames []string, mdOptions ...machineDeploymentOption) (current *rolloutScope) {
@@ -900,6 +923,7 @@ func (r *rolloutScope) Clone() *rolloutScope {
 		machinesCreated:        r.machinesCreated,
 		machinesDeleted:        r.machinesDeleted,
 		machinesUpdatedInPlace: r.machinesUpdatedInPlace,
+		operations:             slices.Clone(r.operations),
 	}
 	for _, ms := range r.machineSets {
 		c.machineSets = append(c.machineSets, ms.DeepCopy())
@@ -1020,6 +1044,12 @@ func (r rolloutScope) rolloutPlannerResultSummary(p *rolloutPlanner) string {
 		}
 		if d.OtherChanges != "" {
 			fmt.Fprintf(&o, "      - Diff: %s\n", d.OtherChanges)
+		}
+		if p.pendingMSs.Len() > 0 {
+			fmt.Fprintf(&o, "    - Rollout blocked, waiting for canUpdateMachineSet decision (retry after %s)\n", p.pendingRetryAfter.Sub(p.now()).Round(time.Second))
+		}
+		if p.blockedMSs.Has(ms.Name) {
+			fmt.Fprintf(&o, "    - Rollout blocked, no operations allowed\n")
 		}
 	}
 	return o.String()
@@ -1296,12 +1326,6 @@ func createMD(failureDomain string, replicas int32, options ...machineDeployment
 func withStatusAvailableReplicas(r int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
 		ms.Status.AvailableReplicas = ptr.To(r)
-	}
-}
-
-func withStatusUpToDateReplicas(r int32) fakeMachineSetOption {
-	return func(ms *clusterv1.MachineSet) {
-		ms.Status.UpToDateReplicas = ptr.To(r)
 	}
 }
 

@@ -840,6 +840,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 		strategyType       clusterv1.MachineDeploymentRolloutStrategyType
 		deploymentReplicas int32
 		maxSurge           int32
+		maxSurgeLimit      *int
 		oldMSReplicas      int32
 		newMSReplicas      int32
 		expected           int32
@@ -860,6 +861,39 @@ func TestNewMSNewReplicas(t *testing.T) {
 			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
 			deploymentReplicas: 6,
 			maxSurge:           3,
+			oldMSReplicas:      5,
+			newMSReplicas:      2,
+			expected:           4, // +2 (6 MachineDeployment spec.replicas + 3 maxSurge - 7 current Machines)
+			expectedNote:       "7 current Machines < 6 MachineDeployment spec.replicas + 3 maxSurge",
+		},
+		{
+			Name:               "RollingUpdate strategy, maxSurgeLimit lower than maxSurge reduces maxSurge, can not scale up",
+			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			deploymentReplicas: 6,
+			maxSurge:           3,
+			maxSurgeLimit:      ptr.To(1),
+			oldMSReplicas:      5,
+			newMSReplicas:      2,
+			expected:           2, // without the limit it would scale up by +2 (6 MachineDeployment spec.replicas + 3 maxSurge - 7 current Machines)
+			expectedNote:       "7 current Machines >= 6 MachineDeployment spec.replicas + 1 maxSurge",
+		},
+		{
+			Name:               "RollingUpdate strategy, maxSurgeLimit 0 does not use maxSurge, scale up only to deploymentReplicas",
+			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			deploymentReplicas: 6,
+			maxSurge:           3,
+			maxSurgeLimit:      ptr.To(0),
+			oldMSReplicas:      3,
+			newMSReplicas:      2,
+			expected:           3, // +1 (6 MachineDeployment spec.replicas + 0 maxSurge - 5 current Machines), without the limit it would scale up by +4
+			expectedNote:       "5 current Machines < 6 MachineDeployment spec.replicas + 0 maxSurge",
+		},
+		{
+			Name:               "RollingUpdate strategy, maxSurgeLimit greater than maxSurge does not increase maxSurge",
+			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			deploymentReplicas: 6,
+			maxSurge:           3,
+			maxSurgeLimit:      ptr.To(5),
 			oldMSReplicas:      5,
 			newMSReplicas:      2,
 			expected:           4, // +2 (6 MachineDeployment spec.replicas + 3 maxSurge - 7 current Machines)
@@ -902,7 +936,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 			}
 			*(newMS.Spec.Replicas) = test.newMSReplicas
 			*(oldMS.Spec.Replicas) = test.oldMSReplicas
-			ms, note, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&oldMS, &newMS}, *newMS.Spec.Replicas)
+			ms, note, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&oldMS, &newMS}, *newMS.Spec.Replicas, test.maxSurgeLimit)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ms).To(Equal(test.expected))
 			g.Expect(note).To(Equal(test.expectedNote))

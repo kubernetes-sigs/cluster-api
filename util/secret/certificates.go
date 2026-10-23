@@ -269,7 +269,7 @@ func getCertificateSecret(ctx context.Context, secretCachingClient, ctrlclient c
 }
 
 // EnsureAllExist ensure that there is some data present for every certificate.
-// Key data is required only for certificates that are not external and that name a KeyFile.
+// Key data is required only for certificates that name a KeyFile.
 func (c Certificates) EnsureAllExist() error {
 	for _, certificate := range c {
 		if certificate.KeyPair == nil {

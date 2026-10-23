@@ -42,7 +42,7 @@
         - Diff: in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset removed
     ms3: from 1/0 to 1/2 replicas, 1 available, 0 upToDate (m3🟢)
       - Scaled up current MachineSet ms3 from 0 to 2 replicas (+2)
-        - Reason: acknowledge Machines m3 moved from an old MachineSet, MachineSet ms1 can rollout in place affecting availability, maxSurge limit set to 1 for ms3, 3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge
+        - Reason: acknowledge Machines m3 moved from an old MachineSet, MachineSet ms1 can rollout in place affecting availability, maxUnavailable is zero, maxSurge limit set to 1 for ms3, 3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge
         - Diff: replicas 2,in-place-updates.internal.cluster.x-k8s.io/receive-machines-from-machinesets: ms1,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m3
 [MS controller] Reconcile ms1
     ms1: 2/2 replicas, 2 available, 0 upToDate (m1,m2)

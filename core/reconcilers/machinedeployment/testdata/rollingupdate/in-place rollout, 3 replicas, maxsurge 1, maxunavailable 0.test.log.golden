@@ -22,7 +22,7 @@
     ms2: 0/1 replicas, 0 available, 0 upToDate ()
       - MachineSet ms2 created, it is now the current MachineSet
       - Scaled up current MachineSet ms2 from 0 to 1 replicas (+1)
-        - Reason: MachineSet ms1 can rollout in place affecting availability, maxSurge limit set to 1 for ms2, 3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge
+        - Reason: MachineSet ms1 can rollout in place affecting availability, maxUnavailable is zero, maxSurge limit set to 1 for ms2, 3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge
 [MS controller] Reconcile ms1
     ms1: 3/3 replicas, 3 available, 0 upToDate (m1,m2,m3)
 [MS controller] Reconcile ms2
@@ -46,7 +46,7 @@
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)
     ms2: from 2/1 to 2/2 replicas, 1 available, 1 upToDate (m1🟡,m4)
       - Scaled up current MachineSet ms2 from 1 to 2 replicas (+1)
-        - Reason: acknowledge Machines m1 moved from an old MachineSet, MachineSet ms1 can rollout in place affecting availability, maxSurge limit set to 1 for ms2
+        - Reason: acknowledge Machines m1 moved from an old MachineSet, MachineSet ms1 can rollout in place affecting availability, maxUnavailable is zero, maxSurge limit set to 1 for ms2
         - Diff: replicas 2,in-place-updates.internal.cluster.x-k8s.io/acknowledged-move: m1
 [MS controller] Reconcile ms1
     ms1: 2/2 replicas, 2 available, 0 upToDate (m2,m3)

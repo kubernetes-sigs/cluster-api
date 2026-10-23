@@ -539,10 +539,10 @@ func verifyMachineDeploymentsRollingOutCondition(ctx context.Context, c client.C
 		g.Expect(machineDeployments).ToNot(BeEmpty())
 		for _, machineDeployment := range machineDeployments {
 			rollingOutCondition := conditions.Get(machineDeployment, clusterv1.MachineDeploymentRollingOutCondition)
-			g.Expect(rollingOutCondition).ToNot(BeNil(), "RollingOut condition of MachineDeployment %s", klog.KObj(machineDeployment))
-			g.Expect(rollingOutCondition.Status).To(Equal(metav1.ConditionTrue), "RollingOut condition of MachineDeployment %s", klog.KObj(machineDeployment))
-			g.Expect(rollingOutCondition.Reason).To(Equal(reason), "RollingOut condition of MachineDeployment %s", klog.KObj(machineDeployment))
-			g.Expect(rollingOutCondition.Message).To(ContainSubstring(messageSubstring), "RollingOut condition of MachineDeployment %s", klog.KObj(machineDeployment))
+			g.Expect(rollingOutCondition).ToNot(BeNil())
+			g.Expect(rollingOutCondition.Status).To(Equal(metav1.ConditionTrue))
+			g.Expect(rollingOutCondition.Reason).To(Equal(reason))
+			g.Expect(rollingOutCondition.Message).To(ContainSubstring(messageSubstring))
 		}
 	}, intervals...).Should(Succeed())
 }

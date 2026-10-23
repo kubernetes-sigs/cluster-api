@@ -349,7 +349,7 @@ Depending on the answer, the outcome applies to that single MachineSet or to the
 Effects on the rollout:
 - Pending pauses everything.
   - The planner can't decide how to use `maxSurge` or how to optimize for in-place without all the answers.
-  - It blocks scale down of the outdated replicase from all the old MachineSets and also blocks the part of the new MachineSet scale up that uses `maxSurge`. Scale up/down due to changes to MachineDeployment spec.replicas still happen.
+  - It blocks scale down of the outdated replicas from all the old MachineSets and also blocks the part of the new MachineSet scale up that uses `maxSurge`. Scale up/down due to changes to MachineDeployment spec.replicas still happen.
   - It keeps scale up caused by `spec.replicas` changes, and moves already in progress, so concurrent operations like scale up still work.
   - The MachineDeployment is requeued at the latest `retryAfter` of the pending MachineSets. Results are cached until then, so the pause can't lift earlier.
 - Blocked is per MachineSet.

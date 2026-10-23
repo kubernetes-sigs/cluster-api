@@ -524,12 +524,10 @@ func Test_canUpdateMachineSetInPlaceDecisions(t *testing.T) {
 
 func TestReconcileNewMachineSet(t *testing.T) {
 	testCases := []struct {
-		name                          string
-		machineDeployment             *clusterv1.MachineDeployment
-		newMachineSet                 *clusterv1.MachineSet
-		oldMachineSets                []*clusterv1.MachineSet
-		expectedNewMachineSetReplicas int
-		expectedNotes                 []string
+		name              string
+		machineDeployment *clusterv1.MachineDeployment
+		newMachineSet     *clusterv1.MachineSet
+		oldMachineSets    []*clusterv1.MachineSet
 		// pendingMSs, blockedMSs, replaceCandidates, inPlaceUpdateCandidates and inPlaceUpdateCandidatesNotAffectingAvailability
 		// are the outcome of canUpdateMachineSetInPlaceDecisions, and determine if maxSurge can be used.
 		pendingMSs                                      sets.Set[string]
@@ -537,6 +535,8 @@ func TestReconcileNewMachineSet(t *testing.T) {
 		replaceCandidates                               sets.Set[string]
 		inPlaceUpdateCandidates                         sets.Set[string]
 		inPlaceUpdateCandidatesNotAffectingAvailability sets.Set[string]
+		expectedNewMachineSetReplicas                   int
+		expectedNotes                                   []string
 		error                                           error
 	}{
 		{
@@ -676,7 +676,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 			inPlaceUpdateCandidates:       sets.New("ms1", "ms2"),
 			expectedNewMachineSetReplicas: 2,
 			expectedNotes: []string{
-				"MachineSet ms1,ms2 can rollout in place affecting availability, maxSurge limit set to 1 for ms3",
+				"MachineSet ms1,ms2 can rollout in place affecting availability, maxUnavailable is zero, maxSurge limit set to 1 for ms3",
 				"3 current Machines < 3 MachineDeployment spec.replicas + 1 maxSurge",
 			},
 		},
@@ -742,14 +742,14 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 		newMS                      *clusterv1.MachineSet
 		oldMSs                     []*clusterv1.MachineSet
 		machines                   []*clusterv1.Machine
-		expectScaleIntent          map[string]int32
-		expectedNotes              map[string][]string
 		skipMaxUnavailabilityCheck bool
 		// pendingMSs, blockedMSs, inPlaceUpdateCandidates and inPlaceUpdateCandidatesNotAffectingAvailability are the outcome of canUpdateMachineSetInPlaceDecisions.
 		pendingMSs                                      sets.Set[string]
 		blockedMSs                                      sets.Set[string]
 		inPlaceUpdateCandidates                         sets.Set[string]
 		inPlaceUpdateCandidatesNotAffectingAvailability sets.Set[string]
+		expectScaleIntent                               map[string]int32
+		expectedNotes                                   map[string][]string
 		// expectMoveToNewMS contains the oldMSs that must get the move annotation, with the expected affectsAvailability value.
 		expectMoveToNewMS    map[string]bool
 		expectReceiveFromMSs string
@@ -884,7 +884,7 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
 			},
 			expectScaleIntent: map[string]int32{
-				"ms2": 1,
+				"ms2": 1, // unchanged, scale down intent for the newMS already set in the current reconcile
 				// no new scale down intent for oldMSs (ms1):
 				// 2 available replicas from ms1 + 2 available replicas from ms2 - 1 replica already scaling down from ms2 = 3 available replicas == minAvailability, we cannot further scale down
 			},
@@ -901,8 +901,8 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
 			},
 			expectScaleIntent: map[string]int32{
-				// no new scale down intent for oldMSs:
-				"ms1": 1,
+				"ms1": 1, // unchanged, scale down intent for the oldMS already set in the current reconcile
+				// no new scale down intent for other oldMSs:
 				// 2 available replicas from ms1 - 1 replica already scaling down from ms1 + 2 available replicas from ms2 = 3 available replicas == minAvailability, we cannot further scale down
 			},
 			expectedNotes: map[string][]string{},
@@ -1089,7 +1089,7 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 				createMS("ms1", "v0", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
 			},
 			expectScaleIntent: map[string]int32{
-				"ms2": 1,
+				"ms2": 1, // unchanged, scale down intent for the newMS already set in the current reconcile
 				// new scale down intent for oldMSs:
 				"ms1": 2, // 3 available replicas from ms1 + 2 available replicas from ms2 - 1 replica already scaling down from ms2 = 4 available replicas > minAvailability, scale down to 2 (-1)
 			},
@@ -1139,9 +1139,11 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 			},
 			inPlaceUpdateCandidates:                         sets.New("ms1"),
 			inPlaceUpdateCandidatesNotAffectingAvailability: sets.New("ms1"),
-			expectScaleIntent:                               map[string]int32{"ms1": 1},
-			expectMoveToNewMS:                               map[string]bool{"ms1": false},
-			expectReceiveFromMSs:                            "ms1",
+			expectScaleIntent: map[string]int32{
+				"ms1": 1, // scale down by one Machine at a time to move it to the newMS, allowed even without availability buffer because the in-place update does not affect availability
+			},
+			expectMoveToNewMS:    map[string]bool{"ms1": false},
+			expectReceiveFromMSs: "ms1",
 			expectedNotes: map[string][]string{
 				"ms1": {"scale down for MachineSet ms1 to 1 replicas (-1) allowed for in place update not affecting availability"},
 			},
@@ -1204,9 +1206,9 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 			pendingMSs: sets.New("ms2"),
 			blockedMSs: sets.New("ms1"),
 			expectScaleIntent: map[string]int32{
-				"ms3": 0,
-				"ms1": 0, // 0+2+4=6 replicas > 2 spec.replicas + 0 maxSurge, scale down by 4
-				"ms2": 2,
+				"ms3": 0, // unchanged, scale down intent for the newMS already set in the current reconcile
+				"ms1": 0, // 0+2+4=6 replicas > 2 spec.replicas + 0 maxSurge, scale down by 4 starting from the oldest MachineSet: ms1 2 -> 0 (-2)
+				"ms2": 2, // the remaining 2 excess replicas are removed from the next oldest MachineSet: ms2 4 -> 2 (-2)
 			},
 			expectedNotes: map[string][]string{
 				"ms1": {"6 current Machines > 2 MachineDeployment spec.replicas + 0 maxSurge"},
@@ -2894,7 +2896,6 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 
 	rng := rand.New(rand.NewSource(tt.seed)) //nolint:gosec // it is ok to use a weak randomizer here
 	fLogger := newFileLogger(t, tt.name, fmt.Sprintf("testdata/rollingupdate/%s", tt.logAndGoldenFileName))
-	// uncomment this line to automatically generate/update golden files:
 	// uncomment this line to automatically generate/update golden files: fLogger.writeGoldenFile = true
 
 	// Init current and desired state from test case

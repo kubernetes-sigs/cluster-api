@@ -339,7 +339,7 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 		maxSurgeLimit = new(0)
 		p.addNotef(p.newMS, "MachineSet %s can rollout in place affecting availability, maxUnavailable is greater than zero, maxSurge is not required for %s", sortAndJoin(p.inPlaceUpdateCandidates.UnsortedList()), p.newMS.Name)
 	case p.inPlaceUpdateCandidates.Len() > 0 && mdutil.MaxUnavailable(*p.md) == 0:
-		p.addNotef(p.newMS, "MachineSet %s can rollout in place affecting availability, maxSurge limit set to 1 for %s", sortAndJoin(p.inPlaceUpdateCandidates.UnsortedList()), p.newMS.Name)
+		p.addNotef(p.newMS, "MachineSet %s can rollout in place affecting availability, maxUnavailable is zero, maxSurge limit set to 1 for %s", sortAndJoin(p.inPlaceUpdateCandidates.UnsortedList()), p.newMS.Name)
 		maxSurgeLimit = new(1)
 	}
 
@@ -445,7 +445,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 	// if necessary, it will reduce the extent of the scale down accordingly.
 	totalScaleDownCount := max(totalSpecReplicas-totalPendingScaleDown-totalInPlaceUpdatingNotAffectingAvailability-minAvailable-newMSUnavailableMachineCount, 0)
 	if totalScaleDownCount <= 0 {
-		// If there is room for scaling down, but there are inPlaceUpdateCandidatesNotAffectingAvailability, and no scale down is in progress,
+		// If there is no room for scaling down, but there are inPlaceUpdateCandidatesNotAffectingAvailability, and no scale down is in progress,
 		// scale down by one.
 		// Note: If the InPlaceUpdates feature gate is off, inPlaceUpdateCandidatesNotAffectingAvailability will always be empty.
 		if p.inPlaceUpdateCandidatesNotAffectingAvailability.Len() > 0 && totalInPlaceUpdatingNotAffectingAvailability == 0 && totalPendingScaleDown == 0 {
@@ -545,7 +545,7 @@ func (p *rolloutPlanner) setMoveMachinesAnnotations() error {
 }
 
 // scaleDownExcessReplicas sets the scale down intent for the oldMSs, oldest first, when the MachineSets have more replicas
-// than MachineDeployment spec.replicas.
+// than MachineDeployment spec.replicas + maxSurge.
 // Note: This is a plain scale down, so Machines are deleted: it does not depend on the CanUpdateMachineSet decisions and,
 // like the scale down of the newMS in reconcileNewMachineSet, it does not consider minAvailable because it is requested by the user.
 func (p *rolloutPlanner) scaleDownExcessReplicas(ctx context.Context) {
@@ -560,6 +560,13 @@ func (p *rolloutPlanner) scaleDownExcessReplicas(ctx context.Context) {
 		totalReplicas += p.replicasAfterScaleIntent(oldMS)
 	}
 
+	// Note: Intentionally, replicas up to spec.replicas + maxSurge (emphasis on the maxSurge part) are not considered in excess.
+	// This function is called only while the rollout is paused waiting for a decision from the extension, so it can't create
+	// surge replicas, but surge replicas created by the rollout already in progress might exist.
+	// e.g. spec.replicas 3, maxSurge 1, maxUnavailable 0, with 3 available Machines in the oldMS and 1 Machine not yet
+	// available in the newMS: scaling down the oldMS to get to 3 replicas would leave 2 available Machines.
+	// The downside is that a scale down of spec.replicas not larger than maxSurge, e.g. from 3 to 2 with maxSurge 1, has no
+	// effect until the extension answers; this is considered an acceptable trade off.
 	excessReplicas := totalReplicas - (mdReplicas + maxSurge)
 	if excessReplicas <= 0 {
 		return

@@ -1153,7 +1153,7 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *pkg.Cont
 			continue
 		}
 
-		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" && machine.Status.NodeInfo.KubeletVersion != machine.Spec.Version {
+		if machine.Spec.Version != "" && machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" && machine.Status.NodeInfo.KubeletVersion != machine.Spec.Version {
 			conditions.Set(machine, metav1.Condition{
 				Type:   clusterv1.MachineUpToDateCondition,
 				Status: metav1.ConditionFalse,

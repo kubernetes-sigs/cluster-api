@@ -58,7 +58,7 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 		if machine.Spec.Version != mdVersion {
 			return true, nil
 		}
-		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" && machine.Status.NodeInfo.KubeletVersion != mdVersion {
+		if mdVersion != "" && machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" && machine.Status.NodeInfo.KubeletVersion != mdVersion {
 			return true, nil
 		}
 	}
@@ -81,7 +81,7 @@ func IsMachinePoolUpgrading(ctx context.Context, c client.Reader, mp *clusterv1.
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
 			return false, fmt.Errorf("failed to check if MachinePool %s is upgrading: failed to get Node %s", mp.Name, nodeRef.Name)
 		}
-		if mpVersion != node.Status.NodeInfo.KubeletVersion {
+		if mpVersion != "" && mpVersion != node.Status.NodeInfo.KubeletVersion {
 			return true, nil
 		}
 	}

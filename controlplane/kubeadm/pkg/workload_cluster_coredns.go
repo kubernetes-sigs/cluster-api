@@ -230,12 +230,18 @@ func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInf
 	return w.Client.Patch(ctx, info.Deployment, client.MergeFrom(original))
 }
 
-// updateCoreDNSImageInfoInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
-func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(dns *bootstrapv1.DNS) func(*bootstrapv1.ClusterConfiguration) {
+// UpdateCoreDNSImageInfoInKubeadmConfigMap returns a ClusterConfiguration mutator that sets the DNS
+// image repository and image tag, so they land in the kubeadm-config ConfigMap instead of only
+// being applied once the rollout has completed.
+func UpdateCoreDNSImageInfoInKubeadmConfigMap(dns *bootstrapv1.DNS) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.DNS.ImageRepository = dns.ImageRepository
 		c.DNS.ImageTag = dns.ImageTag
 	}
+}
+
+func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(dns *bootstrapv1.DNS) func(*bootstrapv1.ClusterConfiguration) {
+	return UpdateCoreDNSImageInfoInKubeadmConfigMap(dns)
 }
 
 // updateCoreDNSCorefile migrates the coredns corefile if there is an increase

@@ -404,15 +404,16 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 		name                     string
 		clusterConfigurationData string
 		newImageRepository       string
-		wantImageRepository      string
+		dns                      *bootstrapv1.DNS
+		wantSubstrings           []string
 	}{
 		{
 			name: "it should set the image repository",
 			clusterConfigurationData: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration`),
-			newImageRepository:  "example.com/k8s",
-			wantImageRepository: "example.com/k8s",
+			newImageRepository: "example.com/k8s",
+			wantSubstrings:     []string{"imageRepository: example.com/k8s"},
 		},
 		{
 			name: "it should preserve the existing image repository if then new value is empty",
@@ -420,8 +421,26 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration
 				imageRepository: foo.bar/baz.io`),
-			newImageRepository:  "",
-			wantImageRepository: "foo.bar/baz.io",
+			newImageRepository: "",
+			wantSubstrings:     []string{"foo.bar/baz.io"},
+		},
+		{
+			// The reconciler applies both mutators in the same reconcile, so the DNS section must not
+			// lag behind the top level repository until every control plane Machine has rotated.
+			name: "it should set the DNS image repository and tag together with the image repository",
+			clusterConfigurationData: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta4
+				kind: ClusterConfiguration`),
+			newImageRepository: "registry.example.org",
+			dns: &bootstrapv1.DNS{
+				ImageRepository: "registry.example.org/coredns",
+				ImageTag:        "v1.12.1",
+			},
+			wantSubstrings: []string{
+				"imageRepository: registry.example.org\n",
+				"imageRepository: registry.example.org/coredns",
+				"imageTag: v1.12.1",
+			},
 		},
 	}
 
@@ -441,7 +460,11 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.31.1"), w.UpdateImageRepositoryInKubeadmConfigMap(tt.newImageRepository))
+			mutators := []func(*bootstrapv1.ClusterConfiguration){w.UpdateImageRepositoryInKubeadmConfigMap(tt.newImageRepository)}
+			if tt.dns != nil {
+				mutators = append(mutators, UpdateCoreDNSImageInfoInKubeadmConfigMap(tt.dns))
+			}
+			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.31.1"), mutators...)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var actualConfig corev1.ConfigMap
@@ -450,7 +473,9 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring(tt.wantImageRepository))
+			for _, want := range tt.wantSubstrings {
+				g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring(want))
+			}
 		})
 	}
 }

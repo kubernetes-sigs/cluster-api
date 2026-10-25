@@ -985,7 +985,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.31.1"), w.updateCoreDNSImageInfoInKubeadmConfigMap(&tt.newDNS))
+			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.31.1"), w.UpdateCoreDNSImageInfoInKubeadmConfigMap(&tt.newDNS))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var actualConfig corev1.ConfigMap
